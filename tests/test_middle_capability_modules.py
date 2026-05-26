@@ -8,6 +8,7 @@ from cgnk_modules.convergence_guard import evaluate_convergence
 from cgnk_modules.diagnostics_summary import summarize_diagnostics
 from cgnk_modules.provider_call_guard import evaluate_provider_call_request
 from cgnk_modules.requirements_extract_contract_only import extract_requirements_contract_only
+from cgnk_modules.trace_summary import summarize_trace_events
 from cgnk_modules.timeout_guard import evaluate_timeout_budget
 
 
@@ -52,6 +53,21 @@ class MiddleCapabilityModulesTest(unittest.TestCase):
         result = evaluate_provider_call_request({"provider": "example", "max_tokens": 10}, policy={"allow_provider_call": False}, budget={"max_tokens": 100})
         self.assertFalse(result["allowed"])
         self.assertEqual(["policy_denies_provider_call"], result["denied_reasons"])
+
+    def test_trace_summary_summarizes_existing_events_only(self) -> None:
+        events = [
+            {"type": "provider", "provider": "fake"},
+            {"type": "artifact", "artifact": "artifact.example@1"},
+            {"type": "diagnostic", "diagnostics": [{"code": "A", "severity": "warning"}]},
+        ]
+        first = summarize_trace_events(events)
+        second = summarize_trace_events(events)
+        self.assertEqual(first, second)
+        self.assertTrue(first["ok"], first["diagnostics"])
+        self.assertEqual({"artifact": 1, "diagnostic": 1, "provider": 1}, first["by_type"])
+        self.assertEqual(["fake"], first["providers"])
+        self.assertEqual(["artifact.example@1"], first["artifacts"])
+        self.assertEqual(["A"], first["diagnostics_codes"])
 
 
 if __name__ == "__main__":

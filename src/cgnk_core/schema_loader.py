@@ -22,6 +22,7 @@ SCHEMA_BY_KIND = {
     "CTCPTransferPlan": "ctcp_transfer_plan.schema.json",
     "CTCPBridgeProposal": "ctcp_bridge_proposal.schema.json",
     "CTCPPatchManifest": "ctcp_patch_manifest.schema.json",
+    "CTCPBridgeReview": "ctcp_bridge_review.schema.json",
     "ContractPack": "contract_pack.schema.json",
     "CompileResult": "compile_result.schema.json",
     "CompiledContractBundle": "compiled_contract_bundle.schema.json",

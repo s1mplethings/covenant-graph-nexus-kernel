@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/ctcp_bridge_review.schema.json",
+  "title": "CTCPBridgeReview",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "ok",
+    "approval_status",
+    "target_feature",
+    "proposed_files",
+    "preserved_entrypoints",
+    "risk_summary",
+    "required_tests",
+    "violations",
+    "warnings",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "CTCPBridgeReview"
+    },
+    "version": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "approval_status": {
+      "enum": [
+        "blocked",
+        "review_required",
+        "approvable"
+      ]
+    },
+    "target_feature": {
+      "type": "string"
+    },
+    "proposed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preserved_entrypoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_summary": {
+      "type": "object",
+      "required": [
+        "target_repo_external",
+        "read_only_review",
+        "default_behavior_unchanged",
+        "opt_in_only",
+        "provider_semantics_unchanged",
+        "patch_apply",
+        "workspace_write",
+        "forbidden_file_count",
+        "forbidden_effect_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "target_repo_external": {
+          "type": "boolean"
+        },
+        "read_only_review": {
+          "type": "boolean"
+        },
+        "default_behavior_unchanged": {
+          "type": "boolean"
+        },
+        "opt_in_only": {
+          "type": "boolean"
+        },
+        "provider_semantics_unchanged": {
+          "type": "boolean"
+        },
+        "patch_apply": {
+          "type": "boolean"
+        },
+        "workspace_write": {
+          "type": "boolean"
+        },
+        "forbidden_file_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "forbidden_effect_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "required_tests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    }
+  }
+}

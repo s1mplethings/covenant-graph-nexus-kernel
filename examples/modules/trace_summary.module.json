@@ -1,0 +1,59 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.trace.summary",
+  "version": "1",
+  "ports": {
+    "input": {
+      "events": {
+        "artifact_type": "artifact.trace_events@1",
+        "required": false,
+        "description": "Existing trace or event rows to summarize."
+      }
+    },
+    "output": {
+      "summary": {
+        "artifact_type": "artifact.trace_summary@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.trace_summary",
+    "legacy_files": [
+      "scripts/ctcp_orchestrate.py",
+      "tools/run_manifest.py",
+      "tools/providers/project_generation_artifacts.py"
+    ],
+    "legacy_symbols": [
+      "events",
+      "trace",
+      "provider_metadata",
+      "artifact_metadata"
+    ],
+    "evidence_keywords": [
+      "trace",
+      "events",
+      "diagnostics",
+      "provider",
+      "artifact"
+    ]
+  }
+}

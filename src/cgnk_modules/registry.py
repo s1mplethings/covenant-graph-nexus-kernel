@@ -113,7 +113,17 @@ P0_MODULES = [
     },
 ]
 
-ALL_MODULES = P0_MODULES
+P1_MODULES = [
+    {
+        "module_ref": "module.trace.summary@1",
+        "package": "cgnk_modules.trace_summary",
+        "api": "summarize_trace_events",
+        "output_key": "summary",
+        "contract_file": "examples/modules/trace_summary.module.json",
+    },
+]
+
+ALL_MODULES = P0_MODULES + P1_MODULES
 
 FORBIDDEN_IMPORT_ROOTS = {
     "ctcp",
@@ -245,6 +255,7 @@ def _call_sample(module_obj: Any, api_name: str, context: ModuleCheckContext) ->
         "evaluate_convergence": lambda: module_obj.evaluate_convergence([{"ok": False, "hash": "a"}, {"ok": True, "hash": "b"}]),
         "evaluate_timeout_budget": lambda: module_obj.evaluate_timeout_budget({"total_seconds": 1.0}, {"max_total_seconds": 5.0}),
         "evaluate_provider_call_request": lambda: module_obj.evaluate_provider_call_request({"provider": "example", "max_tokens": 10}, policy={"allow_provider_call": False}, budget={"max_tokens": 100, "max_calls": 1}),
+        "summarize_trace_events": lambda: module_obj.summarize_trace_events([{"type": "provider", "provider": "example"}, {"type": "artifact", "artifact": "artifact.example@1", "diagnostics": [{"code": "CGNK_SAMPLE", "severity": "warning"}]}]),
     }
     call = calls[api_name]
     return call(), call()
