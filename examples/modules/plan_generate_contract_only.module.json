@@ -42,5 +42,22 @@
   },
   "metadata": {
     "purpose": "deterministic/contract-only planning for safe refactor flow"
+  },
+  "source_trace": {
+    "candidate": "candidate.planning",
+    "legacy_files": [
+      "AGENTS.md",
+      "README.md",
+      "agents/prompts/chair_plan_draft.md"
+    ],
+    "legacy_symbols": [
+      "CTCP_AGENT_PLANNER",
+      "PATCH_PLAN",
+      "PLAN"
+    ],
+    "evidence_keywords": [
+      "plan",
+      "planning"
+    ]
   }
 }

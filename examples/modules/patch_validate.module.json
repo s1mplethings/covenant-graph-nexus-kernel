@@ -52,5 +52,22 @@
     "movable": true,
     "surface_rule": "same_or_compatible",
     "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.patch_validation",
+    "legacy_files": [
+      "examples/flowspec/dry_run_inserted_validation.flowspec.json",
+      "examples/flowspec/insert_validation_node.flowspec.json",
+      "tools/providers/flowspec_refactor_harness.py"
+    ],
+    "legacy_symbols": [
+      "e_validate_patch",
+      "validate_patch_effects",
+      "validate_patch_paths"
+    ],
+    "evidence_keywords": [
+      "patch validation",
+      "validate_patch"
+    ]
   }
 }

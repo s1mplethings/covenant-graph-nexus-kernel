@@ -36,5 +36,22 @@
     "movable": true,
     "surface_rule": "same_or_compatible",
     "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.project_graph",
+    "legacy_files": [
+      "TREE.md",
+      "ai/DETECTORS/rules.json",
+      "ai/RECIPES/recipe_index.json"
+    ],
+    "legacy_symbols": [
+      "BuildGraph",
+      "GraphBuilder",
+      "GraphView"
+    ],
+    "evidence_keywords": [
+      "graph",
+      "project_graph"
+    ]
   }
 }

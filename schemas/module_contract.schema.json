@@ -140,6 +140,40 @@
     },
     "metadata": {
       "type": "object"
+    },
+    "source_trace": {
+      "type": "object",
+      "required": [
+        "candidate",
+        "legacy_files",
+        "legacy_symbols",
+        "evidence_keywords"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "type": "string",
+          "pattern": "^candidate\\.[a-z0-9_.-]+$"
+        },
+        "legacy_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "legacy_symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {

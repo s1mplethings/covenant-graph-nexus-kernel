@@ -1,0 +1,60 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.migration.proof",
+  "version": "1",
+  "ports": {
+    "input": {
+      "validation_report": {
+        "artifact_type": "artifact.validation_report@1",
+        "required": true
+      },
+      "benchmark_report": {
+        "artifact_type": "artifact.benchmark_report@1",
+        "required": false
+      }
+    },
+    "output": {
+      "migration_proof": {
+        "artifact_type": "artifact.migration_proof@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink",
+      "migration_spec"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.migration_proof",
+    "legacy_files": [
+      "ai_context/00_AI_CONTRACT.md",
+      "ai_context/CTCP_FAST_RULES.md",
+      "ai_context/problem_registry.md"
+    ],
+    "legacy_symbols": [
+      "_evaluate_legacy_proof",
+      "_write_legacy_proof",
+      "Migration"
+    ],
+    "evidence_keywords": [
+      "migration",
+      "proof"
+    ]
+  }
+}

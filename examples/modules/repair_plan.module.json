@@ -1,0 +1,56 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.repair.plan",
+  "version": "1",
+  "ports": {
+    "input": {
+      "validation_report": {
+        "artifact_type": "artifact.validation_report@1",
+        "required": true
+      }
+    },
+    "output": {
+      "repair_plan": {
+        "artifact_type": "artifact.repair_plan@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink",
+      "proposal_diagnostics"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.repair_planning",
+    "legacy_files": [
+      ".agents/skills/ctcp-patch-guard/SKILL.md",
+      ".agents/skills/ctcp-verify/SKILL.md",
+      "agents/prompts/chair_plan_draft.md"
+    ],
+    "legacy_symbols": [
+      "REPAIR",
+      "_apply_targeted_repair",
+      "_repair_candidate"
+    ],
+    "evidence_keywords": [
+      "repair",
+      "repair_plan"
+    ]
+  }
+}

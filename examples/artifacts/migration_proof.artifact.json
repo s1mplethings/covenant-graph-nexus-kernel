@@ -1,0 +1,13 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.migration_proof",
+  "version": "1",
+  "type_name": "MigrationProof",
+  "schema_ref": "schemas/migration_proof.schema.json",
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "shape": "Machine-readable proof bundle for legacy-to-CGNK preservation claims."
+  }
+}

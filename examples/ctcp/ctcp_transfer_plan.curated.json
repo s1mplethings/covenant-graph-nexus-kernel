@@ -1,0 +1,79 @@
+{
+  "kind": "CTCPTransferPlan",
+  "version": "1",
+  "id": "ctcp_transfer_plan.curated",
+  "ok": true,
+  "diagnostics": [],
+  "modules": [
+    {
+      "candidate": "candidate.migration_proof",
+      "target_module": "module.migration.proof@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Promote as a contract-only migration proof module."
+      ]
+    },
+    {
+      "candidate": "candidate.patch_manifest_generation",
+      "target_module": "module.patch.emit@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Retain existing module surface and add curated source trace."
+      ]
+    },
+    {
+      "candidate": "candidate.patch_validation",
+      "target_module": "module.patch.validate@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Retain existing module surface and add curated source trace."
+      ]
+    },
+    {
+      "candidate": "candidate.planning",
+      "target_module": "module.plan.generate.contract_only@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Use contract-only planning boundary; do not copy provider or old pipeline code."
+      ]
+    },
+    {
+      "candidate": "candidate.project_graph",
+      "target_module": "module.project.build_graph@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Retain existing graph module surface and add curated source trace."
+      ]
+    },
+    {
+      "candidate": "candidate.project_snapshot",
+      "target_module": "module.project.snapshot@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Retain existing snapshot module surface and add curated source trace."
+      ]
+    },
+    {
+      "candidate": "candidate.repair_planning",
+      "target_module": "module.repair.plan@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Promote as a contract-only repair planning module."
+      ]
+    }
+  ]
+}

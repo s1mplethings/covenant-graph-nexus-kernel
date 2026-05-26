@@ -55,5 +55,22 @@
     "movable": true,
     "surface_rule": "same_or_compatible",
     "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.patch_manifest_generation",
+    "legacy_files": [
+      "AGENTS.md",
+      "README.md",
+      "apps/project_backend/application/delivery_evidence.py"
+    ],
+    "legacy_symbols": [
+      "AgentManifestGeneratorTests",
+      "DeliveryEvidenceManifest",
+      "EXPORT_MANIFEST_SCHEMA"
+    ],
+    "evidence_keywords": [
+      "manifest",
+      "patch_manifest"
+    ]
   }
 }

@@ -38,5 +38,21 @@
     "movable": true,
     "surface_rule": "same_or_compatible",
     "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.project_snapshot",
+    "legacy_files": [
+      "apps/project_backend/application/service.py",
+      "ai_context/problem_registry.md",
+      "README.md"
+    ],
+    "legacy_symbols": [
+      "_build_current_state_snapshot",
+      "_contract_snapshot",
+      "Snapshot"
+    ],
+    "evidence_keywords": [
+      "snapshot"
+    ]
   }
 }

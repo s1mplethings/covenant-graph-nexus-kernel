@@ -1,0 +1,13 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.repair_plan",
+  "version": "1",
+  "type_name": "RepairPlan",
+  "schema_ref": "schemas/repair_plan.schema.json",
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "shape": "Machine-readable deterministic or heuristic repair suggestions for invalid graph proposals."
+  }
+}
