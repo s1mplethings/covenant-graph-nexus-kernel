@@ -1,0 +1,55 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.diagnostics.summary",
+  "version": "1",
+  "ports": {
+    "input": {
+      "diagnostics": {
+        "artifact_type": "artifact.validation_report@1",
+        "required": false,
+        "description": "Existing diagnostic arrays or reports to summarize."
+      }
+    },
+    "output": {
+      "summary": {
+        "artifact_type": "artifact.diagnostics_summary@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.diagnostics_summary",
+    "legacy_files": [
+      "ai_context/problem_registry.md",
+      "docs/behaviors/B010-plan-check-parse-and-validate.md",
+      "frontend/support_public_send_guard.py"
+    ],
+    "legacy_symbols": [
+      "Diagnostics",
+      "_diagnostics",
+      "diagnostics"
+    ],
+    "evidence_keywords": [
+      "diagnostics"
+    ]
+  }
+}

@@ -5,12 +5,12 @@ from typing import Any
 
 from cgnk_core.diagnostics import CGNK_MODULE_CHAIN_NOT_READY, Diagnostic
 
-from .registry import P0_MODULES, check_p0_modules
+from .registry import ALL_MODULES, P0_MODULES, check_all_modules, check_p0_modules
 
 
 def build_module_chain_readiness(chain: str = "p0", root: pathlib.Path | None = None) -> dict[str, Any]:
-    if chain != "p0":
-        diagnostic = Diagnostic(CGNK_MODULE_CHAIN_NOT_READY, "error", "$.chain", "Unsupported module readiness chain", expected="p0", actual=chain).as_dict()
+    if chain not in {"p0", "all"}:
+        diagnostic = Diagnostic(CGNK_MODULE_CHAIN_NOT_READY, "error", "$.chain", "Unsupported module readiness chain", expected="p0 or all", actual=chain).as_dict()
         return {
             "kind": "ModuleChainReadiness",
             "schema_version": "1",
@@ -25,7 +25,7 @@ def build_module_chain_readiness(chain: str = "p0", root: pathlib.Path | None = 
             "readiness_status": "blocked",
         }
 
-    registry_report = check_p0_modules(root)
+    registry_report = check_p0_modules(root) if chain == "p0" else check_all_modules(root)
     modules = [row["module_ref"] for row in registry_report["modules"]]
     diagnostics = list(registry_report["diagnostics"])
     missing_modules = [row["module_ref"] for row in registry_report["modules"] if not row.get("imports")]
@@ -53,8 +53,8 @@ def build_module_chain_readiness(chain: str = "p0", root: pathlib.Path | None = 
         "kind": "ModuleChainReadiness",
         "schema_version": "1",
         "ok": ok,
-        "chain_id": "p0",
-        "modules": modules or [row["module_ref"] for row in P0_MODULES],
+        "chain_id": chain,
+        "modules": modules or [row["module_ref"] for row in (P0_MODULES if chain == "p0" else ALL_MODULES)],
         "missing_modules": missing_modules,
         "contract_failures": contract_failures,
         "deterministic_failures": deterministic_failures,

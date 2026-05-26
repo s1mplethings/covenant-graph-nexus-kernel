@@ -4,13 +4,19 @@ import pathlib
 import tempfile
 import unittest
 
+from cgnk_modules.benchmark_summary import summarize_benchmark_report
+from cgnk_modules.convergence_guard import evaluate_convergence
+from cgnk_modules.diagnostics_summary import summarize_diagnostics
 from cgnk_modules.migration_proof import build_migration_proof
 from cgnk_modules.patch_emit import emit_patch_manifest
 from cgnk_modules.patch_validate import validate_patch_manifest
 from cgnk_modules.plan_generate_contract_only import generate_contract_plan
+from cgnk_modules.provider_call_guard import evaluate_provider_call_request
 from cgnk_modules.project_build_graph import build_project_graph
 from cgnk_modules.project_snapshot import collect_project_snapshot
+from cgnk_modules.requirements_extract_contract_only import extract_requirements_contract_only
 from cgnk_modules.repair_plan import build_repair_plan
+from cgnk_modules.timeout_guard import evaluate_timeout_budget
 
 
 class CleanRoomModuleChainTest(unittest.TestCase):
@@ -28,6 +34,8 @@ class CleanRoomModuleChainTest(unittest.TestCase):
             self.assertTrue(snapshot_result["ok"], snapshot_result["diagnostics"])
             graph_result = build_project_graph(snapshot_result["snapshot"])
             self.assertTrue(graph_result["ok"], graph_result["diagnostics"])
+            requirements = extract_requirements_contract_only("add deterministic docs note without provider calls", context={"snapshot": snapshot_result["snapshot"]})
+            self.assertTrue(requirements["ok"], requirements["diagnostics"])
 
             plan_result = generate_contract_plan(
                 "add deterministic docs note",
@@ -51,6 +59,18 @@ class CleanRoomModuleChainTest(unittest.TestCase):
             legacy_file.write_text("def main():\n    return 0\n", encoding="utf-8")
             proof = build_migration_proof(_migration_spec(), ctcp_root=ctcp_root)
             self.assertTrue(proof["ok"], proof["diagnostics"])
+
+            all_diagnostics = [*snapshot_result["diagnostics"], *graph_result["diagnostics"], *requirements["diagnostics"], *validation["diagnostics"], *proof["diagnostics"]]
+            diagnostic_summary = summarize_diagnostics(all_diagnostics)
+            self.assertTrue(diagnostic_summary["ok"], diagnostic_summary["diagnostics"])
+            convergence = evaluate_convergence([{"ok": False, "hash": "a"}, {"ok": True, "hash": "b"}])
+            self.assertTrue(convergence["ok"], convergence["diagnostics"])
+            timeout = evaluate_timeout_budget({"snapshot": 1.0, "graph": 1.5}, {"max_total_seconds": 10.0})
+            self.assertTrue(timeout["ok"], timeout["diagnostics"])
+            provider_guard = evaluate_provider_call_request({"provider": "example", "max_tokens": 10}, policy={"allow_provider_call": False}, budget={"max_tokens": 100, "max_calls": 1})
+            self.assertFalse(provider_guard["allowed"])
+            benchmark = summarize_benchmark_report({"kind": "BenchmarkReport", "ok": True, "metrics": {"duration_seconds": 2.0}, "warnings": []})
+            self.assertTrue(benchmark["ok"], benchmark["diagnostics"])
 
             after = _files(project_root)
         self.assertEqual(before, after)

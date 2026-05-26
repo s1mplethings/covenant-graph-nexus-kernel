@@ -1,0 +1,22 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.convergence_report",
+  "version": "1",
+  "type_name": "ConvergenceReport",
+  "schema_ref": "schemas/convergence_report.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "converged",
+      "stalled",
+      "reason",
+      "repeated_hashes"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "cgnk_clean_room_middle_layer_v1",
+    "ref": "artifact.convergence_report@1"
+  }
+}

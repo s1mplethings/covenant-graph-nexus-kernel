@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/ctcp_patch_manifest.schema.json",
+  "title": "CTCPPatchManifest",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "target_repo",
+    "target_feature",
+    "patch_apply",
+    "workspace_write",
+    "file_changes",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "CTCPPatchManifest"
+    },
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ctcp_patch_manifest\\.[a-z0-9_.-]+$"
+    },
+    "target_repo": {
+      "const": "CTCP"
+    },
+    "target_feature": {
+      "type": "string"
+    },
+    "patch_apply": {
+      "const": false
+    },
+    "workspace_write": {
+      "const": false
+    },
+    "file_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "path",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "create",
+              "modify",
+              "delete",
+              "move",
+              "rename"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_module": {
+            "$ref": "common_defs.schema.json#/$defs/module_ref"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    }
+  }
+}

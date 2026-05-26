@@ -1,0 +1,56 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.benchmark.summary",
+  "version": "1",
+  "ports": {
+    "input": {
+      "benchmark_report": {
+        "artifact_type": "artifact.benchmark_report@1",
+        "required": true
+      }
+    },
+    "output": {
+      "summary": {
+        "artifact_type": "artifact.benchmark_report@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.benchmark_summary_parsing",
+    "legacy_files": [
+      "artifacts/benchmark_goldens/endurance_indie_studio_hub/benchmark_endurance_summary.md",
+      "artifacts/benchmark_goldens/endurance_indie_studio_hub/project_manifest.json",
+      "artifacts/benchmark_goldens/endurance_indie_studio_hub/source_generation_report.json"
+    ],
+    "legacy_symbols": [
+      "SIMLAB_SUMMARY_JSON",
+      "SUMMARY_JSON",
+      "benchmark_summary"
+    ],
+    "evidence_keywords": [
+      "benchmark summary",
+      "benchmark_summary",
+      "summary_json"
+    ]
+  }
+}

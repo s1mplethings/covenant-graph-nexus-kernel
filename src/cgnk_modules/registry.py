@@ -35,6 +35,13 @@ P0_MODULES = [
         "contract_file": "examples/modules/project_build_graph.module.json",
     },
     {
+        "module_ref": "module.requirements.extract.contract_only@1",
+        "package": "cgnk_modules.requirements_extract_contract_only",
+        "api": "extract_requirements_contract_only",
+        "output_key": "requirements",
+        "contract_file": "examples/modules/requirements_extract_contract_only.module.json",
+    },
+    {
         "module_ref": "module.plan.generate.contract_only@1",
         "package": "cgnk_modules.plan_generate_contract_only",
         "api": "generate_contract_plan",
@@ -69,7 +76,44 @@ P0_MODULES = [
         "output_key": None,
         "contract_file": "examples/modules/migration_proof.module.json",
     },
+    {
+        "module_ref": "module.diagnostics.summary@1",
+        "package": "cgnk_modules.diagnostics_summary",
+        "api": "summarize_diagnostics",
+        "output_key": "summary",
+        "contract_file": "examples/modules/diagnostics_summary.module.json",
+    },
+    {
+        "module_ref": "module.benchmark.summary@1",
+        "package": "cgnk_modules.benchmark_summary",
+        "api": "summarize_benchmark_report",
+        "output_key": "summary",
+        "contract_file": "examples/modules/benchmark_summary.module.json",
+    },
+    {
+        "module_ref": "module.convergence.guard@1",
+        "package": "cgnk_modules.convergence_guard",
+        "api": "evaluate_convergence",
+        "output_key": "report",
+        "contract_file": "examples/modules/convergence_guard.module.json",
+    },
+    {
+        "module_ref": "module.timeout.guard@1",
+        "package": "cgnk_modules.timeout_guard",
+        "api": "evaluate_timeout_budget",
+        "output_key": "budget_summary",
+        "contract_file": "examples/modules/timeout_guard.module.json",
+    },
+    {
+        "module_ref": "module.provider_call.guard@1",
+        "package": "cgnk_modules.provider_call_guard",
+        "api": "evaluate_provider_call_request",
+        "output_key": "report",
+        "contract_file": "examples/modules/provider_call_guard.module.json",
+    },
 ]
+
+ALL_MODULES = P0_MODULES
 
 FORBIDDEN_IMPORT_ROOTS = {
     "ctcp",
@@ -93,25 +137,30 @@ class ModuleCheckContext:
     graph: dict[str, Any]
 
 
-def check_p0_modules(root: pathlib.Path | None = None) -> dict[str, Any]:
+def check_p0_modules(root: pathlib.Path | None = None, module_specs: list[dict[str, Any]] | None = None, kind: str = "P0ModuleRegistryReport") -> dict[str, Any]:
     root = pathlib.Path(root or pathlib.Path(__file__).resolve().parents[2])
     diagnostics: list[dict[str, Any]] = []
-    modules: list[dict[str, Any]] = []
+    checked_modules: list[dict[str, Any]] = []
     registry = ContractRegistry(root, validate_schema=True)
+    specs = module_specs or P0_MODULES
     with tempfile.TemporaryDirectory() as td:
         context = _build_context(pathlib.Path(td))
-        for spec in P0_MODULES:
+        for spec in specs:
             module_report, module_diagnostics = _check_module(root, registry, spec, context)
-            modules.append(module_report)
+            checked_modules.append(module_report)
             diagnostics.extend(module_diagnostics)
     ok = not any(row["severity"] == "error" for row in diagnostics)
     return {
-        "kind": "P0ModuleRegistryReport",
+        "kind": kind,
         "schema_version": "1",
         "ok": ok,
-        "modules": modules,
+        "modules": checked_modules,
         "diagnostics": diagnostics,
     }
+
+
+def check_all_modules(root: pathlib.Path | None = None) -> dict[str, Any]:
+    return check_p0_modules(root, module_specs=ALL_MODULES, kind="AllModuleRegistryReport")
 
 
 def _check_module(root: pathlib.Path, registry: ContractRegistry, spec: dict[str, Any], context: ModuleCheckContext) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -185,11 +234,17 @@ def _call_sample(module_obj: Any, api_name: str, context: ModuleCheckContext) ->
     calls: dict[str, Callable[[], Any]] = {
         "collect_project_snapshot": lambda: module_obj.collect_project_snapshot(context.fixture_root),
         "build_project_graph": lambda: module_obj.build_project_graph(context.snapshot),
+        "extract_requirements_contract_only": lambda: module_obj.extract_requirements_contract_only("update README without provider calls", context={"snapshot": context.snapshot, "constraints": ["no provider calls"]}),
         "generate_contract_plan": lambda: module_obj.generate_contract_plan("update README", snapshot=context.snapshot, graph=context.graph, constraints={"proposed_changes": [{"action": "modify", "path": "README.md", "reason": "smoke"}]}),
         "emit_patch_manifest": lambda: module_obj.emit_patch_manifest({"proposed_changes": [{"action": "modify", "path": "README.md", "reason": "smoke"}]}, snapshot=context.snapshot, graph=context.graph),
         "validate_patch_manifest": lambda: module_obj.validate_patch_manifest({"file_changes": [{"action": "modify", "path": "README.md"}]}, snapshot=context.snapshot, graph=context.graph),
         "build_repair_plan": lambda: module_obj.build_repair_plan([], compiled_flow={"flow_ref": "flow.project_refactor@1"}),
         "build_migration_proof": lambda: module_obj.build_migration_proof(_sample_migration_spec(context)),
+        "summarize_diagnostics": lambda: module_obj.summarize_diagnostics([{"code": "CGNK_SAMPLE", "severity": "warning", "path": "$.sample", "message": "sample"}]),
+        "summarize_benchmark_report": lambda: module_obj.summarize_benchmark_report({"kind": "BenchmarkReport", "ok": True, "metrics": {"duration_seconds": 1.0}, "warnings": []}),
+        "evaluate_convergence": lambda: module_obj.evaluate_convergence([{"ok": False, "hash": "a"}, {"ok": True, "hash": "b"}]),
+        "evaluate_timeout_budget": lambda: module_obj.evaluate_timeout_budget({"total_seconds": 1.0}, {"max_total_seconds": 5.0}),
+        "evaluate_provider_call_request": lambda: module_obj.evaluate_provider_call_request({"provider": "example", "max_tokens": 10}, policy={"allow_provider_call": False}, budget={"max_tokens": 100, "max_calls": 1}),
     }
     call = calls[api_name]
     return call(), call()

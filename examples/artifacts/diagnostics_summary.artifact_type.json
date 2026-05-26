@@ -1,0 +1,21 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.diagnostics_summary",
+  "version": "1",
+  "type_name": "DiagnosticsSummary",
+  "schema_ref": "schemas/diagnostics_summary.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "total",
+      "by_severity",
+      "by_code"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "cgnk_clean_room_middle_layer_v1",
+    "ref": "artifact.diagnostics_summary@1"
+  }
+}

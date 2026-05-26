@@ -20,6 +20,8 @@ SCHEMA_BY_KIND = {
     "RuntimeAdapterContract": "runtime_adapter_contract.schema.json",
     "CTCPModuleInventorySpec": "ctcp_module_inventory.schema.json",
     "CTCPTransferPlan": "ctcp_transfer_plan.schema.json",
+    "CTCPBridgeProposal": "ctcp_bridge_proposal.schema.json",
+    "CTCPPatchManifest": "ctcp_patch_manifest.schema.json",
     "ContractPack": "contract_pack.schema.json",
     "CompileResult": "compile_result.schema.json",
     "CompiledContractBundle": "compiled_contract_bundle.schema.json",
@@ -88,6 +90,8 @@ class SchemaLoader:
             "examples/policies": "policy_spec.schema.json",
             "examples/proposals": "graph_edit_proposal.schema.json",
             "examples/migrations": "migration_spec.schema.json",
+            "examples/ctcp_bridge_proposals": "ctcp_bridge_proposal.schema.json",
+            "examples/patch_manifests": "ctcp_patch_manifest.schema.json",
         }
         diagnostics: list[Diagnostic] = []
         for rel, schema in pairs.items():

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/ctcp_bridge_proposal.schema.json",
+  "title": "CTCPBridgeProposal",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "target_repo",
+    "target_feature",
+    "proposed_files",
+    "public_entrypoints_to_preserve",
+    "optional_new_entrypoints",
+    "default_behavior_unchanged",
+    "provider_semantics_unchanged",
+    "patch_apply",
+    "workspace_write",
+    "required_tests",
+    "rollback_plan",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "CTCPBridgeProposal"
+    },
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ctcp_bridge_proposal\\.[a-z0-9_.-]+$"
+    },
+    "target_repo": {
+      "const": "CTCP"
+    },
+    "target_feature": {
+      "type": "string"
+    },
+    "proposed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "purpose",
+          "change_type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "change_type": {
+            "enum": [
+              "create",
+              "modify",
+              "delete",
+              "move",
+              "rename"
+            ]
+          }
+        }
+      }
+    },
+    "public_entrypoints_to_preserve": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "optional_new_entrypoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "default_behavior_unchanged": {
+      "const": true
+    },
+    "provider_semantics_unchanged": {
+      "const": true
+    },
+    "patch_apply": {
+      "const": false
+    },
+    "workspace_write": {
+      "const": false
+    },
+    "required_tests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rollback_plan": {
+      "type": "string"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    }
+  }
+}

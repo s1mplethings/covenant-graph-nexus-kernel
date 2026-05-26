@@ -1,0 +1,24 @@
+{
+  "kind": "CTCPPatchManifest",
+  "version": "1",
+  "id": "ctcp_patch_manifest.project_generation_contract_bridge",
+  "target_repo": "CTCP",
+  "target_feature": "feature.project_generation",
+  "patch_apply": false,
+  "workspace_write": false,
+  "file_changes": [
+    {
+      "action": "create",
+      "path": "tools/cgnk_project_generation_bridge.py",
+      "reason": "Future metadata-only proposal for a CTCP adapter that consumes CGNK contract artifacts without changing default behavior.",
+      "source_module": "module.migration.proof@1"
+    },
+    {
+      "action": "create",
+      "path": "tests/test_cgnk_project_generation_bridge.py",
+      "reason": "Future metadata-only proposal for regression coverage before any CTCP bridge is applied.",
+      "source_module": "module.patch.validate@1"
+    }
+  ],
+  "diagnostics": []
+}

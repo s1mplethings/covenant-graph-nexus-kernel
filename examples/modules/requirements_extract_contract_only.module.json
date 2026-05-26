@@ -1,0 +1,55 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.requirements.extract.contract_only",
+  "version": "1",
+  "ports": {
+    "input": {
+      "goal": {
+        "artifact_type": "artifact.goal@1",
+        "required": true
+      }
+    },
+    "output": {
+      "requirements": {
+        "artifact_type": "artifact.requirements@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "source_trace": {
+    "candidate": "candidate.requirement_extraction",
+    "legacy_files": [
+      "README.md",
+      "agents/prompts/support_lead_router.md",
+      "ai_context/problem_registry.md"
+    ],
+    "legacy_symbols": [
+      "CUSTOMER_REQUIREMENT_SATISFACTION_ARTIFACT",
+      "ClientRequirementsTraceabilityTests",
+      "CustomerRequirementTraceabilityTests"
+    ],
+    "evidence_keywords": [
+      "requirement",
+      "requirements"
+    ]
+  }
+}

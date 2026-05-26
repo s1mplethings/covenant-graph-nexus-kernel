@@ -1,0 +1,37 @@
+{
+  "kind": "CTCPBridgeProposal",
+  "version": "1",
+  "id": "ctcp_bridge_proposal.project_generation_bridge",
+  "target_repo": "CTCP",
+  "target_feature": "feature.project_generation",
+  "proposed_files": [
+    {
+      "path": "tools/cgnk_project_generation_bridge.py",
+      "purpose": "Future adapter entrypoint that can translate CTCP project-generation requests into CGNK contract-only artifacts.",
+      "change_type": "create"
+    },
+    {
+      "path": "tests/test_cgnk_project_generation_bridge.py",
+      "purpose": "Future CTCP-side tests that assert default CLI behavior and provider semantics remain unchanged.",
+      "change_type": "create"
+    }
+  ],
+  "public_entrypoints_to_preserve": [
+    "existing project generation CLI",
+    "existing provider selection behavior"
+  ],
+  "optional_new_entrypoints": [
+    "tools/cgnk_project_generation_bridge.py"
+  ],
+  "default_behavior_unchanged": true,
+  "provider_semantics_unchanged": true,
+  "patch_apply": false,
+  "workspace_write": false,
+  "required_tests": [
+    "CTCP project generation smoke test",
+    "CTCP provider semantics regression test",
+    "CGNK bridge contract artifact validation"
+  ],
+  "rollback_plan": "Remove the optional bridge entrypoint and leave existing CTCP project generation entrypoints untouched.",
+  "diagnostics": []
+}

@@ -6,33 +6,33 @@
   "diagnostics": [],
   "modules": [
     {
-      "candidate": "candidate.migration_proof",
-      "target_module": "module.migration.proof@1",
+      "candidate": "candidate.project_snapshot",
+      "target_module": "module.project.snapshot@1",
       "priority": "P0",
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Promote as a contract-only migration proof module."
+        "Retain snapshot module surface and curated source trace."
       ]
     },
     {
-      "candidate": "candidate.patch_manifest_generation",
-      "target_module": "module.patch.emit@1",
+      "candidate": "candidate.project_graph",
+      "target_module": "module.project.build_graph@1",
       "priority": "P0",
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Retain existing module surface and add curated source trace."
+        "Retain graph module surface and curated source trace."
       ]
     },
     {
-      "candidate": "candidate.patch_validation",
-      "target_module": "module.patch.validate@1",
+      "candidate": "candidate.requirement_extraction",
+      "target_module": "module.requirements.extract.contract_only@1",
       "priority": "P0",
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Retain existing module surface and add curated source trace."
+        "Promote deterministic requirements extraction as contract-only input understanding."
       ]
     },
     {
@@ -46,23 +46,23 @@
       ]
     },
     {
-      "candidate": "candidate.project_graph",
-      "target_module": "module.project.build_graph@1",
+      "candidate": "candidate.patch_manifest_generation",
+      "target_module": "module.patch.emit@1",
       "priority": "P0",
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Retain existing graph module surface and add curated source trace."
+        "Emit metadata-only patch manifests; do not write or apply patches."
       ]
     },
     {
-      "candidate": "candidate.project_snapshot",
-      "target_module": "module.project.snapshot@1",
+      "candidate": "candidate.patch_validation",
+      "target_module": "module.patch.validate@1",
       "priority": "P0",
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Retain existing snapshot module surface and add curated source trace."
+        "Validate manifest shape and paths only."
       ]
     },
     {
@@ -72,7 +72,67 @@
       "action": "recreate_from_contract",
       "copy_old_code": false,
       "notes": [
-        "Promote as a contract-only repair planning module."
+        "Promote diagnostic repair planning without applying fixes."
+      ]
+    },
+    {
+      "candidate": "candidate.migration_proof",
+      "target_module": "module.migration.proof@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Promote as a contract-only migration proof module."
+      ]
+    },
+    {
+      "candidate": "candidate.diagnostics_summary",
+      "target_module": "module.diagnostics.summary@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Promote structured diagnostics aggregation."
+      ]
+    },
+    {
+      "candidate": "candidate.benchmark_summary_parsing",
+      "target_module": "module.benchmark.summary@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Parse existing benchmark report data only; no benchmark execution."
+      ]
+    },
+    {
+      "candidate": "candidate.convergence_guard",
+      "target_module": "module.convergence.guard@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Evaluate convergence history only."
+      ]
+    },
+    {
+      "candidate": "candidate.timeout_guard",
+      "target_module": "module.timeout.guard@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Evaluate declared timing budget only."
+      ]
+    },
+    {
+      "candidate": "candidate.provider_call_guard",
+      "target_module": "module.provider_call.guard@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Promote only the provider boundary decision guard; provider execution stays rejected."
       ]
     }
   ]

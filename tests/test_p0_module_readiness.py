@@ -99,6 +99,8 @@ def _call(api_name: str, module, context: dict):
         return module.collect_project_snapshot(context["project"])
     if api_name == "build_project_graph":
         return module.build_project_graph(context["snapshot"])
+    if api_name == "extract_requirements_contract_only":
+        return module.extract_requirements_contract_only("update README without provider calls", context={"snapshot": context["snapshot"], "constraints": ["no provider calls"]})
     if api_name == "generate_contract_plan":
         return module.generate_contract_plan("update README", snapshot=context["snapshot"], graph=context["graph"], constraints={"proposed_changes": [{"action": "modify", "path": "README.md", "reason": "smoke"}]})
     if api_name == "emit_patch_manifest":
@@ -119,6 +121,16 @@ def _call(api_name: str, module, context: dict):
                 "proof": {"required_tests": ["unit"], "required_artifacts": ["artifact.project_snapshot@1"], "required_schemas": ["summary_json_schema"]},
             }
         )
+    if api_name == "summarize_diagnostics":
+        return module.summarize_diagnostics([{"code": "CGNK_SAMPLE", "severity": "warning", "path": "$.sample", "message": "sample"}])
+    if api_name == "summarize_benchmark_report":
+        return module.summarize_benchmark_report({"kind": "BenchmarkReport", "ok": True, "metrics": {"duration_seconds": 1.0}, "warnings": []})
+    if api_name == "evaluate_convergence":
+        return module.evaluate_convergence([{"ok": False, "hash": "a"}, {"ok": True, "hash": "b"}])
+    if api_name == "evaluate_timeout_budget":
+        return module.evaluate_timeout_budget({"total_seconds": 1.0}, {"max_total_seconds": 5.0})
+    if api_name == "evaluate_provider_call_request":
+        return module.evaluate_provider_call_request({"provider": "example", "max_tokens": 10}, policy={"allow_provider_call": False}, budget={"max_tokens": 100, "max_calls": 1})
     raise AssertionError(f"Unhandled API: {api_name}")
 
 

@@ -7,36 +7,128 @@
   "diagnostics": [],
   "candidates": [
     {
-      "id": "candidate.migration_proof",
+      "id": "candidate.project_snapshot",
       "source": {
         "files": [
-          "ai_context/00_AI_CONTRACT.md",
-          "ai_context/CTCP_FAST_RULES.md",
-          "ai_context/problem_registry.md"
+          "apps/project_backend/application/service.py",
+          "ai_context/problem_registry.md",
+          "README.md"
         ],
         "symbols": [
-          "_evaluate_legacy_proof",
-          "_write_legacy_proof",
-          "Migration"
+          "_build_current_state_snapshot",
+          "_contract_snapshot",
+          "Snapshot"
         ],
         "evidence": [
-          "migration",
-          "proof"
+          "snapshot"
         ]
       },
       "classification": {
-        "category": "migration",
+        "category": "project_analysis",
         "role": "reusable_middle_capability",
         "migration_value": "high"
       },
       "contract_guess": {
-        "module_ref": "module.migration.proof@1",
+        "module_ref": "module.project.snapshot@1",
         "inputs": [
-          "artifact.validation_report@1",
-          "artifact.benchmark_report@1"
+          "artifact.goal@1"
         ],
         "outputs": [
-          "artifact.migration_proof@1"
+          "artifact.project_snapshot@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Curated from real inventory; paths, symbols, and keywords only."
+        ]
+      }
+    },
+    {
+      "id": "candidate.project_graph",
+      "source": {
+        "files": [
+          "TREE.md",
+          "agents/prompts/frontend_customer_agent.md",
+          "agents/prompts/support_lead_reply.md"
+        ],
+        "symbols": [
+          "BuildGraph",
+          "GraphBuilder",
+          "GraphView"
+        ],
+        "evidence": [
+          "graph",
+          "project graph",
+          "project_graph"
+        ]
+      },
+      "classification": {
+        "category": "project_analysis",
+        "role": "reusable_middle_capability",
+        "migration_value": "high"
+      },
+      "contract_guess": {
+        "module_ref": "module.project.build_graph@1",
+        "inputs": [
+          "artifact.project_snapshot@1"
+        ],
+        "outputs": [
+          "artifact.project_graph@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Curated from real inventory; paths, symbols, and keywords only."
+        ]
+      }
+    },
+    {
+      "id": "candidate.requirement_extraction",
+      "source": {
+        "files": [
+          "README.md",
+          "agents/prompts/support_lead_reply.md",
+          "agents/prompts/support_lead_router.md",
+          "ai_context/problem_registry.md"
+        ],
+        "symbols": [
+          "CUSTOMER_REQUIREMENT_SATISFACTION_ARTIFACT",
+          "ClientRequirementsTraceabilityTests",
+          "CustomerRequirementTraceabilityTests"
+        ],
+        "evidence": [
+          "requirement",
+          "requirements"
+        ]
+      },
+      "classification": {
+        "category": "input_understanding",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.requirements.extract.contract_only@1",
+        "inputs": [
+          "artifact.goal@1"
+        ],
+        "outputs": [
+          "artifact.requirements@1"
         ]
       },
       "effects": {
@@ -49,102 +141,7 @@
         "recommended": true,
         "strategy": "recreate_from_contract",
         "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
-        ]
-      }
-    },
-    {
-      "id": "candidate.patch_manifest_generation",
-      "source": {
-        "files": [
-          "AGENTS.md",
-          "README.md",
-          "apps/project_backend/application/delivery_evidence.py"
-        ],
-        "symbols": [
-          "AgentManifestGeneratorTests",
-          "DeliveryEvidenceManifest",
-          "EXPORT_MANIFEST_SCHEMA"
-        ],
-        "evidence": [
-          "manifest",
-          "patch_manifest"
-        ]
-      },
-      "classification": {
-        "category": "patch_manifest",
-        "role": "reusable_middle_capability",
-        "migration_value": "high"
-      },
-      "contract_guess": {
-        "module_ref": "module.patch.emit@1",
-        "inputs": [
-          "artifact.implementation_plan@1",
-          "artifact.project_snapshot@1"
-        ],
-        "outputs": [
-          "artifact.patch_manifest@1"
-        ]
-      },
-      "effects": {
-        "fs_read": true,
-        "fs_write": true,
-        "network": false,
-        "provider_call": false
-      },
-      "transfer": {
-        "recommended": true,
-        "strategy": "recreate_from_contract",
-        "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
-        ]
-      }
-    },
-    {
-      "id": "candidate.patch_validation",
-      "source": {
-        "files": [
-          "examples/flowspec/dry_run_inserted_validation.flowspec.json",
-          "examples/flowspec/insert_validation_node.flowspec.json",
-          "tools/providers/flowspec_refactor_harness.py"
-        ],
-        "symbols": [
-          "e_validate_patch",
-          "validate_patch_effects",
-          "validate_patch_paths"
-        ],
-        "evidence": [
-          "patch validation",
-          "validate_patch"
-        ]
-      },
-      "classification": {
-        "category": "validation",
-        "role": "reusable_middle_capability",
-        "migration_value": "high"
-      },
-      "contract_guess": {
-        "module_ref": "module.patch.validate@1",
-        "inputs": [
-          "artifact.patch_manifest@1",
-          "artifact.project_snapshot@1"
-        ],
-        "outputs": [
-          "artifact.validation_report@1",
-          "artifact.patch_manifest@1"
-        ]
-      },
-      "effects": {
-        "fs_read": true,
-        "fs_write": false,
-        "network": false,
-        "provider_call": false
-      },
-      "transfer": {
-        "recommended": true,
-        "strategy": "recreate_from_contract",
-        "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
+          "Promote goal parsing as deterministic contract-only input understanding."
         ]
       }
     },
@@ -191,40 +188,89 @@
         "recommended": true,
         "strategy": "recreate_from_contract",
         "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
+          "Use contract-only planning boundary; do not copy provider or old pipeline code."
         ]
       }
     },
     {
-      "id": "candidate.project_graph",
+      "id": "candidate.patch_manifest_generation",
       "source": {
         "files": [
-          "TREE.md",
-          "ai/DETECTORS/rules.json",
-          "ai/RECIPES/recipe_index.json"
+          "AGENTS.md",
+          "README.md",
+          "agent_league_cases/delivery_checklist.json"
         ],
         "symbols": [
-          "BuildGraph",
-          "GraphBuilder",
-          "GraphView"
+          "AgentManifestGeneratorTests",
+          "DEFAULT_EXPORT_MANIFEST",
+          "DEVOPS_MANIFEST"
         ],
         "evidence": [
-          "graph",
-          "project_graph"
+          "manifest",
+          "patch manifest",
+          "patch_manifest"
         ]
       },
       "classification": {
-        "category": "project_analysis",
+        "category": "patch_manifest",
         "role": "reusable_middle_capability",
         "migration_value": "high"
       },
       "contract_guess": {
-        "module_ref": "module.project.build_graph@1",
+        "module_ref": "module.patch.emit@1",
         "inputs": [
+          "artifact.implementation_plan@1",
           "artifact.project_snapshot@1"
         ],
         "outputs": [
-          "artifact.project_graph@1"
+          "artifact.patch_manifest@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": true,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Promote manifest shape only; CGNK module must not write or apply patches."
+        ]
+      }
+    },
+    {
+      "id": "candidate.patch_validation",
+      "source": {
+        "files": [
+          "examples/flowspec/dry_run_inserted_validation.flowspec.json",
+          "examples/flowspec/insert_validation_node.flowspec.json",
+          "tools/providers/flowspec_refactor_harness.py"
+        ],
+        "symbols": [
+          "e_validate_patch",
+          "validate_patch_effects",
+          "validate_patch_paths"
+        ],
+        "evidence": [
+          "patch validation",
+          "validate_patch"
+        ]
+      },
+      "classification": {
+        "category": "validation",
+        "role": "reusable_middle_capability",
+        "migration_value": "high"
+      },
+      "contract_guess": {
+        "module_ref": "module.patch.validate@1",
+        "inputs": [
+          "artifact.patch_manifest@1",
+          "artifact.project_snapshot@1"
+        ],
+        "outputs": [
+          "artifact.validation_report@1"
         ]
       },
       "effects": {
@@ -237,52 +283,7 @@
         "recommended": true,
         "strategy": "recreate_from_contract",
         "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
-        ]
-      }
-    },
-    {
-      "id": "candidate.project_snapshot",
-      "source": {
-        "files": [
-          "apps/project_backend/application/service.py",
-          "ai_context/problem_registry.md",
-          "README.md"
-        ],
-        "symbols": [
-          "_build_current_state_snapshot",
-          "_contract_snapshot",
-          "Snapshot"
-        ],
-        "evidence": [
-          "snapshot"
-        ]
-      },
-      "classification": {
-        "category": "project_analysis",
-        "role": "reusable_middle_capability",
-        "migration_value": "high"
-      },
-      "contract_guess": {
-        "module_ref": "module.project.snapshot@1",
-        "inputs": [
-          "artifact.goal@1"
-        ],
-        "outputs": [
-          "artifact.project_snapshot@1"
-        ]
-      },
-      "effects": {
-        "fs_read": true,
-        "fs_write": false,
-        "network": false,
-        "provider_call": false
-      },
-      "transfer": {
-        "recommended": true,
-        "strategy": "recreate_from_contract",
-        "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
+          "Validate metadata and paths only; no workspace mutation."
         ]
       }
     },
@@ -296,8 +297,8 @@
         ],
         "symbols": [
           "REPAIR",
-          "_apply_targeted_repair",
-          "_repair_candidate"
+          "Repair",
+          "GeneratedProjectQualityRepairTest"
         ],
         "evidence": [
           "repair",
@@ -328,7 +329,331 @@
         "recommended": true,
         "strategy": "recreate_from_contract",
         "notes": [
-          "Curated from real inventory; paths, symbols, and keywords only."
+          "Promote diagnostic-to-plan behavior without applying repairs."
+        ]
+      }
+    },
+    {
+      "id": "candidate.migration_proof",
+      "source": {
+        "files": [
+          "README.md",
+          "ai/TEMPLATES/PLAN.template.md",
+          "ai_context/00_AI_CONTRACT.md"
+        ],
+        "symbols": [
+          "Migration",
+          "Proof",
+          "_evaluate_legacy_proof"
+        ],
+        "evidence": [
+          "migration",
+          "proof"
+        ]
+      },
+      "classification": {
+        "category": "migration",
+        "role": "reusable_middle_capability",
+        "migration_value": "high"
+      },
+      "contract_guess": {
+        "module_ref": "module.migration.proof@1",
+        "inputs": [
+          "artifact.validation_report@1"
+        ],
+        "outputs": [
+          "artifact.migration_proof@1"
+        ]
+      },
+      "effects": {
+        "fs_read": false,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Promote as a contract-only migration proof module."
+        ]
+      }
+    },
+    {
+      "id": "candidate.diagnostics_summary",
+      "source": {
+        "files": [
+          "ai_context/problem_registry.md",
+          "docs/behaviors/B010-plan-check-parse-and-validate.md",
+          "frontend/support_public_send_guard.py"
+        ],
+        "symbols": [
+          "Diagnostics",
+          "_diagnostics",
+          "diagnostics"
+        ],
+        "evidence": [
+          "diagnostics"
+        ]
+      },
+      "classification": {
+        "category": "diagnostics",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.diagnostics.summary@1",
+        "inputs": [
+          "artifact.validation_report@1"
+        ],
+        "outputs": [
+          "artifact.diagnostics_summary@1"
+        ]
+      },
+      "effects": {
+        "fs_read": false,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Summarize structured diagnostics only."
+        ]
+      }
+    },
+    {
+      "id": "candidate.benchmark_summary_parsing",
+      "source": {
+        "files": [
+          "artifacts/benchmark_goldens/endurance_indie_studio_hub/benchmark_endurance_summary.md",
+          "artifacts/benchmark_goldens/endurance_indie_studio_hub/project_manifest.json",
+          "artifacts/benchmark_goldens/endurance_indie_studio_hub/source_generation_report.json"
+        ],
+        "symbols": [
+          "SIMLAB_SUMMARY_JSON",
+          "SUMMARY_JSON",
+          "benchmark_summary"
+        ],
+        "evidence": [
+          "benchmark summary",
+          "benchmark_summary",
+          "summary_json"
+        ]
+      },
+      "classification": {
+        "category": "benchmark",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.benchmark.summary@1",
+        "inputs": [
+          "artifact.benchmark_report@1"
+        ],
+        "outputs": [
+          "artifact.benchmark_report@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Parse existing benchmark report data only; never execute benchmarks."
+        ]
+      }
+    },
+    {
+      "id": "candidate.convergence_guard",
+      "source": {
+        "files": [
+          "artifacts/EXPECTED_RESULTS.md",
+          "artifacts/PLAN.md",
+          "docs/01_north_star.md"
+        ],
+        "symbols": [
+          "Convergence",
+          "ConvergencePerformanceGuardTests",
+          "_convergence_report"
+        ],
+        "evidence": [
+          "converge",
+          "convergence"
+        ]
+      },
+      "classification": {
+        "category": "guard",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.convergence.guard@1",
+        "inputs": [
+          "artifact.validation_report@1"
+        ],
+        "outputs": [
+          "artifact.convergence_report@1"
+        ]
+      },
+      "effects": {
+        "fs_read": false,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Evaluate convergence history only; no runtime loop execution."
+        ]
+      }
+    },
+    {
+      "id": "candidate.timeout_guard",
+      "source": {
+        "files": [
+          "agents/prompts/support_lead_reply.md",
+          "ai_context/problem_registry.md",
+          "docs/dispatch_config.codex_agent.sample.json"
+        ],
+        "symbols": [
+          "ADVANCE_TIMEOUT_SECONDS",
+          "AnalysisStageTimeoutTests",
+          "DEFAULT_TIMEOUT_SECONDS"
+        ],
+        "evidence": [
+          "timeout"
+        ]
+      },
+      "classification": {
+        "category": "guard",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.timeout.guard@1",
+        "inputs": [
+          "artifact.validation_report@1"
+        ],
+        "outputs": [
+          "artifact.timeout_budget_report@1"
+        ]
+      },
+      "effects": {
+        "fs_read": false,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Evaluate declared timing data only; do not enforce runtime timeouts."
+        ]
+      }
+    },
+    {
+      "id": "candidate.provider_call_guard",
+      "source": {
+        "files": [
+          "README.md",
+          "ai/MEMORY/ISSUE_MEMORY.md",
+          "tools/providers/codex_agent.py"
+        ],
+        "symbols": [
+          "ApiProviderCoreTests",
+          "ApiProviderHooks",
+          "CTCP_FORCE_PROVIDER"
+        ],
+        "evidence": [
+          "provider",
+          "provider_call"
+        ]
+      },
+      "classification": {
+        "category": "provider_boundary",
+        "role": "reusable_middle_capability",
+        "migration_value": "medium"
+      },
+      "contract_guess": {
+        "module_ref": "module.provider_call.guard@1",
+        "inputs": [
+          "artifact.goal@1"
+        ],
+        "outputs": [
+          "artifact.provider_guard_report@1"
+        ]
+      },
+      "effects": {
+        "fs_read": false,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Promote only the provider decision guard; do not migrate provider execution."
+        ]
+      }
+    },
+    {
+      "id": "candidate.legacy_glue",
+      "source": {
+        "files": [
+          ".agents/skills/ctcp-orchestrate-loop/SKILL.md",
+          "docs/dispatch_config.support_bot.sample.json",
+          "tools/providers/codex_agent.py"
+        ],
+        "symbols": [
+          "AgentProjectOrchestratorE2ETests",
+          "APIBOT",
+          "ANALYSIS_PROGRESS_PATH"
+        ],
+        "evidence": [
+          "bot",
+          "cli",
+          "orchestrator",
+          "runner",
+          "telegram"
+        ]
+      },
+      "classification": {
+        "category": "legacy_glue",
+        "role": "legacy_only",
+        "migration_value": "reject"
+      },
+      "contract_guess": {
+        "module_ref": "module.legacy.glue@1",
+        "inputs": [
+          "artifact.goal@1"
+        ],
+        "outputs": [
+          "artifact.validation_report@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": true,
+        "network": true,
+        "provider_call": true
+      },
+      "transfer": {
+        "recommended": false,
+        "strategy": "discard",
+        "notes": [
+          "Fixed orchestration, bot, CLI, and provider execution glue is rejected."
         ]
       }
     }

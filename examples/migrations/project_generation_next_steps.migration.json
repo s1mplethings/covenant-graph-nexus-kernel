@@ -1,0 +1,55 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.project_generation_next_steps",
+  "version": "1",
+  "legacy": {
+    "files": [
+      "README.md"
+    ],
+    "public_entrypoints": [
+      "existing project generation CLI"
+    ]
+  },
+  "target": {
+    "flow": "flow.project_refactor@1",
+    "modules": [
+      "module.project.snapshot@1",
+      "module.project.build_graph@1",
+      "module.requirements.extract.contract_only@1",
+      "module.plan.generate.contract_only@1",
+      "module.patch.emit@1",
+      "module.patch.validate@1",
+      "module.migration.proof@1"
+    ],
+    "artifacts": [
+      "artifact.project_snapshot@1",
+      "artifact.project_graph@1",
+      "artifact.requirements@1",
+      "artifact.implementation_plan@1",
+      "artifact.patch_manifest@1",
+      "artifact.validation_report@1",
+      "artifact.migration_proof@1"
+    ]
+  },
+  "preserve": {
+    "cli_args": true,
+    "summary_json_schema": true,
+    "benchmark_report_format": true,
+    "provider_call_semantics": true
+  },
+  "proof": {
+    "required_tests": [
+      "CTCP default behavior unchanged",
+      "CTCP provider semantics unchanged",
+      "CGNK bridge artifacts validate"
+    ],
+    "required_artifacts": [
+      "artifact.migration_proof@1",
+      "artifact.patch_manifest@1"
+    ],
+    "required_schemas": [
+      "ctcp_bridge_proposal.schema.json",
+      "ctcp_patch_manifest.schema.json"
+    ]
+  }
+}
