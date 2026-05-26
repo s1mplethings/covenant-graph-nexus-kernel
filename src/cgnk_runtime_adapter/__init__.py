@@ -1,3 +1,6 @@
+"""Contract-only runtime adapter boundary for future CGNK runtimes."""
+
+from .contracts import validate_runtime_adapter_contract
 from .interfaces import (
     EvidenceBundle,
     ProviderCallLedger,
@@ -14,4 +17,5 @@ __all__ = [
     "RuntimeRequest",
     "RuntimeResult",
     "ValidationResult",
+    "validate_runtime_adapter_contract",
 ]

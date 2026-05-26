@@ -1,0 +1,20 @@
+{
+  "kind": "ContractPackProfile",
+  "version": "1",
+  "id": "contract_pack_profile.project_generation",
+  "feature": "feature.project_generation",
+  "target_flow": "flow.project_generation@1",
+  "task": "migration",
+  "required_output_kind": "MigrationProof",
+  "required_hashes": [
+    "surface_hash",
+    "policy_hash",
+    "graph_hash"
+  ],
+  "required_validation_commands": [
+    "python scripts/validate_bundle.py",
+    "python scripts/validate_bundle.py --schema",
+    "python -m unittest discover -v",
+    "python scripts/cgnk_compile.py --flow flow.project_generation@1"
+  ]
+}

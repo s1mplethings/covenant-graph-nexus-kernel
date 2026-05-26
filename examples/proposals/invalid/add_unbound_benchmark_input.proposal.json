@@ -1,0 +1,14 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.invalid.add_unbound_benchmark_input",
+  "target_flow": "flow.project_refactor@1",
+  "edits": [
+    {
+      "op": "add_node",
+      "node": {
+        "id": "n_extra_benchmark",
+        "uses": "module.benchmark.run@1"
+      }
+    }
+  ]
+}

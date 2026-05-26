@@ -1,0 +1,77 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.project_generation_readiness",
+  "version": "1",
+  "legacy": {
+    "files": [
+      "tools/providers/project_generation_contracts.py",
+      "tests/concrete_project_benchmark/run_concrete_project_benchmark.py",
+      "tests/concrete_project_benchmark/benchmark_report.md",
+      "tests/concrete_project_benchmark/generated/issue_tracker_api/benchmark_summary.json"
+    ],
+    "public_entrypoints": [
+      "run_concrete_project_benchmark"
+    ],
+    "protected_outputs": [
+      "benchmark_summary.json",
+      "benchmark_report.md"
+    ]
+  },
+  "target": {
+    "flow": "flow.project_generation@1",
+    "modules": [
+      "module.project.snapshot@1",
+      "module.project.build_graph@1",
+      "module.plan.generate@1",
+      "module.patch.emit@1",
+      "module.patch.validate@1",
+      "module.tests.run@1",
+      "module.benchmark.run@1"
+    ],
+    "artifacts": [
+      "artifact.goal@1",
+      "artifact.project_snapshot@1",
+      "artifact.project_graph@1",
+      "artifact.implementation_plan@1",
+      "artifact.patch_manifest@1",
+      "artifact.validation_report@1",
+      "artifact.benchmark_report@1"
+    ]
+  },
+  "preserve": {
+    "cli_args": true,
+    "summary_json_schema": true,
+    "benchmark_report_format": true,
+    "provider_call_semantics": true,
+    "timeout_guard_semantics": true,
+    "file_hash_cache_evidence": true,
+    "support decision flow": true,
+    "repo hygiene guard": true
+  },
+  "allowed_changes": {
+    "contract_boundary_addition": true,
+    "internal_module_split": true
+  },
+  "denied_changes": {
+    "public_cli_breakage": true,
+    "output_schema_breakage": true,
+    "provider_behavior_change": true
+  },
+  "proof": {
+    "required_tests": [
+      "unit",
+      "benchmark_smoke",
+      "contract_compile",
+      "proposal_preview"
+    ],
+    "required_artifacts": [
+      "benchmark_summary.json",
+      "benchmark_report.md"
+    ],
+    "required_schemas": [
+      "summary_json_schema",
+      "benchmark_report_format"
+    ],
+    "required_diagnostics": []
+  }
+}

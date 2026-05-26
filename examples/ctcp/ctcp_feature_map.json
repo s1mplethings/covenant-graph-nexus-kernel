@@ -1,0 +1,241 @@
+{
+  "kind": "CTCPFeatureMapSpec",
+  "id": "ctcp_feature_map.foundation",
+  "version": "1",
+  "features": [
+    {
+      "id": "feature.project_generation",
+      "status": "proof_ready",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py",
+          "tests/concrete_project_benchmark/run_concrete_project_benchmark.py",
+          "tests/concrete_project_benchmark/benchmark_report.md",
+          "tests/concrete_project_benchmark/generated/issue_tracker_api/benchmark_summary.json"
+        ],
+        "entrypoints": [
+          "run_concrete_project_benchmark"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_generation@1",
+        "modules": [
+          "module.project.snapshot@1",
+          "module.project.build_graph@1",
+          "module.plan.generate@1",
+          "module.patch.emit@1",
+          "module.patch.validate@1",
+          "module.tests.run@1",
+          "module.benchmark.run@1"
+        ],
+        "artifacts": [
+          "artifact.goal@1",
+          "artifact.project_snapshot@1",
+          "artifact.project_graph@1",
+          "artifact.implementation_plan@1",
+          "artifact.patch_manifest@1",
+          "artifact.validation_report@1",
+          "artifact.benchmark_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "cli_args",
+        "summary_json_schema",
+        "benchmark_report_format",
+        "provider_call_semantics"
+      ]
+    },
+    {
+      "id": "feature.project_benchmark",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tests/concrete_project_benchmark/run_concrete_project_benchmark.py",
+          "tests/concrete_project_benchmark/benchmark_report.md"
+        ],
+        "entrypoints": [
+          "run_concrete_project_benchmark"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_generation@1",
+        "modules": [
+          "module.benchmark.run@1",
+          "module.tests.run@1"
+        ],
+        "artifacts": [
+          "artifact.validation_report@1",
+          "artifact.benchmark_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "benchmark_report_format",
+        "summary_json_schema"
+      ]
+    },
+    {
+      "id": "feature.provider_call_guard",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py"
+        ],
+        "entrypoints": [
+          "provider_call_semantics"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_generation@1",
+        "modules": [
+          "module.plan.generate.provider@1",
+          "module.plan.generate.contract_only@1"
+        ],
+        "artifacts": [
+          "artifact.implementation_plan@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "provider_call_semantics"
+      ]
+    },
+    {
+      "id": "feature.refactor_package_split",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py"
+        ],
+        "entrypoints": [
+          "package_split"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_refactor@1",
+        "modules": [
+          "module.project.snapshot@1",
+          "module.project.build_graph@1",
+          "module.patch.emit@1",
+          "module.patch.validate@1"
+        ],
+        "artifacts": [
+          "artifact.project_snapshot@1",
+          "artifact.project_graph@1",
+          "artifact.patch_manifest@1",
+          "artifact.validation_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "cli_args",
+        "repo hygiene guard"
+      ]
+    },
+    {
+      "id": "feature.patch_manifest_validation",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py"
+        ],
+        "entrypoints": [
+          "patch_manifest_validation"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_refactor@1",
+        "modules": [
+          "module.patch.validate@1"
+        ],
+        "artifacts": [
+          "artifact.patch_manifest@1",
+          "artifact.validation_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "file_hash_cache_evidence"
+      ]
+    },
+    {
+      "id": "feature.convergence_guard",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py"
+        ],
+        "entrypoints": [
+          "convergence_guard"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_refactor@1",
+        "modules": [
+          "module.runtime.validate@1",
+          "module.decision.gate@1"
+        ],
+        "artifacts": [
+          "artifact.validation_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "timeout_guard_semantics"
+      ]
+    },
+    {
+      "id": "feature.trace_summary",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tests/concrete_project_benchmark/generated/issue_tracker_api/benchmark_summary.json"
+        ],
+        "entrypoints": [
+          "summary_json_schema"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_generation@1",
+        "modules": [
+          "module.benchmark.run@1"
+        ],
+        "artifacts": [
+          "artifact.benchmark_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "summary_json_schema"
+      ]
+    },
+    {
+      "id": "feature.repair_loop",
+      "status": "mapped",
+      "legacy": {
+        "files": [
+          "tools/providers/project_generation_contracts.py"
+        ],
+        "entrypoints": [
+          "repair_loop"
+        ]
+      },
+      "target": {
+        "flow": "flow.project_refactor@1",
+        "modules": [
+          "module.patch.validate@1",
+          "module.tests.run@1"
+        ],
+        "artifacts": [
+          "artifact.patch_manifest@1",
+          "artifact.validation_report@1"
+        ]
+      },
+      "migration": "migration.project_generation@1",
+      "preserve": [
+        "repo hygiene guard"
+      ]
+    }
+  ]
+}

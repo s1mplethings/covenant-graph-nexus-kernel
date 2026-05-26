@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/runtime_adapter_contract.schema.json",
+  "title": "RuntimeAdapterContract",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "supported_module_refs",
+    "supported_capabilities",
+    "accepted_artifact_types",
+    "produced_artifact_types",
+    "denied_effects",
+    "execution_mode",
+    "can_execute",
+    "can_apply_patch",
+    "can_call_provider",
+    "can_write_workspace"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "RuntimeAdapterContract"
+    },
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^runtime_adapter\\.[a-z0-9_.-]+$"
+    },
+    "supported_module_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "supported_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "accepted_artifact_types": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+      }
+    },
+    "produced_artifact_types": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+      }
+    },
+    "denied_effects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_mode": {
+      "enum": [
+        "contract_only",
+        "dry_run",
+        "external_runtime"
+      ]
+    },
+    "can_execute": {
+      "type": "boolean"
+    },
+    "can_apply_patch": {
+      "type": "boolean"
+    },
+    "can_call_provider": {
+      "type": "boolean"
+    },
+    "can_write_workspace": {
+      "type": "boolean"
+    }
+  }
+}

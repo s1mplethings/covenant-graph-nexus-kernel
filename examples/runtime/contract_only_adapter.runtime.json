@@ -1,0 +1,34 @@
+{
+  "kind": "RuntimeAdapterContract",
+  "version": "1",
+  "id": "runtime_adapter.contract_only",
+  "supported_module_refs": [
+    "module.project.snapshot@1",
+    "module.project.build_graph@1",
+    "module.plan.generate.contract_only@1",
+    "module.patch.validate@1"
+  ],
+  "supported_capabilities": [
+    "cap.fs.read"
+  ],
+  "accepted_artifact_types": [
+    "artifact.goal@1",
+    "artifact.project_snapshot@1",
+    "artifact.project_graph@1",
+    "artifact.patch_manifest@1"
+  ],
+  "produced_artifact_types": [
+    "artifact.validation_report@1"
+  ],
+  "denied_effects": [
+    "provider_call",
+    "network",
+    "workspace_write",
+    "patch_apply"
+  ],
+  "execution_mode": "contract_only",
+  "can_execute": false,
+  "can_apply_patch": false,
+  "can_call_provider": false,
+  "can_write_workspace": false
+}
