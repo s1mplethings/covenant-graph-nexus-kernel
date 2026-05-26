@@ -1,0 +1,19 @@
+{
+  "kind": "CTCPTransferPlan",
+  "version": "1",
+  "id": "ctcp_transfer_plan.seed",
+  "ok": true,
+  "diagnostics": [],
+  "modules": [
+    {
+      "candidate": "candidate.project_snapshot",
+      "target_module": "module.project.snapshot@1",
+      "priority": "P0",
+      "action": "recreate_from_contract",
+      "copy_old_code": false,
+      "notes": [
+        "Recreate behavior from contract; do not copy implementation code."
+      ]
+    }
+  ]
+}

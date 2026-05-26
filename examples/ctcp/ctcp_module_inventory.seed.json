@@ -1,0 +1,51 @@
+{
+  "kind": "CTCPModuleInventorySpec",
+  "version": "1",
+  "id": "ctcp_module_inventory.seed",
+  "source_ctcp_root_hint": "<legacy-ctcp-root>",
+  "ok": true,
+  "diagnostics": [],
+  "candidates": [
+    {
+      "id": "candidate.project_snapshot",
+      "source": {
+        "files": [
+          "tools/project_snapshot.py"
+        ],
+        "symbols": [
+          "collect_project_snapshot"
+        ],
+        "evidence": [
+          "snapshot"
+        ]
+      },
+      "classification": {
+        "category": "project_analysis",
+        "role": "reusable_middle_capability",
+        "migration_value": "high"
+      },
+      "contract_guess": {
+        "module_ref": "module.project.snapshot@1",
+        "inputs": [
+          "artifact.goal@1"
+        ],
+        "outputs": [
+          "artifact.project_snapshot@1"
+        ]
+      },
+      "effects": {
+        "fs_read": true,
+        "fs_write": false,
+        "network": false,
+        "provider_call": false
+      },
+      "transfer": {
+        "recommended": true,
+        "strategy": "recreate_from_contract",
+        "notes": [
+          "Seed only; real inventory must be generated from a CTCP root."
+        ]
+      }
+    }
+  ]
+}

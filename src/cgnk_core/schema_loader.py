@@ -18,6 +18,8 @@ SCHEMA_BY_KIND = {
     "CTCPFeatureMapSpec": "ctcp_feature_map.schema.json",
     "RepairPlan": "repair_plan.schema.json",
     "RuntimeAdapterContract": "runtime_adapter_contract.schema.json",
+    "CTCPModuleInventorySpec": "ctcp_module_inventory.schema.json",
+    "CTCPTransferPlan": "ctcp_transfer_plan.schema.json",
     "ContractPack": "contract_pack.schema.json",
     "CompileResult": "compile_result.schema.json",
     "CompiledContractBundle": "compiled_contract_bundle.schema.json",

@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/ctcp_module_inventory.schema.json",
+  "title": "CTCPModuleInventorySpec",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "source_ctcp_root_hint",
+    "candidates"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "CTCPModuleInventorySpec"
+    },
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ctcp_module_inventory\\.[a-z0-9_.-]+$"
+    },
+    "source_ctcp_root_hint": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "classification",
+          "contract_guess",
+          "effects",
+          "transfer"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^candidate\\.[a-z0-9_.-]+$"
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "files",
+              "symbols",
+              "evidence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "symbols": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "classification": {
+            "type": "object",
+            "required": [
+              "category",
+              "role",
+              "migration_value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "enum": [
+                  "input_understanding",
+                  "project_analysis",
+                  "planning",
+                  "patch_manifest",
+                  "validation",
+                  "guard",
+                  "reporting",
+                  "diagnostics",
+                  "provider_boundary",
+                  "runtime_boundary",
+                  "migration",
+                  "contract",
+                  "legacy_glue"
+                ]
+              },
+              "role": {
+                "enum": [
+                  "reusable_middle_capability",
+                  "fixed_pipeline_glue",
+                  "external_boundary",
+                  "legacy_only"
+                ]
+              },
+              "migration_value": {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low",
+                  "reject"
+                ]
+              }
+            }
+          },
+          "contract_guess": {
+            "type": "object",
+            "required": [
+              "module_ref",
+              "inputs",
+              "outputs"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "module_ref": {
+                "$ref": "common_defs.schema.json#/$defs/module_ref"
+              },
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+                }
+              }
+            }
+          },
+          "effects": {
+            "type": "object",
+            "required": [
+              "fs_read",
+              "fs_write",
+              "network",
+              "provider_call"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "fs_read": {
+                "type": "boolean"
+              },
+              "fs_write": {
+                "type": "boolean"
+              },
+              "network": {
+                "type": "boolean"
+              },
+              "provider_call": {
+                "type": "boolean"
+              }
+            }
+          },
+          "transfer": {
+            "type": "object",
+            "required": [
+              "recommended",
+              "strategy",
+              "notes"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "recommended": {
+                "type": "boolean"
+              },
+              "strategy": {
+                "enum": [
+                  "recreate_from_contract",
+                  "extract_and_wrap",
+                  "keep_as_legacy_reference",
+                  "discard"
+                ]
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

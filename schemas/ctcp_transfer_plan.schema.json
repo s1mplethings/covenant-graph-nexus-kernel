@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/ctcp_transfer_plan.schema.json",
+  "title": "CTCPTransferPlan",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "modules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "CTCPTransferPlan"
+    },
+    "version": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ctcp_transfer_plan\\.[a-z0-9_.-]+$"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "candidate",
+          "target_module",
+          "priority",
+          "action",
+          "copy_old_code",
+          "notes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "type": "string",
+            "pattern": "^candidate\\.[a-z0-9_.-]+$"
+          },
+          "target_module": {
+            "$ref": "common_defs.schema.json#/$defs/module_ref"
+          },
+          "priority": {
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "reject"
+            ]
+          },
+          "action": {
+            "enum": [
+              "recreate_from_contract",
+              "extract_and_wrap",
+              "keep_reference",
+              "discard"
+            ]
+          },
+          "copy_old_code": {
+            "const": false
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
