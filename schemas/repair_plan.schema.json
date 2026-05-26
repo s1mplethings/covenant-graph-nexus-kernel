@@ -13,7 +13,8 @@
     "suggested_edits",
     "confidence",
     "requires_recompile",
-    "blocked_reasons"
+    "blocked_reasons",
+    "diagnostics"
   ],
   "additionalProperties": false,
   "properties": {
@@ -56,6 +57,12 @@
       "const": true
     },
     "blocked_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "diagnostics": {
       "type": "array",
       "items": {
         "$ref": "diagnostic.schema.json"

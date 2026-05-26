@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import pathlib
-from dataclasses import dataclass
 from typing import Any
 
 from cgnk_core.diagnostics import (
@@ -30,14 +29,7 @@ EXCLUDED_SUFFIXES = {".sqlite", ".db", ".zip"}
 EXCLUDED_FILE_NAMES = {"ctcp_module_inventory.real.json", "ctcp_transfer_plan.real.json"}
 
 
-@dataclass(frozen=True)
-class ProjectSnapshotResult:
-    ok: bool
-    snapshot: dict[str, Any] | None
-    diagnostics: list[dict[str, Any]]
-
-
-def collect_project_snapshot(project_root: str | pathlib.Path, include_hashes: bool = True) -> ProjectSnapshotResult:
+def collect_project_snapshot(project_root: str | pathlib.Path, include_hashes: bool = True) -> dict[str, Any]:
     root = pathlib.Path(project_root).resolve()
     diagnostics: list[Diagnostic] = []
     if not root.exists() or not root.is_dir():
@@ -54,7 +46,7 @@ def collect_project_snapshot(project_root: str | pathlib.Path, include_hashes: b
                 repair_hints=[{"action": "pass an existing workspace or project directory"}],
             )
         )
-        return ProjectSnapshotResult(False, None, [d.as_dict() for d in diagnostics])
+        return {"ok": False, "snapshot": None, "diagnostics": [d.as_dict() for d in diagnostics]}
 
     files: list[dict[str, Any]] = []
     skipped: list[str] = []
@@ -109,7 +101,7 @@ def collect_project_snapshot(project_root: str | pathlib.Path, include_hashes: b
         "skipped_paths": skipped,
     }
     ok = not any(d.severity == "error" for d in diagnostics)
-    return ProjectSnapshotResult(ok, snapshot, [d.as_dict() for d in diagnostics])
+    return {"ok": ok, "snapshot": snapshot, "diagnostics": [d.as_dict() for d in diagnostics]}
 
 
 def _relative(root: pathlib.Path, path: pathlib.Path) -> str:

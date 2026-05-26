@@ -26,12 +26,6 @@
         "scope": [
           "project/**"
         ]
-      },
-      {
-        "id": "cap.fs.write",
-        "scope": [
-          "project/**"
-        ]
       }
     ],
     "context": [
@@ -43,9 +37,7 @@
     "fs_read": [
       "project/**"
     ],
-    "fs_write": [
-      "project/**"
-    ],
+    "fs_write": [],
     "network": false,
     "provider_call": false,
     "risk": 2

@@ -60,6 +60,7 @@ def build_repair_plan(proposal: dict[str, Any], flow_ref: str, registry: Contrac
         "confidence": confidence,
         "requires_recompile": True,
         "blocked_reasons": blocked,
+        "diagnostics": list(blocked),
     }
     schema_diags = registry.schema_loader.validate(plan, "repair_plan.schema.json", "$.repair_plan")
     if schema_diags:

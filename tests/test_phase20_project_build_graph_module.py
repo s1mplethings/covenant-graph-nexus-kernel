@@ -54,18 +54,18 @@ class Phase20ProjectBuildGraphModuleTest(unittest.TestCase):
 
     def test_build_graph_from_project_snapshot_is_deterministic(self) -> None:
         with self.make_project() as td:
-            snapshot = collect_project_snapshot(td).snapshot
+            snapshot = collect_project_snapshot(td)["snapshot"]
             first = build_project_graph(snapshot)
             second = build_project_graph(snapshot)
-        self.assertTrue(first.ok, first.diagnostics)
-        self.assertEqual(first.graph, second.graph)
-        self.assertEqual("ProjectGraph", first.graph["kind"])
-        self.assertEqual(OUTPUT_ARTIFACT_REF, first.graph["artifact_ref"])
-        self.assertEqual(MODULE_REF, first.graph["module_ref"])
+        self.assertTrue(first["ok"], first["diagnostics"])
+        self.assertEqual(first["graph"], second["graph"])
+        self.assertEqual("ProjectGraph", first["graph"]["kind"])
+        self.assertEqual(OUTPUT_ARTIFACT_REF, first["graph"]["artifact_ref"])
+        self.assertEqual(MODULE_REF, first["graph"]["module_ref"])
 
     def test_graph_contains_file_directory_package_nodes_and_parent_edges(self) -> None:
         with self.make_project() as td:
-            graph = build_project_graph(collect_project_snapshot(td).snapshot).graph
+            graph = build_project_graph(collect_project_snapshot(td)["snapshot"])["graph"]
         nodes = {row["id"]: row for row in graph["nodes"]}
         edges = {(row["source"], row["target"], row["type"]) for row in graph["edges"]}
         self.assertIn("dir:.", nodes)
@@ -77,7 +77,7 @@ class Phase20ProjectBuildGraphModuleTest(unittest.TestCase):
 
     def test_file_classification_and_project_markers(self) -> None:
         with self.make_project() as td:
-            graph = build_project_graph(collect_project_snapshot(td).snapshot).graph
+            graph = build_project_graph(collect_project_snapshot(td)["snapshot"])["graph"]
         nodes = {row["path"]: row for row in graph["nodes"] if row["kind"] == "file"}
         self.assertEqual("documentation", nodes["README.md"]["classification"])
         self.assertEqual("config", nodes["pyproject.toml"]["classification"])
@@ -94,7 +94,7 @@ class Phase20ProjectBuildGraphModuleTest(unittest.TestCase):
         with self.make_project() as td:
             root = pathlib.Path(td)
             marker = root / "EXECUTED_MARKER"
-            graph = build_project_graph(collect_project_snapshot(root).snapshot).graph
+            graph = build_project_graph(collect_project_snapshot(root)["snapshot"])["graph"]
         self.assertFalse(marker.exists())
         edges = {(row["source"], row["target"], row["type"]) for row in graph["edges"]}
         self.assertIn(("file:src/pkg/app.py", "import:json", "imports"), edges)
@@ -102,21 +102,21 @@ class Phase20ProjectBuildGraphModuleTest(unittest.TestCase):
 
     def test_invalid_snapshot_and_ast_parse_diagnostics(self) -> None:
         invalid = build_project_graph({"kind": "NotSnapshot"})
-        self.assertFalse(invalid.ok)
-        self.assertIn("CGNK_PROJECT_GRAPH_INVALID_SNAPSHOT", codes(invalid.diagnostics))
+        self.assertFalse(invalid["ok"])
+        self.assertIn("CGNK_PROJECT_GRAPH_INVALID_SNAPSHOT", codes(invalid["diagnostics"]))
         with self.make_project(bad_python=True) as td:
-            result = build_project_graph(collect_project_snapshot(td).snapshot)
-        self.assertTrue(result.ok)
-        self.assertIn("CGNK_PROJECT_GRAPH_AST_PARSE_FAILED", codes(result.diagnostics))
+            result = build_project_graph(collect_project_snapshot(td)["snapshot"])
+        self.assertTrue(result["ok"])
+        self.assertIn("CGNK_PROJECT_GRAPH_AST_PARSE_FAILED", codes(result["diagnostics"]))
 
     def test_snapshot_forbidden_paths_are_not_in_graph(self) -> None:
         with self.make_project() as td:
-            snapshot = collect_project_snapshot(td).snapshot
+            snapshot = collect_project_snapshot(td)["snapshot"]
             snapshot["files"].append({"path": "final_output/forced.txt", "size_bytes": 1})
             result = build_project_graph(snapshot)
-        paths = {row.get("path") for row in result.graph["nodes"]}
+        paths = {row.get("path") for row in result["graph"]["nodes"]}
         self.assertNotIn("final_output/forced.txt", paths)
-        self.assertIn("CGNK_PROJECT_GRAPH_FORBIDDEN_PATH", codes(result.diagnostics))
+        self.assertIn("CGNK_PROJECT_GRAPH_FORBIDDEN_PATH", codes(result["diagnostics"]))
 
 
 if __name__ == "__main__":

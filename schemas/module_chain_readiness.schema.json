@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/module_chain_readiness.schema.json",
+  "title": "ModuleChainReadiness",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "ok",
+    "chain_id",
+    "modules",
+    "missing_modules",
+    "contract_failures",
+    "deterministic_failures",
+    "forbidden_dependency_failures",
+    "diagnostics",
+    "readiness_status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "ModuleChainReadiness"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "chain_id": {
+      "type": "string"
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "missing_modules": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "contract_failures": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "deterministic_failures": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "forbidden_dependency_failures": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "readiness_status": {
+      "enum": [
+        "blocked",
+        "ready_for_refactor"
+      ]
+    }
+  }
+}

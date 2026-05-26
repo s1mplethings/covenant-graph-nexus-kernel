@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import pathlib
-from dataclasses import dataclass
 from typing import Any
 
 from cgnk_core.diagnostics import (
@@ -31,14 +30,7 @@ FORBIDDEN_SUFFIXES = {".sqlite", ".db", ".zip"}
 PROJECT_MARKERS = ("pyproject.toml", "setup.py", "package.json", "requirements.txt", "README.md")
 
 
-@dataclass(frozen=True)
-class ProjectGraphResult:
-    ok: bool
-    graph: dict[str, Any] | None
-    diagnostics: list[dict[str, Any]]
-
-
-def build_project_graph(snapshot: dict[str, Any], parse_python_imports: bool = True) -> ProjectGraphResult:
+def build_project_graph(snapshot: dict[str, Any], parse_python_imports: bool = True) -> dict[str, Any]:
     diagnostics: list[Diagnostic] = []
     if not _valid_snapshot(snapshot):
         diagnostics.append(
@@ -52,7 +44,7 @@ def build_project_graph(snapshot: dict[str, Any], parse_python_imports: bool = T
                 involved_ref=MODULE_REF,
             )
         )
-        return ProjectGraphResult(False, None, [d.as_dict() for d in diagnostics])
+        return {"ok": False, "graph": None, "diagnostics": [d.as_dict() for d in diagnostics]}
 
     root = pathlib.Path(snapshot.get("metadata", {}).get("root", "")).resolve()
     files = []
@@ -67,10 +59,10 @@ def build_project_graph(snapshot: dict[str, Any], parse_python_imports: bool = T
         graph = _build_graph(snapshot, files, root, parse_python_imports, diagnostics)
     except Exception as exc:  # pragma: no cover - defensive boundary
         diagnostics.append(Diagnostic(CGNK_PROJECT_GRAPH_BUILD_FAILED, "error", "$.graph", "Project graph build failed", actual=str(exc), involved_ref=MODULE_REF))
-        return ProjectGraphResult(False, None, [d.as_dict() for d in diagnostics])
+        return {"ok": False, "graph": None, "diagnostics": [d.as_dict() for d in diagnostics]}
 
     ok = not any(d.severity == "error" for d in diagnostics)
-    return ProjectGraphResult(ok, graph, [d.as_dict() for d in diagnostics])
+    return {"ok": ok, "graph": graph, "diagnostics": [d.as_dict() for d in diagnostics]}
 
 
 def _valid_snapshot(snapshot: dict[str, Any]) -> bool:

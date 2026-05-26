@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pathlib
-from dataclasses import dataclass
 from typing import Any
 
 from cgnk_core.diagnostics import (
@@ -24,19 +23,12 @@ FORBIDDEN_EXACT = {".env"}
 FORBIDDEN_SUFFIXES = {".db", ".sqlite", ".zip"}
 
 
-@dataclass(frozen=True)
-class PatchValidationResult:
-    ok: bool
-    validation_report: dict[str, Any]
-    normalized_manifest: dict[str, Any] | None
-    diagnostics: list[dict[str, Any]]
-
-
 def validate_patch_manifest(
     manifest: dict[str, Any],
     snapshot: dict[str, Any] | None = None,
     project_graph: dict[str, Any] | None = None,
-) -> PatchValidationResult:
+    graph: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     diagnostics: list[Diagnostic] = []
     normalized_manifest: dict[str, Any] | None = None
     changes: list[dict[str, Any]] = []
@@ -60,9 +52,10 @@ def validate_patch_manifest(
     snapshot_paths = _snapshot_paths(snapshot)
     if snapshot is not None and snapshot_paths is None:
         diagnostics.append(Diagnostic(CGNK_PATCH_VALIDATE_CONTEXT_MISMATCH, "error", "$.snapshot", "Snapshot context is not ProjectSnapshot-like", expected="ProjectSnapshot", actual=snapshot.get("kind") if isinstance(snapshot, dict) else type(snapshot).__name__, involved_ref=MODULE_REF))
-    graph_paths = _graph_paths(project_graph)
-    if project_graph is not None and graph_paths is None:
-        diagnostics.append(Diagnostic(CGNK_PATCH_VALIDATE_CONTEXT_MISMATCH, "error", "$.project_graph", "Project graph context is not ProjectGraph-like", expected="ProjectGraph", actual=project_graph.get("kind") if isinstance(project_graph, dict) else type(project_graph).__name__, involved_ref=MODULE_REF))
+    graph_context = graph if graph is not None else project_graph
+    graph_paths = _graph_paths(graph_context)
+    if graph_context is not None and graph_paths is None:
+        diagnostics.append(Diagnostic(CGNK_PATCH_VALIDATE_CONTEXT_MISMATCH, "error", "$.project_graph", "Project graph context is not ProjectGraph-like", expected="ProjectGraph", actual=graph_context.get("kind") if isinstance(graph_context, dict) else type(graph_context).__name__, involved_ref=MODULE_REF))
 
     _check_duplicates(changes, diagnostics)
     if snapshot_paths is not None:
@@ -91,7 +84,12 @@ def validate_patch_manifest(
         "diagnostics": diagnostic_dicts,
         "risk_summary": _risk_summary(changes, violations, warnings),
     }
-    return PatchValidationResult(ok, report, normalized_manifest, diagnostic_dicts)
+    return {
+        "ok": ok,
+        "validation_report": report,
+        "normalized_manifest": normalized_manifest,
+        "diagnostics": diagnostic_dicts,
+    }
 
 
 def _changes_value(manifest: dict[str, Any]) -> Any:

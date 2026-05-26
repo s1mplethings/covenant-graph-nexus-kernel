@@ -30,8 +30,8 @@ class Phase21PatchValidateModuleTest(unittest.TestCase):
         return td
 
     def context(self, root: pathlib.Path) -> tuple[dict, dict]:
-        snapshot = collect_project_snapshot(root).snapshot
-        graph = build_project_graph(snapshot).graph
+        snapshot = collect_project_snapshot(root)["snapshot"]
+        graph = build_project_graph(snapshot)["graph"]
         return snapshot, graph
 
     def test_contract_conformance_for_patch_validate(self) -> None:
@@ -54,21 +54,21 @@ class Phase21PatchValidateModuleTest(unittest.TestCase):
                 snapshot=snapshot,
                 project_graph=graph,
             )
-        self.assertTrue(result.ok, result.diagnostics)
-        self.assertEqual("ValidationReport", result.validation_report["kind"])
-        self.assertEqual(OUTPUT_ARTIFACT_REF, result.validation_report["artifact_ref"])
-        self.assertEqual("deterministic", result.validation_report["checked_at"])
-        self.assertEqual(3, result.validation_report["manifest_summary"]["change_count"])
-        self.assertEqual("review", result.validation_report["risk_summary"]["severity"])
+        self.assertTrue(result["ok"], result["diagnostics"])
+        self.assertEqual("ValidationReport", result["validation_report"]["kind"])
+        self.assertEqual(OUTPUT_ARTIFACT_REF, result["validation_report"]["artifact_ref"])
+        self.assertEqual("deterministic", result["validation_report"]["checked_at"])
+        self.assertEqual(3, result["validation_report"]["manifest_summary"]["change_count"])
+        self.assertEqual("review", result["validation_report"]["risk_summary"]["severity"])
 
     def test_invalid_manifest_shape_and_missing_fields(self) -> None:
         result = validate_patch_manifest(["not", "a", "dict"])
-        self.assertFalse(result.ok)
-        self.assertIn("CGNK_PATCH_VALIDATE_INVALID_MANIFEST", codes(result.diagnostics))
+        self.assertFalse(result["ok"])
+        self.assertIn("CGNK_PATCH_VALIDATE_INVALID_MANIFEST", codes(result["diagnostics"]))
 
         result = validate_patch_manifest({"kind": "PatchManifest", "file_changes": [{"path": "src/app.py"}]})
-        self.assertFalse(result.ok)
-        self.assertIn("CGNK_PATCH_VALIDATE_MISSING_FIELD", codes(result.diagnostics))
+        self.assertFalse(result["ok"])
+        self.assertIn("CGNK_PATCH_VALIDATE_MISSING_FIELD", codes(result["diagnostics"]))
 
     def test_invalid_action_path_escape_and_forbidden_paths(self) -> None:
         result = validate_patch_manifest(
@@ -86,8 +86,8 @@ class Phase21PatchValidateModuleTest(unittest.TestCase):
                 ]
             }
         )
-        found = codes(result.diagnostics)
-        self.assertFalse(result.ok)
+        found = codes(result["diagnostics"])
+        self.assertFalse(result["ok"])
         self.assertIn("CGNK_PATCH_VALIDATE_INVALID_ACTION", found)
         self.assertIn("CGNK_PATCH_VALIDATE_PATH_ESCAPE", found)
         self.assertIn("CGNK_PATCH_VALIDATE_FORBIDDEN_PATH", found)
@@ -101,8 +101,8 @@ class Phase21PatchValidateModuleTest(unittest.TestCase):
                 ]
             }
         )
-        self.assertFalse(result.ok)
-        self.assertIn("CGNK_PATCH_VALIDATE_DUPLICATE_TARGET", codes(result.diagnostics))
+        self.assertFalse(result["ok"])
+        self.assertIn("CGNK_PATCH_VALIDATE_DUPLICATE_TARGET", codes(result["diagnostics"]))
 
     def test_snapshot_context_mismatches_are_detected(self) -> None:
         with self.make_project() as td:
@@ -117,15 +117,15 @@ class Phase21PatchValidateModuleTest(unittest.TestCase):
                 },
                 snapshot=snapshot,
             )
-        found = codes(result.diagnostics)
-        self.assertFalse(result.ok)
+        found = codes(result["diagnostics"])
+        self.assertFalse(result["ok"])
         self.assertIn("CGNK_PATCH_VALIDATE_CONTEXT_MISMATCH", found)
-        self.assertEqual("blocked", result.validation_report["risk_summary"]["severity"])
+        self.assertEqual("blocked", result["validation_report"]["risk_summary"]["severity"])
 
     def test_move_or_rename_requires_destination(self) -> None:
         result = validate_patch_manifest({"file_changes": [{"action": "move", "path": "src/app.py"}]})
-        self.assertFalse(result.ok)
-        self.assertIn("CGNK_PATCH_VALIDATE_MISSING_FIELD", codes(result.diagnostics))
+        self.assertFalse(result["ok"])
+        self.assertIn("CGNK_PATCH_VALIDATE_MISSING_FIELD", codes(result["diagnostics"]))
 
     def test_validation_does_not_write_workspace_files(self) -> None:
         with self.make_project() as td:
