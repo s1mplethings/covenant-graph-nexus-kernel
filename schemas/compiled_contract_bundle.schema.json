@@ -36,6 +36,18 @@
     "symbol_table": {
       "type": "object"
     },
+    "hashes": {
+      "type": "object"
+    },
+    "surface_hash": {
+      "type": "string"
+    },
+    "policy_hash": {
+      "type": "string"
+    },
+    "graph_hash": {
+      "type": "string"
+    },
     "diagnostics": {
       "type": "array",
       "items": {

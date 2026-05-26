@@ -52,6 +52,7 @@ def compile_flow(flow_ref: str, registry: ContractRegistry, policy_ref: str | No
 
     bundle = None
     contract_pack = None
+    hashes = normalized_bundle.get("hashes", {}) if normalized_bundle else {}
     if ok and policy is not None:
         contract_pack = build_contract_pack(flow, policy, modules, list(artifacts))
         bundle = {
@@ -60,13 +61,17 @@ def compile_flow(flow_ref: str, registry: ContractRegistry, policy_ref: str | No
             "policy_ref": ref_of(policy),
             "symbols": {
                 "artifacts": sorted(artifacts),
-                "modules": [f"{m['id']}@{m['version']}" for m in modules],
-                "nodes": [n["id"] for n in flow.get("nodes", [])],
+                "modules": sorted(f"{m['id']}@{m['version']}" for m in modules),
+                "nodes": symbol_table.get("topological_order", []),
             },
             "checks": {"schema": "ok", "semantic": "ok", "policy": "ok"},
             "normalized_bundle": normalized_bundle,
             "compiled_flow": compiled_flow,
             "symbol_table": symbol_table,
+            "hashes": hashes,
+            "surface_hash": hashes.get("surface_hash"),
+            "policy_hash": hashes.get("policy_hash"),
+            "graph_hash": hashes.get("graph_hash"),
             "diagnostics": diagnostic_dicts,
             "normalized_flow": flow,
             "metadata": {"compiler": "cgnk_core.compiler"},
@@ -80,6 +85,10 @@ def compile_flow(flow_ref: str, registry: ContractRegistry, policy_ref: str | No
             "normalized_bundle": normalized_bundle,
             "compiled_flow": compiled_flow,
             "symbol_table": symbol_table,
+            "hashes": hashes,
+            "surface_hash": hashes.get("surface_hash"),
+            "policy_hash": hashes.get("policy_hash"),
+            "graph_hash": hashes.get("graph_hash"),
             "resolved_nodes": flow.get("nodes", []),
             "resolved_edges": flow.get("edges", []),
             "resolved_artifacts": sorted(artifacts),

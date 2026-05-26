@@ -8,6 +8,8 @@ from .bundle_validator import (
     validate_schemas,
 )
 from .compiler import compile_flow
+from .contract_pack import build_agent_contract_pack
+from .diff import diff_compile_results
 from .diagnostics import Diagnostic
 from .graph_edit import apply_graph_edit_proposal
 from .refs import is_valid_ref, parse_ref, ref_of
@@ -23,7 +25,9 @@ __all__ = [
     "SchemaLoader",
     "SemanticValidator",
     "apply_graph_edit_proposal",
+    "build_agent_contract_pack",
     "compile_flow",
+    "diff_compile_results",
     "is_valid_ref",
     "load_json",
     "parse_ref",

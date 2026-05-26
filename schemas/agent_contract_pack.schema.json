@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/agent_contract_pack.schema.json",
+  "title": "AgentContractPack",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "version",
+    "task",
+    "target_flow",
+    "compiled_flow",
+    "symbol_table",
+    "module_contracts",
+    "artifact_specs",
+    "policies",
+    "diagnostics",
+    "hashes",
+    "allowed_graph_edits",
+    "denied_graph_edits",
+    "agent_output_contract",
+    "repair_protocol",
+    "required_validation_commands"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "AgentContractPack"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "version": {
+      "$ref": "common_defs.schema.json#/$defs/version"
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "kind",
+        "target_flow"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "target_flow": {
+          "$ref": "common_defs.schema.json#/$defs/flow_ref"
+        }
+      }
+    },
+    "target_flow": {
+      "$ref": "common_defs.schema.json#/$defs/flow_ref"
+    },
+    "compiled_flow": {
+      "type": "object"
+    },
+    "symbol_table": {
+      "type": "object"
+    },
+    "module_contracts": {
+      "type": "array",
+      "items": {
+        "$ref": "module_contract.schema.json"
+      }
+    },
+    "artifact_specs": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_type.schema.json"
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "$ref": "policy_spec.schema.json"
+      },
+      "minItems": 1
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "required": [
+        "surface_hash",
+        "policy_hash",
+        "graph_hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "surface_hash": {
+          "type": "string"
+        },
+        "policy_hash": {
+          "type": "string"
+        },
+        "graph_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "surface_hash": {
+      "type": "string"
+    },
+    "policy_hash": {
+      "type": "string"
+    },
+    "graph_hash": {
+      "type": "string"
+    },
+    "allowed_graph_edits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "denied_graph_edits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "agent_output_contract": {
+      "type": "object"
+    },
+    "repair_protocol": {
+      "type": "object"
+    },
+    "required_validation_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compiler_contract": {
+      "type": "object"
+    }
+  }
+}

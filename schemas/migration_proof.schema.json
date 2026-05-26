@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/migration_proof.schema.json",
+  "title": "MigrationProof",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "migration_ref",
+    "target_flow",
+    "preserved_constraints",
+    "evidence",
+    "diagnostics",
+    "ok"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "MigrationProof"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "migration_ref": {
+      "type": "string",
+      "pattern": "^migration\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "target_flow": {
+      "$ref": "common_defs.schema.json#/$defs/flow_ref"
+    },
+    "preserved_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "legacy_files",
+        "public_entrypoints",
+        "target_modules",
+        "target_artifacts",
+        "required_tests",
+        "required_artifacts",
+        "required_schemas"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "legacy_files": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "public_entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "target_modules": {
+          "type": "array",
+          "items": {
+            "$ref": "common_defs.schema.json#/$defs/module_ref"
+          }
+        },
+        "target_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+          }
+        },
+        "required_tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_schemas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "diagnostic.schema.json"
+      }
+    },
+    "ok": {
+      "type": "boolean"
+    }
+  }
+}

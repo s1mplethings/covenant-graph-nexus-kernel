@@ -53,6 +53,27 @@
     "symbol_table": {
       "type": "object"
     },
+    "hashes": {
+      "type": "object"
+    },
+    "surface_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "policy_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "graph_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "resolved_nodes": {
       "type": "array"
     },

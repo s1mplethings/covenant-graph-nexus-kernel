@@ -14,6 +14,7 @@ SCHEMA_BY_KIND = {
     "PolicySpec": "policy_spec.schema.json",
     "GraphEditProposal": "graph_edit_proposal.schema.json",
     "MigrationSpec": "migration_spec.schema.json",
+    "MigrationProof": "migration_proof.schema.json",
     "ContractPack": "contract_pack.schema.json",
     "CompileResult": "compile_result.schema.json",
     "CompiledContractBundle": "compiled_contract_bundle.schema.json",

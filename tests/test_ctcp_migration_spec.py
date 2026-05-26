@@ -18,9 +18,10 @@ class CtcpMigrationSpecTest(unittest.TestCase):
         self.assertIn("project_generation_pipeline", report["selected"])
         self.assertIn("old_progress_fallback", report["rejected"])
         with tempfile.TemporaryDirectory() as td:
-            json_path, md_path = write_reports(report, ROOT / td if False else __import__("pathlib").Path(td))
+            json_path, md_path, proof_path = write_reports(report, ROOT / td if False else __import__("pathlib").Path(td))
             self.assertTrue(json_path.exists())
             self.assertTrue(md_path.exists())
+            self.assertTrue(proof_path.exists())
 
 
 if __name__ == "__main__":

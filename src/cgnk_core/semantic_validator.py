@@ -125,8 +125,19 @@ class SemanticValidator:
             if output_name not in output_sources:
                 diagnostics.append(Diagnostic(CGNK_OUTPUT_UNUSED, "error", f"$.outputs.{output_name}", "Flow output has no upstream source", target={"flow_output": output_name}))
 
-        if self._has_cycle(graph_edges):
-            diagnostics.append(Diagnostic(CGNK_GRAPH_CYCLE, "error", "$.edges", "Flow node graph contains a cycle", repair_hints=[{"op": "disconnect_cycle_edge"}]))
+        cycle_path = self._find_cycle(graph_edges)
+        if cycle_path:
+            diagnostics.append(
+                Diagnostic(
+                    CGNK_GRAPH_CYCLE,
+                    "error",
+                    "$.edges",
+                    "Flow node graph contains a cycle",
+                    actual=cycle_path,
+                    involved_ref=" -> ".join(cycle_path),
+                    repair_hints=[{"op": "disconnect_cycle_edge", "cycle_path": cycle_path}],
+                )
+            )
         self._validate_gates(flow, node_map, diagnostics)
         return diagnostics
 
@@ -244,24 +255,32 @@ class SemanticValidator:
         for i, gate in enumerate(flow.get("gates", [])):
             walk(gate.get("require", {}), f"$.gates[{i}].require")
 
-    def _has_cycle(self, edges: list[tuple[str, str]]) -> bool:
+    def _find_cycle(self, edges: list[tuple[str, str]]) -> list[str] | None:
         graph: dict[str, list[str]] = {}
         for src, tgt in edges:
             graph.setdefault(src, []).append(tgt)
-        visiting: set[str] = set()
+        for node in graph:
+            graph[node] = sorted(graph[node])
+        active: list[str] = []
         visited: set[str] = set()
 
-        def dfs(node: str) -> bool:
-            if node in visiting:
-                return True
+        def dfs(node: str) -> list[str] | None:
+            if node in active:
+                start = active.index(node)
+                return active[start:] + [node]
             if node in visited:
-                return False
-            visiting.add(node)
+                return None
+            active.append(node)
             for nxt in graph.get(node, []):
-                if dfs(nxt):
-                    return True
-            visiting.remove(node)
+                found = dfs(nxt)
+                if found:
+                    return found
+            active.pop()
             visited.add(node)
-            return False
+            return None
 
-        return any(dfs(node) for node in graph)
+        for node in sorted(graph):
+            found = dfs(node)
+            if found:
+                return found
+        return None

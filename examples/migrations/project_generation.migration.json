@@ -27,6 +27,15 @@
       "module.patch.validate@1",
       "module.tests.run@1",
       "module.benchmark.run@1"
+    ],
+    "artifacts": [
+      "artifact.goal@1",
+      "artifact.project_snapshot@1",
+      "artifact.project_graph@1",
+      "artifact.implementation_plan@1",
+      "artifact.patch_manifest@1",
+      "artifact.validation_report@1",
+      "artifact.benchmark_report@1"
     ]
   },
   "preserve": {
@@ -61,6 +70,10 @@
     "required_artifacts": [
       "benchmark_summary.json",
       "benchmark_report.md"
+    ],
+    "required_schemas": [
+      "summary_json_schema",
+      "benchmark_report_format"
     ],
     "required_diagnostics": []
   }
