@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/contract_pack.schema.json",
+  "title": "ContractPack",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "task",
+    "allowed_files",
+    "denied_files",
+    "flow",
+    "policy",
+    "required_modules",
+    "required_artifacts",
+    "allowed_graph_edits",
+    "required_checks"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "kind": {
+      "const": "ContractPack"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "version": {
+      "$ref": "common_defs.schema.json#/$defs/version"
+    },
+    "task": {
+      "type": "object"
+    },
+    "allowed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "denied_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "flow": {
+      "$ref": "common_defs.schema.json#/$defs/flow_ref"
+    },
+    "policy": {
+      "$ref": "common_defs.schema.json#/$defs/policy_ref"
+    },
+    "migration": {
+      "type": "string",
+      "pattern": "^migration\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "required_modules": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/module_ref"
+      }
+    },
+    "required_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+      }
+    },
+    "allowed_graph_edits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compiler_contract": {
+      "type": "object"
+    }
+  }
+}

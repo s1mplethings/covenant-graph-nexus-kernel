@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/diagnostic.schema.json",
+  "title": "Diagnostic",
+  "type": "object",
+  "required": [
+    "code",
+    "severity",
+    "path",
+    "message"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "path": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "expected": {},
+    "actual": {},
+    "involved_ref": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object"
+    },
+    "target": {
+      "type": "object"
+    },
+    "repair_hints": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/flow_spec.schema.json",
+  "title": "FlowSpec",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "nodes",
+    "edges"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "FlowSpec"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^flow\\.[a-z0-9_.-]+$"
+    },
+    "version": {
+      "$ref": "common_defs.schema.json#/$defs/version"
+    },
+    "policy_ref": {
+      "$ref": "common_defs.schema.json#/$defs/policy_ref"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "common_defs.schema.json#/$defs/FlowNode"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "$ref": "common_defs.schema.json#/$defs/SourceEndpoint"
+          },
+          "to": {
+            "$ref": "common_defs.schema.json#/$defs/TargetEndpoint"
+          }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "require",
+          "on_fail"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "require": {
+            "$ref": "predicate.schema.json#/$defs/predicate"
+          },
+          "on_fail": {
+            "enum": [
+              "block",
+              "warn",
+              "manual_review"
+            ]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

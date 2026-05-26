@@ -1,0 +1,130 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.project_refactor",
+  "version": "1",
+  "policy_ref": "policy.safe_project_refactor@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "validation_report": "artifact.validation_report@1"
+  },
+  "nodes": [
+    {
+      "id": "n_snapshot",
+      "uses": "module.project.snapshot@1"
+    },
+    {
+      "id": "n_build_graph",
+      "uses": "module.project.build_graph@1"
+    },
+    {
+      "id": "n_plan",
+      "uses": "module.plan.generate.contract_only@1"
+    },
+    {
+      "id": "n_emit_patch",
+      "uses": "module.patch.emit@1"
+    },
+    {
+      "id": "n_validate_patch",
+      "uses": "module.patch.validate@1"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "flow_input": "goal"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "goal"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_build_graph",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_emit_patch",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_validate_patch",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_build_graph",
+        "port": "graph"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "graph"
+      }
+    },
+    {
+      "from": {
+        "node": "n_plan",
+        "port": "plan"
+      },
+      "to": {
+        "node": "n_emit_patch",
+        "port": "plan"
+      }
+    },
+    {
+      "from": {
+        "node": "n_emit_patch",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "from": {
+        "node": "n_validate_patch",
+        "port": "validation_report"
+      },
+      "to": {
+        "flow_output": "validation_report"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_refactor_safe",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_validate_patch"
+          }
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "purpose": "safe legacy refactor graph"
+  }
+}

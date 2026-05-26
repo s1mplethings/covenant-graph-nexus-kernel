@@ -1,0 +1,16 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.delivery_package",
+  "version": "1",
+  "type_name": "DeliveryPackage",
+  "schema_ref": "schemas/delivery_package.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "manifest",
+      "delivery_ready"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "kind": "PolicySpec",
+  "id": "policy.safe_project_generation",
+  "version": "1",
+  "fs": {
+    "allowed_read": [
+      "project/**",
+      "tests/**",
+      "tools/**"
+    ],
+    "allowed_write": [
+      "project/**",
+      "tests/**",
+      "tests/concrete_project_benchmark/generated/**"
+    ],
+    "denied_write": [
+      ".git/**",
+      ".env",
+      "secrets/**",
+      "*.pem",
+      "*.key"
+    ]
+  },
+  "network": {
+    "allowed": true
+  },
+  "provider": {
+    "allowed": true
+  },
+  "risk": {
+    "max_risk": 3
+  },
+  "agent_permissions": {
+    "allowed_edits": [
+      "add_node",
+      "replace_node",
+      "connect",
+      "disconnect",
+      "split_edge",
+      "add_gate",
+      "upgrade_module_version"
+    ],
+    "denied_edits": [
+      "weaken_policy",
+      "change_artifact_schema",
+      "remove_gate"
+    ],
+    "requires_human_review": [
+      "remove_node",
+      "change_policy_ref",
+      "upgrade_major_version"
+    ]
+  }
+}

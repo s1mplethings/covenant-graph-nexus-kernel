@@ -1,0 +1,15 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.replace_contract_only_with_provider_denied",
+  "target_flow": "flow.project_refactor@1",
+  "edits": [
+    {
+      "op": "replace_node",
+      "target_node": "n_plan",
+      "replacement": {
+        "id": "n_plan",
+        "uses": "module.plan.generate.provider@1"
+      }
+    }
+  ]
+}

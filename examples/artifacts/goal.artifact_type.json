@@ -1,0 +1,20 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.goal",
+  "version": "1",
+  "type_name": "Goal",
+  "schema_ref": "schemas/goal.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "text",
+      "constraints"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "cgnk_contract_v1",
+    "ref": "artifact.goal@1"
+  }
+}

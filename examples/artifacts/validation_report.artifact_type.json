@@ -1,0 +1,20 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.validation_report",
+  "version": "1",
+  "type_name": "ValidationReport",
+  "schema_ref": "schemas/validation_report.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "passed",
+      "failures"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "cgnk_contract_v1",
+    "ref": "artifact.validation_report@1"
+  }
+}

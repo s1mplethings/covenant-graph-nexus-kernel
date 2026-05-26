@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/predicate.schema.json",
+  "title": "Predicate",
+  "$ref": "#/$defs/predicate",
+  "$defs": {
+    "predicate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/predicate"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/predicate"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/predicate"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "node_passed"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "node_passed": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "artifact_exists"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "artifact_exists": {
+              "oneOf": [
+                {
+                  "$ref": "common_defs.schema.json#/$defs/SourceEndpoint"
+                },
+                {
+                  "$ref": "common_defs.schema.json#/$defs/TargetEndpoint"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "flow_input_bound"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "flow_input_bound": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "flow_output_bound"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "flow_output_bound": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "policy_allows"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "policy_allows": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "effect"
+              ],
+              "properties": {
+                "effect": {
+                  "enum": [
+                    "network",
+                    "provider_call",
+                    "fs_write",
+                    "fs_read",
+                    "risk"
+                  ]
+                },
+                "path": {
+                  "type": "string"
+                },
+                "risk": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

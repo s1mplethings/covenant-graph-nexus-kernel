@@ -1,0 +1,66 @@
+{
+  "kind": "ContractPack",
+  "version": "1",
+  "task": {
+    "kind": "refactor",
+    "target": "cgnk.safe_project_refactor"
+  },
+  "allowed_files": [
+    "tools/providers/project_generation_contracts.py",
+    "tests/concrete_project_benchmark/**",
+    "contracts/**",
+    "src/cgnk_core/contracts/**"
+  ],
+  "denied_files": [
+    ".git/**",
+    ".env",
+    "secrets/**",
+    "*.pem",
+    "*.key"
+  ],
+  "flow": "flow.project_refactor@1",
+  "policy": "policy.safe_project_refactor@1",
+  "migration": "migration.project_generation@1",
+  "required_modules": [
+    "module.project.snapshot@1",
+    "module.project.build_graph@1",
+    "module.plan.generate.contract_only@1",
+    "module.patch.emit@1",
+    "module.patch.validate@1"
+  ],
+  "required_artifacts": [
+    "artifact.goal@1",
+    "artifact.project_snapshot@1",
+    "artifact.project_graph@1",
+    "artifact.implementation_plan@1",
+    "artifact.patch_manifest@1",
+    "artifact.validation_report@1"
+  ],
+  "allowed_graph_edits": [
+    "add_node",
+    "replace_node",
+    "connect",
+    "disconnect",
+    "split_edge",
+    "add_gate",
+    "upgrade_module_version"
+  ],
+  "required_checks": [
+    "unit",
+    "benchmark_smoke",
+    "contract_compile",
+    "proposal_preview"
+  ],
+  "schema_version": "cgnk-contract-pack-v1",
+  "compiler_contract": {
+    "flow_ref": "flow.project_refactor@1",
+    "policy_ref": "policy.safe_project_refactor@1",
+    "expected_compile": "ok",
+    "must_not_mutate": [
+      "FlowSpec",
+      "PolicySpec",
+      "ArtifactTypeSpec"
+    ],
+    "edit_surface": "GraphEditProposal only"
+  }
+}

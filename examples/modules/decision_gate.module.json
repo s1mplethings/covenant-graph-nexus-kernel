@@ -1,0 +1,41 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.decision.gate",
+  "version": "1",
+  "ports": {
+    "input": {
+      "support_request": {
+        "artifact_type": "artifact.support_request@1",
+        "required": true
+      }
+    },
+    "output": {
+      "decision": {
+        "artifact_type": "artifact.support_decision@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "truth_rule": "deterministic_first"
+  }
+}

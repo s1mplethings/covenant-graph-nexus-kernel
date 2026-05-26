@@ -1,0 +1,58 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.insert_patch_validation_ok",
+  "target_flow": "flow.project_refactor.cgnk@1",
+  "edits": [
+    {
+      "op": "add_node",
+      "node": {
+        "id": "n_patch_validate_extra",
+        "uses": "module.patch.validate@1"
+      }
+    },
+    {
+      "op": "disconnect",
+      "from": {
+        "node": "n_generate",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_validate",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_generate",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_patch_validate_extra",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_patch_validate_extra",
+        "port": "snapshot"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_patch_validate_extra",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_validate",
+        "port": "patch_manifest"
+      }
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.support_intake_decision.cgnk",
+  "version": "1",
+  "policy_ref": "policy.safe_project_refactor@1",
+  "inputs": {
+    "support_request": "artifact.support_request@1"
+  },
+  "outputs": {
+    "message": "artifact.public_message@1"
+  },
+  "nodes": [
+    {
+      "id": "n_decide",
+      "uses": "module.decision.gate@1"
+    },
+    {
+      "id": "n_reply",
+      "uses": "module.support.reply.orchestrate@1"
+    },
+    {
+      "id": "n_guard",
+      "uses": "module.public.send.guard@1"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "flow_input": "support_request"
+      },
+      "to": {
+        "node": "n_decide",
+        "port": "support_request"
+      }
+    },
+    {
+      "from": {
+        "flow_input": "support_request"
+      },
+      "to": {
+        "node": "n_reply",
+        "port": "support_request"
+      }
+    },
+    {
+      "from": {
+        "node": "n_decide",
+        "port": "decision"
+      },
+      "to": {
+        "node": "n_reply",
+        "port": "decision"
+      }
+    },
+    {
+      "from": {
+        "node": "n_reply",
+        "port": "reply"
+      },
+      "to": {
+        "node": "n_guard",
+        "port": "reply"
+      }
+    },
+    {
+      "from": {
+        "node": "n_guard",
+        "port": "message"
+      },
+      "to": {
+        "flow_output": "message"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_public_guard",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_guard"
+          }
+        ]
+      },
+      "on_fail": "block"
+    }
+  ]
+}

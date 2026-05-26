@@ -1,0 +1,15 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.replace_plan_provider_with_contract_only_ok",
+  "target_flow": "flow.project_generation@1",
+  "edits": [
+    {
+      "op": "replace_node",
+      "target_node": "n_plan",
+      "replacement": {
+        "id": "n_plan",
+        "uses": "module.plan.generate.contract_only@1"
+      }
+    }
+  ]
+}

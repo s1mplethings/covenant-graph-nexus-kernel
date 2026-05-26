@@ -1,0 +1,61 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.insert_extra_patch_validation",
+  "target_flow": "flow.project_generation@1",
+  "edits": [
+    {
+      "op": "add_node",
+      "node": {
+        "id": "n_extra_validation",
+        "uses": "module.patch.validate@1"
+      }
+    },
+    {
+      "op": "disconnect",
+      "from": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_run_tests",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_extra_validation",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_extra_validation",
+        "port": "snapshot"
+      }
+    },
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_extra_validation",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_run_tests",
+        "port": "patch_manifest"
+      }
+    }
+  ],
+  "rationale": {
+    "machine_summary": "Insert a second validation stage before tests without changing artifact surface."
+  }
+}

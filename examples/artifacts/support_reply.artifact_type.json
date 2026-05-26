@@ -1,0 +1,16 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.support_reply",
+  "version": "1",
+  "type_name": "SupportReply",
+  "schema_ref": "schemas/support_reply.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "body",
+      "decision_ref"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  }
+}

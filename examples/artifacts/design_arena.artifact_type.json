@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.design_arena",
+  "version": "1",
+  "type_name": "DesignArena",
+  "schema_ref": "schemas/design_arena.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "candidates",
+      "scorecard",
+      "winner",
+      "context_digest"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  }
+}

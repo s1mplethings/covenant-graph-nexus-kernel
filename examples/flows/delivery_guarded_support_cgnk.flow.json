@@ -1,0 +1,115 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.delivery_guarded_support.cgnk",
+  "version": "1",
+  "policy_ref": "policy.safe_project_refactor@1",
+  "inputs": {
+    "support_request": "artifact.support_request@1",
+    "validation_report": "artifact.validation_report@1"
+  },
+  "outputs": {
+    "message": "artifact.public_message@1",
+    "delivery_package": "artifact.delivery_package@1"
+  },
+  "nodes": [
+    {
+      "id": "n_decide",
+      "uses": "module.decision.gate@1"
+    },
+    {
+      "id": "n_reply",
+      "uses": "module.support.reply.orchestrate@1"
+    },
+    {
+      "id": "n_guard",
+      "uses": "module.public.send.guard@1"
+    },
+    {
+      "id": "n_package",
+      "uses": "module.delivery.package@1"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "flow_input": "support_request"
+      },
+      "to": {
+        "node": "n_decide",
+        "port": "support_request"
+      }
+    },
+    {
+      "from": {
+        "flow_input": "support_request"
+      },
+      "to": {
+        "node": "n_reply",
+        "port": "support_request"
+      }
+    },
+    {
+      "from": {
+        "node": "n_decide",
+        "port": "decision"
+      },
+      "to": {
+        "node": "n_reply",
+        "port": "decision"
+      }
+    },
+    {
+      "from": {
+        "node": "n_reply",
+        "port": "reply"
+      },
+      "to": {
+        "node": "n_guard",
+        "port": "reply"
+      }
+    },
+    {
+      "from": {
+        "node": "n_guard",
+        "port": "message"
+      },
+      "to": {
+        "flow_output": "message"
+      }
+    },
+    {
+      "from": {
+        "flow_input": "validation_report"
+      },
+      "to": {
+        "node": "n_package",
+        "port": "validation_report"
+      }
+    },
+    {
+      "from": {
+        "node": "n_package",
+        "port": "delivery_package"
+      },
+      "to": {
+        "flow_output": "delivery_package"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_delivery_ready",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_guard"
+          },
+          {
+            "node_passed": "n_package"
+          }
+        ]
+      },
+      "on_fail": "block"
+    }
+  ]
+}

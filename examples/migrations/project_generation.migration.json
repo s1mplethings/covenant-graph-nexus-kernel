@@ -1,0 +1,67 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.project_generation",
+  "version": "1",
+  "legacy": {
+    "files": [
+      "tools/providers/project_generation_contracts.py",
+      "tests/concrete_project_benchmark/run_concrete_project_benchmark.py",
+      "tests/concrete_project_benchmark/benchmark_report.md",
+      "tests/concrete_project_benchmark/generated/issue_tracker_api/benchmark_summary.json"
+    ],
+    "public_entrypoints": [
+      "run_concrete_project_benchmark"
+    ],
+    "protected_outputs": [
+      "benchmark_summary.json",
+      "benchmark_report.md"
+    ]
+  },
+  "target": {
+    "flow": "flow.project_generation@1",
+    "modules": [
+      "module.project.snapshot@1",
+      "module.project.build_graph@1",
+      "module.plan.generate@1",
+      "module.patch.emit@1",
+      "module.patch.validate@1",
+      "module.tests.run@1",
+      "module.benchmark.run@1"
+    ]
+  },
+  "preserve": {
+    "cli_args": true,
+    "summary_json_schema": true,
+    "benchmark_report_format": true,
+    "provider_call_semantics": true,
+    "timeout_guard_semantics": true,
+    "file_hash_cache_evidence": true,
+    "support decision flow": true,
+    "repo hygiene guard": true
+  },
+  "allowed_changes": {
+    "internal_module_split": true,
+    "private_function_rename": true,
+    "contract_wrapper_addition": true,
+    "test_file_addition": true
+  },
+  "denied_changes": {
+    "public_cli_breakage": true,
+    "output_schema_breakage": true,
+    "provider_behavior_change": true,
+    "benchmark_report_removal": true
+  },
+  "proof": {
+    "required_tests": [
+      "unit",
+      "benchmark_smoke",
+      "contract_compile",
+      "proposal_preview"
+    ],
+    "required_artifacts": [
+      "benchmark_summary.json",
+      "benchmark_report.md"
+    ],
+    "required_diagnostics": []
+  }
+}

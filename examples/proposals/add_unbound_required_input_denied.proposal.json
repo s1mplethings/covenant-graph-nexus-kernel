@@ -1,0 +1,14 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.add_unbound_required_input_denied",
+  "target_flow": "flow.project_refactor@1",
+  "edits": [
+    {
+      "op": "add_node",
+      "node": {
+        "id": "n_unbound_tests",
+        "uses": "module.tests.run@1"
+      }
+    }
+  ]
+}

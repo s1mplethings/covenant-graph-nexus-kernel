@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/artifact_type.schema.json",
+  "title": "ArtifactTypeSpec",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "type_name"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "ArtifactTypeSpec"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^artifact\\.[a-z0-9_.-]+$"
+    },
+    "version": {
+      "$ref": "common_defs.schema.json#/$defs/version"
+    },
+    "type_name": {
+      "type": "string"
+    },
+    "schema_ref": {
+      "type": "string"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hash_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "backward_compatible_with": {
+          "type": "array",
+          "items": {
+            "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

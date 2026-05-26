@@ -1,0 +1,40 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.project.build_graph",
+  "version": "1",
+  "ports": {
+    "input": {
+      "snapshot": {
+        "artifact_type": "artifact.project_snapshot@1",
+        "required": true
+      }
+    },
+    "output": {
+      "graph": {
+        "artifact_type": "artifact.project_graph@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [
+      "project/**"
+    ],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  }
+}

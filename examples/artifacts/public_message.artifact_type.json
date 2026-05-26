@@ -1,0 +1,16 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.public_message",
+  "version": "1",
+  "type_name": "PublicMessage",
+  "schema_ref": "schemas/public_message.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "body",
+      "delivery_ready"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  }
+}

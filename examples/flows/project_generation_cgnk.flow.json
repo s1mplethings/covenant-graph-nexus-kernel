@@ -1,0 +1,135 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.project_generation.cgnk",
+  "version": "1",
+  "policy_ref": "policy.safe_project_refactor@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "validation_report": "artifact.validation_report@1"
+  },
+  "nodes": [
+    {
+      "id": "n_snapshot",
+      "uses": "module.project.snapshot@1"
+    },
+    {
+      "id": "n_build_graph",
+      "uses": "module.project.build_graph@1"
+    },
+    {
+      "id": "n_intent",
+      "uses": "module.intent.expand@1"
+    },
+    {
+      "id": "n_arena",
+      "uses": "module.design.arena@1"
+    },
+    {
+      "id": "n_plan",
+      "uses": "module.plan.generate.contract_only@1"
+    },
+    {
+      "id": "n_generate",
+      "uses": "module.source.generate.project@1"
+    },
+    {
+      "id": "n_validate",
+      "uses": "module.runtime.validate@1"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "flow_input": "goal"
+      },
+      "to": {
+        "node": "n_intent",
+        "port": "goal"
+      }
+    },
+    {
+      "from": {
+        "node": "n_intent",
+        "port": "goal"
+      },
+      "to": {
+        "node": "n_arena",
+        "port": "goal"
+      }
+    },
+    {
+      "from": {
+        "node": "n_intent",
+        "port": "goal"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "goal"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_build_graph",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_build_graph",
+        "port": "graph"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "graph"
+      }
+    },
+    {
+      "from": {
+        "node": "n_plan",
+        "port": "plan"
+      },
+      "to": {
+        "node": "n_generate",
+        "port": "plan"
+      }
+    },
+    {
+      "from": {
+        "node": "n_generate",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_validate",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "from": {
+        "node": "n_validate",
+        "port": "validation_report"
+      },
+      "to": {
+        "flow_output": "validation_report"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_validated",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_validate"
+          }
+        ]
+      },
+      "on_fail": "block"
+    }
+  ]
+}

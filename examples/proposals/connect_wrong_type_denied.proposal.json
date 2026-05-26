@@ -1,0 +1,18 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.connect_wrong_type_denied",
+  "target_flow": "flow.project_refactor@1",
+  "edits": [
+    {
+      "op": "connect",
+      "from": {
+        "node": "n_plan",
+        "port": "plan"
+      },
+      "to": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "covenant-graph-nexus-kernel"
+version = "0.0.0"
+description = "Contract-first graph compiler kernel for modular agentic project generation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.0",
+]
+
+[project.optional-dependencies]
+test = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
