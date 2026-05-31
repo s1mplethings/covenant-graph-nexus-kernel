@@ -1,0 +1,17 @@
+{
+  "kind": "LocalLibraryIndex",
+  "created_at": "2026-05-31T14:19:39.951550+00:00",
+  "payload": {
+    "roots": [
+      "libraries",
+      "examples/modules",
+      "examples/artifacts",
+      "examples/flows"
+    ],
+    "capabilities": [
+      "contract-validation",
+      "artifact-emission",
+      "local-smoke-tests"
+    ]
+  }
+}

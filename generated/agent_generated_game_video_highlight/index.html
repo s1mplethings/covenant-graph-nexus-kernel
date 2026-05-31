@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Game Video Highlight Finder</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Local video analysis</p>
+      <h1>Game Video Highlight Finder</h1>
+      <p class="subtitle">Import one gameplay video, analyze visual and audio signal windows, rank highlight candidates, and export a cut list.</p>
+    </div>
+    <div class="header-actions">
+      <button id="load-synthetic" type="button">Load Fixture</button>
+      <button id="export-cutlist" type="button">Export Cut List</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel video-panel">
+      <h2>Video Input</h2>
+      <input id="video-file" type="file" accept="video/*">
+      <video id="video-preview" controls muted playsinline></video>
+      <dl class="metadata">
+        <div><dt>File</dt><dd id="video-name">No video loaded</dd></div>
+        <div><dt>Duration</dt><dd id="video-duration">Unknown</dd></div>
+        <div><dt>Samples</dt><dd id="sample-count">0</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel config-panel">
+      <h2>Detection Profile</h2>
+      <label>Minimum score <input id="min-score" type="range" min="0" max="100" value="62"><span id="min-score-value">62</span></label>
+      <label>Category
+        <select id="category-filter">
+          <option value="">All</option>
+          <option value="clutch">Clutch</option>
+          <option value="objective">Objective</option>
+          <option value="combat">Combat</option>
+        </select>
+      </label>
+      <button id="analyze-video" type="button">Analyze Video</button>
+    </section>
+
+    <section class="panel summary-panel">
+      <h2>Summary</h2>
+      <div class="metrics">
+        <div><strong id="candidate-count">0</strong><span>Candidates</span></div>
+        <div><strong id="top-score">0</strong><span>Top score</span></div>
+        <div><strong id="accepted-count">0</strong><span>Accepted</span></div>
+      </div>
+    </section>
+
+    <section class="panel result-panel">
+      <h2>Ranked Highlights</h2>
+      <div id="candidate-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

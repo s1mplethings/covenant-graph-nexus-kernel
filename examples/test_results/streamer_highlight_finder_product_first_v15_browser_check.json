@@ -1,0 +1,25 @@
+{
+  "project": "generated/streamer_highlight_finder_product_first_v15",
+  "url": "http://127.0.0.1:8144/index.html",
+  "status": "pass",
+  "smoke_test_result": {
+    "status": "pass"
+  },
+  "diagnostics": {
+    "cards": 3,
+    "storageCount": 3,
+    "titles": [
+      "Highlight 2",
+      "Highlight 1",
+      "Manual Highlight"
+    ],
+    "scores": [
+      "Score: 8.2",
+      "Score: 5.5",
+      "Score: 0.3"
+    ],
+    "status": "Showing 3 of 3 records.",
+    "consoleErrors": 0,
+    "consoleWarnings": 0
+  }
+}

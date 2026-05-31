@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.test_method_plan",
+  "version": "1",
+  "type_name": "TestMethodPlan",
+  "schema_ref": "schemas/test_method_plan.v1.schema.json",
+  "identity": {
+    "hash_fields": ["target", "methods", "gates"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "modular_project_testing_v1",
+    "ref": "artifact.test_method_plan@1",
+    "purpose": "Composable test methods such as schema validation, contract compile, module smoke, artifact inspection, browser smoke, industrial I/O, connectivity probe, and adversarial review."
+  }
+}

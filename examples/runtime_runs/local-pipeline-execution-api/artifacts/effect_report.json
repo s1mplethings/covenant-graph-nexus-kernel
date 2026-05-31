@@ -1,0 +1,28 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\local_task_board",
+      "D:\\CGKN\\examples\\runtime_runs\\local-pipeline-execution-api"
+    ],
+    "network": "explicitly gated",
+    "provider": "explicitly gated",
+    "external": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "ok": true,
+        "text": "该项目旨在通过客服入口收集用户需求，由本地图书管理员和代理人合作生成项目蓝图并通过API和Telegram交付结果。",
+        "request_id": "chatcmpl-Dk6zs70beEiNHTVHCs9zEGXi5LgMd"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

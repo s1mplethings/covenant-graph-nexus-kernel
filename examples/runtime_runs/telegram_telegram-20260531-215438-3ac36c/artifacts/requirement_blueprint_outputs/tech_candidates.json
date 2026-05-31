@@ -1,0 +1,554 @@
+{
+  "tech_candidates": [
+    {
+      "capability": "file_input",
+      "feature": "Video intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "local_video_preview",
+      "feature": "Video intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "input_validation",
+      "feature": "Video intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "video_metadata_probe",
+      "feature": "Video metadata extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "duration_detection",
+      "feature": "Video metadata extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "mime_type_validation",
+      "feature": "Video metadata extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "frame_sampling",
+      "feature": "Frame signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "motion_signal_detection",
+      "feature": "Frame signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "timeline_windowing",
+      "feature": "Frame signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "audio_peak_detection",
+      "feature": "Audio signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "energy_timeline",
+      "feature": "Audio signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "timeline_windowing",
+      "feature": "Audio signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "keyword_signal_detection",
+      "feature": "Language/subtitle signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "optional_ocr_or_transcript",
+      "feature": "Language/subtitle signal extraction",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "signal_fusion",
+      "feature": "Highlight candidate generation",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "candidate_window_generation",
+      "feature": "Highlight candidate generation",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "weighted_scoring",
+      "feature": "Multi-criteria scoring",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "risk_analysis",
+      "feature": "Multi-criteria scoring",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "decision_explanation",
+      "feature": "Multi-criteria scoring",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "mp4_export",
+      "feature": "Clip export",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "clip_manifest_generation",
+      "feature": "Clip export",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "quality_preserving_cut",
+      "feature": "Clip export",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "form_controls",
+      "feature": "Settings UI",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "parameter_persistence",
+      "feature": "Settings UI",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "local_artifact_storage",
+      "feature": "Settings UI",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    }
+  ]
+}

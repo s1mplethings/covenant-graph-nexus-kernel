@@ -1,0 +1,16 @@
+flowchart LR
+  A[Video File] --> B[video_intake]
+  B --> C[frame_sampler]
+  B --> D[audio_analyzer]
+  A --> E[event_ingest]
+  C --> F[signal_fusion]
+  D --> F
+  E --> F
+  F --> G[highlight_scoring]
+  G --> H[candidate_merge]
+  H --> I[review_ui]
+  I --> J[export_planner]
+  J --> K[HighlightResult]
+  J --> L[JSON Cut List]
+  J --> M[EDL / ffmpeg commands]
+  I --> N[test_report]

@@ -1,0 +1,17 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.runtime_execution_result",
+  "version": "1",
+  "type_name": "RuntimeExecutionResult",
+  "schema_ref": "schemas/runtime_execution_result.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "status", "outputs", "external_approvals"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "local_pipeline_execution_v1",
+    "ref": "artifact.runtime_execution_result@1"
+  }
+}

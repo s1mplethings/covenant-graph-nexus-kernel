@@ -1,0 +1,159 @@
+{
+  "kind": "ModuleSmokeTestResult",
+  "flow_ref": "flow.modular_project_generation@1",
+  "ok": true,
+  "module_count": 11,
+  "modules": [
+    {
+      "node": "n_customer_service",
+      "module": "module.customer.service@1",
+      "inputs": [
+        "goal"
+      ],
+      "outputs": [
+        "request"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_requirement_blueprint",
+      "module": "module.requirement_blueprint.generator@1",
+      "inputs": [
+        "goal"
+      ],
+      "outputs": [
+        "requirement_blueprint"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_local_librarian",
+      "module": "module.local.librarian@1",
+      "inputs": [],
+      "outputs": [
+        "local_index"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_online_library_sources",
+      "module": "module.online.library_sources@1",
+      "inputs": [],
+      "outputs": [
+        "online_sources"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_feature_library_search",
+      "module": "module.feature.library_search@1",
+      "inputs": [
+        "local_index",
+        "online_sources",
+        "request"
+      ],
+      "outputs": [
+        "candidates"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_local_agent",
+      "module": "module.local_agent.plan@1",
+      "inputs": [
+        "candidates",
+        "request"
+      ],
+      "outputs": [
+        "agent_plan"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_adversarial_generation",
+      "module": "module.adversarial_generation@1",
+      "inputs": [
+        "agent_plan",
+        "candidates",
+        "request"
+      ],
+      "outputs": [
+        "adversarial_review"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_project_generator",
+      "module": "module.project.generator@1",
+      "inputs": [
+        "adversarial_review",
+        "agent_plan",
+        "candidates",
+        "request"
+      ],
+      "outputs": [
+        "generation_trace",
+        "project_blueprint"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_test_graph_emit",
+      "module": "module.test_graph.emit@1",
+      "inputs": [
+        "generation_trace",
+        "project_blueprint"
+      ],
+      "outputs": [
+        "test_graph"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_effect_report_emit",
+      "module": "module.effect_report.emit@1",
+      "inputs": [
+        "generation_trace",
+        "project_blueprint",
+        "test_graph"
+      ],
+      "outputs": [
+        "effect_report"
+      ],
+      "status": "pass"
+    },
+    {
+      "node": "n_unified_control",
+      "module": "module.unified_control@1",
+      "inputs": [
+        "adversarial_review",
+        "agent_plan",
+        "candidates",
+        "effect_report",
+        "generation_trace",
+        "local_index",
+        "online_sources",
+        "project_blueprint",
+        "request",
+        "test_graph"
+      ],
+      "outputs": [
+        "effect_report",
+        "generation_trace",
+        "project_blueprint",
+        "test_graph"
+      ],
+      "status": "pass"
+    }
+  ],
+  "outputs": [
+    "effect_report",
+    "generation_trace",
+    "project_blueprint",
+    "requirement_blueprint",
+    "test_graph"
+  ],
+  "run_dir": "D:\\CGKN\\examples\\runtime_runs\\modular-project-generation-smoke",
+  "result_path": "D:\\CGKN\\examples\\test_results\\modular_project_generation_module_test_result.json",
+  "created_at": "2026-05-31T14:19:39.961168+00:00"
+}

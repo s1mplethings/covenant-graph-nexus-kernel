@@ -1,0 +1,61 @@
+{
+  "project_type": {
+    "value": "requirement_blueprint_generator",
+    "source_type": "inferred",
+    "confidence": 0.72
+  },
+  "business_goal": {
+    "value": "我想做一个 AI 需求蓝图生成器",
+    "source_type": "explicit",
+    "confidence": 0.95
+  },
+  "target_users": {
+    "value": [
+      "project_owner",
+      "developer"
+    ],
+    "source_type": "inferred",
+    "confidence": 0.76
+  },
+  "scenarios": [
+    {
+      "value": "User submits a natural-language project request.",
+      "source_type": "explicit",
+      "confidence": 0.9
+    },
+    {
+      "value": "System analyzes input, output, gaps, features, capabilities, and tasks.",
+      "source_type": "assumed",
+      "confidence": 0.75
+    },
+    {
+      "value": "Developer reviews generated blueprint artifacts before implementation.",
+      "source_type": "assumed",
+      "confidence": 0.72
+    }
+  ],
+  "pain_points": [
+    {
+      "value": "Requirement wording is likely underspecified at first contact.",
+      "source_type": "inferred",
+      "confidence": 0.8
+    },
+    {
+      "value": "Implementation tasks need traceability to inputs, outputs, and acceptance criteria.",
+      "source_type": "assumed",
+      "confidence": 0.82
+    },
+    {
+      "value": "Technology choices should be tied to capabilities instead of broad project labels.",
+      "source_type": "assumed",
+      "confidence": 0.82
+    }
+  ],
+  "scope_boundary": [
+    {
+      "value": "Generate a concrete blueprint and then continue through the existing CGNK project generation flow.",
+      "source_type": "assumed",
+      "confidence": 0.72
+    }
+  ]
+}

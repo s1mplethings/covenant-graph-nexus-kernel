@@ -1,0 +1,92 @@
+{
+  "kind": "TelegramStyleDialogueSession",
+  "session_id": "telegram-20260531-204912-043c10",
+  "created_at": "2026-05-31T12:49:12.775945+00:00",
+  "updated_at": "2026-05-31T12:49:16.806898+00:00",
+  "mode": {
+    "assistant_participation": "disabled",
+    "api_calls": "enabled for dialogue replies",
+    "description": "Simple API-backed dialogue test recorder."
+  },
+  "messages": [
+    {
+      "id": "b7193c0d505645bfb5c7544b0b4939ea",
+      "created_at": "2026-05-31T12:49:14.976432+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 已连接。",
+      "artifacts": {
+        "api_connection": {
+          "ok": true,
+          "api_status": "connected",
+          "overall_status": "pass",
+          "command": {
+            "command": [
+              "D:\\anaconda\\python.exe",
+              "scripts/check_connectivity.py",
+              "--live"
+            ],
+            "returncode": 0,
+            "duration_seconds": 2.17,
+            "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+            "stderr": "",
+            "status": "pass"
+          },
+          "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+        }
+      }
+    },
+    {
+      "id": "8d99871c84a5458ba67924e125c7fd1b",
+      "created_at": "2026-05-31T12:49:15.012971+00:00",
+      "role": "customer",
+      "type": "message",
+      "content": "不用了"
+    },
+    {
+      "id": "ade3f659d8124dc3897aee73f0863138",
+      "created_at": "2026-05-31T12:49:16.797888+00:00",
+      "role": "service",
+      "type": "message",
+      "content": "请问您是否有其他需求或问题需要帮助？",
+      "artifacts": {
+        "request_id": "chatcmpl-DlZtMm0m4aMC1oVKBfHggpvOxwk8j",
+        "model": "gpt-4o-mini"
+      }
+    }
+  ],
+  "artifacts": {
+    "api_connection": {
+      "ok": true,
+      "api_status": "connected",
+      "overall_status": "pass",
+      "command": {
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/check_connectivity.py",
+          "--live"
+        ],
+        "returncode": 0,
+        "duration_seconds": 2.17,
+        "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+        "stderr": "",
+        "status": "pass"
+      },
+      "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+    },
+    "last_api_reply": {
+      "ok": true,
+      "request_id": "chatcmpl-DlZtMm0m4aMC1oVKBfHggpvOxwk8j",
+      "endpoint": "https://api.gptsapi.net/chat/completions",
+      "model": "gpt-4o-mini",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "pass",
+          "duration_seconds": 1.76
+        }
+      ]
+    }
+  },
+  "last_save_reason": "session_created"
+}

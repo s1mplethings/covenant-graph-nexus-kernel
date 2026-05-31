@@ -1,0 +1,23 @@
+{
+  "kind": "EffectReport",
+  "created_at": "2026-05-31T13:34:01.359820+00:00",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Executed modular test pipeline with local deterministic checks and live API probes when declared.",
+    "fs_read": [
+      "scripts/**",
+      "examples/**",
+      "generated/**",
+      "schemas/**"
+    ],
+    "fs_write": [
+      "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-213320-e17fb5_test_execution.json",
+      "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-213320-e17fb5_tests"
+    ],
+    "network": "enabled",
+    "provider": "enabled for live connectivity probes",
+    "api_steps": [
+      "connectivity_live_probe"
+    ]
+  }
+}

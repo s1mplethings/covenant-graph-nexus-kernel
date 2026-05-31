@@ -1,0 +1,39 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.online.library_sources",
+  "version": "1",
+  "ports": {
+    "input": {},
+    "output": {
+      "online_sources": {
+        "artifact_type": "artifact.online_library_sources@1",
+        "description": "Candidate online package, documentation, or reference sources."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.network.read",
+        "scope": ["package registries", "documentation sources", "reference indexes"]
+      }
+    ],
+    "context": ["run_id", "source_policy"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": true,
+    "provider_call": false,
+    "risk": 2
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Online source discovery stays isolated from local generation and only emits typed source candidates."
+  }
+}

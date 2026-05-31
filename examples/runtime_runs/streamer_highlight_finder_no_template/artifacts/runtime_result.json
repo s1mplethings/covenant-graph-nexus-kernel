@@ -1,0 +1,27 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_no_template",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_no_template",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_no_template\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_no_template\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_no_template\\artifacts\\generation_trace.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_no_template\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_no_template\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": false,
+      "provider_allowed": false,
+      "api": {
+        "requested": false,
+        "executed": false
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

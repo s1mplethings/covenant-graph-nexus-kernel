@@ -1,0 +1,42 @@
+{
+  "kind": "TestGraph",
+  "payload": {
+    "nodes": [
+      "goal",
+      "request",
+      "pipeline_plan",
+      "project_files",
+      "test_graph",
+      "effect_report"
+    ],
+    "edges": [
+      [
+        "goal",
+        "request"
+      ],
+      [
+        "request",
+        "pipeline_plan"
+      ],
+      [
+        "pipeline_plan",
+        "project_files"
+      ],
+      [
+        "project_files",
+        "test_graph"
+      ],
+      [
+        "test_graph",
+        "effect_report"
+      ]
+    ],
+    "manual_checks": [
+      "Verify that the app correctly imports data and processes it.",
+      "Check that the scoring function works as intended and sorts results correctly.",
+      "Ensure filter controls function properly and update the displayed results.",
+      "Test the manual marker form to confirm it appends new records correctly.",
+      "Validate that the export functionality works and the data is correctly formatted."
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "target_user-data_storage-runtime_result",
+    "type": "ollama_spec_project",
+    "output_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_no_template",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "sample_data.json",
+      "README.md",
+      "TEST_PLAN.md"
+    ],
+    "modules": [
+      "module.feature.library_search@1",
+      "module.local.librarian@1",
+      "module.project.generator@1",
+      "module.local.runtime_executor@1",
+      "module.effect_report.emit@1",
+      "module.local.pipeline_composer_agent@1",
+      "module.customer.service@1",
+      "module.local_agent.plan@1",
+      "module.test_graph.emit@1",
+      "module.unified_control@1"
+    ],
+    "generator": {
+      "provider": "ollama",
+      "model": "qwen2.5:7b-instruct",
+      "mode": "local_librarian_route_spec_compiler"
+    }
+  }
+}

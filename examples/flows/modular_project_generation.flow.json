@@ -1,0 +1,80 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.modular_project_generation",
+  "version": "1",
+  "policy_ref": "policy.safe_modular_project_generation@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "requirement_blueprint": "artifact.requirement_blueprint@1",
+    "project_blueprint": "artifact.project_blueprint@1",
+    "generation_trace": "artifact.generation_trace@1",
+    "test_graph": "artifact.test_graph@1",
+    "effect_report": "artifact.effect_report@1"
+  },
+  "nodes": [
+    {"id": "n_customer_service", "uses": "module.customer.service@1", "config": {"line": "customer_service"}},
+    {"id": "n_requirement_blueprint", "uses": "module.requirement_blueprint.generator@1", "config": {"line": "requirement_blueprint"}},
+    {"id": "n_local_librarian", "uses": "module.local.librarian@1", "config": {"line": "local_librarian"}},
+    {"id": "n_online_library_sources", "uses": "module.online.library_sources@1", "config": {"line": "online_sources"}},
+    {"id": "n_feature_library_search", "uses": "module.feature.library_search@1", "config": {"line": "feature_search"}},
+    {"id": "n_local_agent", "uses": "module.local_agent.plan@1", "config": {"line": "local_agent"}},
+    {"id": "n_adversarial_generation", "uses": "module.adversarial_generation@1", "config": {"line": "adversarial_generation"}},
+    {"id": "n_project_generator", "uses": "module.project.generator@1", "config": {"line": "project_generation"}},
+    {"id": "n_test_graph_emit", "uses": "module.test_graph.emit@1", "config": {"line": "test_graph"}},
+    {"id": "n_effect_report_emit", "uses": "module.effect_report.emit@1", "config": {"line": "effect_report"}},
+    {"id": "n_unified_control", "uses": "module.unified_control@1", "config": {"line": "unified_control"}}
+  ],
+  "edges": [
+    {"from": {"flow_input": "goal"}, "to": {"node": "n_customer_service", "port": "goal"}},
+    {"from": {"flow_input": "goal"}, "to": {"node": "n_requirement_blueprint", "port": "goal"}},
+    {"from": {"node": "n_requirement_blueprint", "port": "requirement_blueprint"}, "to": {"flow_output": "requirement_blueprint"}},
+    {"from": {"node": "n_customer_service", "port": "request"}, "to": {"node": "n_feature_library_search", "port": "request"}},
+    {"from": {"node": "n_customer_service", "port": "request"}, "to": {"node": "n_local_agent", "port": "request"}},
+    {"from": {"node": "n_customer_service", "port": "request"}, "to": {"node": "n_adversarial_generation", "port": "request"}},
+    {"from": {"node": "n_customer_service", "port": "request"}, "to": {"node": "n_project_generator", "port": "request"}},
+    {"from": {"node": "n_customer_service", "port": "request"}, "to": {"node": "n_unified_control", "port": "request"}},
+    {"from": {"node": "n_local_librarian", "port": "local_index"}, "to": {"node": "n_feature_library_search", "port": "local_index"}},
+    {"from": {"node": "n_local_librarian", "port": "local_index"}, "to": {"node": "n_unified_control", "port": "local_index"}},
+    {"from": {"node": "n_online_library_sources", "port": "online_sources"}, "to": {"node": "n_feature_library_search", "port": "online_sources"}},
+    {"from": {"node": "n_online_library_sources", "port": "online_sources"}, "to": {"node": "n_unified_control", "port": "online_sources"}},
+    {"from": {"node": "n_feature_library_search", "port": "candidates"}, "to": {"node": "n_local_agent", "port": "candidates"}},
+    {"from": {"node": "n_feature_library_search", "port": "candidates"}, "to": {"node": "n_adversarial_generation", "port": "candidates"}},
+    {"from": {"node": "n_feature_library_search", "port": "candidates"}, "to": {"node": "n_project_generator", "port": "candidates"}},
+    {"from": {"node": "n_feature_library_search", "port": "candidates"}, "to": {"node": "n_unified_control", "port": "candidates"}},
+    {"from": {"node": "n_local_agent", "port": "agent_plan"}, "to": {"node": "n_adversarial_generation", "port": "agent_plan"}},
+    {"from": {"node": "n_local_agent", "port": "agent_plan"}, "to": {"node": "n_project_generator", "port": "agent_plan"}},
+    {"from": {"node": "n_local_agent", "port": "agent_plan"}, "to": {"node": "n_unified_control", "port": "agent_plan"}},
+    {"from": {"node": "n_adversarial_generation", "port": "adversarial_review"}, "to": {"node": "n_project_generator", "port": "adversarial_review"}},
+    {"from": {"node": "n_adversarial_generation", "port": "adversarial_review"}, "to": {"node": "n_unified_control", "port": "adversarial_review"}},
+    {"from": {"node": "n_project_generator", "port": "project_blueprint"}, "to": {"node": "n_test_graph_emit", "port": "project_blueprint"}},
+    {"from": {"node": "n_project_generator", "port": "project_blueprint"}, "to": {"node": "n_effect_report_emit", "port": "project_blueprint"}},
+    {"from": {"node": "n_project_generator", "port": "project_blueprint"}, "to": {"node": "n_unified_control", "port": "project_blueprint"}},
+    {"from": {"node": "n_project_generator", "port": "generation_trace"}, "to": {"node": "n_test_graph_emit", "port": "generation_trace"}},
+    {"from": {"node": "n_project_generator", "port": "generation_trace"}, "to": {"node": "n_effect_report_emit", "port": "generation_trace"}},
+    {"from": {"node": "n_project_generator", "port": "generation_trace"}, "to": {"node": "n_unified_control", "port": "generation_trace"}},
+    {"from": {"node": "n_test_graph_emit", "port": "test_graph"}, "to": {"node": "n_effect_report_emit", "port": "test_graph"}},
+    {"from": {"node": "n_test_graph_emit", "port": "test_graph"}, "to": {"node": "n_unified_control", "port": "test_graph"}},
+    {"from": {"node": "n_effect_report_emit", "port": "effect_report"}, "to": {"node": "n_unified_control", "port": "effect_report"}},
+    {"from": {"node": "n_unified_control", "port": "project_blueprint"}, "to": {"flow_output": "project_blueprint"}},
+    {"from": {"node": "n_unified_control", "port": "generation_trace"}, "to": {"flow_output": "generation_trace"}},
+    {"from": {"node": "n_unified_control", "port": "test_graph"}, "to": {"flow_output": "test_graph"}},
+    {"from": {"node": "n_unified_control", "port": "effect_report"}, "to": {"flow_output": "effect_report"}}
+  ],
+  "gates": [
+    {
+      "id": "g_modular_project_generation_controlled",
+      "require": {
+        "all": [
+          {"node_passed": "n_unified_control"}
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "migration_target": "migration.modular_project_generation@1",
+    "scope": "Independent customer, librarian, source, search, agent, adversarial, generation, test graph, and effect lines converge only at unified control."
+  }
+}

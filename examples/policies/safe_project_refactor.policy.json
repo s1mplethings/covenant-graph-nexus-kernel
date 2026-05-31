@@ -1,0 +1,53 @@
+{
+  "kind": "PolicySpec",
+  "id": "policy.safe_project_refactor",
+  "version": "1",
+  "fs": {
+    "allowed_read": [
+      "project/**",
+      "tests/**",
+      "tools/**"
+    ],
+    "allowed_write": [
+      "project/**",
+      "tests/**"
+    ],
+    "denied_write": [
+      ".git/**",
+      ".env",
+      "secrets/**",
+      "pyproject.toml",
+      "*.pem",
+      "*.key"
+    ]
+  },
+  "network": {
+    "allowed": false
+  },
+  "provider": {
+    "allowed": false
+  },
+  "risk": {
+    "max_risk": 2
+  },
+  "agent_permissions": {
+    "allowed_edits": [
+      "add_node",
+      "replace_node",
+      "connect",
+      "disconnect",
+      "split_edge",
+      "add_gate"
+    ],
+    "denied_edits": [
+      "weaken_policy",
+      "change_artifact_schema",
+      "remove_gate",
+      "change_policy_ref"
+    ],
+    "requires_human_review": [
+      "remove_node",
+      "upgrade_major_version"
+    ]
+  }
+}

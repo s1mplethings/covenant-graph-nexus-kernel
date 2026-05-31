@@ -1,0 +1,164 @@
+{
+  "project_architecture": {
+    "screens": [
+      "home_screen",
+      "data_import_screen",
+      "highlight_detection_screen",
+      "filter_and_sort_screen",
+      "manual_marker_screen",
+      "export_screen",
+      "test_report_screen"
+    ],
+    "modules": [
+      {
+        "path": "src/core/importer.js",
+        "responsibility": "Handle data import from JSON files or textarea input.",
+        "exports": [
+          "parseRecordsFromText",
+          "normalizeRecord",
+          "importData"
+        ],
+        "imports": []
+      },
+      {
+        "path": "src/core/scoring.js",
+        "responsibility": "Detect highlights based on scoring logic and generate a list of detected moments.",
+        "exports": [
+          "scoreRecord",
+          "sortRecords"
+        ],
+        "imports": [
+          "src/core/importer.js"
+        ]
+      },
+      {
+        "path": "src/core/filtering.js",
+        "responsibility": "Provide filtering and sorting functionality for detected highlights.",
+        "exports": [
+          "applyFilters"
+        ],
+        "imports": [
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/ui/forms.js",
+        "responsibility": "Allow users to manually add highlights to the dataset and manage form interactions.",
+        "exports": [
+          "readFilters",
+          "readManualMarker",
+          "bindDom",
+          "setupForms"
+        ],
+        "imports": [
+          "src/core/importer.js",
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/core/exporter.js",
+        "responsibility": "Export filtered highlights as a downloadable file.",
+        "exports": [
+          "downloadJson",
+          "exportData"
+        ],
+        "imports": [
+          "src/core/filtering.js"
+        ]
+      },
+      {
+        "path": "src/state/store.js",
+        "responsibility": "Persist working data locally and reload it on page load.",
+        "exports": [
+          "loadRecords",
+          "saveRecords",
+          "clearRecords",
+          "loadFromLocalStorage",
+          "saveToLocalStorage"
+        ],
+        "imports": [
+          "src/core/importer.js",
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/ui/render.js",
+        "responsibility": "Render UI components and handle user interactions.",
+        "exports": [
+          "renderRecords",
+          "renderSummary",
+          "renderError"
+        ],
+        "imports": [
+          "src/core/importer.js",
+          "src/core/scoring.js",
+          "src/core/filtering.js",
+          "src/ui/forms.js",
+          "src/core/exporter.js",
+          "src/state/store.js"
+        ]
+      },
+      {
+        "path": "src/app.js",
+        "responsibility": "Integrate all modules and provide the main application logic.",
+        "exports": [],
+        "imports": [
+          "src/core/importer.js",
+          "src/core/scoring.js",
+          "src/core/filtering.js",
+          "src/ui/forms.js",
+          "src/core/exporter.js",
+          "src/state/store.js",
+          "src/ui/render.js"
+        ]
+      }
+    ],
+    "data_contract": {
+      "record_fields": [
+        "streamer",
+        "game",
+        "timestamp",
+        "time",
+        "category",
+        "intensity",
+        "chatRate",
+        "keywords",
+        "title",
+        "description",
+        "score"
+      ],
+      "sample_shape": {
+        "streamer": "string",
+        "game": "string",
+        "timestamp": "string",
+        "time": "string",
+        "category": "string",
+        "intensity": "number",
+        "chatRate": "number",
+        "keywords": [
+          "string"
+        ],
+        "title": "string",
+        "description": "string",
+        "score": "number"
+      }
+    },
+    "test_strategy": [
+      "Unit tests for each module to ensure individual functionality.",
+      "Integration tests to verify modules work together correctly.",
+      "UI tests to ensure user interactions are functional and intuitive.",
+      "Performance tests to validate scoring and sorting efficiency with large datasets.",
+      "Acceptance tests to confirm all criteria are met."
+    ],
+    "acceptance_criteria": [
+      "Generated project must run locally from index.html under python -m http.server.",
+      "Provide a real JSON import path using FileReader and/or a textarea; imported data must be processed by the app.",
+      "Implement a real scoring function and sort detected items by score descending in executable JavaScript.",
+      "Provide visible filter controls and executable filter logic for the requested fields.",
+      "Provide a manual marker form/control that appends a new item to the working dataset and rerenders results.",
+      "Provide a real export action using Blob, URL.createObjectURL, an anchor download, and the current filtered result set.",
+      "Persist working data locally with localStorage and reload it on page load.",
+      "Use domain fields such as streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score."
+    ]
+  }
+}

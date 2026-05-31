@@ -1,0 +1,10 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.effect_report",
+  "version": "1",
+  "type_name": "EffectReport",
+  "schema_ref": "schemas/effect_report.v1.schema.json",
+  "identity": {"hash_fields": ["expected_effects", "observed_effects", "test_graph_ref"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {"first_use": "modular_project_generation_v1", "ref": "artifact.effect_report@1"}
+}

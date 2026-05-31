@@ -1,0 +1,38 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_industrial_io_v4",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v4",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\generation_trace.json",
+      "subpipeline_plan": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\subpipeline_plan.json",
+      "subpipeline_results": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\subpipeline_results.json",
+      "self_test_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\self_test_report.json",
+      "quality_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\quality_report.json",
+      "adversarial_review": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\adversarial_review.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v4\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkUAbwuO5CKDoOkLPWpOkOKdsntgL,chatcmpl-DkUAshAIagY8P6enqB06INyeONBvb,chatcmpl-DkUB99kSHlTSUrgsJvg9JSd1jYkwZ,chatcmpl-DkUBaJln9cA9zAEaPzXGp88BjLEk0,chatcmpl-DkUC8R5w7pIudsy7mFbExlQNWRoYr,chatcmpl-DkUCWMHbX024ZWPDtLuQyjFBp74UR,chatcmpl-DkUCpwvHasPrdLF6E7XjQxzNUBp1d,chatcmpl-DkUD4BLgJn4C0wePrqbiIACtPi4tS,chatcmpl-DkUDMuc6bjWYNFCqsMFkfmDDmE5XW,chatcmpl-DkUDaudFBjLK90xJkOMLEStBHaEre,chatcmpl-DkUVeP7D07dvWKZIsMOib8CsNJJvK,chatcmpl-DkUDq7QbaYCJqtaUVkPjOGN8JPkcN,chatcmpl-DkUDsNWbd2K56N81G5J0HiIPQEvN6,chatcmpl-DkUDyU5FyzpEXKTPudgGy82bx7OVJ,chatcmpl-DkUEDY8rSwfHmvcGV6yf0txyRj0HF,chatcmpl-DkUENE2XAEOoh5276To3TNnxa3Idi,chatcmpl-DkUEbb99jMA5LvxLzUvoxNQipt9OO,chatcmpl-DkULj0cMgpqUjTAnbNuLcLKvI99ms,chatcmpl-DkUFrXKIzDQsDjs81vPlAe6p3BIIz,chatcmpl-DkUMJO4CelX6lEFKdeqakX9JyzWhY,chatcmpl-DkUMeFW5D6BSi9MPRpy3iFvjxq7Dx,chatcmpl-DkUH9AJM3RL0IoUxFjIUBRCP0y6lF,chatcmpl-DkUHZBZTQgENjjmbw8hdWiP0QDMEN,chatcmpl-DkUICjtHeq4MgZJ7vTxbgjKBuLeCy",
+        "mode": "provider_architecture_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

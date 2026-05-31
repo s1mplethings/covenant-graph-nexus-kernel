@@ -1,0 +1,89 @@
+{
+  "kind": "SubpipelineExecutionResults",
+  "payload": {
+    "status": "pass",
+    "control": "module.unified_control@1",
+    "results": [
+      {
+        "id": "customer_intake_pipeline",
+        "status": "pass",
+        "artifact": "pipeline_composition.json"
+      },
+      {
+        "id": "requirement_blueprint_pipeline",
+        "status": "pass",
+        "artifact": "requirement_blueprint.json"
+      },
+      {
+        "id": "local_librarian_pipeline",
+        "status": "pass",
+        "artifact": "pipeline_composition.json"
+      },
+      {
+        "id": "route_manager_pipeline",
+        "status": "pass",
+        "artifact": "pipeline_composition.json"
+      },
+      {
+        "id": "user_analysis_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\USER_ANALYSIS.md"
+      },
+      {
+        "id": "market_research_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\MARKET_RESEARCH.md"
+      },
+      {
+        "id": "technical_path_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\TECHNICAL_PATH.md"
+      },
+      {
+        "id": "ux_design_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\UX_DESIGN_SPEC.md"
+      },
+      {
+        "id": "industrial_io_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\INPUT_OUTPUT_SPEC.md"
+      },
+      {
+        "id": "product_decision_gate_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\docs\\PRODUCT_DECISION_LOG.md"
+      },
+      {
+        "id": "project_architecture_pipeline",
+        "status": "pass",
+        "artifact": "D:\\CGKN\\generated\\api_game_video_highlight_finder\\project_architecture.json"
+      },
+      {
+        "id": "module_generation_pipelines",
+        "status": "pass",
+        "artifact_count": 25
+      },
+      {
+        "id": "self_test_pipeline",
+        "status": "pass",
+        "artifact": "self_test_report.json"
+      },
+      {
+        "id": "quality_evaluation_pipeline",
+        "status": "pass",
+        "artifact": "quality_report.json"
+      },
+      {
+        "id": "adversarial_review_pipeline",
+        "status": "fail",
+        "artifact": "adversarial_review.json"
+      },
+      {
+        "id": "effect_report_pipeline",
+        "status": "pass",
+        "artifact": "effect_report.json"
+      }
+    ]
+  }
+}

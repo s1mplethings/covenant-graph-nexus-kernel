@@ -1,0 +1,14 @@
+{
+  "kind": "GenerationTrace",
+  "payload": {
+    "events": [
+      "pipeline-composed",
+      "provider-project-files-written",
+      "test-graph-emitted",
+      "effect-report-emitted",
+      "runtime-result-emitted"
+    ],
+    "created_at": "2026-05-27T23:55:34.424481+00:00",
+    "executor": "scripts/run_local_pipeline.py"
+  }
+}

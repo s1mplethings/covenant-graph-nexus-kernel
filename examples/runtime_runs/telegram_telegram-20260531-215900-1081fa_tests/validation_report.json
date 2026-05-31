@@ -1,0 +1,10 @@
+{
+  "kind": "ValidationReport",
+  "created_at": "2026-05-31T14:01:22.403683+00:00",
+  "payload": {
+    "passed": true,
+    "failures": [],
+    "warnings": [],
+    "step_count": 10
+  }
+}

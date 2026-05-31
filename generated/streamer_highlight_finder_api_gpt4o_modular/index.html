@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Highlight Detection</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Game Highlight Detection</h1>
+  </header>
+  <main>
+    <!-- Data Import Section -->
+    <section>
+      <h2>Import Data</h2>
+      <input type="file" id="file-input" accept=".json">
+      <textarea id="json-textarea" placeholder="Paste JSON data here"></textarea>
+      <button id="import-button">Import</button>
+    </section>
+
+    <!-- Filter Section -->
+    <section>
+      <h2>Filters</h2>
+      <form id="filter-form">
+        <label for="filterStreamer">Streamer:</label>
+        <input type="text" id="filterStreamer" name="filterStreamer">
+        
+        <label for="filterGame">Game:</label>
+        <input type="text" id="filterGame" name="filterGame">
+        
+        <label for="filterCategory">Category:</label>
+        <input type="text" id="filterCategory" name="filterCategory">
+        
+        <label for="filterScore">Minimum Score:</label>
+        <input type="number" id="filterScore" name="filterScore" min="0">
+        
+        <button type="submit">Apply Filters</button>
+      </form>
+    </section>
+
+    <!-- Manual Marker Section -->
+    <section>
+      <h2>Manual Marker</h2>
+      <form id="manual-form">
+        <label for="streamer">Streamer:</label>
+        <input type="text" id="streamer" name="streamer" required>
+        
+        <label for="game">Game:</label>
+        <input type="text" id="game" name="game" required>
+        
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" required>
+        
+        <label for="timestamp">Timestamp:</label>
+        <input type="text" id="timestamp" name="timestamp" required>
+        
+        <label for="time">Time:</label>
+        <input type="text" id="time" name="time" required>
+        
+        <label for="intensity">Intensity:</label>
+        <input type="number" id="intensity" name="intensity" min="0" required>
+        
+        <label for="chatRate">Chat Rate:</label>
+        <input type="number" id="chatRate" name="chatRate" min="0" required>
+        
+        <label for="keywords">Keywords:</label>
+        <input type="text" id="keywords" name="keywords" placeholder="Comma-separated">
+        
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
+        
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea>
+        
+        <button type="submit">Add Highlight</button>
+      </form>
+    </section>
+
+    <!-- Export Section -->
+    <section>
+      <h2>Export Data</h2>
+      <button id="export-button">Export Highlights</button>
+    </section>
+
+    <!-- Status Summary -->
+    <section>
+      <h2>Status Summary</h2>
+      <div id="status-summary"></div>
+    </section>
+
+    <!-- Results Section -->
+    <section>
+      <h2>Results</h2>
+      <div id="records-container"></div>
+    </section>
+  </main>
+  <footer>
+    <p>&copy; 2023 Game Highlight Detection</p>
+  </footer>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

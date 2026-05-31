@@ -1,0 +1,20 @@
+{
+  "kind": "EffectReport",
+  "created_at": "2026-05-31T06:03:25.584594+00:00",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Executed modular test pipeline with local deterministic checks.",
+    "fs_read": [
+      "scripts/**",
+      "examples/**",
+      "generated/**",
+      "schemas/**"
+    ],
+    "fs_write": [
+      "D:\\CGKN\\examples\\test_results\\test_pipeline_execution_result.json",
+      "D:\\CGKN\\examples\\runtime_runs\\modular-project-testing"
+    ],
+    "network": "disabled",
+    "provider": "disabled"
+  }
+}

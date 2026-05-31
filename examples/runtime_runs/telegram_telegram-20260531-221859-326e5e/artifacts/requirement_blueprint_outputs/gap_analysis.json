@@ -1,0 +1,33 @@
+{
+  "gap_items": [
+    {
+      "question": "What is the runtime input?",
+      "severity": "Level 3",
+      "impact": "Defines whether the generated project should ask for a video file or pre-labeled event data.",
+      "default_assumption": "Use exactly one local game video file.",
+      "status": "resolved"
+    },
+    {
+      "question": "How should highlights be judged?",
+      "severity": "Level 3",
+      "impact": "Controls feature modules and the scoring pipeline.",
+      "default_assumption": "Fuse visual motion, audio peaks, speech/subtitle keywords, and short-window event density.",
+      "status": "resolved"
+    },
+    {
+      "question": "What outputs are required?",
+      "severity": "Level 3",
+      "impact": "Controls export modules and acceptance tests.",
+      "default_assumption": "Export separate MP4 clips plus a JSON manifest and readable analysis report.",
+      "status": "resolved"
+    },
+    {
+      "question": "Which settings must the user control in v1?",
+      "severity": "Level 2",
+      "impact": "Affects UI controls and scoring defaults.",
+      "default_assumption": "Expose minimum highlight duration and sensitivity.",
+      "status": "resolved"
+    }
+  ],
+  "can_continue": true
+}

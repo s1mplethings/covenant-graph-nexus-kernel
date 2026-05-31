@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/graph_edit_proposal.schema.json",
+  "title": "GraphEditProposal",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "target_flow",
+    "edits"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "GraphEditProposal"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^proposal\\.[a-z0-9_.-]+$"
+    },
+    "target_flow": {
+      "$ref": "common_defs.schema.json#/$defs/flow_ref"
+    },
+    "edits": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "node"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "add_node"
+              },
+              "node": {
+                "$ref": "common_defs.schema.json#/$defs/FlowNode"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "target_node"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "remove_node"
+              },
+              "target_node": {
+                "$ref": "common_defs.schema.json#/$defs/node_id"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "target_node",
+              "replacement"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_node"
+              },
+              "target_node": {
+                "$ref": "common_defs.schema.json#/$defs/node_id"
+              },
+              "replacement": {
+                "$ref": "common_defs.schema.json#/$defs/FlowNode"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "connect"
+              },
+              "from": {
+                "$ref": "common_defs.schema.json#/$defs/SourceEndpoint"
+              },
+              "to": {
+                "$ref": "common_defs.schema.json#/$defs/TargetEndpoint"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "disconnect"
+              },
+              "from": {
+                "$ref": "common_defs.schema.json#/$defs/SourceEndpoint"
+              },
+              "to": {
+                "$ref": "common_defs.schema.json#/$defs/TargetEndpoint"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "edge",
+              "inserted_node"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "split_edge"
+              },
+              "edge": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "$ref": "common_defs.schema.json#/$defs/SourceEndpoint"
+                  },
+                  "to": {
+                    "$ref": "common_defs.schema.json#/$defs/TargetEndpoint"
+                  }
+                }
+              },
+              "inserted_node": {
+                "$ref": "common_defs.schema.json#/$defs/FlowNode"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "gate"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "add_gate"
+              },
+              "gate": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "require",
+                  "on_fail"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "require": {
+                    "$ref": "predicate.schema.json#/$defs/predicate"
+                  },
+                  "on_fail": {
+                    "enum": [
+                      "block",
+                      "warn",
+                      "manual_review"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "gate_id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "remove_gate"
+              },
+              "gate_id": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "policy_ref"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "change_policy_ref"
+              },
+              "policy_ref": {
+                "$ref": "common_defs.schema.json#/$defs/policy_ref"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "target_node",
+              "module_ref"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "upgrade_module_version"
+              },
+              "target_node": {
+                "$ref": "common_defs.schema.json#/$defs/node_id"
+              },
+              "module_ref": {
+                "$ref": "common_defs.schema.json#/$defs/module_ref"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "rationale": {
+      "type": "object"
+    }
+  }
+}

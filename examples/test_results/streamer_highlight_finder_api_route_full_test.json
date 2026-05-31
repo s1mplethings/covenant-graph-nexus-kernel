@@ -1,0 +1,72 @@
+{
+  "kind": "ProjectFullTestResult",
+  "project": "streamer_highlight_finder_api_route",
+  "created_at": "2026-05-28T00:04:03+00:00",
+  "summary": "CGNK base checks and route checks passed. Generated project has functional gaps.",
+  "checks": [
+    {
+      "name": "python_compile",
+      "status": "pass"
+    },
+    {
+      "name": "bundle_schema",
+      "status": "pass"
+    },
+    {
+      "name": "api_live_probe",
+      "status": "pass",
+      "response_preview": "pong"
+    },
+    {
+      "name": "routing_policy",
+      "status": "pass",
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ]
+    },
+    {
+      "name": "static_forbidden_patterns",
+      "status": "pass",
+      "forbidden_patterns": [
+        "require(",
+        "module.exports",
+        "import",
+        "backend absolute fetch",
+        "placeholder"
+      ]
+    },
+    {
+      "name": "browser_console_initial_load",
+      "status": "pass"
+    },
+    {
+      "name": "browser_import_score_sort_filter_manual_persistence",
+      "status": "pass",
+      "observed": {
+        "after_import_count": 3,
+        "first_rendered_score": 130,
+        "after_streamer_game_score_filter_count": 1,
+        "after_manual_marker_count": 4,
+        "local_storage_has_manual_marker": true
+      }
+    },
+    {
+      "name": "category_filter",
+      "status": "fail",
+      "error": "Requirement asks for category filtering, but generated UI has no category filter control."
+    },
+    {
+      "name": "filter_after_manual_marker",
+      "status": "fail",
+      "error": "After adding a manual marker, filtering throws TypeError because optional fields are read with .includes() without guards."
+    }
+  ],
+  "verdict": "fail",
+  "next_required_action": "Regenerate through provider API after the strengthened CGNK validation rules reject missing category filters and unsafe includes() filter logic."
+}

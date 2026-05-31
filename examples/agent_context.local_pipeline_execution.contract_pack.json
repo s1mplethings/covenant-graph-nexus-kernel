@@ -1,0 +1,57 @@
+{
+  "kind": "ContractPack",
+  "schema_version": "1",
+  "version": "1",
+  "task": {
+    "target": "cgnk.local_pipeline_execution",
+    "intent": "Execute a composed local pipeline into generated project files and runtime artifacts."
+  },
+  "allowed_files": [
+    "examples/artifacts/**",
+    "examples/modules/**",
+    "examples/flows/**",
+    "examples/policies/**",
+    "examples/migrations/**",
+    "examples/compile_results/**",
+    "examples/test_results/**",
+    "examples/runtime_runs/**",
+    "generated/**",
+    "scripts/**",
+    "README.md"
+  ],
+  "denied_files": [
+    ".git/**",
+    ".env",
+    "secrets/**",
+    "*.pem",
+    "*.key"
+  ],
+  "flow": "flow.local_pipeline_execution@1",
+  "policy": "policy.safe_local_pipeline_execution@1",
+  "migration": "migration.local_pipeline_execution@1",
+  "required_modules": [
+    "module.local.runtime_executor@1"
+  ],
+  "required_artifacts": [
+    "artifact.pipeline_composition_plan@1",
+    "artifact.project_blueprint@1",
+    "artifact.generation_trace@1",
+    "artifact.test_graph@1",
+    "artifact.effect_report@1",
+    "artifact.runtime_execution_result@1"
+  ],
+  "allowed_graph_edits": [],
+  "required_checks": [
+    "schema",
+    "reference_validation",
+    "flow_compile",
+    "local_runtime_execution_smoke"
+  ],
+  "compiler_contract": {
+    "command": "python scripts/validate_bundle.py --flow flow.local_pipeline_execution@1 --schema",
+    "expected": {
+      "ok": true,
+      "errors": 0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.pipeline_composition_plan",
+  "version": "1",
+  "type_name": "PipelineCompositionPlan",
+  "schema_ref": "schemas/pipeline_composition_plan.v1.schema.json",
+  "identity": {
+    "hash_fields": ["requirement", "selected_modules", "edges", "outputs"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "local_pipeline_composition_v1",
+    "ref": "artifact.pipeline_composition_plan@1"
+  }
+}

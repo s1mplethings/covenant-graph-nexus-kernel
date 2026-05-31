@@ -1,0 +1,408 @@
+{
+  "kind": "ModularTestPipelineCompositionRun",
+  "created_at": "2026-05-31T04:19:23.822857+00:00",
+  "goal": "浏览器真实烟测",
+  "environment_plan": {
+    "kind": "TestEnvironmentPlan",
+    "created_at": "2026-05-31T04:19:23.822857+00:00",
+    "payload": {
+      "target": {
+        "goal": "浏览器真实烟测",
+        "workspace_root": "D:\\CGKN",
+        "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+        "profile": "generated-project",
+        "run_id": "modular-test-pipeline"
+      },
+      "environments": [
+        {
+          "id": "contract_catalog",
+          "label": "CGNK contract catalog",
+          "scope": [
+            "schemas/**",
+            "examples/artifacts/**",
+            "examples/modules/**",
+            "examples/flows/**",
+            "examples/policies/**"
+          ],
+          "default": true,
+          "external": "none",
+          "available": true
+        },
+        {
+          "id": "generated_static_browser",
+          "label": "Generated static browser project",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "scope": [
+            "generated/streamer_highlight_finder_industrial_io_v7/index.html",
+            "generated/streamer_highlight_finder_industrial_io_v7/tests"
+          ],
+          "default": true,
+          "external": "none",
+          "available": true
+        },
+        {
+          "id": "industrial_io_fixtures",
+          "label": "Generated industrial I/O fixture set",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "scope": [
+            "generated/streamer_highlight_finder_industrial_io_v7/docs/INPUT_OUTPUT_SPEC.md",
+            "generated/streamer_highlight_finder_industrial_io_v7/data/industrial_input_bundle.json",
+            "generated/streamer_highlight_finder_industrial_io_v7/data/expected_outputs.json",
+            "generated/streamer_highlight_finder_industrial_io_v7/tests/industrial_io_smoke_test.js"
+          ],
+          "default": true,
+          "external": "none",
+          "available": true
+        },
+        {
+          "id": "local_browser_runtime",
+          "label": "Headless browser against loopback static server",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "scope": [
+            "generated/streamer_highlight_finder_industrial_io_v7/index.html",
+            "generated/streamer_highlight_finder_industrial_io_v7/tests"
+          ],
+          "default": true,
+          "external": "loopback only",
+          "available": true
+        }
+      ],
+      "constraints": {
+        "network": "disabled",
+        "provider": "disabled",
+        "live_browser_execution": "declared-only unless a browser runner is explicitly added",
+        "loopback_browser": "enabled"
+      }
+    }
+  },
+  "method_plan": {
+    "kind": "TestMethodPlan",
+    "created_at": "2026-05-31T04:19:23.822857+00:00",
+    "payload": {
+      "target": {
+        "goal": "浏览器真实烟测",
+        "workspace_root": "D:\\CGKN",
+        "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+        "profile": "generated-project",
+        "run_id": "modular-test-pipeline"
+      },
+      "methods": [
+        {
+          "id": "static_project_contract",
+          "label": "Inspect generated static project file and DOM contract",
+          "compatible_environments": [
+            "generated_static_browser"
+          ],
+          "gate": "blocking",
+          "available": true,
+          "reason": ""
+        },
+        {
+          "id": "browser_smoke_declared",
+          "label": "Verify declared browser smoke test entrypoint and anti-fake-test constraints",
+          "compatible_environments": [
+            "generated_static_browser"
+          ],
+          "gate": "blocking",
+          "available": true,
+          "reason": ""
+        },
+        {
+          "id": "industrial_io_contract",
+          "label": "Inspect industrial input/output fixtures and smoke test declaration",
+          "compatible_environments": [
+            "industrial_io_fixtures"
+          ],
+          "gate": "blocking",
+          "available": true,
+          "reason": ""
+        },
+        {
+          "id": "browser_smoke_live",
+          "label": "Execute window.runSmokeTest in a real headless browser",
+          "compatible_environments": [
+            "local_browser_runtime"
+          ],
+          "gate": "blocking",
+          "available": true,
+          "reason": ""
+        },
+        {
+          "id": "industrial_io_live",
+          "label": "Execute window.runIndustrialIOSmokeTest in a real headless browser",
+          "compatible_environments": [
+            "local_browser_runtime",
+            "industrial_io_fixtures"
+          ],
+          "gate": "blocking",
+          "available": true,
+          "reason": ""
+        }
+      ],
+      "gates": [
+        {
+          "id": "gate_static_project_contract",
+          "step": "static_project_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_declared",
+          "step": "browser_smoke_declared",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_contract",
+          "step": "industrial_io_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_live",
+          "step": "browser_smoke_live",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_live",
+          "step": "industrial_io_live",
+          "on_fail": "block"
+        }
+      ]
+    }
+  },
+  "test_pipeline_plan": {
+    "kind": "TestPipelinePlan",
+    "created_at": "2026-05-31T04:19:23.822857+00:00",
+    "payload": {
+      "target": {
+        "goal": "浏览器真实烟测",
+        "workspace_root": "D:\\CGKN",
+        "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+        "profile": "generated-project",
+        "run_id": "modular-test-pipeline"
+      },
+      "matrix": [
+        {
+          "environment": "contract_catalog",
+          "methods": []
+        },
+        {
+          "environment": "generated_static_browser",
+          "methods": [
+            "static_project_contract",
+            "browser_smoke_declared"
+          ]
+        },
+        {
+          "environment": "industrial_io_fixtures",
+          "methods": [
+            "industrial_io_contract",
+            "industrial_io_live"
+          ]
+        },
+        {
+          "environment": "local_browser_runtime",
+          "methods": [
+            "browser_smoke_live",
+            "industrial_io_live"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "id": "static_project_contract",
+          "kind": "internal",
+          "check": "static_project_contract",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "method": "static_project_contract",
+          "gate": "blocking"
+        },
+        {
+          "id": "browser_smoke_declared",
+          "kind": "internal",
+          "check": "browser_smoke_declared",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "method": "browser_smoke_declared",
+          "gate": "blocking"
+        },
+        {
+          "id": "industrial_io_contract",
+          "kind": "internal",
+          "check": "industrial_io_contract",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "method": "industrial_io_contract",
+          "gate": "blocking"
+        },
+        {
+          "id": "browser_smoke_live",
+          "kind": "browser",
+          "check": "browser_smoke_live",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "function_name": "runSmokeTest",
+          "test_file": "tests/browser_smoke_test.js",
+          "timeout_seconds": 60,
+          "method": "browser_smoke_live",
+          "gate": "blocking"
+        },
+        {
+          "id": "industrial_io_live",
+          "kind": "browser",
+          "check": "industrial_io_live",
+          "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+          "function_name": "runIndustrialIOSmokeTest",
+          "test_file": "tests/industrial_io_smoke_test.js",
+          "timeout_seconds": 90,
+          "method": "industrial_io_live",
+          "gate": "blocking"
+        }
+      ],
+      "gates": [
+        {
+          "id": "gate_static_project_contract",
+          "step": "static_project_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_declared",
+          "step": "browser_smoke_declared",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_contract",
+          "step": "industrial_io_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_live",
+          "step": "browser_smoke_live",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_live",
+          "step": "industrial_io_live",
+          "on_fail": "block"
+        }
+      ],
+      "runner": {
+        "flow": "flow.modular_project_testing@1",
+        "command": "python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json"
+      }
+    }
+  },
+  "test_graph": {
+    "kind": "TestGraph",
+    "created_at": "2026-05-31T04:19:23.822857+00:00",
+    "payload": {
+      "nodes": [
+        "goal",
+        "contract_catalog",
+        "generated_static_browser",
+        "industrial_io_fixtures",
+        "local_browser_runtime",
+        "static_project_contract",
+        "browser_smoke_declared",
+        "industrial_io_contract",
+        "browser_smoke_live",
+        "industrial_io_live",
+        "static_project_contract",
+        "browser_smoke_declared",
+        "industrial_io_contract",
+        "browser_smoke_live",
+        "industrial_io_live"
+      ],
+      "edges": [
+        [
+          "goal",
+          "contract_catalog"
+        ],
+        [
+          "goal",
+          "generated_static_browser"
+        ],
+        [
+          "goal",
+          "industrial_io_fixtures"
+        ],
+        [
+          "goal",
+          "local_browser_runtime"
+        ],
+        [
+          "generated_static_browser",
+          "static_project_contract"
+        ],
+        [
+          "generated_static_browser",
+          "browser_smoke_declared"
+        ],
+        [
+          "industrial_io_fixtures",
+          "industrial_io_contract"
+        ],
+        [
+          "industrial_io_fixtures",
+          "industrial_io_live"
+        ],
+        [
+          "local_browser_runtime",
+          "browser_smoke_live"
+        ],
+        [
+          "local_browser_runtime",
+          "industrial_io_live"
+        ],
+        [
+          "static_project_contract",
+          "static_project_contract"
+        ],
+        [
+          "browser_smoke_declared",
+          "browser_smoke_declared"
+        ],
+        [
+          "industrial_io_contract",
+          "industrial_io_contract"
+        ],
+        [
+          "browser_smoke_live",
+          "browser_smoke_live"
+        ],
+        [
+          "industrial_io_live",
+          "industrial_io_live"
+        ]
+      ],
+      "coverage_targets": [
+        "contract_catalog",
+        "generated_static_browser",
+        "industrial_io_fixtures",
+        "local_browser_runtime"
+      ],
+      "quality_gates": [
+        {
+          "id": "gate_static_project_contract",
+          "step": "static_project_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_declared",
+          "step": "browser_smoke_declared",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_contract",
+          "step": "industrial_io_contract",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_browser_smoke_live",
+          "step": "browser_smoke_live",
+          "on_fail": "block"
+        },
+        {
+          "id": "gate_industrial_io_live",
+          "step": "industrial_io_live",
+          "on_fail": "block"
+        }
+      ]
+    }
+  }
+}

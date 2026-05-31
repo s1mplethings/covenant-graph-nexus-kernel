@@ -1,0 +1,28 @@
+{
+  "kind": "GenerationTrace",
+  "payload": {
+    "events": [
+      "pipeline-composed",
+      "requirement-blueprint-generated",
+      "subpipeline-plan-emitted",
+      "user-analysis-pipeline-completed",
+      "market-research-pipeline-completed",
+      "technical-path-pipeline-completed",
+      "ux-design-pipeline-completed",
+      "industrial-io-pipeline-completed",
+      "product-decision-gate-pipeline-completed",
+      "provider-architecture-generated",
+      "provider-module-files-generated",
+      "self-test-pipeline-completed",
+      "quality-evaluation-pipeline-completed",
+      "adversarial-review-pipeline-completed",
+      "quality-gate-passed",
+      "provider-project-files-written",
+      "test-graph-emitted",
+      "effect-report-emitted",
+      "runtime-result-emitted"
+    ],
+    "created_at": "2026-05-31T04:47:15.381835+00:00",
+    "executor": "scripts/run_local_pipeline.py"
+  }
+}

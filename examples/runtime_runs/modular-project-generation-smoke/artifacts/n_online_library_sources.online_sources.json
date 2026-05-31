@@ -1,0 +1,17 @@
+{
+  "kind": "OnlineLibrarySources",
+  "created_at": "2026-05-31T14:19:39.952145+00:00",
+  "payload": {
+    "sources": [
+      {
+        "name": "package-registry",
+        "usage": "dependency lookup"
+      },
+      {
+        "name": "official-docs",
+        "usage": "implementation reference"
+      }
+    ],
+    "network_required": true
+  }
+}

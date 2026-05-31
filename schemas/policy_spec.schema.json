@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/policy_spec.schema.json",
+  "title": "PolicySpec",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "fs",
+    "network",
+    "provider",
+    "risk",
+    "agent_permissions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "PolicySpec"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^policy\\.[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "fs": {
+      "type": "object",
+      "required": [
+        "allowed_read",
+        "allowed_write",
+        "denied_write"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowed_read": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_write": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "denied_write": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "required": [
+        "allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "required": [
+        "max_risk"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "max_risk": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+    "agent_permissions": {
+      "type": "object",
+      "required": [
+        "allowed_edits",
+        "denied_edits",
+        "requires_human_review"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowed_edits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "denied_edits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requires_human_review": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

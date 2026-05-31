@@ -1,0 +1,90 @@
+[
+  {
+    "streamer": "GamerX",
+    "game": "Valorant",
+    "category": "Clutch Play",
+    "timestamp": "2023-10-01T14:23:45Z",
+    "title": "Epic 1v5 Clutch",
+    "description": "Streamer clutched a 1v5 situation with perfect aim and strategy.",
+    "intensity": 9.8,
+    "chatRate": 120,
+    "keywords": ["clutch", "Valorant", "intense", "strategy", "aim"]
+  },
+  {
+    "streamer": "PixelQueen",
+    "game": "Minecraft",
+    "category": "Creative Build",
+    "timestamp": "2023-10-02T18:45:12Z",
+    "title": "Building a Giant Castle",
+    "description": "Streamer showcased incredible creativity while building a massive castle.",
+    "intensity": 7.5,
+    "chatRate": 85,
+    "keywords": ["Minecraft", "creative", "castle", "building"]
+  },
+  {
+    "streamer": "SpeedRunnerPro",
+    "game": "Super Mario Odyssey",
+    "category": "Speedrun",
+    "timestamp": "2023-10-03T12:30:00Z",
+    "title": "World Record Attempt",
+    "description": "Streamer attempted a world record speedrun with flawless execution.",
+    "intensity": 9.2,
+    "chatRate": 150,
+    "keywords": ["speedrun", "Mario", "record", "execution"]
+  },
+  {
+    "streamer": "BattleMage",
+    "game": "Elden Ring",
+    "category": "Boss Fight",
+    "timestamp": "2023-10-04T20:15:30Z",
+    "title": "Defeating Malenia",
+    "description": "Streamer defeated Malenia in an intense and emotional boss fight.",
+    "intensity": 9.7,
+    "chatRate": 200,
+    "keywords": ["Elden Ring", "boss fight", "Malenia", "intense"]
+  },
+  {
+    "streamer": "FPSKing",
+    "game": "Call of Duty: Warzone",
+    "category": "Battle Royale",
+    "timestamp": "2023-10-05T16:00:00Z",
+    "title": "Solo Victory",
+    "description": "Streamer secured a solo victory with strategic plays and high kills.",
+    "intensity": 8.9,
+    "chatRate": 110,
+    "keywords": ["Warzone", "victory", "solo", "strategy", "kills"]
+  },
+  {
+    "streamer": "RPGMaster",
+    "game": "The Witcher 3",
+    "category": "Story Moment",
+    "timestamp": "2023-10-06T19:45:00Z",
+    "title": "Emotional Ending",
+    "description": "Streamer experienced an emotional ending to the main storyline.",
+    "intensity": 8.5,
+    "chatRate": 95,
+    "keywords": ["Witcher", "story", "emotional", "ending"]
+  },
+  {
+    "streamer": "ArcadeAce",
+    "game": "Street Fighter V",
+    "category": "Tournament Match",
+    "timestamp": "2023-10-07T14:00:00Z",
+    "title": "Grand Finals Win",
+    "description": "Streamer won the grand finals with a stunning comeback.",
+    "intensity": 9.3,
+    "chatRate": 140,
+    "keywords": ["Street Fighter", "tournament", "comeback", "win"]
+  },
+  {
+    "streamer": "StealthNinja",
+    "game": "Hitman 3",
+    "category": "Stealth Gameplay",
+    "timestamp": "2023-10-08T21:30:00Z",
+    "title": "Silent Assassin Run",
+    "description": "Streamer completed a mission with perfect stealth and no alerts.",
+    "intensity": 8.7,
+    "chatRate": 75,
+    "keywords": ["Hitman", "stealth", "silent assassin", "mission"]
+  }
+]

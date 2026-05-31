@@ -1,0 +1,73 @@
+{
+  "input_contract": {
+    "input_sources": [
+      {
+        "value": "Single local game video file selected by the user.",
+        "source_type": "explicit",
+        "confidence": 0.96
+      }
+    ],
+    "input_types": [
+      "video_file"
+    ],
+    "required_fields": [
+      "game_video_file"
+    ],
+    "optional_fields": [
+      "min_highlight_duration",
+      "sensitivity",
+      "output_format"
+    ],
+    "unknowns": []
+  },
+  "process_contract": {
+    "main_process": "Analyze one local game video and produce ranked highlight clips without requiring pre-labeled event records.",
+    "steps": [
+      "VideoInputAgent",
+      "VideoMetadataAgent",
+      "FrameSignalAgent",
+      "AudioSignalAgent",
+      "SpeechOrSubtitleSignalAgent",
+      "HighlightCandidateAgent",
+      "MultiCriteriaScoringAgent",
+      "ClipBoundaryAgent",
+      "ExportAgent",
+      "ReviewAgent"
+    ],
+    "state_transitions": [
+      "video_selected",
+      "metadata_extracted",
+      "frame_signals_sampled",
+      "audio_signals_sampled",
+      "candidate_windows_generated",
+      "candidates_scored",
+      "clip_boundaries_selected",
+      "mp4_exports_created_or_cutlist_ready",
+      "reviewed"
+    ]
+  },
+  "output_contract": {
+    "output_types": [
+      "highlight_video_files",
+      "highlight_timeline",
+      "clip_manifest",
+      "analysis_report"
+    ],
+    "output_formats": [
+      "mp4",
+      "json",
+      "markdown"
+    ],
+    "consumers": [
+      "content_editor",
+      "streamer_operator",
+      "game_video_creator"
+    ],
+    "storage": {
+      "value": "Persist analysis state locally; exported highlight clips should preserve source video quality where possible.",
+      "source_type": "explicit",
+      "confidence": 0.82
+    },
+    "unknowns": []
+  }
+}

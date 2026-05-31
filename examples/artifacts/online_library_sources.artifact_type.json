@@ -1,0 +1,10 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.online_library_sources",
+  "version": "1",
+  "type_name": "OnlineLibrarySources",
+  "schema_ref": "schemas/online_library_sources.v1.schema.json",
+  "identity": {"hash_fields": ["sources", "retrieved_at", "query"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {"first_use": "modular_project_generation_v1", "ref": "artifact.online_library_sources@1"}
+}

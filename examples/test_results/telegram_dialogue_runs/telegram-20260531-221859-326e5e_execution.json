@@ -1,0 +1,48 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "telegram_telegram-20260531-221859-326e5e",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-221859-326e5e",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts",
+    "outputs": {
+      "requirement_blueprint": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\requirement_blueprint.json",
+      "requirement_blueprint_outputs": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\requirement_blueprint_outputs",
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\generation_trace.json",
+      "subpipeline_plan": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\subpipeline_plan.json",
+      "subpipeline_results": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\subpipeline_results.json",
+      "self_test_report": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\self_test_report.json",
+      "quality_report": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\quality_report.json",
+      "adversarial_review": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\adversarial_review.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-221859-326e5e\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": false,
+        "blocked": "requires --allow-network --allow-provider --use-api",
+        "purpose": "project_generation",
+        "provider": "local_video_project_template",
+        "mode": "video_runtime_contract_guard",
+        "network": false,
+        "provider_call": false,
+        "reason": "Game-video highlight projects require runtime video input; current provider filewise generator is guarded from downgrading this to JSON records."
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      },
+      "api_summary": {
+        "requested": true,
+        "executed": true,
+        "ok": true,
+        "text": "项目需求：开发一个可以处理所有类型游戏视频文件并生成多个单独MP4高光片段的工具。",
+        "request_id": "chatcmpl-DlbIk7dHu4AqapEockHeVb3VuRi56"
+      }
+    }
+  }
+}

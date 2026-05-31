@@ -1,0 +1,14 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.requirement_blueprint",
+  "version": "1",
+  "type_name": "RequirementBlueprint",
+  "schema_ref": "schemas/requirement_blueprint.v1.schema.json",
+  "identity": {"hash_fields": ["raw_requirement", "requirement_spec", "io_contract", "feature_spec", "tech_decisions"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {
+    "first_use": "requirement_blueprint_generator_v1",
+    "ref": "artifact.requirement_blueprint@1",
+    "purpose": "Structured RequirementAgent-to-ReviewAgent blueprint generated before project materialization."
+  }
+}

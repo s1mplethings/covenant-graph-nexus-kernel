@@ -1,0 +1,46 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.plan.generate.contract_only",
+  "version": "1",
+  "ports": {
+    "input": {
+      "goal": {
+        "artifact_type": "artifact.goal@1",
+        "required": true
+      },
+      "graph": {
+        "artifact_type": "artifact.project_graph@1",
+        "required": true
+      }
+    },
+    "output": {
+      "plan": {
+        "artifact_type": "artifact.implementation_plan@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": [
+      "run_id",
+      "trace_sink",
+      "contract_pack"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "deterministic/contract-only planning for safe refactor flow"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.local_pipeline_composition",
+  "version": "1",
+  "legacy": {
+    "source": "manual module selection",
+    "mode": "local_pipeline_composition"
+  },
+  "target": {
+    "flow": "flow.local_pipeline_composition@1",
+    "modules": [
+      "module.customer.service@1",
+      "module.local.pipeline_composer_agent@1"
+    ]
+  },
+  "preserve": {
+    "local_only": true,
+    "module_contract_boundaries": true,
+    "human_review_for_network_or_provider": true
+  },
+  "allowed_changes": {
+    "pipeline_plan_artifact_only": true
+  },
+  "denied_changes": {
+    "unapproved_network_enablement": true,
+    "unapproved_provider_enablement": true,
+    "direct_secret_persistence": true
+  },
+  "proof": {
+    "compiler": "scripts/validate_bundle.py",
+    "required_command": "python scripts/validate_bundle.py --flow flow.local_pipeline_composition@1 --schema"
+  }
+}

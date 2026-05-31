@@ -1,0 +1,57 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "target_user-data_storage-runtime_result",
+    "type": "game_highlight_finder",
+    "output_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_modular",
+    "files": [
+      "project_architecture.json",
+      "index.html",
+      "styles.css",
+      "src\\core\\scoring.js",
+      "src\\core\\filtering.js",
+      "src\\core\\importer.js",
+      "src\\core\\exporter.js",
+      "src\\state\\store.js",
+      "src\\ui\\render.js",
+      "src\\ui\\forms.js",
+      "src\\app.js",
+      "data\\sample_events.json",
+      "tests\\browser_smoke_test.js",
+      "docs\\ARCHITECTURE.md",
+      "README.md",
+      "TEST_PLAN.md"
+    ],
+    "modules": [
+      "module.feature.library_search@1",
+      "module.local.librarian@1",
+      "module.project.generator@1",
+      "module.local.runtime_executor@1",
+      "module.effect_report.emit@1",
+      "module.local.pipeline_composer_agent@1",
+      "module.customer.service@1",
+      "module.local_agent.plan@1",
+      "module.test_graph.emit@1",
+      "module.unified_control@1",
+      "module.external.api_gateway@1"
+    ],
+    "generator": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkMfB8Oi6TU9bJaaMBpg01FY5QvlK,chatcmpl-DkMfLDjF8OiTtbcXvVlyqGi15Vkw5,chatcmpl-DkMfTMC6jt76dRHhPk0JamzaIoh62,chatcmpl-DkMfcUarLb7bgD5jBEi2Z1br1hLgj,chatcmpl-DkMs0moZwkP4Dpw3eysGPBe8jIvz9,chatcmpl-DkMs5oevEselgdI1FwOd74h7qVcIB,chatcmpl-DkMsAKXq4bEzzjqxJho6VY1fPdpMf,chatcmpl-DkMsDlXQKFCiFapQlEP4nLDcUJeGc,chatcmpl-DkMsJKErNUAiXF8raBpz28kWTsn80,chatcmpl-DkMsTCDazuxAaUpgliXMLGxw4Ffvv,chatcmpl-DkMsXi2uqAgUH0yDTjdcEpgE6qOu3,chatcmpl-DkMseaPgJMvmLQeYB5t4OC8xFMFsf,chatcmpl-DkMsnD4gLEgsifupHjjo0JkokZz17,chatcmpl-DkMsw8ebBFr5i7Cd763VhG3qBeHOu,chatcmpl-DkMt7AzNbDhjEjaivak6Iqj9w9TYZ,chatcmpl-DkMtId1MT7qDMJYrJGIiMvXmUHsOi",
+      "mode": "provider_architecture_filewise_project_generation"
+    },
+    "routing_policy": {
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ]
+    }
+  }
+}

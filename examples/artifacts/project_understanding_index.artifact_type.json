@@ -1,0 +1,17 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.project_understanding_index",
+  "version": "1",
+  "type_name": "ProjectUnderstandingIndex",
+  "schema_ref": "schemas/project_understanding_index.v1.schema.json",
+  "identity": {
+    "hash_fields": ["modules", "artifacts", "flows", "retrieval_strategy"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "local_pipeline_composition_v1",
+    "ref": "artifact.project_understanding_index@1"
+  }
+}

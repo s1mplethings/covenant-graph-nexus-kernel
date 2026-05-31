@@ -1,0 +1,28 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\project_generation_test_task_board",
+      "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok"
+    ],
+    "network": "explicitly gated",
+    "provider": "explicitly gated",
+    "external": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "ok": true,
+        "text": "生成一个本地任务看板项目，支持任务管理功能并输出相关文档，允许通过API生成项目摘要。",
+        "request_id": "chatcmpl-Dk9SOyREjk9F1ah3JzRFcmWugAF0d"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

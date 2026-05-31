@@ -1,0 +1,18 @@
+{
+  "kind": "CustomerRequest",
+  "created_at": "2026-05-31T14:19:39.947088+00:00",
+  "payload": {
+    "intent": "生成一个本地任务看板项目",
+    "constraints": [
+      "local-first",
+      "typed-module-boundaries",
+      "test-graph-required"
+    ],
+    "acceptance": [
+      "project_blueprint",
+      "generation_trace",
+      "test_graph",
+      "effect_report"
+    ]
+  }
+}

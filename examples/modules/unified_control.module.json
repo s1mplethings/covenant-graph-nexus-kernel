@@ -1,0 +1,83 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.unified_control",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.customer_request@1",
+        "required": true
+      },
+      "local_index": {
+        "artifact_type": "artifact.local_library_index@1",
+        "required": true
+      },
+      "online_sources": {
+        "artifact_type": "artifact.online_library_sources@1",
+        "required": false
+      },
+      "candidates": {
+        "artifact_type": "artifact.feature_library_candidates@1",
+        "required": true
+      },
+      "agent_plan": {
+        "artifact_type": "artifact.local_agent_plan@1",
+        "required": true
+      },
+      "adversarial_review": {
+        "artifact_type": "artifact.adversarial_review@1",
+        "required": true
+      },
+      "project_blueprint": {
+        "artifact_type": "artifact.project_blueprint@1",
+        "required": true
+      },
+      "generation_trace": {
+        "artifact_type": "artifact.generation_trace@1",
+        "required": true
+      },
+      "test_graph": {
+        "artifact_type": "artifact.test_graph@1",
+        "required": true
+      },
+      "effect_report": {
+        "artifact_type": "artifact.effect_report@1",
+        "required": true
+      }
+    },
+    "output": {
+      "project_blueprint": {
+        "artifact_type": "artifact.project_blueprint@1"
+      },
+      "generation_trace": {
+        "artifact_type": "artifact.generation_trace@1"
+      },
+      "test_graph": {
+        "artifact_type": "artifact.test_graph@1"
+      },
+      "effect_report": {
+        "artifact_type": "artifact.effect_report@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": ["run_id", "control_policy"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts."
+  }
+}

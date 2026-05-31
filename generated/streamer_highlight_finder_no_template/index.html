@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>游戏主播高光时刻工具</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>游戏主播高光时刻工具</h1>
+    <p>我想要一个可以给我找出游戏主播的高光时刻的项目，可以导入直播事件数据，自动评分和排序，筛选主播、游戏、分类和分数，添加人工标记，导出剪辑清单，并输出测试效果报告</p>
+    <div class="actions">
+      <button id="loadSample" type="button">Load sample</button>
+      <button id="exportResult" type="button">Export clips</button>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Import JSON</h2>
+      <input id="fileInput" type="file" accept="application/json">
+      <textarea id="jsonInput" spellcheck="false"></textarea>
+      <button id="analyze" type="button">Analyze</button>
+    </section>
+    <section class="panel">
+      <h2>Filters</h2>
+      <div class="grid">
+        <label>streamer<input id="filter-streamer" data-filter="streamer" placeholder="Any streamer"></label>
+        <label>game<input id="filter-game" data-filter="game" placeholder="Any game"></label>
+        <label>category<input id="filter-category" data-filter="category" placeholder="Any category"></label>
+        <label>Min score<input id="minScore" type="number" min="0" max="100" value="50"></label>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Manual marker</h2>
+      <form id="manualForm">
+        <input id="manualTitle" placeholder="Moment title" required>
+        <input id="manualTime" placeholder="00:00:00" required>
+        <input id="manualStreamer" placeholder="Streamer" required>
+        <button type="submit">Add marker</button>
+      </form>
+    </section>
+    <section class="panel wide">
+      <h2>Results</h2>
+      <div class="metrics"><span id="totalCount">0</span><span id="resultCount">0</span><span id="topScore">0</span></div>
+      <div id="results"></div>
+    </section>
+  </main>
+  <script>window.CGNK_PROJECT_SPEC = {"project_type": "ollama_spec_project", "title": "游戏主播高光时刻工具", "description": "我想要一个可以给我找出游戏主播的高光时刻的项目，可以导入直播事件数据，自动评分和排序，筛选主播、游戏、分类和分数，添加人工标记，导出剪辑清单，并输出测试效果报告", "entity_name": "record", "fields": [{"name": "streamer", "label": "Streamer", "type": "text"}, {"name": "game", "label": "Game", "type": "text"}, {"name": "time", "label": "Time", "type": "text"}, {"name": "title", "label": "Title", "type": "text"}, {"name": "category", "label": "Category", "type": "text"}, {"name": "intensity", "label": "Intensity", "type": "number"}, {"name": "chatRate", "label": "Chat rate", "type": "number"}, {"name": "keywords", "label": "Keywords", "type": "tags"}, {"name": "description", "label": "Description", "type": "text"}], "filter_fields": ["streamer", "game", "category"], "score_fields": ["intensity", "chatRate"], "keyword_boosts": ["clutch", "ace", "win", "steal"], "sample_records": [{"streamer": "NovaCarry", "game": "Apex Legends", "time": "00:03:42", "title": "Final ring 1v3 clutch", "category": "clutch", "intensity": 94, "chatRate": 182, "keywords": ["clutch", "win", "1v3"], "description": "Solo cleanup after a shield swap."}, {"streamer": "MapleMage", "game": "League of Legends", "time": "00:18:09", "title": "Baron steal into ace", "category": "objective", "intensity": 88, "chatRate": 150, "keywords": ["steal", "ace", "comeback"], "description": "Objective steal turns into a teamfight win."}], "manual_checks": []};</script>
+  <script src="app.js"></script>
+</body>
+</html>

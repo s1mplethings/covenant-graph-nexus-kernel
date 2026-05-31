@@ -1,0 +1,22 @@
+{
+  "input_summary": {
+    "requiredInput": "GameVideoFile",
+    "durationMs": 240000
+  },
+  "ranked_highlights": [
+    {"category": "clutch"},
+    {"category": "combat"},
+    {"category": "objective"}
+  ],
+  "export_cut_list": {
+    "format": "json_cut_list",
+    "requiredFields": ["startMs", "endMs", "score", "reason"]
+  },
+  "quality_checks": [
+    "video fixture loads",
+    "frame samples are generated",
+    "audio peaks are generated",
+    "candidate scores sort descending",
+    "cut list export creates Blob"
+  ]
+}

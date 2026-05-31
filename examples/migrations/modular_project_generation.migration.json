@@ -1,0 +1,45 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.modular_project_generation",
+  "version": "1",
+  "legacy": {
+    "source": "module inventory request",
+    "mode": "clean_module_placement"
+  },
+  "target": {
+    "flow": "flow.modular_project_generation@1",
+    "modules": [
+      "module.customer.service@1",
+      "module.requirement_blueprint.generator@1",
+      "module.local.librarian@1",
+      "module.online.library_sources@1",
+      "module.feature.library_search@1",
+      "module.local_agent.plan@1",
+      "module.adversarial_generation@1",
+      "module.project.generator@1",
+      "module.test_graph.emit@1",
+      "module.effect_report.emit@1",
+      "module.unified_control@1"
+    ]
+  },
+  "preserve": {
+    "module_independence": true,
+    "requirement_blueprint": true,
+    "unified_control": true,
+    "test_graph": true,
+    "effect_report": true,
+    "generation_trace": true
+  },
+  "allowed_changes": {
+    "contract_artifacts_only": true
+  },
+  "denied_changes": {
+    "module_line_coupling": true,
+    "uncontrolled_direct_generation": true,
+    "output_schema_breakage": true
+  },
+  "proof": {
+    "compiler": "scripts/validate_bundle.py",
+    "required_command": "python scripts/validate_bundle.py --flow flow.modular_project_generation@1 --schema"
+  }
+}

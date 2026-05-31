@@ -1,0 +1,198 @@
+{
+  "product_context": {
+    "name": "Game Stream Highlight Detector",
+    "description": "A tool to identify, score, and export high-impact moments from game streams.",
+    "target_users": [
+      "Game streamers",
+      "Content editors",
+      "Platform managers"
+    ],
+    "key_features": [
+      "Import live stream event data",
+      "Automated scoring and sorting of events",
+      "Filters for streamers, games, categories, and scores",
+      "Manual tagging and editing of highlights",
+      "Export options for clip lists"
+    ]
+  },
+  "screens": [
+    "main_screen",
+    "import_screen",
+    "highlight_detection_screen",
+    "filter_screen",
+    "manual_edit_screen",
+    "export_screen"
+  ],
+  "modules": [
+    {
+      "path": "src/core/scoring.js",
+      "exports": ["scoreRecord", "sortRecords"],
+      "imports": []
+    },
+    {
+      "path": "src/core/filtering.js",
+      "exports": ["applyFilters"],
+      "imports": []
+    },
+    {
+      "path": "src/core/importer.js",
+      "exports": ["parseRecordsFromText", "normalizeRecord", "importData"],
+      "imports": []
+    },
+    {
+      "path": "src/core/exporter.js",
+      "exports": ["downloadJson", "exportData"],
+      "imports": []
+    },
+    {
+      "path": "src/state/store.js",
+      "exports": [
+        "loadRecords",
+        "saveRecords",
+        "clearRecords",
+        "loadFromLocalStorage",
+        "saveToLocalStorage"
+      ],
+      "imports": []
+    },
+    {
+      "path": "src/ui/render.js",
+      "exports": ["renderRecords", "renderSummary", "renderError"],
+      "imports": []
+    },
+    {
+      "path": "src/ui/forms.js",
+      "exports": ["readFilters", "readManualMarker", "bindDom", "setupForms"],
+      "imports": []
+    }
+  ],
+  "data_contract": {
+    "record_fields": [
+      "streamer",
+      "game",
+      "timestamp",
+      "time",
+      "category",
+      "intensity",
+      "chatRate",
+      "keywords",
+      "title",
+      "description",
+      "score"
+    ],
+    "sample_shape": {
+      "streamer": "string",
+      "game": "string",
+      "timestamp": "string",
+      "time": "string",
+      "category": "string",
+      "intensity": "number",
+      "chatRate": "number",
+      "keywords": "array",
+      "title": "string",
+      "description": "string",
+      "score": "number"
+    }
+  },
+  "ux_contract": {
+    "design_principles": [
+      "Clarity: Ensure the interface is intuitive and easy to navigate",
+      "Efficiency: Minimize the number of steps required to achieve key tasks",
+      "Customization: Allow users to tailor scoring criteria and sorting options"
+    ],
+    "ui_structure_contract": {
+      "required_classes": [
+        "app-shell",
+        "app-header",
+        "workspace-grid",
+        "intake-panel",
+        "filters-panel",
+        "results-panel",
+        "manual-panel",
+        "status-strip",
+        "action-bar"
+      ],
+      "result_card_classes": [
+        "highlight-card",
+        "highlight-title",
+        "score-badge",
+        "metadata-row",
+        "metadata-streamer",
+        "metadata-game",
+        "metadata-time",
+        "metadata-category",
+        "highlight-description"
+      ],
+      "visible_result_fields": [
+        "title",
+        "streamer",
+        "game",
+        "timestamp",
+        "category",
+        "score",
+        "description"
+      ]
+    },
+    "dom_contract": {
+      "file_input": "file-input",
+      "json_textarea": "json-textarea",
+      "import_button": "import-button",
+      "filter_form": "filter-form",
+      "filter_streamer": "filterStreamer",
+      "filter_game": "filterGame",
+      "filter_category": "filterCategory",
+      "filter_score": "filterScore",
+      "manual_form": "manual-form",
+      "export_button": "export-button",
+      "status_summary": "status-summary",
+      "records_container": "records-container"
+    }
+  },
+  "technical_path": {
+    "frontend": "React",
+    "backend": "Node.js",
+    "ai_model": "Custom ML models",
+    "data_storage": "Browser local storage"
+  },
+  "test_strategy": [
+    {
+      "test_type": "Usability Testing",
+      "description": "Evaluate the intuitiveness and ease of use of the GUI with target users.",
+      "methods": ["User interviews", "Task completion analysis"]
+    },
+    {
+      "test_type": "Highlight Detection Accuracy",
+      "description": "Validate the accuracy of the AI model in detecting high-impact moments.",
+      "methods": [
+        "Compare detected highlights with manually curated data",
+        "Measure precision and recall"
+      ]
+    },
+    {
+      "test_type": "Performance Testing",
+      "description": "Ensure the app performs efficiently with large datasets.",
+      "methods": [
+        "Stress testing with large sample data",
+        "Measure response times for scoring and filtering"
+      ]
+    },
+    {
+      "test_type": "Export Functionality Testing",
+      "description": "Verify the export functionality works as expected.",
+      "methods": [
+        "Test exported files on multiple platforms",
+        "Validate data integrity in exported files"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "Generated project must run locally from index.html under python -m http.server.",
+    "Provide a real JSON import path using FileReader and/or a textarea; imported data must be processed by the app.",
+    "Implement a real scoring function and sort detected items by score descending in executable JavaScript.",
+    "Provide visible filter controls and executable filter logic for the requested fields.",
+    "Provide a manual marker form/control that appends a new item to the working dataset and rerenders results.",
+    "Provide a real export action using Blob, URL.createObjectURL, an anchor download, and the current filtered result set.",
+    "Persist working data locally with localStorage and reload it on page load.",
+    "Use domain fields such as streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score."
+  ]
+}

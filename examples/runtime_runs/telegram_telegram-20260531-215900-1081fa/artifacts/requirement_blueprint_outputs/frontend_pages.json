@@ -1,0 +1,29 @@
+{
+  "pages": [
+    {
+      "id": "video_intake",
+      "title": "Video Intake",
+      "purpose": "Select one local game video and validate that it can be previewed."
+    },
+    {
+      "id": "analysis_settings",
+      "title": "Analysis Settings",
+      "purpose": "Set minimum highlight duration, sensitivity, and output format."
+    },
+    {
+      "id": "signal_timeline",
+      "title": "Signal Timeline",
+      "purpose": "Show visual, audio, language, and continuity signals across the video."
+    },
+    {
+      "id": "highlight_review",
+      "title": "Highlight Review",
+      "purpose": "Review ranked candidates with score explanations and clip boundaries."
+    },
+    {
+      "id": "export_queue",
+      "title": "Export Queue",
+      "purpose": "Export selected candidates as MP4 clips and save a clip manifest."
+    }
+  ]
+}

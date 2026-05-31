@@ -1,0 +1,128 @@
+{
+  "kind": "TelegramStyleDialogueSession",
+  "session_id": "telegram-20260531-220821-bbf516",
+  "created_at": "2026-05-31T14:08:21.000703+00:00",
+  "updated_at": "2026-05-31T14:16:44.416773+00:00",
+  "mode": {
+    "assistant_participation": "disabled",
+    "api_calls": "enabled for dialogue replies",
+    "description": "Simple API-backed dialogue test recorder."
+  },
+  "messages": [
+    {
+      "id": "aa4525596b4e4797ac3fdd5b68410a93",
+      "created_at": "2026-05-31T14:08:23.607942+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 已连接。",
+      "artifacts": {
+        "api_connection": {
+          "ok": true,
+          "api_status": "connected",
+          "overall_status": "pass",
+          "command": {
+            "command": [
+              "D:\\anaconda\\python.exe",
+              "scripts/check_connectivity.py",
+              "--live"
+            ],
+            "returncode": 0,
+            "duration_seconds": 2.57,
+            "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+            "stderr": "",
+            "status": "pass"
+          },
+          "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+        }
+      }
+    },
+    {
+      "id": "d73f484fe4fd4cb1ac6629f66cf4a7a9",
+      "created_at": "2026-05-31T14:11:12.411491+00:00",
+      "role": "customer",
+      "type": "message",
+      "content": "你好"
+    },
+    {
+      "id": "68a0b6aaa37441cfb10f6a14acb48f20",
+      "created_at": "2026-05-31T14:11:14.280898+00:00",
+      "role": "service",
+      "type": "message",
+      "content": "你好！请问有什么我可以帮助您构建和测试的项目需求吗？",
+      "artifacts": {
+        "request_id": "chatcmpl-DlbAfUxfwn1n61jY9mAhPr60atH0X",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "id": "770f17de24384e02b12989827b9e0943",
+      "created_at": "2026-05-31T14:13:50.515719+00:00",
+      "role": "customer",
+      "type": "message",
+      "content": "我想要做一个帮我在游戏视频找高光片段的项目"
+    },
+    {
+      "id": "dd29c36a858b4711abf024f6f4d72be5",
+      "created_at": "2026-05-31T14:13:54.352593+00:00",
+      "role": "service",
+      "type": "message",
+      "content": "好的，您希望输入是什么类型的视频文件？同时，您希望输出的高光片段是以什么形式呈现？",
+      "artifacts": {
+        "request_id": "chatcmpl-DlbDFkbf6335XtXzap0nPqI3h7Six",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "id": "5afbfda80ddf48569a77dc5b7ab275b7",
+      "created_at": "2026-05-31T14:16:41.198185+00:00",
+      "role": "customer",
+      "type": "message",
+      "content": "输入时所有的视频都可以，然后输出就是mp4，高光就是一个一个视频的形式"
+    },
+    {
+      "id": "40d62445a4ee4cfcade218a28c873833",
+      "created_at": "2026-05-31T14:16:44.404246+00:00",
+      "role": "service",
+      "type": "message",
+      "content": "明白了，您希望输入为任意视频文件，输出为多个高光片段的MP4格式视频。请问您希望如何定义“高光片段”？是基于特定的事件、时长，还是其他标准？",
+      "artifacts": {
+        "request_id": "chatcmpl-DlbFztZCAr7fREj3YZFSSNdHdZttW",
+        "model": "gpt-4o-mini"
+      }
+    }
+  ],
+  "artifacts": {
+    "api_connection": {
+      "ok": true,
+      "api_status": "connected",
+      "overall_status": "pass",
+      "command": {
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/check_connectivity.py",
+          "--live"
+        ],
+        "returncode": 0,
+        "duration_seconds": 2.57,
+        "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+        "stderr": "",
+        "status": "pass"
+      },
+      "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+    },
+    "last_api_reply": {
+      "ok": true,
+      "request_id": "chatcmpl-DlbFztZCAr7fREj3YZFSSNdHdZttW",
+      "endpoint": "https://api.gptsapi.net/chat/completions",
+      "model": "gpt-4o-mini",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "pass",
+          "duration_seconds": 3.18
+        }
+      ]
+    }
+  },
+  "last_save_reason": "session_created"
+}

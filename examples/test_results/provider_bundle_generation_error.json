@@ -1,0 +1,4 @@
+{
+  "kind": "ProviderBundleGenerationError",
+  "error": "API filewise generated project failed validation: src/app.js reads missing form field name: time; requirement asks for scoring/ranking, but generated code does not implement score + sort behavior"
+}

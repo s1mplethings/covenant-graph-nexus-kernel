@@ -1,0 +1,20 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.implementation_plan",
+  "version": "1",
+  "type_name": "ImplementationPlan",
+  "schema_ref": "schemas/implementation_plan.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "steps",
+      "target_files"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "cgnk_contract_v1",
+    "ref": "artifact.implementation_plan@1"
+  }
+}

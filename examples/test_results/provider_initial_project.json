@@ -1,0 +1,45 @@
+{
+  "kind": "ProviderInitialProject",
+  "errors": [
+    "requirement asks for scoring/ranking, but generated code does not implement score + sort behavior"
+  ],
+  "project": {
+    "project_type": "highlight_finder",
+    "manual_checks": [
+      "Verify that the scoring function assigns scores correctly based on imported data.",
+      "Ensure filters for streamer, game, category, and score work as expected.",
+      "Test the manual marker form to confirm it appends records and rerenders results.",
+      "Validate that the export functionality generates a correct downloadable file.",
+      "Check that localStorage persists data and reloads it on page refresh."
+    ],
+    "files": [
+      {
+        "path": "index.html",
+        "purpose": "Main entry point for the browser app.",
+        "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Highlight Finder</title>\n  <link rel=\"icon\" href=\"data:,\">\n  <style>\n    body { font-family: Arial, sans-serif; margin: 20px; }\n    .filter-section, .manual-form { margin-bottom: 20px; }\n    table { width: 100%; border-collapse: collapse; margin-top: 20px; }\n    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n    th { background-color: #f4f4f4; }\n  </style>\n</head>\n<body>\n  <h1>Highlight Finder</h1>\n  <div class=\"filter-section\">\n    <h2>Filters</h2>\n    <label>Streamer: <input type=\"text\" id=\"filterStreamer\"></label>\n    <label>Game: <input type=\"text\" id=\"filterGame\"></label>\n    <label>Category: <input type=\"text\" id=\"filterCategory\"></label>\n    <label>Min Score: <input type=\"number\" id=\"filterScore\" min=\"0\"></label>\n    <button id=\"applyFilters\">Apply Filters</button>\n  </div>\n  <div class=\"manual-form\">\n    <h2>Manual Marker</h2>\n    <form id=\"manualForm\">\n      <label>Streamer: <input type=\"text\" name=\"streamer\" required></label>\n      <label>Game: <input type=\"text\" name=\"game\" required></label>\n      <label>Category: <input type=\"text\" name=\"category\" required></label>\n      <label>Score: <input type=\"number\" name=\"score\" min=\"0\" required></label>\n      <button type=\"submit\">Add Highlight</button>\n    </form>\n  </div>\n  <button id=\"exportData\">Export Highlights</button>\n  <table>\n    <thead>\n      <tr>\n        <th>Streamer</th>\n        <th>Game</th>\n        <th>Category</th>\n        <th>Score</th>\n      </tr>\n    </thead>\n    <tbody id=\"resultsTable\"></tbody>\n  </table>\n  <script src=\"app.js\"></script>\n</body>\n</html>"
+      },
+      {
+        "path": "app.js",
+        "purpose": "Contains the core logic for scoring, filtering, manual marking, exporting, and localStorage persistence.",
+        "content": "const results = JSON.parse(localStorage.getItem('highlights')) || [];\n\nfunction scoreRecord(record) {\n  return record.intensity * 2 + record.chatRate;\n}\n\nfunction renderTable(data) {\n  const tableBody = document.getElementById('resultsTable');\n  tableBody.innerHTML = '';\n  data.forEach(record => {\n    const row = document.createElement('tr');\n    row.innerHTML = `<td>${record.streamer}</td><td>${record.game}</td><td>${record.category}</td><td>${record.score}</td>`;\n    tableBody.appendChild(row);\n  });\n}\n\nfunction applyFilters() {\n  const streamer = document.getElementById('filterStreamer').value.toLowerCase();\n  const game = document.getElementById('filterGame').value.toLowerCase();\n  const category = document.getElementById('filterCategory').value.toLowerCase();\n  const minScore = parseInt(document.getElementById('filterScore').value, 10) || 0;\n\n  const filtered = results.filter(record => (\n    (!streamer || record.streamer.toLowerCase().includes(streamer)) &&\n    (!game || record.game.toLowerCase().includes(game)) &&\n    (!category || record.category.toLowerCase().includes(category)) &&\n    record.score >= minScore\n  ));\n\n  renderTable(filtered);\n}\n\ndocument.getElementById('applyFilters').addEventListener('click', applyFilters);\n\ndocument.getElementById('manualForm').addEventListener('submit', event => {\n  event.preventDefault();\n  const formData = new FormData(event.target);\n  const newRecord = {\n    streamer: formData.get('streamer'),\n    game: formData.get('game'),\n    category: formData.get('category'),\n    score: parseInt(formData.get('score'), 10)\n  };\n  results.push(newRecord);\n  localStorage.setItem('highlights', JSON.stringify(results));\n  renderTable(results);\n  event.target.reset();\n});\n\ndocument.getElementById('exportData').addEventListener('click', () => {\n  const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });\n  const url = URL.createObjectURL(blob);\n  const a = document.createElement('a');\n  a.href = url;\n  a.download = 'highlights.json';\n  a.click();\n  URL.revokeObjectURL(url);\n});\n\nrenderTable(results);"
+      },
+      {
+        "path": "README.md",
+        "purpose": "Provides an overview of the project and usage instructions.",
+        "content": "# Highlight Finder\n\nHighlight Finder is a browser-based tool for identifying and managing highlights from game streaming events. It allows users to:\n\n- Import and score event data.\n- Filter highlights by streamer, game, category, and score.\n- Manually add highlights.\n- Export the filtered highlights as a JSON file.\n- Persist data locally using the browser's localStorage.\n\n## Usage\n\n1. Open `index.html` in a browser.\n2. Use the filter controls to narrow down highlights.\n3. Add new highlights using the manual marker form.\n4. Export the current filtered highlights using the export button.\n\n## Requirements\n\n- A modern web browser.\n- No additional dependencies or installations are required.\n\n## Development\n\n- Modify `app.js` for logic updates.\n- Modify `index.html` and embedded CSS for UI changes."
+      },
+      {
+        "path": "TEST_PLAN.md",
+        "purpose": "Defines the test plan for verifying the functionality of the project.",
+        "content": "# Test Plan\n\n## Objective\nEnsure that the Highlight Finder application meets all functional requirements and works as expected.\n\n## Test Cases\n\n### 1. Scoring Function\n- **Input:** Event data with intensity and chatRate fields.\n- **Expected Output:** Correct score calculation using the formula `intensity * 2 + chatRate`.\n\n### 2. Filtering\n- **Input:** Various filter criteria (streamer, game, category, score).\n- **Expected Output:** Filtered results matching the criteria.\n\n### 3. Manual Marker\n- **Input:** New highlight data via the manual form.\n- **Expected Output:** New record added to the dataset and displayed in the table.\n\n### 4. Export Functionality\n- **Input:** Current filtered dataset.\n- **Expected Output:** Downloadable JSON file containing the filtered data.\n\n### 5. LocalStorage Persistence\n- **Input:** Add highlights and refresh the page.\n- **Expected Output:** Data persists across page reloads.\n\n## Tools\n- Browser developer tools for debugging.\n- Manual testing for UI interactions."
+      }
+    ],
+    "_provider": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkLtiVAXIE6JAi1tiGX7TrkJhKj8l",
+      "mode": "provider_project_generation"
+    }
+  }
+}

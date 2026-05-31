@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Game Video Highlight Finder API
+  version: 1.0.0
+paths:
+  /api/videos:
+    post:
+      summary: Register one local game video for analysis
+  /api/videos/{video_id}/analyze:
+    post:
+      summary: Run multi-signal highlight detection with duration and sensitivity settings
+  /api/videos/{video_id}/highlights:
+    get:
+      summary: List ranked highlight candidates and scoring explanations
+  /api/videos/{video_id}/exports:
+    post:
+      summary: Export selected highlights as MP4 clips or a cut manifest

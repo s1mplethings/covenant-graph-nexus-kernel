@@ -1,0 +1,74 @@
+{
+  "capability_map": [
+    {
+      "feature": "Video intake",
+      "capabilities": [
+        "file_input",
+        "local_video_preview",
+        "input_validation"
+      ]
+    },
+    {
+      "feature": "Video metadata extraction",
+      "capabilities": [
+        "video_metadata_probe",
+        "duration_detection",
+        "mime_type_validation"
+      ]
+    },
+    {
+      "feature": "Frame signal extraction",
+      "capabilities": [
+        "frame_sampling",
+        "motion_signal_detection",
+        "timeline_windowing"
+      ]
+    },
+    {
+      "feature": "Audio signal extraction",
+      "capabilities": [
+        "audio_peak_detection",
+        "energy_timeline",
+        "timeline_windowing"
+      ]
+    },
+    {
+      "feature": "Language/subtitle signal extraction",
+      "capabilities": [
+        "keyword_signal_detection",
+        "optional_ocr_or_transcript"
+      ]
+    },
+    {
+      "feature": "Highlight candidate generation",
+      "capabilities": [
+        "signal_fusion",
+        "candidate_window_generation"
+      ]
+    },
+    {
+      "feature": "Multi-criteria scoring",
+      "capabilities": [
+        "weighted_scoring",
+        "risk_analysis",
+        "decision_explanation"
+      ]
+    },
+    {
+      "feature": "Clip export",
+      "capabilities": [
+        "mp4_export",
+        "clip_manifest_generation",
+        "quality_preserving_cut"
+      ]
+    },
+    {
+      "feature": "Settings UI",
+      "capabilities": [
+        "form_controls",
+        "parameter_persistence",
+        "local_artifact_storage"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.external_api_response",
+  "version": "1",
+  "type_name": "ExternalApiResponse",
+  "schema_ref": "schemas/external_api_response.v1.schema.json",
+  "identity": {
+    "hash_fields": ["provider", "model", "request_id", "text"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "connectivity_v1",
+    "ref": "artifact.external_api_response@1"
+  }
+}

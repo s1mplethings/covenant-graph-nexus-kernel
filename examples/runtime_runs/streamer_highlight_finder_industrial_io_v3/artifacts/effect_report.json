@@ -1,0 +1,156 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v3",
+      "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v3"
+    ],
+    "network": "hardcoded on for provider project generation",
+    "provider": "hardcoded on for final project logic",
+    "external": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "",
+        "mode": "provider_architecture_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    },
+    "local_model": {
+      "provider": "ollama",
+      "model": "qwen2.5:7b-instruct",
+      "selection_source": "ollama",
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ],
+      "notes": "",
+      "risks": []
+    },
+    "provider_generation": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "",
+      "mode": "provider_architecture_filewise_project_generation"
+    },
+    "subpipelines": {
+      "plan_ref": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v3\\artifacts\\subpipeline_plan.json",
+      "results_ref": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v3\\artifacts\\subpipeline_results.json"
+    },
+    "self_test": {
+      "status": "pass",
+      "checks": {
+        "static_contract": true,
+        "required_files": true,
+        "product_strategy_docs": true,
+        "product_strategy_depth": true,
+        "module_count": 8,
+        "has_architecture": true,
+        "has_smoke_test": true,
+        "has_sample_data": true,
+        "has_industrial_io_artifacts": true,
+        "has_local_storage": true,
+        "has_export_blob": true,
+        "has_score_sort": true,
+        "has_filters": true,
+        "gui_workbench_structure": true,
+        "visible_result_fields": true,
+        "result_card_design": true,
+        "industrial_bundle_shape": true
+      },
+      "errors": [],
+      "files_checked": [
+        "README.md",
+        "TEST_PLAN.md",
+        "data/expected_outputs.json",
+        "data/industrial_input_bundle.json",
+        "data/sample_events.json",
+        "docs/ARCHITECTURE.md",
+        "docs/INPUT_OUTPUT_SPEC.md",
+        "docs/MARKET_RESEARCH.md",
+        "docs/TECHNICAL_PATH.md",
+        "docs/USER_ANALYSIS.md",
+        "docs/UX_DESIGN_SPEC.md",
+        "index.html",
+        "project_architecture.json",
+        "src/app.js",
+        "src/core/exporter.js",
+        "src/core/filtering.js",
+        "src/core/importer.js",
+        "src/core/scoring.js",
+        "src/state/store.js",
+        "src/ui/forms.js",
+        "src/ui/render.js",
+        "styles.css",
+        "tests/browser_smoke_test.js",
+        "tests/industrial_io_smoke_test.js"
+      ]
+    },
+    "quality_report": {
+      "score": 100,
+      "status": "pass",
+      "threshold": 85,
+      "issues": [],
+      "quality_dimensions": {
+        "modularity": "pass",
+        "self_testability": "pass",
+        "domain_specificity": "pass",
+        "local_persistence": "pass",
+        "product_strategy": "pass",
+        "gui_design": "pass",
+        "result_readability": "pass",
+        "industrial_io": "pass"
+      }
+    },
+    "adversarial_review": {
+      "status": "pass",
+      "blocking_issues": [],
+      "improvements": [
+        {
+          "path": "src/core/scoring.js",
+          "message": "Consider adding more advanced scoring criteria, such as sentiment analysis or viewer retention metrics, to improve highlight ranking accuracy."
+        },
+        {
+          "path": "src/state/store.js",
+          "message": "Upgrade local storage to IndexedDB for better scalability and support for larger datasets."
+        },
+        {
+          "path": "docs/UX_DESIGN_SPEC.md",
+          "message": "Expand the UX design specification to include accessibility considerations, such as keyboard navigation and screen reader support."
+        },
+        {
+          "path": "tests/browser_smoke_test.js",
+          "message": "Add tests for edge cases, such as importing extremely large datasets or handling unexpected input formats."
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "message": "Include a section on future scalability options, such as transitioning to a backend API for data processing and storage."
+        }
+      ],
+      "quality_target": "Enhance scalability, scoring accuracy, and accessibility.",
+      "provider": {
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkUSHLyvtAaGQ7ZZbs0GwOSKRi36y"
+      }
+    }
+  }
+}

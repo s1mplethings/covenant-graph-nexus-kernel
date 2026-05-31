@@ -1,0 +1,25 @@
+{
+  "kind": "CustomerProjectGenerationResult",
+  "created_at": "2026-05-27T14:50:03.977349+00:00",
+  "requirement": "给我做一个本地客户工单看板",
+  "customer_service": {
+    "questions": [
+      "你希望我用什么方式证明效果？"
+    ],
+    "answers": [
+      {
+        "field": "acceptance",
+        "question": "你希望我用什么方式证明效果？",
+        "answer": "输出项目蓝图、生成过程、测试图、效果报告，并生成可打开的本地项目。"
+      }
+    ],
+    "mode": "defaults"
+  },
+  "composition_path": "D:\\CGKN\\examples\\test_results\\customer_ticket_board_from_sentence_composition.json",
+  "execution_path": "D:\\CGKN\\examples\\test_results\\customer_ticket_board_from_sentence_execution.json",
+  "project_dir": "D:\\CGKN\\generated\\customer_ticket_board_from_sentence",
+  "runtime_dir": "D:\\CGKN\\examples\\runtime_runs\\customer_ticket_board_from_sentence",
+  "effect_report_path": "D:\\CGKN\\examples\\runtime_runs\\customer_ticket_board_from_sentence\\artifacts\\effect_report.json",
+  "test_graph_path": "D:\\CGKN\\examples\\runtime_runs\\customer_ticket_board_from_sentence\\artifacts\\test_graph.mmd",
+  "status": "pass"
+}

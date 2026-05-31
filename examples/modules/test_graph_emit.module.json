@@ -1,0 +1,43 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.test_graph.emit",
+  "version": "1",
+  "ports": {
+    "input": {
+      "project_blueprint": {
+        "artifact_type": "artifact.project_blueprint@1",
+        "required": true
+      },
+      "generation_trace": {
+        "artifact_type": "artifact.generation_trace@1",
+        "required": true
+      }
+    },
+    "output": {
+      "test_graph": {
+        "artifact_type": "artifact.test_graph@1",
+        "description": "Test graph for generated project capabilities and verification steps."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": ["run_id", "test_graph_format"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Emit a test graph from the generated project blueprint and generation trace."
+  }
+}

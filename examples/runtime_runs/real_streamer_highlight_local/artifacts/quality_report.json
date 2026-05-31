@@ -1,0 +1,8 @@
+{
+  "kind": "QualityReport",
+  "payload": {
+    "status": "pass",
+    "score": 90,
+    "issues": []
+  }
+}

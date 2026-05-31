@@ -1,0 +1,43 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.local_agent.plan",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.customer_request@1",
+        "required": true
+      },
+      "candidates": {
+        "artifact_type": "artifact.feature_library_candidates@1",
+        "required": true
+      }
+    },
+    "output": {
+      "agent_plan": {
+        "artifact_type": "artifact.local_agent_plan@1",
+        "description": "Local agent plan for project creation, checks, and artifact routing."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": ["run_id", "agent_profile"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Local planning module for agent-side execution without directly controlling generation."
+  }
+}

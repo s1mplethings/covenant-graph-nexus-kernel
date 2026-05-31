@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/migration_spec.schema.json",
+  "title": "MigrationSpec",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "legacy",
+    "target",
+    "preserve",
+    "proof"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "MigrationSpec"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^migration\\.[a-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string"
+    },
+    "legacy": {
+      "type": "object"
+    },
+    "target": {
+      "type": "object"
+    },
+    "preserve": {
+      "type": "object"
+    },
+    "allowed_changes": {
+      "type": "object"
+    },
+    "denied_changes": {
+      "type": "object"
+    },
+    "proof": {
+      "type": "object"
+    }
+  }
+}

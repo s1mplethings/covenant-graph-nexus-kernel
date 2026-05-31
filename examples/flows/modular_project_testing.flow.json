@@ -1,0 +1,66 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.modular_project_testing",
+  "version": "1",
+  "policy_ref": "policy.safe_modular_project_testing@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "environment_plan": "artifact.test_environment_plan@1",
+    "method_plan": "artifact.test_method_plan@1",
+    "test_pipeline_plan": "artifact.test_pipeline_plan@1",
+    "test_graph": "artifact.test_graph@1",
+    "test_execution_report": "artifact.test_execution_report@1",
+    "validation_report": "artifact.validation_report@1",
+    "effect_report": "artifact.effect_report@1"
+  },
+  "nodes": [
+    {"id": "n_test_environment_selector", "uses": "module.test.environment_selector@1", "config": {"line": "test_environment_selection"}},
+    {"id": "n_test_method_selector", "uses": "module.test.method_selector@1", "config": {"line": "test_method_selection"}},
+    {"id": "n_test_pipeline_composer", "uses": "module.test.pipeline_composer_agent@1", "config": {"line": "test_pipeline_composition"}},
+    {"id": "n_test_pipeline_executor", "uses": "module.test.pipeline_executor@1", "config": {"line": "test_pipeline_execution", "default_external_mode": "disabled"}}
+  ],
+  "edges": [
+    {"from": {"flow_input": "goal"}, "to": {"node": "n_test_environment_selector", "port": "goal"}},
+    {"from": {"flow_input": "goal"}, "to": {"node": "n_test_method_selector", "port": "goal"}},
+    {"from": {"flow_input": "goal"}, "to": {"node": "n_test_pipeline_composer", "port": "goal"}},
+    {"from": {"node": "n_test_environment_selector", "port": "environment_plan"}, "to": {"flow_output": "environment_plan"}},
+    {"from": {"node": "n_test_environment_selector", "port": "environment_plan"}, "to": {"node": "n_test_method_selector", "port": "environment_plan"}},
+    {"from": {"node": "n_test_environment_selector", "port": "environment_plan"}, "to": {"node": "n_test_pipeline_composer", "port": "environment_plan"}},
+    {"from": {"node": "n_test_method_selector", "port": "method_plan"}, "to": {"flow_output": "method_plan"}},
+    {"from": {"node": "n_test_method_selector", "port": "method_plan"}, "to": {"node": "n_test_pipeline_composer", "port": "method_plan"}},
+    {"from": {"node": "n_test_pipeline_composer", "port": "test_pipeline_plan"}, "to": {"flow_output": "test_pipeline_plan"}},
+    {"from": {"node": "n_test_pipeline_composer", "port": "test_pipeline_plan"}, "to": {"node": "n_test_pipeline_executor", "port": "test_pipeline_plan"}},
+    {"from": {"node": "n_test_pipeline_composer", "port": "test_graph"}, "to": {"flow_output": "test_graph"}},
+    {"from": {"node": "n_test_pipeline_executor", "port": "test_execution_report"}, "to": {"flow_output": "test_execution_report"}},
+    {"from": {"node": "n_test_pipeline_executor", "port": "validation_report"}, "to": {"flow_output": "validation_report"}},
+    {"from": {"node": "n_test_pipeline_executor", "port": "effect_report"}, "to": {"flow_output": "effect_report"}}
+  ],
+  "gates": [
+    {
+      "id": "g_test_pipeline_composed",
+      "require": {
+        "all": [
+          {"node_passed": "n_test_environment_selector"},
+          {"node_passed": "n_test_method_selector"},
+          {"node_passed": "n_test_pipeline_composer"}
+        ]
+      },
+      "on_fail": "block"
+    },
+    {
+      "id": "g_test_pipeline_executed",
+      "require": {
+        "all": [
+          {"node_passed": "n_test_pipeline_executor"}
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "scope": "Compose project testing as independent environment and method modules, then let the agent bind them into a local runnable test matrix.",
+    "runner": "python scripts/compose_test_pipeline.py --goal <goal> && python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json"
+  }
+}

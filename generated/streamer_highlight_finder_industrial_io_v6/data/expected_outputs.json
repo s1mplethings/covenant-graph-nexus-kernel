@@ -1,0 +1,163 @@
+{
+  "input_summary": {
+    "record_count": 24,
+    "source_count": 5,
+    "source_ids": [
+      "chat_analytics",
+      "creator_marks",
+      "ops_review",
+      "platform_events",
+      "public_clip_meta"
+    ]
+  },
+  "ranked_highlights": [
+    {
+      "title": "Final ring 1v3 clutch",
+      "streamer": "AstraKai",
+      "game": "Apex Legends",
+      "category": "clutch",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "platform_events"
+      ]
+    },
+    {
+      "title": "Baron steal into ace",
+      "streamer": "NovaCarry",
+      "game": "League of Legends",
+      "category": "objective",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "chat_analytics"
+      ]
+    },
+    {
+      "title": "Eco round four-kill",
+      "streamer": "PixelRook",
+      "game": "Fortnite",
+      "category": "comeback",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "platform_events"
+      ]
+    },
+    {
+      "title": "Perfect parry comeback",
+      "streamer": "RiftPilot",
+      "game": "Minecraft",
+      "category": "skill",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "chat_analytics"
+      ]
+    },
+    {
+      "title": "Build fight reset",
+      "streamer": "MapleMage",
+      "game": "Valorant",
+      "category": "funny",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "platform_events"
+      ]
+    },
+    {
+      "title": "One heart escape",
+      "streamer": "VantaAce",
+      "game": "Street Fighter 6",
+      "category": "ops-review",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "chat_analytics"
+      ]
+    },
+    {
+      "title": "Backdoor base race",
+      "streamer": "RiftPilot",
+      "game": "Minecraft",
+      "category": "skill",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "platform_events"
+      ]
+    },
+    {
+      "title": "Baron steal into ace duplicate review",
+      "streamer": "RiftPilot",
+      "game": "Minecraft",
+      "category": "skill",
+      "expected_rank_band": "top_8",
+      "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+      "sourceIds": [
+        "ops_review"
+      ]
+    }
+  ],
+  "export_cut_list": [
+    {
+      "title": "Final ring 1v3 clutch",
+      "streamer": "AstraKai",
+      "game": "Apex Legends",
+      "timestamp": "2026-05-21T10:00:00Z",
+      "startTime": "00:00:00",
+      "endTime": "00:00:00",
+      "rationale": "candidate selected from simulated industrial ranking"
+    },
+    {
+      "title": "Baron steal into ace",
+      "streamer": "NovaCarry",
+      "game": "League of Legends",
+      "timestamp": "2026-05-22T11:07:00Z",
+      "startTime": "00:03:11",
+      "endTime": "00:03:11",
+      "rationale": "candidate selected from simulated industrial ranking"
+    },
+    {
+      "title": "Eco round four-kill",
+      "streamer": "PixelRook",
+      "game": "Fortnite",
+      "timestamp": "2026-05-23T10:10:00Z",
+      "startTime": "00:30:50",
+      "endTime": "00:30:50",
+      "rationale": "candidate selected from simulated industrial ranking"
+    },
+    {
+      "title": "Perfect parry comeback",
+      "streamer": "RiftPilot",
+      "game": "Minecraft",
+      "timestamp": "2026-05-26T11:27:00Z",
+      "startTime": "00:03:51",
+      "endTime": "00:03:51",
+      "rationale": "candidate selected from simulated industrial ranking"
+    },
+    {
+      "title": "Build fight reset",
+      "streamer": "MapleMage",
+      "game": "Valorant",
+      "timestamp": "2026-05-25T10:20:00Z",
+      "startTime": "00:00:40",
+      "endTime": "00:00:40",
+      "rationale": "candidate selected from simulated industrial ranking"
+    }
+  ],
+  "quality_checks": [
+    "at least 20 records imported",
+    "at least 3 sourceIds represented",
+    "visible scores are numeric and descending",
+    "ranked highlight candidates are visible after import",
+    "export output uses filtered records"
+  ],
+  "output_contract": [
+    "input_summary",
+    "ranked_highlights",
+    "export_cut_list",
+    "quality_checks"
+  ]
+}

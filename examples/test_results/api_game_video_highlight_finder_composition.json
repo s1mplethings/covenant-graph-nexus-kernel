@@ -1,0 +1,2625 @@
+{
+  "kind": "LocalPipelineCompositionRun",
+  "created_at": "2026-05-31T09:50:54.921305+00:00",
+  "goal": "给它一个游戏视频文件，然后自动找出高光片段，输出高光时间线和可下载剪辑清单；输入必须是单个视频文件，本地 librarian 只负责模块检索和路线规划，项目生成、修复和最终逻辑使用 API。\n客服澄清信息：\n- target_user: 目标用户为游戏主播、内容剪辑和直播运营人员。\n- core_features: 核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。\n- acceptance: 输出项目蓝图、生成过程、测试图、效果报告，并生成可打开的本地项目。\n需求蓝图摘要：\n- project_type: streamer_highlight_tool\n- output_contract: requirement_spec, io_contract, feature_spec, capability_map, tech_candidates, tech_decisions, architecture_diagram, api_spec, db_schema, frontend_pages, task_backlog, prd\n- feature_modules: Project intake, Requirement understanding, Input/output contract analysis, Gap confirmation, Feature decomposition, Capability mapping, Technology discovery, Technology decision\n- tech_decisions: project_state: custom CGNK rule, text_input: custom CGNK rule, local_artifact_storage: custom CGNK rule, structured_ai_output: OpenAI Structured Outputs, schema_validation: jsonschema, business_analysis: custom CGNK rule, io_contract_modeling: custom CGNK rule, source_attribution: custom CGNK rule\n生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。",
+  "local_index": {
+    "kind": "LocalLibraryIndex",
+    "payload": {
+      "module_count": 27,
+      "artifact_count": 29,
+      "flow_count": 6,
+      "policy_count": 7,
+      "top_matches": [
+        {
+          "module_ref": "module.local.pipeline_composer_agent@1",
+          "score": 15,
+          "purpose": "Local project-understanding librarian and pipeline composer agent.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "local_index",
+            "pipeline_plan",
+            "project_understanding"
+          ]
+        },
+        {
+          "module_ref": "module.external.api_gateway@1",
+          "score": 13,
+          "purpose": "Generic API gateway contract for OpenAI-compatible provider calls.",
+          "network": true,
+          "provider_call": true,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "response"
+          ]
+        },
+        {
+          "module_ref": "module.customer.service@1",
+          "score": 11,
+          "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "goal"
+          ],
+          "outputs": [
+            "request"
+          ]
+        },
+        {
+          "module_ref": "module.local.librarian@1",
+          "score": 9,
+          "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [],
+          "outputs": [
+            "local_index"
+          ]
+        },
+        {
+          "module_ref": "module.project.generator@1",
+          "score": 9,
+          "purpose": "Project generator module that emits the product blueprint and generation process without owning validation outputs.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "adversarial_review",
+            "agent_plan",
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "generation_trace",
+            "project_blueprint"
+          ]
+        },
+        {
+          "module_ref": "module.requirement_blueprint.generator@1",
+          "score": 8,
+          "purpose": "Front-door requirement-to-blueprint generator based on the AI requirement blueprint design.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "goal"
+          ],
+          "outputs": [
+            "requirement_blueprint"
+          ]
+        },
+        {
+          "module_ref": "module.unified_control@1",
+          "score": 8,
+          "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "adversarial_review",
+            "agent_plan",
+            "candidates",
+            "effect_report",
+            "generation_trace",
+            "local_index",
+            "online_sources",
+            "project_blueprint",
+            "request",
+            "test_graph"
+          ],
+          "outputs": [
+            "effect_report",
+            "generation_trace",
+            "project_blueprint",
+            "test_graph"
+          ]
+        },
+        {
+          "module_ref": "module.feature.library_search@1",
+          "score": 5,
+          "purpose": "Find capability libraries without coupling the caller to local or online source mechanics.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "local_index",
+            "online_sources",
+            "request"
+          ],
+          "outputs": [
+            "candidates"
+          ]
+        },
+        {
+          "module_ref": "module.local.runtime_executor@1",
+          "score": 4,
+          "purpose": "Local runtime executor that materializes a composed pipeline into project files and runtime artifacts.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "pipeline_plan"
+          ],
+          "outputs": [
+            "effect_report",
+            "generation_trace",
+            "project_blueprint",
+            "runtime_result",
+            "test_graph"
+          ]
+        },
+        {
+          "module_ref": "module.telegram.gateway@1",
+          "score": 4,
+          "purpose": "Generic Telegram gateway contract for live bot API transport.",
+          "network": true,
+          "provider_call": false,
+          "inputs": [
+            "message"
+          ],
+          "outputs": [
+            "delivery_status"
+          ]
+        },
+        {
+          "module_ref": "module.effect_report.emit@1",
+          "score": 3,
+          "purpose": "Emit the final effect report as a separate verification artifact.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "generation_trace",
+            "project_blueprint",
+            "test_graph"
+          ],
+          "outputs": [
+            "effect_report"
+          ]
+        },
+        {
+          "module_ref": "module.local_agent.plan@1",
+          "score": 3,
+          "purpose": "Local planning module for agent-side execution without directly controlling generation.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "agent_plan"
+          ]
+        }
+      ]
+    }
+  },
+  "project_understanding": {
+    "kind": "ProjectUnderstandingIndex",
+    "payload": {
+      "retrieval_strategy": "structured_catalog_plus_lexical_rag",
+      "why_not_pure_vector_rag": "CGNK contracts are structured JSON; deterministic parsing preserves ports, effects, and policies before any semantic ranking.",
+      "optional_local_model": {
+        "enabled": false,
+        "provider": "ollama",
+        "ok": false,
+        "error": "ollama unavailable: <urlopen error [WinError 10061] 由于目标计算机积极拒绝，无法连接。>"
+      },
+      "local_librarian": {
+        "provider": "ollama",
+        "model": "",
+        "catalog_basis": "examples/modules + examples/artifacts + examples/flows + examples/policies",
+        "top_local_matches": [
+          {
+            "module_ref": "module.local.pipeline_composer_agent@1",
+            "score": 15,
+            "purpose": "Local project-understanding librarian and pipeline composer agent.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "request"
+            ],
+            "outputs": [
+              "local_index",
+              "pipeline_plan",
+              "project_understanding"
+            ]
+          },
+          {
+            "module_ref": "module.external.api_gateway@1",
+            "score": 13,
+            "purpose": "Generic API gateway contract for OpenAI-compatible provider calls.",
+            "network": true,
+            "provider_call": true,
+            "inputs": [
+              "request"
+            ],
+            "outputs": [
+              "response"
+            ]
+          },
+          {
+            "module_ref": "module.customer.service@1",
+            "score": 11,
+            "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "goal"
+            ],
+            "outputs": [
+              "request"
+            ]
+          },
+          {
+            "module_ref": "module.local.librarian@1",
+            "score": 9,
+            "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [],
+            "outputs": [
+              "local_index"
+            ]
+          },
+          {
+            "module_ref": "module.project.generator@1",
+            "score": 9,
+            "purpose": "Project generator module that emits the product blueprint and generation process without owning validation outputs.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "adversarial_review",
+              "agent_plan",
+              "candidates",
+              "request"
+            ],
+            "outputs": [
+              "generation_trace",
+              "project_blueprint"
+            ]
+          },
+          {
+            "module_ref": "module.requirement_blueprint.generator@1",
+            "score": 8,
+            "purpose": "Front-door requirement-to-blueprint generator based on the AI requirement blueprint design.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "goal"
+            ],
+            "outputs": [
+              "requirement_blueprint"
+            ]
+          },
+          {
+            "module_ref": "module.unified_control@1",
+            "score": 8,
+            "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "adversarial_review",
+              "agent_plan",
+              "candidates",
+              "effect_report",
+              "generation_trace",
+              "local_index",
+              "online_sources",
+              "project_blueprint",
+              "request",
+              "test_graph"
+            ],
+            "outputs": [
+              "effect_report",
+              "generation_trace",
+              "project_blueprint",
+              "test_graph"
+            ]
+          },
+          {
+            "module_ref": "module.feature.library_search@1",
+            "score": 5,
+            "purpose": "Find capability libraries without coupling the caller to local or online source mechanics.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "local_index",
+              "online_sources",
+              "request"
+            ],
+            "outputs": [
+              "candidates"
+            ]
+          }
+        ],
+        "notes": ""
+      },
+      "route_manager": {
+        "provider": "ollama",
+        "model": "",
+        "selection_source": "structured_fallback",
+        "local_model_scope": [
+          "local_librarian",
+          "route_manager"
+        ],
+        "provider_scope": [
+          "project_generation",
+          "project_repair",
+          "final_project_logic"
+        ],
+        "notes": "",
+        "risks": [],
+        "support_modules": [
+          "module.local.pipeline_composer_agent@1"
+        ]
+      },
+      "known_flows": [
+        "flow.local_pipeline_composition@1",
+        "flow.local_pipeline_execution@1",
+        "flow.modular_project_generation@1",
+        "flow.modular_project_testing@1",
+        "flow.project_generation@1",
+        "flow.project_refactor@1"
+      ],
+      "capability_groups": {
+        "intake": [
+          "module.customer.service@1"
+        ],
+        "requirement_blueprint": [
+          "module.requirement_blueprint.generator@1"
+        ],
+        "local_understanding": [
+          "module.local.librarian@1",
+          "module.local.pipeline_composer_agent@1"
+        ],
+        "generation": [
+          "module.project.generator@1"
+        ],
+        "verification": [
+          "module.test_graph.emit@1",
+          "module.effect_report.emit@1"
+        ],
+        "delivery_or_external": [
+          "module.external.api_gateway@1",
+          "module.telegram.gateway@1"
+        ]
+      }
+    }
+  },
+  "pipeline_plan": {
+    "kind": "PipelineCompositionPlan",
+    "payload": {
+      "requirement": "给它一个游戏视频文件，然后自动找出高光片段，输出高光时间线和可下载剪辑清单；输入必须是单个视频文件，本地 librarian 只负责模块检索和路线规划，项目生成、修复和最终逻辑使用 API。\n客服澄清信息：\n- target_user: 目标用户为游戏主播、内容剪辑和直播运营人员。\n- core_features: 核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。\n- acceptance: 输出项目蓝图、生成过程、测试图、效果报告，并生成可打开的本地项目。\n需求蓝图摘要：\n- project_type: streamer_highlight_tool\n- output_contract: requirement_spec, io_contract, feature_spec, capability_map, tech_candidates, tech_decisions, architecture_diagram, api_spec, db_schema, frontend_pages, task_backlog, prd\n- feature_modules: Project intake, Requirement understanding, Input/output contract analysis, Gap confirmation, Feature decomposition, Capability mapping, Technology discovery, Technology decision\n- tech_decisions: project_state: custom CGNK rule, text_input: custom CGNK rule, local_artifact_storage: custom CGNK rule, structured_ai_output: OpenAI Structured Outputs, schema_validation: jsonschema, business_analysis: custom CGNK rule, io_contract_modeling: custom CGNK rule, source_attribution: custom CGNK rule\n生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。",
+      "selected_modules": [
+        "module.customer.service@1",
+        "module.requirement_blueprint.generator@1",
+        "module.local.librarian@1",
+        "module.online.library_sources@1",
+        "module.feature.library_search@1",
+        "module.local_agent.plan@1",
+        "module.adversarial_generation@1",
+        "module.project.generator@1",
+        "module.test_graph.emit@1",
+        "module.effect_report.emit@1",
+        "module.unified_control@1"
+      ],
+      "support_modules": [
+        "module.local.pipeline_composer_agent@1"
+      ],
+      "external_routes": [
+        {
+          "module": "module.external.api_gateway@1",
+          "purpose": "OpenAI-compatible provider/API call",
+          "status": "blocked",
+          "reason": "provider denied by flow policy",
+          "missing_adapter": "No producer for artifact.external_api_request@1 in flow.modular_project_generation@1"
+        }
+      ],
+      "edges": [
+        {
+          "from": {
+            "flow_input": "goal"
+          },
+          "to": {
+            "node": "n_customer_service",
+            "port": "goal"
+          }
+        },
+        {
+          "from": {
+            "flow_input": "goal"
+          },
+          "to": {
+            "node": "n_requirement_blueprint",
+            "port": "goal"
+          }
+        },
+        {
+          "from": {
+            "node": "n_requirement_blueprint",
+            "port": "requirement_blueprint"
+          },
+          "to": {
+            "flow_output": "requirement_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_online_library_sources",
+            "port": "online_sources"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "online_sources"
+          }
+        },
+        {
+          "from": {
+            "node": "n_online_library_sources",
+            "port": "online_sources"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "online_sources"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_adversarial_generation",
+            "port": "adversarial_review"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "adversarial_review"
+          }
+        },
+        {
+          "from": {
+            "node": "n_adversarial_generation",
+            "port": "adversarial_review"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "adversarial_review"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_effect_report_emit",
+            "port": "effect_report"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "flow_output": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          },
+          "to": {
+            "flow_output": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          },
+          "to": {
+            "flow_output": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          },
+          "to": {
+            "flow_output": "effect_report"
+          }
+        }
+      ],
+      "outputs": [
+        "requirement_blueprint",
+        "project_blueprint",
+        "generation_trace",
+        "test_graph",
+        "effect_report"
+      ],
+      "gaps": [
+        {
+          "module": "module.external.api_gateway@1",
+          "purpose": "OpenAI-compatible provider/API call",
+          "status": "blocked",
+          "reason": "provider denied by flow policy",
+          "missing_adapter": "No producer for artifact.external_api_request@1 in flow.modular_project_generation@1"
+        }
+      ],
+      "route_quality_report": {
+        "selected_module_count": 11,
+        "connected_module_count": 11,
+        "edge_count": 34,
+        "orphan_modules": [],
+        "modules_not_in_base_flow": [],
+        "unbound_inputs": [],
+        "unbound_input_count": 0,
+        "policy_blocked_modules": [],
+        "blocked_external_routes": [
+          {
+            "module": "module.external.api_gateway@1",
+            "purpose": "OpenAI-compatible provider/API call",
+            "status": "blocked",
+            "reason": "provider denied by flow policy",
+            "missing_adapter": "No producer for artifact.external_api_request@1 in flow.modular_project_generation@1"
+          }
+        ],
+        "available_external_routes": [],
+        "bound_flow_outputs": [
+          "effect_report",
+          "generation_trace",
+          "project_blueprint",
+          "requirement_blueprint",
+          "test_graph"
+        ],
+        "route_compile_status": "pass",
+        "route_score": 90
+      },
+      "executor": {
+        "flow": "flow.local_pipeline_execution@1",
+        "command": "python scripts/run_local_pipeline.py --plan examples/test_results/local_pipeline_composition_result.json",
+        "provider_route": "External API and Telegram routes are reported separately and require explicit runtime approval flags."
+      },
+      "control": "route through module.unified_control@1 when executing a generated project pipeline"
+    }
+  },
+  "requirement_blueprint": {
+    "kind": "RequirementBlueprint",
+    "created_at": "2026-05-31T09:50:52.774258+00:00",
+    "raw_requirement": "给它一个游戏视频文件，然后自动找出高光片段，输出高光时间线和可下载剪辑清单；输入必须是单个视频文件，本地 librarian 只负责模块检索和路线规划，项目生成、修复和最终逻辑使用 API。",
+    "agent_sequence": [
+      "RequirementAgent",
+      "IOContractAgent",
+      "GapAgent",
+      "FeatureAgent",
+      "CapabilityAgent",
+      "TechSearchAgent",
+      "TechDecisionAgent",
+      "BlueprintAgent",
+      "TaskAgent",
+      "ReviewAgent"
+    ],
+    "status": "ready",
+    "requirement_spec": {
+      "project_type": {
+        "value": "streamer_highlight_tool",
+        "source_type": "inferred",
+        "confidence": 0.72
+      },
+      "business_goal": {
+        "value": "给它一个游戏视频文件，然后自动找出高光片段，输出高光时间线和可下载剪辑清单；输入必须是单个视频文件，本地 librarian 只负责模块检索和路线规划，项目生成、修复和最终逻辑使用 API。",
+        "source_type": "explicit",
+        "confidence": 0.95
+      },
+      "target_users": {
+        "value": [
+          "目标用户为游戏主播、内容剪辑和直播运营人员。"
+        ],
+        "source_type": "explicit",
+        "confidence": 0.76
+      },
+      "scenarios": [
+        {
+          "value": "User submits a natural-language project request.",
+          "source_type": "explicit",
+          "confidence": 0.9
+        },
+        {
+          "value": "System analyzes input, output, gaps, features, capabilities, and tasks.",
+          "source_type": "assumed",
+          "confidence": 0.75
+        },
+        {
+          "value": "Developer reviews generated blueprint artifacts before implementation.",
+          "source_type": "assumed",
+          "confidence": 0.72
+        }
+      ],
+      "pain_points": [
+        {
+          "value": "Requirement wording is likely underspecified at first contact.",
+          "source_type": "inferred",
+          "confidence": 0.8
+        },
+        {
+          "value": "Implementation tasks need traceability to inputs, outputs, and acceptance criteria.",
+          "source_type": "assumed",
+          "confidence": 0.82
+        },
+        {
+          "value": "Technology choices should be tied to capabilities instead of broad project labels.",
+          "source_type": "assumed",
+          "confidence": 0.82
+        }
+      ],
+      "scope_boundary": [
+        {
+          "value": "核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。",
+          "source_type": "explicit",
+          "confidence": 0.72
+        }
+      ]
+    },
+    "io_contract": {
+      "input_contract": {
+        "input_sources": [
+          {
+            "value": "Natural-language requirement entered by the user.",
+            "source_type": "explicit",
+            "confidence": 0.96
+          },
+          {
+            "value": "Optional uploaded requirement documents.",
+            "source_type": "inferred",
+            "confidence": 0.62
+          }
+        ],
+        "input_types": [
+          "plain_text",
+          "document"
+        ],
+        "required_fields": [
+          "project_goal",
+          "requirement_description"
+        ],
+        "optional_fields": [
+          "target_user",
+          "tech_preference",
+          "deadline",
+          "budget",
+          "existing_documents"
+        ],
+        "unknowns": []
+      },
+      "process_contract": {
+        "main_process": "Convert raw user intent into traceable engineering blueprint artifacts.",
+        "steps": [
+          "RequirementAgent",
+          "IOContractAgent",
+          "GapAgent",
+          "FeatureAgent",
+          "CapabilityAgent",
+          "TechSearchAgent",
+          "TechDecisionAgent",
+          "BlueprintAgent",
+          "TaskAgent",
+          "ReviewAgent"
+        ],
+        "state_transitions": [
+          "created",
+          "requirement_submitted",
+          "requirement_analyzed",
+          "io_analyzed",
+          "gap_checked",
+          "io_confirmed",
+          "features_generated",
+          "capabilities_mapped",
+          "tech_discovered",
+          "tech_decided",
+          "blueprint_generated",
+          "tasks_generated",
+          "reviewed"
+        ]
+      },
+      "output_contract": {
+        "output_types": [
+          "requirement_spec",
+          "io_contract",
+          "feature_spec",
+          "capability_map",
+          "tech_candidates",
+          "tech_decisions",
+          "architecture_diagram",
+          "api_spec",
+          "db_schema",
+          "frontend_pages",
+          "task_backlog",
+          "prd"
+        ],
+        "output_formats": [
+          "json",
+          "markdown",
+          "mermaid",
+          "openapi_yaml",
+          "sql",
+          "csv"
+        ],
+        "consumers": [
+          "目标用户为游戏主播、内容剪辑和直播运营人员。"
+        ],
+        "storage": {
+          "value": "Persist runtime artifacts as local JSON/Markdown files; generated apps may use localStorage unless a database is requested.",
+          "source_type": "assumed",
+          "confidence": 0.74
+        },
+        "unknowns": [
+          "Whether Word/PDF export is required beyond Markdown/JSON/CSV."
+        ]
+      }
+    },
+    "gap_analysis": {
+      "gap_items": [
+        {
+          "question": "Should the flow generate runnable project files, or only a requirements blueprint?",
+          "severity": "Level 3",
+          "impact": "Controls whether CGNK continues into project materialization, tests, and effect reports.",
+          "default_assumption": "Generate runnable local project files plus blueprint artifacts.",
+          "status": "resolved"
+        },
+        {
+          "question": "Are Word/PDF exports required in v1?",
+          "severity": "Level 2",
+          "impact": "Affects document export library choices and artifact packaging.",
+          "default_assumption": "Export Markdown, JSON, Mermaid, OpenAPI YAML, SQL, and CSV first.",
+          "status": "resolved"
+        },
+        {
+          "question": "Is multi-user collaboration required?",
+          "severity": "Level 2",
+          "impact": "Affects account, permission, project versioning, and database design.",
+          "default_assumption": "Treat v1 as a single-user local workflow.",
+          "status": "resolved"
+        },
+        {
+          "question": "Are external integrations such as GitHub, Jira, Feishu, Telegram, or provider APIs allowed?",
+          "severity": "Level 2",
+          "impact": "Affects network policy, credentials, and human approval gates.",
+          "default_assumption": "Keep external calls disabled unless explicitly approved.",
+          "status": "resolved"
+        }
+      ],
+      "can_continue": true
+    },
+    "feature_spec": {
+      "features": [
+        {
+          "id": "F001",
+          "name": "Project intake",
+          "description": "Create a project from a raw natural-language request.",
+          "priority": "Must",
+          "inputs": [
+            "project_name",
+            "raw_requirement"
+          ],
+          "outputs": [
+            "project_id",
+            "project_profile"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F002",
+          "name": "Requirement understanding",
+          "description": "Extract business goal, users, scenarios, pain points, and boundaries.",
+          "priority": "Must",
+          "inputs": [
+            "raw_requirement"
+          ],
+          "outputs": [
+            "requirement_spec"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F003",
+          "name": "Input/output contract analysis",
+          "description": "Identify input sources, process steps, outputs, formats, consumers, unknowns, and source types.",
+          "priority": "Must",
+          "inputs": [
+            "raw_requirement",
+            "requirement_spec"
+          ],
+          "outputs": [
+            "io_contract"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F004",
+          "name": "Gap confirmation",
+          "description": "Classify unknowns by Level 1/2/3 and block only unresolved Level 3 gaps.",
+          "priority": "Must",
+          "inputs": [
+            "io_contract"
+          ],
+          "outputs": [
+            "gap_analysis"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F005",
+          "name": "Feature decomposition",
+          "description": "Convert confirmed requirement contracts into feature modules.",
+          "priority": "Must",
+          "inputs": [
+            "requirement_spec",
+            "io_contract"
+          ],
+          "outputs": [
+            "feature_spec"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F006",
+          "name": "Capability mapping",
+          "description": "Map each feature to concrete implementation capabilities.",
+          "priority": "Must",
+          "inputs": [
+            "feature_spec"
+          ],
+          "outputs": [
+            "capability_map"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F007",
+          "name": "Technology discovery",
+          "description": "Find candidate libraries or local catalog options for each capability.",
+          "priority": "Must",
+          "inputs": [
+            "capability_map"
+          ],
+          "outputs": [
+            "tech_candidates"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F008",
+          "name": "Technology decision",
+          "description": "Score candidates and choose library, custom, hybrid, or defer decisions.",
+          "priority": "Must",
+          "inputs": [
+            "tech_candidates"
+          ],
+          "outputs": [
+            "tech_decisions"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F009",
+          "name": "Blueprint generation",
+          "description": "Emit architecture, API, database, frontend, workflow, deployment, risks, and PRD artifacts.",
+          "priority": "Should",
+          "inputs": [
+            "feature_spec",
+            "tech_decisions"
+          ],
+          "outputs": [
+            "blueprint_artifacts"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F010",
+          "name": "Task backlog",
+          "description": "Convert the blueprint into implementation tasks with dependencies and acceptance criteria.",
+          "priority": "Should",
+          "inputs": [
+            "blueprint_artifacts"
+          ],
+          "outputs": [
+            "task_backlog"
+          ],
+          "source_type": "assumed"
+        },
+        {
+          "id": "F011",
+          "name": "User-specified capability",
+          "description": "核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。",
+          "priority": "Must",
+          "inputs": [
+            "confirmed_requirement"
+          ],
+          "outputs": [
+            "implementation_scope_item"
+          ],
+          "source_type": "explicit"
+        }
+      ]
+    },
+    "capability_map": {
+      "capability_map": [
+        {
+          "feature": "Project intake",
+          "capabilities": [
+            "project_state",
+            "text_input",
+            "local_artifact_storage"
+          ]
+        },
+        {
+          "feature": "Requirement understanding",
+          "capabilities": [
+            "structured_ai_output",
+            "schema_validation",
+            "business_analysis"
+          ]
+        },
+        {
+          "feature": "Input/output contract analysis",
+          "capabilities": [
+            "io_contract_modeling",
+            "source_attribution",
+            "confidence_scoring"
+          ]
+        },
+        {
+          "feature": "Gap confirmation",
+          "capabilities": [
+            "gap_severity_rules",
+            "user_confirmation_gate",
+            "default_assumption_policy"
+          ]
+        },
+        {
+          "feature": "Feature decomposition",
+          "capabilities": [
+            "feature_modeling",
+            "priority_classification",
+            "traceability"
+          ]
+        },
+        {
+          "feature": "Capability mapping",
+          "capabilities": [
+            "capability_taxonomy",
+            "feature_to_capability_mapping"
+          ]
+        },
+        {
+          "feature": "Technology discovery",
+          "capabilities": [
+            "local_tech_catalog",
+            "optional_web_search",
+            "package_registry_lookup",
+            "security_check"
+          ]
+        },
+        {
+          "feature": "Technology decision",
+          "capabilities": [
+            "weighted_scoring",
+            "risk_analysis",
+            "decision_explanation"
+          ]
+        },
+        {
+          "feature": "Blueprint generation",
+          "capabilities": [
+            "markdown_generation",
+            "mermaid_generation",
+            "openapi_generation",
+            "sql_schema_generation"
+          ]
+        },
+        {
+          "feature": "Task backlog",
+          "capabilities": [
+            "task_dependency_graph",
+            "csv_export",
+            "acceptance_criteria_generation"
+          ]
+        },
+        {
+          "feature": "User-specified capability",
+          "capabilities": [
+            "custom_business_logic"
+          ]
+        }
+      ]
+    },
+    "tech_candidates": {
+      "tech_candidates": [
+        {
+          "capability": "project_state",
+          "feature": "Project intake",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "text_input",
+          "feature": "Project intake",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "local_artifact_storage",
+          "feature": "Project intake",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "structured_ai_output",
+          "feature": "Requirement understanding",
+          "candidates": [
+            {
+              "name": "OpenAI Structured Outputs",
+              "ecosystem": "api",
+              "use_for": "Schema-constrained model output",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "schema_validation",
+          "feature": "Requirement understanding",
+          "candidates": [
+            {
+              "name": "jsonschema",
+              "ecosystem": "python",
+              "use_for": "Validate generated JSON artifacts",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.8,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "business_analysis",
+          "feature": "Requirement understanding",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "io_contract_modeling",
+          "feature": "Input/output contract analysis",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "source_attribution",
+          "feature": "Input/output contract analysis",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "confidence_scoring",
+          "feature": "Input/output contract analysis",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "gap_severity_rules",
+          "feature": "Gap confirmation",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "user_confirmation_gate",
+          "feature": "Gap confirmation",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "default_assumption_policy",
+          "feature": "Gap confirmation",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "feature_modeling",
+          "feature": "Feature decomposition",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "priority_classification",
+          "feature": "Feature decomposition",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "traceability",
+          "feature": "Feature decomposition",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "capability_taxonomy",
+          "feature": "Capability mapping",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "feature_to_capability_mapping",
+          "feature": "Capability mapping",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "local_tech_catalog",
+          "feature": "Technology discovery",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "optional_web_search",
+          "feature": "Technology discovery",
+          "candidates": [
+            {
+              "name": "official docs / package registries",
+              "ecosystem": "external",
+              "use_for": "Only when network is explicitly approved",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.7,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.65,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "package_registry_lookup",
+          "feature": "Technology discovery",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "security_check",
+          "feature": "Technology discovery",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "weighted_scoring",
+          "feature": "Technology decision",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "risk_analysis",
+          "feature": "Technology decision",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "decision_explanation",
+          "feature": "Technology decision",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "markdown_generation",
+          "feature": "Blueprint generation",
+          "candidates": [
+            {
+              "name": "custom Markdown renderer",
+              "ecosystem": "custom",
+              "use_for": "Generate PRD and readable summaries",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "mermaid_generation",
+          "feature": "Blueprint generation",
+          "candidates": [
+            {
+              "name": "Mermaid",
+              "ecosystem": "diagram",
+              "use_for": "Architecture and flow diagrams",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.8,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "openapi_generation",
+          "feature": "Blueprint generation",
+          "candidates": [
+            {
+              "name": "OpenAPI YAML",
+              "ecosystem": "spec",
+              "use_for": "API contract export",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.8,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "sql_schema_generation",
+          "feature": "Blueprint generation",
+          "candidates": [
+            {
+              "name": "SQL DDL",
+              "ecosystem": "spec",
+              "use_for": "Database schema export",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.8,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "task_dependency_graph",
+          "feature": "Task backlog",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "csv_export",
+          "feature": "Task backlog",
+          "candidates": [
+            {
+              "name": "Python csv",
+              "ecosystem": "stdlib",
+              "use_for": "Task backlog CSV export",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.8,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "acceptance_criteria_generation",
+          "feature": "Task backlog",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        },
+        {
+          "capability": "custom_business_logic",
+          "feature": "User-specified capability",
+          "candidates": [
+            {
+              "name": "custom CGNK rule",
+              "ecosystem": "custom",
+              "use_for": "Deterministic local implementation",
+              "latest_version": "not_checked_offline",
+              "fit_score": 0.82,
+              "maintenance_score": 0.68,
+              "maturity_score": 0.78,
+              "security_score": 0.85,
+              "docs_score": 0.75,
+              "recommendation": "recommended",
+              "risk_points": [
+                "Version freshness requires online verification before production use."
+              ],
+              "provenance": "local_catalog"
+            }
+          ]
+        }
+      ]
+    },
+    "tech_decisions": {
+      "tech_decisions": [
+        {
+          "capability": "project_state",
+          "feature": "Project intake",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "text_input",
+          "feature": "Project intake",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "local_artifact_storage",
+          "feature": "Project intake",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "structured_ai_output",
+          "feature": "Requirement understanding",
+          "decision_type": "hybrid",
+          "selected_solution": "OpenAI Structured Outputs",
+          "weighted_score": 0.781,
+          "reason": "Selected for Schema-constrained model output with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "schema_validation",
+          "feature": "Requirement understanding",
+          "decision_type": "library",
+          "selected_solution": "jsonschema",
+          "weighted_score": 0.805,
+          "reason": "Selected for Validate generated JSON artifacts with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "business_analysis",
+          "feature": "Requirement understanding",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "io_contract_modeling",
+          "feature": "Input/output contract analysis",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "source_attribution",
+          "feature": "Input/output contract analysis",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "confidence_scoring",
+          "feature": "Input/output contract analysis",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "gap_severity_rules",
+          "feature": "Gap confirmation",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "user_confirmation_gate",
+          "feature": "Gap confirmation",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "default_assumption_policy",
+          "feature": "Gap confirmation",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "feature_modeling",
+          "feature": "Feature decomposition",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "priority_classification",
+          "feature": "Feature decomposition",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "traceability",
+          "feature": "Feature decomposition",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "capability_taxonomy",
+          "feature": "Capability mapping",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "feature_to_capability_mapping",
+          "feature": "Capability mapping",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "local_tech_catalog",
+          "feature": "Technology discovery",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "optional_web_search",
+          "feature": "Technology discovery",
+          "decision_type": "defer",
+          "selected_solution": "official docs / package registries",
+          "weighted_score": 0.71,
+          "reason": "Selected for Only when network is explicitly approved with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "package_registry_lookup",
+          "feature": "Technology discovery",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "security_check",
+          "feature": "Technology discovery",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "weighted_scoring",
+          "feature": "Technology decision",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "risk_analysis",
+          "feature": "Technology decision",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "decision_explanation",
+          "feature": "Technology decision",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "markdown_generation",
+          "feature": "Blueprint generation",
+          "decision_type": "custom",
+          "selected_solution": "custom Markdown renderer",
+          "weighted_score": 0.781,
+          "reason": "Selected for Generate PRD and readable summaries with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "mermaid_generation",
+          "feature": "Blueprint generation",
+          "decision_type": "library",
+          "selected_solution": "Mermaid",
+          "weighted_score": 0.805,
+          "reason": "Selected for Architecture and flow diagrams with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "openapi_generation",
+          "feature": "Blueprint generation",
+          "decision_type": "library",
+          "selected_solution": "OpenAPI YAML",
+          "weighted_score": 0.805,
+          "reason": "Selected for API contract export with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "sql_schema_generation",
+          "feature": "Blueprint generation",
+          "decision_type": "library",
+          "selected_solution": "SQL DDL",
+          "weighted_score": 0.805,
+          "reason": "Selected for Database schema export with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "task_dependency_graph",
+          "feature": "Task backlog",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "csv_export",
+          "feature": "Task backlog",
+          "decision_type": "library",
+          "selected_solution": "Python csv",
+          "weighted_score": 0.805,
+          "reason": "Selected for Task backlog CSV export with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "acceptance_criteria_generation",
+          "feature": "Task backlog",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        },
+        {
+          "capability": "custom_business_logic",
+          "feature": "User-specified capability",
+          "decision_type": "custom",
+          "selected_solution": "custom CGNK rule",
+          "weighted_score": 0.781,
+          "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+          "alternatives": [],
+          "risks": [
+            "Version freshness requires online verification before production use."
+          ],
+          "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+        }
+      ]
+    },
+    "architecture_mmd": "flowchart TD\n  U[User] --> ORCH[CGNK Orchestrator]\n  ORCH --> RA[RequirementAgent]\n  RA --> IO[IOContractAgent]\n  IO --> GA[GapAgent]\n  GA --> FA[FeatureAgent]\n  FA --> CA[CapabilityAgent]\n  CA --> TSA[TechSearchAgent]\n  TSA --> TDA[TechDecisionAgent]\n  TDA --> BA[BlueprintAgent]\n  BA --> TA[TaskAgent]\n  TA --> REV[ReviewAgent]\n  REV --> ART[Blueprint Artifacts]\n  ART --> GEN[Existing CGNK Project Generation]\n",
+    "api_openapi_yaml": "openapi: 3.1.0\ninfo:\n  title: CGNK Requirement Blueprint API\n  version: 1.0.0\npaths:\n  /api/projects:\n    post:\n      summary: Create a project\n  /api/projects/{project_id}/requirements:\n    post:\n      summary: Submit raw requirement\n  /api/projects/{project_id}/analyze-io:\n    post:\n      summary: Run IOContractAgent\n  /api/projects/{project_id}/generate-blueprint:\n    post:\n      summary: Generate blueprint artifacts\n  /api/projects/{project_id}/artifacts:\n    get:\n      summary: List generated artifacts\n",
+    "db_schema_sql": "CREATE TABLE projects (\n  id TEXT PRIMARY KEY,\n  name TEXT NOT NULL,\n  project_type TEXT,\n  status TEXT NOT NULL DEFAULT 'created',\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n);\n\nCREATE TABLE requirements (\n  id TEXT PRIMARY KEY,\n  project_id TEXT NOT NULL REFERENCES projects(id),\n  raw_text TEXT NOT NULL,\n  created_at TEXT NOT NULL\n);\n\nCREATE TABLE agent_runs (\n  id TEXT PRIMARY KEY,\n  project_id TEXT NOT NULL REFERENCES projects(id),\n  agent_name TEXT NOT NULL,\n  input_json TEXT,\n  output_json TEXT,\n  status TEXT,\n  error_message TEXT,\n  created_at TEXT NOT NULL\n);\n\nCREATE TABLE artifacts (\n  id TEXT PRIMARY KEY,\n  project_id TEXT NOT NULL REFERENCES projects(id),\n  artifact_type TEXT NOT NULL,\n  path TEXT NOT NULL,\n  created_at TEXT NOT NULL\n);\n",
+    "frontend_pages": {
+      "pages": [
+        {
+          "id": "requirement_input",
+          "title": "Requirement Input",
+          "purpose": "Collect raw text, optional documents, and output goals."
+        },
+        {
+          "id": "io_contract_review",
+          "title": "I/O Contract Review",
+          "purpose": "Review inputs, process steps, outputs, unknowns, source types, and confidence."
+        },
+        {
+          "id": "gap_confirmation",
+          "title": "Gap Confirmation",
+          "purpose": "Resolve Level 3 gaps and optionally confirm Level 2 defaults."
+        },
+        {
+          "id": "feature_modules",
+          "title": "Feature Modules",
+          "purpose": "Edit generated features, priorities, inputs, and outputs."
+        },
+        {
+          "id": "tech_decisions",
+          "title": "Tech Decisions",
+          "purpose": "Compare candidates, scores, risks, and selected solutions."
+        },
+        {
+          "id": "blueprint_preview",
+          "title": "Blueprint Preview",
+          "purpose": "Inspect architecture, API, database, page, deployment, and risk artifacts."
+        },
+        {
+          "id": "task_backlog",
+          "title": "Task Backlog",
+          "purpose": "Edit implementation tasks, dependencies, acceptance criteria, and CSV export."
+        }
+      ]
+    },
+    "task_backlog": {
+      "tasks": [
+        {
+          "id": "T001",
+          "title": "Implement Project intake",
+          "module": "project_intake",
+          "priority": "Must",
+          "depends_on": [],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "project_id",
+            "project_profile"
+          ]
+        },
+        {
+          "id": "T002",
+          "title": "Implement Requirement understanding",
+          "module": "requirement_understanding",
+          "priority": "Must",
+          "depends_on": [
+            "T001"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "requirement_spec"
+          ]
+        },
+        {
+          "id": "T003",
+          "title": "Implement Input/output contract analysis",
+          "module": "input/output_contract_analysis",
+          "priority": "Must",
+          "depends_on": [
+            "T002"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "io_contract"
+          ]
+        },
+        {
+          "id": "T004",
+          "title": "Implement Gap confirmation",
+          "module": "gap_confirmation",
+          "priority": "Must",
+          "depends_on": [
+            "T003"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "gap_analysis"
+          ]
+        },
+        {
+          "id": "T005",
+          "title": "Implement Feature decomposition",
+          "module": "feature_decomposition",
+          "priority": "Must",
+          "depends_on": [
+            "T004"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "feature_spec"
+          ]
+        },
+        {
+          "id": "T006",
+          "title": "Implement Capability mapping",
+          "module": "capability_mapping",
+          "priority": "Must",
+          "depends_on": [
+            "T005"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "capability_map"
+          ]
+        },
+        {
+          "id": "T007",
+          "title": "Implement Technology discovery",
+          "module": "technology_discovery",
+          "priority": "Must",
+          "depends_on": [
+            "T006"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "tech_candidates"
+          ]
+        },
+        {
+          "id": "T008",
+          "title": "Implement Technology decision",
+          "module": "technology_decision",
+          "priority": "Must",
+          "depends_on": [
+            "T007"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "tech_decisions"
+          ]
+        },
+        {
+          "id": "T009",
+          "title": "Implement Blueprint generation",
+          "module": "blueprint_generation",
+          "priority": "Should",
+          "depends_on": [
+            "T008"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "blueprint_artifacts"
+          ]
+        },
+        {
+          "id": "T010",
+          "title": "Implement Task backlog",
+          "module": "task_backlog",
+          "priority": "Should",
+          "depends_on": [
+            "T009"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "task_backlog"
+          ]
+        },
+        {
+          "id": "T011",
+          "title": "Implement User-specified capability",
+          "module": "user-specified_capability",
+          "priority": "Must",
+          "depends_on": [
+            "T010"
+          ],
+          "acceptance_criteria": [
+            "Inputs and outputs are explicit.",
+            "Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable.",
+            "Traceability to requirement_spec or io_contract is preserved."
+          ],
+          "output": [
+            "implementation_scope_item"
+          ]
+        }
+      ]
+    },
+    "task_backlog_csv": "id,title,module,priority,depends_on,acceptance_criteria,output\r\nT001,Implement Project intake,project_intake,Must,,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",project_id;project_profile\r\nT002,Implement Requirement understanding,requirement_understanding,Must,T001,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",requirement_spec\r\nT003,Implement Input/output contract analysis,input/output_contract_analysis,Must,T002,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",io_contract\r\nT004,Implement Gap confirmation,gap_confirmation,Must,T003,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",gap_analysis\r\nT005,Implement Feature decomposition,feature_decomposition,Must,T004,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",feature_spec\r\nT006,Implement Capability mapping,capability_mapping,Must,T005,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",capability_map\r\nT007,Implement Technology discovery,technology_discovery,Must,T006,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",tech_candidates\r\nT008,Implement Technology decision,technology_decision,Must,T007,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",tech_decisions\r\nT009,Implement Blueprint generation,blueprint_generation,Should,T008,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",blueprint_artifacts\r\nT010,Implement Task backlog,task_backlog,Should,T009,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",task_backlog\r\nT011,Implement User-specified capability,user-specified_capability,Must,T010,\"Inputs and outputs are explicit. | Generated artifact validates as structured JSON, Markdown, Mermaid, YAML, SQL, or CSV as applicable. | Traceability to requirement_spec or io_contract is preserved.\",implementation_scope_item\r\n",
+    "prd_md": "# Requirement Blueprint PRD\n\n## Raw Requirement\n\n给它一个游戏视频文件，然后自动找出高光片段，输出高光时间线和可下载剪辑清单；输入必须是单个视频文件，本地 librarian 只负责模块检索和路线规划，项目生成、修复和最终逻辑使用 API。\n\n## Target Users\n\n目标用户为游戏主播、内容剪辑和直播运营人员。\n\n## Core Features\n\n- Project intake: Create a project from a raw natural-language request.\n- Requirement understanding: Extract business goal, users, scenarios, pain points, and boundaries.\n- Input/output contract analysis: Identify input sources, process steps, outputs, formats, consumers, unknowns, and source types.\n- Gap confirmation: Classify unknowns by Level 1/2/3 and block only unresolved Level 3 gaps.\n- Feature decomposition: Convert confirmed requirement contracts into feature modules.\n- Capability mapping: Map each feature to concrete implementation capabilities.\n- Technology discovery: Find candidate libraries or local catalog options for each capability.\n- Technology decision: Score candidates and choose library, custom, hybrid, or defer decisions.\n- Blueprint generation: Emit architecture, API, database, frontend, workflow, deployment, risks, and PRD artifacts.\n- Task backlog: Convert the blueprint into implementation tasks with dependencies and acceptance criteria.\n- User-specified capability: 核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。\n\n## Technology Decisions\n\n- project_state: custom CGNK rule (custom)\n- text_input: custom CGNK rule (custom)\n- local_artifact_storage: custom CGNK rule (custom)\n- structured_ai_output: OpenAI Structured Outputs (hybrid)\n- schema_validation: jsonschema (library)\n- business_analysis: custom CGNK rule (custom)\n- io_contract_modeling: custom CGNK rule (custom)\n- source_attribution: custom CGNK rule (custom)\n- confidence_scoring: custom CGNK rule (custom)\n- gap_severity_rules: custom CGNK rule (custom)\n- user_confirmation_gate: custom CGNK rule (custom)\n- default_assumption_policy: custom CGNK rule (custom)\n\n## Acceptance\n\n- The blueprint includes requirement, I/O, feature, capability, technology, architecture, API, database, frontend, task, and review artifacts.\n- Level 3 gaps must be resolved before treating the blueprint as final.\n- External technology freshness checks require explicit network approval.\n",
+    "review_report": {
+      "passed": true,
+      "issues": []
+    }
+  },
+  "requirement_blueprint_ref": "D:\\CGKN\\examples\\test_results\\api_game_video_highlight_finder_requirement_blueprint.json"
+}

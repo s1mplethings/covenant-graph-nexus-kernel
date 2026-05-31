@@ -1,0 +1,42 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.project.snapshot",
+  "version": "1",
+  "ports": {
+    "input": {},
+    "output": {
+      "snapshot": {
+        "artifact_type": "artifact.project_snapshot@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.read",
+        "scope": [
+          "project/**"
+        ]
+      }
+    ],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [
+      "project/**"
+    ],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  }
+}

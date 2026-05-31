@@ -1,0 +1,47 @@
+{
+  "kind": "GeneratedProjectLogicReview",
+  "project": "streamer_highlight_finder_api_gpt4o_modular_v6",
+  "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_modular_v6",
+  "served_url": "http://127.0.0.1:8132/index.html",
+  "generation_route": {
+    "local_model_scope": ["local_librarian", "route_manager"],
+    "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
+    "provider": "api",
+    "model": "gpt-4o",
+    "base_url": "https://api.gptsapi.net",
+    "mode": "provider_architecture_filewise_project_generation"
+  },
+  "review_findings_fixed_in_generator": [
+    "project_architecture.json now fails validation if it references paths not present in the generated project.",
+    "tests/browser_smoke_test.js now fails validation if it expects data-score or data-streamer attributes that render.js does not set.",
+    "tests/browser_smoke_test.js now fails validation if it checks a localStorage key not used by the app.",
+    "tests/browser_smoke_test.js now fails validation if it expects a persistent a[download] element while exporter removes the temporary anchor.",
+    "src/app.js now fails validation if it passes a string instead of the status summary HTMLElement to renderSummary."
+  ],
+  "static_consistency": {
+    "generated_doc_errors": [],
+    "file_count": 16,
+    "architecture_paths_match_files": true,
+    "smoke_test_matches_storage_key": true,
+    "smoke_test_uses_export_hook": true
+  },
+  "browser_checks": {
+    "load": "pass",
+    "json_import": "pass",
+    "score_generation": "pass",
+    "score_descending_sort": "pass",
+    "streamer_filter": "pass",
+    "game_filter": "pass",
+    "category_filter": "pass",
+    "min_score_filter": "pass",
+    "manual_marker": "pass",
+    "local_storage_persistence_after_reload": "pass",
+    "console_errors": "pass"
+  },
+  "notes": [
+    "The previous v5 candidate passed static validation but failed runtime because app.js passed a status string to renderSummary; v6 validation now catches that class of bug.",
+    "The browser test observed sorted scores including 97.40, 83.70, 71.80, and 58.10 after import/manual-marker interactions.",
+    "Download event capture remains limited by the Codex in-app browser, but exporter.js uses Blob, URL.createObjectURL, anchor download, click, and URL.revokeObjectURL."
+  ],
+  "status": "pass"
+}

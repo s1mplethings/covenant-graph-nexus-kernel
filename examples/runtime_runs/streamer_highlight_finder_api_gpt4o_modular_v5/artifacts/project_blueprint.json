@@ -1,0 +1,57 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "target_user-data_storage-runtime_result",
+    "type": "game_highlight_finder",
+    "output_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_modular_v5",
+    "files": [
+      "project_architecture.json",
+      "index.html",
+      "styles.css",
+      "src\\core\\scoring.js",
+      "src\\core\\filtering.js",
+      "src\\core\\importer.js",
+      "src\\core\\exporter.js",
+      "src\\state\\store.js",
+      "src\\ui\\render.js",
+      "src\\ui\\forms.js",
+      "src\\app.js",
+      "data\\sample_events.json",
+      "tests\\browser_smoke_test.js",
+      "docs\\ARCHITECTURE.md",
+      "README.md",
+      "TEST_PLAN.md"
+    ],
+    "modules": [
+      "module.feature.library_search@1",
+      "module.local.librarian@1",
+      "module.project.generator@1",
+      "module.local.runtime_executor@1",
+      "module.test_graph.emit@1",
+      "module.effect_report.emit@1",
+      "module.local.pipeline_composer_agent@1",
+      "module.customer.service@1",
+      "module.local_agent.plan@1",
+      "module.unified_control@1",
+      "module.external.api_gateway@1"
+    ],
+    "generator": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkQcbn36O2cAFeruom81DgyqA72rt,chatcmpl-DkQcmVFlplPbM24n3V2oYLsqYhq4j,chatcmpl-DkQcz2AlvOhzK7YMjoKjys1clQWRK,chatcmpl-DkQd6vQlOVMmRIVe4M9KaWjEuFSxs,chatcmpl-DkQdDvLehyihSAPyqZM0zORYeRV48,chatcmpl-DkQdHv2FsD2DbPUAAJwQDkDzgeJOO,chatcmpl-DkQdQDR5taGTWn0qeMNsHf2QGnfAs,chatcmpl-DkQdT0hFwtuexNjNmv6AKs7FUMqQE,chatcmpl-DkQdXdy0hfJgOIre7rrre7mFi9eqg,chatcmpl-DkQdg44w8umJIy31lIdjucBVaeFr0,chatcmpl-DkQdqwgGr2X6JlymUUimDM5fqbJiT,chatcmpl-DkQe2OPqaZd12RHVB1VLDLaJUXHQU,chatcmpl-DkQeEhRsXK9i4e08PdRi0clgTnuRy,chatcmpl-DkQeeJ8ly3X9qyunXBaaZ8P2jf5v2,chatcmpl-DkQf1zKWCSaPkcf8HFMu5DgBhexTi,chatcmpl-DkQfUzeHSxNgAUPdlrrs0t3RsKrxN",
+      "mode": "provider_architecture_filewise_project_generation"
+    },
+    "routing_policy": {
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ]
+    }
+  }
+}

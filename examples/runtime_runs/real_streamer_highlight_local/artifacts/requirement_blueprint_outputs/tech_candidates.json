@@ -1,0 +1,686 @@
+{
+  "tech_candidates": [
+    {
+      "capability": "project_state",
+      "feature": "Project intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "text_input",
+      "feature": "Project intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "local_artifact_storage",
+      "feature": "Project intake",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "structured_ai_output",
+      "feature": "Requirement understanding",
+      "candidates": [
+        {
+          "name": "OpenAI Structured Outputs",
+          "ecosystem": "api",
+          "use_for": "Schema-constrained model output",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "schema_validation",
+      "feature": "Requirement understanding",
+      "candidates": [
+        {
+          "name": "jsonschema",
+          "ecosystem": "python",
+          "use_for": "Validate generated JSON artifacts",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.8,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "business_analysis",
+      "feature": "Requirement understanding",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "io_contract_modeling",
+      "feature": "Input/output contract analysis",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "source_attribution",
+      "feature": "Input/output contract analysis",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "confidence_scoring",
+      "feature": "Input/output contract analysis",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "gap_severity_rules",
+      "feature": "Gap confirmation",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "user_confirmation_gate",
+      "feature": "Gap confirmation",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "default_assumption_policy",
+      "feature": "Gap confirmation",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "feature_modeling",
+      "feature": "Feature decomposition",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "priority_classification",
+      "feature": "Feature decomposition",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "traceability",
+      "feature": "Feature decomposition",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "capability_taxonomy",
+      "feature": "Capability mapping",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "feature_to_capability_mapping",
+      "feature": "Capability mapping",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "local_tech_catalog",
+      "feature": "Technology discovery",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "optional_web_search",
+      "feature": "Technology discovery",
+      "candidates": [
+        {
+          "name": "official docs / package registries",
+          "ecosystem": "external",
+          "use_for": "Only when network is explicitly approved",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.7,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.65,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "package_registry_lookup",
+      "feature": "Technology discovery",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "security_check",
+      "feature": "Technology discovery",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "weighted_scoring",
+      "feature": "Technology decision",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "risk_analysis",
+      "feature": "Technology decision",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "decision_explanation",
+      "feature": "Technology decision",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "markdown_generation",
+      "feature": "Blueprint generation",
+      "candidates": [
+        {
+          "name": "custom Markdown renderer",
+          "ecosystem": "custom",
+          "use_for": "Generate PRD and readable summaries",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "mermaid_generation",
+      "feature": "Blueprint generation",
+      "candidates": [
+        {
+          "name": "Mermaid",
+          "ecosystem": "diagram",
+          "use_for": "Architecture and flow diagrams",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.8,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "openapi_generation",
+      "feature": "Blueprint generation",
+      "candidates": [
+        {
+          "name": "OpenAPI YAML",
+          "ecosystem": "spec",
+          "use_for": "API contract export",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.8,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "sql_schema_generation",
+      "feature": "Blueprint generation",
+      "candidates": [
+        {
+          "name": "SQL DDL",
+          "ecosystem": "spec",
+          "use_for": "Database schema export",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.8,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "task_dependency_graph",
+      "feature": "Task backlog",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "csv_export",
+      "feature": "Task backlog",
+      "candidates": [
+        {
+          "name": "Python csv",
+          "ecosystem": "stdlib",
+          "use_for": "Task backlog CSV export",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.8,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    },
+    {
+      "capability": "acceptance_criteria_generation",
+      "feature": "Task backlog",
+      "candidates": [
+        {
+          "name": "custom CGNK rule",
+          "ecosystem": "custom",
+          "use_for": "Deterministic local implementation",
+          "latest_version": "not_checked_offline",
+          "fit_score": 0.82,
+          "maintenance_score": 0.68,
+          "maturity_score": 0.78,
+          "security_score": 0.85,
+          "docs_score": 0.75,
+          "recommendation": "recommended",
+          "risk_points": [
+            "Version freshness requires online verification before production use."
+          ],
+          "provenance": "local_catalog"
+        }
+      ]
+    }
+  ]
+}

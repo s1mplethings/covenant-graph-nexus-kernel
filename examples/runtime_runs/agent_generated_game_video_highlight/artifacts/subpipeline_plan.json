@@ -1,0 +1,304 @@
+{
+  "kind": "PipelineOfPipelinesPlan",
+  "payload": {
+    "goal": "做一个本地游戏视频高光检测工具，用户上传一个游戏视频后自动找高光片段，输出高光候选、原因、时间戳和 JSON cut list，并提供测试图和效果报告\n客服澄清信息：\n- core_features: 核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。\n需求蓝图摘要：\n- project_type: streamer_highlight_tool\n- output_contract: requirement_spec, io_contract, feature_spec, capability_map, tech_candidates, tech_decisions, architecture_diagram, api_spec, db_schema, frontend_pages, task_backlog, prd\n- feature_modules: Project intake, Requirement understanding, Input/output contract analysis, Gap confirmation, Feature decomposition, Capability mapping, Technology discovery, Technology decision\n- tech_decisions: project_state: custom CGNK rule, text_input: custom CGNK rule, local_artifact_storage: custom CGNK rule, structured_ai_output: OpenAI Structured Outputs, schema_validation: jsonschema, business_analysis: custom CGNK rule, io_contract_modeling: custom CGNK rule, source_attribution: custom CGNK rule\n生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。",
+    "control": "module.unified_control@1",
+    "selected_modules": [
+      "module.customer.service@1",
+      "module.requirement_blueprint.generator@1",
+      "module.local.librarian@1",
+      "module.feature.library_search@1",
+      "module.local_agent.plan@1",
+      "module.adversarial_generation@1",
+      "module.project.generator@1",
+      "module.test_graph.emit@1",
+      "module.effect_report.emit@1",
+      "module.unified_control@1"
+    ],
+    "routing_policy": {
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_architecture",
+        "project_generation",
+        "project_repair",
+        "final_project_logic",
+        "adversarial_review"
+      ]
+    },
+    "pipelines": [
+      {
+        "id": "customer_intake_pipeline",
+        "kind": "intake",
+        "input": [
+          "goal"
+        ],
+        "output": [
+          "structured_request",
+          "clarifying_questions"
+        ],
+        "owner": "module.customer.service@1"
+      },
+      {
+        "id": "requirement_blueprint_pipeline",
+        "kind": "requirement_to_blueprint",
+        "input": [
+          "structured_request",
+          "clarifying_questions"
+        ],
+        "output": [
+          "requirement_spec",
+          "io_contract",
+          "gap_analysis",
+          "feature_spec",
+          "capability_map",
+          "tech_candidates",
+          "tech_decisions",
+          "architecture.mmd",
+          "api.openapi.yaml",
+          "db_schema.sql",
+          "frontend_pages.json",
+          "task_backlog.csv",
+          "prd.md"
+        ],
+        "owner": "module.requirement_blueprint.generator@1",
+        "agents": [
+          "RequirementAgent",
+          "IOContractAgent",
+          "GapAgent",
+          "FeatureAgent",
+          "CapabilityAgent",
+          "TechSearchAgent",
+          "TechDecisionAgent",
+          "BlueprintAgent",
+          "TaskAgent",
+          "ReviewAgent"
+        ],
+        "priority": "blocks_project_generation_until_level_3_gaps_are_resolved_or_defaulted"
+      },
+      {
+        "id": "local_librarian_pipeline",
+        "kind": "local_understanding",
+        "input": [
+          "structured_request",
+          "requirement_spec",
+          "io_contract",
+          "capability_map",
+          "local_contract_catalog"
+        ],
+        "output": [
+          "local_index",
+          "capability_candidates"
+        ],
+        "owner": "module.local.librarian@1",
+        "model": ""
+      },
+      {
+        "id": "route_manager_pipeline",
+        "kind": "local_route_management",
+        "input": [
+          "local_index",
+          "capability_candidates",
+          "structured_request"
+        ],
+        "output": [
+          "subpipeline_plan",
+          "routing_policy"
+        ],
+        "owner": "module.local.pipeline_composer_agent@1",
+        "model": ""
+      },
+      {
+        "id": "user_analysis_pipeline",
+        "kind": "product_strategy",
+        "input": [
+          "structured_request",
+          "local_index"
+        ],
+        "output": [
+          "docs/USER_ANALYSIS.md",
+          "user_analysis"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "market_research_pipeline",
+        "kind": "market_research",
+        "input": [
+          "structured_request",
+          "user_analysis"
+        ],
+        "output": [
+          "docs/MARKET_RESEARCH.md",
+          "market_positioning"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "technical_path_pipeline",
+        "kind": "technical_path_selection",
+        "input": [
+          "structured_request",
+          "market_positioning",
+          "local_capabilities"
+        ],
+        "output": [
+          "docs/TECHNICAL_PATH.md",
+          "technical_path"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "ux_design_pipeline",
+        "kind": "ux_design",
+        "input": [
+          "user_analysis",
+          "market_positioning",
+          "technical_path"
+        ],
+        "output": [
+          "docs/UX_DESIGN_SPEC.md",
+          "ui_structure_contract"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "industrial_io_pipeline",
+        "kind": "industrial_input_output_simulation",
+        "input": [
+          "structured_request",
+          "user_analysis",
+          "market_positioning",
+          "technical_path",
+          "ui_structure_contract"
+        ],
+        "output": [
+          "docs/INPUT_OUTPUT_SPEC.md",
+          "data/industrial_input_bundle.json",
+          "data/expected_outputs.json",
+          "tests/industrial_io_smoke_test.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "product_decision_gate_pipeline",
+        "kind": "product_scope_decision",
+        "input": [
+          "user_analysis",
+          "market_positioning",
+          "technical_path",
+          "ui_structure_contract",
+          "industrial_io_contract"
+        ],
+        "output": [
+          "docs/PRODUCT_DECISION_LOG.md",
+          "current_capabilities",
+          "out_of_scope_current_capabilities"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "blocks_code_generation_until_current_scope_is_truthful"
+      },
+      {
+        "id": "project_architecture_pipeline",
+        "kind": "provider_design",
+        "input": [
+          "structured_request",
+          "subpipeline_plan",
+          "user_analysis",
+          "market_positioning",
+          "technical_path",
+          "ui_structure_contract",
+          "industrial_io_contract",
+          "current_capabilities",
+          "out_of_scope_current_capabilities",
+          "module_contracts"
+        ],
+        "output": [
+          "project_architecture.json"
+        ],
+        "owner": "module.external.api_gateway@1"
+      },
+      {
+        "id": "integration_pipeline",
+        "kind": "integration",
+        "input": [
+          "module_outputs"
+        ],
+        "output": [
+          "integrated_project_files"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "self_test_pipeline",
+        "kind": "self_test",
+        "input": [
+          "integrated_project_files"
+        ],
+        "output": [
+          "self_test_report"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "quality_evaluation_pipeline",
+        "kind": "quality_eval",
+        "input": [
+          "integrated_project_files",
+          "self_test_report"
+        ],
+        "output": [
+          "quality_report"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "adversarial_review_pipeline",
+        "kind": "adversarial_review",
+        "input": [
+          "integrated_project_files",
+          "quality_report"
+        ],
+        "output": [
+          "adversarial_review"
+        ],
+        "owner": "module.external.api_gateway@1"
+      },
+      {
+        "id": "repair_pipeline",
+        "kind": "provider_repair",
+        "input": [
+          "adversarial_review",
+          "quality_report"
+        ],
+        "output": [
+          "repaired_project_files"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "activation": "only when quality gate fails or adversarial review reports blocking issues"
+      },
+      {
+        "id": "effect_report_pipeline",
+        "kind": "reporting",
+        "input": [
+          "self_test_report",
+          "quality_report",
+          "adversarial_review",
+          "project_blueprint"
+        ],
+        "output": [
+          "test_graph",
+          "effect_report"
+        ],
+        "owner": "module.effect_report.emit@1"
+      }
+    ]
+  }
+}

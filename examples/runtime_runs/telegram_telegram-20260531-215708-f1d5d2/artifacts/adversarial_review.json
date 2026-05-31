@@ -1,0 +1,8 @@
+{
+  "kind": "AdversarialReview",
+  "payload": {
+    "status": "pass",
+    "findings": [],
+    "verdict": "pass"
+  }
+}

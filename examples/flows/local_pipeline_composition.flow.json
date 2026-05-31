@@ -1,0 +1,68 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.local_pipeline_composition",
+  "version": "1",
+  "policy_ref": "policy.safe_local_pipeline_composition@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "local_index": "artifact.local_library_index@1",
+    "project_understanding": "artifact.project_understanding_index@1",
+    "pipeline_plan": "artifact.pipeline_composition_plan@1"
+  },
+  "nodes": [
+    {
+      "id": "n_customer_service",
+      "uses": "module.customer.service@1",
+      "config": {
+        "line": "customer_service"
+      }
+    },
+    {
+      "id": "n_pipeline_composer",
+      "uses": "module.local.pipeline_composer_agent@1",
+      "config": {
+        "line": "local_project_understanding_and_pipeline_composition",
+        "retrieval_strategy": "structured_catalog_plus_lexical_rag",
+        "local_model_optional": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": {"flow_input": "goal"},
+      "to": {"node": "n_customer_service", "port": "goal"}
+    },
+    {
+      "from": {"node": "n_customer_service", "port": "request"},
+      "to": {"node": "n_pipeline_composer", "port": "request"}
+    },
+    {
+      "from": {"node": "n_pipeline_composer", "port": "local_index"},
+      "to": {"flow_output": "local_index"}
+    },
+    {
+      "from": {"node": "n_pipeline_composer", "port": "project_understanding"},
+      "to": {"flow_output": "project_understanding"}
+    },
+    {
+      "from": {"node": "n_pipeline_composer", "port": "pipeline_plan"},
+      "to": {"flow_output": "pipeline_plan"}
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_pipeline_composer_completed",
+      "require": {
+        "all": [
+          {"node_passed": "n_pipeline_composer"}
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "scope": "Understand the local CGNK project and compose a pipeline from available modules without network or provider calls."
+  }
+}

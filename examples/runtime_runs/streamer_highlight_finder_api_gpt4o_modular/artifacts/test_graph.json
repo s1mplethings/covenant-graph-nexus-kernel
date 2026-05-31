@@ -1,0 +1,43 @@
+{
+  "kind": "TestGraph",
+  "payload": {
+    "nodes": [
+      "goal",
+      "request",
+      "pipeline_plan",
+      "project_files",
+      "test_graph",
+      "effect_report"
+    ],
+    "edges": [
+      [
+        "goal",
+        "request"
+      ],
+      [
+        "request",
+        "pipeline_plan"
+      ],
+      [
+        "pipeline_plan",
+        "project_files"
+      ],
+      [
+        "project_files",
+        "test_graph"
+      ],
+      [
+        "test_graph",
+        "effect_report"
+      ]
+    ],
+    "manual_checks": [
+      "Import JSON data",
+      "Verify scoring and descending sort",
+      "Filter by streamer, game, category, and score",
+      "Add manual marker",
+      "Export filtered clip list",
+      "Refresh and confirm localStorage persistence"
+    ]
+  }
+}

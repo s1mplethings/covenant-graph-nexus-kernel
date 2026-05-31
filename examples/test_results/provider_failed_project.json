@@ -1,0 +1,53 @@
+{
+  "kind": "ProviderFailedProject",
+  "errors": [
+    "file path is empty",
+    "file path is empty",
+    "file path is empty",
+    "file path is empty",
+    "missing required file: index.html",
+    "missing required file: README.md",
+    "missing required file: TEST_PLAN.md",
+    "requirement asks for scoring/ranking, but generated code does not implement score + sort behavior",
+    "requirement asks for filtering, but generated UI/code lacks filter controls",
+    "requirement asks for streamer filtering, but generated UI/code lacks streamer filter behavior",
+    "requirement asks for game filtering, but generated UI/code lacks game filter behavior",
+    "requirement asks for category filtering, but generated UI/code lacks category filter behavior",
+    "requirement asks for manual markers, but generated code lacks manual marker behavior",
+    "requirement asks for export, but generated code lacks download/export behavior"
+  ],
+  "project": {
+    "project_type": "game_stream_highlight_tool",
+    "manual_checks": [
+      "Ensure index.html includes an inline favicon link.",
+      "Verify scoring and sorting logic is implemented and functional.",
+      "Test filtering, manual marking, and export features for correctness.",
+      "Confirm localStorage persistence and restoration of data."
+    ],
+    "files": [
+      {
+        "name": "index.html",
+        "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Game Stream Highlight Tool</title>\n    <link rel=\"icon\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...\" type=\"image/png\">\n    <style>\n        body { font-family: Arial, sans-serif; margin: 20px; }\n        .controls { margin-bottom: 20px; }\n        .highlight { margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; }\n    </style>\n</head>\n<body>\n    <h1>Game Stream Highlight Tool</h1>\n    <div class=\"controls\">\n        <label for=\"filter-game\">Filter by Game:</label>\n        <input type=\"text\" id=\"filter-game\">\n\n        <label for=\"filter-streamer\">Filter by Streamer:</label>\n        <input type=\"text\" id=\"filter-streamer\">\n\n        <label for=\"filter-score\">Minimum Score:</label>\n        <input type=\"number\" id=\"filter-score\" min=\"0\">\n\n        <button id=\"apply-filters\">Apply Filters</button>\n        <button id=\"export-results\">Export Results</button>\n    </div>\n\n    <div id=\"highlights\"></div>\n\n    <h2>Manual Highlight Marker</h2>\n    <form id=\"manual-form\">\n        <label for=\"manual-streamer\">Streamer:</label>\n        <input type=\"text\" id=\"manual-streamer\" required>\n\n        <label for=\"manual-game\">Game:</label>\n        <input type=\"text\" id=\"manual-game\" required>\n\n        <label for=\"manual-score\">Score:</label>\n        <input type=\"number\" id=\"manual-score\" min=\"0\" required>\n\n        <button type=\"submit\">Add Highlight</button>\n    </form>\n\n    <script src=\"app.js\"></script>\n</body>\n</html>"
+      },
+      {
+        "name": "app.js",
+        "content": "const highlights = JSON.parse(localStorage.getItem('highlights')) || [];\n\nfunction renderHighlights(data) {\n    const container = document.getElementById('highlights');\n    container.innerHTML = '';\n    data.forEach((highlight, index) => {\n        const div = document.createElement('div');\n        div.className = 'highlight';\n        div.textContent = `Streamer: ${highlight.streamer}, Game: ${highlight.game}, Score: ${highlight.score}`;\n        container.appendChild(div);\n    });\n}\n\nfunction applyFilters() {\n    const gameFilter = document.getElementById('filter-game').value.toLowerCase();\n    const streamerFilter = document.getElementById('filter-streamer').value.toLowerCase();\n    const scoreFilter = parseInt(document.getElementById('filter-score').value, 10) || 0;\n\n    const filtered = highlights.filter(h => \n        (!gameFilter || h.game.toLowerCase().includes(gameFilter)) &&\n        (!streamerFilter || h.streamer.toLowerCase().includes(streamerFilter)) &&\n        (h.score >= scoreFilter)\n    ).sort((a, b) => b.score - a.score);\n\n    renderHighlights(filtered);\n}\n\ndocument.getElementById('apply-filters').addEventListener('click', applyFilters);\n\ndocument.getElementById('manual-form').addEventListener('submit', (e) => {\n    e.preventDefault();\n    const streamer = document.getElementById('manual-streamer').value;\n    const game = document.getElementById('manual-game').value;\n    const score = parseInt(document.getElementById('manual-score').value, 10);\n\n    highlights.push({ streamer, game, score });\n    localStorage.setItem('highlights', JSON.stringify(highlights));\n    applyFilters();\n});\n\ndocument.getElementById('export-results').addEventListener('click', () => {\n    const blob = new Blob([JSON.stringify(highlights, null, 2)], { type: 'application/json' });\n    const url = URL.createObjectURL(blob);\n    const a = document.createElement('a');\n    a.href = url;\n    a.download = 'highlights.json';\n    a.click();\n    URL.revokeObjectURL(url);\n});\n\napplyFilters();"
+      },
+      {
+        "name": "README.md",
+        "content": "# Game Stream Highlight Tool\n\nThis tool helps game streamers, content editors, and live stream operators identify and manage highlight moments from live streams. It allows users to:\n\n- Import live event data.\n- Automatically score and sort highlights.\n- Filter highlights by streamer, game, category, and score.\n- Add manual highlights.\n- Export the filtered highlight list.\n\n## Features\n\n- **Scoring and Sorting**: Automatically assigns scores to highlights and sorts them in descending order.\n- **Filtering**: Filter highlights by game, streamer, and minimum score.\n- **Manual Highlighting**: Add custom highlights via a form.\n- **Export**: Export the current filtered results as a JSON file.\n- **Persistence**: Data is saved in the browser's localStorage.\n\n## Usage\n\n1. Open `index.html` in a browser.\n2. Use the filter controls to refine the highlight list.\n3. Add manual highlights using the form.\n4. Export the results using the \"Export Results\" button.\n\n## Requirements\n\n- A modern web browser with JavaScript enabled.\n\n## Future Enhancements\n\n- Support for importing data from external files or APIs.\n- Integration with a database for larger datasets.\n- Advanced scoring algorithms."
+      },
+      {
+        "name": "TEST_PLAN.md",
+        "content": "# Test Plan for Game Stream Highlight Tool\n\n## Test Cases\n\n### 1. Scoring and Sorting\n- **Input**: Add multiple highlights with varying scores.\n- **Expected Result**: Highlights are sorted in descending order of scores.\n\n### 2. Filtering\n- **Input**: Apply filters for game, streamer, and minimum score.\n- **Expected Result**: Only highlights matching the criteria are displayed.\n\n### 3. Manual Highlighting\n- **Input**: Add a new highlight using the manual form.\n- **Expected Result**: The new highlight appears in the list and is saved to localStorage.\n\n### 4. Export\n- **Input**: Click the \"Export Results\" button.\n- **Expected Result**: A JSON file containing the current filtered results is downloaded.\n\n### 5. Persistence\n- **Input**: Refresh the page after adding highlights.\n- **Expected Result**: Highlights are restored from localStorage.\n\n## Tools\n\n- Browser Developer Tools for debugging.\n- JSON validator for exported files.\n\n## Notes\n\n- Ensure the favicon is displayed correctly.\n- Test on multiple browsers for compatibility."
+      }
+    ],
+    "_provider": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkLwcSVFYeyNCnUidv2K69P8h1oHI",
+      "mode": "provider_project_repair"
+    }
+  }
+}

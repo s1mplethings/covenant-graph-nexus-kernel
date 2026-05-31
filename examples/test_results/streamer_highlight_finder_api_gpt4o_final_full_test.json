@@ -1,0 +1,69 @@
+{
+  "kind": "ProjectFullTestResult",
+  "project": "streamer_highlight_finder_api_gpt4o_final",
+  "created_at": "2026-05-28T03:56:30+00:00",
+  "verdict": "pass",
+  "provider": {
+    "base_url": "https://api.gptsapi.net",
+    "model": "gpt-4o",
+    "mode": "provider_filewise_project_generation"
+  },
+  "local_model_scope": [
+    "local_librarian",
+    "route_manager"
+  ],
+  "checks": [
+    {
+      "name": "python_compile",
+      "status": "pass"
+    },
+    {
+      "name": "bundle_schema",
+      "status": "pass"
+    },
+    {
+      "name": "api_generation",
+      "status": "pass"
+    },
+    {
+      "name": "browser_initial_console",
+      "status": "pass"
+    },
+    {
+      "name": "dom_contract",
+      "status": "pass",
+      "missing_ids": []
+    },
+    {
+      "name": "import_score_sort",
+      "status": "pass",
+      "after_import_count": 3,
+      "top_score": 306
+    },
+    {
+      "name": "streamer_game_category_score_filter",
+      "status": "pass",
+      "filtered_contains": "1v3 clutch"
+    },
+    {
+      "name": "manual_marker",
+      "status": "pass",
+      "manual_marker": "Manual clutch"
+    },
+    {
+      "name": "local_storage",
+      "status": "pass",
+      "stored_manual_marker": true
+    },
+    {
+      "name": "export_control",
+      "status": "pass",
+      "blob_available": true,
+      "export_button_present": true
+    },
+    {
+      "name": "browser_final_console",
+      "status": "pass"
+    }
+  ]
+}

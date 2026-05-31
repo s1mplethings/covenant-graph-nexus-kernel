@@ -1,0 +1,10 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.project_blueprint",
+  "version": "1",
+  "type_name": "ProjectBlueprint",
+  "schema_ref": "schemas/project_blueprint.v1.schema.json",
+  "identity": {"hash_fields": ["files", "modules", "interfaces"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {"first_use": "modular_project_generation_v1", "ref": "artifact.project_blueprint@1"}
+}

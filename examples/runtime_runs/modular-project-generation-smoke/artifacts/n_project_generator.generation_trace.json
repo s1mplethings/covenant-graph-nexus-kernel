@@ -1,0 +1,14 @@
+{
+  "kind": "GenerationTrace",
+  "created_at": "2026-05-31T14:19:39.955661+00:00",
+  "payload": {
+    "events": [
+      "request-normalized",
+      "libraries-ranked",
+      "agent-plan-created",
+      "adversarial-review-passed",
+      "blueprint-emitted"
+    ],
+    "write_root": "generated/"
+  }
+}

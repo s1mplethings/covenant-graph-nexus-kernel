@@ -1,0 +1,11 @@
+{
+  "kind": "SelfTestReport",
+  "payload": {
+    "status": "pass",
+    "checks": [
+      "video_input_contract",
+      "browser_smoke_declared",
+      "industrial_io_declared"
+    ]
+  }
+}

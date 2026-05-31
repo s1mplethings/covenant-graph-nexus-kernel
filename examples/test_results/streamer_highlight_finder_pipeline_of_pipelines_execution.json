@@ -1,0 +1,38 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_pipeline_of_pipelines",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_pipeline_of_pipelines",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\generation_trace.json",
+      "subpipeline_plan": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\subpipeline_plan.json",
+      "subpipeline_results": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\subpipeline_results.json",
+      "self_test_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\self_test_report.json",
+      "quality_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\quality_report.json",
+      "adversarial_review": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\adversarial_review.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_pipeline_of_pipelines\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "",
+        "mode": "provider_architecture_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

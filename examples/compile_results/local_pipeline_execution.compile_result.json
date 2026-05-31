@@ -1,0 +1,27 @@
+{
+  "kind": "CompileResult",
+  "ok": true,
+  "flow_ref": "flow.local_pipeline_execution@1",
+  "diagnostics": [],
+  "compiled_bundle": {
+    "kind": "CompiledContractBundle",
+    "flow_ref": "flow.local_pipeline_execution@1",
+    "policy_ref": "policy.safe_local_pipeline_execution@1",
+    "symbols": {
+      "node_count": 1,
+      "edge_count": 6
+    },
+    "checks": {
+      "refs": "ok",
+      "types": "ok",
+      "policy": "ok"
+    },
+    "metadata": {
+      "compiler": "reference_validate_bundle.py"
+    }
+  },
+  "statistics": {
+    "errors": 0,
+    "warnings": 0
+  }
+}

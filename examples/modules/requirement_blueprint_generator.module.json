@@ -1,0 +1,40 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.requirement_blueprint.generator",
+  "version": "1",
+  "ports": {
+    "input": {
+      "goal": {
+        "artifact_type": "artifact.goal@1",
+        "required": true,
+        "description": "Raw or enriched user requirement submitted at the start of project generation."
+      }
+    },
+    "output": {
+      "requirement_blueprint": {
+        "artifact_type": "artifact.requirement_blueprint@1",
+        "description": "Traceable requirement blueprint with requirement spec, I/O contract, gap analysis, features, capabilities, technology decisions, blueprint artifacts, tasks, and review report."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": ["run_id", "trace_sink", "default_assumption_policy"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Front-door requirement-to-blueprint generator based on the AI requirement blueprint design."
+  }
+}

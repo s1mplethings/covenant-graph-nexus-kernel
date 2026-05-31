@@ -1,0 +1,27 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\project_generation_test_task_board",
+      "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board"
+    ],
+    "network": "explicitly gated",
+    "provider": "explicitly gated",
+    "external": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "ok": false,
+        "error": "request failed: Remote end closed connection without response"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

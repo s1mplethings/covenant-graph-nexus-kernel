@@ -1,0 +1,33 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_api_gpt4o_final",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_final",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_final\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_final\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_final\\artifacts\\generation_trace.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_final\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_final\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkM82DHJnLt7b9z1ydhRRJQLm91ej,chatcmpl-DkM52RJXzjOPe8IGF4pRwLsQH15HF,chatcmpl-DkM59GdaKBNSfG8ghbzGjQui1dU4c,chatcmpl-DkM5HSscLLmBQJz9Py3CTxDFyjvMF",
+        "mode": "provider_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

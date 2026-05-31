@@ -1,0 +1,30 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "project-generation-test-task-board-api-ok",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\project_generation_test_task_board",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok\\artifacts\\generation_trace.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\project-generation-test-task-board-api-ok\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "ok": true,
+        "text": "生成一个本地任务看板项目，支持任务管理功能并输出相关文档，允许通过API生成项目摘要。",
+        "request_id": "chatcmpl-Dk9SOyREjk9F1ah3JzRFcmWugAF0d"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "streamer": "GamerX",
+    "game": "Valorant",
+    "category": "FPS",
+    "timestamp": "2023-10-01T14:23:45Z",
+    "title": "Epic Clutch in Overtime",
+    "description": "Streamer clutched a 1v4 situation in the final round of overtime.",
+    "intensity": 9.8,
+    "chatRate": 120,
+    "keywords": ["clutch", "overtime", "1v4", "Valorant"]
+  },
+  {
+    "streamer": "PixelQueen",
+    "game": "Minecraft",
+    "category": "Sandbox",
+    "timestamp": "2023-10-01T16:12:30Z",
+    "title": "Building a Mega Castle",
+    "description": "Streamer completed a massive castle build with intricate details.",
+    "intensity": 7.5,
+    "chatRate": 85,
+    "keywords": ["castle", "building", "Minecraft", "creative"]
+  },
+  {
+    "streamer": "SpeedyRacer",
+    "game": "Forza Horizon 5",
+    "category": "Racing",
+    "timestamp": "2023-10-01T18:45:10Z",
+    "title": "Winning the Championship",
+    "description": "Streamer won the championship race with a last-second overtake.",
+    "intensity": 9.2,
+    "chatRate": 100,
+    "keywords": ["championship", "racing", "Forza", "overtake"]
+  },
+  {
+    "streamer": "MageMaster",
+    "game": "World of Warcraft",
+    "category": "MMORPG",
+    "timestamp": "2023-10-01T20:15:00Z",
+    "title": "Defeating the Raid Boss",
+    "description": "Streamer led a team to defeat a challenging raid boss after multiple attempts.",
+    "intensity": 8.9,
+    "chatRate": 110,
+    "keywords": ["raid", "boss", "WoW", "teamwork"]
+  },
+  {
+    "streamer": "BattleKing",
+    "game": "Call of Duty: Warzone",
+    "category": "Battle Royale",
+    "timestamp": "2023-10-01T22:05:20Z",
+    "title": "Solo Victory Royale",
+    "description": "Streamer secured a solo victory royale with a sniper headshot.",
+    "intensity": 9.5,
+    "chatRate": 130,
+    "keywords": ["victory", "sniper", "Warzone", "headshot"]
+  },
+  {
+    "streamer": "PuzzlePro",
+    "game": "The Witness",
+    "category": "Puzzle",
+    "timestamp": "2023-10-02T00:30:45Z",
+    "title": "Solving the Final Puzzle",
+    "description": "Streamer solved the final puzzle after hours of effort.",
+    "intensity": 8.0,
+    "chatRate": 60,
+    "keywords": ["puzzle", "solution", "The Witness", "final"]
+  },
+  {
+    "streamer": "RetroRevival",
+    "game": "Super Mario 64",
+    "category": "Platformer",
+    "timestamp": "2023-10-02T02:10:15Z",
+    "title": "Speedrun World Record Attempt",
+    "description": "Streamer attempted a world record speedrun with impressive precision.",
+    "intensity": 9.7,
+    "chatRate": 140,
+    "keywords": ["speedrun", "record", "Mario", "precision"]
+  },
+  {
+    "streamer": "SciFiGamer",
+    "game": "Starfield",
+    "category": "RPG",
+    "timestamp": "2023-10-02T04:50:00Z",
+    "title": "Exploring a New Planet",
+    "description": "Streamer discovered and explored a new planet with stunning visuals.",
+    "intensity": 7.8,
+    "chatRate": 75,
+    "keywords": ["exploration", "planet", "Starfield", "discovery"]
+  }
+]

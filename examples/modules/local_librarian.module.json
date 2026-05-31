@@ -1,0 +1,39 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.local.librarian",
+  "version": "1",
+  "ports": {
+    "input": {},
+    "output": {
+      "local_index": {
+        "artifact_type": "artifact.local_library_index@1",
+        "description": "Index of locally available library, template, and example capabilities."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.read",
+        "scope": ["libraries/**", "examples/modules/**", "examples/artifacts/**", "examples/flows/**"]
+      }
+    ],
+    "context": ["run_id", "library_roots"]
+  },
+  "effects": {
+    "fs_read": ["libraries/**", "examples/modules/**", "examples/artifacts/**", "examples/flows/**"],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace."
+  }
+}

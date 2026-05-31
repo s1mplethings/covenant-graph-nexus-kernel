@@ -1,0 +1,18 @@
+flowchart TD
+  U[User] --> IN[VideoInputAgent]
+  IN --> META[VideoMetadataAgent]
+  META --> FRAME[FrameSignalAgent]
+  META --> AUDIO[AudioSignalAgent]
+  META --> LANG[SpeechOrSubtitleSignalAgent]
+  FRAME --> CAND[HighlightCandidateAgent]
+  AUDIO --> CAND
+  LANG --> CAND
+  CAND --> SCORE[MultiCriteriaScoringAgent]
+  SCORE --> BOUND[ClipBoundaryAgent]
+  BOUND --> EXPORT[ExportAgent]
+  EXPORT --> MP4[MP4 Highlight Clips]
+  EXPORT --> MANIFEST[Clip Manifest]
+  SCORE --> REPORT[Analysis Report]
+  MP4 --> REVIEW[Review UI]
+  MANIFEST --> REVIEW
+  REPORT --> REVIEW

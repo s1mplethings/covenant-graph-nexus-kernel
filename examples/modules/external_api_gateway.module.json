@@ -1,0 +1,45 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.external.api_gateway",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.external_api_request@1",
+        "required": true,
+        "description": "OpenAI-compatible request using the existing API configuration resolution order."
+      }
+    },
+    "output": {
+      "response": {
+        "artifact_type": "artifact.external_api_response@1",
+        "description": "Provider response metadata and text with secrets redacted."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.network.post_json",
+        "scope": ["OpenAI-compatible API endpoint"]
+      }
+    ],
+    "context": ["run_id", "api_config_source", "secret_redaction"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": true,
+    "provider_call": true,
+    "risk": 2
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Generic API gateway contract for OpenAI-compatible provider calls."
+  }
+}

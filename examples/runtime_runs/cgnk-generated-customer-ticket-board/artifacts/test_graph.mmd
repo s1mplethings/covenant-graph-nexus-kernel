@@ -1,0 +1,10 @@
+flowchart TD
+  goal[Goal] --> request[Customer request]
+  request --> candidates[Feature candidates]
+  candidates --> agent[Local agent plan]
+  agent --> review[Adversarial review]
+  review --> blueprint[Project blueprint]
+  blueprint --> project[Generated project files]
+  project --> tests[Test graph]
+  tests --> report[Effect report]
+  report --> control[Unified control]

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streamer Highlight Finder</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <header>
+    <h1>Streamer Highlight Finder</h1>
+  </header>
+
+  <main>
+    <!-- JSON File Import Section -->
+    <section>
+      <h2>Import JSON Data</h2>
+      <input type="file" id="file-input" accept=".json">
+      <textarea id="json-textarea" placeholder="Or paste JSON data here"></textarea>
+      <button id="import-button">Import</button>
+    </section>
+
+    <!-- Filters Section -->
+    <section>
+      <h2>Filters</h2>
+      <form id="filter-form">
+        <label for="filterStreamer">Streamer:</label>
+        <input type="text" id="filterStreamer" placeholder="Streamer name">
+
+        <label for="filterGame">Game:</label>
+        <input type="text" id="filterGame" placeholder="Game name">
+
+        <label for="filterCategory">Category:</label>
+        <input type="text" id="filterCategory" placeholder="Category">
+
+        <label for="filterScore">Min Score:</label>
+        <input type="number" id="filterScore" placeholder="Minimum score">
+
+        <button type="submit">Apply Filters</button>
+      </form>
+    </section>
+
+    <!-- Manual Marker Section -->
+    <section>
+      <h2>Add Manual Marker</h2>
+      <form id="manual-form">
+        <label for="manualStreamer">Streamer:</label>
+        <input type="text" id="manualStreamer" placeholder="Streamer name" required>
+
+        <label for="manualGame">Game:</label>
+        <input type="text" id="manualGame" placeholder="Game name" required>
+
+        <label for="manualCategory">Category:</label>
+        <input type="text" id="manualCategory" placeholder="Category" required>
+
+        <label for="manualTimestamp">Timestamp:</label>
+        <input type="text" id="manualTimestamp" placeholder="Timestamp (e.g., 00:15:30)" required>
+
+        <label for="manualScore">Score:</label>
+        <input type="number" id="manualScore" placeholder="Score" required>
+
+        <label for="manualDescription">Description:</label>
+        <textarea id="manualDescription" placeholder="Description"></textarea>
+
+        <button type="submit">Add Marker</button>
+      </form>
+    </section>
+
+    <!-- Export Section -->
+    <section>
+      <h2>Export Results</h2>
+      <button id="export-button">Export Filtered Results</button>
+    </section>
+
+    <!-- Results Section -->
+    <section>
+      <h2>Results</h2>
+      <div id="records-container">
+        <!-- Rendered results will appear here -->
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

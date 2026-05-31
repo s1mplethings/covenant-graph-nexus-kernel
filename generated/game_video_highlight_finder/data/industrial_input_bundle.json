@@ -1,0 +1,36 @@
+{
+  "durationMs": 240000,
+  "sources": [
+    {"source_id": "video-1", "source_type": "gameplay_video", "origin": "synthetic fixture"},
+    {"source_id": "telemetry-1", "source_type": "match_event_log", "origin": "synthetic fixture"},
+    {"source_id": "chat-1", "source_type": "chat_spike_log", "origin": "synthetic fixture"},
+    {"source_id": "manual-1", "source_type": "creator_manual_mark", "origin": "synthetic fixture"},
+    {"source_id": "ops-1", "source_type": "moderation_annotation", "origin": "synthetic fixture"}
+  ],
+  "records": [
+    {"timestampMs": 8000, "eventType": "kill", "value": 28, "category": "combat"},
+    {"timestampMs": 16000, "eventType": "damage_spike", "value": 18, "category": "combat"},
+    {"timestampMs": 24000, "eventType": "chat_spike", "value": 16, "category": "combat"},
+    {"timestampMs": 32000, "eventType": "objective", "value": 42, "category": "objective"},
+    {"timestampMs": 40000, "eventType": "kill", "value": 25, "category": "combat"},
+    {"timestampMs": 48000, "eventType": "audio_peak", "value": 20, "category": "combat"},
+    {"timestampMs": 56000, "eventType": "manual_mark", "value": 55, "category": "manual"},
+    {"timestampMs": 64000, "eventType": "objective", "value": 48, "category": "objective"},
+    {"timestampMs": 72000, "eventType": "kill", "value": 30, "category": "combat"},
+    {"timestampMs": 80000, "eventType": "chat_spike", "value": 22, "category": "combat"},
+    {"timestampMs": 88000, "eventType": "clutch", "value": 65, "category": "clutch"},
+    {"timestampMs": 96000, "eventType": "kill", "value": 27, "category": "combat"},
+    {"timestampMs": 104000, "eventType": "objective", "value": 44, "category": "objective"},
+    {"timestampMs": 112000, "eventType": "audio_peak", "value": 24, "category": "combat"},
+    {"timestampMs": 120000, "eventType": "manual_mark", "value": 58, "category": "manual"},
+    {"timestampMs": 128000, "eventType": "kill", "value": 31, "category": "combat"},
+    {"timestampMs": 136000, "eventType": "chat_spike", "value": 25, "category": "combat"},
+    {"timestampMs": 144000, "eventType": "objective", "value": 49, "category": "objective"},
+    {"timestampMs": 152000, "eventType": "kill", "value": 26, "category": "combat"},
+    {"timestampMs": 160000, "eventType": "clutch", "value": 68, "category": "clutch"},
+    {"timestampMs": 168000, "eventType": "damage_spike", "value": 19, "category": "combat"},
+    {"timestampMs": 176000, "eventType": "chat_spike", "value": 23, "category": "combat"},
+    {"timestampMs": 184000, "eventType": "objective", "value": 46, "category": "objective"},
+    {"timestampMs": 192000, "eventType": "manual_mark", "value": 60, "category": "manual"}
+  ]
+}

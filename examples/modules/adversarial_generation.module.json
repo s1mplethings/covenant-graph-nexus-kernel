@@ -1,0 +1,47 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.adversarial_generation",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.customer_request@1",
+        "required": true
+      },
+      "candidates": {
+        "artifact_type": "artifact.feature_library_candidates@1",
+        "required": true
+      },
+      "agent_plan": {
+        "artifact_type": "artifact.local_agent_plan@1",
+        "required": true
+      }
+    },
+    "output": {
+      "adversarial_review": {
+        "artifact_type": "artifact.adversarial_review@1",
+        "description": "Adversarial review of the proposed generation plan and selected capabilities."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [],
+    "context": ["run_id", "review_policy"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Adversarial generation/review module that remains separate from the generator until typed review output is produced."
+  }
+}

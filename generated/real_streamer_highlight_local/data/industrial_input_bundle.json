@@ -1,0 +1,475 @@
+{
+  "source_manifest": [
+    {
+      "source_id": "source-1",
+      "source_type": "platform_event_log",
+      "origin": "simulated industrial fixture"
+    },
+    {
+      "source_id": "source-2",
+      "source_type": "chat_analytics",
+      "origin": "simulated industrial fixture"
+    },
+    {
+      "source_id": "source-3",
+      "source_type": "manual_ops_mark",
+      "origin": "simulated industrial fixture"
+    },
+    {
+      "source_id": "source-4",
+      "source_type": "public_clip_metadata",
+      "origin": "simulated industrial fixture"
+    },
+    {
+      "source_id": "source-5",
+      "source_type": "moderation_annotation",
+      "origin": "simulated industrial fixture"
+    }
+  ],
+  "records": [
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:02:05",
+      "title": "1v3 clutch in final ring #1",
+      "category": "clutch",
+      "intensity": 94,
+      "chatRate": 182,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-1",
+      "sourceId": "source-1",
+      "source_type": "platform_event_log"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:05:12",
+      "title": "Baron steal into ace #2",
+      "category": "objective",
+      "intensity": 89,
+      "chatRate": 154,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-2",
+      "sourceId": "source-2",
+      "source_type": "chat_analytics"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:08:19",
+      "title": "Sheriff eco round four-kill #3",
+      "category": "mechanical",
+      "intensity": 93,
+      "chatRate": 141,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-3",
+      "sourceId": "source-3",
+      "source_type": "manual_ops_mark"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:11:26",
+      "title": "Hardcore save at half heart #4",
+      "category": "survival",
+      "intensity": 88,
+      "chatRate": 133,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-4",
+      "sourceId": "source-4",
+      "source_type": "public_clip_metadata"
+    },
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:14:33",
+      "title": "1v3 clutch in final ring #5",
+      "category": "clutch",
+      "intensity": 98,
+      "chatRate": 198,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-5",
+      "sourceId": "source-5",
+      "source_type": "moderation_annotation"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:17:40",
+      "title": "Baron steal into ace #6",
+      "category": "objective",
+      "intensity": 88,
+      "chatRate": 170,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-6",
+      "sourceId": "source-1",
+      "source_type": "platform_event_log"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:20:47",
+      "title": "Sheriff eco round four-kill #7",
+      "category": "mechanical",
+      "intensity": 92,
+      "chatRate": 157,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-7",
+      "sourceId": "source-2",
+      "source_type": "chat_analytics"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:23:54",
+      "title": "Hardcore save at half heart #8",
+      "category": "survival",
+      "intensity": 87,
+      "chatRate": 149,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-8",
+      "sourceId": "source-3",
+      "source_type": "manual_ops_mark"
+    },
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:26:03",
+      "title": "1v3 clutch in final ring #9",
+      "category": "clutch",
+      "intensity": 97,
+      "chatRate": 214,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-9",
+      "sourceId": "source-4",
+      "source_type": "public_clip_metadata"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:29:10",
+      "title": "Baron steal into ace #10",
+      "category": "objective",
+      "intensity": 92,
+      "chatRate": 186,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-10",
+      "sourceId": "source-5",
+      "source_type": "moderation_annotation"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:32:17",
+      "title": "Sheriff eco round four-kill #11",
+      "category": "mechanical",
+      "intensity": 91,
+      "chatRate": 173,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-11",
+      "sourceId": "source-1",
+      "source_type": "platform_event_log"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:35:24",
+      "title": "Hardcore save at half heart #12",
+      "category": "survival",
+      "intensity": 86,
+      "chatRate": 165,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-12",
+      "sourceId": "source-2",
+      "source_type": "chat_analytics"
+    },
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:38:31",
+      "title": "1v3 clutch in final ring #13",
+      "category": "clutch",
+      "intensity": 96,
+      "chatRate": 230,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-13",
+      "sourceId": "source-3",
+      "source_type": "manual_ops_mark"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:41:38",
+      "title": "Baron steal into ace #14",
+      "category": "objective",
+      "intensity": 91,
+      "chatRate": 202,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-14",
+      "sourceId": "source-4",
+      "source_type": "public_clip_metadata"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:44:45",
+      "title": "Sheriff eco round four-kill #15",
+      "category": "mechanical",
+      "intensity": 95,
+      "chatRate": 189,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-15",
+      "sourceId": "source-5",
+      "source_type": "moderation_annotation"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:47:52",
+      "title": "Hardcore save at half heart #16",
+      "category": "survival",
+      "intensity": 85,
+      "chatRate": 181,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-16",
+      "sourceId": "source-1",
+      "source_type": "platform_event_log"
+    },
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:50:01",
+      "title": "1v3 clutch in final ring #17",
+      "category": "clutch",
+      "intensity": 95,
+      "chatRate": 246,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-17",
+      "sourceId": "source-2",
+      "source_type": "chat_analytics"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:53:08",
+      "title": "Baron steal into ace #18",
+      "category": "objective",
+      "intensity": 90,
+      "chatRate": 218,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-18",
+      "sourceId": "source-3",
+      "source_type": "manual_ops_mark"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:56:15",
+      "title": "Sheriff eco round four-kill #19",
+      "category": "mechanical",
+      "intensity": 94,
+      "chatRate": 205,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-19",
+      "sourceId": "source-4",
+      "source_type": "public_clip_metadata"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:01:22",
+      "title": "Hardcore save at half heart #20",
+      "category": "survival",
+      "intensity": 89,
+      "chatRate": 197,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-20",
+      "sourceId": "source-5",
+      "source_type": "moderation_annotation"
+    },
+    {
+      "streamer": "NovaCarry",
+      "game": "Apex Legends",
+      "time": "00:04:29",
+      "title": "1v3 clutch in final ring #21",
+      "category": "clutch",
+      "intensity": 94,
+      "chatRate": 262,
+      "keywords": [
+        "clutch",
+        "1v3",
+        "final ring",
+        "win"
+      ],
+      "description": "Solo hold, armor swap, and last-second cleanup.",
+      "id": "industrial-21",
+      "sourceId": "source-1",
+      "source_type": "platform_event_log"
+    },
+    {
+      "streamer": "MapleMage",
+      "game": "League of Legends",
+      "time": "00:07:36",
+      "title": "Baron steal into ace #22",
+      "category": "objective",
+      "intensity": 89,
+      "chatRate": 234,
+      "keywords": [
+        "steal",
+        "baron",
+        "ace",
+        "comeback"
+      ],
+      "description": "Smite steal followed by teamfight turnaround.",
+      "id": "industrial-22",
+      "sourceId": "source-2",
+      "source_type": "chat_analytics"
+    },
+    {
+      "streamer": "PixelRift",
+      "game": "Valorant",
+      "time": "00:10:43",
+      "title": "Sheriff eco round four-kill #23",
+      "category": "mechanical",
+      "intensity": 93,
+      "chatRate": 221,
+      "keywords": [
+        "eco",
+        "four-kill",
+        "headshot"
+      ],
+      "description": "Low-buy round converted through precise aim.",
+      "id": "industrial-23",
+      "sourceId": "source-3",
+      "source_type": "manual_ops_mark"
+    },
+    {
+      "streamer": "EchoForge",
+      "game": "Minecraft",
+      "time": "00:13:50",
+      "title": "Hardcore save at half heart #24",
+      "category": "survival",
+      "intensity": 88,
+      "chatRate": 213,
+      "keywords": [
+        "hardcore",
+        "save",
+        "half heart"
+      ],
+      "description": "Escaped lava fall with one precise water bucket.",
+      "id": "industrial-24",
+      "sourceId": "source-4",
+      "source_type": "public_clip_metadata"
+    }
+  ]
+}

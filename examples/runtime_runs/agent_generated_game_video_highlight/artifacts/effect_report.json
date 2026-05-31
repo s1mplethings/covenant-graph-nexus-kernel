@@ -1,0 +1,83 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\agent_generated_game_video_highlight",
+      "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight"
+    ],
+    "network": "disabled",
+    "provider": "disabled",
+    "external": {
+      "network_allowed": false,
+      "provider_allowed": false,
+      "api": {
+        "requested": false,
+        "executed": false,
+        "blocked": "",
+        "purpose": "project_generation",
+        "provider": "local_static_generator",
+        "mode": "no_network_no_provider",
+        "network": false,
+        "provider_call": false
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    },
+    "local_model": {
+      "provider": "ollama",
+      "model": "",
+      "selection_source": "structured_fallback",
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ],
+      "notes": "",
+      "risks": [],
+      "support_modules": [
+        "module.local.pipeline_composer_agent@1"
+      ]
+    },
+    "provider_generation": {
+      "provider": "local_static_generator",
+      "mode": "no_network_no_provider",
+      "network": false,
+      "provider_call": false
+    },
+    "subpipelines": {
+      "plan_ref": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\subpipeline_plan.json",
+      "results_ref": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\subpipeline_results.json"
+    },
+    "requirement_blueprint": {
+      "status": "ready",
+      "artifact": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\requirement_blueprint.json",
+      "outputs_dir": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\requirement_blueprint_outputs"
+    },
+    "self_test": {
+      "status": "pass",
+      "checks": [
+        "static_files_written",
+        "browser_smoke_declared",
+        "industrial_io_declared"
+      ]
+    },
+    "quality_report": {
+      "status": "pass",
+      "score": 90,
+      "issues": []
+    },
+    "adversarial_review": {
+      "status": "pass",
+      "findings": [],
+      "verdict": "pass"
+    }
+  }
+}

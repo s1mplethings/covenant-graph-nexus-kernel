@@ -1,0 +1,10 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.customer_request",
+  "version": "1",
+  "type_name": "CustomerRequest",
+  "schema_ref": "schemas/customer_request.v1.schema.json",
+  "identity": {"hash_fields": ["intent", "constraints", "acceptance"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {"first_use": "modular_project_generation_v1", "ref": "artifact.customer_request@1"}
+}

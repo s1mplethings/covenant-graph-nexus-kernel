@@ -1,0 +1,32 @@
+{
+  "kind": "BrowserIndustrialIOCheck",
+  "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+  "url": "http://127.0.0.1:8149/index.html",
+  "status": "pass",
+  "browser_smoke": {
+    "status": "pass",
+    "stored_after_browser_smoke": 3,
+    "visible_scores": [
+      "Score: 9.2",
+      "Score: 6.5",
+      "Score: 1.3"
+    ]
+  },
+  "industrial_io_smoke": {
+    "status": "pass",
+    "imported_count": 24,
+    "visible_count": 24,
+    "checked_outputs": 8,
+    "stored_count": 24,
+    "source_ids": [
+      "platform_events",
+      "chat_analytics",
+      "ops_review",
+      "creator_marks",
+      "public_clip_meta"
+    ],
+    "first_visible_title": "Final ring 1v3 clutch",
+    "first_visible_score": "Score: 92.5"
+  },
+  "screenshot": "D:\\CGKN\\streamer_highlight_finder_industrial_io_v7.png"
+}

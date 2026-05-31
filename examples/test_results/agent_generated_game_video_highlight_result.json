@@ -1,0 +1,27 @@
+{
+  "kind": "CustomerProjectGenerationResult",
+  "created_at": "2026-05-31T06:03:17.800935+00:00",
+  "requirement": "做一个本地游戏视频高光检测工具，用户上传一个游戏视频后自动找高光片段，输出高光候选、原因、时间戳和 JSON cut list，并提供测试图和效果报告",
+  "customer_service": {
+    "questions": [
+      "必须包含哪些核心功能？"
+    ],
+    "answers": [
+      {
+        "field": "core_features",
+        "question": "必须包含哪些核心功能？",
+        "answer": "核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。"
+      }
+    ],
+    "mode": "defaults"
+  },
+  "requirement_blueprint_path": "D:\\CGKN\\examples\\test_results\\agent_generated_game_video_highlight_requirement_blueprint.json",
+  "requirement_blueprint_status": "ready",
+  "composition_path": "D:\\CGKN\\examples\\test_results\\agent_generated_game_video_highlight_composition.json",
+  "execution_path": "D:\\CGKN\\examples\\test_results\\agent_generated_game_video_highlight_execution.json",
+  "project_dir": "D:\\CGKN\\generated\\agent_generated_game_video_highlight",
+  "runtime_dir": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight",
+  "effect_report_path": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\effect_report.json",
+  "test_graph_path": "D:\\CGKN\\examples\\runtime_runs\\agent_generated_game_video_highlight\\artifacts\\test_graph.mmd",
+  "status": "pass"
+}

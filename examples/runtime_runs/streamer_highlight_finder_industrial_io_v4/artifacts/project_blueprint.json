@@ -1,0 +1,423 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "ux-bundle-expected-outputs-gui-bundle-i-o-data_storage-runtime_result",
+    "type": "game_highlight_finder",
+    "output_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v4",
+    "files": [
+      "docs\\USER_ANALYSIS.md",
+      "docs\\MARKET_RESEARCH.md",
+      "docs\\TECHNICAL_PATH.md",
+      "docs\\UX_DESIGN_SPEC.md",
+      "docs\\INPUT_OUTPUT_SPEC.md",
+      "project_architecture.json",
+      "index.html",
+      "styles.css",
+      "src\\core\\scoring.js",
+      "src\\core\\filtering.js",
+      "src\\core\\importer.js",
+      "src\\core\\exporter.js",
+      "src\\state\\store.js",
+      "src\\ui\\render.js",
+      "src\\ui\\forms.js",
+      "src\\app.js",
+      "data\\sample_events.json",
+      "data\\industrial_input_bundle.json",
+      "data\\expected_outputs.json",
+      "tests\\browser_smoke_test.js",
+      "tests\\industrial_io_smoke_test.js",
+      "docs\\ARCHITECTURE.md",
+      "README.md",
+      "TEST_PLAN.md"
+    ],
+    "modules": [
+      "module.customer.service@1",
+      "module.feature.library_search@1",
+      "module.local.pipeline_composer_agent@1",
+      "module.project.generator@1",
+      "module.local.runtime_executor@1",
+      "module.local.librarian@1",
+      "module.local_agent.plan@1",
+      "module.test_graph.emit@1",
+      "module.effect_report.emit@1",
+      "module.unified_control@1",
+      "module.external.api_gateway@1"
+    ],
+    "subpipelines": [
+      {
+        "id": "customer_intake_pipeline",
+        "kind": "intake",
+        "input": [
+          "goal"
+        ],
+        "output": [
+          "structured_request",
+          "clarifying_questions"
+        ],
+        "owner": "module.customer.service@1"
+      },
+      {
+        "id": "local_librarian_pipeline",
+        "kind": "local_understanding",
+        "input": [
+          "structured_request",
+          "local_contract_catalog"
+        ],
+        "output": [
+          "local_index",
+          "capability_candidates"
+        ],
+        "owner": "module.local.librarian@1",
+        "model": "qwen2.5:7b-instruct"
+      },
+      {
+        "id": "route_manager_pipeline",
+        "kind": "local_route_management",
+        "input": [
+          "local_index",
+          "capability_candidates",
+          "structured_request"
+        ],
+        "output": [
+          "subpipeline_plan",
+          "routing_policy"
+        ],
+        "owner": "module.local.pipeline_composer_agent@1",
+        "model": "qwen2.5:7b-instruct"
+      },
+      {
+        "id": "user_analysis_pipeline",
+        "kind": "product_strategy",
+        "input": [
+          "structured_request",
+          "local_index"
+        ],
+        "output": [
+          "docs/USER_ANALYSIS.md",
+          "user_analysis"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "market_research_pipeline",
+        "kind": "market_research",
+        "input": [
+          "structured_request",
+          "user_analysis"
+        ],
+        "output": [
+          "docs/MARKET_RESEARCH.md",
+          "market_positioning"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "technical_path_pipeline",
+        "kind": "technical_path_selection",
+        "input": [
+          "structured_request",
+          "market_positioning",
+          "local_capabilities"
+        ],
+        "output": [
+          "docs/TECHNICAL_PATH.md",
+          "technical_path"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "ux_design_pipeline",
+        "kind": "ux_design",
+        "input": [
+          "user_analysis",
+          "market_positioning",
+          "technical_path"
+        ],
+        "output": [
+          "docs/UX_DESIGN_SPEC.md",
+          "ui_structure_contract"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "industrial_io_pipeline",
+        "kind": "industrial_input_output_simulation",
+        "input": [
+          "structured_request",
+          "user_analysis",
+          "market_positioning",
+          "technical_path",
+          "ui_structure_contract"
+        ],
+        "output": [
+          "docs/INPUT_OUTPUT_SPEC.md",
+          "data/industrial_input_bundle.json",
+          "data/expected_outputs.json",
+          "tests/industrial_io_smoke_test.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "priority": "higher_than_code_generation"
+      },
+      {
+        "id": "project_architecture_pipeline",
+        "kind": "provider_design",
+        "input": [
+          "structured_request",
+          "subpipeline_plan",
+          "user_analysis",
+          "market_positioning",
+          "technical_path",
+          "ui_structure_contract",
+          "industrial_io_contract",
+          "module_contracts"
+        ],
+        "output": [
+          "project_architecture.json"
+        ],
+        "owner": "module.external.api_gateway@1"
+      },
+      {
+        "id": "scoring_pipeline::src/core/scoring.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/core/scoring.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "filtering_pipeline::src/core/filtering.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/core/filtering.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "data_import_pipeline::src/core/importer.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/core/importer.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "storage_export_pipeline::src/core/exporter.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/core/exporter.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "storage_export_pipeline::src/state/store.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/state/store.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "ui_integration_pipeline::src/ui/render.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/ui/render.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "ui_integration_pipeline::src/ui/forms.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/ui/forms.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "ui_integration_pipeline::src/app.js",
+        "kind": "module_pipeline",
+        "input": [
+          "project_architecture",
+          "module_contract",
+          "dom_contract"
+        ],
+        "output": [
+          "src/app.js"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "local_model_scope": [],
+        "provider_scope": [
+          "project_generation",
+          "final_project_logic"
+        ]
+      },
+      {
+        "id": "integration_pipeline",
+        "kind": "integration",
+        "input": [
+          "module_outputs"
+        ],
+        "output": [
+          "integrated_project_files"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "self_test_pipeline",
+        "kind": "self_test",
+        "input": [
+          "integrated_project_files"
+        ],
+        "output": [
+          "self_test_report"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "quality_evaluation_pipeline",
+        "kind": "quality_eval",
+        "input": [
+          "integrated_project_files",
+          "self_test_report"
+        ],
+        "output": [
+          "quality_report"
+        ],
+        "owner": "module.local.runtime_executor@1"
+      },
+      {
+        "id": "adversarial_review_pipeline",
+        "kind": "adversarial_review",
+        "input": [
+          "integrated_project_files",
+          "quality_report"
+        ],
+        "output": [
+          "adversarial_review"
+        ],
+        "owner": "module.external.api_gateway@1"
+      },
+      {
+        "id": "repair_pipeline",
+        "kind": "provider_repair",
+        "input": [
+          "adversarial_review",
+          "quality_report"
+        ],
+        "output": [
+          "repaired_project_files"
+        ],
+        "owner": "module.external.api_gateway@1",
+        "activation": "only when quality gate fails or adversarial review reports blocking issues"
+      },
+      {
+        "id": "effect_report_pipeline",
+        "kind": "reporting",
+        "input": [
+          "self_test_report",
+          "quality_report",
+          "adversarial_review",
+          "project_blueprint"
+        ],
+        "output": [
+          "test_graph",
+          "effect_report"
+        ],
+        "owner": "module.effect_report.emit@1"
+      }
+    ],
+    "generator": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkUAbwuO5CKDoOkLPWpOkOKdsntgL,chatcmpl-DkUAshAIagY8P6enqB06INyeONBvb,chatcmpl-DkUB99kSHlTSUrgsJvg9JSd1jYkwZ,chatcmpl-DkUBaJln9cA9zAEaPzXGp88BjLEk0,chatcmpl-DkUC8R5w7pIudsy7mFbExlQNWRoYr,chatcmpl-DkUCWMHbX024ZWPDtLuQyjFBp74UR,chatcmpl-DkUCpwvHasPrdLF6E7XjQxzNUBp1d,chatcmpl-DkUD4BLgJn4C0wePrqbiIACtPi4tS,chatcmpl-DkUDMuc6bjWYNFCqsMFkfmDDmE5XW,chatcmpl-DkUDaudFBjLK90xJkOMLEStBHaEre,chatcmpl-DkUVeP7D07dvWKZIsMOib8CsNJJvK,chatcmpl-DkUDq7QbaYCJqtaUVkPjOGN8JPkcN,chatcmpl-DkUDsNWbd2K56N81G5J0HiIPQEvN6,chatcmpl-DkUDyU5FyzpEXKTPudgGy82bx7OVJ,chatcmpl-DkUEDY8rSwfHmvcGV6yf0txyRj0HF,chatcmpl-DkUENE2XAEOoh5276To3TNnxa3Idi,chatcmpl-DkUEbb99jMA5LvxLzUvoxNQipt9OO,chatcmpl-DkULj0cMgpqUjTAnbNuLcLKvI99ms,chatcmpl-DkUFrXKIzDQsDjs81vPlAe6p3BIIz,chatcmpl-DkUMJO4CelX6lEFKdeqakX9JyzWhY,chatcmpl-DkUMeFW5D6BSi9MPRpy3iFvjxq7Dx,chatcmpl-DkUH9AJM3RL0IoUxFjIUBRCP0y6lF,chatcmpl-DkUHZBZTQgENjjmbw8hdWiP0QDMEN,chatcmpl-DkUICjtHeq4MgZJ7vTxbgjKBuLeCy",
+      "mode": "provider_architecture_filewise_project_generation"
+    },
+    "routing_policy": {
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_architecture",
+        "project_generation",
+        "project_repair",
+        "final_project_logic",
+        "adversarial_review"
+      ]
+    }
+  }
+}

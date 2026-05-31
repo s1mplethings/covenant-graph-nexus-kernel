@@ -1,0 +1,25 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\local_task_board",
+      "D:\\CGKN\\examples\\runtime_runs\\local-pipeline-execution"
+    ],
+    "network": "explicitly gated",
+    "provider": "explicitly gated",
+    "external": {
+      "network_allowed": false,
+      "provider_allowed": false,
+      "api": {
+        "requested": false,
+        "executed": false
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "kind": "TestGraph",
+  "payload": {
+    "nodes": [
+      "goal",
+      "customer_intake_pipeline",
+      "local_librarian_pipeline",
+      "route_manager_pipeline",
+      "user_analysis_pipeline",
+      "market_research_pipeline",
+      "technical_path_pipeline",
+      "ux_design_pipeline",
+      "industrial_io_pipeline",
+      "project_architecture_pipeline",
+      "module_generation_pipelines",
+      "integration_pipeline",
+      "self_test_pipeline",
+      "quality_evaluation_pipeline",
+      "adversarial_review_pipeline",
+      "repair_pipeline",
+      "effect_report_pipeline",
+      "unified_control"
+    ],
+    "edges": [
+      [
+        "goal",
+        "customer_intake_pipeline"
+      ],
+      [
+        "customer_intake_pipeline",
+        "local_librarian_pipeline"
+      ],
+      [
+        "local_librarian_pipeline",
+        "route_manager_pipeline"
+      ],
+      [
+        "route_manager_pipeline",
+        "user_analysis_pipeline"
+      ],
+      [
+        "user_analysis_pipeline",
+        "market_research_pipeline"
+      ],
+      [
+        "market_research_pipeline",
+        "technical_path_pipeline"
+      ],
+      [
+        "technical_path_pipeline",
+        "ux_design_pipeline"
+      ],
+      [
+        "ux_design_pipeline",
+        "industrial_io_pipeline"
+      ],
+      [
+        "industrial_io_pipeline",
+        "project_architecture_pipeline"
+      ],
+      [
+        "project_architecture_pipeline",
+        "module_generation_pipelines"
+      ],
+      [
+        "module_generation_pipelines",
+        "integration_pipeline"
+      ],
+      [
+        "integration_pipeline",
+        "self_test_pipeline"
+      ],
+      [
+        "self_test_pipeline",
+        "quality_evaluation_pipeline"
+      ],
+      [
+        "quality_evaluation_pipeline",
+        "adversarial_review_pipeline"
+      ],
+      [
+        "adversarial_review_pipeline",
+        "repair_pipeline"
+      ],
+      [
+        "repair_pipeline",
+        "self_test_pipeline"
+      ],
+      [
+        "adversarial_review_pipeline",
+        "effect_report_pipeline"
+      ],
+      [
+        "effect_report_pipeline",
+        "unified_control"
+      ]
+    ],
+    "manual_checks": [
+      "Import JSON data",
+      "Verify scoring and descending sort",
+      "Filter by streamer, game, category, and score",
+      "Add manual marker",
+      "Export filtered clip list",
+      "Refresh and confirm localStorage persistence"
+    ],
+    "quality_gate": {
+      "status": "pass",
+      "repaired": false
+    }
+  }
+}

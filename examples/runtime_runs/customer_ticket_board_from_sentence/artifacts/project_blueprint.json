@@ -1,0 +1,27 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "acceptance-runtime_result",
+    "type": "local_task_board",
+    "output_dir": "D:\\CGKN\\generated\\customer_ticket_board_from_sentence",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "README.md"
+    ],
+    "modules": [
+      "module.local.pipeline_composer_agent@1",
+      "module.customer.service@1",
+      "module.local.librarian@1",
+      "module.online.library_sources@1",
+      "module.feature.library_search@1",
+      "module.local_agent.plan@1",
+      "module.adversarial_generation@1",
+      "module.project.generator@1",
+      "module.test_graph.emit@1",
+      "module.effect_report.emit@1",
+      "module.unified_control@1"
+    ]
+  }
+}

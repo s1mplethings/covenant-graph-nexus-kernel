@@ -1,0 +1,234 @@
+{
+  "kind": "TelegramStyleDialogueSession",
+  "session_id": "telegram-20260531-215708-f1d5d2",
+  "created_at": "2026-05-31T13:57:08.590714+00:00",
+  "updated_at": "2026-05-31T13:57:32.709674+00:00",
+  "mode": {
+    "assistant_participation": "disabled",
+    "api_calls": "enabled for dialogue replies",
+    "description": "Simple API-backed dialogue test recorder."
+  },
+  "messages": [
+    {
+      "id": "a60de51fee2940d68c6c4c3b6084cc4d",
+      "created_at": "2026-05-31T13:57:11.552867+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 已连接。",
+      "artifacts": {
+        "api_connection": {
+          "ok": true,
+          "api_status": "connected",
+          "overall_status": "pass",
+          "command": {
+            "command": [
+              "D:\\anaconda\\python.exe",
+              "scripts/check_connectivity.py",
+              "--live"
+            ],
+            "returncode": 0,
+            "duration_seconds": 2.91,
+            "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+            "stderr": "",
+            "status": "pass"
+          },
+          "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+        }
+      }
+    },
+    {
+      "id": "91babdffdfee408da32cbd2881524fa3",
+      "created_at": "2026-05-31T13:57:11.605592+00:00",
+      "role": "customer",
+      "type": "message",
+      "content": "输入任意游戏视频，自动找高光，分别导出 mp4 高光片段，用户可以设置最小时长和灵敏度。高光标准用画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件综合判断。信息够了，可以直接生成项目。"
+    },
+    {
+      "id": "407ff63bf0244f8a96c0a3c79faf3b9c",
+      "created_at": "2026-05-31T13:57:15.098932+00:00",
+      "role": "service",
+      "type": "message",
+      "content": "信息足够，可以生成项目。您的需求是构建一个系统，输入任意游戏视频，自动识别并导出高光片段为 MP4 格式，用户可以设置最小时长和灵敏度。高光的判断标准包括画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件。",
+      "artifacts": {
+        "request_id": "chatcmpl-Dlax7YB3Wf6jxZytlT6PXnxnC0kwR",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "id": "77b273a9753c45a59d67d39fbe05f1c9",
+      "created_at": "2026-05-31T13:57:15.121263+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "检测到对话里的生成意图，开始用当前对话生成项目并执行测试。"
+    },
+    {
+      "id": "95a33cc794d1458d8e72e42a35042035",
+      "created_at": "2026-05-31T13:57:15.139293+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "开始真实项目/API管线测试。当前对话会作为需求来源；不会使用 GUI 外的人工回答。",
+      "artifacts": {
+        "goal_preview": "以下是用户主导的模拟 Telegram 项目需求对话记录。\n请只根据这份对话提取最终项目需求；不要自动套用 CRUD、任务看板、JSON 记录管理等默认模板；如果对话中要求真实项目/API测试，则保留该要求。运行时输入、输出和中间产物必须来自对话语义。\n\n[observer/decision] API 已连接。\n[customer/message] 输入任意游戏视频，自动找高光，分别导出 mp4 高光片段，用户可以设置最小时长和灵敏度。高光标准用画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件综合判断。信息够了，可以直接生成项目。\n[service/message] 信息足够，可以生成项目。您的需求是构建一个系统，输入任意游戏视频，自动识别并导出高光片段为 MP4 格式，用户可以设置最小时长和灵敏度。高光的判断标准包括画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件。\n[observer/criterion] 检测到对话里的生成意图，开始用当前对话生成项目并执行测试。"
+      }
+    },
+    {
+      "id": "9127495819134e0eaadcf6f26dd396fc",
+      "created_at": "2026-05-31T13:57:17.212023+00:00",
+      "role": "observer",
+      "type": "io",
+      "content": "已生成本轮 composition 和 requirement blueprint。",
+      "artifacts": {
+        "goal_source": "telegram_transcript",
+        "composition_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_composition.json",
+        "requirement_blueprint_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_requirement_blueprint.json",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "runtime_dir": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2",
+        "test_composition_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_composition.json",
+        "test_execution_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_execution.json"
+      }
+    },
+    {
+      "id": "62499cb6f76b45b5b21588e180aca2b3",
+      "created_at": "2026-05-31T13:57:21.550028+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "真实项目生成完成：pass\n\n{\n  \"kind\": \"RuntimeExecutionResult\",\n  \"payload\": {\n    \"run_id\": \"telegram_telegram-20260531-215708-f1d5d2\",\n    \"status\": \"pass\",\n    \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n    \"artifacts_dir\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\",\n    \"outputs\": {\n      \"requirement_blueprint\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\requirement_blueprint.json\",\n      \"requirement_blueprint_outputs\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\requirement_blueprint_outputs\",\n      \"project_blueprint\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\project_blueprint.json\",\n      \"generation_trace\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\generation_trace.json\",\n      \"subpipeline_plan\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\subpipeline_plan.json\",\n      \"subpipeline_results\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\subpipeline_results.json\",\n      \"self_test_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\self_test_report.json\",\n      \"quality_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\quality_report.json\",\n      \"adversarial_review\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\adversarial_review.json\",\n      \"test_graph\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\test_graph.json\",\n      \"effect_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\effect_report.json\"\n    },\n    \"external_approvals\": {\n      \"network_allowed\": true,\n      \"provider_allowed\": true,\n      \"api\": {\n        \"requested\": true,\n        \"executed\": false,\n        \"blocked\": \"requires --allow-network --allow-provider --use-api\",\n        \"purpose\": \"project_generation\",\n        \"provider\": \"local_video_project_template\",\n        \"mode\": \"video_runtime_contract_guard\",\n        \"network\": false,\n        \"provider_call\": false,\n        \"reason\": \"Game-video highlight projects require runtime video input; current provider filewise generator is guarded from downgrading this to JSON records.\"\n      },\n      \"telegram\": {\n        \"requested\": false,\n        \"executed\": false\n      },\n      \"api_summary\": {\n        \"requested\": true,\n        \"executed\": true,\n        \"ok\": true,\n        \"text\": \"项目需求是构建一个系统，用户输入游戏视频后，自动识别并导出高光片段为MP4格式，支持设置最小时长和灵敏度，以画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件为判断标准。\",\n        \"request_id\": \"chatcmpl-DlaxD0c0vqRQVWpRk6I7l1eNQAfha\"\n      }\n    }\n  }\n}\n",
+      "artifacts": {
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "execution_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_execution.json"
+      }
+    },
+    {
+      "id": "6e5731aeb09d48b4a63cef07d8a68d81",
+      "created_at": "2026-05-31T13:57:21.739105+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "测试管线编排完成：pass\n\n  \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_static_project_contract\",\n          \"step\": \"static_project_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_declared\",\n          \"step\": \"browser_smoke_declared\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_live\",\n          \"step\": \"browser_smoke_live\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_contract\",\n          \"step\": \"industrial_io_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_live\",\n          \"step\": \"industrial_io_live\",\n          \"on_fail\": \"block\"\n        }\n      ],\n      \"runner\": {\n        \"flow\": \"flow.modular_project_testing@1\",\n        \"command\": \"python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json\"\n      }\n    }\n  },\n  \"test_graph\": {\n    \"kind\": \"TestGraph\",\n    \"created_at\": \"2026-05-31T13:57:21.705501+00:00\",\n    \"payload\": {\n      \"nodes\": [\n        \"goal\",\n        \"contract_catalog\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"local_runtime_artifacts\",\n        \"generated_static_browser\",\n        \"local_browser_runtime\",\n        \"industrial_io_fixtures\",\n        \"schema_validation\",\n        \"contract_compile\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"runtime_artifact_inspection\",\n        \"static_project_contract\",\n        \"browser_smoke_declared\",\n        \"browser_smoke_live\",\n        \"industrial_io_contract\",\n        \"industrial_io_live\",\n        \"schema_validation\",\n        \"contract_compile\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"runtime_artifact_inspection\",\n        \"static_project_contract\",\n        \"browser_smoke_declared\",\n        \"browser_smoke_live\",\n        \"industrial_io_contract\",\n        \"industrial_io_live\"\n      ],\n      \"edges\": [\n        [\n          \"goal\",\n          \"contract_catalog\"\n        ],\n        [\n          \"goal\",\n          \"module_smoke\"\n        ],\n        [\n          \"goal\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"goal\",\n          \"local_runtime_artifacts\"\n        ],\n        [\n          \"goal\",\n          \"generated_static_browser\"\n        ],\n        [\n          \"goal\",\n          \"local_browser_runtime\"\n        ],\n        [\n          \"goal\",\n          \"industrial_io_fixtures\"\n        ],\n        [\n          \"contract_catalog\",\n          \"schema_validation\"\n        ],\n        [\n          \"contract_catalog\",\n          \"contract_compile\"\n        ],\n        [\n          \"module_smoke\",\n          \"module_smoke\"\n        ],\n        [\n          \"connectivity_live_probe\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"local_runtime_artifacts\",\n          \"runtime_artifact_inspection\"\n        ],\n        [\n          \"generated_static_browser\",\n          \"static_project_contract\"\n        ],\n        [\n          \"generated_static_browser\",\n          \"browser_smoke_declared\"\n        ],\n        [\n          \"local_browser_runtime\",\n          \"browser_smoke_live\"\n        ],\n        [\n          \"local_browser_runtime\",\n          \"industrial_io_live\"\n        ],\n        [\n          \"industrial_io_fixtures\",\n          \"industrial_io_contract\"\n        ],\n        [\n          \"industrial_io_fixtures\",\n          \"industrial_io_live\"\n        ],\n        [\n          \"schema_validation\",\n          \"schema_validation\"\n        ],\n        [\n          \"contract_compile\",\n          \"contract_compile\"\n        ],\n        [\n          \"module_smoke\",\n          \"module_smoke\"\n        ],\n        [\n          \"connectivity_live_probe\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"runtime_artifact_inspection\",\n          \"runtime_artifact_inspection\"\n        ],\n        [\n          \"static_project_contract\",\n          \"static_project_contract\"\n        ],\n        [\n          \"browser_smoke_declared\",\n          \"browser_smoke_declared\"\n        ],\n        [\n          \"browser_smoke_live\",\n          \"browser_smoke_live\"\n        ],\n        [\n          \"industrial_io_contract\",\n          \"industrial_io_contract\"\n        ],\n        [\n          \"industrial_io_live\",\n          \"industrial_io_live\"\n        ]\n      ],\n      \"coverage_targets\": [\n        \"contract_catalog\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"local_runtime_artifacts\",\n        \"generated_static_browser\",\n        \"local_browser_runtime\",\n        \"industrial_io_fixtures\"\n      ],\n      \"quality_gates\": [\n        {\n          \"id\": \"gate_schema_validation\",\n          \"step\": \"schema_validation\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_contract_compile\",\n          \"step\": \"contract_compile\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_module_smoke\",\n          \"step\": \"module_smoke\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_connectivity_live_probe\",\n          \"step\": \"connectivity_live_probe\",\n          \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_runtime_artifact_inspection\",\n          \"step\": \"runtime_artifact_inspection\",\n          \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_static_project_contract\",\n          \"step\": \"static_project_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_declared\",\n          \"step\": \"browser_smoke_declared\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_live\",\n          \"step\": \"browser_smoke_live\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_contract\",\n          \"step\": \"industrial_io_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_live\",\n          \"step\": \"industrial_io_live\",\n          \"on_fail\": \"block\"\n        }\n      ]\n    }\n  }\n}\n",
+      "artifacts": {
+        "test_composition_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_composition.json"
+      }
+    },
+    {
+      "id": "a1cf301cf75c4eb388507d3a9e418c67",
+      "created_at": "2026-05-31T13:57:32.677305+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "真实测试执行完成：pass\n\n{\n  \"kind\": \"ModularTestPipelineExecutionRun\",\n  \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n  \"test_execution_report\": {\n    \"kind\": \"TestExecutionReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"run_id\": \"telegram-gui-live-api\",\n      \"status\": \"pass\",\n      \"target\": {\n        \"goal\": \"测试 Telegram GUI 对话生成的真实项目，包含 live API 连通和本地浏览器测试\",\n        \"workspace_root\": \"D:\\\\CGKN\",\n        \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n        \"profile\": \"full\",\n        \"run_id\": \"telegram-gui-live-api\"\n      },\n      \"steps\": [\n        {\n          \"id\": \"schema_validation\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/validate_bundle.py\",\n            \"--schema\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"REFS: OK errors=0\\nflow.local_pipeline_composition@1: OK errors=0\\nflow.local_pipeline_execution@1: OK errors=0\\nflow.modular_project_generation@1: OK errors=0\\nflow.modular_project_testing@1: OK errors=0\\nflow.project_generation@1: OK errors=0\\nflow.project_refactor@1: OK errors=0\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"contract_compile\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/validate_bundle.py\",\n            \"--flow\",\n            \"flow.modular_project_testing@1\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"SCHEMA: schema validation skipped; pass --schema to enable optional jsonschema checks\\nREFS: OK errors=0\\nflow.modular_project_testing@1: OK errors=0\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"module_smoke\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/test_modular_modules.py\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"MODULE_SMOKE: OK modules=11\\nresult=D:\\\\CGKN\\\\examples\\\\test_results\\\\modular_project_generation_module_test_result.json\\nrun_dir=D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\modular-project-generation-smoke\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"connectivity_live_probe\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/check_connectivity.py\",\n            \"--live\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"CONNECTIVITY: OK\\napi=connected\\ntelegram=connected\\nresult=D:\\\\CGKN\\\\examples\\\\test_results\\\\connectivity_check_result.json\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"runtime_artifact_inspection\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"run_dir\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"static_project_contract\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"browser_smoke_declared\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"browser_smoke_live\",\n          \"kind\": \"browser\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"result\": {\n            \"status\": \"pass\",\n            \"candidates\": 25,\n            \"topScore\": 63\n          },\n          \"duration_ms\": 389,\n          \"failures\": []\n        },\n        {\n          \"id\": \"industrial_io_contract\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"industrial_io_live\",\n          \"kind\": \"browser\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"result\": {\n            \"status\": \"pass\",\n            \"input\": \"GameVideoFile\",\n            \"visibleCount\": 25\n          },\n          \"duration_ms\": 136,\n          \"failures\": []\n        }\n      ],\n      \"failures\": [],\n      \"warnings\": []\n    }\n  },\n  \"validation_report\": {\n    \"kind\": \"ValidationReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"passed\": true,\n      \"failures\": [],\n      \"warnings\": [],\n      \"step_count\": 10\n    }\n  },\n  \"effect_report\": {\n    \"kind\": \"EffectReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"verdict\": \"pass\",\n      \"summary\": \"Executed modular test pipeline with local deterministic checks and live API probes when declared.\",\n      \"fs_read\": [\n        \"scripts/**\",\n        \"examples/**\",\n        \"generated/**\",\n        \"schemas/**\"\n      ],\n      \"fs_write\": [\n        \"D:\\\\CGKN\\\\examples\\\\test_results\\\\telegram_dialogue_runs\\\\telegram-20260531-215708-f1d5d2_test_execution.json\",\n        \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2_tests\"\n      ],\n      \"network\": \"enabled\",\n      \"provider\": \"enabled for live connectivity probes\",\n      \"api_steps\": [\n        \"connectivity_live_probe\"\n      ]\n    }\n  }\n}\n",
+      "artifacts": {
+        "test_execution_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_execution.json",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2"
+      }
+    }
+  ],
+  "artifacts": {
+    "api_connection": {
+      "ok": true,
+      "api_status": "connected",
+      "overall_status": "pass",
+      "command": {
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/check_connectivity.py",
+          "--live"
+        ],
+        "returncode": 0,
+        "duration_seconds": 2.91,
+        "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+        "stderr": "",
+        "status": "pass"
+      },
+      "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+    },
+    "last_api_reply": {
+      "ok": true,
+      "request_id": "chatcmpl-Dlax7YB3Wf6jxZytlT6PXnxnC0kwR",
+      "endpoint": "https://api.gptsapi.net/chat/completions",
+      "model": "gpt-4o-mini",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "pass",
+          "duration_seconds": 3.47
+        }
+      ]
+    },
+    "goal_source": "telegram_transcript",
+    "composition_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_composition.json",
+    "requirement_blueprint_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_requirement_blueprint.json",
+    "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+    "runtime_dir": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2",
+    "test_composition_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_composition.json",
+    "test_execution_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_execution.json",
+    "generation_command": {
+      "command": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_local_pipeline.py",
+        "--plan",
+        "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_composition.json",
+        "--out-dir",
+        "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "--run-dir",
+        "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2",
+        "--result-path",
+        "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_execution.json",
+        "--timeout",
+        "420",
+        "--json"
+      ],
+      "returncode": 0,
+      "duration_seconds": 4.31,
+      "stdout": "{\n  \"kind\": \"RuntimeExecutionResult\",\n  \"payload\": {\n    \"run_id\": \"telegram_telegram-20260531-215708-f1d5d2\",\n    \"status\": \"pass\",\n    \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n    \"artifacts_dir\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\",\n    \"outputs\": {\n      \"requirement_blueprint\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\requirement_blueprint.json\",\n      \"requirement_blueprint_outputs\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\requirement_blueprint_outputs\",\n      \"project_blueprint\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\project_blueprint.json\",\n      \"generation_trace\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\generation_trace.json\",\n      \"subpipeline_plan\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\subpipeline_plan.json\",\n      \"subpipeline_results\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\subpipeline_results.json\",\n      \"self_test_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\self_test_report.json\",\n      \"quality_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\quality_report.json\",\n      \"adversarial_review\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\adversarial_review.json\",\n      \"test_graph\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\test_graph.json\",\n      \"effect_report\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\\\\artifacts\\\\effect_report.json\"\n    },\n    \"external_approvals\": {\n      \"network_allowed\": true,\n      \"provider_allowed\": true,\n      \"api\": {\n        \"requested\": true,\n        \"executed\": false,\n        \"blocked\": \"requires --allow-network --allow-provider --use-api\",\n        \"purpose\": \"project_generation\",\n        \"provider\": \"local_video_project_template\",\n        \"mode\": \"video_runtime_contract_guard\",\n        \"network\": false,\n        \"provider_call\": false,\n        \"reason\": \"Game-video highlight projects require runtime video input; current provider filewise generator is guarded from downgrading this to JSON records.\"\n      },\n      \"telegram\": {\n        \"requested\": false,\n        \"executed\": false\n      },\n      \"api_summary\": {\n        \"requested\": true,\n        \"executed\": true,\n        \"ok\": true,\n        \"text\": \"项目需求是构建一个系统，用户输入游戏视频后，自动识别并导出高光片段为MP4格式，支持设置最小时长和灵敏度，以画面变化、动作强度、音频峰值、语音/字幕关键词和连续事件为判断标准。\",\n        \"request_id\": \"chatcmpl-DlaxD0c0vqRQVWpRk6I7l1eNQAfha\"\n      }\n    }\n  }\n}\n",
+      "stderr": "",
+      "status": "pass"
+    },
+    "execution_path": "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_execution.json",
+    "test_composition_command": {
+      "command": [
+        "D:\\anaconda\\python.exe",
+        "scripts/compose_test_pipeline.py",
+        "--goal",
+        "测试 Telegram GUI 对话生成的真实项目，包含 live API 连通和本地浏览器测试",
+        "--project-dir",
+        "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "--profile",
+        "full",
+        "--live-browser",
+        "--run-dir",
+        "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2",
+        "--out",
+        "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_composition.json",
+        "--json"
+      ],
+      "returncode": 0,
+      "duration_seconds": 0.15,
+      "stdout": "  \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_static_project_contract\",\n          \"step\": \"static_project_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_declared\",\n          \"step\": \"browser_smoke_declared\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_live\",\n          \"step\": \"browser_smoke_live\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_contract\",\n          \"step\": \"industrial_io_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_live\",\n          \"step\": \"industrial_io_live\",\n          \"on_fail\": \"block\"\n        }\n      ],\n      \"runner\": {\n        \"flow\": \"flow.modular_project_testing@1\",\n        \"command\": \"python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json\"\n      }\n    }\n  },\n  \"test_graph\": {\n    \"kind\": \"TestGraph\",\n    \"created_at\": \"2026-05-31T13:57:21.705501+00:00\",\n    \"payload\": {\n      \"nodes\": [\n        \"goal\",\n        \"contract_catalog\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"local_runtime_artifacts\",\n        \"generated_static_browser\",\n        \"local_browser_runtime\",\n        \"industrial_io_fixtures\",\n        \"schema_validation\",\n        \"contract_compile\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"runtime_artifact_inspection\",\n        \"static_project_contract\",\n        \"browser_smoke_declared\",\n        \"browser_smoke_live\",\n        \"industrial_io_contract\",\n        \"industrial_io_live\",\n        \"schema_validation\",\n        \"contract_compile\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"runtime_artifact_inspection\",\n        \"static_project_contract\",\n        \"browser_smoke_declared\",\n        \"browser_smoke_live\",\n        \"industrial_io_contract\",\n        \"industrial_io_live\"\n      ],\n      \"edges\": [\n        [\n          \"goal\",\n          \"contract_catalog\"\n        ],\n        [\n          \"goal\",\n          \"module_smoke\"\n        ],\n        [\n          \"goal\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"goal\",\n          \"local_runtime_artifacts\"\n        ],\n        [\n          \"goal\",\n          \"generated_static_browser\"\n        ],\n        [\n          \"goal\",\n          \"local_browser_runtime\"\n        ],\n        [\n          \"goal\",\n          \"industrial_io_fixtures\"\n        ],\n        [\n          \"contract_catalog\",\n          \"schema_validation\"\n        ],\n        [\n          \"contract_catalog\",\n          \"contract_compile\"\n        ],\n        [\n          \"module_smoke\",\n          \"module_smoke\"\n        ],\n        [\n          \"connectivity_live_probe\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"local_runtime_artifacts\",\n          \"runtime_artifact_inspection\"\n        ],\n        [\n          \"generated_static_browser\",\n          \"static_project_contract\"\n        ],\n        [\n          \"generated_static_browser\",\n          \"browser_smoke_declared\"\n        ],\n        [\n          \"local_browser_runtime\",\n          \"browser_smoke_live\"\n        ],\n        [\n          \"local_browser_runtime\",\n          \"industrial_io_live\"\n        ],\n        [\n          \"industrial_io_fixtures\",\n          \"industrial_io_contract\"\n        ],\n        [\n          \"industrial_io_fixtures\",\n          \"industrial_io_live\"\n        ],\n        [\n          \"schema_validation\",\n          \"schema_validation\"\n        ],\n        [\n          \"contract_compile\",\n          \"contract_compile\"\n        ],\n        [\n          \"module_smoke\",\n          \"module_smoke\"\n        ],\n        [\n          \"connectivity_live_probe\",\n          \"connectivity_live_probe\"\n        ],\n        [\n          \"runtime_artifact_inspection\",\n          \"runtime_artifact_inspection\"\n        ],\n        [\n          \"static_project_contract\",\n          \"static_project_contract\"\n        ],\n        [\n          \"browser_smoke_declared\",\n          \"browser_smoke_declared\"\n        ],\n        [\n          \"browser_smoke_live\",\n          \"browser_smoke_live\"\n        ],\n        [\n          \"industrial_io_contract\",\n          \"industrial_io_contract\"\n        ],\n        [\n          \"industrial_io_live\",\n          \"industrial_io_live\"\n        ]\n      ],\n      \"coverage_targets\": [\n        \"contract_catalog\",\n        \"module_smoke\",\n        \"connectivity_live_probe\",\n        \"local_runtime_artifacts\",\n        \"generated_static_browser\",\n        \"local_browser_runtime\",\n        \"industrial_io_fixtures\"\n      ],\n      \"quality_gates\": [\n        {\n          \"id\": \"gate_schema_validation\",\n          \"step\": \"schema_validation\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_contract_compile\",\n          \"step\": \"contract_compile\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_module_smoke\",\n          \"step\": \"module_smoke\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_connectivity_live_probe\",\n          \"step\": \"connectivity_live_probe\",\n          \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_runtime_artifact_inspection\",\n          \"step\": \"runtime_artifact_inspection\",\n          \"on_fail\": \"warn\"\n        },\n        {\n          \"id\": \"gate_static_project_contract\",\n          \"step\": \"static_project_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_declared\",\n          \"step\": \"browser_smoke_declared\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_browser_smoke_live\",\n          \"step\": \"browser_smoke_live\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_contract\",\n          \"step\": \"industrial_io_contract\",\n          \"on_fail\": \"block\"\n        },\n        {\n          \"id\": \"gate_industrial_io_live\",\n          \"step\": \"industrial_io_live\",\n          \"on_fail\": \"block\"\n        }\n      ]\n    }\n  }\n}\n",
+      "stderr": "",
+      "status": "pass"
+    },
+    "test_execution_command": {
+      "command": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_test_pipeline.py",
+        "--plan",
+        "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_composition.json",
+        "--run-dir",
+        "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2_tests",
+        "--result-path",
+        "D:\\CGKN\\examples\\test_results\\telegram_dialogue_runs\\telegram-20260531-215708-f1d5d2_test_execution.json",
+        "--json"
+      ],
+      "returncode": 0,
+      "duration_seconds": 10.91,
+      "stdout": "{\n  \"kind\": \"ModularTestPipelineExecutionRun\",\n  \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n  \"test_execution_report\": {\n    \"kind\": \"TestExecutionReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"run_id\": \"telegram-gui-live-api\",\n      \"status\": \"pass\",\n      \"target\": {\n        \"goal\": \"测试 Telegram GUI 对话生成的真实项目，包含 live API 连通和本地浏览器测试\",\n        \"workspace_root\": \"D:\\\\CGKN\",\n        \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n        \"profile\": \"full\",\n        \"run_id\": \"telegram-gui-live-api\"\n      },\n      \"steps\": [\n        {\n          \"id\": \"schema_validation\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/validate_bundle.py\",\n            \"--schema\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"REFS: OK errors=0\\nflow.local_pipeline_composition@1: OK errors=0\\nflow.local_pipeline_execution@1: OK errors=0\\nflow.modular_project_generation@1: OK errors=0\\nflow.modular_project_testing@1: OK errors=0\\nflow.project_generation@1: OK errors=0\\nflow.project_refactor@1: OK errors=0\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"contract_compile\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/validate_bundle.py\",\n            \"--flow\",\n            \"flow.modular_project_testing@1\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"SCHEMA: schema validation skipped; pass --schema to enable optional jsonschema checks\\nREFS: OK errors=0\\nflow.modular_project_testing@1: OK errors=0\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"module_smoke\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/test_modular_modules.py\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"MODULE_SMOKE: OK modules=11\\nresult=D:\\\\CGKN\\\\examples\\\\test_results\\\\modular_project_generation_module_test_result.json\\nrun_dir=D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\modular-project-generation-smoke\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"connectivity_live_probe\",\n          \"kind\": \"command\",\n          \"command\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"scripts/check_connectivity.py\",\n            \"--live\"\n          ],\n          \"status\": \"pass\",\n          \"returncode\": 0,\n          \"stdout\": \"CONNECTIVITY: OK\\napi=connected\\ntelegram=connected\\nresult=D:\\\\CGKN\\\\examples\\\\test_results\\\\connectivity_check_result.json\\n\",\n          \"stderr\": \"\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"runtime_artifact_inspection\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"run_dir\": \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"static_project_contract\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"browser_smoke_declared\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"browser_smoke_live\",\n          \"kind\": \"browser\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"result\": {\n            \"status\": \"pass\",\n            \"candidates\": 25,\n            \"topScore\": 63\n          },\n          \"duration_ms\": 389,\n          \"failures\": []\n        },\n        {\n          \"id\": \"industrial_io_contract\",\n          \"kind\": \"internal\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"failures\": []\n        },\n        {\n          \"id\": \"industrial_io_live\",\n          \"kind\": \"browser\",\n          \"status\": \"pass\",\n          \"project_dir\": \"D:\\\\CGKN\\\\generated\\\\telegram_telegram-20260531-215708-f1d5d2\",\n          \"result\": {\n            \"status\": \"pass\",\n            \"input\": \"GameVideoFile\",\n            \"visibleCount\": 25\n          },\n          \"duration_ms\": 136,\n          \"failures\": []\n        }\n      ],\n      \"failures\": [],\n      \"warnings\": []\n    }\n  },\n  \"validation_report\": {\n    \"kind\": \"ValidationReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"passed\": true,\n      \"failures\": [],\n      \"warnings\": [],\n      \"step_count\": 10\n    }\n  },\n  \"effect_report\": {\n    \"kind\": \"EffectReport\",\n    \"created_at\": \"2026-05-31T13:57:32.621251+00:00\",\n    \"payload\": {\n      \"verdict\": \"pass\",\n      \"summary\": \"Executed modular test pipeline with local deterministic checks and live API probes when declared.\",\n      \"fs_read\": [\n        \"scripts/**\",\n        \"examples/**\",\n        \"generated/**\",\n        \"schemas/**\"\n      ],\n      \"fs_write\": [\n        \"D:\\\\CGKN\\\\examples\\\\test_results\\\\telegram_dialogue_runs\\\\telegram-20260531-215708-f1d5d2_test_execution.json\",\n        \"D:\\\\CGKN\\\\examples\\\\runtime_runs\\\\telegram_telegram-20260531-215708-f1d5d2_tests\"\n      ],\n      \"network\": \"enabled\",\n      \"provider\": \"enabled for live connectivity probes\",\n      \"api_steps\": [\n        \"connectivity_live_probe\"\n      ]\n    }\n  }\n}\n",
+      "stderr": "",
+      "status": "pass"
+    },
+    "active_generation_job": {
+      "job_id": "60cda087016d4f779bef29387f8bb7c1",
+      "kind": "project_generation_and_test",
+      "status": "pass",
+      "finished_at": "2026-05-31T13:57:32.695127+00:00"
+    }
+  },
+  "last_save_reason": "session_created"
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "streamer": "GamerX",
+    "game": "Valorant",
+    "category": "Clutch Play",
+    "timestamp": "2023-10-01T14:23:45Z",
+    "title": "Epic 1v4 Clutch",
+    "description": "Streamer clutched a 1v4 situation with precise aim and strategy.",
+    "intensity": 9.5,
+    "chatRate": 120,
+    "keywords": ["clutch", "1v4", "Valorant", "intense"],
+    "score": 95
+  },
+  {
+    "streamer": "ProGamer",
+    "game": "League of Legends",
+    "category": "Teamfight",
+    "timestamp": "2023-10-01T16:45:12Z",
+    "title": "Pentakill in Ranked",
+    "description": "Streamer secured a pentakill during a critical ranked match.",
+    "intensity": 9.8,
+    "chatRate": 150,
+    "keywords": ["pentakill", "teamfight", "ranked", "LoL"],
+    "score": 98
+  },
+  {
+    "streamer": "SpeedRunner",
+    "game": "Super Mario Odyssey",
+    "category": "Speedrun",
+    "timestamp": "2023-10-01T18:12:30Z",
+    "title": "New World Record!",
+    "description": "Streamer set a new world record for the Any% category.",
+    "intensity": 10,
+    "chatRate": 200,
+    "keywords": ["speedrun", "world record", "Super Mario Odyssey"],
+    "score": 100
+  },
+  {
+    "streamer": "FPSKing",
+    "game": "Call of Duty: Warzone",
+    "category": "High Kill Game",
+    "timestamp": "2023-10-01T20:05:50Z",
+    "title": "30 Bomb Victory",
+    "description": "Streamer achieved 30 kills in a single Warzone match.",
+    "intensity": 9.7,
+    "chatRate": 140,
+    "keywords": ["high kill", "Warzone", "victory", "FPS"],
+    "score": 97
+  },
+  {
+    "streamer": "RPGMaster",
+    "game": "Elden Ring",
+    "category": "Boss Fight",
+    "timestamp": "2023-10-01T22:30:15Z",
+    "title": "Defeating Malenia",
+    "description": "Streamer defeated Malenia, Blade of Miquella, after 50 attempts.",
+    "intensity": 9.2,
+    "chatRate": 110,
+    "keywords": ["boss fight", "Elden Ring", "Malenia", "RPG"],
+    "score": 92
+  },
+  {
+    "streamer": "BuilderBob",
+    "game": "Minecraft",
+    "category": "Creative Build",
+    "timestamp": "2023-10-02T01:15:00Z",
+    "title": "Massive Castle Build",
+    "description": "Streamer completed a massive castle build in survival mode.",
+    "intensity": 8.5,
+    "chatRate": 90,
+    "keywords": ["Minecraft", "castle", "creative", "build"],
+    "score": 85
+  },
+  {
+    "streamer": "BattleRoyaleQueen",
+    "game": "Fortnite",
+    "category": "Victory Royale",
+    "timestamp": "2023-10-02T03:45:20Z",
+    "title": "Solo Victory Royale",
+    "description": "Streamer secured a solo Victory Royale with a trick shot.",
+    "intensity": 9.0,
+    "chatRate": 100,
+    "keywords": ["Fortnite", "Victory Royale", "trick shot", "solo"],
+    "score": 90
+  },
+  {
+    "streamer": "RetroGamer",
+    "game": "The Legend of Zelda: Ocarina of Time",
+    "category": "Speedrun",
+    "timestamp": "2023-10-02T05:30:45Z",
+    "title": "Sub 20 Minute Run",
+    "description": "Streamer completed a sub-20-minute Any% speedrun.",
+    "intensity": 9.6,
+    "chatRate": 130,
+    "keywords": ["speedrun", "Zelda", "Ocarina of Time", "record"],
+    "score": 96
+  }
+]

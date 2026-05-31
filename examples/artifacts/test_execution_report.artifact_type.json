@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.test_execution_report",
+  "version": "1",
+  "type_name": "TestExecutionReport",
+  "schema_ref": "schemas/test_execution_report.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "status", "steps", "failures"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "modular_project_testing_v1",
+    "ref": "artifact.test_execution_report@1",
+    "purpose": "Observed result of executing an agent-composed modular test pipeline."
+  }
+}

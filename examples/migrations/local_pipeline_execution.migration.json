@@ -1,0 +1,33 @@
+{
+  "kind": "MigrationSpec",
+  "id": "migration.local_pipeline_execution",
+  "version": "1",
+  "legacy": {
+    "source": "pipeline plan only",
+    "mode": "local_runtime_execution"
+  },
+  "target": {
+    "flow": "flow.local_pipeline_execution@1",
+    "modules": [
+      "module.local.runtime_executor@1"
+    ]
+  },
+  "preserve": {
+    "local_default": true,
+    "explicit_external_approval": true,
+    "runtime_artifact_outputs": true
+  },
+  "allowed_changes": {
+    "materialize_generated_project": true,
+    "write_runtime_artifacts": true
+  },
+  "denied_changes": {
+    "implicit_network_call": true,
+    "implicit_provider_call": true,
+    "secret_persistence": true
+  },
+  "proof": {
+    "compiler": "scripts/validate_bundle.py",
+    "required_command": "python scripts/validate_bundle.py --flow flow.local_pipeline_execution@1 --schema"
+  }
+}

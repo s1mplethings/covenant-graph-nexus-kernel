@@ -1,0 +1,62 @@
+{
+  "project_type": {
+    "value": "game_video_highlight_finder",
+    "source_type": "inferred",
+    "confidence": 0.9
+  },
+  "business_goal": {
+    "value": "Build a runnable tool that accepts one arbitrary game video, detects highlight moments with multiple signals, and exports MP4 highlight clips plus an explainable timeline.",
+    "source_type": "explicit",
+    "confidence": 0.95
+  },
+  "target_users": {
+    "value": [
+      "content_editor",
+      "streamer_operator",
+      "game_video_creator"
+    ],
+    "source_type": "inferred",
+    "confidence": 0.82
+  },
+  "scenarios": [
+    {
+      "value": "User selects one local gameplay video file.",
+      "source_type": "explicit",
+      "confidence": 0.96
+    },
+    {
+      "value": "System analyzes visual motion, audio peaks, speech/subtitle keywords, and dense event windows.",
+      "source_type": "explicit",
+      "confidence": 0.92
+    },
+    {
+      "value": "User reviews ranked highlight candidates and exports separate MP4 clips.",
+      "source_type": "explicit",
+      "confidence": 0.9
+    }
+  ],
+  "pain_points": [
+    {
+      "value": "Manual highlight finding requires repeatedly scrubbing through long gameplay footage.",
+      "source_type": "inferred",
+      "confidence": 0.86
+    },
+    {
+      "value": "Single-signal detection misses highlights when the excitement is visual, audio, or language-only.",
+      "source_type": "inferred",
+      "confidence": 0.84
+    },
+    {
+      "value": "Editors need tunable sensitivity and minimum duration instead of fixed clip rules.",
+      "source_type": "explicit",
+      "confidence": 0.86
+    }
+  ],
+  "scope_boundary": [
+    {
+      "value": "V1 runs locally with one uploaded/selected game video at a time; it produces ranked candidates, MP4 clips or a cut manifest, and an analysis report.",
+      "source_type": "assumed",
+      "confidence": 0.8
+    }
+  ]
+}

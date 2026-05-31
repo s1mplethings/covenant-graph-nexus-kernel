@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Task Board</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">CGNK generated project</p>
+      <h1>Local Task Board</h1>
+    </div>
+    <button id="addSeed" type="button">Add sample</button>
+  </header>
+  <main class="board" aria-label="Task board">
+    <section class="lane" data-status="todo">
+      <h2>Todo</h2>
+      <div class="cards" id="todo"></div>
+    </section>
+    <section class="lane" data-status="doing">
+      <h2>Doing</h2>
+      <div class="cards" id="doing"></div>
+    </section>
+    <section class="lane" data-status="done">
+      <h2>Done</h2>
+      <div class="cards" id="done"></div>
+    </section>
+  </main>
+  <form class="composer" id="taskForm">
+    <input id="taskTitle" name="taskTitle" autocomplete="off" placeholder="Task title" required>
+    <select id="taskStatus" name="taskStatus">
+      <option value="todo">Todo</option>
+      <option value="doing">Doing</option>
+      <option value="done">Done</option>
+    </select>
+    <button type="submit">Create</button>
+  </form>
+  <script>
+    window.CGNK_PROJECT_GOAL = "我要做一个本地任务看板项目：用户从客服入口提出需求，本地 librarian 查找可用模块，本地 agent 规划生成流程，对抗审查后生成项目蓝图、测试图和效果报告，最后可以通过 API 生成内容并通过 Telegram 交付结果";
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

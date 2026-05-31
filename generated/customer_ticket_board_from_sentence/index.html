@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Task Board</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">CGNK generated project</p>
+      <h1>Local Task Board</h1>
+    </div>
+    <button id="addSeed" type="button">Add sample</button>
+  </header>
+  <main class="board" aria-label="Task board">
+    <section class="lane" data-status="todo">
+      <h2>Todo</h2>
+      <div class="cards" id="todo"></div>
+    </section>
+    <section class="lane" data-status="doing">
+      <h2>Doing</h2>
+      <div class="cards" id="doing"></div>
+    </section>
+    <section class="lane" data-status="done">
+      <h2>Done</h2>
+      <div class="cards" id="done"></div>
+    </section>
+  </main>
+  <form class="composer" id="taskForm">
+    <input id="taskTitle" name="taskTitle" autocomplete="off" placeholder="Task title" required>
+    <select id="taskStatus" name="taskStatus">
+      <option value="todo">Todo</option>
+      <option value="doing">Doing</option>
+      <option value="done">Done</option>
+    </select>
+    <button type="submit">Create</button>
+  </form>
+  <script>
+    window.CGNK_PROJECT_GOAL = "给我做一个本地客户工单看板 客服澄清信息： - acceptance: 输出项目蓝图、生成过程、测试图、效果报告，并生成可打开的本地项目。 生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。";
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>

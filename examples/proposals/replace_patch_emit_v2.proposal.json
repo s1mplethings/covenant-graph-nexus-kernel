@@ -1,0 +1,18 @@
+{
+  "kind": "GraphEditProposal",
+  "id": "proposal.replace_patch_emit_v2",
+  "target_flow": "flow.project_generation@1",
+  "edits": [
+    {
+      "op": "replace_node",
+      "target_node": "n_emit_patch",
+      "replacement": {
+        "id": "n_emit_patch",
+        "uses": "module.patch.emit@1"
+      }
+    }
+  ],
+  "rationale": {
+    "machine_summary": "Replacement keeps same node id and same surface to avoid rewiring."
+  }
+}

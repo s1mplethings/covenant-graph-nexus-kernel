@@ -1,0 +1,129 @@
+{
+  "kind": "TestExecutionReport",
+  "created_at": "2026-05-31T13:57:32.621251+00:00",
+  "payload": {
+    "run_id": "telegram-gui-live-api",
+    "status": "pass",
+    "target": {
+      "goal": "测试 Telegram GUI 对话生成的真实项目，包含 live API 连通和本地浏览器测试",
+      "workspace_root": "D:\\CGKN",
+      "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+      "profile": "full",
+      "run_id": "telegram-gui-live-api"
+    },
+    "steps": [
+      {
+        "id": "schema_validation",
+        "kind": "command",
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/validate_bundle.py",
+          "--schema"
+        ],
+        "status": "pass",
+        "returncode": 0,
+        "stdout": "REFS: OK errors=0\nflow.local_pipeline_composition@1: OK errors=0\nflow.local_pipeline_execution@1: OK errors=0\nflow.modular_project_generation@1: OK errors=0\nflow.modular_project_testing@1: OK errors=0\nflow.project_generation@1: OK errors=0\nflow.project_refactor@1: OK errors=0\n",
+        "stderr": "",
+        "failures": []
+      },
+      {
+        "id": "contract_compile",
+        "kind": "command",
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/validate_bundle.py",
+          "--flow",
+          "flow.modular_project_testing@1"
+        ],
+        "status": "pass",
+        "returncode": 0,
+        "stdout": "SCHEMA: schema validation skipped; pass --schema to enable optional jsonschema checks\nREFS: OK errors=0\nflow.modular_project_testing@1: OK errors=0\n",
+        "stderr": "",
+        "failures": []
+      },
+      {
+        "id": "module_smoke",
+        "kind": "command",
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/test_modular_modules.py"
+        ],
+        "status": "pass",
+        "returncode": 0,
+        "stdout": "MODULE_SMOKE: OK modules=11\nresult=D:\\CGKN\\examples\\test_results\\modular_project_generation_module_test_result.json\nrun_dir=D:\\CGKN\\examples\\runtime_runs\\modular-project-generation-smoke\n",
+        "stderr": "",
+        "failures": []
+      },
+      {
+        "id": "connectivity_live_probe",
+        "kind": "command",
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/check_connectivity.py",
+          "--live"
+        ],
+        "status": "pass",
+        "returncode": 0,
+        "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+        "stderr": "",
+        "failures": []
+      },
+      {
+        "id": "runtime_artifact_inspection",
+        "kind": "internal",
+        "status": "pass",
+        "run_dir": "D:\\CGKN\\examples\\runtime_runs\\telegram_telegram-20260531-215708-f1d5d2",
+        "failures": []
+      },
+      {
+        "id": "static_project_contract",
+        "kind": "internal",
+        "status": "pass",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "failures": []
+      },
+      {
+        "id": "browser_smoke_declared",
+        "kind": "internal",
+        "status": "pass",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "failures": []
+      },
+      {
+        "id": "browser_smoke_live",
+        "kind": "browser",
+        "status": "pass",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "result": {
+          "status": "pass",
+          "candidates": 25,
+          "topScore": 63
+        },
+        "duration_ms": 389,
+        "failures": []
+      },
+      {
+        "id": "industrial_io_contract",
+        "kind": "internal",
+        "status": "pass",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "failures": []
+      },
+      {
+        "id": "industrial_io_live",
+        "kind": "browser",
+        "status": "pass",
+        "project_dir": "D:\\CGKN\\generated\\telegram_telegram-20260531-215708-f1d5d2",
+        "result": {
+          "status": "pass",
+          "input": "GameVideoFile",
+          "visibleCount": 25
+        },
+        "duration_ms": 136,
+        "failures": []
+      }
+    ],
+    "failures": [],
+    "warnings": []
+  }
+}

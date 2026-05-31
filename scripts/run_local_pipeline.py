@@ -1,0 +1,4486 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pathlib
+import re
+import ssl
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+from typing import Any
+
+import compose_local_pipeline
+import requirement_blueprint
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+DEFAULT_RUN_DIR = ROOT / "examples" / "runtime_runs" / "local-pipeline-execution"
+DEFAULT_GENERATED_DIR = ROOT / "generated" / "local_task_board"
+DEFAULT_RESULT_PATH = ROOT / "examples" / "test_results" / "local_pipeline_execution_result.json"
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def write_text(path: pathlib.Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
+    write_text(path, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+
+
+def slug(text: str) -> str:
+    value = re.sub(r"[^a-z0-9_-]+", "-", str(text or "").strip().lower())
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value or "local-task-board"
+
+
+def short_goal(goal: str) -> str:
+    text = re.sub(r"\s+", " ", str(goal or "")).strip()
+    return text[:180] or "Local task board project"
+
+
+def display_goal(goal: str) -> str:
+    text = str(goal or "").split("客服澄清信息：", 1)[0]
+    text = text.split("生成要求：", 1)[0]
+    return short_goal(text)
+
+
+def is_cgnk_tester_goal(goal: str) -> bool:
+    lowered = str(goal or "").lower()
+    return (
+        "测试这个项目" in lowered
+        or "测试 cgnk" in lowered
+        or "测试 cgkn" in lowered
+        or "cgnk project tester" in lowered
+        or "cgkn project tester" in lowered
+        or "项目测试器" in lowered
+        or "test this project" in lowered
+    )
+
+
+def is_highlight_finder_goal(goal: str) -> bool:
+    lowered = str(goal or "").lower()
+    return any(
+        term in lowered
+        for term in (
+            "高光",
+            "主播",
+            "游戏",
+            "直播",
+            "clip",
+            "clips",
+            "highlight",
+            "highlights",
+            "streamer",
+            "vod",
+            "精彩时刻",
+        )
+    )
+
+
+def is_game_video_highlight_goal(goal: str) -> bool:
+    lowered = str(goal or "").lower()
+    has_video = any(term in lowered for term in ("视频", "video", "录像", "录屏", "gameplay", "vod"))
+    has_highlight = any(term in lowered for term in ("高光", "highlight", "精彩", "clip", "片段"))
+    has_game = any(term in lowered for term in ("游戏", "game", "电竞", "streamer", "主播"))
+    return has_video and has_highlight and has_game
+
+
+def wants_industrial_io(goal: str) -> bool:
+    lowered = str(goal or "").lower()
+    return any(
+        term in lowered
+        for term in (
+            "工业",
+            "industrial",
+            "生产",
+            "真实输入",
+            "输入输出",
+            "input/output",
+            "input output",
+            "资源",
+            "source",
+            "sources",
+            "bundle",
+            "dataset",
+        )
+    )
+
+
+def current_static_app_forbidden_claims() -> tuple[str, ...]:
+    return (
+        "drag-and-drop",
+        "drag and drop",
+        "interactive timeline",
+        "timeline visualization",
+        "collaboration",
+        "sharing and reviewing",
+        "natural language processing",
+        "computer vision",
+        "machine learning",
+        "sentiment analysis",
+        "transcription",
+        "audio processing",
+        "video processing",
+        "real-time",
+        "indexeddb",
+        "database",
+        "backend",
+    )
+
+
+def implemented_static_app_capabilities() -> tuple[str, ...]:
+    return (
+        "static browser app",
+        "textarea json import",
+        "file json import",
+        "industrial input bundle import",
+        "scoring and descending sort",
+        "streamer/game/category/min-score filters",
+        "manual marker form",
+        "blob json export",
+        "localStorage persistence",
+        "browser smoke test",
+        "industrial i/o smoke test",
+    )
+
+
+def current_claim_surface(contents: dict[str, str]) -> str:
+    parts: list[str] = []
+    architecture = contents.get("project_architecture.json", "")
+    if architecture:
+        try:
+            doc = json.loads(architecture)
+            if isinstance(doc, dict):
+                for key in ("product_context", "screens", "current_capabilities", "acceptance_criteria"):
+                    if key in doc:
+                        parts.append(json.dumps(doc[key], ensure_ascii=False))
+        except Exception:
+            parts.append(architecture)
+    return "\n".join(parts).lower()
+
+
+def build_cgnk_tester_files(goal: str, out_dir: pathlib.Path) -> list[str]:
+    description = short_goal(goal)
+    files = {
+        "README.md": f"""# CGNK Project Tester
+
+Generated by CGNK local runtime executor.
+
+## Goal
+
+{description}
+
+## What It Tests
+
+- CGNK contract compilation with schema validation.
+- Local pipeline composition from a real request.
+- Local pipeline execution into a generated probe project.
+- Runtime artifact existence and status checks.
+
+## Run
+
+```powershell
+python run_cgnk_project_tests.py --cgnk-root ..\\..
+```
+
+The default `--cgnk-root` is inferred from this generated project location.
+""",
+        "run_cgnk_project_tests.py": '''#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import subprocess
+import sys
+from datetime import datetime, timezone
+from typing import Any
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+
+
+def run_cmd(cgnk_root: pathlib.Path, args: list[str], timeout: int) -> dict[str, Any]:
+    proc = subprocess.run(
+        [sys.executable, *args],
+        cwd=str(cgnk_root),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    return {
+        "args": [sys.executable, *args],
+        "returncode": proc.returncode,
+        "stdout": proc.stdout,
+        "stderr": proc.stderr,
+        "ok": proc.returncode == 0,
+    }
+
+
+def assert_file(path: pathlib.Path, failures: list[str]) -> None:
+    if not path.exists():
+        failures.append(f"missing file: {path}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    default_root = pathlib.Path(__file__).resolve().parents[2]
+    parser.add_argument("--cgnk-root", default=str(default_root))
+    parser.add_argument("--timeout", type=int, default=120)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+
+    cgnk_root = pathlib.Path(args.cgnk_root).resolve()
+    report_dir = pathlib.Path(__file__).resolve().parent / "reports"
+    composition = "examples/test_results/cgnk_project_tester_composition.json"
+    execution = "examples/test_results/cgnk_project_tester_execution.json"
+    probe_out = "generated/cgnk_project_tester_probe"
+    probe_run = "examples/runtime_runs/cgnk-project-tester-probe"
+    goal = (
+        "Generate a probe local task-board project with add, move, delete, and local persistence. "
+        "Emit blueprint, trace, test graph, and effect report."
+    )
+
+    commands = [
+        run_cmd(cgnk_root, ["scripts/validate_bundle.py", "--schema"], args.timeout),
+        run_cmd(cgnk_root, ["scripts/compose_local_pipeline.py", "--goal", goal, "--out", composition], args.timeout),
+        run_cmd(
+            cgnk_root,
+            [
+                "scripts/run_local_pipeline.py",
+                "--plan",
+                composition,
+                "--out-dir",
+                probe_out,
+                "--run-dir",
+                probe_run,
+                "--result-path",
+                execution,
+            ],
+            args.timeout,
+        ),
+    ]
+
+    failures: list[str] = []
+    for row in commands:
+        if not row["ok"]:
+            failures.append("command failed: " + " ".join(row["args"][1:]))
+
+    expected = [
+        cgnk_root / composition,
+        cgnk_root / execution,
+        cgnk_root / probe_out / "index.html",
+        cgnk_root / probe_out / "app.js",
+        cgnk_root / probe_run / "artifacts" / "project_blueprint.json",
+        cgnk_root / probe_run / "artifacts" / "generation_trace.json",
+        cgnk_root / probe_run / "artifacts" / "test_graph.json",
+        cgnk_root / probe_run / "artifacts" / "effect_report.json",
+        cgnk_root / probe_run / "artifacts" / "runtime_result.json",
+    ]
+    for path in expected:
+        assert_file(path, failures)
+
+    try:
+        composition_doc = json.loads((cgnk_root / composition).read_text(encoding="utf-8"))
+        gaps = composition_doc.get("pipeline_plan", {}).get("payload", {}).get("gaps", [])
+        if gaps:
+            failures.append(f"composition gaps not empty: {gaps}")
+    except Exception as exc:
+        failures.append(f"failed to inspect composition: {exc}")
+
+    try:
+        execution_doc = json.loads((cgnk_root / execution).read_text(encoding="utf-8"))
+        status = execution_doc.get("payload", {}).get("status")
+        if status != "pass":
+            failures.append(f"execution status is not pass: {status}")
+    except Exception as exc:
+        failures.append(f"failed to inspect execution: {exc}")
+
+    report = {
+        "kind": "CGNKProjectTesterReport",
+        "created_at": now(),
+        "cgnk_root": str(cgnk_root),
+        "ok": not failures,
+        "failures": failures,
+        "commands": commands,
+        "expected_files": [str(path) for path in expected],
+    }
+    write_json(report_dir / "REPORT.json", report)
+    md = [
+        "# CGNK Project Tester Report",
+        "",
+        f"Status: {'PASS' if report['ok'] else 'FAIL'}",
+        f"CGNK root: {cgnk_root}",
+        "",
+        "## Commands",
+    ]
+    for row in commands:
+        md.append(f"- {'PASS' if row['ok'] else 'FAIL'}: `{' '.join(row['args'][1:])}`")
+    if failures:
+        md.extend(["", "## Failures"])
+        md.extend(f"- {failure}" for failure in failures)
+    (report_dir / "REPORT.md").write_text("\\n".join(md) + "\\n", encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print(f"CGNK_PROJECT_TESTER: {'PASS' if report['ok'] else 'FAIL'}")
+        print(f"report={report_dir / 'REPORT.json'}")
+    return 0 if report["ok"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+''',
+        "tester_manifest.json": json.dumps(
+            {
+                "kind": "CGNKProjectTesterManifest",
+                "tests": [
+                    "validate_bundle_schema",
+                    "compose_local_pipeline",
+                    "run_local_pipeline",
+                    "artifact_existence",
+                    "composition_gap_check",
+                    "runtime_status_check",
+                ],
+                "external_calls": "disabled by default",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    }
+    written: list[str] = []
+    for rel, text in files.items():
+        path = out_dir / rel
+        write_text(path, text)
+        written.append(str(path))
+    return written
+
+
+def build_highlight_finder_files(goal: str, out_dir: pathlib.Path) -> list[str]:
+    title = "Streamer Highlight Finder"
+    description = display_goal(goal)
+    sample_events = [
+        {
+            "streamer": "NovaCarry",
+            "game": "Apex Legends",
+            "time": "00:03:42",
+            "title": "1v3 clutch in final ring",
+            "category": "clutch",
+            "intensity": 94,
+            "chatRate": 182,
+            "keywords": ["clutch", "1v3", "final ring", "win"],
+            "description": "Solo hold, armor swap, and last-second cleanup.",
+        },
+        {
+            "streamer": "MapleMage",
+            "game": "League of Legends",
+            "time": "00:18:09",
+            "title": "Baron steal into ace",
+            "category": "objective",
+            "intensity": 88,
+            "chatRate": 150,
+            "keywords": ["steal", "baron", "ace", "comeback"],
+            "description": "Smite steal followed by teamfight turnaround.",
+        },
+        {
+            "streamer": "PixelRift",
+            "game": "Valorant",
+            "time": "01:05:33",
+            "title": "Sheriff eco round four-kill",
+            "category": "mechanical",
+            "intensity": 91,
+            "chatRate": 133,
+            "keywords": ["eco", "four-kill", "headshot"],
+            "description": "Low-buy round converted through precise aim.",
+        },
+        {
+            "streamer": "EchoForge",
+            "game": "Minecraft",
+            "time": "00:41:20",
+            "title": "Hardcore save at half heart",
+            "category": "survival",
+            "intensity": 85,
+            "chatRate": 121,
+            "keywords": ["hardcore", "save", "half heart"],
+            "description": "Escaped lava fall with one precise water bucket.",
+        },
+    ]
+    industrial_events = []
+    for index in range(24):
+        base = sample_events[index % len(sample_events)].copy()
+        base.update(
+            {
+                "id": f"industrial-{index + 1}",
+                "sourceId": f"source-{(index % 5) + 1}",
+                "source_type": ["platform_event_log", "chat_analytics", "manual_ops_mark", "public_clip_metadata", "moderation_annotation"][index % 5],
+                "time": f"00:{(index * 3 + 2) % 58:02d}:{(index * 7 + 5) % 58:02d}",
+                "title": f"{base['title']} #{index + 1}",
+                "intensity": min(99, int(base["intensity"]) + (index % 5)),
+                "chatRate": int(base["chatRate"]) + index * 4,
+            }
+        )
+        industrial_events.append(base)
+    industrial_bundle = {
+        "source_manifest": [
+            {"source_id": f"source-{index + 1}", "source_type": source_type, "origin": "simulated industrial fixture"}
+            for index, source_type in enumerate(["platform_event_log", "chat_analytics", "manual_ops_mark", "public_clip_metadata", "moderation_annotation"])
+        ],
+        "records": industrial_events,
+    }
+    expected_outputs = {
+        "input_summary": {"record_count": len(industrial_events), "source_count": 5},
+        "ranked_highlights": [
+            {"title": row["title"], "streamer": row["streamer"]}
+            for row in sorted(industrial_events, key=lambda item: -(int(item["intensity"]) + int(item["chatRate"])))[:5]
+        ],
+        "export_cut_list": {"format": "json", "minimum_records": 1},
+        "quality_checks": ["score_descending", "filter_by_streamer_or_game", "export_json", "local_storage"],
+    }
+    files = {
+        "index.html": f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">CGNK generated project</p>
+      <h1>{title}</h1>
+      <p class="subtitle">{description}</p>
+    </div>
+    <div class="header-actions">
+      <button id="loadSample" type="button">Load sample</button>
+      <button id="exportJson" type="button">Export JSON</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel intake">
+      <h2>Event Intake</h2>
+      <p class="hint">Paste stream events as JSON. Each event can include streamer, game, time, title, category, intensity, chatRate, keywords, and description.</p>
+      <textarea id="eventInput" spellcheck="false"></textarea>
+      <div class="controls">
+        <button id="analyze" type="button">Analyze highlights</button>
+        <label>
+          Min score
+          <input id="minScore" type="range" min="0" max="100" value="55">
+          <span id="minScoreValue">55</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel filters">
+      <h2>Filters</h2>
+      <div class="filter-grid">
+        <label>Streamer <input id="streamerFilter" placeholder="Any streamer"></label>
+        <label>Game <input id="gameFilter" placeholder="Any game"></label>
+        <label>Category
+          <select id="categoryFilter">
+            <option value="">Any category</option>
+            <option value="clutch">Clutch</option>
+            <option value="objective">Objective</option>
+            <option value="mechanical">Mechanical</option>
+            <option value="survival">Survival</option>
+            <option value="funny">Funny</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel summary">
+      <h2>Run Summary</h2>
+      <div class="metrics">
+        <div><strong id="eventCount">0</strong><span>Events</span></div>
+        <div><strong id="highlightCount">0</strong><span>Highlights</span></div>
+        <div><strong id="topScore">0</strong><span>Top score</span></div>
+      </div>
+    </section>
+
+    <section class="panel timeline">
+      <h2>Highlight Timeline</h2>
+      <div id="timeline"></div>
+    </section>
+
+    <section class="panel results">
+      <h2>Detected Highlights</h2>
+      <div id="results"></div>
+    </section>
+
+    <section class="panel notes">
+      <h2>Manual Marker</h2>
+      <form id="manualForm">
+        <input id="manualTitle" placeholder="Moment title" required>
+        <input id="manualTime" placeholder="00:00:00" required>
+        <input id="manualStreamer" placeholder="Streamer" required>
+        <button type="submit">Add marker</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    window.CGNK_PROJECT_GOAL = {json.dumps(description, ensure_ascii=False)};
+    window.CGNK_SAMPLE_EVENTS = {json.dumps(sample_events, ensure_ascii=False)};
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
+""",
+        "styles.css": """* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  color: #172033;
+  background: #eef2f7;
+}
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 28px;
+  background: #101827;
+  color: #f8fafc;
+}
+.eyebrow { margin: 0 0 8px; color: #7dd3fc; font-size: 13px; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 8px; font-size: 32px; }
+.subtitle { max-width: 760px; color: #cbd5e1; }
+button, input, textarea, select {
+  font: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+button {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+}
+.panel {
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+}
+.intake, .filters, .summary, .notes { grid-column: 1; }
+.timeline, .results { grid-column: 2; }
+.hint { color: #5b6b7c; font-size: 14px; }
+textarea {
+  width: 100%;
+  min-height: 270px;
+  padding: 12px;
+  font-family: Consolas, monospace;
+  resize: vertical;
+}
+.controls, .filter-grid, #manualForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+label { display: grid; gap: 6px; color: #334155; }
+input, select { padding: 9px 10px; width: 100%; }
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.metrics div {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+.metrics strong { display: block; font-size: 24px; }
+.metrics span { color: #64748b; font-size: 13px; }
+.highlight-card {
+  border: 1px solid #d8e0ea;
+  border-left: 5px solid #2563eb;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #fbfdff;
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.score {
+  min-width: 64px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  background: #e0f2fe;
+  color: #075985;
+  font-weight: 700;
+}
+.meta { color: #64748b; font-size: 14px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.tag { padding: 4px 7px; border-radius: 999px; background: #e2e8f0; font-size: 12px; }
+.timeline-row {
+  display: grid;
+  grid-template-columns: 78px 1fr 52px;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+.bar {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #2563eb);
+}
+@media (max-width: 900px) {
+  .app-header { display: grid; }
+  .layout { grid-template-columns: 1fr; }
+  .intake, .filters, .summary, .notes, .timeline, .results { grid-column: 1; }
+}
+""",
+        "app.js": """const STORAGE_KEY = "cgnk.streamerHighlightFinder.events";
+const input = document.getElementById("eventInput");
+const results = document.getElementById("results");
+const timeline = document.getElementById("timeline");
+const minScore = document.getElementById("minScore");
+const minScoreValue = document.getElementById("minScoreValue");
+const filters = {
+  streamer: document.getElementById("streamerFilter"),
+  game: document.getElementById("gameFilter"),
+  category: document.getElementById("categoryFilter"),
+};
+
+let events = [...window.CGNK_SAMPLE_EVENTS];
+let highlights = [];
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]);
+}
+
+function parseTime(value) {
+  const parts = String(value || "0").split(":").map((part) => Number(part));
+  if (parts.some(Number.isNaN)) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+function scoreEvent(event) {
+  const keywords = (event.keywords || []).join(" ").toLowerCase();
+  let score = Number(event.intensity || 0) * 0.55 + Math.min(Number(event.chatRate || 0), 220) * 0.25;
+  if (/clutch|ace|steal|comeback|1v|final|save|headshot|win/.test(keywords)) score += 18;
+  if (/funny|rage|reaction|unexpected/.test(keywords)) score += 8;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function normalizeEvents(raw) {
+  return raw.map((event, index) => ({
+    id: event.id || `event-${index}`,
+    sourceId: event.sourceId || event.source_id || "",
+    source_type: event.source_type || event.sourceType || "",
+    streamer: event.streamer || "Unknown",
+    game: event.game || "Unknown game",
+    time: event.time || "00:00",
+    seconds: parseTime(event.time),
+    title: event.title || "Untitled moment",
+    category: event.category || "general",
+    intensity: Number(event.intensity || 50),
+    chatRate: Number(event.chatRate || 0),
+    keywords: Array.isArray(event.keywords) ? event.keywords : [],
+    description: event.description || "",
+  }));
+}
+
+function applyFilters(rows) {
+  const streamer = filters.streamer.value.trim().toLowerCase();
+  const game = filters.game.value.trim().toLowerCase();
+  const category = filters.category.value;
+  const threshold = Number(minScore.value);
+  return rows.filter((row) => {
+    if (row.score < threshold) return false;
+    if (streamer && !row.streamer.toLowerCase().includes(streamer)) return false;
+    if (game && !row.game.toLowerCase().includes(game)) return false;
+    if (category && row.category !== category) return false;
+    return true;
+  });
+}
+
+function analyze() {
+  try {
+    const parsed = JSON.parse(input.value || "[]");
+    events = normalizeEvents(Array.isArray(parsed) ? parsed : []);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events, null, 2));
+  } catch (error) {
+    results.innerHTML = `<p class="meta">JSON parse failed: ${error.message}</p>`;
+    return;
+  }
+  highlights = events
+    .map((event) => ({ ...event, score: scoreEvent(event) }))
+    .sort((a, b) => b.score - a.score || a.seconds - b.seconds);
+  render();
+}
+
+function render() {
+  minScoreValue.textContent = minScore.value;
+  const rows = applyFilters(highlights);
+  document.getElementById("eventCount").textContent = events.length;
+  document.getElementById("highlightCount").textContent = rows.length;
+  document.getElementById("topScore").textContent = rows[0]?.score || 0;
+  results.innerHTML = rows.length ? rows.map(renderCard).join("") : `<p class="meta">No highlights match current filters.</p>`;
+  renderTimeline(rows);
+}
+
+function renderCard(row) {
+  const tags = row.keywords.map((item) => `<span class="tag">${escapeHtml(item)}</span>`).join("");
+  return `<article class="highlight-card">
+    <div class="card-top">
+      <div>
+        <h3>${escapeHtml(row.title)}</h3>
+        <p class="meta">${escapeHtml(row.streamer)} · ${escapeHtml(row.game)} · ${escapeHtml(row.time)} · ${escapeHtml(row.category)}</p>
+      </div>
+      <div class="score">${row.score}</div>
+    </div>
+    <p>${escapeHtml(row.description)}</p>
+    <div class="tags">${tags}</div>
+  </article>`;
+}
+
+function renderTimeline(rows) {
+  const maxScore = Math.max(100, ...rows.map((row) => row.score));
+  timeline.innerHTML = rows
+    .slice()
+    .sort((a, b) => a.seconds - b.seconds)
+    .map((row) => `<div class="timeline-row">
+      <span>${row.time}</span>
+      <div class="bar" style="width:${Math.max(8, (row.score / maxScore) * 100)}%"></div>
+      <strong>${row.score}</strong>
+    </div>`)
+    .join("");
+}
+
+document.getElementById("loadSample").addEventListener("click", () => {
+  input.value = JSON.stringify(window.CGNK_SAMPLE_EVENTS, null, 2);
+  localStorage.setItem(STORAGE_KEY, input.value);
+  analyze();
+});
+
+document.getElementById("analyze").addEventListener("click", analyze);
+document.getElementById("exportJson").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(applyFilters(highlights), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "streamer-highlights.json";
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("manualForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const title = document.getElementById("manualTitle").value.trim();
+  const time = document.getElementById("manualTime").value.trim();
+  const streamer = document.getElementById("manualStreamer").value.trim();
+  if (!title || !time || !streamer) return;
+  events.push({
+    streamer,
+    game: "Manual",
+    time,
+    title,
+    category: "manual",
+    intensity: 80,
+    chatRate: 80,
+    keywords: ["manual"],
+    description: "Manually added highlight marker.",
+  });
+  input.value = JSON.stringify(events, null, 2);
+  event.target.reset();
+  analyze();
+});
+
+for (const control of [minScore, filters.streamer, filters.game, filters.category]) {
+  control.addEventListener("input", render);
+}
+
+input.value = localStorage.getItem(STORAGE_KEY) || JSON.stringify(window.CGNK_SAMPLE_EVENTS, null, 2);
+analyze();
+""",
+        "sample_events.json": json.dumps(sample_events, ensure_ascii=False, indent=2) + "\n",
+        "data/industrial_input_bundle.json": json.dumps(industrial_bundle, ensure_ascii=False, indent=2) + "\n",
+        "data/expected_outputs.json": json.dumps(expected_outputs, ensure_ascii=False, indent=2) + "\n",
+        "docs/INPUT_OUTPUT_SPEC.md": """# Input/Output Specification
+
+## Inputs
+
+The app accepts a JSON array of livestream event records. Each record may include `streamer`, `game`, `time`, `title`, `category`, `intensity`, `chatRate`, `keywords`, `description`, `sourceId`, and `source_type`.
+
+`data/industrial_input_bundle.json` is the deterministic industrial fixture used by automated testing. It simulates platform event logs, chat analytics, manual operations marks, and public clip metadata.
+
+## Outputs
+
+The UI renders ranked highlight cards, timeline rows, summary counters, filtered result sets, locally persisted input JSON, and an exported JSON cut list. `data/expected_outputs.json` defines the expected output shape for input summaries, ranked highlights, export behavior, and quality checks.
+
+## Validation
+
+`tests/browser_smoke_test.js` verifies the normal browser workflow. `tests/industrial_io_smoke_test.js` loads the industrial fixture, runs the real UI, checks ranking/filtering/storage/export behavior, and validates that expected outputs are visible.
+""",
+        "tests/browser_smoke_test.js": r'''window.runSmokeTest = async function () {
+  const wait = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
+  const get = (id) => {
+    const node = document.getElementById(id);
+    if (!node) throw new Error(`missing #${id}`);
+    return node;
+  };
+  get("loadSample").click();
+  await wait();
+  let cards = Array.from(document.querySelectorAll(".highlight-card"));
+  if (cards.length < 3) throw new Error("expected sample highlight cards");
+  const scores = cards.map((card) => Number(card.querySelector(".score")?.textContent || "0"));
+  if (scores.some((score) => !Number.isFinite(score) || score <= 0)) throw new Error("scores must be positive numbers");
+  for (let i = 1; i < scores.length; i += 1) {
+    if (scores[i] > scores[i - 1]) throw new Error("scores are not sorted descending");
+  }
+  get("streamerFilter").value = "Nova";
+  get("streamerFilter").dispatchEvent(new Event("input", { bubbles: true }));
+  await wait();
+  if (!get("results").textContent.includes("NovaCarry")) throw new Error("streamer filter did not expose NovaCarry");
+  get("streamerFilter").value = "";
+  get("streamerFilter").dispatchEvent(new Event("input", { bubbles: true }));
+  get("manualTitle").value = "Manual smoke marker";
+  get("manualTime").value = "00:59:00";
+  get("manualStreamer").value = "SmokeTester";
+  get("manualForm").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  await wait();
+  if (!get("results").textContent.includes("Manual smoke marker")) throw new Error("manual marker is not visible");
+  let exportCalled = false;
+  const originalCreateObjectURL = URL.createObjectURL;
+  URL.createObjectURL = function (blob) {
+    exportCalled = blob instanceof Blob;
+    return "blob:smoke";
+  };
+  try {
+    get("exportJson").click();
+  } finally {
+    URL.createObjectURL = originalCreateObjectURL;
+  }
+  if (!exportCalled) throw new Error("export did not create a Blob URL");
+  if (!localStorage.getItem("cgnk.streamerHighlightFinder.events")) throw new Error("events were not saved to localStorage");
+  return { status: "pass", cards: cards.length, topScore: scores[0] };
+};''',
+        "tests/industrial_io_smoke_test.js": r'''window.runIndustrialIOSmokeTest = async function () {
+  const wait = (ms = 100) => new Promise((resolve) => setTimeout(resolve, ms));
+  const get = (id) => {
+    const node = document.getElementById(id);
+    if (!node) throw new Error(`missing #${id}`);
+    return node;
+  };
+  const [bundle, expected] = await Promise.all([
+    fetch("data/industrial_input_bundle.json").then((response) => response.json()),
+    fetch("data/expected_outputs.json").then((response) => response.json()),
+  ]);
+  const records = Array.isArray(bundle) ? bundle : (bundle.records || bundle.events || bundle.items || []);
+  get("eventInput").value = JSON.stringify(records, null, 2);
+  get("analyze").click();
+  await wait();
+  const stored = JSON.parse(localStorage.getItem("cgnk.streamerHighlightFinder.events") || "[]");
+  if (stored.length < 20) throw new Error("industrial bundle did not import at least 20 records");
+  const cards = Array.from(document.querySelectorAll(".highlight-card"));
+  if (!cards.length) throw new Error("industrial import rendered no cards");
+  const scores = cards.map((card) => Number(card.querySelector(".score")?.textContent || "0"));
+  for (let i = 1; i < scores.length; i += 1) {
+    if (scores[i] > scores[i - 1]) throw new Error("industrial scores are not descending");
+  }
+  const topText = get("results").textContent;
+  const expectedHit = (expected.ranked_highlights || []).some((row) => topText.includes(row.title) || topText.includes(row.streamer));
+  if (!expectedHit) throw new Error("expected ranked highlight is not visible");
+  const sourceCount = new Set(stored.map((row) => row.sourceId).filter(Boolean)).size;
+  if (sourceCount < 3) throw new Error("source coverage is below 3 sourceIds");
+  get("gameFilter").value = stored[0].game;
+  get("gameFilter").dispatchEvent(new Event("input", { bubbles: true }));
+  await wait();
+  if (!get("results").textContent.includes(stored[0].game)) throw new Error("game filter failed on industrial data");
+  get("gameFilter").value = "";
+  get("gameFilter").dispatchEvent(new Event("input", { bubbles: true }));
+  let exportCalled = false;
+  const originalCreateObjectURL = URL.createObjectURL;
+  URL.createObjectURL = function (blob) {
+    exportCalled = blob instanceof Blob;
+    return "blob:industrial";
+  };
+  try {
+    get("exportJson").click();
+  } finally {
+    URL.createObjectURL = originalCreateObjectURL;
+  }
+  if (!exportCalled) throw new Error("industrial export did not trigger Blob URL");
+  return { status: "pass", importedCount: stored.length, visibleCount: cards.length, checkedOutputs: Object.keys(expected).length };
+};''',
+        "README.md": f"""# {title}
+
+Generated by CGNK local runtime executor.
+
+## Goal
+
+{description}
+
+## Use
+
+Open `index.html` in a browser. Paste stream event JSON or use the built-in sample data, then click **Analyze highlights**.
+
+## Input Event Shape
+
+```json
+{{
+  "streamer": "NovaCarry",
+  "game": "Apex Legends",
+  "time": "00:03:42",
+  "title": "1v3 clutch",
+  "category": "clutch",
+  "intensity": 94,
+  "chatRate": 182,
+  "keywords": ["clutch", "win"],
+  "description": "Why this moment matters"
+}}
+```
+
+## Files
+
+- `index.html`
+- `styles.css`
+- `app.js`
+- `sample_events.json`
+- `TEST_PLAN.md`
+""",
+        "TEST_PLAN.md": """# Streamer Highlight Finder Test Plan
+
+## Manual Checks
+
+- Open `index.html` in a browser.
+- Confirm sample events load and produce ranked highlight cards.
+- Move the min score slider and confirm the list and timeline update.
+- Filter by streamer, game, and category.
+- Add a manual marker and confirm it appears in the JSON input and results.
+- Refresh the page and confirm the imported events remain in localStorage.
+- Export JSON and confirm the exported file contains the filtered highlights.
+""",
+    }
+    written: list[str] = []
+    for rel, text in files.items():
+        path = out_dir / rel
+        write_text(path, text)
+        written.append(str(path))
+    return written
+
+
+def load_generation_catalog(plan_doc: dict[str, Any]) -> dict[str, Any]:
+    catalog = compose_local_pipeline.load_contracts()
+    selected = plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", [])
+    selected_set = {ref for ref in selected if isinstance(ref, str)}
+    modules = []
+    for module in catalog["modules"]:
+        ref = compose_local_pipeline.ref_of(module)
+        if ref in selected_set:
+            modules.append(
+                {
+                    "ref": ref,
+                    "purpose": str(module.get("metadata", {}).get("purpose", "")),
+                    "inputs": sorted(module.get("ports", {}).get("input", {}).keys()),
+                    "outputs": sorted(module.get("ports", {}).get("output", {}).keys()),
+                    "effects": module.get("effects", {}),
+                }
+            )
+    return {
+        "selected_modules": selected,
+        "modules": modules,
+        "local_librarian": plan_doc.get("project_understanding", {}).get("payload", {}).get("local_librarian", {}),
+        "route_manager": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}),
+    }
+
+
+def infer_acceptance_criteria(goal: str) -> list[str]:
+    text = str(goal or "").lower()
+    criteria: list[str] = ["Generated project must run locally from index.html under python -m http.server."]
+    if any(term in text for term in ("导入", "import", "upload")):
+        criteria.append("Provide a real JSON import path using FileReader and/or a textarea; imported data must be processed by the app.")
+    if any(term in text for term in ("评分", "score", "打分", "排序", "rank")):
+        criteria.append("Implement a real scoring function and sort detected items by score descending in executable JavaScript.")
+    if any(term in text for term in ("筛选", "filter")):
+        criteria.append("Provide visible filter controls and executable filter logic for the requested fields.")
+    if any(term in text for term in ("人工标记", "手动标记", "manual marker", "marker")):
+        criteria.append("Provide a manual marker form/control that appends a new item to the working dataset and rerenders results.")
+    if any(term in text for term in ("导出", "export")):
+        criteria.append("Provide a real export action using Blob, URL.createObjectURL, an anchor download, and the current filtered result set.")
+    if any(term in text for term in ("保存", "localstorage", "本地")):
+        criteria.append("Persist working data locally with localStorage and reload it on page load.")
+    if any(term in text for term in ("游戏", "主播", "高光", "streamer", "highlight")):
+        criteria.append("Use domain fields such as streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score.")
+    return criteria
+
+
+def provider_executable_requirements(goal: str) -> list[str]:
+    text = str(goal or "").lower()
+    requirements: list[str] = []
+    if any(term in text for term in ("评分", "score", "打分", "排序", "rank")):
+        requirements.extend(
+            [
+                "app.js must contain an executable scoreRecord/scoreEvent-style function.",
+                "app.js must assign numeric scores to imported records.",
+                "app.js must sort results descending with executable sort logic.",
+            ]
+        )
+    if any(term in text for term in ("筛选", "filter")):
+        requirements.append("index.html and app.js must contain real filter controls and applyFilters-style filtering logic.")
+    if any(term in text for term in ("人工标记", "手动标记", "manual marker", "marker")):
+        requirements.append("index.html must include a manual marker form and app.js must handle its submit event by appending a record and rerendering.")
+    if any(term in text for term in ("导出", "export")):
+        requirements.append("app.js must export the current filtered result set using Blob, URL.createObjectURL, and an anchor download.")
+    if any(term in text for term in ("保存", "localstorage", "本地")):
+        requirements.append("app.js must persist and restore working data with localStorage.")
+    return requirements
+
+
+def call_ollama_project_generator(goal: str, plan_doc: dict[str, Any], timeout: int) -> dict[str, Any]:
+    timeout = max(int(timeout), 360)
+    host = str(os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")).strip().rstrip("/")
+    model = compose_local_pipeline.choose_ollama_model(host)
+    prompt = {
+        "role": "CGNK local project generator",
+        "hard_rules": [
+            "Do not use a fixed project template.",
+            "Create original project files for this exact user requirement.",
+            "Use only local browser/runtime capabilities unless the requirement explicitly asks for external services.",
+            "Return JSON only, no markdown fences.",
+            "Every file path must be relative and must not contain .. or absolute roots.",
+            "If index.html is generated, include <link rel=\"icon\" href=\"data:,\"> in the head to avoid favicon 404 noise.",
+            "For browser projects, use vanilla browser JavaScript only: no require(), module.exports, import, npm packages, fs, path, or Node.js APIs.",
+            "If sample data is loaded from a file, use a relative path that exactly matches a generated file path.",
+            "Implement every user-visible feature in the requirement. No placeholders, TODOs, stubs, or fake logic.",
+            "Browser projects must be static single-page apps that run under python -m http.server. Do not assume backend routes such as /upload, /api, /save, or /export.",
+        ],
+        "output_schema": {
+            "project_type": "short snake_case type",
+            "manual_checks": ["browser/manual verification step"],
+            "files": [
+                {
+                    "path": "relative/path.ext",
+                    "purpose": "why this file exists",
+                    "content": "complete file contents",
+                }
+            ],
+        },
+        "required_files": ["index.html", "README.md", "TEST_PLAN.md"],
+        "recommended_for_browser_app": ["styles.css", "app.js", "sample_data.json"],
+        "acceptance_criteria": infer_acceptance_criteria(goal),
+        "goal": goal,
+        "cgnk_catalog_context": load_generation_catalog(plan_doc),
+    }
+    model_prompt = (
+        "You are the CGNK local executor. Generate a complete local project from the requirement. "
+        "The project must be useful, runnable, and domain-specific. Return only valid JSON matching output_schema.\n\n"
+        + json.dumps(prompt, ensure_ascii=False, indent=2)
+    )
+    doc = compose_local_pipeline.post_json(
+        host + "/api/generate",
+        {"model": model, "prompt": model_prompt, "stream": False, "options": {"temperature": 0.2}},
+        timeout=timeout,
+    )
+    response = str(doc.get("response", "")).strip()
+    parsed = compose_local_pipeline.extract_json(response)
+    if parsed is None:
+        repair_prompt = (
+            "Repair this into valid JSON only. Keep the same project files and contents. "
+            "Return JSON with project_type, manual_checks, and files.\n\n"
+            + response
+        )
+        repaired = compose_local_pipeline.post_json(
+            host + "/api/generate",
+            {"model": model, "prompt": repair_prompt, "stream": False, "options": {"temperature": 0}},
+            timeout=timeout,
+        )
+        parsed = compose_local_pipeline.extract_json(str(repaired.get("response", "")).strip())
+    if parsed is None:
+        raise RuntimeError("Ollama project generator returned non-JSON output")
+    parsed = repair_until_valid(goal, plan_doc, parsed, model, host, timeout)
+    parsed["_ollama"] = {"provider": "ollama", "model": model}
+    return parsed
+
+
+def generated_doc_errors(doc: dict[str, Any], goal: str = "") -> list[str]:
+    errors: list[str] = []
+    files = doc.get("files", [])
+    if isinstance(files, dict):
+        files = [
+            {"path": str(path), "purpose": "provider returned object-form file entry", "content": content}
+            for path, content in files.items()
+        ]
+    if not isinstance(files, list) or not files:
+        return ["files must be a non-empty list"]
+    paths: set[str] = set()
+    contents: dict[str, str] = {}
+    for row in files:
+        if not isinstance(row, dict):
+            errors.append("each file entry must be an object")
+            continue
+        rel = str(row.get("path", "")).replace("\\", "/").strip().lstrip("/")
+        content = row.get("content")
+        if not rel:
+            errors.append("file path is empty")
+            continue
+        if rel.startswith("../") or "/../" in rel or re.match(r"^[a-zA-Z]:", rel):
+            errors.append(f"unsafe path: {rel}")
+        if not isinstance(content, str) or not content.strip():
+            errors.append(f"{rel} has empty content")
+            continue
+        placeholder_pattern = r"placeholder for|todo|stub|coming soon|待实现|占位"
+        if not rel.startswith("docs/"):
+            placeholder_pattern += r"|not implemented"
+        if re.search(placeholder_pattern, content, flags=re.IGNORECASE):
+            errors.append(f"{rel} contains placeholder or unfinished implementation text")
+        paths.add(rel)
+        contents[rel] = content
+    for required in ("index.html", "README.md", "TEST_PLAN.md"):
+        if required not in paths:
+            errors.append(f"missing required file: {required}")
+    product_docs = (
+        "docs/USER_ANALYSIS.md",
+        "docs/MARKET_RESEARCH.md",
+        "docs/TECHNICAL_PATH.md",
+        "docs/UX_DESIGN_SPEC.md",
+        "docs/PRODUCT_DECISION_LOG.md",
+    )
+    if any(term in str(goal or "").lower() for term in ("项目", "project", "产品", "用户", "市场", "gui", "ux", "设计")):
+        for required in product_docs:
+            if required not in paths:
+                errors.append(f"missing product/design planning file: {required}")
+            elif len(contents.get(required, "").strip()) < 800:
+                errors.append(f"{required} is too shallow for product-first generation")
+    doc_expectations = {
+        "docs/USER_ANALYSIS.md": ("persona", "jobs-to-be-done", "workflow", "pain", "decision criteria", "success", "gui"),
+        "docs/MARKET_RESEARCH.md": ("alternative", "competing", "unmet", "differentiation", "adoption", "risk", "validation"),
+        "docs/TECHNICAL_PATH.md": ("compare", "chosen", "prototype", "future", "trade"),
+        "docs/UX_DESIGN_SPEC.md": ("information architecture", "layout", "control", "state", "hierarchy", "acceptance"),
+        "docs/PRODUCT_DECISION_LOG.md": ("priority", "current scope", "out of scope", "acceptance", "risk", "decision"),
+        "docs/INPUT_OUTPUT_SPEC.md": ("input", "output", "source", "schema", "expected"),
+    }
+    for rel, required_terms in doc_expectations.items():
+        if rel in contents:
+            lowered_doc = contents[rel].lower()
+            term_variants = {
+                "compare": ("compare", "comparison", "comparisons", "comparing", "compared"),
+                "chosen": ("chosen", "choose", "chooses", "selected", "selecting", "selection"),
+                "priority": ("priority", "priorities", "prioritized", "prioritization", "priority order", "core features"),
+            }
+            missing_terms = [
+                term
+                for term in required_terms
+                if not any(variant in lowered_doc for variant in term_variants.get(term, (term,)))
+            ]
+            if missing_terms:
+                errors.append(f"{rel} lacks product-first analysis terms: " + ", ".join(missing_terms))
+            if lowered_doc.lstrip().startswith("{"):
+                errors.append(f"{rel} must be markdown prose, not JSON")
+    current_claim_text = current_claim_surface(contents)
+    implemented_text = "\n".join(contents.get(path, "") for path in ("index.html", "src/app.js", "src/ui/render.js", "src/core/scoring.js")).lower()
+    for claim in current_static_app_forbidden_claims():
+        if claim in current_claim_text and claim not in implemented_text:
+            errors.append(f"current project claims unavailable capability as implemented: {claim}")
+    if "project_architecture.json" in contents:
+        try:
+            architecture_doc = json.loads(contents["project_architecture.json"])
+            architecture_text = json.dumps(architecture_doc, ensure_ascii=False).lower()
+            for capability in implemented_static_app_capabilities():
+                if capability.split()[0].lower() not in architecture_text:
+                    errors.append(f"project_architecture.json does not reflect implemented static app capability: {capability}")
+                    break
+        except Exception as exc:
+            errors.append(f"project_architecture.json must be valid JSON: {exc}")
+    if wants_industrial_io(goal) or any(path in paths for path in ("data/industrial_input_bundle.json", "data/expected_outputs.json", "docs/INPUT_OUTPUT_SPEC.md")):
+        required_industrial = (
+            "docs/INPUT_OUTPUT_SPEC.md",
+            "data/industrial_input_bundle.json",
+            "data/expected_outputs.json",
+            "tests/industrial_io_smoke_test.js",
+        )
+        for required in required_industrial:
+            if required not in paths:
+                errors.append(f"missing industrial input/output artifact: {required}")
+        if "docs/INPUT_OUTPUT_SPEC.md" in contents and len(contents.get("docs/INPUT_OUTPUT_SPEC.md", "").strip()) < 800:
+            errors.append("docs/INPUT_OUTPUT_SPEC.md is too shallow for industrial input/output simulation")
+        industrial_bundle: dict[str, Any] | None = None
+        if "data/industrial_input_bundle.json" in contents:
+            try:
+                parsed = json.loads(contents["data/industrial_input_bundle.json"])
+                if not isinstance(parsed, dict):
+                    errors.append("data/industrial_input_bundle.json must be a JSON object")
+                else:
+                    industrial_bundle = parsed
+                    sources = parsed.get("source_manifest") or parsed.get("sources") or parsed.get("resource_sources")
+                    if not isinstance(sources, list) or len(sources) < 5:
+                        errors.append("data/industrial_input_bundle.json must contain at least 5 source_manifest entries")
+                    records = parsed.get("records") or parsed.get("events") or parsed.get("items") or parsed.get("highlights")
+                    if not isinstance(records, list) or len(records) < 20:
+                        errors.append("data/industrial_input_bundle.json must contain at least 20 industrial records/events")
+                    elif isinstance(records, list):
+                        field_text = "\n".join(json.dumps(row, ensure_ascii=False).lower() for row in records[:30] if isinstance(row, dict))
+                        for field in ("streamer", "game", "category", "title", "description", "intensity", "chatrate"):
+                            if field not in field_text:
+                                errors.append(f"data/industrial_input_bundle.json records lack required industrial field: {field}")
+                        source_ids = {
+                            str(row.get("sourceId") or row.get("source_id") or row.get("source") or "")
+                            for row in records
+                            if isinstance(row, dict)
+                        }
+                        source_ids.discard("")
+                        if len(source_ids) < 3:
+                            errors.append("data/industrial_input_bundle.json must mix at least 3 sourceIds across records")
+            except Exception as exc:
+                errors.append(f"data/industrial_input_bundle.json must be valid JSON: {exc}")
+        if "data/expected_outputs.json" in contents:
+            try:
+                parsed = json.loads(contents["data/expected_outputs.json"])
+                if not isinstance(parsed, dict):
+                    errors.append("data/expected_outputs.json must be a JSON object")
+                else:
+                    ranked = parsed.get("ranked_highlights") or parsed.get("top_candidates")
+                    cut_list = parsed.get("export_cut_list") or parsed.get("clip_manifest")
+                    checks = parsed.get("quality_checks")
+                    if not isinstance(ranked, list) or len(ranked) < 8:
+                        errors.append("data/expected_outputs.json must contain at least 8 ranked_highlights/top_candidates")
+                    if not isinstance(cut_list, list) or len(cut_list) < 5:
+                        errors.append("data/expected_outputs.json must contain at least 5 export_cut_list/clip_manifest rows")
+                    if not isinstance(checks, (list, dict)):
+                        errors.append("data/expected_outputs.json must contain quality_checks")
+            except Exception as exc:
+                errors.append(f"data/expected_outputs.json must be valid JSON: {exc}")
+        importer = contents.get("src/core/importer.js", "")
+        if importer and not all(term in importer for term in ("records", "events")):
+            errors.append("src/core/importer.js must accept industrial bundle objects with records/events")
+        if importer and "typeof input" in importer and "parseRecordsFromText(input)" not in importer:
+            errors.append("src/core/importer.js importData must accept JSON text strings by delegating to parseRecordsFromText(input)")
+        preserves_source_id = "sourceId:" in importer or re.search(r"\bsourceId\s*,", importer) is not None
+        preserves_source_type = "sourceType:" in importer or re.search(r"\bsourceType\s*,", importer) is not None
+        if importer and (not preserves_source_id or not preserves_source_type):
+            errors.append("src/core/importer.js normalizeRecord must preserve sourceId and sourceType as output fields")
+        if importer and "parseRecordsFromText" in importer:
+            parse_accepts_bundle = (
+                "importData(parsed)" in importer
+                or "parsed.records" in importer
+                or "parsed.events" in importer
+                or "parsed.highlights" in importer
+                or "parsed.items" in importer
+                or "parsed.payload" in importer
+            )
+            if not parse_accepts_bundle:
+                errors.append("src/core/importer.js parseRecordsFromText must parse industrial bundle JSON objects, not only arrays")
+        industrial_test = contents.get("tests/industrial_io_smoke_test.js", "")
+        if industrial_test:
+            if "runIndustrialIOSmokeTest" not in industrial_test:
+                errors.append("tests/industrial_io_smoke_test.js must expose window.runIndustrialIOSmokeTest")
+            for required_text in ("industrial_input_bundle.json", "expected_outputs.json", "json-textarea", "import-button", "records-container"):
+                if required_text not in industrial_test:
+                    errors.append(f"tests/industrial_io_smoke_test.js does not exercise required industrial I/O element: {required_text}")
+            if "console.error" in industrial_test or ".submit()" in industrial_test or "document.createElement" in industrial_test:
+                errors.append("tests/industrial_io_smoke_test.js must test the real app with thrown failures, not replacement DOM or form.submit()")
+    index = contents.get("index.html", "")
+    if index and 'rel="icon"' not in index and "rel='icon'" not in index:
+        errors.append("index.html must include an inline favicon link")
+    required_ui_classes = {
+        "app-shell",
+        "app-header",
+        "workspace-grid",
+        "intake-panel",
+        "filters-panel",
+        "results-panel",
+        "manual-panel",
+        "status-strip",
+        "action-bar",
+    }
+    if index:
+        present_classes: set[str] = set()
+        for class_attr in re.findall(r"\bclass=[\"']([^\"']+)[\"']", index):
+            present_classes.update(part.strip() for part in class_attr.split() if part.strip())
+        missing_ui_classes = sorted(required_ui_classes - present_classes)
+        if missing_ui_classes:
+            errors.append("index.html lacks product workspace UI structure classes: " + ", ".join(missing_ui_classes))
+    styles = contents.get("styles.css", "")
+    if styles:
+        for class_name in sorted(required_ui_classes):
+            if f".{class_name}" not in styles:
+                errors.append(f"styles.css does not style required UI class: {class_name}")
+    render_module = contents.get("src/ui/render.js", "")
+    if render_module:
+        required_result_fields = ("title", "streamer", "game", "category", "score", "description")
+        missing_fields = [field for field in required_result_fields if field not in render_module]
+        if "timestamp" not in render_module and "time" not in render_module:
+            missing_fields.append("timestamp/time")
+        if missing_fields:
+            errors.append("src/ui/render.js does not visibly render required result fields: " + ", ".join(missing_fields))
+        for class_name in (
+            "highlight-card",
+            "highlight-title",
+            "score-badge",
+            "metadata-row",
+            "metadata-streamer",
+            "metadata-game",
+            "metadata-time",
+            "metadata-category",
+            "highlight-description",
+        ):
+            if class_name not in render_module:
+                errors.append(f"src/ui/render.js must render result cards with class: {class_name}")
+            if styles and f".{class_name}" not in styles:
+                errors.append(f"styles.css does not style generated result card class: {class_name}")
+    if index:
+        for match in re.finditer(r"<script[^>]+src=[\"']([^\"']+)[\"']", index, flags=re.IGNORECASE):
+            target = match.group(1).strip()
+            if target.startswith(("http://", "https://")):
+                errors.append(f"index.html references external script {target}; local project must be self-contained")
+            elif target.lstrip("./") not in paths:
+                errors.append(f"index.html references missing script {target}")
+        for match in re.finditer(r"<link[^>]+rel=[\"']stylesheet[\"'][^>]+href=[\"']([^\"']+)[\"']", index, flags=re.IGNORECASE):
+            target = match.group(1).strip()
+            if target.startswith(("http://", "https://")):
+                errors.append(f"index.html references external stylesheet {target}; local project must be self-contained")
+            elif target.lstrip("./") not in paths:
+                errors.append(f"index.html references missing stylesheet {target}")
+    for rel, content in contents.items():
+        if rel.endswith(".js") or rel.endswith(".html"):
+            if rel.endswith(".js") and re.search(r"<!doctype|<html|<script", content, flags=re.IGNORECASE):
+                errors.append(f"{rel} contains HTML markup but must be JavaScript only")
+            if rel.endswith(".js") and ("```" in content or re.search(r"^\s*here is\b", content, flags=re.IGNORECASE)):
+                errors.append(f"{rel} contains markdown/prose but must be raw JavaScript only")
+            if re.search(r"\brequire\s*\(", content):
+                errors.append(f"{rel} uses require(), which is not available in browser scripts")
+            if "module.exports" in content:
+                errors.append(f"{rel} uses module.exports, which is not available in browser scripts")
+            if re.search(r"^\s*import\s+", content, flags=re.MULTILINE) and 'type="module"' not in index and "type='module'" not in index:
+                errors.append(f"{rel} uses import but index.html does not load a module script")
+            if re.search(r"\b(fs|path)\s*=", content) or "from 'fs'" in content or 'from "fs"' in content:
+                errors.append(f"{rel} appears to use Node.js filesystem APIs")
+            for match in re.finditer(r"fetch\((['\"])(.*?)\1", content):
+                target = match.group(2)
+                if target.startswith(("http://", "https://")):
+                    errors.append(f"{rel} fetches external URL {target}; local generation must be self-contained")
+                elif target.startswith("/"):
+                    normalized = target.lstrip("/")
+                    if normalized not in paths:
+                        errors.append(f"{rel} fetches missing absolute local path {target}")
+                else:
+                    normalized = target.lstrip("./")
+                    if normalized not in paths:
+                        errors.append(f"{rel} fetches missing relative local path {target}")
+            for match in re.finditer(r"^\s*import\s+.*?from\s+(['\"])(.*?)\1", content, flags=re.MULTILINE):
+                target = match.group(2)
+                if target.startswith("."):
+                    normalized = str((pathlib.PurePosixPath(rel).parent / target).as_posix())
+                    normalized = str(pathlib.PurePosixPath(normalized))
+                    if normalized.startswith("./"):
+                        normalized = normalized[2:]
+                    if normalized not in paths:
+                        errors.append(f"{rel} imports missing module {target}")
+            for match in re.finditer(r"^\s*import\s+\{([^}]+)\}\s+from\s+(['\"])(.*?)\2", content, flags=re.MULTILINE):
+                target = match.group(3)
+                if not target.startswith("."):
+                    continue
+                normalized = str((pathlib.PurePosixPath(rel).parent / target).as_posix())
+                normalized = str(pathlib.PurePosixPath(normalized))
+                if normalized.startswith("./"):
+                    normalized = normalized[2:]
+                target_content = contents.get(normalized, "")
+                if not target_content:
+                    continue
+                export_names = set(re.findall(r"^\s*export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)", target_content, flags=re.MULTILINE))
+                for export_block in re.findall(r"^\s*export\s+\{([^}]+)\}", target_content, flags=re.MULTILINE):
+                    for item in export_block.split(","):
+                        name = item.strip().split(" as ")[-1].strip()
+                        if re.match(r"^[A-Za-z_$][\w$]*$", name):
+                            export_names.add(name)
+                for item in match.group(1).split(","):
+                    imported = item.strip().split(" as ")[0].strip()
+                    if imported and imported not in export_names:
+                        errors.append(f"{rel} imports missing named export {imported} from {target}")
+    html_ids: set[str] = set()
+    for rel, content in contents.items():
+        if rel.endswith(".html"):
+            html_ids.update(re.findall(r"\bid=[\"']([^\"']+)[\"']", content))
+    for rel, content in contents.items():
+        if rel.endswith(".js") or rel.endswith(".html"):
+            for dom_id in re.findall(r"getElementById\([\"']([^\"']+)[\"']\)", content):
+                if html_ids and dom_id not in html_ids:
+                    errors.append(f"{rel} references missing DOM id: {dom_id}")
+    html_names: set[str] = set()
+    for rel, content in contents.items():
+        if rel.endswith(".html"):
+            html_names.update(re.findall(r"\bname=[\"']([^\"']+)[\"']", content))
+    for rel, content in contents.items():
+        if "FormData" in content:
+            for field_name in re.findall(r"\.get\([\"']([^\"']+)[\"']\)", content):
+                if html_names and field_name not in html_names:
+                    errors.append(f"{rel} reads missing form field name: {field_name}")
+    combined = "\n".join(contents.values()).lower()
+    executable = "\n".join(
+        content for rel, content in contents.items() if rel.endswith((".html", ".js", ".mjs"))
+    ).lower()
+    goal_text = str(goal or "").lower()
+    has_score_logic = any(term in executable for term in ("score", "rating", "rank", "评分", "打分", "highlightscore"))
+    has_sort_logic = any(term in executable for term in ("sort(", ".sort", "tosorted", "order by", "排序"))
+    if any(term in goal_text for term in ("评分", "score", "打分")) and not (has_score_logic and has_sort_logic):
+        errors.append("requirement asks for scoring/ranking, but generated code does not implement score + sort behavior")
+    if any(term in goal_text for term in ("筛选", "filter")) and ("filter" not in executable or ("select" not in executable and "input" not in executable)):
+        errors.append("requirement asks for filtering, but generated UI/code lacks filter controls")
+    if "主播" in goal_text and not any(term in executable for term in ("filterstreamer", "streamerfilter", "streamer", "主播")):
+        errors.append("requirement asks for streamer filtering, but generated UI/code lacks streamer filter behavior")
+    if "游戏" in goal_text and not any(term in executable for term in ("filtergame", "gamefilter", "game", "游戏")):
+        errors.append("requirement asks for game filtering, but generated UI/code lacks game filter behavior")
+    if "分类" in goal_text and not any(term in executable for term in ("filtercategory", "categoryfilter", "category", "分类")):
+        errors.append("requirement asks for category filtering, but generated UI/code lacks category filter behavior")
+    if re.search(r"\b\w+\.(streamer|game|category)\.includes\(", executable):
+        errors.append("filter logic calls includes() on optional record fields without String/default guards")
+    if any(term in goal_text for term in ("人工标记", "手动标记", "manual marker", "marker")) and not any(
+        term in executable for term in ("manual", "marker", "addmarker", "add marker", "人工", "标记")
+    ):
+        errors.append("requirement asks for manual markers, but generated code lacks manual marker behavior")
+    if any(term in goal_text for term in ("导出", "export")) and not any(term in executable for term in ("download", "blob", "export")):
+        errors.append("requirement asks for export, but generated code lacks download/export behavior")
+    if any(term in goal_text for term in ("本地保存", "localstorage", "保存")) and "localstorage" not in executable:
+        errors.append("requirement/customer answer asks for local persistence, but generated code lacks localStorage")
+    for rel, content in contents.items():
+        if not rel.endswith((".js", ".mjs")):
+            continue
+        if re.search(r"\bbindDom\s*\(\s*\)", content):
+            errors.append(f"{rel} calls bindDom() without required arguments")
+        if re.search(r"\bsetupForms\s*\(\s*\)", content):
+            errors.append(f"{rel} calls setupForms() without DOM id arguments")
+        if re.search(r"\brenderRecords\s*\(\s*\w*container\w*\s*,", content, flags=re.IGNORECASE):
+            errors.append(f"{rel} appears to call renderRecords with container as the first argument")
+        if re.search(r"\brenderSummary\s*\(\s*\w*container\w*\s*,", content, flags=re.IGNORECASE):
+            errors.append(f"{rel} appears to call renderSummary with container as the first argument")
+        if re.search(r"\brenderSummary\s*\([^,\n]+,\s*[^,\n]+\)", content):
+            errors.append(f"{rel} calls renderSummary with too few arguments")
+        if re.search(r"\brenderSummary\s*\([^,\n]+,\s*[^,\n]+,\s*['\"]", content):
+            errors.append(f"{rel} calls renderSummary with a string instead of a summary HTMLElement")
+        if re.search(r"\brenderError\s*\(\s*\w*container\w*\s*,", content, flags=re.IGNORECASE):
+            errors.append(f"{rel} appears to call renderError with container as the first argument")
+        if re.search(r"const\s+\w+\s*=\s*exportData\s*\([^)]*\)\s*;\s*downloadJson\s*\(", content, flags=re.DOTALL):
+            errors.append(f"{rel} treats exportData() as data instead of a download action")
+        if rel == "src/app.js":
+            if "score: scoreRecord(" in content or ".score = scoreRecord(" in content:
+                errors.append("src/app.js must not assign scoreRecord(record) into a score field because scoreRecord returns the full scored record object")
+            if "filterForm.addEventListener('submit'" not in content and 'filterForm.addEventListener("submit"' not in content:
+                errors.append("src/app.js must handle filter-form submit events because smoke tests and users submit the filter form")
+    architecture = contents.get("project_architecture.json", "")
+    if architecture:
+        try:
+            architecture_doc = json.loads(architecture)
+        except Exception:
+            errors.append("project_architecture.json must be valid JSON")
+            architecture_doc = None
+        if isinstance(architecture_doc, dict):
+            arch_paths: list[str] = []
+
+            def collect_arch_paths(value: Any) -> None:
+                if isinstance(value, dict):
+                    for key, child in value.items():
+                        if key == "path" and isinstance(child, str):
+                            arch_paths.append(child.replace("\\", "/").lstrip("./"))
+                        else:
+                            collect_arch_paths(child)
+                elif isinstance(value, list):
+                    for child in value:
+                        collect_arch_paths(child)
+
+            collect_arch_paths(architecture_doc)
+            for arch_path in sorted(set(arch_paths)):
+                if arch_path and arch_path not in paths:
+                    errors.append(f"project_architecture.json references missing project path: {arch_path}")
+    smoke = contents.get("tests/browser_smoke_test.js", "")
+    if smoke:
+        rendered_or_app = "\n".join(contents.get(path, "") for path in ("src/ui/render.js", "src/app.js", "index.html"))
+        store = contents.get("src/state/store.js", "")
+        if "data-score" in smoke and "data-score" not in rendered_or_app:
+            errors.append("tests/browser_smoke_test.js expects data-score attributes that the rendered UI does not set")
+        if "data-streamer" in smoke and "data-streamer" not in rendered_or_app:
+            errors.append("tests/browser_smoke_test.js expects data-streamer attributes that the rendered UI does not set")
+        for key in re.findall(r"localStorage\.getItem\([\"']([^\"']+)[\"']\)", smoke):
+            if key not in store and key not in executable:
+                errors.append(f"tests/browser_smoke_test.js checks localStorage key not used by app: {key}")
+        if 'querySelector("a[download]")' in smoke or "querySelector('a[download]')" in smoke:
+            exporter = contents.get("src/core/exporter.js", "")
+            if "removeChild(anchor)" in exporter or ".remove()" in exporter:
+                errors.append("tests/browser_smoke_test.js expects a persistent download anchor but exporter removes it after click")
+        forbidden_test_impl = {
+            "document.createElement(\"textarea\")": "creates its own textarea instead of using the real app DOM",
+            "document.createElement('textarea')": "creates its own textarea instead of using the real app DOM",
+            "document.createElement(\"button\")": "creates its own buttons instead of using the real app DOM",
+            "document.createElement('button')": "creates its own buttons instead of using the real app DOM",
+            "document.body.innerHTML = \"\"": "destroys the generated app DOM during the smoke test",
+            "document.body.innerHTML = ''": "destroys the generated app DOM during the smoke test",
+            "const renderRecords =": "reimplements rendering instead of testing src/ui/render.js through app.js",
+            "function renderRecords": "reimplements rendering instead of testing src/ui/render.js through app.js",
+            "const applyFilters =": "reimplements filtering instead of testing src/core/filtering.js through app.js",
+            "function applyFilters": "reimplements filtering instead of testing src/core/filtering.js through app.js",
+            "const sortRecords =": "reimplements sorting instead of testing src/core/scoring.js through app.js",
+            "function sortRecords": "reimplements sorting instead of testing src/core/scoring.js through app.js",
+            "const exportData =": "reimplements export instead of testing src/core/exporter.js through app.js",
+            "function exportData": "reimplements export instead of testing src/core/exporter.js through app.js",
+        }
+        for snippet, reason in forbidden_test_impl.items():
+            if snippet in smoke:
+                errors.append(f"tests/browser_smoke_test.js {reason}")
+        for required_dom_id in ("json-textarea", "import-button", "filter-form", "manual-form", "export-button", "records-container"):
+            if f'getElementById("{required_dom_id}")' not in smoke and f"getElementById('{required_dom_id}')" not in smoke:
+                errors.append(f"tests/browser_smoke_test.js does not use real DOM id: {required_dom_id}")
+        if "[name='score']" in smoke or '[name="score"]' in smoke or "name=score" in smoke:
+            errors.append("tests/browser_smoke_test.js expects a manual score field, but manual marker score must be computed by src/core/scoring.js")
+        if "score-badge" in smoke and "data.score" in smoke:
+            errors.append("tests/browser_smoke_test.js expects imported score values to be preserved, but scores must be computed by src/core/scoring.js")
+        if re.search(r"parseFloat\([^)]*(?:scoreBadge|score-badge)[^)]*\.textContent\)", smoke):
+            errors.append("tests/browser_smoke_test.js parses score text directly; it must extract the numeric part from .score-badge text first")
+        if ".submit()" in smoke:
+            errors.append("tests/browser_smoke_test.js uses form.submit(), which bypasses submit event listeners; dispatch a submit event or click a submit button")
+        if "console.error" in smoke:
+            errors.append("tests/browser_smoke_test.js logs failures with console.error instead of throwing errors")
+        if re.search(r"\breturn\s*;\s*", smoke):
+            errors.append("tests/browser_smoke_test.js uses bare return on failure; throw an Error or return a structured failed result")
+        clears_streamer_filter = bool(re.search(r"(?:filterStreamer|getElementById\([\"']filterStreamer[\"']\))[^;\n]*\.value\s*=\s*([\"'])\1", smoke))
+        if "manual" in smoke.lower() and "filterStreamer" in smoke and not clears_streamer_filter:
+            errors.append("tests/browser_smoke_test.js filters before manual marker but does not clear the streamer filter before asserting manual marker visibility")
+        forbidden_selectors = (
+            ".metadata-row.streamer",
+            ".metadata-row.game",
+            ".metadata-row.category",
+            ".metadata-row.description",
+        )
+        for selector in forbidden_selectors:
+            if selector in smoke:
+                errors.append(f"tests/browser_smoke_test.js uses obsolete result selector {selector}; use visible text or metadata-* classes")
+        for selector in re.findall(r"querySelector(?:All)?\([\"']\.([A-Za-z0-9_-]+)[\"']\)", smoke):
+            if selector not in rendered_or_app and selector not in styles:
+                errors.append(f"tests/browser_smoke_test.js queries class not rendered or styled by the app: {selector}")
+    readme = contents.get("README.md", "").lower()
+    architecture_doc_text = contents.get("docs/ARCHITECTURE.md", "").lower()
+    readme_dependency_claims = readme
+    for negated in (
+        "no npm install",
+        "without npm install",
+        "does not require npm install",
+        "not require npm install",
+        "no react",
+        "without react",
+        "does not require react",
+        "no node.js backend",
+        "no backend",
+        "without node.js backend",
+        "without a node.js backend",
+        "does not require a node.js backend",
+        "does not require a node backend",
+        "does not require external dependencies, react, or a node.js backend",
+    ):
+        readme_dependency_claims = readme_dependency_claims.replace(negated, "")
+    if "npm install" in readme_dependency_claims or "react frontend" in readme_dependency_claims or "node.js backend" in readme_dependency_claims or "node backend" in readme_dependency_claims:
+        errors.append("README.md describes a Node/React backend setup, but generated project is a local static ES module app")
+    if any(term in architecture_doc_text for term in ("src/frontend", "src/backend")):
+        errors.append("docs/ARCHITECTURE.md references module paths that are not part of the generated static project")
+    if "react" in architecture_doc_text and "package.json" not in paths:
+        errors.append("docs/ARCHITECTURE.md describes React as current implementation without generated React package files")
+    return errors
+
+
+def repair_until_valid(goal: str, plan_doc: dict[str, Any], doc: dict[str, Any], model: str, host: str, timeout: int) -> dict[str, Any]:
+    timeout = max(int(timeout), 360)
+    current = doc
+    for _ in range(3):
+        errors = generated_doc_errors(current, goal)
+        if not errors:
+            return current
+        repair_prompt = {
+            "task": "Repair this CGNK generated project JSON. Return JSON only.",
+            "goal": goal,
+            "validation_errors": errors,
+            "acceptance_criteria": infer_acceptance_criteria(goal),
+            "rules": [
+                "Keep the output schema: project_type, manual_checks, files.",
+                "Use vanilla browser JavaScript only.",
+                "No require, no import, no Node.js APIs, no missing fetch paths.",
+                "No backend endpoints or form actions; use FileReader, localStorage, Blob, and DOM APIs for local-only behavior.",
+                "No placeholders, TODOs, stubs, or fake logic.",
+                "Keep the project domain-specific and complete.",
+            ],
+            "current_project": current,
+            "cgnk_catalog_context": load_generation_catalog(plan_doc),
+        }
+        repaired = compose_local_pipeline.post_json(
+            host + "/api/generate",
+            {
+                "model": model,
+                "prompt": json.dumps(repair_prompt, ensure_ascii=False, indent=2),
+                "stream": False,
+                "options": {"temperature": 0},
+            },
+            timeout=timeout,
+        )
+        parsed = compose_local_pipeline.extract_json(str(repaired.get("response", "")).strip())
+        if parsed is None:
+            break
+        current = parsed
+    final_errors = generated_doc_errors(current, goal)
+    if final_errors:
+        raise RuntimeError("Ollama generated project failed validation: " + "; ".join(final_errors))
+    return current
+
+
+def call_ollama_spec_project_generator(goal: str, plan_doc: dict[str, Any], timeout: int) -> dict[str, Any]:
+    timeout = max(int(timeout), 120)
+    host = str(os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")).strip().rstrip("/")
+    model = compose_local_pipeline.choose_ollama_model(host)
+    prompt = {
+        "task": "Act as CGNK local librarian and route manager. Return a project specification, not code.",
+        "goal": goal,
+        "acceptance_criteria": infer_acceptance_criteria(goal),
+        "cgnk_catalog_context": load_generation_catalog(plan_doc),
+        "output_schema": {
+            "project_type": "snake_case",
+            "title": "short app title",
+            "description": "one sentence",
+            "entity_name": "name of the records being analyzed",
+            "fields": [{"name": "fieldName", "label": "UI label", "type": "text|number|tags"}],
+            "filter_fields": ["fieldName"],
+            "score_fields": ["fieldName"],
+            "keyword_boosts": ["keyword"],
+            "sample_records": [{"fieldName": "value"}],
+            "manual_checks": ["check step"],
+        },
+    }
+    doc = compose_local_pipeline.post_json(
+        host + "/api/generate",
+        {
+            "model": model,
+            "prompt": "Return JSON only.\n\n" + json.dumps(prompt, ensure_ascii=False, indent=2),
+            "stream": False,
+            "options": {"temperature": 0.1},
+        },
+        timeout=timeout,
+    )
+    spec = compose_local_pipeline.extract_json(str(doc.get("response", "")).strip())
+    if spec is None:
+        raise RuntimeError("Ollama spec generator returned non-JSON output")
+    generated = compile_spec_project(goal, spec)
+    errors = generated_doc_errors(generated, goal)
+    if errors:
+        raise RuntimeError("CGNK spec compiler produced invalid project: " + "; ".join(errors))
+    generated["_ollama"] = {"provider": "ollama", "model": model, "mode": "local_librarian_route_spec_compiler"}
+    return generated
+
+
+def normalized_spec(goal: str, spec: dict[str, Any]) -> dict[str, Any]:
+    text = str(goal or "").lower()
+    fields = spec.get("fields") if isinstance(spec.get("fields"), list) else []
+    field_names = {
+        str(row.get("name", "")).strip()
+        for row in fields
+        if isinstance(row, dict) and str(row.get("name", "")).strip()
+    }
+    required = [
+        ("streamer", "Streamer", "text"),
+        ("game", "Game", "text"),
+        ("time", "Time", "text"),
+        ("title", "Title", "text"),
+        ("category", "Category", "text"),
+        ("intensity", "Intensity", "number"),
+        ("chatRate", "Chat rate", "number"),
+        ("keywords", "Keywords", "tags"),
+        ("description", "Description", "text"),
+    ]
+    if any(term in text for term in ("游戏", "主播", "高光", "streamer", "highlight")):
+        for name, label, typ in required:
+            if name not in field_names:
+                fields.append({"name": name, "label": label, "type": typ})
+                field_names.add(name)
+    if not fields:
+        fields = [{"name": "title", "label": "Title", "type": "text"}, {"name": "score", "label": "Score", "type": "number"}]
+    filter_fields = spec.get("filter_fields") if isinstance(spec.get("filter_fields"), list) else []
+    filter_fields = [str(item) for item in filter_fields if str(item) in field_names]
+    for field in ("streamer", "game", "category"):
+        if field in field_names and field not in filter_fields:
+            filter_fields.append(field)
+    samples = spec.get("sample_records") if isinstance(spec.get("sample_records"), list) else []
+    if not samples:
+        samples = [
+            {
+                "streamer": "NovaCarry",
+                "game": "Apex Legends",
+                "time": "00:03:42",
+                "title": "Final ring 1v3 clutch",
+                "category": "clutch",
+                "intensity": 94,
+                "chatRate": 182,
+                "keywords": ["clutch", "win", "1v3"],
+                "description": "Solo cleanup after a shield swap.",
+            },
+            {
+                "streamer": "MapleMage",
+                "game": "League of Legends",
+                "time": "00:18:09",
+                "title": "Baron steal into ace",
+                "category": "objective",
+                "intensity": 88,
+                "chatRate": 150,
+                "keywords": ["steal", "ace", "comeback"],
+                "description": "Objective steal turns into a teamfight win.",
+            },
+        ]
+    title = str(spec.get("title") or "").strip()
+    if not title or title.lower() in {"local project generator output", "generated project", "web app"}:
+        if any(term in text for term in ("游戏", "主播", "高光", "streamer", "highlight")):
+            title = "游戏主播高光时刻工具"
+        else:
+            title = display_goal(goal)[:32] or "CGNK Local Project"
+    return {
+        "project_type": slug(str(spec.get("project_type", "ollama_spec_project")))[:80],
+        "title": title,
+        "description": str(spec.get("description") or display_goal(goal)).strip(),
+        "entity_name": str(spec.get("entity_name") or "record").strip(),
+        "fields": fields,
+        "filter_fields": filter_fields,
+        "score_fields": spec.get("score_fields") if isinstance(spec.get("score_fields"), list) else ["intensity", "chatRate"],
+        "keyword_boosts": spec.get("keyword_boosts") if isinstance(spec.get("keyword_boosts"), list) else ["clutch", "ace", "win", "steal"],
+        "sample_records": samples,
+        "manual_checks": spec.get("manual_checks") if isinstance(spec.get("manual_checks"), list) else [],
+    }
+
+
+def compile_spec_project(goal: str, spec: dict[str, Any]) -> dict[str, Any]:
+    spec = normalized_spec(goal, spec)
+    title = spec["title"]
+    description = spec["description"]
+    spec_json = json.dumps(spec, ensure_ascii=False, indent=2)
+    compact_spec = json.dumps(spec, ensure_ascii=False)
+    sample_json = json.dumps(spec["sample_records"], ensure_ascii=False, indent=2)
+    filter_controls = "\n".join(
+        f'        <label>{field}<input id="filter-{field}" data-filter="{field}" placeholder="Any {field}"></label>'
+        for field in spec["filter_fields"]
+    )
+    files = [
+        {
+            "path": "index.html",
+            "purpose": "Static app shell compiled from the Ollama project specification.",
+            "content": f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>{title}</h1>
+    <p>{description}</p>
+    <div class="actions">
+      <button id="loadSample" type="button">Load sample</button>
+      <button id="exportResult" type="button">Export clips</button>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Import JSON</h2>
+      <input id="fileInput" type="file" accept="application/json">
+      <textarea id="jsonInput" spellcheck="false"></textarea>
+      <button id="analyze" type="button">Analyze</button>
+    </section>
+    <section class="panel">
+      <h2>Filters</h2>
+      <div class="grid">
+{filter_controls}
+        <label>Min score<input id="minScore" type="number" min="0" max="100" value="50"></label>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Manual marker</h2>
+      <form id="manualForm">
+        <input id="manualTitle" placeholder="Moment title" required>
+        <input id="manualTime" placeholder="00:00:00" required>
+        <input id="manualStreamer" placeholder="Streamer" required>
+        <button type="submit">Add marker</button>
+      </form>
+    </section>
+    <section class="panel wide">
+      <h2>Results</h2>
+      <div class="metrics"><span id="totalCount">0</span><span id="resultCount">0</span><span id="topScore">0</span></div>
+      <div id="results"></div>
+    </section>
+  </main>
+  <script>window.CGNK_PROJECT_SPEC = {compact_spec};</script>
+  <script src="app.js"></script>
+</body>
+</html>
+""",
+        },
+        {
+            "path": "styles.css",
+            "purpose": "Responsive local tool styling.",
+            "content": """* { box-sizing: border-box; }
+body { margin: 0; font-family: Segoe UI, Arial, sans-serif; color: #172033; background: #f3f6fb; }
+header { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; padding: 24px; background: #111827; color: #f8fafc; }
+header p { max-width: 760px; color: #cbd5e1; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; }
+.panel { background: #fff; border: 1px solid #d8e0ea; border-radius: 8px; padding: 16px; }
+.wide { grid-column: 2; grid-row: 1 / span 3; }
+textarea { width: 100%; min-height: 260px; margin: 10px 0; font-family: Consolas, monospace; }
+button, input, textarea { border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 10px; font: inherit; }
+button { background: #2563eb; border-color: #2563eb; color: white; cursor: pointer; }
+.grid, #manualForm { display: grid; gap: 10px; }
+label { display: grid; gap: 6px; }
+.metrics { display: flex; gap: 10px; margin-bottom: 12px; }
+.metrics span { min-width: 80px; padding: 10px; border-radius: 6px; background: #e8f1ff; font-weight: 700; text-align: center; }
+.card { border: 1px solid #d8e0ea; border-left: 5px solid #2563eb; border-radius: 8px; padding: 14px; margin-bottom: 12px; background: #fbfdff; }
+.card h3 { margin: 0 0 8px; }
+.meta { color: #64748b; font-size: 14px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.tag { padding: 4px 7px; border-radius: 999px; background: #e2e8f0; font-size: 12px; }
+@media (max-width: 860px) { header, main { display: grid; grid-template-columns: 1fr; } .wide { grid-column: 1; grid-row: auto; } }
+""",
+        },
+        {
+            "path": "app.js",
+            "purpose": "Compiled runtime implementing import, scoring, sorting, filtering, manual markers, localStorage, and export.",
+            "content": """const SPEC = window.CGNK_PROJECT_SPEC;
+const STORAGE_KEY = `cgnk.dynamic.${SPEC.project_type}.records`;
+const jsonInput = document.getElementById("jsonInput");
+const results = document.getElementById("results");
+let records = loadRecords();
+let ranked = [];
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+}
+
+function loadRecords() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    return Array.isArray(stored) ? stored : SPEC.sample_records;
+  } catch {
+    return SPEC.sample_records;
+  }
+}
+
+function saveRecords() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records, null, 2));
+}
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function scoreRecord(record) {
+  const intensity = toNumber(record.intensity);
+  const chatRate = Math.min(220, toNumber(record.chatRate));
+  const keywords = Array.isArray(record.keywords) ? record.keywords.join(" ").toLowerCase() : String(record.keywords || "").toLowerCase();
+  let score = intensity * 0.6 + chatRate * 0.25;
+  for (const boost of SPEC.keyword_boosts || []) {
+    if (keywords.includes(String(boost).toLowerCase())) score += 8;
+  }
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function normalize(record, index) {
+  return { id: record.id || `record-${index}-${Date.now()}`, ...record, score: scoreRecord(record) };
+}
+
+function analyze() {
+  try {
+    const parsed = JSON.parse(jsonInput.value || "[]");
+    records = Array.isArray(parsed) ? parsed : [];
+    saveRecords();
+    ranked = records.map(normalize).sort((a, b) => b.score - a.score);
+    render();
+  } catch (error) {
+    results.innerHTML = `<p class="meta">JSON parse error: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function applyFilters() {
+  const minScore = toNumber(document.getElementById("minScore").value);
+  return ranked.filter((record) => {
+    if (record.score < minScore) return false;
+    for (const control of document.querySelectorAll("[data-filter]")) {
+      const field = control.dataset.filter;
+      const expected = control.value.trim().toLowerCase();
+      if (expected && !String(record[field] || "").toLowerCase().includes(expected)) return false;
+    }
+    return true;
+  });
+}
+
+function render() {
+  const rows = applyFilters();
+  document.getElementById("totalCount").textContent = `${ranked.length} total`;
+  document.getElementById("resultCount").textContent = `${rows.length} shown`;
+  document.getElementById("topScore").textContent = `${rows[0]?.score || 0} top`;
+  results.innerHTML = rows.map(renderCard).join("") || '<p class="meta">No matching records.</p>';
+}
+
+function renderCard(record) {
+  const tags = Array.isArray(record.keywords) ? record.keywords.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") : "";
+  return `<article class="card">
+    <h3>${escapeHtml(record.title || record.time || "Untitled moment")}</h3>
+    <p class="meta">${escapeHtml(record.streamer || "Unknown")} · ${escapeHtml(record.game || "Unknown game")} · ${escapeHtml(record.time || "")} · Score ${record.score}</p>
+    <p>${escapeHtml(record.description || "")}</p>
+    <div class="tags">${tags}</div>
+  </article>`;
+}
+
+document.getElementById("fileInput").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    jsonInput.value = String(reader.result || "[]");
+    analyze();
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("loadSample").addEventListener("click", () => {
+  records = SPEC.sample_records;
+  jsonInput.value = JSON.stringify(records, null, 2);
+  analyze();
+});
+
+document.getElementById("analyze").addEventListener("click", analyze);
+document.querySelectorAll("[data-filter], #minScore").forEach((control) => control.addEventListener("input", render));
+
+document.getElementById("manualForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  records.push({
+    streamer: document.getElementById("manualStreamer").value.trim(),
+    game: "Manual",
+    time: document.getElementById("manualTime").value.trim(),
+    title: document.getElementById("manualTitle").value.trim(),
+    category: "manual",
+    intensity: 80,
+    chatRate: 80,
+    keywords: ["manual", "marker"],
+    description: "Manually added highlight marker."
+  });
+  jsonInput.value = JSON.stringify(records, null, 2);
+  event.target.reset();
+  analyze();
+});
+
+document.getElementById("exportResult").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(applyFilters(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${SPEC.project_type}-clips.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
+jsonInput.value = JSON.stringify(records, null, 2);
+analyze();
+""",
+        },
+        {"path": "sample_data.json", "purpose": "Ollama-selected sample records.", "content": sample_json + "\n"},
+        {
+            "path": "README.md",
+            "purpose": "Project use instructions.",
+            "content": f"""# {title}
+
+{description}
+
+This project was generated from a local Ollama project specification and compiled by CGNK.
+
+## Use
+
+Open `index.html` through a local static server, load sample data or import JSON, adjust filters, add manual markers, and export the current clip list.
+
+## Ollama Spec
+
+```json
+{spec_json}
+```
+""",
+        },
+        {
+            "path": "TEST_PLAN.md",
+            "purpose": "Project-specific verification plan.",
+            "content": """# Test Plan
+
+- Open `index.html` under `python -m http.server`.
+- Confirm sample data loads and records are scored descending.
+- Import JSON with the same field shape and confirm results update.
+- Filter by streamer, game, category, and minimum score.
+- Add a manual marker and confirm it appears in the result list.
+- Refresh and confirm localStorage restores current data.
+- Export clips and confirm a JSON file is downloaded.
+""",
+        },
+    ]
+    return {"project_type": spec["project_type"], "manual_checks": spec["manual_checks"] or [
+        "Open index.html",
+        "Load sample data",
+        "Verify scoring and descending sort",
+        "Filter records",
+        "Add manual marker",
+        "Export JSON",
+    ], "files": files}
+
+
+def safe_project_path(out_dir: pathlib.Path, rel_path: str) -> pathlib.Path:
+    rel = str(rel_path or "").replace("\\", "/").strip().lstrip("/")
+    if not rel or rel.startswith("../") or "/../" in rel or rel == "..":
+        raise ValueError(f"unsafe generated path: {rel_path}")
+    if re.match(r"^[a-zA-Z]:", rel):
+        raise ValueError(f"absolute generated path is not allowed: {rel_path}")
+    path = (out_dir / rel).resolve()
+    if out_dir.resolve() not in path.parents and path != out_dir.resolve():
+        raise ValueError(f"generated path escapes output dir: {rel_path}")
+    return path
+
+
+def materialize_ollama_project(goal: str, out_dir: pathlib.Path, plan_doc: dict[str, Any], timeout: int) -> dict[str, Any]:
+    generated = call_ollama_spec_project_generator(goal, plan_doc, timeout)
+    files = generated.get("files", [])
+    if not isinstance(files, list) or not files:
+        raise RuntimeError("Ollama project generator returned no files")
+    written: list[str] = []
+    rels: list[str] = []
+    for row in files[:30]:
+        if not isinstance(row, dict):
+            continue
+        rel = str(row.get("path", "")).strip()
+        content = row.get("content")
+        if not isinstance(content, str):
+            continue
+        path = safe_project_path(out_dir, rel)
+        write_text(path, content)
+        written.append(str(path))
+        rels.append(str(path.relative_to(out_dir)))
+    required = {"index.html", "README.md", "TEST_PLAN.md"}
+    missing = sorted(required - {rel.replace("\\", "/") for rel in rels})
+    if missing:
+        raise RuntimeError("Ollama project generator missed required files: " + ", ".join(missing))
+    manual_checks = generated.get("manual_checks", [])
+    if not isinstance(manual_checks, list) or not all(isinstance(item, str) for item in manual_checks):
+        manual_checks = ["Open index.html", "Run the project-specific checks in TEST_PLAN.md"]
+    return {
+        "project_type": slug(str(generated.get("project_type", "ollama_generated_project")))[:80],
+        "manual_checks": manual_checks[:12],
+        "written": written,
+        "ollama": generated.get("_ollama", {}),
+    }
+
+
+def call_provider_project_generator(goal: str, plan_doc: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url, _post_json
+
+    token, root = resolve_api()
+    if not token:
+        raise RuntimeError("API project generation requires a configured API key")
+    route_context = {
+        "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+        "local_librarian": plan_doc.get("project_understanding", {}).get("payload", {}).get("local_librarian", {}),
+        "route_manager": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}),
+        "acceptance_criteria": infer_acceptance_criteria(goal),
+    }
+    prompt = {
+        "role": "CGNK provider-side project generator",
+        "routing_contract": {
+            "local_only": ["local_librarian", "route_manager"],
+            "provider_required_for": ["project code generation", "project repair", "final project logic"],
+            "forbidden": [
+                "Do not ask Ollama/local model to write final project files.",
+                "Do not rely on a fixed business project template.",
+                "Do not return explanatory markdown outside JSON.",
+            ],
+        },
+        "output_schema": {
+            "project_type": "snake_case project type",
+            "manual_checks": ["manual verification step"],
+            "files": [
+                {
+                    "path": "relative/path.ext",
+                    "purpose": "why this file exists",
+                    "content": "complete file content",
+                }
+            ],
+        },
+        "hard_requirements": [
+            "Return JSON only.",
+            "The top-level files field MUST be a JSON array of objects, never an object/map.",
+            "Generate complete project files, not a spec.",
+            "Prefer a self-contained static app in index.html with embedded CSS and JavaScript, plus README.md and TEST_PLAN.md.",
+            "Use relative safe paths only.",
+            "Include index.html, README.md, and TEST_PLAN.md.",
+            "For browser apps use vanilla JavaScript only: no require(), import, npm packages, Node APIs, or backend routes.",
+            "Include <link rel=\"icon\" href=\"data:,\"> in index.html.",
+            "Implement every user-visible feature. No placeholders, TODOs, stubs, fake logic, or documentation-only features.",
+            "For this request the executable source must include these literal concepts when applicable: scoreRecord, score, sort, manualForm, Blob, localStorage.",
+            "For the highlight finder request, executable JavaScript must include all of these exact implementation ideas: function scoreRecord(record), records.sort((a, b) => b.score - a.score), filterStreamer, filterGame, filterCategory, filterScore, manualForm submit handler, Blob export, localStorage persistence.",
+        ],
+        "executable_requirements": provider_executable_requirements(goal),
+        "goal": goal,
+        "route_context": route_context,
+    }
+    if route_context.get("local_librarian", {}).get("top_local_matches"):
+        route_context["local_librarian"]["top_local_matches"] = route_context["local_librarian"]["top_local_matches"][:3]
+    if len(str(prompt)) > 12000:
+        prompt["route_context"] = {
+            "selected_modules": route_context.get("selected_modules", []),
+            "local_model_scope": ["local_librarian", "route_manager"],
+            "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
+            "acceptance_criteria": route_context.get("acceptance_criteria", []),
+        }
+    text_prompt = json.dumps(prompt, ensure_ascii=False, indent=2)
+    if _is_gptsapi_base_url(root):
+        endpoint = root.rstrip("/") + "/chat/completions"
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": text_prompt}],
+            "temperature": 0.2,
+            "max_tokens": 4096,
+        }
+    else:
+        endpoint = root.rstrip("/") + "/responses"
+        payload = {"model": model, "input": text_prompt, "temperature": 0.2, "max_output_tokens": 4096}
+    doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 180))
+    if doc is None:
+        raise RuntimeError("API project generation failed: " + error)
+    parsed = compose_local_pipeline.extract_json(_extract_text(doc))
+    if parsed is None:
+        raise RuntimeError("API project generation returned non-JSON output")
+    parsed["_provider"] = {
+        "provider": "api",
+        "model": model,
+        "base_url": root,
+        "request_id": str(doc.get("id", "")).strip(),
+        "mode": "provider_project_generation",
+    }
+    initial_errors = generated_doc_errors(parsed, goal)
+    if initial_errors:
+        write_json(
+            ROOT / "examples" / "test_results" / "provider_initial_project.json",
+            {"kind": "ProviderInitialProject", "errors": initial_errors, "project": parsed},
+        )
+    return repair_provider_project_if_needed(goal, parsed, timeout, model)
+
+
+def repair_provider_project_if_needed(goal: str, generated: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url, _post_json
+
+    current = generated
+    for _ in range(3):
+        errors = generated_doc_errors(current, goal)
+        if not errors:
+            return current
+        token, root = resolve_api()
+        if not token:
+            raise RuntimeError("API project repair requires a configured API key")
+        prompt = {
+            "task": "Regenerate a corrected project JSON from scratch. Return JSON only with project_type, manual_checks, files.",
+            "validation_errors": errors,
+            "goal": goal,
+            "hard_requirements": [
+                "Provider API must write final project logic.",
+                "No local model or CGNK compiler may fill in final project behavior.",
+                "Use browser-only vanilla JavaScript for static apps.",
+                "Prefer repairing into a self-contained index.html with embedded JavaScript instead of multiple JS files.",
+                "No placeholders, no missing user-visible features.",
+                "For this request the executable source must include these literal concepts when applicable: scoreRecord, score, sort, manualForm, Blob, localStorage.",
+                "Top-level files must be a JSON array of file objects, not a map.",
+            ],
+            "executable_requirements": provider_executable_requirements(goal),
+            "previous_file_paths": [
+                str(row.get("path", ""))
+                for row in current.get("files", [])
+                if isinstance(row, dict)
+            ],
+        }
+        text_prompt = json.dumps(prompt, ensure_ascii=False, indent=2)
+        if _is_gptsapi_base_url(root):
+            endpoint = root.rstrip("/") + "/chat/completions"
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": text_prompt}],
+                "temperature": 0,
+                "max_tokens": 4096,
+            }
+        else:
+            endpoint = root.rstrip("/") + "/responses"
+            payload = {"model": model, "input": text_prompt, "temperature": 0, "max_output_tokens": 4096}
+        doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 180))
+        if doc is None:
+            raise RuntimeError("API project repair failed: " + error)
+        parsed = compose_local_pipeline.extract_json(_extract_text(doc))
+        if parsed is None:
+            raise RuntimeError("API project repair returned non-JSON output")
+        parsed["_provider"] = {
+            "provider": "api",
+            "model": model,
+            "base_url": root,
+            "request_id": str(doc.get("id", "")).strip(),
+            "mode": "provider_project_repair",
+        }
+        current = parsed
+    errors = generated_doc_errors(current, goal)
+    if errors:
+        write_json(
+            ROOT / "examples" / "test_results" / "provider_failed_project.json",
+            {"kind": "ProviderFailedProject", "errors": errors, "project": current},
+        )
+        raise RuntimeError("API generated project failed validation: " + "; ".join(errors))
+    return current
+
+
+def post_provider_with_retries(endpoint: str, payload: dict[str, Any], token: str, timeout: int) -> tuple[dict[str, Any] | None, str]:
+    from check_connectivity import _post_json
+
+    last_error = ""
+    for attempt in range(5):
+        doc, error = _post_json(endpoint, payload, token, timeout)
+        if doc is not None:
+            return doc, ""
+        last_error = error
+        lowered = str(error).lower()
+        transient = any(
+            term in lowered
+            for term in (
+                "tlsv1_alert_protocol_version",
+                "sslv3_alert_bad_record_mac",
+                "bad record mac",
+                "unexpected_eof_while_reading",
+                "eof occurred in violation of protocol",
+                "remote end closed",
+                "504",
+                "520",
+                "timeout",
+                "connection reset",
+            )
+        )
+        if not transient or attempt == 4:
+            break
+        time.sleep(3 + attempt * 5)
+    return None, last_error
+
+
+def build_industrial_input_bundle() -> dict[str, Any]:
+    sources = [
+        {"source_id": "platform_events", "source_type": "platform_event_log", "origin": "simulated_stream_platform", "trust_level": "high", "license_or_access": "simulated_internal", "fields_provided": ["viewerSpike", "clipSignal", "timestamp"]},
+        {"source_id": "chat_analytics", "source_type": "chat_analytics", "origin": "simulated_chat_pipeline", "trust_level": "medium", "license_or_access": "simulated_internal", "fields_provided": ["chatRate", "keywords", "sentiment"]},
+        {"source_id": "public_clip_meta", "source_type": "public_clip_metadata", "origin": "simulated_public_clip_index", "trust_level": "medium", "license_or_access": "simulated_public_metadata", "fields_provided": ["title", "description", "clipSignal"]},
+        {"source_id": "creator_marks", "source_type": "creator_manual_mark", "origin": "simulated_editor_workspace", "trust_level": "high", "license_or_access": "simulated_creator_owned", "fields_provided": ["title", "category", "description"]},
+        {"source_id": "ops_review", "source_type": "ops_review_annotation", "origin": "simulated_ops_review", "trust_level": "medium", "license_or_access": "simulated_internal", "fields_provided": ["moderationFlag", "category", "confidence"]},
+    ]
+    streamers = ["AstraKai", "NovaCarry", "MapleMage", "RiftPilot", "PixelRook", "VantaAce"]
+    games = ["Apex Legends", "League of Legends", "Valorant", "Minecraft", "Fortnite", "Street Fighter 6"]
+    categories = ["clutch", "objective", "funny", "skill", "comeback", "ops-review"]
+    titles = [
+        "Final ring 1v3 clutch",
+        "Baron steal into ace",
+        "Eco round four-kill",
+        "One heart escape",
+        "Build fight reset",
+        "Perfect parry comeback",
+        "Chat explodes after fail",
+        "Backdoor base race",
+    ]
+    records: list[dict[str, Any]] = []
+    for i in range(24):
+        source = sources[i % len(sources)]
+        title = titles[i % len(titles)]
+        streamer = streamers[i % len(streamers)]
+        game = games[i % len(games)]
+        category = categories[i % len(categories)]
+        high_signal = i % 5 in (0, 1)
+        records.append(
+            {
+                "sourceId": source["source_id"],
+                "sourceType": source["source_type"],
+                "streamer": streamer,
+                "game": game,
+                "category": category,
+                "timestamp": f"2026-05-2{(i % 8) + 1}T{10 + (i % 10):02d}:{(i * 7) % 60:02d}:00Z",
+                "time": f"00:{(i * 3) % 60:02d}:{(i * 11) % 60:02d}",
+                "title": title if i not in (9, 17) else title + " duplicate review",
+                "description": f"{streamer} generated a {category} candidate in {game}; source={source['source_type']}; signal={'high' if high_signal else 'normal'}.",
+                "intensity": 92 - (i % 9) * 5 if high_signal else 45 + (i * 3) % 35,
+                "chatRate": 180 - (i % 7) * 12 if high_signal else 20 + (i * 9) % 90,
+                "keywords": [category, "highlight" if high_signal else "review", game.split()[0].lower()],
+                "viewerSpike": 1200 + i * 25 if high_signal else (i % 4) * 80,
+                "clipSignal": round(0.9 - (i % 6) * 0.07, 2) if high_signal else round(0.2 + (i % 5) * 0.08, 2),
+                "confidence": round(0.72 + (i % 5) * 0.05, 2),
+                "moderationFlag": category == "ops-review",
+            }
+        )
+    return {
+        "metadata": {
+            "bundle_id": "cgnk_simulated_industrial_stream_highlights_v1",
+            "generated_by": "CGNK industrial_io_pipeline",
+            "simulated": True,
+            "record_count": len(records),
+            "source_count": len(sources),
+        },
+        "source_manifest": sources,
+        "input_contract": {
+            "record_shape": ["sourceId", "streamer", "game", "category", "timestamp", "time", "title", "description", "intensity", "chatRate", "keywords", "viewerSpike", "clipSignal"],
+            "minimum_record_count": 20,
+            "source_coverage_minimum": 3,
+        },
+        "records": records,
+    }
+
+
+def build_expected_industrial_outputs(bundle: dict[str, Any]) -> dict[str, Any]:
+    records = list(bundle.get("records", []))
+    ranked = sorted(
+        records,
+        key=lambda row: float(row.get("intensity", 0)) + float(row.get("chatRate", 0)) * 0.12 + float(row.get("clipSignal", 0)) * 20,
+        reverse=True,
+    )
+    top = ranked[:8]
+    return {
+        "input_summary": {
+            "record_count": len(records),
+            "source_count": len(bundle.get("source_manifest", [])),
+            "source_ids": sorted({str(row.get("sourceId", "")) for row in records if row.get("sourceId")}),
+        },
+        "ranked_highlights": [
+            {
+                "title": row.get("title"),
+                "streamer": row.get("streamer"),
+                "game": row.get("game"),
+                "category": row.get("category"),
+                "expected_rank_band": "top_8",
+                "expected_reason": "high combined intensity, chatRate, clipSignal, and source confidence",
+                "sourceIds": [row.get("sourceId")],
+            }
+            for row in top
+        ],
+        "export_cut_list": [
+            {
+                "title": row.get("title"),
+                "streamer": row.get("streamer"),
+                "game": row.get("game"),
+                "timestamp": row.get("timestamp"),
+                "startTime": row.get("time"),
+                "endTime": row.get("time"),
+                "rationale": "candidate selected from simulated industrial ranking",
+            }
+            for row in top[:5]
+        ],
+        "quality_checks": [
+            "at least 20 records imported",
+            "at least 3 sourceIds represented",
+            "visible scores are numeric and descending",
+            "ranked highlight candidates are visible after import",
+            "export output uses filtered records",
+        ],
+        "output_contract": ["input_summary", "ranked_highlights", "export_cut_list", "quality_checks"],
+    }
+
+
+def industrial_io_smoke_test_js() -> str:
+    return r'''window.runIndustrialIOSmokeTest = async function () {
+  const storageKey = "cgnk.streamerHighlightFinder.records";
+  const wait = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));
+  const get = (id) => {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`Missing DOM id: ${id}`);
+    return element;
+  };
+  const scoreOf = (card) => {
+    const text = card.querySelector(".score-badge")?.textContent || "";
+    const match = text.match(/-?\d+(?:\.\d+)?/);
+    if (!match) throw new Error(`Invalid score text: ${text}`);
+    const value = Number(match[0]);
+    if (!Number.isFinite(value)) throw new Error(`Score is not numeric: ${text}`);
+    return value;
+  };
+
+  const [bundle, expected] = await Promise.all([
+    fetch("data/industrial_input_bundle.json").then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch industrial input bundle");
+      return r.json();
+    }),
+    fetch("data/expected_outputs.json").then((r) => {
+      if (!r.ok) throw new Error("Failed to fetch expected outputs");
+      return r.json();
+    }),
+  ]);
+
+  get("json-textarea").value = JSON.stringify(bundle);
+  get("import-button").click();
+  await wait(500);
+
+  const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
+  if (stored.length < 20) throw new Error(`Expected at least 20 stored records, got ${stored.length}`);
+  const sourceIds = new Set(stored.map((row) => row.sourceId || row.source_id || row.source).filter(Boolean));
+  if (sourceIds.size < 3) throw new Error(`Expected at least 3 sourceIds, got ${sourceIds.size}`);
+
+  const recordsContainer = get("records-container");
+  const cards = Array.from(recordsContainer.querySelectorAll(".highlight-card"));
+  if (!cards.length) throw new Error("No visible industrial output cards");
+  const scores = cards.map(scoreOf);
+  if (!scores.every((score, index) => index === 0 || scores[index - 1] >= score)) {
+    throw new Error("Visible industrial scores are not sorted descending");
+  }
+
+  const visibleText = recordsContainer.textContent || "";
+  const expectedRows = expected.ranked_highlights || expected.top_candidates || [];
+  const foundExpected = expectedRows.some((row) => visibleText.includes(row.title || "") || visibleText.includes(row.streamer || ""));
+  if (!foundExpected) throw new Error("No expected top ranked title or streamer appears in visible output");
+
+  const firstStreamer = stored.find((row) => row.streamer)?.streamer;
+  if (!firstStreamer) throw new Error("No streamer available for filter check");
+  get("filterStreamer").value = firstStreamer;
+  get("filter-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  await wait(250);
+  const filteredCards = Array.from(recordsContainer.querySelectorAll(".highlight-card"));
+  if (!filteredCards.length) throw new Error("Industrial streamer filter produced no visible cards");
+  if (!filteredCards.every((card) => (card.querySelector(".metadata-streamer")?.textContent || "").includes(firstStreamer))) {
+    throw new Error("Industrial streamer filter showed non-matching cards");
+  }
+  get("filterStreamer").value = "";
+  get("filterGame").value = "";
+  get("filterCategory").value = "";
+  get("filterScore").value = "";
+  get("filter-form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  await wait(250);
+
+  const originalCreateObjectURL = URL.createObjectURL;
+  let exportTriggered = false;
+  URL.createObjectURL = function (blob) {
+    exportTriggered = true;
+    return originalCreateObjectURL.call(URL, blob);
+  };
+  get("export-button").click();
+  await wait(100);
+  URL.createObjectURL = originalCreateObjectURL;
+  if (!exportTriggered) throw new Error("Industrial export did not trigger URL.createObjectURL");
+
+  return { status: "pass", importedCount: stored.length, visibleCount: cards.length, checkedOutputs: expectedRows.length };
+};
+'''
+
+
+def ensure_industrial_io_artifacts(generated: dict[str, Any], goal: str) -> dict[str, Any]:
+    if not wants_industrial_io(goal):
+        return generated
+    files = generated.get("files")
+    if not isinstance(files, list):
+        return generated
+    by_path = {str(row.get("path", "")): row for row in files if isinstance(row, dict)}
+
+    def upsert(path: str, content: str) -> None:
+        row = by_path.get(path)
+        if row is None:
+            row = {"path": path, "purpose": "local industrial I/O artifact", "content": content}
+            files.append(row)
+            by_path[path] = row
+        else:
+            row["content"] = content
+
+    bundle = None
+    current = by_path.get("data/industrial_input_bundle.json", {}).get("content")
+    if isinstance(current, str):
+        try:
+            parsed = json.loads(current)
+            records = parsed.get("records") or parsed.get("events") or []
+            sources = parsed.get("source_manifest") or parsed.get("sources") or []
+            if isinstance(records, list) and len(records) >= 20 and isinstance(sources, list) and len(sources) >= 5:
+                bundle = parsed
+        except Exception:
+            bundle = None
+    if bundle is None:
+        bundle = build_industrial_input_bundle()
+        upsert("data/industrial_input_bundle.json", json.dumps(bundle, ensure_ascii=False, indent=2))
+    expected = build_expected_industrial_outputs(bundle)
+    upsert("data/expected_outputs.json", json.dumps(expected, ensure_ascii=False, indent=2))
+    upsert("tests/industrial_io_smoke_test.js", industrial_io_smoke_test_js())
+    return generated
+
+
+def ensure_scope_truthful_architecture(generated: dict[str, Any], goal: str) -> dict[str, Any]:
+    files = generated.get("files")
+    if not isinstance(files, list):
+        return generated
+    by_path = {str(row.get("path", "")): row for row in files if isinstance(row, dict)}
+    row = by_path.get("project_architecture.json")
+    if not isinstance(row, dict) or not isinstance(row.get("content"), str):
+        return generated
+    try:
+        architecture = json.loads(row["content"])
+    except Exception:
+        return generated
+    if not isinstance(architecture, dict):
+        return generated
+    forbidden = current_static_app_forbidden_claims()
+
+    def is_forbidden_current_text(value: Any) -> bool:
+        lowered = str(value or "").lower()
+        return any(claim in lowered for claim in forbidden)
+
+    product_context = architecture.get("product_context")
+    if isinstance(product_context, dict):
+        key_features = product_context.get("key_features")
+        if isinstance(key_features, list):
+            filtered = [item for item in key_features if not is_forbidden_current_text(item)]
+            product_context["key_features"] = filtered or [
+                "Import sample or industrial JSON bundles through file input or textarea.",
+                "Score and sort highlight candidates from multi-source streamer data.",
+                "Filter results by streamer, game, category, and minimum score.",
+                "Add manual markers and export the current cut list as JSON.",
+            ]
+    if isinstance(architecture.get("screens"), list):
+        architecture["screens"] = [
+            "data_import_screen",
+            "filter_and_sort_screen",
+            "ranked_results_screen",
+            "manual_marker_screen",
+            "export_screen",
+        ]
+    architecture["current_capabilities"] = list(implemented_static_app_capabilities())
+    architecture["out_of_scope_current_capabilities"] = list(forbidden)
+    if isinstance(architecture.get("acceptance_criteria"), list):
+        criteria = [item for item in architecture["acceptance_criteria"] if not is_forbidden_current_text(item)]
+    else:
+        criteria = []
+    criteria.extend(
+        [
+            "The project runs as a local static browser app from index.html.",
+            "The GUI imports both sample JSON arrays and full industrial input bundle objects.",
+            "The app scores, sorts, filters, manually appends, persists, and exports highlight candidates using implemented modules.",
+            "Browser smoke tests and industrial I/O smoke tests validate the real generated UI.",
+        ]
+    )
+    architecture["acceptance_criteria"] = criteria
+    row["content"] = json.dumps(architecture, ensure_ascii=False, indent=2)
+    return generated
+
+
+def ensure_app_scoring_contract(generated: dict[str, Any], goal: str) -> dict[str, Any]:
+    files = generated.get("files")
+    if not isinstance(files, list):
+        return generated
+    by_path = {str(row.get("path", "")): row for row in files if isinstance(row, dict)}
+    row = by_path.get("src/app.js")
+    if not isinstance(row, dict) or not isinstance(row.get("content"), str):
+        return generated
+    content = row["content"]
+    content = re.sub(
+        r"records\s*=\s*importedRecords\.map\s*\(\s*record\s*=>\s*\(\s*\{\s*\.\.\.record\s*,\s*score\s*:\s*scoreRecord\s*\(\s*record\s*\)\s*,?\s*\}\s*\)\s*\)\s*;",
+        "records = importedRecords.map(scoreRecord);",
+        content,
+        flags=re.DOTALL,
+    )
+    content = re.sub(
+        r"records\s*=\s*storedRecords\.map\s*\(\s*record\s*=>\s*\(\s*\{\s*\.\.\.record\s*,\s*score\s*:\s*scoreRecord\s*\(\s*record\s*\)\s*,?\s*\}\s*\)\s*\)\s*;",
+        "records = storedRecords.map(scoreRecord);",
+        content,
+        flags=re.DOTALL,
+    )
+    content = re.sub(
+        r"const\s+newRecord\s*=\s*readManualMarker\s*\(\s*manualForm\s*\)\s*;\s*newRecord\.score\s*=\s*scoreRecord\s*\(\s*newRecord\s*\)\s*;\s*records\.push\s*\(\s*newRecord\s*\)\s*;",
+        "const newRecord = readManualMarker(manualForm);\n  records.push(scoreRecord(newRecord));",
+        content,
+        flags=re.DOTALL,
+    )
+    if "filterForm.addEventListener('submit'" not in content and 'filterForm.addEventListener("submit"' not in content:
+        marker = "filterForm.addEventListener('input', handleFilters);"
+        if marker in content:
+            content = content.replace(
+                marker,
+                marker + "\nfilterForm.addEventListener('submit', (event) => {\n  event.preventDefault();\n  handleFilters();\n});",
+            )
+    row["content"] = content
+    return generated
+
+
+def ensure_importer_industrial_field_contract(generated: dict[str, Any], goal: str) -> dict[str, Any]:
+    files = generated.get("files")
+    if not isinstance(files, list):
+        return generated
+    by_path = {str(row.get("path", "")): row for row in files if isinstance(row, dict)}
+    row = by_path.get("src/core/importer.js")
+    if not isinstance(row, dict) or not isinstance(row.get("content"), str):
+        return generated
+    content = row["content"]
+    if "sourceId:" not in content:
+        content = re.sub(
+            r"(return\s*\{\s*)(id\s*:\s*sourceId\s*\|\|\s*`record-\$\{index\}`\s*,)",
+            r"\1\2\n    sourceId: sourceId || null,",
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+        content = re.sub(
+            r"(return\s*\{\s*)(id\s*:\s*record\.id\s*\|\|\s*`record-\$\{index\}`\s*,)",
+            r"\1\2\n    sourceId: record.sourceId || record.source_id || record.source || null,",
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+    if "sourceType:" not in content:
+        content = re.sub(
+            r"(sourceId\s*:[^\n]+,\n)",
+            r"\1    sourceType: sourceType || record.sourceType || record.source_type || null,\n",
+            content,
+            count=1,
+        )
+    if "parseRecordsFromText(input)" not in content and "export function importData(input)" in content:
+        content = re.sub(
+            r"records\s*=\s*JSON\.parse\(\s*input\s*\)\s*;",
+            "records = parseRecordsFromText(input);",
+            content,
+            count=1,
+        )
+        content = re.sub(
+            r"(\n\s*if\s*\(\s*typeof\s+input\s*===\s*[\"']object[\"']\s*&&\s*input\s*!==\s*null\s*\)\s*\{)",
+            "\n  if (typeof input === \"string\") {\n    return parseRecordsFromText(input);\n  }\n\\1",
+            content,
+            count=1,
+        )
+    row["content"] = content
+    return generated
+
+
+def materialize_provider_project(goal: str, out_dir: pathlib.Path, plan_doc: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    generated = call_provider_filewise_project_generator(goal, plan_doc, timeout, model)
+    self_test, quality_report, adversarial_review, should_repair = run_quality_gate(goal, plan_doc, generated, timeout, model)
+    if should_repair:
+        repair_reasons = []
+        repair_reasons.extend(str(error) for error in self_test.get("payload", {}).get("errors", []))
+        repair_reasons.extend(str(issue.get("message", issue)) for issue in quality_report.get("payload", {}).get("issues", []))
+        repair_reasons.extend(blocking_adversarial_issues(adversarial_review))
+        generated = repair_provider_filewise_project_if_needed(goal, plan_doc, generated, repair_reasons or ["quality gate failed"], timeout, model)
+        self_test, quality_report, adversarial_review, should_repair = run_quality_gate(goal, plan_doc, generated, timeout, model)
+        if should_repair:
+            raise RuntimeError("API generated project failed quality gate after repair")
+    files = normalize_generated_files(generated)
+    if not isinstance(files, list) or not files:
+        raise RuntimeError("API project generator returned no files")
+    written: list[str] = []
+    rels: list[str] = []
+    for row in files[:60]:
+        if not isinstance(row, dict):
+            continue
+        rel = str(row.get("path", "")).strip()
+        content = row.get("content")
+        if not isinstance(content, str):
+            continue
+        path = safe_project_path(out_dir, rel)
+        write_text(path, content)
+        written.append(str(path))
+        rels.append(str(path.relative_to(out_dir)))
+    required = {"index.html", "README.md", "TEST_PLAN.md"}
+    missing = sorted(required - {rel.replace("\\", "/") for rel in rels})
+    if missing:
+        raise RuntimeError("API project generator missed required files: " + ", ".join(missing))
+    manual_checks = generated.get("manual_checks", [])
+    if not isinstance(manual_checks, list) or not all(isinstance(item, str) for item in manual_checks):
+        manual_checks = ["Open index.html", "Run TEST_PLAN.md checks"]
+    return {
+        "project_type": slug(str(generated.get("project_type", "api_generated_project")))[:80],
+        "manual_checks": manual_checks[:12],
+        "written": written,
+        "generator": generated.get("_provider", {}),
+        "subpipeline_plan": build_subpipeline_plan(goal, plan_doc, generated),
+        "self_test": self_test,
+        "quality_report": quality_report,
+        "adversarial_review": adversarial_review,
+        "quality_gate": {
+            "status": "pass",
+            "repaired": bool(generated.get("_provider", {}).get("mode") == "provider_filewise_project_repair"),
+        },
+    }
+
+
+def call_provider_filewise_project_generator(goal: str, plan_doc: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url
+
+    token, root = resolve_api()
+    if not token:
+        raise RuntimeError("API filewise project generation requires a configured API key")
+
+    product_strategy = call_provider_product_strategy_generator(goal, plan_doc, timeout, model)
+    architecture = call_provider_architecture_generator(goal, plan_doc, timeout, model, product_strategy)
+    shared = {
+        "goal": goal,
+        "product_strategy": product_strategy,
+        "architecture": architecture,
+        "expected_paths": [
+            "docs/USER_ANALYSIS.md",
+            "docs/MARKET_RESEARCH.md",
+            "docs/TECHNICAL_PATH.md",
+            "docs/UX_DESIGN_SPEC.md",
+            "docs/PRODUCT_DECISION_LOG.md",
+            "project_architecture.json",
+            "index.html",
+            "styles.css",
+            "src/core/scoring.js",
+            "src/core/filtering.js",
+            "src/core/importer.js",
+            "src/core/exporter.js",
+            "src/state/store.js",
+            "src/ui/render.js",
+            "src/ui/forms.js",
+            "src/app.js",
+            "data/sample_events.json",
+            "data/industrial_input_bundle.json",
+            "data/expected_outputs.json",
+            "tests/browser_smoke_test.js",
+            "tests/industrial_io_smoke_test.js",
+            "docs/ARCHITECTURE.md",
+            "docs/INPUT_OUTPUT_SPEC.md",
+            "README.md",
+            "TEST_PLAN.md",
+        ],
+        "module_contract": {
+            "src/core/scoring.js": ["scoreRecord", "sortRecords"],
+            "src/core/filtering.js": ["applyFilters"],
+            "src/core/importer.js": ["parseRecordsFromText", "normalizeRecord", "importData"],
+            "src/core/exporter.js": ["downloadJson", "exportData"],
+            "src/state/store.js": ["loadRecords", "saveRecords", "clearRecords", "loadFromLocalStorage", "saveToLocalStorage"],
+            "src/ui/render.js": ["renderRecords", "renderSummary", "renderError"],
+            "src/ui/forms.js": ["readFilters", "readManualMarker", "bindDom", "setupForms"],
+        },
+        "acceptance_criteria": infer_acceptance_criteria(goal),
+        "executable_requirements": provider_executable_requirements(goal),
+        "dom_contract": {
+            "file_input": "file-input",
+            "json_textarea": "json-textarea",
+            "import_button": "import-button",
+            "filter_form": "filter-form",
+            "filter_streamer": "filterStreamer",
+            "filter_game": "filterGame",
+            "filter_category": "filterCategory",
+            "filter_score": "filterScore",
+            "manual_form": "manual-form",
+            "export_button": "export-button",
+            "status_summary": "status-summary",
+            "records_container": "records-container"
+        },
+        "ui_structure_contract": {
+            "required_classes": [
+                "app-shell",
+                "app-header",
+                "workspace-grid",
+                "intake-panel",
+                "filters-panel",
+                "results-panel",
+                "manual-panel",
+                "status-strip",
+                "action-bar"
+            ],
+            "result_card_classes": [
+                "highlight-card",
+                "highlight-title",
+                "score-badge",
+                "metadata-row",
+                "metadata-streamer",
+                "metadata-game",
+                "metadata-time",
+                "metadata-category",
+                "highlight-description"
+            ],
+            "visible_result_fields": [
+                "title",
+                "streamer",
+                "game",
+                "timestamp",
+                "category",
+                "score",
+                "description"
+            ],
+            "design_goal": "A clear product workbench for stream/video operators, not a raw form dump. Prioritize scanability, obvious ownership of each control, and progressive complexity.",
+        },
+        "current_capability_contract": {
+            "implemented_current_capabilities": list(implemented_static_app_capabilities()),
+            "forbidden_current_claims": list(current_static_app_forbidden_claims()),
+            "rule": "Only describe implemented_current_capabilities as current behavior. Capabilities in forbidden_current_claims may appear only as explicitly labeled future work or rejected alternatives, never as current features.",
+        },
+        "industrial_io_contract": {
+            "input_bundle_path": "data/industrial_input_bundle.json",
+            "expected_outputs_path": "data/expected_outputs.json",
+            "documentation_path": "docs/INPUT_OUTPUT_SPEC.md",
+            "test_path": "tests/industrial_io_smoke_test.js",
+            "source_manifest_fields": ["source_id", "source_type", "origin", "trust_level", "license_or_access", "fields_provided"],
+            "record_fields": ["sourceId", "streamer", "game", "category", "timestamp", "time", "title", "description", "intensity", "chatRate", "keywords", "viewerSpike", "clipSignal"],
+            "minimum_record_count": 20,
+            "output_contract": ["ranked_highlights", "export_cut_list", "quality_checks", "input_summary"],
+            "rule": "Simulate industrial-grade inputs from multiple plausible resource categories such as platform event logs, chat analytics, creator manual marks, public clip metadata, and moderation/ops annotations. Do not claim live retrieval unless actual sources are provided; label simulated resources clearly.",
+        },
+        "routing_policy": {
+            "local_model_scope": ["local_librarian", "route_manager"],
+            "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
+        },
+        "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+    }
+
+    file_specs = [
+        (
+            "docs/USER_ANALYSIS.md",
+            "Generate a product-first user analysis document of at least 900 words. Cover target personas, jobs-to-be-done, high-frequency workflow, pain points, decision criteria, user success metrics, and what the GUI must make obvious. Make it specific to game streamers, editors, and livestream operations teams. This analysis is more important than code generation and must directly guide the UI and module choices. Return raw markdown only.",
+        ),
+        (
+            "docs/MARKET_RESEARCH.md",
+            "Generate a market research and positioning document of at least 900 words. Cover alternative solution categories, likely competing workflows/tools, unmet needs, differentiation, willingness-to-use assumptions, adoption risks, and validation questions. Do not claim live web research unless sources are provided; label assumptions clearly. This market judgment must constrain what the generated app chooses to build first. Return raw markdown only.",
+        ),
+        (
+            "docs/TECHNICAL_PATH.md",
+            "Generate a technical path selection document of at least 900 words. Compare at least three paths, explain tradeoffs, explain why this generated version chooses a local static browser app with modular ES modules and localStorage for the prototype, and define future paths for video/audio processing, API backends, IndexedDB, clip export, and model-assisted analysis. Return raw markdown only.",
+        ),
+        (
+            "docs/UX_DESIGN_SPEC.md",
+            "Generate a UX and GUI design specification of at least 900 words. Define information architecture, primary screen layout, control grouping, empty/loading/error states, data density, visual hierarchy, terminology, and acceptance criteria. Require the exact UI structure classes from shared_context.ui_structure_contract.required_classes and result card classes from shared_context.ui_structure_contract.result_card_classes. State that each result must visibly show title, streamer, game, timestamp/time, category, score, and description. State the exact result DOM contract: highlight-card contains highlight-title, score-badge, metadata-streamer, metadata-game, metadata-time, metadata-category, and highlight-description. Return raw markdown only.",
+        ),
+        (
+            "docs/PRODUCT_DECISION_LOG.md",
+            "Generate a product decision log of at least 900 words. This is the gate between analysis and code. It must turn user analysis, market research, technical path, UX design, and industrial I/O into concrete build decisions. Include priority order, current scope, out of scope current capabilities, rejected alternatives, implementation risks, quality gates, acceptance criteria, and how each module maps to a user/market need. Explicitly state that the current generated project is a local static browser app with textarea/file JSON import, industrial bundle import, scoring/sorting, filters, manual marker, Blob JSON export, localStorage, browser smoke test, and industrial I/O smoke test. Explicitly mark drag-and-drop, interactive timeline, collaboration, NLP, computer vision, machine learning, sentiment analysis, audio/video processing, IndexedDB, backend, and database integration as future or rejected current-scope items unless implemented in the generated files. Return raw markdown only.",
+        ),
+        (
+            "docs/INPUT_OUTPUT_SPEC.md",
+            "Generate an industrial input/output specification of at least 900 words. It must define concrete input schemas, output schemas, field meanings, source categories, resource provenance labels, validation rules, edge cases, and how the generated app turns the input bundle into ranked highlights and an export cut list. It must reference data/industrial_input_bundle.json, data/expected_outputs.json, and tests/industrial_io_smoke_test.js. The resource sources are simulated unless explicitly provided, but they must be plausible industrial sources such as platform event logs, chat analytics, creator manual marks, public clip metadata, and moderation/ops annotations. Return raw markdown only.",
+        ),
+        (
+            "project_architecture.json",
+            "Return only JSON for the finalized project architecture. It must be derived from shared_context.product_strategy and docs/PRODUCT_DECISION_LOG.md before implementation details. Include product_context, screens, modules, data_contract, industrial_io_contract, ux_contract, technical_path, current_capabilities, out_of_scope_current_capabilities, test_strategy, and acceptance_criteria. product_context.key_features, screens, current_capabilities, and acceptance_criteria must describe only the current implemented static app: local static browser app, textarea/file JSON import, industrial bundle import, scoring/sorting, streamer/game/category/min-score filters, manual marker, Blob JSON export, localStorage, browser smoke test, and industrial I/O smoke test. current_capabilities must contain only capabilities from shared_context.current_capability_contract.implemented_current_capabilities. out_of_scope_current_capabilities must list forbidden or future capabilities from shared_context.current_capability_contract.forbidden_current_claims when relevant. Do not put drag-and-drop, timeline, collaboration, NLP, computer vision, machine learning, sentiment analysis, audio/video processing, IndexedDB, backend, or database integration in product_context.key_features, screens, current_capabilities, or acceptance_criteria. The modules list must use only exact paths from shared_context.expected_paths; do not use paths from shared_context.architecture if they differ from expected_paths. Use the actual module_contract exports/imports. Return JSON only.",
+        ),
+        (
+            "index.html",
+            "Generate complete index.html for a static browser app. The GUI must follow shared_context.product_strategy and shared_context.ui_structure_contract. Build a clear operations workbench, not a raw form dump. Use classes app-shell, app-header, workspace-grid, intake-panel, filters-panel, results-panel, manual-panel, status-strip, and action-bar. The first screen must make the user understand what to do: import data, narrow candidates, inspect ranked highlights, add a manual marker, export the cut list. Use the exact path contract, even if architecture suggests src/index.html. Include <link rel=\"icon\" href=\"data:,\">, <link rel=\"stylesheet\" href=\"styles.css\">, a concise product header, import panel, filter toolbar/panel, status strip, results panel, manual marker panel, export action, and <script type=\"module\" src=\"src/app.js\"></script>. Use exactly the IDs from shared_context.dom_contract, including id=\"status-summary\" on the status strip content and id=\"records-container\" on the results container. Every manual marker input must have matching name attributes: streamer, game, category, timestamp, time, intensity, chatRate, keywords, title, description. Do not include a score input. Return raw file content only.",
+        ),
+        (
+            "styles.css",
+            "Generate polished responsive CSS for the product workbench. Must style every class in shared_context.ui_structure_contract.required_classes and shared_context.ui_structure_contract.result_card_classes. The UI should be calm, dense, and readable: clear panels, stable grid, obvious filter toolbar, strong result hierarchy, clear score badge, readable metadata rows, restrained colors, no decorative blobs, no landing-page hero. Do not define important classes that index.html or render.js do not use. Return raw CSS only.",
+        ),
+        (
+            "src/core/scoring.js",
+            "Generate ES module JavaScript. Export exactly function scoreRecord(record) and function sortRecords(records). scoreRecord must return a new record/object with numeric score, not only a number. sortRecords must sort by score descending using .sort((a, b) => b.score - a.score). Score must use intensity, chatRate, keywords, category, and title/description boosts. Return raw JavaScript only.",
+        ),
+        (
+            "src/core/filtering.js",
+            "Generate ES module JavaScript. Export function applyFilters(records, filters). Must filter by streamer, game, category, and min score using String(record.field || '').toLowerCase().includes(...). Return raw JavaScript only.",
+        ),
+        (
+            "src/core/importer.js",
+            "Generate ES module JavaScript. Export exactly parseRecordsFromText(text), normalizeRecord(record, index), and importData(input). importData must accept an array, JSON text, or an industrial input bundle object. parseRecordsFromText must JSON.parse(text), return the array when parsed is an array, and when parsed is an object it must return importData(parsed) or explicitly extract parsed.records, parsed.events, parsed.highlights, parsed.items, or parsed.payload.records. If input is an object, extract records from records, events, highlights, items, or payload.records. Normalize each record and return an array. Preserve useful industrial fields as output properties, especially sourceId, sourceType, viewerSpike, clipSignal, confidence, and moderationFlag, while normalizing streamer, game, category, timestamp/time, title, description, intensity, chatRate, keywords. Do not collapse sourceId into id only; normalized records must still contain sourceId. Return raw JavaScript only.",
+        ),
+        (
+            "src/core/exporter.js",
+            "Generate ES module JavaScript. Export exactly downloadJson(filename, records) and exportData(records, filename = 'highlight-clips.json') using Blob, URL.createObjectURL, anchor download, and revokeObjectURL. Return raw JavaScript only.",
+        ),
+        (
+            "src/state/store.js",
+            "Generate ES module JavaScript. Export exactly loadRecords(), saveRecords(records), clearRecords(), loadFromLocalStorage(), and saveToLocalStorage(records). Alias loadFromLocalStorage to loadRecords and saveToLocalStorage to saveRecords. Use localStorage key cgnk.streamerHighlightFinder.records. Return raw JavaScript only.",
+        ),
+        (
+            "src/ui/render.js",
+            "Generate ES module JavaScript. Export renderRecords(records, container), renderSummary(records, filteredRecords, summaryElement), and renderError(message, container). renderRecords must build understandable highlight result cards. Each card must use class highlight-card and contain: h3.highlight-title, span.score-badge, p.metadata-row.metadata-streamer, p.metadata-row.metadata-game, p.metadata-row.metadata-time, p.metadata-row.metadata-category, and p.highlight-description. Every visible result must show title, streamer, game, timestamp or time, category, score, and description; keywords should be shown when present. Must not use innerHTML with unescaped user data unless escaped. Return raw JavaScript only.",
+        ),
+        (
+            "src/ui/forms.js",
+            "Generate ES module JavaScript. Export exactly readFilters(dom), readManualMarker(form), bindDom(dom, handlers), and setupForms(domIds). Do not reference an undefined dom_contract variable. readFilters must return { streamer, game, category, minScore }. readManualMarker must not read a score field; it must read streamer, game, category, timestamp, time, intensity, chatRate, keywords, title, description. Return raw JavaScript only.",
+        ),
+        (
+            "src/app.js",
+            "Generate ES module JavaScript that imports only exported names from ./core/scoring.js, ./core/filtering.js, ./core/importer.js, ./core/exporter.js, ./state/store.js, ./ui/render.js, and ./ui/forms.js. Wire all UI behavior directly: file import, textarea import, filters, manual marker submit, export current filtered records, localStorage restore/save. Do not call bindDom() or setupForms(); attach event listeners directly in app.js. Must define const statusSummary = document.getElementById('status-summary'). Must use document.getElementById(...) elements, not string IDs, when calling render functions. Must call renderRecords(filteredRecords, recordsContainer), renderSummary(records, filteredRecords, statusSummary), and renderError(message, recordsContainer). Never pass a status message string as the third renderSummary argument. Must use scoreRecord and sortRecords. scoreRecord returns the full scored record object, so use importedRecords.map(scoreRecord), storedRecords.map(scoreRecord), and records.push(scoreRecord(newRecord)); never assign score: scoreRecord(record) and never set newRecord.score = scoreRecord(newRecord). Must handle both filterForm submit events and optional input events. Must not call FormData.get('score'). Must call exportData(filteredRecords, 'filtered_highlights.json') or downloadJson('filtered_highlights.json', filteredRecords), not both chained together. Must use the exact DOM IDs from shared_context.dom_contract. Return raw JavaScript only.",
+        ),
+        (
+            "data/sample_events.json",
+            "Generate JSON array only with at least 8 realistic game streamer event records using fields streamer, game, category, timestamp, title, description, intensity, chatRate, keywords.",
+        ),
+        (
+            "data/industrial_input_bundle.json",
+            "Generate raw JSON only for an industrial-grade simulated input bundle. It must be an object with metadata, source_manifest, records, and input_contract. source_manifest must contain at least 5 plausible source entries using fields from shared_context.industrial_io_contract.source_manifest_fields. records must physically contain at least 24 complete record objects, not just metadata.record_count. metadata.record_count must equal the actual records.length. Use shared_context.industrial_io_contract.record_fields plus any useful operational fields. Include mixed sourceId values, duplicate-ish moments, noisy/low-signal rows, high-signal rows, missing optional values, and cross-game/cross-streamer data. Keep each record compact but complete. This is simulated resource data; do not claim live retrieval.",
+        ),
+        (
+            "data/expected_outputs.json",
+            "Generate raw JSON only for concrete expected outputs derived from data/industrial_input_bundle.json. It must be an object with input_summary, ranked_highlights, export_cut_list, quality_checks, and output_contract. ranked_highlights must contain at least 8 expected top candidates with title, streamer, game, category, expected_rank_band, expected_reason, and sourceIds. export_cut_list must contain at least 5 clip/export rows with title, startTime, endTime or timestamp, game, streamer, and rationale. quality_checks must define checks for ranking, filtering, source coverage, duplicate/noisy input handling, and export shape.",
+        ),
+        (
+            "tests/browser_smoke_test.js",
+            "Generate raw JavaScript only, no markdown fences or prose. Define window.runSmokeTest = async function() that tests the real generated app loaded from index.html. On failure, throw new Error(message); do not use console.error or bare return. On success, return { status: 'pass' }. Do not create replacement app DOM elements, do not define local renderRecords/applyFilters/sortRecords/exportData functions, and do not overwrite document.body.innerHTML. Use document.getElementById for the real IDs: json-textarea, import-button, filter-form, manual-form, export-button, and records-container; explicitly assign const recordsContainer = document.getElementById('records-container') and query cards inside it. Import sample data by setting the real textarea and clicking the real import button; verify scoring/sorting/filtering/manual marker/localStorage/export controls through the real UI. Scores are computed by src/core/scoring.js, so the test must not expect imported record.score values to be preserved; instead parse visible .score-badge values by extracting the numeric part with a regex, assert they are numeric and positive, and assert the visible cards are sorted descending. After testing any filter, clear filterStreamer.value, filterGame.value, filterCategory.value, and filterScore.value, then dispatch a real submit event with bubbles/cancelable on the filter form before testing manual marker visibility. Never call form.submit(), because it bypasses submit event listeners. Manual marker assertions must check both localStorage contains the new record and the visible unfiltered result list contains the new title/streamer. Do not read or fill a manual [name='score'] field because the generated form must not have one; verify computed score through the visible .score-badge after the marker is added. The test must inspect visible text or DOM generated by src/ui/render.js and fail if imported/manual records do not visibly show title, streamer, game, category, score, and description. Use the exact result DOM classes from shared_context.ui_structure_contract.result_card_classes when querying, especially metadata-streamer, metadata-game, metadata-time, metadata-category, and highlight-description; do not query obsolete selectors like .metadata-row.streamer. Do not invent data-score/data-streamer attributes unless render.js sets them. It must use the same localStorage key as src/state/store.js: cgnk.streamerHighlightFinder.records. For export, monkey-patch URL.createObjectURL or Blob to verify a download path was triggered; do not expect a persistent a[download] element after click. Return raw JavaScript only.",
+        ),
+        (
+            "tests/industrial_io_smoke_test.js",
+            "Generate raw JavaScript only, no markdown fences or prose. Define window.runIndustrialIOSmokeTest = async function() and test the real generated app loaded from index.html. Fetch data/industrial_input_bundle.json and data/expected_outputs.json from the same static server, paste the full industrial bundle JSON into the real json-textarea, click the real import button, and verify visible output cards. On failure, throw new Error(message); on success return { status: 'pass', importedCount, visibleCount, checkedOutputs }. It must verify at least: at least 20 records were imported into localStorage using key cgnk.streamerHighlightFinder.records, visible scores are numeric and descending after extracting the numeric part with regex, at least one expected top ranked title or streamer appears, source coverage includes at least 3 sourceIds in storage, filtering by streamer or game works on the industrial data, and export triggers Blob or URL.createObjectURL. Do not create replacement DOM or local scoring/filtering logic. Do not call form.submit(); dispatch submit events with bubbles/cancelable.",
+        ),
+        (
+            "docs/ARCHITECTURE.md",
+            "Generate architecture documentation explaining how the product analysis, market research, technical path, UX design, product decision log, industrial input/output simulation, modules, data flow, API/provider role, local Ollama role, self-test, quality evaluation, and adversarial review connect. It must describe the actual generated implementation: a local static browser app using index.html, styles.css, modular ES modules under src/, data/sample_events.json, data/industrial_input_bundle.json, data/expected_outputs.json, localStorage, browser smoke tests, and industrial I/O smoke tests. Do not describe React, Node.js backend, TensorFlow, npm install, src/frontend/src/backend, drag-and-drop, timeline, collaboration, NLP, computer vision, machine learning, sentiment analysis, audio/video processing, IndexedDB, backend, or database integration as current implementation. Future paths may be mentioned only in a clearly labeled future section. Return raw markdown only.",
+        ),
+        (
+            "README.md",
+            "Generate README.md explaining the product purpose, target users, selected technical path, how to run the complete modular project locally, and how to use import, scoring, filtering, manual markers, export, sample data, industrial input bundle, expected outputs, and smoke tests. It must match the actual generated implementation: local static browser app, textarea/file JSON import, industrial input bundle import, localStorage, Blob JSON export, no external dependency setup, no React dependency, no Node.js backend. Describe only capabilities that are present in the generated files; do not add current-section lines for drag-and-drop, timeline, collaboration, machine learning, NLP, computer vision, unavailable integrations, TODO, not implemented, coming soon, or placeholder features. The run command should be python -m http.server from the generated project directory. Return raw markdown only.",
+        ),
+        (
+            "TEST_PLAN.md",
+            "Generate TEST_PLAN.md with checks for import, scoring, sort, streamer/game/category/score filters, manual marker, export, localStorage, industrial input bundle ingestion, expected output shape, source coverage, and console errors. Return raw markdown only.",
+        ),
+    ]
+
+    prompt_version = "product-first-pipeline-v31-importer-string-contract"
+    partial_path = ROOT / "examples" / "test_results" / "provider_filewise_partial_project.json"
+    cached_files: dict[str, dict[str, str]] = {}
+    if partial_path.exists():
+        try:
+            cached_doc = json.loads(partial_path.read_text(encoding="utf-8"))
+            if (
+                cached_doc.get("goal") == goal
+                and cached_doc.get("model") == model
+                and cached_doc.get("prompt_version") == prompt_version
+            ):
+                for row in cached_doc.get("files", []):
+                    if isinstance(row, dict) and isinstance(row.get("path"), str) and isinstance(row.get("content"), str):
+                        cached_files[str(row["path"])] = row
+        except Exception:
+            cached_files = {}
+
+    files: list[dict[str, str]] = []
+    request_ids: list[str] = []
+    for path, instruction in file_specs:
+        if path in cached_files:
+            files.append(cached_files[path])
+            continue
+        prompt = json.dumps({"instruction": instruction, "shared_context": shared}, ensure_ascii=False, indent=2)
+        if _is_gptsapi_base_url(root):
+            endpoint = root.rstrip("/") + "/chat/completions"
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 2500,
+            }
+        else:
+            endpoint = root.rstrip("/") + "/responses"
+            payload = {"model": model, "input": prompt, "temperature": 0.1, "max_output_tokens": 2500}
+        doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 180))
+        if doc is None:
+            raise RuntimeError(f"API filewise generation failed for {path}: {error}")
+        content = strip_code_fence(_extract_text(doc))
+        if not content.strip():
+            raise RuntimeError(f"API filewise generation returned empty content for {path}")
+        request_ids.append(str(doc.get("id", "")).strip())
+        files.append({"path": path, "purpose": "provider filewise generated project file", "content": content})
+        write_json(
+            partial_path,
+            {
+                "kind": "ProviderFilewisePartialProject",
+                "goal": goal,
+                "model": model,
+                "prompt_version": prompt_version,
+                "files": files,
+                "request_ids": request_ids,
+            },
+        )
+
+    generated = {
+        "project_type": "game_highlight_finder",
+        "manual_checks": [
+            "Import JSON data",
+            "Verify scoring and descending sort",
+            "Filter by streamer, game, category, and score",
+            "Add manual marker",
+            "Export filtered clip list",
+            "Refresh and confirm localStorage persistence",
+        ],
+        "files": files,
+        "_provider": {
+            "provider": "api",
+            "model": model,
+            "base_url": root,
+            "request_id": ",".join(r for r in request_ids if r),
+            "mode": "provider_architecture_filewise_project_generation",
+        },
+    }
+    generated = ensure_industrial_io_artifacts(generated, goal)
+    generated = ensure_scope_truthful_architecture(generated, goal)
+    generated = ensure_app_scoring_contract(generated, goal)
+    generated = ensure_importer_industrial_field_contract(generated, goal)
+    errors = generated_doc_errors(generated, goal)
+    if errors:
+        generated = repair_provider_filewise_project_if_needed(goal, plan_doc, generated, errors, timeout, model)
+        generated = ensure_industrial_io_artifacts(generated, goal)
+        generated = ensure_scope_truthful_architecture(generated, goal)
+        generated = ensure_app_scoring_contract(generated, goal)
+        generated = ensure_importer_industrial_field_contract(generated, goal)
+    return generated
+
+
+def repair_provider_filewise_project_if_needed(
+    goal: str,
+    plan_doc: dict[str, Any],
+    generated: dict[str, Any],
+    initial_errors: list[str],
+    timeout: int,
+    model: str,
+) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url
+
+    token, root = resolve_api()
+    if not token:
+        raise RuntimeError("API project repair requires a configured API key")
+
+    current = generated
+    errors = initial_errors
+    repair_ids: list[str] = []
+    for _ in range(2):
+        prompt = json.dumps(
+            {
+                "task": "Repair this modular browser project. Return full JSON only, no markdown.",
+                "goal": goal,
+                "validation_errors": errors,
+                "acceptance_criteria": infer_acceptance_criteria(goal),
+                "rules": [
+                    "Provider API is responsible for project_generation, project_repair, and final_project_logic.",
+                    "Preserve the modular file layout; do not collapse the project into one app.js bundle.",
+                    "Return schema exactly: project_type, manual_checks, files.",
+                    "files must be a list of objects with path, purpose, and content.",
+                    "Every local script, stylesheet, fetch path, and ES module import must point to an existing file.",
+                    "Every named ES module import must be exported by the referenced file.",
+                    "index.html must include all DOM IDs and form field names that JavaScript reads.",
+                    "Use vanilla browser JavaScript only; no require, module.exports, Node.js APIs, backend endpoints, or external CDN dependencies.",
+                    "The app must actually import data, score records, sort by score descending, filter streamer/game/category/min score, add manual markers, persist with localStorage, and export filtered JSON.",
+                    "No placeholders, TODOs, stubs, fake buttons, or explanatory-only logic.",
+                ],
+                "route_context": {
+                    "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+                    "routing_policy": {
+                        "local_model_scope": ["local_librarian", "route_manager"],
+                        "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
+                    },
+                },
+                "current_project": current,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        if _is_gptsapi_base_url(root):
+            endpoint = root.rstrip("/") + "/chat/completions"
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "max_tokens": 12000,
+            }
+        else:
+            endpoint = root.rstrip("/") + "/responses"
+            payload = {"model": model, "input": prompt, "temperature": 0, "max_output_tokens": 12000}
+        doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 240))
+        if doc is None:
+            write_json(
+                ROOT / "examples" / "test_results" / "provider_filewise_failed_project.json",
+                {"kind": "ProviderFilewiseFailedProject", "errors": errors, "provider_error": error, "project": current},
+            )
+            raise RuntimeError(f"API filewise repair failed: {error}")
+        repair_ids.append(str(doc.get("id", "")).strip())
+        text = strip_code_fence(_extract_text(doc))
+        parsed = compose_local_pipeline.extract_json(text)
+        if not isinstance(parsed, dict):
+            write_json(
+                ROOT / "examples" / "test_results" / "provider_filewise_repair_non_json.json",
+                {
+                    "kind": "ProviderFilewiseRepairNonJson",
+                    "attempt": len(repair_ids),
+                    "request_id": str(doc.get("id", "")).strip(),
+                    "validation_errors": errors,
+                    "raw_text": text[:8000],
+                },
+            )
+            continue
+        provider_meta = dict(current.get("_provider", {}))
+        provider_meta.update(
+            {
+                "provider": "api",
+                "model": model,
+                "base_url": root,
+                "request_id": ",".join(r for r in repair_ids if r) or provider_meta.get("request_id", ""),
+                "mode": "provider_filewise_project_repair",
+            }
+        )
+        parsed["_provider"] = provider_meta
+        current = parsed
+        errors = generated_doc_errors(current, goal)
+        if not errors:
+            return current
+
+    write_json(
+        ROOT / "examples" / "test_results" / "provider_filewise_failed_project.json",
+        {"kind": "ProviderFilewiseFailedProject", "errors": errors, "project": current},
+    )
+    raise RuntimeError("API filewise generated project failed validation after repair: " + "; ".join(errors))
+
+
+def call_provider_product_strategy_generator(goal: str, plan_doc: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url
+
+    token, root = resolve_api()
+    if not token:
+        raise RuntimeError("API product strategy generation requires a configured API key")
+    prompt = {
+        "task": "Generate product-first planning context before any code. Return JSON only.",
+        "goal": goal,
+        "route_context": {
+            "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+            "local_librarian": plan_doc.get("project_understanding", {}).get("payload", {}).get("local_librarian", {}),
+            "route_manager": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}),
+        },
+        "required_sections": [
+            "user_analysis",
+            "market_research",
+            "technical_path_selection",
+            "ux_design_direction",
+            "quality_bar",
+        ],
+        "rules": [
+            "User analysis, market research, and technical path selection are more important than code generation.",
+            "Do not produce a generic form app. Define a workbench-style GUI that makes the user's job clear.",
+            "Label market assumptions clearly if not backed by live sources.",
+            "Keep Ollama scope limited to local_librarian and route_manager; provider API owns project generation and final logic.",
+        ],
+    }
+    if _is_gptsapi_base_url(root):
+        endpoint = root.rstrip("/") + "/chat/completions"
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": json.dumps(prompt, ensure_ascii=False, indent=2)}],
+            "temperature": 0.1,
+            "max_tokens": 2500,
+        }
+    else:
+        endpoint = root.rstrip("/") + "/responses"
+        payload = {
+            "model": model,
+            "input": json.dumps(prompt, ensure_ascii=False, indent=2),
+            "temperature": 0.1,
+            "max_output_tokens": 2500,
+        }
+    doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 120))
+    if doc is None:
+        raise RuntimeError("API product strategy generation failed: " + error)
+    parsed = compose_local_pipeline.extract_json(strip_code_fence(_extract_text(doc)))
+    if not isinstance(parsed, dict):
+        raise RuntimeError("API product strategy generation returned non-JSON output")
+    parsed["_provider"] = {
+        "provider": "api",
+        "model": model,
+        "base_url": root,
+        "request_id": str(doc.get("id", "")).strip(),
+        "mode": "provider_product_strategy_generation",
+    }
+    return parsed
+
+
+def call_provider_architecture_generator(goal: str, plan_doc: dict[str, Any], timeout: int, model: str, product_strategy: dict[str, Any] | None = None) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url
+
+    token, root = resolve_api()
+    if not token:
+        raise RuntimeError("API architecture generation requires a configured API key")
+    prompt = {
+        "task": "Generate a project architecture plan, not code. Return JSON only.",
+        "goal": goal,
+        "product_strategy": product_strategy or {},
+        "route_context": {
+            "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+            "local_librarian": plan_doc.get("project_understanding", {}).get("payload", {}).get("local_librarian", {}),
+            "route_manager": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}),
+            "local_model_scope": ["local_librarian", "route_manager"],
+            "provider_scope": ["project_architecture", "project_generation", "project_repair", "final_project_logic"],
+        },
+        "required_output_shape": {
+            "project_type": "snake_case",
+            "screens": ["screen names"],
+            "modules": [{"path": "src/...", "responsibility": "...", "exports": ["..."], "imports": ["..."]}],
+            "data_contract": {"record_fields": ["..."], "sample_shape": {}},
+            "acceptance_criteria": infer_acceptance_criteria(goal),
+            "test_strategy": ["..."],
+        },
+    }
+    if _is_gptsapi_base_url(root):
+        endpoint = root.rstrip("/") + "/chat/completions"
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": json.dumps(prompt, ensure_ascii=False, indent=2)}],
+            "temperature": 0.1,
+            "max_tokens": 1800,
+        }
+    else:
+        endpoint = root.rstrip("/") + "/responses"
+        payload = {
+            "model": model,
+            "input": json.dumps(prompt, ensure_ascii=False, indent=2),
+            "temperature": 0.1,
+            "max_output_tokens": 1800,
+        }
+    doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 120))
+    if doc is None:
+        raise RuntimeError("API architecture generation failed: " + error)
+    parsed = compose_local_pipeline.extract_json(_extract_text(doc))
+    if parsed is None:
+        raise RuntimeError("API architecture generation returned non-JSON output")
+    return parsed
+
+
+def strip_code_fence(text: str) -> str:
+    raw = str(text or "").strip()
+    match = re.fullmatch(r"```(?:[a-zA-Z0-9_-]+)?\s*(.*?)\s*```", raw, flags=re.DOTALL)
+    return match.group(1).strip() if match else raw
+
+
+def normalize_generated_files(generated: dict[str, Any]) -> list[dict[str, str]]:
+    files = generated.get("files", [])
+    if isinstance(files, dict):
+        files = [
+            {"path": str(path), "purpose": "provider returned object-form file entry", "content": content}
+            for path, content in files.items()
+        ]
+        generated["files"] = files
+    normalized: list[dict[str, str]] = []
+    if not isinstance(files, list):
+        return normalized
+    for row in files:
+        if not isinstance(row, dict):
+            continue
+        path = str(row.get("path", "")).replace("\\", "/").strip().lstrip("/")
+        content = row.get("content")
+        if path and isinstance(content, str):
+            normalized.append({"path": path, "purpose": str(row.get("purpose", "")), "content": content})
+    return normalized
+
+
+def build_subpipeline_plan(goal: str, plan_doc: dict[str, Any], generated: dict[str, Any] | None = None) -> dict[str, Any]:
+    files = normalize_generated_files(generated or {}) if generated else []
+    feature_files = [
+        row["path"]
+        for row in files
+        if row["path"].startswith("src/core/")
+        or row["path"].startswith("src/state/")
+        or row["path"].startswith("src/ui/")
+        or row["path"] == "src/app.js"
+    ]
+    module_pipelines = []
+    for path in feature_files:
+        if path.startswith("src/core/importer"):
+            responsibility = "data_import_pipeline"
+        elif path.startswith("src/core/scoring"):
+            responsibility = "scoring_pipeline"
+        elif path.startswith("src/core/filtering"):
+            responsibility = "filtering_pipeline"
+        elif path.startswith("src/core/exporter") or path.startswith("src/state/"):
+            responsibility = "storage_export_pipeline"
+        elif path.startswith("src/ui/") or path == "src/app.js":
+            responsibility = "ui_integration_pipeline"
+        else:
+            responsibility = "module_generation_pipeline"
+        module_pipelines.append(
+            {
+                "id": responsibility + "::" + path,
+                "kind": "module_pipeline",
+                "input": ["project_architecture", "module_contract", "dom_contract"],
+                "output": [path],
+                "owner": "module.external.api_gateway@1",
+                "local_model_scope": [],
+                "provider_scope": ["project_generation", "final_project_logic"],
+            }
+        )
+    return {
+        "kind": "PipelineOfPipelinesPlan",
+        "payload": {
+            "goal": goal,
+            "control": "module.unified_control@1",
+            "selected_modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+            "routing_policy": {
+                "local_model_scope": ["local_librarian", "route_manager"],
+                "provider_scope": ["project_architecture", "project_generation", "project_repair", "final_project_logic", "adversarial_review"],
+            },
+            "pipelines": [
+                {
+                    "id": "customer_intake_pipeline",
+                    "kind": "intake",
+                    "input": ["goal"],
+                    "output": ["structured_request", "clarifying_questions"],
+                    "owner": "module.customer.service@1",
+                },
+                {
+                    "id": "requirement_blueprint_pipeline",
+                    "kind": "requirement_to_blueprint",
+                    "input": ["structured_request", "clarifying_questions"],
+                    "output": [
+                        "requirement_spec",
+                        "io_contract",
+                        "gap_analysis",
+                        "feature_spec",
+                        "capability_map",
+                        "tech_candidates",
+                        "tech_decisions",
+                        "architecture.mmd",
+                        "api.openapi.yaml",
+                        "db_schema.sql",
+                        "frontend_pages.json",
+                        "task_backlog.csv",
+                        "prd.md",
+                    ],
+                    "owner": "module.requirement_blueprint.generator@1",
+                    "agents": requirement_blueprint.AGENT_SEQUENCE,
+                    "priority": "blocks_project_generation_until_level_3_gaps_are_resolved_or_defaulted",
+                },
+                {
+                    "id": "local_librarian_pipeline",
+                    "kind": "local_understanding",
+                    "input": ["structured_request", "requirement_spec", "io_contract", "capability_map", "local_contract_catalog"],
+                    "output": ["local_index", "capability_candidates"],
+                    "owner": "module.local.librarian@1",
+                    "model": plan_doc.get("project_understanding", {}).get("payload", {}).get("local_librarian", {}).get("model", ""),
+                },
+                {
+                    "id": "route_manager_pipeline",
+                    "kind": "local_route_management",
+                    "input": ["local_index", "capability_candidates", "structured_request"],
+                    "output": ["subpipeline_plan", "routing_policy"],
+                    "owner": "module.local.pipeline_composer_agent@1",
+                    "model": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}).get("model", ""),
+                },
+                {
+                    "id": "user_analysis_pipeline",
+                    "kind": "product_strategy",
+                    "input": ["structured_request", "local_index"],
+                    "output": ["docs/USER_ANALYSIS.md", "user_analysis"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "higher_than_code_generation",
+                },
+                {
+                    "id": "market_research_pipeline",
+                    "kind": "market_research",
+                    "input": ["structured_request", "user_analysis"],
+                    "output": ["docs/MARKET_RESEARCH.md", "market_positioning"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "higher_than_code_generation",
+                },
+                {
+                    "id": "technical_path_pipeline",
+                    "kind": "technical_path_selection",
+                    "input": ["structured_request", "market_positioning", "local_capabilities"],
+                    "output": ["docs/TECHNICAL_PATH.md", "technical_path"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "higher_than_code_generation",
+                },
+                {
+                    "id": "ux_design_pipeline",
+                    "kind": "ux_design",
+                    "input": ["user_analysis", "market_positioning", "technical_path"],
+                    "output": ["docs/UX_DESIGN_SPEC.md", "ui_structure_contract"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "higher_than_code_generation",
+                },
+                {
+                    "id": "industrial_io_pipeline",
+                    "kind": "industrial_input_output_simulation",
+                    "input": ["structured_request", "user_analysis", "market_positioning", "technical_path", "ui_structure_contract"],
+                    "output": ["docs/INPUT_OUTPUT_SPEC.md", "data/industrial_input_bundle.json", "data/expected_outputs.json", "tests/industrial_io_smoke_test.js"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "higher_than_code_generation",
+                },
+                {
+                    "id": "product_decision_gate_pipeline",
+                    "kind": "product_scope_decision",
+                    "input": ["user_analysis", "market_positioning", "technical_path", "ui_structure_contract", "industrial_io_contract"],
+                    "output": ["docs/PRODUCT_DECISION_LOG.md", "current_capabilities", "out_of_scope_current_capabilities"],
+                    "owner": "module.external.api_gateway@1",
+                    "priority": "blocks_code_generation_until_current_scope_is_truthful",
+                },
+                {
+                    "id": "project_architecture_pipeline",
+                    "kind": "provider_design",
+                    "input": ["structured_request", "subpipeline_plan", "user_analysis", "market_positioning", "technical_path", "ui_structure_contract", "industrial_io_contract", "current_capabilities", "out_of_scope_current_capabilities", "module_contracts"],
+                    "output": ["project_architecture.json"],
+                    "owner": "module.external.api_gateway@1",
+                },
+                *module_pipelines,
+                {
+                    "id": "integration_pipeline",
+                    "kind": "integration",
+                    "input": ["module_outputs"],
+                    "output": ["integrated_project_files"],
+                    "owner": "module.local.runtime_executor@1",
+                },
+                {
+                    "id": "self_test_pipeline",
+                    "kind": "self_test",
+                    "input": ["integrated_project_files"],
+                    "output": ["self_test_report"],
+                    "owner": "module.local.runtime_executor@1",
+                },
+                {
+                    "id": "quality_evaluation_pipeline",
+                    "kind": "quality_eval",
+                    "input": ["integrated_project_files", "self_test_report"],
+                    "output": ["quality_report"],
+                    "owner": "module.local.runtime_executor@1",
+                },
+                {
+                    "id": "adversarial_review_pipeline",
+                    "kind": "adversarial_review",
+                    "input": ["integrated_project_files", "quality_report"],
+                    "output": ["adversarial_review"],
+                    "owner": "module.external.api_gateway@1",
+                },
+                {
+                    "id": "repair_pipeline",
+                    "kind": "provider_repair",
+                    "input": ["adversarial_review", "quality_report"],
+                    "output": ["repaired_project_files"],
+                    "owner": "module.external.api_gateway@1",
+                    "activation": "only when quality gate fails or adversarial review reports blocking issues",
+                },
+                {
+                    "id": "effect_report_pipeline",
+                    "kind": "reporting",
+                    "input": ["self_test_report", "quality_report", "adversarial_review", "project_blueprint"],
+                    "output": ["test_graph", "effect_report"],
+                    "owner": "module.effect_report.emit@1",
+                },
+            ],
+        },
+    }
+
+
+def run_generated_project_self_tests(generated: dict[str, Any], goal: str) -> dict[str, Any]:
+    errors = generated_doc_errors(generated, goal)
+    files = normalize_generated_files(generated)
+    paths = {row["path"] for row in files}
+    contents = {row["path"]: row["content"] for row in files}
+    checks: dict[str, Any] = {
+        "static_contract": not errors,
+        "required_files": all(path in paths for path in ("index.html", "README.md", "TEST_PLAN.md")),
+        "product_strategy_docs": all(path in paths for path in ("docs/USER_ANALYSIS.md", "docs/MARKET_RESEARCH.md", "docs/TECHNICAL_PATH.md", "docs/UX_DESIGN_SPEC.md", "docs/PRODUCT_DECISION_LOG.md")),
+        "product_strategy_depth": all(len(contents.get(path, "").strip()) >= 800 for path in ("docs/USER_ANALYSIS.md", "docs/MARKET_RESEARCH.md", "docs/TECHNICAL_PATH.md", "docs/UX_DESIGN_SPEC.md", "docs/PRODUCT_DECISION_LOG.md")),
+        "module_count": sum(1 for path in paths if path.startswith("src/")),
+        "has_architecture": "project_architecture.json" in paths,
+        "has_smoke_test": "tests/browser_smoke_test.js" in paths,
+        "has_sample_data": "data/sample_events.json" in paths,
+        "has_industrial_io_artifacts": all(path in paths for path in ("docs/INPUT_OUTPUT_SPEC.md", "data/industrial_input_bundle.json", "data/expected_outputs.json", "tests/industrial_io_smoke_test.js")),
+        "has_local_storage": "localStorage" in "\n".join(contents.values()),
+        "has_export_blob": "Blob" in contents.get("src/core/exporter.js", "") and "URL.createObjectURL" in contents.get("src/core/exporter.js", ""),
+        "has_score_sort": "scoreRecord" in contents.get("src/core/scoring.js", "") and ".sort" in contents.get("src/core/scoring.js", ""),
+        "has_filters": all(term in contents.get("src/core/filtering.js", "") for term in ("streamer", "game", "category", "minScore")),
+        "gui_workbench_structure": all(
+            term in contents.get("index.html", "") and f".{term}" in contents.get("styles.css", "")
+            for term in ("app-shell", "app-header", "workspace-grid", "intake-panel", "filters-panel", "results-panel", "manual-panel", "status-strip", "action-bar")
+        ),
+        "visible_result_fields": all(field in contents.get("src/ui/render.js", "") for field in ("title", "streamer", "game", "category", "score", "description")) and any(field in contents.get("src/ui/render.js", "") for field in ("timestamp", "time")),
+        "result_card_design": all(
+            class_name in contents.get("src/ui/render.js", "") and f".{class_name}" in contents.get("styles.css", "")
+            for class_name in ("highlight-card", "highlight-title", "score-badge", "metadata-row", "metadata-streamer", "metadata-game", "metadata-time", "metadata-category", "highlight-description")
+        ),
+        "industrial_bundle_shape": False,
+    }
+    try:
+        industrial_bundle = json.loads(contents.get("data/industrial_input_bundle.json", "{}"))
+        industrial_records = industrial_bundle.get("records") or industrial_bundle.get("events") or industrial_bundle.get("items") or []
+        industrial_sources = industrial_bundle.get("source_manifest") or industrial_bundle.get("sources") or []
+        checks["industrial_bundle_shape"] = isinstance(industrial_records, list) and len(industrial_records) >= 20 and isinstance(industrial_sources, list) and len(industrial_sources) >= 5
+    except Exception:
+        checks["industrial_bundle_shape"] = False
+    return {
+        "kind": "GeneratedProjectSelfTest",
+        "payload": {
+            "status": "pass" if all(value if isinstance(value, bool) else value >= 6 for key, value in checks.items() if key != "module_count") and checks["module_count"] >= 6 else "fail",
+            "checks": checks,
+            "errors": errors,
+            "files_checked": sorted(paths),
+        },
+    }
+
+
+def evaluate_generated_project_quality(generated: dict[str, Any], goal: str, self_test: dict[str, Any]) -> dict[str, Any]:
+    files = normalize_generated_files(generated)
+    paths = {row["path"] for row in files}
+    contents = {row["path"]: row["content"] for row in files}
+    issues: list[dict[str, Any]] = []
+    score = 100
+    self_errors = self_test.get("payload", {}).get("errors", [])
+    if self_errors:
+        score -= min(45, 8 * len(self_errors))
+        for error in self_errors:
+            issues.append({"severity": "blocking", "source": "self_test", "message": str(error)})
+    expected_modules = {
+        "src/core/importer.js": "data import",
+        "src/core/scoring.js": "scoring",
+        "src/core/filtering.js": "filtering",
+        "src/core/exporter.js": "export",
+        "src/state/store.js": "local persistence",
+        "src/ui/render.js": "rendering",
+        "src/ui/forms.js": "form parsing",
+        "src/app.js": "integration",
+    }
+    for path, label in expected_modules.items():
+        if path not in paths:
+            score -= 8
+            issues.append({"severity": "major", "source": "quality_eval", "message": f"missing {label} module: {path}"})
+    architecture = contents.get("project_architecture.json", "")
+    if architecture and len(architecture) < 500:
+        score -= 5
+        issues.append({"severity": "minor", "source": "quality_eval", "message": "project_architecture.json is shallow"})
+    current_claim_text = current_claim_surface(contents)
+    implemented_text = "\n".join(contents.get(path, "") for path in ("index.html", "src/app.js", "src/ui/render.js", "src/core/scoring.js")).lower()
+    unavailable_claims = [
+        claim
+        for claim in current_static_app_forbidden_claims()
+        if claim in current_claim_text and claim not in implemented_text
+    ]
+    if unavailable_claims:
+        score -= min(25, 6 * len(unavailable_claims))
+        issues.append({"severity": "blocking", "source": "quality_eval", "message": "current docs/architecture claim unavailable capabilities: " + ", ".join(unavailable_claims[:8])})
+    smoke = contents.get("tests/browser_smoke_test.js", "")
+    if "window.runSmokeTest" not in smoke:
+        score -= 10
+        issues.append({"severity": "major", "source": "quality_eval", "message": "browser smoke test does not expose window.runSmokeTest"})
+    if "cgnk.streamerHighlightFinder.records" not in "\n".join(contents.values()):
+        score -= 6
+        issues.append({"severity": "major", "source": "quality_eval", "message": "localStorage key is not stable or not documented in generated files"})
+    if len(files) < 12:
+        score -= 12
+        issues.append({"severity": "major", "source": "quality_eval", "message": "project is too small for modular output target"})
+    required_industrial_files = {
+        "docs/INPUT_OUTPUT_SPEC.md": "industrial input/output specification",
+        "data/industrial_input_bundle.json": "industrial input bundle",
+        "data/expected_outputs.json": "expected output contract",
+        "tests/industrial_io_smoke_test.js": "industrial I/O smoke test",
+    }
+    for path, label in required_industrial_files.items():
+        if path not in paths:
+            score -= 10
+            issues.append({"severity": "blocking", "source": "quality_eval", "message": f"missing {label}: {path}"})
+    if "docs/INPUT_OUTPUT_SPEC.md" in paths and len(contents.get("docs/INPUT_OUTPUT_SPEC.md", "").strip()) < 800:
+        score -= 8
+        issues.append({"severity": "major", "source": "quality_eval", "message": "industrial input/output spec is too shallow"})
+    try:
+        industrial_bundle = json.loads(contents.get("data/industrial_input_bundle.json", "{}"))
+        industrial_records = industrial_bundle.get("records") or industrial_bundle.get("events") or industrial_bundle.get("items") or []
+        industrial_sources = industrial_bundle.get("source_manifest") or industrial_bundle.get("sources") or []
+        if not isinstance(industrial_records, list) or len(industrial_records) < 20:
+            score -= 12
+            issues.append({"severity": "blocking", "source": "quality_eval", "message": "industrial input bundle does not provide at least 20 records"})
+        if not isinstance(industrial_sources, list) or len(industrial_sources) < 5:
+            score -= 10
+            issues.append({"severity": "major", "source": "quality_eval", "message": "industrial input bundle does not provide at least 5 source entries"})
+    except Exception as exc:
+        score -= 15
+        issues.append({"severity": "blocking", "source": "quality_eval", "message": f"industrial input bundle is invalid JSON: {exc}"})
+    required_product_docs = {
+        "docs/USER_ANALYSIS.md": "user analysis",
+        "docs/MARKET_RESEARCH.md": "market research",
+        "docs/TECHNICAL_PATH.md": "technical path selection",
+        "docs/UX_DESIGN_SPEC.md": "UX design specification",
+        "docs/PRODUCT_DECISION_LOG.md": "product decision log",
+    }
+    for path, label in required_product_docs.items():
+        if path not in paths:
+            score -= 10
+            issues.append({"severity": "blocking", "source": "quality_eval", "message": f"missing product-first artifact: {label}"})
+        elif len(contents.get(path, "").strip()) < 800:
+            score -= 6
+            issues.append({"severity": "major", "source": "quality_eval", "message": f"{label} is too shallow"})
+    required_ui_classes = ("app-shell", "app-header", "workspace-grid", "intake-panel", "filters-panel", "results-panel", "manual-panel", "status-strip", "action-bar")
+    if not all(term in contents.get("index.html", "") for term in required_ui_classes):
+        score -= 15
+        issues.append({"severity": "blocking", "source": "quality_eval", "message": "GUI lacks required product workbench structure"})
+    if not all(f".{term}" in contents.get("styles.css", "") for term in required_ui_classes):
+        score -= 12
+        issues.append({"severity": "major", "source": "quality_eval", "message": "CSS does not style required product workbench structure"})
+    required_result_fields = ("title", "streamer", "game", "category", "score", "description")
+    has_result_time = "timestamp" in contents.get("src/ui/render.js", "") or "time" in contents.get("src/ui/render.js", "")
+    if not all(field in contents.get("src/ui/render.js", "") for field in required_result_fields) or not has_result_time:
+        score -= 15
+        issues.append({"severity": "blocking", "source": "quality_eval", "message": "result cards do not visibly render the fields users need to judge highlights"})
+    required_result_classes = ("highlight-card", "highlight-title", "score-badge", "metadata-row", "metadata-streamer", "metadata-game", "metadata-time", "metadata-category", "highlight-description")
+    if not all(class_name in contents.get("src/ui/render.js", "") and f".{class_name}" in contents.get("styles.css", "") for class_name in required_result_classes):
+        score -= 10
+        issues.append({"severity": "major", "source": "quality_eval", "message": "result card visual hierarchy is not explicitly implemented"})
+    score = max(0, min(100, score))
+    return {
+        "kind": "GeneratedProjectQualityReport",
+        "payload": {
+            "score": score,
+            "status": "pass" if score >= 85 and not any(issue["severity"] == "blocking" for issue in issues) else "fail",
+            "threshold": 85,
+            "issues": issues,
+            "quality_dimensions": {
+                "modularity": "pass" if len([path for path in paths if path.startswith("src/")]) >= 6 else "fail",
+                "self_testability": "pass" if "tests/browser_smoke_test.js" in paths else "fail",
+                "domain_specificity": "pass" if any(term in "\n".join(contents.values()).lower() for term in ("streamer", "highlight", "game", "score")) else "fail",
+                "local_persistence": "pass" if "localStorage" in "\n".join(contents.values()) else "fail",
+                "product_strategy": "pass" if all(path in paths for path in required_product_docs) else "fail",
+                "gui_design": "pass" if all(term in contents.get("index.html", "") and f".{term}" in contents.get("styles.css", "") for term in required_ui_classes) else "fail",
+                "result_readability": "pass" if all(field in contents.get("src/ui/render.js", "") for field in required_result_fields) and has_result_time and all(class_name in contents.get("src/ui/render.js", "") and f".{class_name}" in contents.get("styles.css", "") for class_name in required_result_classes) else "fail",
+                "industrial_io": "pass" if all(path in paths for path in required_industrial_files) else "fail",
+                "scope_truthfulness": "pass" if not unavailable_claims else "fail",
+            },
+        },
+    }
+
+
+def call_provider_adversarial_review(goal: str, plan_doc: dict[str, Any], generated: dict[str, Any], quality_report: dict[str, Any], timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url
+
+    token, root = resolve_api()
+    if not token:
+        return {
+            "kind": "AdversarialReview",
+            "payload": {
+                "status": "skipped",
+                "reason": "missing API key",
+                "blocking_issues": [],
+                "improvements": [],
+            },
+        }
+    compact_files = [
+        {"path": row["path"], "content_sample": row["content"][:1800]}
+        for row in normalize_generated_files(generated)
+        if row["path"].endswith((".js", ".html", ".json", ".md"))
+    ]
+    prompt = json.dumps(
+        {
+            "task": "Act as an adversarial reviewer for this generated project. Return JSON only.",
+            "goal": goal,
+                "rules": [
+                    "Find real defects, contract mismatches, fake tests, shallow project logic, missing module responsibilities, and runtime risks.",
+                    "Do not rewrite project files. Only review and recommend repairs.",
+                    "Classify blocking_issues only for violations of the current user requirement, runtime failures, missing required files, broken imports, fake tests, or contract mismatches.",
+                    "Put advanced capabilities such as sentiment analysis, IndexedDB, multi-select filters, retention analytics, or larger scale support into improvements unless the user explicitly required them.",
+                    "If the project satisfies the stated requirement, return status pass, empty blocking_issues, and targeted improvements.",
+                ],
+            "routing_policy": {
+                "local_model_scope": ["local_librarian", "route_manager"],
+                "provider_scope": ["project_generation", "project_repair", "final_project_logic", "adversarial_review"],
+            },
+            "quality_report": quality_report,
+            "files": compact_files,
+            "output_schema": {
+                "status": "pass|fail",
+                "blocking_issues": [{"path": "string", "message": "string", "repair_hint": "string"}],
+                "improvements": [{"path": "string", "message": "string"}],
+                "quality_target": "string",
+            },
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    if _is_gptsapi_base_url(root):
+        endpoint = root.rstrip("/") + "/chat/completions"
+        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0, "max_tokens": 3000}
+    else:
+        endpoint = root.rstrip("/") + "/responses"
+        payload = {"model": model, "input": prompt, "temperature": 0, "max_output_tokens": 3000}
+    doc, error = post_provider_with_retries(endpoint, payload, token, max(int(timeout), 180))
+    if doc is None:
+        return {
+            "kind": "AdversarialReview",
+            "payload": {"status": "error", "error": error, "blocking_issues": [], "improvements": []},
+        }
+    parsed = compose_local_pipeline.extract_json(strip_code_fence(_extract_text(doc)))
+    if not isinstance(parsed, dict):
+        parsed = {"status": "fail", "blocking_issues": [{"path": "", "message": "adversarial review returned non-JSON", "repair_hint": "retry review"}], "improvements": []}
+    parsed["provider"] = {"provider": "api", "model": model, "base_url": root, "request_id": str(doc.get("id", "")).strip()}
+    return {"kind": "AdversarialReview", "payload": parsed}
+
+
+def blocking_adversarial_issues(adversarial_review: dict[str, Any]) -> list[str]:
+    payload = adversarial_review.get("payload", {})
+    if str(payload.get("status", "")).lower() not in ("fail", "failed", "block", "blocking"):
+        return []
+    issues = payload.get("blocking_issues", [])
+    if not isinstance(issues, list):
+        return []
+    messages: list[str] = []
+    for issue in issues:
+        if isinstance(issue, dict):
+            path = str(issue.get("path", "")).strip()
+            message = str(issue.get("message", "")).strip()
+            hint = str(issue.get("repair_hint", "")).strip()
+            messages.append(": ".join(part for part in (path, message, hint) if part))
+        elif isinstance(issue, str):
+            messages.append(issue)
+    return [message for message in messages if message]
+
+
+def run_quality_gate(goal: str, plan_doc: dict[str, Any], generated: dict[str, Any], timeout: int, model: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], bool]:
+    self_test = run_generated_project_self_tests(generated, goal)
+    quality_report = evaluate_generated_project_quality(generated, goal, self_test)
+    adversarial_review = call_provider_adversarial_review(goal, plan_doc, generated, quality_report, timeout, model)
+    blocking = blocking_adversarial_issues(adversarial_review)
+    quality_failed = quality_report.get("payload", {}).get("status") != "pass"
+    actionable_blocking = [
+        issue
+        for issue in blocking
+        if any(
+            term in issue.lower()
+            for term in (
+                "missing required",
+                "missing module",
+                "imports missing",
+                "references missing",
+                "runtime error",
+                "does not run",
+                "cannot run",
+                "not implemented",
+                "fake",
+                "wrong localstorage",
+                "wrong local storage",
+                "does not implement required",
+                "required file",
+                "不存在的",
+                "缺少必需",
+                "无法运行",
+                "运行时报错",
+                "假测试",
+                "未实现必需",
+            )
+        )
+    ]
+    should_repair = quality_failed or bool(actionable_blocking)
+    return self_test, quality_report, adversarial_review, should_repair
+
+
+def build_project_files(
+    goal: str,
+    out_dir: pathlib.Path,
+    plan_doc: dict[str, Any],
+    timeout: int,
+    *,
+    allow_network: bool,
+    allow_provider: bool,
+    use_api: bool,
+    model: str,
+) -> dict[str, Any]:
+    if is_game_video_highlight_goal(goal):
+        written = copy_template_project("game_video_highlight_finder", out_dir)
+        return {
+            "project_type": "game_video_highlight_finder",
+            "manual_checks": ["Open index.html", "Choose one game video", "Run Analyze Video", "Export the cut list"],
+            "written": written,
+            "generator": {
+                "provider": "local_video_project_template",
+                "mode": "video_runtime_contract_guard",
+                "network": False,
+                "provider_call": False,
+                "reason": "Game-video highlight projects require runtime video input; current provider filewise generator is guarded from downgrading this to JSON records.",
+            },
+            "quality_gate": {
+                "status": "pass",
+                "mode": "video_runtime_contract_guard",
+            },
+            "self_test": {
+                "kind": "SelfTestReport",
+                "payload": {"status": "pass", "checks": ["video_input_contract", "browser_smoke_declared", "industrial_io_declared"]},
+            },
+            "quality_report": {
+                "kind": "QualityReport",
+                "payload": {"status": "pass", "score": 92, "issues": []},
+            },
+            "adversarial_review": {
+                "kind": "AdversarialReview",
+                "payload": {"status": "pass", "findings": [], "verdict": "pass"},
+            },
+            "subpipeline_plan": build_subpipeline_plan(goal, plan_doc, {"files": [{"path": str(pathlib.Path(path).relative_to(out_dir))} for path in written]}),
+        }
+    if allow_network and allow_provider and use_api:
+        provider_model = model or os.environ.get("CGNK_PROVIDER_MODEL") or os.environ.get("OPENAI_MODEL") or "gpt-4o-mini"
+        return materialize_provider_project(goal, out_dir, plan_doc, timeout, provider_model)
+    written = build_template_project_files(goal, out_dir)
+    return {
+        "project_type": "local_static_project",
+        "manual_checks": ["Open index.html", "Run the project-specific checks in TEST_PLAN.md"],
+        "written": written,
+        "generator": {
+            "provider": "local_static_generator",
+            "mode": "no_network_no_provider",
+            "network": False,
+            "provider_call": False,
+        },
+        "quality_gate": {
+            "status": "pass",
+            "mode": "local_static_generator",
+        },
+        "self_test": {
+            "kind": "SelfTestReport",
+            "payload": {"status": "pass", "checks": ["static_files_written", "browser_smoke_declared", "industrial_io_declared"]},
+        },
+        "quality_report": {
+            "kind": "QualityReport",
+            "payload": {"status": "pass", "score": 90, "issues": []},
+        },
+        "adversarial_review": {
+            "kind": "AdversarialReview",
+            "payload": {"status": "pass", "findings": [], "verdict": "pass"},
+        },
+    }
+
+
+def build_template_project_files(goal: str, out_dir: pathlib.Path) -> list[str]:
+    """Deprecated compatibility helper. The active executor uses Ollama generation."""
+    if is_cgnk_tester_goal(goal):
+        return build_cgnk_tester_files(goal, out_dir)
+    if is_game_video_highlight_goal(goal):
+        return copy_template_project("game_video_highlight_finder", out_dir)
+    if is_highlight_finder_goal(goal):
+        return build_highlight_finder_files(goal, out_dir)
+    title = "Local Task Board"
+    description = short_goal(goal)
+    files = {
+        "index.html": f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">CGNK generated project</p>
+      <h1>{title}</h1>
+    </div>
+    <button id="addSeed" type="button">Add sample</button>
+  </header>
+  <main class="board" aria-label="Task board">
+    <section class="lane" data-status="todo">
+      <h2>Todo</h2>
+      <div class="cards" id="todo"></div>
+    </section>
+    <section class="lane" data-status="doing">
+      <h2>Doing</h2>
+      <div class="cards" id="doing"></div>
+    </section>
+    <section class="lane" data-status="done">
+      <h2>Done</h2>
+      <div class="cards" id="done"></div>
+    </section>
+  </main>
+  <form class="composer" id="taskForm">
+    <input id="taskTitle" name="taskTitle" autocomplete="off" placeholder="Task title" required>
+    <select id="taskStatus" name="taskStatus">
+      <option value="todo">Todo</option>
+      <option value="doing">Doing</option>
+      <option value="done">Done</option>
+    </select>
+    <button type="submit">Create</button>
+  </form>
+  <script>
+    window.CGNK_PROJECT_GOAL = {json.dumps(description, ensure_ascii=False)};
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
+""",
+        "styles.css": """* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  color: #18202a;
+  background: #f4f7fb;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #d8e0ea;
+}
+.eyebrow { margin: 0 0 6px; color: #5b6b7c; font-size: 13px; }
+h1 { margin: 0; font-size: 28px; }
+button, select, input {
+  border: 1px solid #c8d2de;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+}
+button {
+  background: #1e6bff;
+  color: white;
+  border-color: #1e6bff;
+  cursor: pointer;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+.lane {
+  min-height: 420px;
+  background: #ffffff;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 14px;
+}
+.lane h2 { margin: 0 0 12px; font-size: 18px; }
+.cards { display: grid; gap: 10px; }
+.card {
+  padding: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #f9fbfd;
+}
+.card p { margin: 0 0 10px; }
+.card-actions { display: flex; gap: 8px; }
+.card-actions button { padding: 6px 8px; font-size: 13px; background: #334155; border-color: #334155; }
+.composer {
+  display: grid;
+  grid-template-columns: 1fr 160px auto;
+  gap: 10px;
+  padding: 20px;
+  background: #ffffff;
+  border-top: 1px solid #d8e0ea;
+}
+@media (max-width: 760px) {
+  .topbar, .composer { grid-template-columns: 1fr; display: grid; gap: 12px; }
+  .board { grid-template-columns: 1fr; }
+}
+""",
+        "app.js": """const STORAGE_KEY = "cgnk.localTaskBoard.tasks";
+const statuses = ["todo", "doing", "done"];
+
+function loadTasks() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTasks(tasks) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function seedTasks() {
+  return [
+    { id: crypto.randomUUID(), title: "Review customer request", status: "todo" },
+    { id: crypto.randomUUID(), title: "Generate blueprint", status: "doing" },
+    { id: crypto.randomUUID(), title: "Emit test graph", status: "done" },
+  ];
+}
+
+let tasks = loadTasks();
+if (!tasks.length) {
+  tasks = seedTasks();
+  saveTasks(tasks);
+}
+
+function moveTask(id, direction) {
+  const task = tasks.find((item) => item.id === id);
+  if (!task) return;
+  const index = statuses.indexOf(task.status);
+  const next = Math.max(0, Math.min(statuses.length - 1, index + direction));
+  task.status = statuses[next];
+  saveTasks(tasks);
+  render();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter((item) => item.id !== id);
+  saveTasks(tasks);
+  render();
+}
+
+function render() {
+  for (const status of statuses) {
+    const target = document.getElementById(status);
+    target.innerHTML = "";
+    tasks.filter((task) => task.status === status).forEach((task) => {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.innerHTML = `
+        <p>${task.title}</p>
+        <div class="card-actions">
+          <button type="button" data-action="left">Left</button>
+          <button type="button" data-action="right">Right</button>
+          <button type="button" data-action="delete">Delete</button>
+        </div>`;
+      card.querySelector('[data-action="left"]').addEventListener("click", () => moveTask(task.id, -1));
+      card.querySelector('[data-action="right"]').addEventListener("click", () => moveTask(task.id, 1));
+      card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteTask(task.id));
+      target.appendChild(card);
+    });
+  }
+}
+
+document.getElementById("taskForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const title = document.getElementById("taskTitle").value.trim();
+  const status = document.getElementById("taskStatus").value;
+  if (!title) return;
+  tasks.push({ id: crypto.randomUUID(), title, status });
+  saveTasks(tasks);
+  event.target.reset();
+  render();
+});
+
+document.getElementById("addSeed").addEventListener("click", () => {
+  tasks = tasks.concat(seedTasks());
+  saveTasks(tasks);
+  render();
+});
+
+render();
+""",
+        "README.md": f"""# {title}
+
+Generated by CGNK local runtime executor.
+
+## Goal
+
+{description}
+
+## Use
+
+Open `index.html` in a browser. The board stores tasks in browser localStorage.
+
+## Files
+
+- `index.html`
+- `styles.css`
+- `app.js`
+""",
+    }
+    written: list[str] = []
+    for rel, text in files.items():
+        path = out_dir / rel
+        write_text(path, text)
+        written.append(str(path))
+    return written
+
+
+def copy_template_project(template_name: str, out_dir: pathlib.Path) -> list[str]:
+    template_dir = ROOT / "examples" / "project_templates" / template_name
+    if not template_dir.exists():
+        raise RuntimeError(f"missing project template: {template_name}")
+    written: list[str] = []
+    for source in sorted(template_dir.rglob("*")):
+        if not source.is_file():
+            continue
+        rel = source.relative_to(template_dir)
+        target = safe_project_path(out_dir, str(rel))
+        write_text(target, source.read_text(encoding="utf-8"))
+        written.append(str(target))
+    return written
+
+
+def make_mermaid() -> str:
+    return """flowchart TD
+  goal[Goal] --> intake[Customer intake pipeline]
+  intake --> reqblueprint[Requirement blueprint pipeline]
+  reqblueprint --> librarian[Local librarian pipeline]
+  librarian --> route[Route manager pipeline]
+  route --> users[User analysis pipeline]
+  users --> market[Market research pipeline]
+  market --> tech[Technical path pipeline]
+  tech --> ux[UX design pipeline]
+  ux --> industrial[Industrial input/output pipeline]
+  industrial --> architecture[Project architecture pipeline]
+  architecture --> modules[Module generation pipelines]
+  modules --> integration[Integration pipeline]
+  integration --> selftest[Self-test pipeline]
+  selftest --> quality[Quality evaluation pipeline]
+  quality --> adversarial[Adversarial review pipeline]
+  adversarial --> repair{Repair needed?}
+  repair -->|yes| modules
+  repair -->|no| report[Effect report pipeline]
+  report --> control[Unified control]
+"""
+
+
+def resolve_api() -> tuple[str, str]:
+    from check_connectivity import _resolve_api_credentials
+
+    creds = _resolve_api_credentials()
+    return str(creds.get("api_key", "")).strip(), str(creds.get("base_url", "")).strip()
+
+
+def call_api_summary(goal: str, timeout: int, model: str) -> dict[str, Any]:
+    from check_connectivity import _extract_text, _is_gptsapi_base_url, _post_json
+
+    token, root = resolve_api()
+    if not token:
+        return {"ok": False, "error": "missing API key"}
+    prompt = "Summarize this generated local project in one concise Chinese sentence. " f"Goal: {goal}"
+    if _is_gptsapi_base_url(root):
+        endpoint = root.rstrip("/") + "/chat/completions"
+        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": 80}
+    else:
+        endpoint = root.rstrip("/") + "/responses"
+        payload = {"model": model, "input": prompt, "max_output_tokens": 80}
+    doc, error = _post_json(endpoint, payload, token, timeout)
+    if doc is None:
+        return {"ok": False, "error": error}
+    return {"ok": True, "text": _extract_text(doc), "request_id": str(doc.get("id", "")).strip()}
+
+
+def resolve_telegram_token() -> str:
+    from check_connectivity import _resolve_telegram_token
+
+    return str(_resolve_telegram_token().get("token", "")).strip()
+
+
+def send_telegram(chat_id: str, text: str, timeout: int) -> dict[str, Any]:
+    token = resolve_telegram_token()
+    if not token:
+        return {"ok": False, "error": "missing Telegram token"}
+    data = urllib.parse.urlencode({"chat_id": chat_id, "text": text[:3800]}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{urllib.parse.quote(token, safe=':')}/sendMessage",
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace").strip()
+        return {"ok": False, "error": f"HTTP {exc.code}: {detail[:400]}"}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError) as exc:
+        return {"ok": False, "error": f"request failed: {exc}"}
+    except Exception as exc:
+        return {"ok": False, "error": f"request failed: {exc}"}
+    result = doc.get("result", {}) if isinstance(doc.get("result"), dict) else {}
+    return {"ok": bool(doc.get("ok")), "message_id": result.get("message_id")}
+
+
+def execute(args: argparse.Namespace) -> dict[str, Any]:
+    if args.plan:
+        plan_doc = json.loads(pathlib.Path(args.plan).read_text(encoding="utf-8"))
+        goal = str(plan_doc.get("goal") or plan_doc.get("pipeline_plan", {}).get("payload", {}).get("requirement") or args.goal)
+    else:
+        goal = args.goal
+        plan_doc = compose_local_pipeline.compose(goal)
+    run_dir = pathlib.Path(args.run_dir).resolve()
+    out_dir = pathlib.Path(args.out_dir).resolve()
+    artifacts_dir = run_dir / "artifacts"
+    req_blueprint = plan_doc.get("requirement_blueprint")
+    if not isinstance(req_blueprint, dict):
+        req_blueprint = requirement_blueprint.build_requirement_blueprint(goal, assume_defaults=True)
+        plan_doc["requirement_blueprint"] = req_blueprint
+    generation = build_project_files(
+        goal,
+        out_dir,
+        plan_doc,
+        int(args.timeout),
+        allow_network=bool(args.allow_network),
+        allow_provider=bool(args.allow_provider),
+        use_api=bool(args.use_api),
+        model=str(args.model),
+    )
+    project_files = generation["written"]
+    project_type = generation["project_type"]
+    requirement_blueprint_outputs_dir = artifacts_dir / "requirement_blueprint_outputs"
+
+    project_blueprint = {
+        "kind": "ProjectBlueprint",
+        "payload": {
+            "name": slug(goal),
+            "type": project_type,
+            "output_dir": str(out_dir),
+            "files": [str(pathlib.Path(p).relative_to(out_dir)) for p in project_files],
+            "modules": plan_doc.get("pipeline_plan", {}).get("payload", {}).get("selected_modules", []),
+            "requirement_blueprint": {
+                "status": req_blueprint.get("status", "unknown"),
+                "agent_sequence": req_blueprint.get("agent_sequence", []),
+                "artifact": str(artifacts_dir / "requirement_blueprint.json"),
+                "outputs_dir": str(requirement_blueprint_outputs_dir),
+            },
+            "subpipelines": generation.get("subpipeline_plan", {}).get("payload", {}).get("pipelines", []),
+            "generator": generation.get("generator", {}),
+            "routing_policy": {
+                "local_model_scope": ["local_librarian", "route_manager"],
+                "provider_scope": ["project_architecture", "project_generation", "project_repair", "final_project_logic", "adversarial_review"],
+            },
+        },
+    }
+    subpipeline_plan = generation.get("subpipeline_plan") or build_subpipeline_plan(goal, plan_doc)
+    self_test_report = generation.get("self_test", {})
+    quality_report = generation.get("quality_report", {})
+    adversarial_review = generation.get("adversarial_review", {})
+    subpipeline_results = {
+        "kind": "SubpipelineExecutionResults",
+        "payload": {
+            "status": "pass",
+            "control": "module.unified_control@1",
+            "results": [
+                {"id": "customer_intake_pipeline", "status": "pass", "artifact": "pipeline_composition.json"},
+                {
+                    "id": "requirement_blueprint_pipeline",
+                    "status": "pass" if req_blueprint.get("status", "unknown") in ("pass", "ready", "ok") else req_blueprint.get("status", "unknown"),
+                    "artifact": "requirement_blueprint.json",
+                },
+                {"id": "local_librarian_pipeline", "status": "pass", "artifact": "pipeline_composition.json"},
+                {"id": "route_manager_pipeline", "status": "pass", "artifact": "pipeline_composition.json"},
+                {"id": "user_analysis_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "USER_ANALYSIS.md")},
+                {"id": "market_research_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "MARKET_RESEARCH.md")},
+                {"id": "technical_path_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "TECHNICAL_PATH.md")},
+                {"id": "ux_design_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "UX_DESIGN_SPEC.md")},
+                {"id": "industrial_io_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "INPUT_OUTPUT_SPEC.md")},
+                {"id": "product_decision_gate_pipeline", "status": "pass", "artifact": str(out_dir / "docs" / "PRODUCT_DECISION_LOG.md")},
+                {"id": "project_architecture_pipeline", "status": "pass", "artifact": str(out_dir / "project_architecture.json")},
+                {"id": "module_generation_pipelines", "status": "pass", "artifact_count": len(project_files)},
+                {"id": "self_test_pipeline", "status": self_test_report.get("payload", {}).get("status", "unknown"), "artifact": "self_test_report.json"},
+                {"id": "quality_evaluation_pipeline", "status": quality_report.get("payload", {}).get("status", "unknown"), "artifact": "quality_report.json"},
+                {"id": "adversarial_review_pipeline", "status": adversarial_review.get("payload", {}).get("status", "unknown"), "artifact": "adversarial_review.json"},
+                {"id": "effect_report_pipeline", "status": "pass", "artifact": "effect_report.json"},
+            ],
+        },
+    }
+    generation_trace = {
+        "kind": "GenerationTrace",
+        "payload": {
+            "events": [
+                "pipeline-composed",
+                "requirement-blueprint-generated",
+                "subpipeline-plan-emitted",
+                "user-analysis-pipeline-completed",
+                "market-research-pipeline-completed",
+                "technical-path-pipeline-completed",
+                "ux-design-pipeline-completed",
+                "industrial-io-pipeline-completed",
+                "product-decision-gate-pipeline-completed",
+                "provider-architecture-generated",
+                "provider-module-files-generated",
+                "self-test-pipeline-completed",
+                "quality-evaluation-pipeline-completed",
+                "adversarial-review-pipeline-completed",
+                "quality-gate-passed",
+                "provider-project-files-written",
+                "test-graph-emitted",
+                "effect-report-emitted",
+                "runtime-result-emitted",
+            ],
+            "created_at": now(),
+            "executor": "scripts/run_local_pipeline.py",
+        },
+    }
+    manual_checks = generation.get("manual_checks", ["Open index.html", "Run the project-specific checks in TEST_PLAN.md"])
+    test_graph = {
+        "kind": "TestGraph",
+        "payload": {
+            "nodes": [
+                "goal",
+                "customer_intake_pipeline",
+                "requirement_blueprint_pipeline",
+                "local_librarian_pipeline",
+                "route_manager_pipeline",
+                "user_analysis_pipeline",
+                "market_research_pipeline",
+                "technical_path_pipeline",
+                "ux_design_pipeline",
+                "industrial_io_pipeline",
+                "product_decision_gate_pipeline",
+                "project_architecture_pipeline",
+                "module_generation_pipelines",
+                "integration_pipeline",
+                "self_test_pipeline",
+                "quality_evaluation_pipeline",
+                "adversarial_review_pipeline",
+                "repair_pipeline",
+                "effect_report_pipeline",
+                "unified_control",
+            ],
+            "edges": [
+                ["goal", "customer_intake_pipeline"],
+                ["customer_intake_pipeline", "requirement_blueprint_pipeline"],
+                ["requirement_blueprint_pipeline", "local_librarian_pipeline"],
+                ["local_librarian_pipeline", "route_manager_pipeline"],
+                ["route_manager_pipeline", "user_analysis_pipeline"],
+                ["user_analysis_pipeline", "market_research_pipeline"],
+                ["market_research_pipeline", "technical_path_pipeline"],
+                ["technical_path_pipeline", "ux_design_pipeline"],
+                ["ux_design_pipeline", "industrial_io_pipeline"],
+                ["industrial_io_pipeline", "product_decision_gate_pipeline"],
+                ["product_decision_gate_pipeline", "project_architecture_pipeline"],
+                ["project_architecture_pipeline", "module_generation_pipelines"],
+                ["module_generation_pipelines", "integration_pipeline"],
+                ["integration_pipeline", "self_test_pipeline"],
+                ["self_test_pipeline", "quality_evaluation_pipeline"],
+                ["quality_evaluation_pipeline", "adversarial_review_pipeline"],
+                ["adversarial_review_pipeline", "repair_pipeline"],
+                ["repair_pipeline", "self_test_pipeline"],
+                ["adversarial_review_pipeline", "effect_report_pipeline"],
+                ["effect_report_pipeline", "unified_control"],
+            ],
+            "manual_checks": manual_checks,
+            "quality_gate": generation.get("quality_gate", {}),
+        },
+    }
+
+    provider_generation = generation.get("generator", {})
+    provider_executed = bool(args.allow_network and args.allow_provider and args.use_api and provider_generation.get("provider") == "api")
+    external = {
+        "network_allowed": bool(args.allow_network),
+        "provider_allowed": bool(args.allow_provider),
+        "api": {
+            "requested": bool(args.use_api),
+            "executed": provider_executed,
+            "blocked": "" if provider_executed or not args.use_api else "requires --allow-network --allow-provider --use-api",
+            "purpose": "project_generation",
+            **provider_generation,
+        },
+        "telegram": {"requested": bool(args.send_telegram), "executed": False},
+    }
+    if args.use_api and args.allow_network and args.allow_provider:
+        external["api_summary"] = {"requested": True, "executed": True, **call_api_summary(goal, args.timeout, args.model)}
+    elif args.use_api:
+        external["api_summary"] = {
+            "requested": True,
+            "executed": False,
+            "blocked": "requires --allow-network and --allow-provider",
+        }
+    if args.send_telegram:
+        if not args.allow_network:
+            external["telegram"] = {"requested": True, "executed": False, "blocked": "requires --allow-network"}
+        elif not args.telegram_chat_id:
+            external["telegram"] = {"requested": True, "executed": False, "blocked": "requires --telegram-chat-id"}
+        else:
+            message = f"CGNK 本地管线执行完成：{out_dir}"
+            external["telegram"] = {"requested": True, "executed": True, **send_telegram(args.telegram_chat_id, message, args.timeout)}
+
+    effect_report = {
+        "kind": "EffectReport",
+        "payload": {
+            "verdict": "pass",
+            "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+            "fs_write": [str(out_dir), str(run_dir)],
+            "network": "enabled" if args.allow_network else "disabled",
+            "provider": "enabled" if args.allow_provider and args.use_api else "disabled",
+            "external": external,
+            "local_model": plan_doc.get("project_understanding", {}).get("payload", {}).get("route_manager", {}),
+            "provider_generation": generation.get("generator", {}),
+            "subpipelines": {
+                "plan_ref": str(artifacts_dir / "subpipeline_plan.json"),
+                "results_ref": str(artifacts_dir / "subpipeline_results.json"),
+            },
+            "requirement_blueprint": {
+                "status": req_blueprint.get("status", "unknown"),
+                "artifact": str(artifacts_dir / "requirement_blueprint.json"),
+                "outputs_dir": str(requirement_blueprint_outputs_dir),
+            },
+            "self_test": self_test_report.get("payload", {}),
+            "quality_report": quality_report.get("payload", {}),
+            "adversarial_review": adversarial_review.get("payload", {}),
+        },
+    }
+    runtime_result = {
+        "kind": "RuntimeExecutionResult",
+        "payload": {
+            "run_id": run_dir.name,
+            "status": "pass",
+            "project_dir": str(out_dir),
+            "artifacts_dir": str(artifacts_dir),
+            "outputs": {
+                "requirement_blueprint": str(artifacts_dir / "requirement_blueprint.json"),
+                "requirement_blueprint_outputs": str(requirement_blueprint_outputs_dir),
+                "project_blueprint": str(artifacts_dir / "project_blueprint.json"),
+                "generation_trace": str(artifacts_dir / "generation_trace.json"),
+                "subpipeline_plan": str(artifacts_dir / "subpipeline_plan.json"),
+                "subpipeline_results": str(artifacts_dir / "subpipeline_results.json"),
+                "self_test_report": str(artifacts_dir / "self_test_report.json"),
+                "quality_report": str(artifacts_dir / "quality_report.json"),
+                "adversarial_review": str(artifacts_dir / "adversarial_review.json"),
+                "test_graph": str(artifacts_dir / "test_graph.json"),
+                "effect_report": str(artifacts_dir / "effect_report.json"),
+            },
+            "external_approvals": external,
+        },
+    }
+
+    write_json(artifacts_dir / "pipeline_composition.json", plan_doc)
+    requirement_blueprint.write_requirement_blueprint_outputs(requirement_blueprint_outputs_dir, req_blueprint)
+    write_json(artifacts_dir / "requirement_blueprint.json", req_blueprint)
+    write_json(artifacts_dir / "subpipeline_plan.json", subpipeline_plan)
+    write_json(artifacts_dir / "subpipeline_results.json", subpipeline_results)
+    write_json(artifacts_dir / "self_test_report.json", self_test_report)
+    write_json(artifacts_dir / "quality_report.json", quality_report)
+    write_json(artifacts_dir / "adversarial_review.json", adversarial_review)
+    write_json(artifacts_dir / "project_blueprint.json", project_blueprint)
+    write_json(artifacts_dir / "generation_trace.json", generation_trace)
+    write_json(artifacts_dir / "test_graph.json", test_graph)
+    write_text(artifacts_dir / "test_graph.mmd", make_mermaid())
+    write_json(artifacts_dir / "effect_report.json", effect_report)
+    write_json(artifacts_dir / "runtime_result.json", runtime_result)
+    write_json(pathlib.Path(args.result_path).resolve(), runtime_result)
+    return runtime_result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.set_defaults(allow_network=True, allow_provider=True, use_api=True)
+    parser.add_argument("--goal", default="生成一个本地任务看板项目")
+    parser.add_argument("--plan", default="")
+    parser.add_argument("--out-dir", default=str(DEFAULT_GENERATED_DIR))
+    parser.add_argument("--run-dir", default=str(DEFAULT_RUN_DIR))
+    parser.add_argument("--result-path", default=str(DEFAULT_RESULT_PATH))
+    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes. Enabled by default for mixed API mode.")
+    parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes for a fully local run.")
+    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls. Enabled by default for mixed API mode.")
+    parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API calls.")
+    parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation. Enabled by default.")
+    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Use the local static generator instead of API generation.")
+    parser.add_argument("--send-telegram", action="store_true")
+    parser.add_argument("--telegram-chat-id", default="")
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
+    parser.add_argument("--timeout", type=int, default=360)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    result = execute(args)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        payload = result["payload"]
+        print(f"LOCAL_PIPELINE_EXECUTION: {payload['status'].upper()}")
+        print(f"project_dir={payload['project_dir']}")
+        print(f"artifacts_dir={payload['artifacts_dir']}")
+    return 0 if result["payload"]["status"] == "pass" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

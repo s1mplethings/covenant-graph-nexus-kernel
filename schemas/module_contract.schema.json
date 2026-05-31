@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/module_contract.schema.json",
+  "title": "ModuleContract",
+  "type": "object",
+  "required": [
+    "kind",
+    "id",
+    "version",
+    "ports",
+    "requires",
+    "effects",
+    "compatibility"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "ModuleContract"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^module\\.[a-z0-9_.-]+$"
+    },
+    "version": {
+      "$ref": "common_defs.schema.json#/$defs/version"
+    },
+    "ports": {
+      "type": "object",
+      "required": [
+        "input",
+        "output"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/port_spec"
+          }
+        },
+        "output": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/port_spec"
+          }
+        }
+      }
+    },
+    "requires": {
+      "type": "object",
+      "required": [
+        "capabilities",
+        "context"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "required": [
+        "fs_read",
+        "fs_write",
+        "network",
+        "provider_call",
+        "risk"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "fs_read": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fs_write": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "network": {
+          "type": "boolean"
+        },
+        "provider_call": {
+          "type": "boolean"
+        },
+        "risk": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "required": [
+        "replaceable",
+        "movable",
+        "surface_rule",
+        "effect_rule"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "replaceable": {
+          "type": "boolean"
+        },
+        "movable": {
+          "type": "boolean"
+        },
+        "surface_rule": {
+          "enum": [
+            "same",
+            "same_or_compatible"
+          ]
+        },
+        "effect_rule": {
+          "enum": [
+            "same",
+            "subset_or_equal",
+            "policy_bounded"
+          ]
+        }
+      }
+    },
+    "policy_ref": {
+      "$ref": "common_defs.schema.json#/$defs/policy_ref"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "port_spec": {
+      "type": "object",
+      "required": [
+        "artifact_type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "artifact_type": {
+          "$ref": "common_defs.schema.json#/$defs/artifact_ref"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "multi": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

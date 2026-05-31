@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.test_environment_plan",
+  "version": "1",
+  "type_name": "TestEnvironmentPlan",
+  "schema_ref": "schemas/test_environment_plan.v1.schema.json",
+  "identity": {
+    "hash_fields": ["target", "environments", "constraints"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "modular_project_testing_v1",
+    "ref": "artifact.test_environment_plan@1",
+    "purpose": "Selectable test environments such as contract-only, module-smoke, generated static browser app, industrial I/O fixtures, connectivity dry checks, and optional live external checks."
+  }
+}

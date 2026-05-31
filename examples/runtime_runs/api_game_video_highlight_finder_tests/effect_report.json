@@ -1,0 +1,23 @@
+{
+  "kind": "EffectReport",
+  "created_at": "2026-05-31T09:58:54.012396+00:00",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Executed modular test pipeline with local deterministic checks and live API probes when declared.",
+    "fs_read": [
+      "scripts/**",
+      "examples/**",
+      "generated/**",
+      "schemas/**"
+    ],
+    "fs_write": [
+      "D:\\CGKN\\examples\\test_results\\api_game_video_highlight_finder_test_execution.json",
+      "D:\\CGKN\\examples\\runtime_runs\\api_game_video_highlight_finder_tests"
+    ],
+    "network": "enabled",
+    "provider": "enabled for live connectivity probes",
+    "api_steps": [
+      "connectivity_live_probe"
+    ]
+  }
+}

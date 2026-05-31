@@ -1,0 +1,90 @@
+[
+  {
+    "streamer": "GamerGirl123",
+    "game": "Fortnite",
+    "category": "Battle Royale",
+    "timestamp": "2023-10-01T14:30:00Z",
+    "title": "Epic Victory Royale!",
+    "description": "Watch as I secure a thrilling victory in Fortnite with an incredible last-minute play!",
+    "intensity": "High",
+    "chatRate": 150,
+    "keywords": ["Fortnite", "Victory Royale", "Epic Plays"]
+  },
+  {
+    "streamer": "ProGamerX",
+    "game": "League of Legends",
+    "category": "MOBA",
+    "timestamp": "2023-10-02T18:15:00Z",
+    "title": "Unbelievable Comeback!",
+    "description": "Join me as we turn the tide in a seemingly lost game. You won't believe how we did it!",
+    "intensity": "Very High",
+    "chatRate": 200,
+    "keywords": ["League of Legends", "Comeback", "Team Play"]
+  },
+  {
+    "streamer": "SpeedrunMaster",
+    "game": "Super Mario Odyssey",
+    "category": "Platformer",
+    "timestamp": "2023-10-03T12:00:00Z",
+    "title": "World Record Speedrun!",
+    "description": "I just broke the world record for Super Mario Odyssey! Check out my insane route!",
+    "intensity": "Extreme",
+    "chatRate": 100,
+    "keywords": ["Speedrun", "Super Mario", "World Record"]
+  },
+  {
+    "streamer": "FPSKing",
+    "game": "Call of Duty: Warzone",
+    "category": "First-Person Shooter",
+    "timestamp": "2023-10-04T20:45:00Z",
+    "title": "Clutch 1v4 Situation!",
+    "description": "Watch me clutch a 1v4 in Warzone with some insane sniping skills!",
+    "intensity": "High",
+    "chatRate": 180,
+    "keywords": ["Call of Duty", "Warzone", "Clutch"]
+  },
+  {
+    "streamer": "CasualGamer",
+    "game": "Among Us",
+    "category": "Social Deduction",
+    "timestamp": "2023-10-05T16:30:00Z",
+    "title": "Caught Red-Handed!",
+    "description": "I was so close to winning, but my friend caught me in the act! Hilarious moments!",
+    "intensity": "Medium",
+    "chatRate": 120,
+    "keywords": ["Among Us", "Imposter", "Funny Moments"]
+  },
+  {
+    "streamer": "RPGFanatic",
+    "game": "The Witcher 3",
+    "category": "RPG",
+    "timestamp": "2023-10-06T11:00:00Z",
+    "title": "Epic Monster Hunt!",
+    "description": "Join me on an epic quest as I hunt down a legendary monster in The Witcher 3!",
+    "intensity": "High",
+    "chatRate": 90,
+    "keywords": ["The Witcher 3", "Monster Hunt", "Adventure"]
+  },
+  {
+    "streamer": "PuzzleMaster",
+    "game": "Portal 2",
+    "category": "Puzzle",
+    "timestamp": "2023-10-07T14:00:00Z",
+    "title": "Mind-Bending Puzzles!",
+    "description": "Watch me solve some of the most challenging puzzles in Portal 2. Can you keep up?",
+    "intensity": "Medium",
+    "chatRate": 80,
+    "keywords": ["Portal 2", "Puzzles", "Challenge"]
+  },
+  {
+    "streamer": "StrategyGuru",
+    "game": "Civilization VI",
+    "category": "Strategy",
+    "timestamp": "2023-10-08T19:00:00Z",
+    "title": "Mastering Civilization!",
+    "description": "Join me as I build an empire and outsmart my opponents in Civilization VI!",
+    "intensity": "High",
+    "chatRate": 110,
+    "keywords": ["Civilization VI", "Strategy", "Empire Building"]
+  }
+]

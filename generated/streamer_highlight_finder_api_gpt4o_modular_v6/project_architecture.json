@@ -1,0 +1,158 @@
+{
+  "project_architecture": {
+    "screens": [
+      "main_dashboard",
+      "data_import_screen",
+      "highlight_review_screen",
+      "export_screen"
+    ],
+    "modules": [
+      {
+        "path": "src/core/importer.js",
+        "responsibility": "Handle importing live stream event data via FileReader or textarea input.",
+        "exports": [
+          "parseRecordsFromText",
+          "normalizeRecord",
+          "importData"
+        ],
+        "imports": []
+      },
+      {
+        "path": "src/core/scoring.js",
+        "responsibility": "Process imported data, calculate scores, and sort items by score.",
+        "exports": [
+          "scoreRecord",
+          "sortRecords"
+        ],
+        "imports": [
+          "src/core/importer.js"
+        ]
+      },
+      {
+        "path": "src/core/filtering.js",
+        "responsibility": "Provide filter controls for streamer, game, category, and score.",
+        "exports": [
+          "applyFilters"
+        ],
+        "imports": [
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/ui/forms.js",
+        "responsibility": "Allow users to manually mark highlights and append them to the dataset.",
+        "exports": [
+          "readManualMarker",
+          "bindDom",
+          "setupForms"
+        ],
+        "imports": [
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/core/exporter.js",
+        "responsibility": "Export filtered results as a downloadable file using Blob and URL.createObjectURL.",
+        "exports": [
+          "downloadJson",
+          "exportData"
+        ],
+        "imports": [
+          "src/core/filtering.js"
+        ]
+      },
+      {
+        "path": "src/state/store.js",
+        "responsibility": "Persist working data locally using localStorage and reload it on page load.",
+        "exports": [
+          "loadRecords",
+          "saveRecords",
+          "clearRecords",
+          "loadFromLocalStorage",
+          "saveToLocalStorage"
+        ],
+        "imports": [
+          "src/core/scoring.js"
+        ]
+      },
+      {
+        "path": "src/ui/render.js",
+        "responsibility": "Render UI components such as tables, filters, and forms.",
+        "exports": [
+          "renderRecords",
+          "renderSummary",
+          "renderError"
+        ],
+        "imports": [
+          "src/core/filtering.js",
+          "src/ui/forms.js",
+          "src/core/exporter.js"
+        ]
+      }
+    ],
+    "data_contract": {
+      "record_fields": [
+        "streamer",
+        "game",
+        "timestamp",
+        "time",
+        "category",
+        "intensity",
+        "chatRate",
+        "keywords",
+        "title",
+        "description",
+        "score"
+      ],
+      "sample_shape": {
+        "streamer": "string",
+        "game": "string",
+        "timestamp": "string",
+        "time": "string",
+        "category": "string",
+        "intensity": "number",
+        "chatRate": "number",
+        "keywords": "array",
+        "title": "string",
+        "description": "string",
+        "score": "number"
+      }
+    },
+    "test_strategy": [
+      {
+        "test_case": "Import JSON data",
+        "expected_result": "Data is successfully parsed and displayed in the UI."
+      },
+      {
+        "test_case": "Score calculation",
+        "expected_result": "Scores are calculated correctly based on intensity, chatRate, and other factors."
+      },
+      {
+        "test_case": "Filter application",
+        "expected_result": "Filters correctly narrow down the dataset based on user input."
+      },
+      {
+        "test_case": "Manual highlight addition",
+        "expected_result": "Manually added highlights appear in the dataset and are saved locally."
+      },
+      {
+        "test_case": "Export functionality",
+        "expected_result": "Filtered results are exported as a downloadable file."
+      },
+      {
+        "test_case": "Local storage persistence",
+        "expected_result": "Data persists across page reloads using localStorage."
+      }
+    ],
+    "acceptance_criteria": [
+      "Generated project must run locally from index.html under python -m http.server.",
+      "Provide a real JSON import path using FileReader and/or a textarea; imported data must be processed by the app.",
+      "Implement a real scoring function and sort detected items by score descending in executable JavaScript.",
+      "Provide visible filter controls and executable filter logic for the requested fields.",
+      "Provide a manual marker form/control that appends a new item to the working dataset and rerenders results.",
+      "Provide a real export action using Blob, URL.createObjectURL, an anchor download, and the current filtered result set.",
+      "Persist working data locally with localStorage and reload it on page load.",
+      "Use domain fields such as streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score."
+    ]
+  }
+}

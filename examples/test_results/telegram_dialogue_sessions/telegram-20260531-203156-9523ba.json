@@ -1,0 +1,116 @@
+{
+  "kind": "TelegramStyleDialogueSession",
+  "session_id": "telegram-20260531-203156-9523ba",
+  "created_at": "2026-05-31T12:31:56.152397+00:00",
+  "updated_at": "2026-05-31T12:32:23.117967+00:00",
+  "mode": {
+    "assistant_participation": "disabled",
+    "api_calls": "disabled",
+    "description": "Telegram-style manual dialogue test recorder."
+  },
+  "messages": [
+    {
+      "id": "1be0e515ab6d42be9b8e5d85d6032a9f",
+      "created_at": "2026-05-31T12:32:00.734342+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "开始真实 API 连通测试：python scripts/check_connectivity.py --live"
+    },
+    {
+      "id": "62b11e95b4e944b8b2a814e2052b0ad2",
+      "created_at": "2026-05-31T12:32:03.709419+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 连通测试完成：pass\n\nCONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+      "artifacts": {
+        "api_connectivity_result": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json",
+        "api_connectivity_command": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "scripts/check_connectivity.py",
+            "--live"
+          ],
+          "returncode": 0,
+          "duration_seconds": 2.95,
+          "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+          "stderr": "",
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "id": "98892d758ce64c3c9a163af4bf6de912",
+      "created_at": "2026-05-31T12:32:04.789401+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "开始真实 API 连通测试：python scripts/check_connectivity.py --live"
+    },
+    {
+      "id": "7d3483713bc54fbb9b650d24a9cf0c5d",
+      "created_at": "2026-05-31T12:32:10.447957+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 连通测试完成：pass\n\nCONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+      "artifacts": {
+        "api_connectivity_result": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json",
+        "api_connectivity_command": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "scripts/check_connectivity.py",
+            "--live"
+          ],
+          "returncode": 0,
+          "duration_seconds": 5.65,
+          "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+          "stderr": "",
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "id": "a921d6b06d144e7db5f8f4a41aaba652",
+      "created_at": "2026-05-31T12:32:20.685907+00:00",
+      "role": "observer",
+      "type": "criterion",
+      "content": "开始真实 API 连通测试：python scripts/check_connectivity.py --live"
+    },
+    {
+      "id": "d4055f4f7a86475ab90a14eeb48d9013",
+      "created_at": "2026-05-31T12:32:23.101966+00:00",
+      "role": "observer",
+      "type": "decision",
+      "content": "API 连通测试完成：pass\n\nCONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+      "artifacts": {
+        "api_connectivity_result": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json",
+        "api_connectivity_command": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "scripts/check_connectivity.py",
+            "--live"
+          ],
+          "returncode": 0,
+          "duration_seconds": 2.38,
+          "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+          "stderr": "",
+          "status": "pass"
+        }
+      }
+    }
+  ],
+  "artifacts": {
+    "api_connectivity_result": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json",
+    "api_connectivity_command": {
+      "command": [
+        "D:\\anaconda\\python.exe",
+        "scripts/check_connectivity.py",
+        "--live"
+      ],
+      "returncode": 0,
+      "duration_seconds": 2.38,
+      "stdout": "CONNECTIVITY: OK\napi=connected\ntelegram=connected\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+      "stderr": "",
+      "status": "pass"
+    }
+  },
+  "last_save_reason": "session_created"
+}

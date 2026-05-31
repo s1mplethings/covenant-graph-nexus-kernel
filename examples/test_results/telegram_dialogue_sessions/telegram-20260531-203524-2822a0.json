@@ -1,0 +1,57 @@
+{
+  "kind": "TelegramStyleDialogueSession",
+  "session_id": "telegram-20260531-203524-2822a0",
+  "created_at": "2026-05-31T12:35:24.671516+00:00",
+  "updated_at": "2026-05-31T12:35:32.470522+00:00",
+  "mode": {
+    "assistant_participation": "disabled",
+    "api_calls": "enabled for dialogue replies",
+    "description": "Simple API-backed dialogue test recorder."
+  },
+  "messages": [
+    {
+      "id": "7edbceb13bd442408ab9fd454a3716f5",
+      "created_at": "2026-05-31T12:35:32.450564+00:00",
+      "role": "observer",
+      "type": "problem",
+      "content": "API 连接失败。\n\n{\n  \"ok\": false,\n  \"command\": {\n    \"command\": [\n      \"D:\\\\anaconda\\\\python.exe\",\n      \"scripts/check_connectivity.py\",\n      \"--live\"\n    ],\n    \"returncode\": 1,\n    \"duration_seconds\": 7.73,\n    \"stdout\": \"CONNECTIVITY: CHECK\\napi=connected\\ntelegram=request failed: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)>\\nresult=D:\\\\CGKN\\\\examples\\\\test_results\\\\connectivity_check_result.json\\n\",\n    \"stderr\": \"\",\n    \"status\": \"fail\"\n  },\n  \"result_path\": \"D:\\\\CGKN\\\\examples\\\\test_results\\\\connectivity_check_result.json\"\n}",
+      "artifacts": {
+        "api_connection": {
+          "ok": false,
+          "command": {
+            "command": [
+              "D:\\anaconda\\python.exe",
+              "scripts/check_connectivity.py",
+              "--live"
+            ],
+            "returncode": 1,
+            "duration_seconds": 7.73,
+            "stdout": "CONNECTIVITY: CHECK\napi=connected\ntelegram=request failed: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)>\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+            "stderr": "",
+            "status": "fail"
+          },
+          "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+        }
+      }
+    }
+  ],
+  "artifacts": {
+    "api_connection": {
+      "ok": false,
+      "command": {
+        "command": [
+          "D:\\anaconda\\python.exe",
+          "scripts/check_connectivity.py",
+          "--live"
+        ],
+        "returncode": 1,
+        "duration_seconds": 7.73,
+        "stdout": "CONNECTIVITY: CHECK\napi=connected\ntelegram=request failed: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)>\nresult=D:\\CGKN\\examples\\test_results\\connectivity_check_result.json\n",
+        "stderr": "",
+        "status": "fail"
+      },
+      "result_path": "D:\\CGKN\\examples\\test_results\\connectivity_check_result.json"
+    }
+  },
+  "last_save_reason": "session_created"
+}

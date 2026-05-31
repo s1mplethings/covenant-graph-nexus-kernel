@@ -1,0 +1,17 @@
+{
+  "kind": "CustomerProjectGenerationResult",
+  "created_at": "2026-05-28T17:17:31.674713+00:00",
+  "requirement": "我想要一个可以给我找出游戏主播高光时刻的完整项目。必须先做用户分析、市场调研、技术路径选择、UX设计和产品决策门，然后生成项目。现在重点是它要可以直接模拟类似工业输入，不论资源是从平台事件日志、聊天分析、公开视频元数据、人工标注、运营审核还是其他资源来的，都要组织成具体可导入的工业输入 bundle，并提供明确的 expected outputs。项目要有清晰GUI，可以导入工业输入bundle，自动评分排序，筛选主播、游戏、分类和分数，添加人工标记，导出剪辑清单，提供样例数据、工业输入输出说明、模块化源码、浏览器测试脚本、工业I/O测试脚本、架构说明和测试效果报告。不要把没有实现的拖拽、时间线、协作、CV、NLP、机器学习、后端、数据库写成当前功能。",
+  "customer_service": {
+    "questions": [],
+    "answers": [],
+    "mode": "defaults"
+  },
+  "composition_path": "D:\\CGKN\\examples\\test_results\\streamer_highlight_finder_industrial_io_v7_composition.json",
+  "execution_path": "D:\\CGKN\\examples\\test_results\\streamer_highlight_finder_industrial_io_v7_execution.json",
+  "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_industrial_io_v7",
+  "runtime_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v7",
+  "effect_report_path": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v7\\artifacts\\effect_report.json",
+  "test_graph_path": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_industrial_io_v7\\artifacts\\test_graph.mmd",
+  "status": "pass"
+}

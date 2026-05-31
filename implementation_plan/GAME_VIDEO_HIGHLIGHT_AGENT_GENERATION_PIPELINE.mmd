@@ -1,0 +1,38 @@
+flowchart TD
+  req["User Requirement"] --> customer["customer_intake_pipeline"]
+  customer --> customerRequest["customerRequest"]
+
+  customerRequest --> blueprint["requirement_blueprint_pipeline"]
+  blueprint --> requirementBlueprint["requirementBlueprint"]
+
+  requirementBlueprint --> ioContractPipe["io_contract_pipeline"]
+  ioContractPipe --> ioContract["Runtime I/O Contract: GameVideoFile -> HighlightResult"]
+
+  customerRequest --> librarian["local_librarian_pipeline"]
+  librarian --> localLibraryIndex["localLibraryIndex"]
+
+  requirementBlueprint --> route["route_planning_pipeline"]
+  ioContract --> route
+  localLibraryIndex --> route
+  route --> routeQuality["routeQualityReport + selectedModules + edges"]
+
+  routeQuality --> architecture["architecture_pipeline"]
+  ioContract --> architecture
+  architecture --> projectArchitecture["projectArchitecture"]
+
+  projectArchitecture --> moduleGen["module_generation_pipelines"]
+  moduleGen --> projectFiles["index.html + app.js + styles.css + tests + docs + fixtures"]
+
+  projectFiles --> tests["test_pipeline"]
+  tests --> testReport["TestExecutionReport"]
+
+  projectFiles --> effect["effect_report_pipeline"]
+  routeQuality --> effect
+  testReport --> effect
+  effect --> effectReport["EffectReport"]
+
+  projectFiles --> control["unified_control_pipeline"]
+  routeQuality --> control
+  testReport --> control
+  effectReport --> control
+  control --> runtimeResult["RuntimeExecutionResult"]

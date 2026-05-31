@@ -1,0 +1,10 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.generation_trace",
+  "version": "1",
+  "type_name": "GenerationTrace",
+  "schema_ref": "schemas/generation_trace.v1.schema.json",
+  "identity": {"hash_fields": ["events", "decisions", "module_outputs"]},
+  "compatibility": {"backward_compatible_with": []},
+  "metadata": {"first_use": "modular_project_generation_v1", "ref": "artifact.generation_trace@1"}
+}

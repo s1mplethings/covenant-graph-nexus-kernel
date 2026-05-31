@@ -1,0 +1,420 @@
+{
+  "tech_decisions": [
+    {
+      "capability": "project_state",
+      "feature": "Project intake",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "text_input",
+      "feature": "Project intake",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "local_artifact_storage",
+      "feature": "Project intake",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "structured_ai_output",
+      "feature": "Requirement understanding",
+      "decision_type": "hybrid",
+      "selected_solution": "OpenAI Structured Outputs",
+      "weighted_score": 0.781,
+      "reason": "Selected for Schema-constrained model output with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "schema_validation",
+      "feature": "Requirement understanding",
+      "decision_type": "library",
+      "selected_solution": "jsonschema",
+      "weighted_score": 0.805,
+      "reason": "Selected for Validate generated JSON artifacts with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "business_analysis",
+      "feature": "Requirement understanding",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "io_contract_modeling",
+      "feature": "Input/output contract analysis",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "source_attribution",
+      "feature": "Input/output contract analysis",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "confidence_scoring",
+      "feature": "Input/output contract analysis",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "gap_severity_rules",
+      "feature": "Gap confirmation",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "user_confirmation_gate",
+      "feature": "Gap confirmation",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "default_assumption_policy",
+      "feature": "Gap confirmation",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "feature_modeling",
+      "feature": "Feature decomposition",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "priority_classification",
+      "feature": "Feature decomposition",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "traceability",
+      "feature": "Feature decomposition",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "capability_taxonomy",
+      "feature": "Capability mapping",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "feature_to_capability_mapping",
+      "feature": "Capability mapping",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "local_tech_catalog",
+      "feature": "Technology discovery",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "optional_web_search",
+      "feature": "Technology discovery",
+      "decision_type": "defer",
+      "selected_solution": "official docs / package registries",
+      "weighted_score": 0.71,
+      "reason": "Selected for Only when network is explicitly approved with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "package_registry_lookup",
+      "feature": "Technology discovery",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "security_check",
+      "feature": "Technology discovery",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "weighted_scoring",
+      "feature": "Technology decision",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "risk_analysis",
+      "feature": "Technology decision",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "decision_explanation",
+      "feature": "Technology decision",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "markdown_generation",
+      "feature": "Blueprint generation",
+      "decision_type": "custom",
+      "selected_solution": "custom Markdown renderer",
+      "weighted_score": 0.781,
+      "reason": "Selected for Generate PRD and readable summaries with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "mermaid_generation",
+      "feature": "Blueprint generation",
+      "decision_type": "library",
+      "selected_solution": "Mermaid",
+      "weighted_score": 0.805,
+      "reason": "Selected for Architecture and flow diagrams with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "openapi_generation",
+      "feature": "Blueprint generation",
+      "decision_type": "library",
+      "selected_solution": "OpenAPI YAML",
+      "weighted_score": 0.805,
+      "reason": "Selected for API contract export with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "sql_schema_generation",
+      "feature": "Blueprint generation",
+      "decision_type": "library",
+      "selected_solution": "SQL DDL",
+      "weighted_score": 0.805,
+      "reason": "Selected for Database schema export with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "task_dependency_graph",
+      "feature": "Task backlog",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "csv_export",
+      "feature": "Task backlog",
+      "decision_type": "library",
+      "selected_solution": "Python csv",
+      "weighted_score": 0.805,
+      "reason": "Selected for Task backlog CSV export with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "acceptance_criteria_generation",
+      "feature": "Task backlog",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    },
+    {
+      "capability": "custom_business_logic",
+      "feature": "User-specified capability",
+      "decision_type": "custom",
+      "selected_solution": "custom CGNK rule",
+      "weighted_score": 0.781,
+      "reason": "Selected for Deterministic local implementation with local-catalog evidence.",
+      "alternatives": [],
+      "risks": [
+        "Version freshness requires online verification before production use."
+      ],
+      "implementation_note": "Re-check package versions and security metadata when network access is explicitly allowed."
+    }
+  ]
+}

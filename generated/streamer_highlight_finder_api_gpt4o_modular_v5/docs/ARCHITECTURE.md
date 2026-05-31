@@ -1,0 +1,182 @@
+# Architecture Documentation
+
+## Overview
+This document outlines the architecture of the **Game Stream Highlight Detector** project. The system is designed to identify, score, and manage highlight moments from game streams, providing tools for filtering, manual marking, and exporting results. It is targeted at game streamers, content editors, and live stream operators.
+
+---
+
+## Modules
+
+### 1. **Data Import Module**
+**Path:** `src/data_import.js`  
+**Responsibility:** Handles importing data from JSON files or textarea input.  
+**Exports:**  
+- `importData`: Parses and normalizes input data into the application's working dataset.  
+**Imports:** None.
+
+---
+
+### 2. **Highlight Detection Module**
+**Path:** `src/highlight_detection.js`  
+**Responsibility:** Detects highlights based on scoring logic and generates a list of detected moments.  
+**Exports:**  
+- `detectHighlights`: Applies scoring logic to imported data and identifies highlight moments.  
+**Imports:**  
+- `src/data_import.js`
+
+---
+
+### 3. **Filter and Sort Module**
+**Path:** `src/filter_and_sort.js`  
+**Responsibility:** Provides filtering and sorting functionality for detected highlights.  
+**Exports:**  
+- `filterHighlights`: Filters highlights based on user-defined criteria.  
+- `sortHighlights`: Sorts highlights by score in descending order.  
+**Imports:**  
+- `src/highlight_detection.js`
+
+---
+
+### 4. **Manual Marker Module**
+**Path:** `src/manual_marker.js`  
+**Responsibility:** Allows users to manually add highlights to the dataset.  
+**Exports:**  
+- `addManualHighlight`: Appends a manually marked highlight to the dataset.  
+**Imports:**  
+- `src/data_import.js`  
+- `src/highlight_detection.js`
+
+---
+
+### 5. **Export Module**
+**Path:** `src/export.js`  
+**Responsibility:** Exports filtered highlights as a downloadable file.  
+**Exports:**  
+- `exportHighlights`: Generates a downloadable file containing the current filtered dataset.  
+**Imports:**  
+- `src/filter_and_sort.js`
+
+---
+
+### 6. **Local Storage Module**
+**Path:** `src/local_storage.js`  
+**Responsibility:** Persists working data locally and reloads it on page load.  
+**Exports:**  
+- `saveToLocalStorage`: Saves the current dataset to local storage.  
+- `loadFromLocalStorage`: Loads the dataset from local storage.  
+**Imports:**  
+- `src/data_import.js`  
+- `src/highlight_detection.js`
+
+---
+
+### 7. **UI Module**
+**Path:** `src/ui.js`  
+**Responsibility:** Renders UI components and handles user interactions.  
+**Exports:**  
+- `renderUI`: Manages rendering of the application interface.  
+**Imports:**  
+- `src/data_import.js`  
+- `src/highlight_detection.js`  
+- `src/filter_and_sort.js`  
+- `src.manual_marker.js`  
+- `src.export.js`  
+- `src.local_storage.js`
+
+---
+
+### 8. **Test Module**
+**Path:** `src/test.js`  
+**Responsibility:** Runs tests and generates a test report.  
+**Exports:**  
+- `runTests`: Executes unit, integration, UI, performance, and acceptance tests.  
+**Imports:**  
+- `src/data_import.js`  
+- `src/highlight_detection.js`  
+- `src.filter_and_sort.js`  
+- `src.manual_marker.js`  
+- `src.export.js`  
+- `src.local_storage.js`
+
+---
+
+## Data Flow
+
+1. **Data Import:**  
+   - Users import JSON data via file input or textarea.  
+   - Data is parsed and normalized by `src/data_import.js`.  
+
+2. **Highlight Detection:**  
+   - Imported data is scored and analyzed by `src/highlight_detection.js`.  
+   - Highlight moments are identified and stored.  
+
+3. **Filter and Sort:**  
+   - Users apply filters and sorting criteria via the UI.  
+   - `src/filter_and_sort.js` processes the dataset accordingly.  
+
+4. **Manual Marking:**  
+   - Users manually add highlights using the UI.  
+   - `src/manual_marker.js` appends new records to the dataset.  
+
+5. **Export:**  
+   - Filtered results are exported as a downloadable file.  
+   - `src/export.js` handles file generation and download.  
+
+6. **Local Storage:**  
+   - Working data is saved to local storage for persistence.  
+   - `src/local_storage.js` reloads data on page load.  
+
+7. **UI Rendering:**  
+   - The UI is dynamically updated based on user actions and data changes.  
+   - `src/ui.js` manages rendering and interactions.  
+
+---
+
+## API/Provider Role
+
+### External API Gateway
+- Facilitates communication between modules and external services (if applicable).  
+- Handles potential future upgrades to integrate external data sources or cloud storage.
+
+### Local Ollama Role
+- Manages local runtime execution and ensures smooth operation of the app.  
+- Handles local storage and data persistence.
+
+---
+
+## Test Strategy
+
+### 1. **Unit Tests**
+- Validate individual module functionality.  
+- Example: Test `detectHighlights` to ensure scoring logic works correctly.
+
+### 2. **Integration Tests**
+- Verify that modules interact correctly.  
+- Example: Test `filterHighlights` with data generated by `detectHighlights`.
+
+### 3. **UI Tests**
+- Ensure user interactions are functional and intuitive.  
+- Example: Test the manual marker form submission and UI updates.
+
+### 4. **Performance Tests**
+- Validate scoring and sorting efficiency with large datasets.  
+- Example: Measure execution time for `sortHighlights` with 10,000 records.
+
+### 5. **Acceptance Tests**
+- Confirm all acceptance criteria are met.  
+- Example: Test the full workflow from data import to export.
+
+---
+
+## Acceptance Criteria
+
+1. The project must run locally from `index.html` under `python -m http.server`.  
+2. JSON import must work via file input or textarea.  
+3. Scoring and sorting logic must execute correctly in JavaScript.  
+4. Filter controls must be visible and functional.  
+5. Manual marker functionality must append records and rerender results.  
+6. Export action must generate a downloadable file of filtered results.  
+7. Local storage must persist and reload working data.  
+8. Domain fields must include streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score.
+
+---

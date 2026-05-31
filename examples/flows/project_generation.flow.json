@@ -1,0 +1,169 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.project_generation",
+  "version": "1",
+  "policy_ref": "policy.safe_project_generation@1",
+  "inputs": {
+    "goal": "artifact.goal@1"
+  },
+  "outputs": {
+    "benchmark_report": "artifact.benchmark_report@1"
+  },
+  "nodes": [
+    {
+      "id": "n_snapshot",
+      "uses": "module.project.snapshot@1"
+    },
+    {
+      "id": "n_build_graph",
+      "uses": "module.project.build_graph@1"
+    },
+    {
+      "id": "n_plan",
+      "uses": "module.plan.generate.provider@1"
+    },
+    {
+      "id": "n_emit_patch",
+      "uses": "module.patch.emit@1"
+    },
+    {
+      "id": "n_validate_patch",
+      "uses": "module.patch.validate@1"
+    },
+    {
+      "id": "n_run_tests",
+      "uses": "module.tests.run@1"
+    },
+    {
+      "id": "n_benchmark",
+      "uses": "module.benchmark.run@1"
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "flow_input": "goal"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "goal"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_build_graph",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_emit_patch",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_snapshot",
+        "port": "snapshot"
+      },
+      "to": {
+        "node": "n_validate_patch",
+        "port": "snapshot"
+      }
+    },
+    {
+      "from": {
+        "node": "n_build_graph",
+        "port": "graph"
+      },
+      "to": {
+        "node": "n_plan",
+        "port": "graph"
+      }
+    },
+    {
+      "from": {
+        "node": "n_plan",
+        "port": "plan"
+      },
+      "to": {
+        "node": "n_emit_patch",
+        "port": "plan"
+      }
+    },
+    {
+      "from": {
+        "node": "n_emit_patch",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "from": {
+        "node": "n_validate_patch",
+        "port": "patch_manifest"
+      },
+      "to": {
+        "node": "n_run_tests",
+        "port": "patch_manifest"
+      }
+    },
+    {
+      "from": {
+        "node": "n_run_tests",
+        "port": "validation_report"
+      },
+      "to": {
+        "node": "n_benchmark",
+        "port": "validation_report"
+      }
+    },
+    {
+      "from": {
+        "node": "n_benchmark",
+        "port": "benchmark_report"
+      },
+      "to": {
+        "flow_output": "benchmark_report"
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_validation_done",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_validate_patch"
+          }
+        ]
+      },
+      "on_fail": "block"
+    },
+    {
+      "id": "g_benchmark_done",
+      "require": {
+        "all": [
+          {
+            "node_passed": "n_benchmark"
+          }
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "migration_target": "migration.project_generation@1"
+  }
+}

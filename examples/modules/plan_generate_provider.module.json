@@ -1,0 +1,50 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.plan.generate.provider",
+  "version": "1",
+  "ports": {
+    "input": {
+      "goal": {
+        "artifact_type": "artifact.goal@1",
+        "required": true
+      },
+      "graph": {
+        "artifact_type": "artifact.project_graph@1",
+        "required": true
+      }
+    },
+    "output": {
+      "plan": {
+        "artifact_type": "artifact.implementation_plan@1"
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.provider.call",
+        "model_class": "code_planning"
+      }
+    ],
+    "context": [
+      "run_id",
+      "trace_sink"
+    ]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": [],
+    "network": true,
+    "provider_call": true,
+    "risk": 2
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "provider-assisted planning; only allowed in policies that permit provider/network"
+  }
+}

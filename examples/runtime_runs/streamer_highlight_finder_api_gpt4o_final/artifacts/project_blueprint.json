@@ -1,0 +1,45 @@
+{
+  "kind": "ProjectBlueprint",
+  "payload": {
+    "name": "target_user-data_storage-runtime_result",
+    "type": "game_highlight_finder",
+    "output_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_final",
+    "files": [
+      "index.html",
+      "app.js",
+      "README.md",
+      "TEST_PLAN.md"
+    ],
+    "modules": [
+      "module.feature.library_search@1",
+      "module.local.librarian@1",
+      "module.project.generator@1",
+      "module.local.runtime_executor@1",
+      "module.effect_report.emit@1",
+      "module.local.pipeline_composer_agent@1",
+      "module.customer.service@1",
+      "module.local_agent.plan@1",
+      "module.test_graph.emit@1",
+      "module.unified_control@1",
+      "module.external.api_gateway@1"
+    ],
+    "generator": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkM82DHJnLt7b9z1ydhRRJQLm91ej,chatcmpl-DkM52RJXzjOPe8IGF4pRwLsQH15HF,chatcmpl-DkM59GdaKBNSfG8ghbzGjQui1dU4c,chatcmpl-DkM5HSscLLmBQJz9Py3CTxDFyjvMF",
+      "mode": "provider_filewise_project_generation"
+    },
+    "routing_policy": {
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ]
+    }
+  }
+}

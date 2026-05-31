@@ -1,0 +1,678 @@
+{
+  "kind": "LocalPipelineCompositionRun",
+  "created_at": "2026-05-28T10:04:41.413909+00:00",
+  "goal": "我想要一个可以给我找出游戏主播的高光时刻的完整项目，首先要做用户分析、市场调研、技术路径选择和UX设计，然后再生成项目。项目要有清晰不混乱的GUI，可以导入直播事件数据，自动评分和排序，筛选主播、游戏、分类和分数，添加人工标记，导出剪辑清单，提供样例数据、模块化源码、测试脚本、架构说明，并输出测试效果报告\n客服澄清信息：\n- data_storage: 默认使用浏览器本地存储，后续可升级为文件或数据库。\n生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。",
+  "local_index": {
+    "kind": "LocalLibraryIndex",
+    "payload": {
+      "module_count": 22,
+      "artifact_count": 24,
+      "flow_count": 5,
+      "policy_count": 6,
+      "top_matches": [
+        {
+          "module_ref": "module.customer.service@1",
+          "score": 5,
+          "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "goal"
+          ],
+          "outputs": [
+            "request"
+          ]
+        },
+        {
+          "module_ref": "module.local.librarian@1",
+          "score": 5,
+          "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [],
+          "outputs": [
+            "local_index"
+          ]
+        },
+        {
+          "module_ref": "module.local.pipeline_composer_agent@1",
+          "score": 5,
+          "purpose": "Local project-understanding librarian and pipeline composer agent.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "local_index",
+            "pipeline_plan",
+            "project_understanding"
+          ]
+        },
+        {
+          "module_ref": "module.project.generator@1",
+          "score": 5,
+          "purpose": "Project generator module that emits the product blueprint and generation process without owning validation outputs.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "adversarial_review",
+            "agent_plan",
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "generation_trace",
+            "project_blueprint"
+          ]
+        },
+        {
+          "module_ref": "module.unified_control@1",
+          "score": 5,
+          "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "adversarial_review",
+            "agent_plan",
+            "candidates",
+            "effect_report",
+            "generation_trace",
+            "local_index",
+            "online_sources",
+            "project_blueprint",
+            "request",
+            "test_graph"
+          ],
+          "outputs": [
+            "effect_report",
+            "generation_trace",
+            "project_blueprint",
+            "test_graph"
+          ]
+        },
+        {
+          "module_ref": "module.local.runtime_executor@1",
+          "score": 1,
+          "purpose": "Local runtime executor that materializes a composed pipeline into project files and runtime artifacts.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "pipeline_plan"
+          ],
+          "outputs": [
+            "effect_report",
+            "generation_trace",
+            "project_blueprint",
+            "runtime_result",
+            "test_graph"
+          ]
+        },
+        {
+          "module_ref": "module.adversarial_generation@1",
+          "score": 0,
+          "purpose": "Adversarial generation/review module that remains separate from the generator until typed review output is produced.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "agent_plan",
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "adversarial_review"
+          ]
+        },
+        {
+          "module_ref": "module.benchmark.run@1",
+          "score": 0,
+          "purpose": "",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "validation_report"
+          ],
+          "outputs": [
+            "benchmark_report"
+          ]
+        },
+        {
+          "module_ref": "module.effect_report.emit@1",
+          "score": 0,
+          "purpose": "Emit the final effect report as a separate verification artifact.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "generation_trace",
+            "project_blueprint",
+            "test_graph"
+          ],
+          "outputs": [
+            "effect_report"
+          ]
+        },
+        {
+          "module_ref": "module.external.api_gateway@1",
+          "score": 0,
+          "purpose": "Generic API gateway contract for OpenAI-compatible provider calls.",
+          "network": true,
+          "provider_call": true,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "response"
+          ]
+        },
+        {
+          "module_ref": "module.feature.library_search@1",
+          "score": 0,
+          "purpose": "Find capability libraries without coupling the caller to local or online source mechanics.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "local_index",
+            "online_sources",
+            "request"
+          ],
+          "outputs": [
+            "candidates"
+          ]
+        },
+        {
+          "module_ref": "module.local_agent.plan@1",
+          "score": 0,
+          "purpose": "Local planning module for agent-side execution without directly controlling generation.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "agent_plan"
+          ]
+        }
+      ]
+    }
+  },
+  "project_understanding": {
+    "kind": "ProjectUnderstandingIndex",
+    "payload": {
+      "retrieval_strategy": "structured_catalog_plus_lexical_rag",
+      "why_not_pure_vector_rag": "CGNK contracts are structured JSON; deterministic parsing preserves ports, effects, and policies before any semantic ranking.",
+      "optional_local_model": {
+        "enabled": true,
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "ok": true,
+        "result": {
+          "selected_modules": [
+            "module.customer.service@1",
+            "module.feature.library_search@1",
+            "module.local.librarian@1",
+            "module.project.generator@1",
+            "module.local.runtime_executor@1"
+          ],
+          "notes": "选择了与用户需求直接相关的模块，包括客户服务、功能库搜索、本地图书管理员、项目生成器和本地运行时执行器。这些模块将帮助我们完成用户分析、市场调研、技术路径选择和UX设计，并最终生成所需的完整项目。"
+        }
+      },
+      "local_librarian": {
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "catalog_basis": "examples/modules + examples/artifacts + examples/flows + examples/policies",
+        "top_local_matches": [
+          {
+            "module_ref": "module.customer.service@1",
+            "score": 5,
+            "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "goal"
+            ],
+            "outputs": [
+              "request"
+            ]
+          },
+          {
+            "module_ref": "module.local.librarian@1",
+            "score": 5,
+            "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [],
+            "outputs": [
+              "local_index"
+            ]
+          },
+          {
+            "module_ref": "module.local.pipeline_composer_agent@1",
+            "score": 5,
+            "purpose": "Local project-understanding librarian and pipeline composer agent.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "request"
+            ],
+            "outputs": [
+              "local_index",
+              "pipeline_plan",
+              "project_understanding"
+            ]
+          },
+          {
+            "module_ref": "module.project.generator@1",
+            "score": 5,
+            "purpose": "Project generator module that emits the product blueprint and generation process without owning validation outputs.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "adversarial_review",
+              "agent_plan",
+              "candidates",
+              "request"
+            ],
+            "outputs": [
+              "generation_trace",
+              "project_blueprint"
+            ]
+          },
+          {
+            "module_ref": "module.unified_control@1",
+            "score": 5,
+            "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "adversarial_review",
+              "agent_plan",
+              "candidates",
+              "effect_report",
+              "generation_trace",
+              "local_index",
+              "online_sources",
+              "project_blueprint",
+              "request",
+              "test_graph"
+            ],
+            "outputs": [
+              "effect_report",
+              "generation_trace",
+              "project_blueprint",
+              "test_graph"
+            ]
+          },
+          {
+            "module_ref": "module.local.runtime_executor@1",
+            "score": 1,
+            "purpose": "Local runtime executor that materializes a composed pipeline into project files and runtime artifacts.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "pipeline_plan"
+            ],
+            "outputs": [
+              "effect_report",
+              "generation_trace",
+              "project_blueprint",
+              "runtime_result",
+              "test_graph"
+            ]
+          },
+          {
+            "module_ref": "module.adversarial_generation@1",
+            "score": 0,
+            "purpose": "Adversarial generation/review module that remains separate from the generator until typed review output is produced.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "agent_plan",
+              "candidates",
+              "request"
+            ],
+            "outputs": [
+              "adversarial_review"
+            ]
+          },
+          {
+            "module_ref": "module.benchmark.run@1",
+            "score": 0,
+            "purpose": "",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "validation_report"
+            ],
+            "outputs": [
+              "benchmark_report"
+            ]
+          }
+        ],
+        "notes": ""
+      },
+      "route_manager": {
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "selection_source": "ollama",
+        "local_model_scope": [
+          "local_librarian",
+          "route_manager"
+        ],
+        "provider_scope": [
+          "project_generation",
+          "project_repair",
+          "final_project_logic"
+        ],
+        "notes": "",
+        "risks": []
+      },
+      "known_flows": [
+        "flow.local_pipeline_composition@1",
+        "flow.local_pipeline_execution@1",
+        "flow.modular_project_generation@1",
+        "flow.project_generation@1",
+        "flow.project_refactor@1"
+      ],
+      "capability_groups": {
+        "intake": [
+          "module.customer.service@1"
+        ],
+        "local_understanding": [
+          "module.local.librarian@1",
+          "module.local.pipeline_composer_agent@1"
+        ],
+        "generation": [
+          "module.project.generator@1"
+        ],
+        "verification": [
+          "module.test_graph.emit@1",
+          "module.effect_report.emit@1"
+        ],
+        "delivery_or_external": [
+          "module.external.api_gateway@1",
+          "module.telegram.gateway@1"
+        ]
+      }
+    }
+  },
+  "pipeline_plan": {
+    "kind": "PipelineCompositionPlan",
+    "payload": {
+      "requirement": "我想要一个可以给我找出游戏主播的高光时刻的完整项目，首先要做用户分析、市场调研、技术路径选择和UX设计，然后再生成项目。项目要有清晰不混乱的GUI，可以导入直播事件数据，自动评分和排序，筛选主播、游戏、分类和分数，添加人工标记，导出剪辑清单，提供样例数据、模块化源码、测试脚本、架构说明，并输出测试效果报告\n客服澄清信息：\n- data_storage: 默认使用浏览器本地存储，后续可升级为文件或数据库。\n生成要求：输出真实项目文件、项目蓝图、生成过程、测试图、效果报告和 runtime_result。",
+      "selected_modules": [
+        "module.customer.service@1",
+        "module.feature.library_search@1",
+        "module.local.librarian@1",
+        "module.project.generator@1",
+        "module.local.runtime_executor@1",
+        "module.local.pipeline_composer_agent@1",
+        "module.local_agent.plan@1",
+        "module.test_graph.emit@1",
+        "module.effect_report.emit@1",
+        "module.unified_control@1",
+        "module.external.api_gateway@1"
+      ],
+      "edges": [
+        {
+          "from": {
+            "flow_input": "goal"
+          },
+          "to": {
+            "node": "n_customer_service",
+            "port": "goal"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_effect_report_emit",
+            "port": "effect_report"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "flow_output": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          },
+          "to": {
+            "flow_output": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          },
+          "to": {
+            "flow_output": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          },
+          "to": {
+            "flow_output": "effect_report"
+          }
+        }
+      ],
+      "outputs": [
+        "project_blueprint",
+        "generation_trace",
+        "test_graph",
+        "effect_report"
+      ],
+      "gaps": [],
+      "executor": {
+        "flow": "flow.local_pipeline_execution@1",
+        "command": "python scripts/run_local_pipeline.py --plan examples/test_results/local_pipeline_composition_result.json",
+        "provider_route": "Hardcoded: final project generation and repair use module.external.api_gateway@1. Ollama is limited to local librarian and route manager."
+      },
+      "control": "route through module.unified_control@1 when executing a generated project pipeline"
+    }
+  }
+}

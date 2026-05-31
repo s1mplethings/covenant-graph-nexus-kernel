@@ -1,0 +1,30 @@
+{
+  "video": {
+    "fileName": "synthetic-gameplay-fixture.webm",
+    "mimeType": "video/webm",
+    "durationMs": 240000,
+    "sizeBytes": 104857600,
+    "frameSampleRateFps": 0.5
+  },
+  "source_manifest": [
+    {"source_id": "video-1", "source_type": "gameplay_video", "origin": "synthetic video fixture"},
+    {"source_id": "frame-1", "source_type": "derived_frame_samples", "origin": "local analyzer"},
+    {"source_id": "audio-1", "source_type": "derived_audio_peaks", "origin": "local analyzer"},
+    {"source_id": "signal-1", "source_type": "derived_signal_windows", "origin": "local analyzer"},
+    {"source_id": "export-1", "source_type": "derived_cut_list", "origin": "local analyzer"}
+  ],
+  "records": [
+    {"timestampMs": 0, "kind": "derived_signal_probe"}, {"timestampMs": 10000, "kind": "derived_signal_probe"},
+    {"timestampMs": 20000, "kind": "derived_signal_probe"}, {"timestampMs": 30000, "kind": "derived_signal_probe"},
+    {"timestampMs": 40000, "kind": "derived_signal_probe"}, {"timestampMs": 50000, "kind": "derived_signal_probe"},
+    {"timestampMs": 60000, "kind": "derived_signal_probe"}, {"timestampMs": 70000, "kind": "derived_signal_probe"},
+    {"timestampMs": 80000, "kind": "derived_signal_probe"}, {"timestampMs": 90000, "kind": "derived_signal_probe"},
+    {"timestampMs": 100000, "kind": "derived_signal_probe"}, {"timestampMs": 110000, "kind": "derived_signal_probe"},
+    {"timestampMs": 120000, "kind": "derived_signal_probe"}, {"timestampMs": 130000, "kind": "derived_signal_probe"},
+    {"timestampMs": 140000, "kind": "derived_signal_probe"}, {"timestampMs": 150000, "kind": "derived_signal_probe"},
+    {"timestampMs": 160000, "kind": "derived_signal_probe"}, {"timestampMs": 170000, "kind": "derived_signal_probe"},
+    {"timestampMs": 180000, "kind": "derived_signal_probe"}, {"timestampMs": 190000, "kind": "derived_signal_probe"},
+    {"timestampMs": 200000, "kind": "derived_signal_probe"}, {"timestampMs": 210000, "kind": "derived_signal_probe"},
+    {"timestampMs": 220000, "kind": "derived_signal_probe"}, {"timestampMs": 230000, "kind": "derived_signal_probe"}
+  ]
+}

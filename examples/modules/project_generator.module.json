@@ -1,0 +1,60 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.project.generator",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.customer_request@1",
+        "required": true
+      },
+      "candidates": {
+        "artifact_type": "artifact.feature_library_candidates@1",
+        "required": true
+      },
+      "agent_plan": {
+        "artifact_type": "artifact.local_agent_plan@1",
+        "required": true
+      },
+      "adversarial_review": {
+        "artifact_type": "artifact.adversarial_review@1",
+        "required": true
+      }
+    },
+    "output": {
+      "project_blueprint": {
+        "artifact_type": "artifact.project_blueprint@1",
+        "description": "Generated project blueprint."
+      },
+      "generation_trace": {
+        "artifact_type": "artifact.generation_trace@1",
+        "description": "Step-by-step generation trace."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.write",
+        "scope": ["generated/**"]
+      }
+    ],
+    "context": ["run_id", "generation_root", "trace_sink"]
+  },
+  "effects": {
+    "fs_read": [],
+    "fs_write": ["generated/**"],
+    "network": false,
+    "provider_call": false,
+    "risk": 2
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Project generator module that emits the product blueprint and generation process without owning validation outputs."
+  }
+}

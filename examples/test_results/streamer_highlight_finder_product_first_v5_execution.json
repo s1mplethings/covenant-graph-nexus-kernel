@@ -1,0 +1,38 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_product_first_v5",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_product_first_v5",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\generation_trace.json",
+      "subpipeline_plan": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\subpipeline_plan.json",
+      "subpipeline_results": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\subpipeline_results.json",
+      "self_test_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\self_test_report.json",
+      "quality_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\quality_report.json",
+      "adversarial_review": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\adversarial_review.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_product_first_v5\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkRmcbcoUUbcwLBSnHPGj0U4xzYBU,chatcmpl-DkRmszz0IF86ll4z0z5UsN03wtqKi,chatcmpl-DkRnVRk6OnsVji8HK59EDRgoIECBc,chatcmpl-DkRo3EGTURzomywwb6JiBp014R9Jw,chatcmpl-DkRoF5j1GdTy6u38l5MMe0iCvi5x0,chatcmpl-DkRoMlMtmsOUq51mbqs6j3SnIW8kG,chatcmpl-DkRoUU5hMrz0UaIr4sxFWBDUIV2WS,chatcmpl-DkRogKBVtykMT5kXvx3bWBQBO2MH5,chatcmpl-DkRotHcC2dPC9gjM4mSqTRWqvxEES,chatcmpl-DkRoxMgr8N335fAmnVqshYvqFqVvk,chatcmpl-DkRp6UdTG5RyNyZS47d1o5lQv9pqr,chatcmpl-DkRpAUyKEnEzBSVL6EySeeLkpHwO9,chatcmpl-DkRpL59z4KlCUcVu9pCYglW3ZcJjq,chatcmpl-DkRpbrVrQN6kGYEq83EMvzGF6R4zH,chatcmpl-DkRpsYvNwKb7QO7MIrqXlGdHvhCkT,chatcmpl-DkRq0qkJw17cnvXQcwQHM6Sj22pgH,chatcmpl-DkRq9UEcoZ2YSTXFxwDCoU5ac1Pz2,chatcmpl-DkS1nzXVfiYsVod9nqIMgiFV0gUtA,chatcmpl-DkS2Iu95cMZ0W0obkma8eo3i6x1ex,chatcmpl-DkRrHbYhASoeSm5YgAvyThMGemXrP",
+        "mode": "provider_architecture_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

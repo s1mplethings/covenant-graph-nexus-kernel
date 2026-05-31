@@ -1,0 +1,90 @@
+[
+  {
+    "streamer": "GamerX",
+    "game": "Fortnite",
+    "category": "Battle Royale",
+    "timestamp": "2023-10-01T14:23:45Z",
+    "title": "Epic Victory Royale",
+    "description": "Secured a clutch win with a 1v4 situation in the final circle.",
+    "intensity": 95,
+    "chatRate": 120,
+    "keywords": ["victory", "clutch", "final circle", "1v4"]
+  },
+  {
+    "streamer": "ProGamer123",
+    "game": "League of Legends",
+    "category": "MOBA",
+    "timestamp": "2023-10-01T16:45:12Z",
+    "title": "Pentakill Madness",
+    "description": "Achieved a pentakill during a critical team fight.",
+    "intensity": 98,
+    "chatRate": 150,
+    "keywords": ["pentakill", "team fight", "critical moment"]
+  },
+  {
+    "streamer": "SpeedyRacer",
+    "game": "Mario Kart 8",
+    "category": "Racing",
+    "timestamp": "2023-10-01T18:12:30Z",
+    "title": "Blue Shell Dodge",
+    "description": "Dodged a blue shell and secured first place in the final lap.",
+    "intensity": 90,
+    "chatRate": 85,
+    "keywords": ["blue shell", "final lap", "first place"]
+  },
+  {
+    "streamer": "FPSKing",
+    "game": "Call of Duty: Warzone",
+    "category": "FPS",
+    "timestamp": "2023-10-01T20:05:50Z",
+    "title": "Sniper Ace",
+    "description": "Eliminated an entire squad with precise sniper shots.",
+    "intensity": 92,
+    "chatRate": 110,
+    "keywords": ["sniper", "squad wipe", "precision"]
+  },
+  {
+    "streamer": "RPGQueen",
+    "game": "Elden Ring",
+    "category": "RPG",
+    "timestamp": "2023-10-01T22:30:15Z",
+    "title": "Boss Defeated: Malenia",
+    "description": "Finally defeated Malenia after a grueling 50-minute battle.",
+    "intensity": 97,
+    "chatRate": 140,
+    "keywords": ["boss fight", "Malenia", "victory"]
+  },
+  {
+    "streamer": "BuilderBob",
+    "game": "Minecraft",
+    "category": "Sandbox",
+    "timestamp": "2023-10-02T01:15:00Z",
+    "title": "Massive Build Complete",
+    "description": "Completed a massive castle build after 10 hours of work.",
+    "intensity": 85,
+    "chatRate": 60,
+    "keywords": ["castle", "build", "Minecraft"]
+  },
+  {
+    "streamer": "ArcadeMaster",
+    "game": "Street Fighter V",
+    "category": "Fighting",
+    "timestamp": "2023-10-02T03:45:20Z",
+    "title": "Perfect KO",
+    "description": "Achieved a perfect KO in the final round of a tournament match.",
+    "intensity": 93,
+    "chatRate": 100,
+    "keywords": ["perfect KO", "tournament", "final round"]
+  },
+  {
+    "streamer": "StrategyGuru",
+    "game": "Civilization VI",
+    "category": "Strategy",
+    "timestamp": "2023-10-02T06:10:05Z",
+    "title": "Cultural Victory Achieved",
+    "description": "Secured a cultural victory after a tense standoff with rival nations.",
+    "intensity": 88,
+    "chatRate": 70,
+    "keywords": ["cultural victory", "strategy", "rival nations"]
+  }
+]

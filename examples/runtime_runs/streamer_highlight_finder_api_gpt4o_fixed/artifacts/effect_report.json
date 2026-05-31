@@ -1,0 +1,54 @@
+{
+  "kind": "EffectReport",
+  "payload": {
+    "verdict": "pass",
+    "summary": "Local pipeline execution materialized the generated project and runtime artifacts.",
+    "fs_write": [
+      "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_fixed",
+      "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_fixed"
+    ],
+    "network": "hardcoded on for provider project generation",
+    "provider": "hardcoded on for final project logic",
+    "external": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkM4pWVgUMwmrk4jOGJ0z9S54gCny,chatcmpl-DkM52RJXzjOPe8IGF4pRwLsQH15HF,chatcmpl-DkM59GdaKBNSfG8ghbzGjQui1dU4c,chatcmpl-DkM5HSscLLmBQJz9Py3CTxDFyjvMF",
+        "mode": "provider_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    },
+    "local_model": {
+      "provider": "ollama",
+      "model": "qwen2.5:7b-instruct",
+      "selection_source": "ollama",
+      "local_model_scope": [
+        "local_librarian",
+        "route_manager"
+      ],
+      "provider_scope": [
+        "project_generation",
+        "project_repair",
+        "final_project_logic"
+      ],
+      "notes": "",
+      "risks": []
+    },
+    "provider_generation": {
+      "provider": "api",
+      "model": "gpt-4o",
+      "base_url": "https://api.gptsapi.net",
+      "request_id": "chatcmpl-DkM4pWVgUMwmrk4jOGJ0z9S54gCny,chatcmpl-DkM52RJXzjOPe8IGF4pRwLsQH15HF,chatcmpl-DkM59GdaKBNSfG8ghbzGjQui1dU4c,chatcmpl-DkM5HSscLLmBQJz9Py3CTxDFyjvMF",
+      "mode": "provider_filewise_project_generation"
+    }
+  }
+}

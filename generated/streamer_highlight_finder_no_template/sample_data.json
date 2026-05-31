@@ -1,0 +1,32 @@
+[
+  {
+    "streamer": "NovaCarry",
+    "game": "Apex Legends",
+    "time": "00:03:42",
+    "title": "Final ring 1v3 clutch",
+    "category": "clutch",
+    "intensity": 94,
+    "chatRate": 182,
+    "keywords": [
+      "clutch",
+      "win",
+      "1v3"
+    ],
+    "description": "Solo cleanup after a shield swap."
+  },
+  {
+    "streamer": "MapleMage",
+    "game": "League of Legends",
+    "time": "00:18:09",
+    "title": "Baron steal into ace",
+    "category": "objective",
+    "intensity": 88,
+    "chatRate": 150,
+    "keywords": [
+      "steal",
+      "ace",
+      "comeback"
+    ],
+    "description": "Objective steal turns into a teamfight win."
+  }
+]

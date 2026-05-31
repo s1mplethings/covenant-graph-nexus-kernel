@@ -1,0 +1,66 @@
+{
+  "kind": "FlowSpec",
+  "id": "flow.local_pipeline_execution",
+  "version": "1",
+  "policy_ref": "policy.safe_local_pipeline_execution@1",
+  "inputs": {
+    "pipeline_plan": "artifact.pipeline_composition_plan@1"
+  },
+  "outputs": {
+    "project_blueprint": "artifact.project_blueprint@1",
+    "generation_trace": "artifact.generation_trace@1",
+    "test_graph": "artifact.test_graph@1",
+    "effect_report": "artifact.effect_report@1",
+    "runtime_result": "artifact.runtime_execution_result@1"
+  },
+  "nodes": [
+    {
+      "id": "n_runtime_executor",
+      "uses": "module.local.runtime_executor@1",
+      "config": {
+        "line": "local_runtime_execution",
+        "default_external_mode": "disabled"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": {"flow_input": "pipeline_plan"},
+      "to": {"node": "n_runtime_executor", "port": "pipeline_plan"}
+    },
+    {
+      "from": {"node": "n_runtime_executor", "port": "project_blueprint"},
+      "to": {"flow_output": "project_blueprint"}
+    },
+    {
+      "from": {"node": "n_runtime_executor", "port": "generation_trace"},
+      "to": {"flow_output": "generation_trace"}
+    },
+    {
+      "from": {"node": "n_runtime_executor", "port": "test_graph"},
+      "to": {"flow_output": "test_graph"}
+    },
+    {
+      "from": {"node": "n_runtime_executor", "port": "effect_report"},
+      "to": {"flow_output": "effect_report"}
+    },
+    {
+      "from": {"node": "n_runtime_executor", "port": "runtime_result"},
+      "to": {"flow_output": "runtime_result"}
+    }
+  ],
+  "gates": [
+    {
+      "id": "g_runtime_execution_completed",
+      "require": {
+        "all": [
+          {"node_passed": "n_runtime_executor"}
+        ]
+      },
+      "on_fail": "block"
+    }
+  ],
+  "metadata": {
+    "scope": "Execute a composed local pipeline into project files and runtime artifacts without implicit network or provider calls."
+  }
+}

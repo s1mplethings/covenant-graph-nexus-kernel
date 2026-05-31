@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/common_defs.schema.json",
+  "title": "CovenantGraph Nexus Kernel Common Definitions",
+  "$defs": {
+    "artifact_ref": {
+      "type": "string",
+      "pattern": "^artifact\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "module_ref": {
+      "type": "string",
+      "pattern": "^module\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "flow_ref": {
+      "type": "string",
+      "pattern": "^flow\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "policy_ref": {
+      "type": "string",
+      "pattern": "^policy\\.[a-z0-9_.-]+@[A-Za-z0-9_.-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "port_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "SourceEndpoint": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": [
+            "flow_input"
+          ]
+        },
+        {
+          "required": [
+            "node",
+            "port"
+          ]
+        }
+      ],
+      "properties": {
+        "flow_input": {
+          "type": "string"
+        },
+        "node": {
+          "$ref": "#/$defs/node_id"
+        },
+        "port": {
+          "$ref": "#/$defs/port_id"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TargetEndpoint": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": [
+            "flow_output"
+          ]
+        },
+        {
+          "required": [
+            "node",
+            "port"
+          ]
+        }
+      ],
+      "properties": {
+        "flow_output": {
+          "type": "string"
+        },
+        "node": {
+          "$ref": "#/$defs/node_id"
+        },
+        "port": {
+          "$ref": "#/$defs/port_id"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FlowNode": {
+      "type": "object",
+      "required": [
+        "id",
+        "uses"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/node_id"
+        },
+        "uses": {
+          "$ref": "#/$defs/module_ref"
+        },
+        "config": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

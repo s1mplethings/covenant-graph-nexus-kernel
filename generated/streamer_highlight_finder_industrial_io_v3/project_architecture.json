@@ -1,0 +1,262 @@
+{
+  "product_context": {
+    "name": "Game Stream Highlight Analyzer",
+    "description": "A modular web-based tool for identifying, scoring, and exporting high-impact moments from game streams using multi-source data.",
+    "target_users": [
+      "Game Streamers",
+      "Content Editors",
+      "Platform Operators"
+    ],
+    "key_features": [
+      "Drag-and-drop interface for importing industrial input bundles.",
+      "Interactive timeline for visualizing and selecting highlights.",
+      "Real-time scoring and filtering based on user-defined criteria.",
+      "Collaboration tools for sharing and reviewing highlight selections."
+    ]
+  },
+  "screens": [
+    "data_import_screen",
+    "highlight_visualization_screen",
+    "filter_and_sort_screen",
+    "manual_annotation_screen",
+    "export_screen"
+  ],
+  "modules": [
+    {
+      "path": "src/core/importer.js",
+      "responsibility": "Handle the import and preprocessing of industrial input bundles.",
+      "exports": [
+        "parseRecordsFromText",
+        "normalizeRecord",
+        "importData"
+      ],
+      "imports": []
+    },
+    {
+      "path": "src/core/scoring.js",
+      "responsibility": "Score and rank moments based on multi-source data.",
+      "exports": [
+        "scoreRecord",
+        "sortRecords"
+      ],
+      "imports": [
+        "parseRecordsFromText"
+      ]
+    },
+    {
+      "path": "src/core/filtering.js",
+      "responsibility": "Filter and sort highlights based on user-defined criteria.",
+      "exports": [
+        "applyFilters"
+      ],
+      "imports": [
+        "scoreRecord"
+      ]
+    },
+    {
+      "path": "src/core/exporter.js",
+      "responsibility": "Export filtered highlights as downloadable files.",
+      "exports": [
+        "downloadJson",
+        "exportData"
+      ],
+      "imports": [
+        "applyFilters"
+      ]
+    },
+    {
+      "path": "src/state/store.js",
+      "responsibility": "Persist working data locally and reload it on page load.",
+      "exports": [
+        "loadRecords",
+        "saveRecords",
+        "clearRecords",
+        "loadFromLocalStorage",
+        "saveToLocalStorage"
+      ],
+      "imports": []
+    },
+    {
+      "path": "src/ui/render.js",
+      "responsibility": "Render records and summaries to the user interface.",
+      "exports": [
+        "renderRecords",
+        "renderSummary",
+        "renderError"
+      ],
+      "imports": [
+        "loadRecords"
+      ]
+    },
+    {
+      "path": "src/ui/forms.js",
+      "responsibility": "Handle user input from forms and bind DOM events.",
+      "exports": [
+        "readFilters",
+        "readManualMarker",
+        "bindDom",
+        "setupForms"
+      ],
+      "imports": [
+        "renderRecords"
+      ]
+    },
+    {
+      "path": "src/app.js",
+      "responsibility": "Integrate all modules and manage application logic.",
+      "exports": [],
+      "imports": [
+        "parseRecordsFromText",
+        "scoreRecord",
+        "applyFilters",
+        "downloadJson",
+        "loadRecords",
+        "renderRecords",
+        "readFilters",
+        "readManualMarker"
+      ]
+    }
+  ],
+  "data_contract": {
+    "record_fields": [
+      "streamer",
+      "game",
+      "timestamp",
+      "time",
+      "category",
+      "intensity",
+      "chatRate",
+      "keywords",
+      "title",
+      "description",
+      "score"
+    ],
+    "sample_shape": {
+      "streamer": "string",
+      "game": "string",
+      "timestamp": "ISO8601 string",
+      "time": "integer (seconds)",
+      "category": "string",
+      "intensity": "integer (0-100)",
+      "chatRate": "integer",
+      "keywords": "array of strings",
+      "title": "string",
+      "description": "string",
+      "score": "float (0-1)"
+    }
+  },
+  "industrial_io_contract": {
+    "input_bundle_path": "data/industrial_input_bundle.json",
+    "expected_outputs_path": "data/expected_outputs.json",
+    "documentation_path": "docs/INPUT_OUTPUT_SPEC.md",
+    "test_path": "tests/industrial_io_smoke_test.js",
+    "source_manifest_fields": [
+      "source_id",
+      "source_type",
+      "origin",
+      "trust_level",
+      "license_or_access",
+      "fields_provided"
+    ],
+    "record_fields": [
+      "sourceId",
+      "streamer",
+      "game",
+      "category",
+      "timestamp",
+      "time",
+      "title",
+      "description",
+      "intensity",
+      "chatRate",
+      "keywords",
+      "viewerSpike",
+      "clipSignal"
+    ],
+    "minimum_record_count": 20,
+    "output_contract": [
+      "ranked_highlights",
+      "export_cut_list",
+      "quality_checks",
+      "input_summary"
+    ]
+  },
+  "ux_contract": {
+    "required_classes": [
+      "app-shell",
+      "app-header",
+      "workspace-grid",
+      "intake-panel",
+      "filters-panel",
+      "results-panel",
+      "manual-panel",
+      "status-strip",
+      "action-bar"
+    ],
+    "result_card_classes": [
+      "highlight-card",
+      "highlight-title",
+      "score-badge",
+      "metadata-row",
+      "metadata-streamer",
+      "metadata-game",
+      "metadata-time",
+      "metadata-category",
+      "highlight-description"
+    ],
+    "visible_result_fields": [
+      "title",
+      "streamer",
+      "game",
+      "timestamp",
+      "category",
+      "score",
+      "description"
+    ],
+    "design_goal": "A clear product workbench for stream/video operators, not a raw form dump. Prioritize scanability, obvious ownership of each control, and progressive complexity."
+  },
+  "technical_path": {
+    "data_sources": [
+      "Platform event logs",
+      "Chat analysis",
+      "Video metadata",
+      "Manual annotations",
+      "Operational review"
+    ],
+    "core_technologies": [
+      "Natural Language Processing (NLP)",
+      "Computer Vision",
+      "Machine Learning",
+      "Web Technologies"
+    ],
+    "architecture": "Modular"
+  },
+  "test_strategy": [
+    {
+      "type": "unit_tests",
+      "description": "Test individual modules for correctness (e.g., data ingestion, scoring engine)."
+    },
+    {
+      "type": "integration_tests",
+      "description": "Ensure seamless interaction between modules (e.g., scoring engine and filtering module)."
+    },
+    {
+      "type": "user_tests",
+      "description": "Gather feedback from streamers and editors on usability and accuracy."
+    },
+    {
+      "type": "performance_tests",
+      "description": "Test the tool's ability to handle large datasets without significant lag."
+    }
+  ],
+  "acceptance_criteria": [
+    "The project must run locally from index.html using `python -m http.server`.",
+    "Provide a real JSON import path using FileReader and/or a textarea; imported data must be processed by the app.",
+    "Implement a real scoring function and sort detected items by score descending in executable JavaScript.",
+    "Provide visible filter controls and executable filter logic for the requested fields.",
+    "Provide a manual marker form/control that appends a new item to the working dataset and rerenders results.",
+    "Provide a real export action using Blob, URL.createObjectURL, an anchor download, and the current filtered result set.",
+    "Persist working data locally with localStorage and reload it on page load.",
+    "Use domain fields such as streamer, game, timestamp/time, category, intensity, chatRate, keywords, title, description, and score."
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "kind": "TestGraph",
+  "payload": {
+    "nodes": [
+      "goal",
+      "request",
+      "pipeline_plan",
+      "project_files",
+      "test_graph",
+      "effect_report"
+    ],
+    "edges": [
+      [
+        "goal",
+        "request"
+      ],
+      [
+        "request",
+        "pipeline_plan"
+      ],
+      [
+        "pipeline_plan",
+        "project_files"
+      ],
+      [
+        "project_files",
+        "test_graph"
+      ],
+      [
+        "test_graph",
+        "effect_report"
+      ]
+    ],
+    "manual_checks": [
+      "Open index.html",
+      "Load sample data",
+      "Verify scoring and descending sort",
+      "Filter records",
+      "Add manual marker",
+      "Export JSON"
+    ]
+  }
+}

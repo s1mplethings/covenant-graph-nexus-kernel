@@ -1,0 +1,24 @@
+{
+  "kind": "PolicySpec",
+  "id": "policy.safe_local_pipeline_execution",
+  "version": "1",
+  "fs": {
+    "allowed_read": ["examples/**", "schemas/**"],
+    "allowed_write": ["generated/**", "examples/runtime_runs/**", "examples/test_results/**"],
+    "denied_write": [".git/**", ".env", "secrets/**", "*.pem", "*.key"]
+  },
+  "network": {
+    "allowed": false
+  },
+  "provider": {
+    "allowed": false
+  },
+  "risk": {
+    "max_risk": 1
+  },
+  "agent_permissions": {
+    "allowed_edits": [],
+    "denied_edits": ["write_secret", "weaken_policy", "implicit_network", "implicit_provider"],
+    "requires_human_review": ["send_customer_message", "send_file", "enable_network", "enable_provider"]
+  }
+}

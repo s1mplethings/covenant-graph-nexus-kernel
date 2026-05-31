@@ -1,0 +1,33 @@
+{
+  "kind": "RuntimeExecutionResult",
+  "payload": {
+    "run_id": "streamer_highlight_finder_api_gpt4o_modular_v5",
+    "status": "pass",
+    "project_dir": "D:\\CGKN\\generated\\streamer_highlight_finder_api_gpt4o_modular_v5",
+    "artifacts_dir": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_modular_v5\\artifacts",
+    "outputs": {
+      "project_blueprint": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_modular_v5\\artifacts\\project_blueprint.json",
+      "generation_trace": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_modular_v5\\artifacts\\generation_trace.json",
+      "test_graph": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_modular_v5\\artifacts\\test_graph.json",
+      "effect_report": "D:\\CGKN\\examples\\runtime_runs\\streamer_highlight_finder_api_gpt4o_modular_v5\\artifacts\\effect_report.json"
+    },
+    "external_approvals": {
+      "network_allowed": true,
+      "provider_allowed": true,
+      "api": {
+        "requested": true,
+        "executed": true,
+        "purpose": "project_generation",
+        "provider": "api",
+        "model": "gpt-4o",
+        "base_url": "https://api.gptsapi.net",
+        "request_id": "chatcmpl-DkQcbn36O2cAFeruom81DgyqA72rt,chatcmpl-DkQcmVFlplPbM24n3V2oYLsqYhq4j,chatcmpl-DkQcz2AlvOhzK7YMjoKjys1clQWRK,chatcmpl-DkQd6vQlOVMmRIVe4M9KaWjEuFSxs,chatcmpl-DkQdDvLehyihSAPyqZM0zORYeRV48,chatcmpl-DkQdHv2FsD2DbPUAAJwQDkDzgeJOO,chatcmpl-DkQdQDR5taGTWn0qeMNsHf2QGnfAs,chatcmpl-DkQdT0hFwtuexNjNmv6AKs7FUMqQE,chatcmpl-DkQdXdy0hfJgOIre7rrre7mFi9eqg,chatcmpl-DkQdg44w8umJIy31lIdjucBVaeFr0,chatcmpl-DkQdqwgGr2X6JlymUUimDM5fqbJiT,chatcmpl-DkQe2OPqaZd12RHVB1VLDLaJUXHQU,chatcmpl-DkQeEhRsXK9i4e08PdRi0clgTnuRy,chatcmpl-DkQeeJ8ly3X9qyunXBaaZ8P2jf5v2,chatcmpl-DkQf1zKWCSaPkcf8HFMu5DgBhexTi,chatcmpl-DkQfUzeHSxNgAUPdlrrs0t3RsKrxN",
+        "mode": "provider_architecture_filewise_project_generation"
+      },
+      "telegram": {
+        "requested": false,
+        "executed": false
+      }
+    }
+  }
+}

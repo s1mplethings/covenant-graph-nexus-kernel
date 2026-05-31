@@ -1,0 +1,35 @@
+{
+  "kind": "PolicySpec",
+  "id": "policy.safe_connectivity_probe",
+  "version": "1",
+  "fs": {
+    "allowed_read": [
+      "examples/test_results/**",
+      "schemas/**"
+    ],
+    "allowed_write": [
+      "examples/test_results/**"
+    ],
+    "denied_write": [
+      ".git/**",
+      ".env",
+      "secrets/**",
+      "*.pem",
+      "*.key"
+    ]
+  },
+  "network": {
+    "allowed": true
+  },
+  "provider": {
+    "allowed": true
+  },
+  "risk": {
+    "max_risk": 2
+  },
+  "agent_permissions": {
+    "allowed_edits": [],
+    "denied_edits": ["write_secret", "persist_token", "weaken_policy"],
+    "requires_human_review": ["send_customer_message", "send_file"]
+  }
+}
