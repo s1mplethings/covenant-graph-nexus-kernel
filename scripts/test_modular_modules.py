@@ -43,7 +43,7 @@ def _artifact(kind: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    goal_text = inputs.get("goal", {}).get("payload", {}).get("text", "生成一个本地任务看板项目")
+    goal_text = inputs.get("goal", {}).get("payload", {}).get("text", "生成一个通用 CGNK 项目")
     request = inputs.get("request", {}).get("payload", {})
     candidates = inputs.get("candidates", {}).get("payload", {})
     agent_plan = inputs.get("agent_plan", {}).get("payload", {})
@@ -66,7 +66,7 @@ def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, d
         return {
             "requirement_blueprint": requirement_blueprint.build_requirement_blueprint(
                 goal_text,
-                assume_defaults=True,
+                assume_defaults=False,
             )
         }
     if module_ref == "module.local.librarian@1":
@@ -134,8 +134,8 @@ def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, d
             "project_blueprint": _artifact(
                 "ProjectBlueprint",
                 {
-                    "name": "local_task_board",
-                    "features": ["tickets", "kanban-board", "local-storage", "test-report"],
+                    "name": "cgnk_generated_project",
+                    "features": ["requirement-blueprint", "project-blueprint", "generation-trace", "test-graph", "effect-report"],
                     "libraries": candidates.get("ranked", []),
                 },
             ),
@@ -204,7 +204,7 @@ def run() -> dict[str, Any]:
         for path in sorted((ROOT / "examples" / "modules").glob("*.module.json"))
     }
     values: dict[tuple[str, str], dict[str, Any]] = {
-        ("flow_input", "goal"): _artifact("Goal", {"text": "生成一个本地任务看板项目"})
+        ("flow_input", "goal"): _artifact("Goal", {"text": "生成一个通用 CGNK 项目"})
     }
     module_rows: list[dict[str, Any]] = []
     for node in flow["nodes"]:

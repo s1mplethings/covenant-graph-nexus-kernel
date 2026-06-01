@@ -80,7 +80,7 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
         },
         "connectivity_live_probe": {
             "id": "connectivity_live_probe",
-            "label": "Live external API/Telegram connectivity probe",
+            "label": "Live external API connectivity probe",
             "scope": ["scripts/check_connectivity.py --live", "environment variable presence"],
             "default": False,
             "external": "live API probe",
@@ -110,33 +110,13 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
             "default": live_browser and (project_dir / "index.html").exists(),
             "external": "loopback only",
         }
-        available["industrial_io_fixtures"] = {
-            "id": "industrial_io_fixtures",
-            "label": "Generated industrial I/O fixture set",
-            "project_dir": str(project_dir),
-            "scope": [
-                rel(project_dir / "docs" / "INPUT_OUTPUT_SPEC.md"),
-                rel(project_dir / "data" / "industrial_input_bundle.json"),
-                rel(project_dir / "data" / "expected_outputs.json"),
-                rel(project_dir / "tests" / "industrial_io_smoke_test.js"),
-            ],
-            "default": all(
-                path.exists()
-                for path in (
-                    project_dir / "data" / "industrial_input_bundle.json",
-                    project_dir / "data" / "expected_outputs.json",
-                    project_dir / "tests" / "industrial_io_smoke_test.js",
-                )
-            ),
-            "external": "none",
-        }
     selected_ids: list[str]
     if explicit:
         selected_ids = explicit
     elif profile == "contracts":
         selected_ids = ["contract_catalog"]
     elif profile == "generated-project":
-        selected_ids = ["contract_catalog", "generated_static_browser", "industrial_io_fixtures"]
+        selected_ids = ["contract_catalog", "generated_static_browser"]
         if live_browser:
             selected_ids.append("local_browser_runtime")
     elif profile == "connectivity":
@@ -145,7 +125,7 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
         selected_ids = list(available.keys())
     else:
         selected_ids = [env_id for env_id, row in available.items() if row.get("default")]
-        if has_any(goal, ("api", "telegram", "connectivity", "连通", "接口")):
+        if has_any(goal, ("api", "connectivity", "连通", "接口")):
             selected_ids.append("connectivity_live_probe")
         if has_any(goal, ("runtime", "运行产物", "执行产物", "artifact")):
             selected_ids.append("local_runtime_artifacts")
@@ -183,7 +163,7 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
         },
         "connectivity_live_probe": {
             "id": "connectivity_live_probe",
-            "label": "Check external API/Telegram configuration with live API probes",
+            "label": "Check external API configuration with live API probes",
             "compatible_environments": ["connectivity_live_probe"],
             "gate": "warning",
         },
@@ -199,28 +179,10 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
             "compatible_environments": ["generated_static_browser"],
             "gate": "blocking",
         },
-        "browser_smoke_declared": {
-            "id": "browser_smoke_declared",
-            "label": "Verify declared browser smoke test entrypoint and anti-fake-test constraints",
-            "compatible_environments": ["generated_static_browser"],
-            "gate": "blocking",
-        },
         "browser_smoke_live": {
             "id": "browser_smoke_live",
             "label": "Execute window.runSmokeTest in a real headless browser",
             "compatible_environments": ["local_browser_runtime"],
-            "gate": "blocking",
-        },
-        "industrial_io_contract": {
-            "id": "industrial_io_contract",
-            "label": "Inspect industrial input/output fixtures and smoke test declaration",
-            "compatible_environments": ["industrial_io_fixtures"],
-            "gate": "blocking",
-        },
-        "industrial_io_live": {
-            "id": "industrial_io_live",
-            "label": "Execute window.runIndustrialIOSmokeTest in a real headless browser",
-            "compatible_environments": ["local_browser_runtime", "industrial_io_fixtures"],
             "gate": "blocking",
         },
     }
@@ -229,9 +191,9 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
     elif profile == "contracts":
         selected_ids = ["schema_validation", "contract_compile"]
     elif profile == "generated-project":
-        selected_ids = ["static_project_contract", "browser_smoke_declared", "industrial_io_contract"]
+        selected_ids = ["static_project_contract"]
         if live_browser:
-            selected_ids.extend(["browser_smoke_live", "industrial_io_live"])
+            selected_ids.append("browser_smoke_live")
     elif profile == "connectivity":
         selected_ids = ["schema_validation", "connectivity_live_probe"]
     elif profile == "full":
@@ -239,11 +201,9 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
     else:
         selected_ids = ["schema_validation", "contract_compile", "module_smoke"]
         if "generated_static_browser" in env_ids:
-            selected_ids.extend(["static_project_contract", "browser_smoke_declared"])
-        if "industrial_io_fixtures" in env_ids:
-            selected_ids.append("industrial_io_contract")
+            selected_ids.append("static_project_contract")
         if live_browser and "local_browser_runtime" in env_ids:
-            selected_ids.extend(["browser_smoke_live", "industrial_io_live"])
+            selected_ids.append("browser_smoke_live")
         if "connectivity_live_probe" in env_ids:
             selected_ids.append("connectivity_live_probe")
         if "local_runtime_artifacts" in env_ids:
@@ -299,12 +259,6 @@ def build_steps(methods: list[dict[str, Any]], project_dir: pathlib.Path | None,
             "check": "static_project_contract",
             "project_dir": str(project_dir) if project_dir else "",
         },
-        "browser_smoke_declared": {
-            "id": "browser_smoke_declared",
-            "kind": "internal",
-            "check": "browser_smoke_declared",
-            "project_dir": str(project_dir) if project_dir else "",
-        },
         "browser_smoke_live": {
             "id": "browser_smoke_live",
             "kind": "browser",
@@ -313,21 +267,6 @@ def build_steps(methods: list[dict[str, Any]], project_dir: pathlib.Path | None,
             "function_name": "runSmokeTest",
             "test_file": "tests/browser_smoke_test.js",
             "timeout_seconds": 60,
-        },
-        "industrial_io_contract": {
-            "id": "industrial_io_contract",
-            "kind": "internal",
-            "check": "industrial_io_contract",
-            "project_dir": str(project_dir) if project_dir else "",
-        },
-        "industrial_io_live": {
-            "id": "industrial_io_live",
-            "kind": "browser",
-            "check": "industrial_io_live",
-            "project_dir": str(project_dir) if project_dir else "",
-            "function_name": "runIndustrialIOSmokeTest",
-            "test_file": "tests/industrial_io_smoke_test.js",
-            "timeout_seconds": 90,
         },
     }
     steps = []

@@ -17,3 +17,7 @@ build/
 Thumbs.db
 *.log
 *.tmp
+
+generated/
+examples/runtime_runs/
+examples/test_results/

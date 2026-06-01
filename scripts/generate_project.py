@@ -5,8 +5,6 @@ import argparse
 import json
 import pathlib
 import re
-import subprocess
-import sys
 from datetime import datetime, timezone
 from typing import Any
 
@@ -33,63 +31,6 @@ def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def detect_missing(requirement: str) -> list[dict[str, str]]:
-    text = str(requirement or "").strip().lower()
-    checks = [
-        (
-            "target_user",
-            "这个项目主要给谁用？",
-            ("用户", "客户", "客服", "管理员", "团队", "员工", "商家", "学生", "user", "customer", "admin", "team"),
-        ),
-        (
-            "core_features",
-            "必须包含哪些核心功能？",
-            ("新增", "编辑", "删除", "搜索", "统计", "看板", "登录", "导出", "通知", "create", "edit", "delete", "search"),
-        ),
-        (
-            "data_storage",
-            "数据要本地保存、文件保存，还是接数据库？",
-            ("本地", "local", "sqlite", "数据库", "db", "文件", "storage", "保存"),
-        ),
-        (
-            "acceptance",
-            "你希望我用什么方式证明效果？",
-            ("测试", "验收", "效果", "截图", "报告", "test", "report", "验证"),
-        ),
-    ]
-    missing: list[dict[str, str]] = []
-    for key, question, terms in checks:
-        if not any(term in text for term in terms):
-            missing.append({"field": key, "question": question})
-    return missing
-
-
-def default_answer(field: str, requirement: str = "") -> str:
-    lowered = str(requirement or "").lower()
-    if field == "target_user" and any(term in lowered for term in ("主播", "游戏", "高光", "直播", "streamer", "highlight")):
-        return "目标用户为游戏主播、内容剪辑和直播运营人员。"
-    defaults = {
-        "target_user": "目标用户为需要日常管理业务事项的本地团队成员。",
-        "core_features": "核心功能包含新增、编辑状态、删除、搜索/筛选、基础统计和本地保存。",
-        "data_storage": "默认使用浏览器本地存储，后续可升级为文件或数据库。",
-        "acceptance": "输出项目蓝图、生成过程、测试图、效果报告，并生成可打开的本地项目。",
-    }
-    return defaults.get(field, "使用保守默认值继续生成。")
-
-
-def collect_answers(requirement: str, *, assume_defaults: bool) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    questions = detect_missing(requirement)
-    answers: list[dict[str, str]] = []
-    for row in questions:
-        if assume_defaults:
-            answer = default_answer(row["field"], requirement)
-        else:
-            print(f"客服问题：{row['question']}")
-            answer = input("你的回答：").strip() or default_answer(row["field"], requirement)
-        answers.append({"field": row["field"], "question": row["question"], "answer": answer})
-    return questions, answers
-
-
 def build_enriched_goal(requirement: str, answers: list[dict[str, str]], blueprint: dict[str, Any] | None = None) -> str:
     parts = [str(requirement or "").strip()]
     if answers:
@@ -106,7 +47,7 @@ def build_enriched_goal(requirement: str, answers: list[dict[str, str]], bluepri
         output_types = io_contract.get("output_contract", {}).get("output_types", [])
         features = [item.get("name", "") for item in feature_spec.get("features", [])[:8]]
         decisions = [
-            f"{item.get('capability')}: {item.get('selected_solution')}"
+            f"{item.get('capability')}: {item.get('selected', {}).get('name', '')}"
             for item in tech_decisions.get("tech_decisions", [])[:8]
         ]
         parts.append(f"- project_type: {project_type}")
@@ -121,12 +62,12 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
     requirement = str(args.requirement or "").strip()
     if not requirement:
         raise SystemExit("--requirement is required")
-    _, answers = collect_answers(requirement, assume_defaults=args.assume_defaults)
+    answers: list[dict[str, str]] = []
     project_slug = args.project_slug or slug(requirement)[:60]
     blueprint = requirement_blueprint.build_requirement_blueprint(
         requirement,
         answers,
-        assume_defaults=bool(args.assume_defaults or answers),
+        assume_defaults=False,
     )
     enriched_goal = build_enriched_goal(requirement, answers, blueprint)
     composition_path = ROOT / "examples" / "test_results" / f"{project_slug}_composition.json"
@@ -139,7 +80,6 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         enriched_goal,
         allow_network=bool(args.allow_network),
         allow_provider=bool(args.allow_provider),
-        send_telegram=bool(args.send_telegram),
     )
     composition["requirement_blueprint"] = blueprint
     composition["requirement_blueprint_ref"] = str(requirement_blueprint_path)
@@ -151,12 +91,10 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         plan=str(composition_path),
         out_dir=str(out_dir),
         run_dir=str(run_dir),
-        result_path=str(execution_path),
+        result=str(execution_path),
         allow_network=bool(args.allow_network),
         allow_provider=bool(args.allow_provider),
         use_api=bool(args.use_api),
-        send_telegram=bool(args.send_telegram),
-        telegram_chat_id=str(args.telegram_chat_id or ""),
         model=str(args.model),
         timeout=int(args.timeout),
         json=False,
@@ -170,9 +108,9 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         "created_at": now(),
         "requirement": requirement,
         "customer_service": {
-            "questions": [row["question"] for row in answers],
             "answers": answers,
-            "mode": "defaults" if args.assume_defaults else "interactive",
+            "mode": "telegram_or_provider_only",
+            "policy": "No local question template or conservative default answers are applied during generation.",
         },
         "requirement_blueprint_path": str(requirement_blueprint_path),
         "requirement_blueprint_status": blueprint.get("status", "unknown"),
@@ -182,7 +120,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         "runtime_dir": str(run_dir),
         "effect_report_path": str(effect_report_path),
         "test_graph_path": str(test_graph_path),
-        "status": execution.get("payload", {}).get("status", "unknown"),
+        "status": execution.get("status", "unknown"),
     }
     write_json(pathlib.Path(args.result_path).resolve(), result)
     return result
@@ -193,15 +131,13 @@ def main() -> int:
     parser.set_defaults(allow_network=True, allow_provider=True, use_api=True)
     parser.add_argument("--requirement", required=True)
     parser.add_argument("--project-slug", default="")
-    parser.add_argument("--assume-defaults", action="store_true", help="Use conservative customer-service defaults for missing answers.")
+    parser.add_argument("--assume-defaults", action="store_true", help="Deprecated no-op. Local default-answer templates are disabled.")
     parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes. Enabled by default for mixed API mode.")
     parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes for a fully local run.")
     parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls. Enabled by default for mixed API mode.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API calls.")
     parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation. Enabled by default.")
-    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Use the local static generator instead of API generation.")
-    parser.add_argument("--send-telegram", action="store_true")
-    parser.add_argument("--telegram-chat-id", default="")
+    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation. This will fail because local templates are disabled.")
     parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--timeout", type=int, default=360)
     parser.add_argument("--result-path", default=str(DEFAULT_RESULT))

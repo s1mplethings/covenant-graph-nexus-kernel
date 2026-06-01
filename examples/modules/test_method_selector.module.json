@@ -46,6 +46,6 @@
   },
   "metadata": {
     "purpose": "Choose test methods independently from environments.",
-    "method_kinds": ["schema_validation", "contract_compile", "module_smoke", "runtime_artifact_inspection", "static_project_contract", "browser_smoke_declared", "browser_smoke_live", "industrial_io_contract", "industrial_io_live", "connectivity_dry_probe", "adversarial_review_summary"]
+    "method_kinds": ["schema_validation", "contract_compile", "module_smoke", "runtime_artifact_inspection", "static_project_contract", "browser_smoke_declared", "browser_smoke_live", "connectivity_dry_probe", "adversarial_review_summary"]
   }
 }

@@ -41,6 +41,6 @@
   },
   "metadata": {
     "purpose": "Select test environments independently from test methods so agents can build a matrix instead of a fixed test script.",
-    "environment_kinds": ["contract_catalog", "module_smoke", "local_runtime_artifacts", "generated_static_browser", "local_browser_runtime", "industrial_io_fixtures", "connectivity_dry_probe", "live_external_optional"]
+    "environment_kinds": ["contract_catalog", "module_smoke", "local_runtime_artifacts", "generated_static_browser", "local_browser_runtime", "connectivity_dry_probe", "live_external_optional"]
   }
 }

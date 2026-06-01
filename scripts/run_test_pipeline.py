@@ -126,56 +126,6 @@ def check_browser_smoke_declared(step: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def check_industrial_io_contract(step: dict[str, Any]) -> dict[str, Any]:
-    project_dir = project_path(step)
-    failures: list[str] = []
-    if not project_dir or not project_dir.exists():
-        failures.append("project_dir is missing or does not exist")
-        return {"id": step["id"], "kind": "internal", "status": "fail", "failures": failures}
-    required = [
-        "docs/INPUT_OUTPUT_SPEC.md",
-        "data/industrial_input_bundle.json",
-        "data/expected_outputs.json",
-        "tests/industrial_io_smoke_test.js",
-    ]
-    for rel in required:
-        if not (project_dir / rel).exists():
-            failures.append(f"missing {rel}")
-    bundle_path = project_dir / "data" / "industrial_input_bundle.json"
-    if bundle_path.exists():
-        try:
-            bundle = read_json(bundle_path)
-            records = bundle.get("records") or bundle.get("events") or bundle.get("items") or []
-            sources = bundle.get("source_manifest") or bundle.get("sources") or []
-            if not isinstance(records, list) or len(records) < 20:
-                failures.append("industrial input bundle must contain at least 20 records/events/items")
-            if not isinstance(sources, list) or len(sources) < 5:
-                failures.append("industrial input bundle must contain at least 5 source entries")
-        except Exception as exc:
-            failures.append(f"industrial input bundle is invalid JSON: {exc}")
-    expected_path = project_dir / "data" / "expected_outputs.json"
-    if expected_path.exists():
-        try:
-            expected = read_json(expected_path)
-            for key in ("input_summary", "ranked_highlights", "export_cut_list", "quality_checks"):
-                if key not in expected:
-                    failures.append(f"expected_outputs.json missing {key}")
-        except Exception as exc:
-            failures.append(f"expected outputs are invalid JSON: {exc}")
-    test_path = project_dir / "tests" / "industrial_io_smoke_test.js"
-    if test_path.exists():
-        text = test_path.read_text(encoding="utf-8", errors="replace")
-        if "window.runIndustrialIOSmokeTest" not in text:
-            failures.append("industrial_io_smoke_test.js must expose window.runIndustrialIOSmokeTest")
-    return {
-        "id": step["id"],
-        "kind": "internal",
-        "status": "pass" if not failures else "fail",
-        "project_dir": str(project_dir),
-        "failures": failures,
-    }
-
-
 def check_runtime_artifacts(step: dict[str, Any]) -> dict[str, Any]:
     run_dir = pathlib.Path(str(step.get("run_dir", DEFAULT_RUN_DIR)))
     if not run_dir.is_absolute():
@@ -198,8 +148,6 @@ def run_internal(step: dict[str, Any]) -> dict[str, Any]:
         return check_static_project_contract(step)
     if check == "browser_smoke_declared":
         return check_browser_smoke_declared(step)
-    if check == "industrial_io_contract":
-        return check_industrial_io_contract(step)
     if check == "runtime_artifact_inspection":
         return check_runtime_artifacts(step)
     return {"id": step["id"], "kind": "internal", "status": "fail", "failures": [f"unknown internal check: {check}"]}

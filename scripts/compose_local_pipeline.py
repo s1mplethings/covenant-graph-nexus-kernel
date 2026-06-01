@@ -85,8 +85,6 @@ def score_modules(goal: str, modules: list[dict[str, Any]]) -> list[dict[str, An
         score = sum(min(count, text_tokens.get(tok, 0)) for tok, count in query.items())
         module_id = module["id"]
         lowered_goal = goal.lower()
-        if "telegram" in lowered_goal and "telegram" in module_id:
-            score += 8
         if any(word in lowered_goal for word in ("api", "llm", "模型", "大模型")) and "api_gateway" in module_id:
             score += 8
         if any(word in lowered_goal for word in ("项目", "project", "生成", "pipeline", "管线")):
@@ -336,7 +334,7 @@ def route_quality_report(
     }
 
 
-def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = True, send_telegram: bool = False) -> dict[str, Any]:
+def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = True) -> dict[str, Any]:
     catalog = load_contracts()
     modules_by_ref = {ref_of(module): module for module in catalog["modules"]}
     flows_by_ref = {ref_of(flow): flow for flow in catalog["flows"]}
@@ -379,7 +377,6 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
         re.search(r"(接|调用|连接|使用|启用|with|use|call)\s*(api|openai|provider|llm|大模型)", lowered)
         or any(word in lowered for word in ("openai api", "provider api", "api 调用", "api调用", "大模型接口"))
     )
-    wants_telegram = "telegram" in lowered or "tg" in lowered
     if wants_api:
         api_ref = "module.external.api_gateway@1"
         reason = module_block_reason(
@@ -395,23 +392,6 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
                 "status": "blocked" if reason else "available",
                 "reason": reason,
                 "missing_adapter": "No producer for artifact.external_api_request@1 in flow.modular_project_generation@1",
-            }
-        )
-    if wants_telegram or send_telegram:
-        telegram_ref = "module.telegram.gateway@1"
-        reason = module_block_reason(
-            modules_by_ref.get(telegram_ref, {}),
-            modular_policy,
-            allow_network=allow_network,
-            allow_provider=allow_provider,
-        )
-        external_routes.append(
-            {
-                "module": telegram_ref,
-                "purpose": "Telegram delivery",
-                "status": "blocked" if reason or not send_telegram else "available",
-                "reason": reason or ("requires explicit --send-telegram" if not send_telegram else ""),
-                "missing_adapter": "No producer for artifact.telegram_message@1 in flow.modular_project_generation@1",
             }
         )
     local_index = {
@@ -440,7 +420,7 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
             "route_manager": {
                 "provider": model_hint.get("provider", "structured"),
                 "model": model_hint.get("model", ""),
-                "selection_source": "ollama" if model_hint.get("ok") else "structured_fallback",
+                "selection_source": "ollama" if model_hint.get("ok") else "contract_catalog_deterministic",
                 "local_model_scope": ["local_librarian", "route_manager"],
                 "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
                 "notes": model_hint.get("result", {}).get("route_notes", "") if isinstance(model_hint.get("result"), dict) else "",
@@ -454,7 +434,7 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
                 "local_understanding": ["module.local.librarian@1", "module.local.pipeline_composer_agent@1"],
                 "generation": ["module.project.generator@1"],
                 "verification": ["module.test_graph.emit@1", "module.effect_report.emit@1"],
-                "delivery_or_external": ["module.external.api_gateway@1", "module.telegram.gateway@1"],
+                "delivery_or_external": ["module.external.api_gateway@1"],
             },
         },
     }
@@ -488,7 +468,7 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
             "executor": {
                 "flow": "flow.local_pipeline_execution@1",
                 "command": "python scripts/run_local_pipeline.py --plan examples/test_results/local_pipeline_composition_result.json",
-                "provider_route": "External API and Telegram routes are reported separately and require explicit runtime approval flags."
+                "provider_route": "External API routes are reported separately and require explicit runtime approval flags."
             },
             "control": "route through module.unified_control@1 when executing a generated project pipeline",
         },
@@ -513,13 +493,11 @@ def main() -> int:
     parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes for a fully local composition.")
     parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API routes. Enabled by default for mixed API mode.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API routes.")
-    parser.add_argument("--send-telegram", action="store_true")
     args = parser.parse_args()
     result = compose(
         args.goal,
         allow_network=bool(args.allow_network),
         allow_provider=bool(args.allow_provider),
-        send_telegram=bool(args.send_telegram),
     )
     out_path = pathlib.Path(args.out)
     if not out_path.is_absolute():
