@@ -35,7 +35,7 @@
 2. 调用 provider。
 3. 写项目文件。
 4. 管理真实 run state。
-5. 做 Telegram/frontend/support bot。
+5. 做交互渠道、前端应用或客服机器人。
 ```
 
 一句话：

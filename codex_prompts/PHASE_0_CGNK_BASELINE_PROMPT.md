@@ -3,7 +3,7 @@
 You are working on `cgnk-core-starter`.
 
 Goal:
-Introduce a machine-first contract compiler foundation. Do not add a runtime executor. Do not add provider calls. Do not add Telegram/frontend/product-layer code.
+Introduce a machine-first contract compiler foundation. Do not add a runtime executor. Do not add provider calls. Do not add channel, frontend, or product-layer code.
 
 Current repository shape:
 

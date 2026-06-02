@@ -13,8 +13,6 @@
     "examples/policies/**",
     "examples/migrations/**",
     "examples/compile_results/**",
-    "examples/test_results/**",
-    "examples/runtime_runs/**",
     "implementation_plan/**",
     "README.md"
   ],

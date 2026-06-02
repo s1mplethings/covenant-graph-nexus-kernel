@@ -109,8 +109,8 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         "requirement": requirement,
         "customer_service": {
             "answers": answers,
-            "mode": "telegram_or_provider_only",
-            "policy": "No local question template or conservative default answers are applied during generation.",
+            "mode": "local_requirement_blueprint",
+            "policy": "No domain-specific local question template or product default answers are applied during generation.",
         },
         "requirement_blueprint_path": str(requirement_blueprint_path),
         "requirement_blueprint_status": blueprint.get("status", "unknown"),
@@ -137,7 +137,7 @@ def main() -> int:
     parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls. Enabled by default for mixed API mode.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API calls.")
     parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation. Enabled by default.")
-    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation. This will fail because local templates are disabled.")
+    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation and use the generic local materializer.")
     parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--timeout", type=int, default=360)
     parser.add_argument("--result-path", default=str(DEFAULT_RESULT))
