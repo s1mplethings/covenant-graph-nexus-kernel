@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/agent_context_pack.schema.json",
+  "title": "AgentContextPack",
+  "type": "object",
+  "required": ["kind", "id", "goal_ref", "context_budget", "critical_constraints", "active_decisions", "current_requirements", "needed_now", "needed_later", "reference_only", "risks", "next_steps", "artifact_refs", "module_mappings", "agent_mappings", "research_findings", "excluded_knowledge", "discard_candidates", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "AgentContextPack"},
+    "id": {"type": "string"},
+    "goal_ref": {"type": "string"},
+    "agent_ref": {"type": ["string", "null"]},
+    "context_budget": {"type": "object"},
+    "critical_constraints": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "active_decisions": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "current_requirements": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "needed_now": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "needed_later": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "reference_only": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "risks": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "next_steps": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "artifact_refs": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "module_mappings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "agent_mappings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "research_findings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "excluded_knowledge": {"type": "array", "items": {"type": "object"}},
+    "discard_candidates": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

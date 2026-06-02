@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/key_point.schema.json",
+  "title": "KeyPoint",
+  "type": "object",
+  "required": ["kind", "id", "category", "text", "source_event_ids", "scope", "importance", "need_state", "retention", "review_state", "confidence", "status", "tags", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "KeyPoint"},
+    "id": {"type": "string"},
+    "category": {"enum": ["goal", "constraint", "decision", "preference", "requirement", "risk", "open_question", "artifact_ref", "module_mapping", "agent_mapping", "next_step", "research_finding", "test_result", "correction"]},
+    "text": {"type": "string"},
+    "source_event_ids": {"type": "array", "items": {"type": "string"}},
+    "scope": {"enum": ["session", "project", "global", "project.ctcp", "project.cgnk", "agent", "module"]},
+    "importance": {"enum": ["critical", "high", "medium", "low", "noise"]},
+    "need_state": {"enum": ["needed_now", "needed_later", "reference_only", "not_needed", "unknown"]},
+    "retention": {"enum": ["keep", "compress", "discard", "archive", "ephemeral"]},
+    "review_state": {"enum": ["accepted", "candidate", "rejected", "auto_extracted", "conflict"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "status": {"enum": ["active", "superseded", "retracted", "uncertain"]},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/conversation_event.schema.json",
+  "title": "ConversationEvent",
+  "type": "object",
+  "required": ["kind", "event_id", "session_id", "turn_index", "type", "content_summary", "artifact_refs", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ConversationEvent"},
+    "event_id": {"type": "string"},
+    "session_id": {"type": "string"},
+    "turn_index": {"type": "integer", "minimum": 0},
+    "type": {
+      "enum": ["user.message", "assistant.message", "backend.intent.updated", "backend.planning.preview", "backend.agent.generated", "backend.research.result", "backend.agent.message", "artifact.created", "gate.required", "gate.resolved", "knowledge.updated"]
+    },
+    "content_summary": {"type": "string"},
+    "raw_ref": {"type": "string"},
+    "artifact_refs": {"type": "array", "items": {"type": "string"}},
+    "timestamp": {"type": "string"},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

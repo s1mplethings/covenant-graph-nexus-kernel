@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/knowledge_update_report.schema.json",
+  "title": "KnowledgeUpdateReport",
+  "type": "object",
+  "required": ["kind", "added_keypoints", "added_items", "updated_items", "superseded_items", "discarded_items", "critical_updates", "needed_now", "review_required", "diagnostics"],
+  "additionalProperties": true,
+  "properties": {
+    "kind": {"const": "KnowledgeUpdateReport"},
+    "events": {"type": "array", "items": {"$ref": "conversation_event.schema.json"}},
+    "added_keypoints": {"type": "array", "items": {"$ref": "key_point.schema.json"}},
+    "added_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "updated_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "superseded_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "discarded_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "critical_updates": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "needed_now": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "review_required": {"type": "array", "items": {"$ref": "key_point.schema.json"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

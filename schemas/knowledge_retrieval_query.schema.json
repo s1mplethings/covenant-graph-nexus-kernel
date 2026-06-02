@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/knowledge_retrieval_query.schema.json",
+  "title": "KnowledgeRetrievalQuery",
+  "type": "object",
+  "required": ["kind", "selected_modules", "needed_types"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "KnowledgeRetrievalQuery"},
+    "goal": {"type": "string"},
+    "target_repo": {"type": "string"},
+    "agent_role": {"type": "string"},
+    "selected_modules": {"type": "array", "items": {"type": "string"}},
+    "needed_types": {"type": "array", "items": {"type": "string"}},
+    "scope": {"type": "string"},
+    "include_reference": {"type": "boolean", "default": false},
+    "include_archived": {"type": "boolean", "default": false},
+    "include_uncertain": {"type": "boolean", "default": false},
+    "max_items": {"type": "integer", "minimum": 1, "default": 20}
+  }
+}

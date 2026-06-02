@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/knowledge_retrieval_result.schema.json",
+  "title": "KnowledgeRetrievalResult",
+  "type": "object",
+  "required": ["kind", "query", "selected_items", "excluded_items", "ranking_reasons", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "KnowledgeRetrievalResult"},
+    "query": {"$ref": "knowledge_retrieval_query.schema.json"},
+    "selected_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "excluded_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item", "reason"],
+        "properties": {
+          "item": {"$ref": "knowledge_item.schema.json"},
+          "reason": {"enum": ["superseded", "retracted", "rejected", "discard", "archived", "reference_not_requested", "low_relevance", "over_budget"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "ranking_reasons": {"type": "array", "items": {"type": "object"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

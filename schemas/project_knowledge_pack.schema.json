@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/project_knowledge_pack.schema.json",
+  "title": "ProjectKnowledgePack",
+  "type": "object",
+  "required": ["kind", "id", "project", "version", "active_goals", "active_constraints", "active_decisions", "current_requirements", "module_mappings", "agent_mappings", "risks", "open_questions", "next_steps", "artifact_refs", "research_findings", "test_results", "archived_items", "discarded_items", "all_items", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ProjectKnowledgePack"},
+    "id": {"type": "string"},
+    "project": {"type": "string"},
+    "version": {"type": "string"},
+    "active_goals": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "active_constraints": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "active_decisions": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "current_requirements": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "module_mappings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "agent_mappings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "risks": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "open_questions": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "next_steps": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "artifact_refs": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "research_findings": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "test_results": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "archived_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "discarded_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "all_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "kind": "KeyPointExtractionResult",
+  "keypoints": [
+    {
+      "kind": "KeyPoint",
+      "id": "kp_ctcp_readonly",
+      "category": "constraint",
+      "text": "Do not modify CTCP; CTCP is read-only.",
+      "source_event_ids": ["evt_user_001"],
+      "scope": "project.ctcp",
+      "importance": "critical",
+      "need_state": "needed_now",
+      "retention": "keep",
+      "review_state": "accepted",
+      "confidence": 0.95,
+      "status": "active",
+      "tags": ["CTCP"],
+      "diagnostics": []
+    },
+    {
+      "kind": "KeyPoint",
+      "id": "kp_module_agents",
+      "category": "decision",
+      "text": "Agents are generated from module composition.",
+      "source_event_ids": ["evt_user_001"],
+      "scope": "project.cgnk",
+      "importance": "high",
+      "need_state": "needed_now",
+      "retention": "keep",
+      "review_state": "accepted",
+      "confidence": 0.95,
+      "status": "active",
+      "tags": ["agent", "module"],
+      "diagnostics": []
+    }
+  ],
+  "diagnostics": []
+}

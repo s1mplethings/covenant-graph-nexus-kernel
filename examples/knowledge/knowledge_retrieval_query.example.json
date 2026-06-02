@@ -1,0 +1,13 @@
+{
+  "kind": "KnowledgeRetrievalQuery",
+  "goal": "Build generated agent context for CTCP refactor planning",
+  "target_repo": "D:\\CGKN",
+  "agent_role": "AgentComposer",
+  "selected_modules": ["module", "agent"],
+  "needed_types": ["constraint", "decision", "requirement"],
+  "scope": "project.ctcp",
+  "include_reference": false,
+  "include_archived": false,
+  "include_uncertain": false,
+  "max_items": 20
+}

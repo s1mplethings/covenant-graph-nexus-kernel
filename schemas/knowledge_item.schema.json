@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/knowledge_item.schema.json",
+  "title": "KnowledgeItem",
+  "type": "object",
+  "required": ["kind", "id", "title", "type", "scope", "content", "source_refs", "tags", "importance", "need_state", "retention", "review_state", "status", "supersedes", "stable_hash", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "KnowledgeItem"},
+    "id": {"type": "string"},
+    "title": {"type": "string"},
+    "type": {"enum": ["goal", "constraint", "decision", "preference", "requirement", "risk", "open_question", "artifact_ref", "module_mapping", "agent_mapping", "next_step", "research_finding", "test_result", "correction"]},
+    "scope": {"enum": ["session", "project", "global", "project.ctcp", "project.cgnk", "agent", "module"]},
+    "content": {"type": "string"},
+    "source_refs": {"type": "array", "items": {"type": "string"}},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "importance": {"enum": ["critical", "high", "medium", "low", "noise"]},
+    "need_state": {"enum": ["needed_now", "needed_later", "reference_only", "not_needed", "unknown"]},
+    "retention": {"enum": ["keep", "compress", "discard", "archive", "ephemeral"]},
+    "review_state": {"enum": ["accepted", "candidate", "rejected", "auto_extracted", "conflict"]},
+    "status": {"enum": ["active", "superseded", "retracted", "uncertain", "archived"]},
+    "supersedes": {"type": "array", "items": {"type": "string"}},
+    "superseded_by": {"type": "string"},
+    "expires_at": {"type": "string"},
+    "stable_hash": {"type": "string"},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}
