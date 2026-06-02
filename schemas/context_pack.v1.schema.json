@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/context_pack.v1.schema.json",
+  "title": "ContextPackPayload",
+  "type": "object",
+  "required": ["kind", "run_id", "created_at", "active_module", "flow_ref", "conversation_state_ref", "checkpoint_ref", "bounded_context"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ContextPack"},
+    "run_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "active_module": {"type": "string"},
+    "flow_ref": {"type": "string"},
+    "conversation_state_ref": {"type": "string"},
+    "checkpoint_ref": {"type": "string"},
+    "bounded_context": {
+      "type": "object",
+      "required": ["summary", "stable_facts", "open_questions", "recent_turns", "artifact_refs", "resume"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": {"type": "string"},
+        "stable_facts": {"type": "array", "items": {"type": "string"}},
+        "open_questions": {"type": "array", "items": {"type": "string"}},
+        "recent_turns": {"type": "array", "items": {"$ref": "conversation_turn.v1.schema.json"}},
+        "artifact_refs": {"type": "object", "additionalProperties": {"type": "string"}},
+        "resume": {"type": "object"}
+      }
+    }
+  }
+}

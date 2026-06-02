@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/generation_checkpoint.v1.schema.json",
+  "title": "GenerationCheckpointPayload",
+  "type": "object",
+  "required": ["kind", "run_id", "checkpoint_id", "stage", "status", "created_at", "completed_steps", "pending_steps", "artifact_refs", "file_manifest"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "GenerationCheckpoint"},
+    "run_id": {"type": "string"},
+    "checkpoint_id": {"type": "string"},
+    "stage": {"type": "string"},
+    "status": {"enum": ["ready", "running", "pass", "fail", "blocked"]},
+    "created_at": {"type": "string"},
+    "completed_steps": {"type": "array", "items": {"type": "string"}},
+    "pending_steps": {"type": "array", "items": {"type": "string"}},
+    "artifact_refs": {"type": "object", "additionalProperties": {"type": "string"}},
+    "file_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {"type": "string"},
+          "sha256": {"type": "string"},
+          "bytes": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "resume_command": {"type": "string"},
+    "failure": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  }
+}

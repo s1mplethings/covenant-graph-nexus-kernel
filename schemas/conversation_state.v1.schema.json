@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/conversation_state.v1.schema.json",
+  "title": "ConversationStatePayload",
+  "type": "object",
+  "required": ["kind", "run_id", "updated_at", "turn_count", "stable_facts", "open_questions", "current_intent", "next_recommended_action", "artifact_refs"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ConversationState"},
+    "run_id": {"type": "string"},
+    "updated_at": {"type": "string"},
+    "turn_count": {"type": "integer", "minimum": 0},
+    "stable_facts": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "confirmed_constraints": {"type": "array", "items": {"type": "string"}},
+    "user_preferences": {"type": "array", "items": {"type": "string"}},
+    "rejected_options": {"type": "array", "items": {"type": "string"}},
+    "current_intent": {"type": "string"},
+    "last_action": {"type": "string"},
+    "next_recommended_action": {"type": "string"},
+    "recent_turns": {
+      "type": "array",
+      "items": {"$ref": "conversation_turn.v1.schema.json"}
+    },
+    "summary": {"type": "string"},
+    "artifact_refs": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}

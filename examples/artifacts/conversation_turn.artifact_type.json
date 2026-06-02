@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.conversation_turn",
+  "version": "1",
+  "type_name": "ConversationTurn",
+  "schema_ref": "schemas/conversation_turn.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "turn_id", "role", "content_hash"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "long_context_generation_v1",
+    "ref": "artifact.conversation_turn@1",
+    "purpose": "Append-only user, agent, tool, and system turns for long conversation recovery."
+  }
+}

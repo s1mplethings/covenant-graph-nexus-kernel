@@ -110,8 +110,15 @@ def score_modules(goal: str, modules: list[dict[str, Any]]) -> list[dict[str, An
     return sorted(scored, key=lambda row: (-int(row["score"]), row["module_ref"]))
 
 
-def optional_local_model_hint(goal: str, catalog: dict[str, Any]) -> dict[str, Any]:
+def env_truthy(name: str) -> bool:
+    return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def optional_local_model_hint(goal: str, catalog: dict[str, Any], *, use_local_model: bool = False) -> dict[str, Any]:
     cmd = str(os.environ.get("CGNK_LOCAL_MODEL_CMD", "")).strip()
+    requested = use_local_model or env_truthy("CGNK_USE_LOCAL_MODEL") or bool(cmd)
+    if not requested:
+        return {"enabled": False, "provider": "none", "ok": False, "error": "local model hint not requested"}
     prompt = {
         "task": (
             "Act as CGNK local librarian and route manager. Inspect available_modules, choose the route for this "
@@ -334,7 +341,7 @@ def route_quality_report(
     }
 
 
-def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = True) -> dict[str, Any]:
+def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = False, use_local_model: bool = False) -> dict[str, Any]:
     catalog = load_contracts()
     modules_by_ref = {ref_of(module): module for module in catalog["modules"]}
     flows_by_ref = {ref_of(flow): flow for flow in catalog["flows"]}
@@ -344,7 +351,7 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
     scored = score_modules(goal, catalog["modules"])
     valid_refs = {row["module_ref"] for row in scored}
     lowered = goal.lower()
-    model_hint = optional_local_model_hint(goal, catalog)
+    model_hint = optional_local_model_hint(goal, catalog, use_local_model=use_local_model)
     selected: list[str] = []
     if model_hint.get("ok"):
         hinted = model_hint.get("result", {}).get("selected_modules", [])
@@ -485,19 +492,21 @@ def compose(goal: str, *, allow_network: bool = True, allow_provider: bool = Tru
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.set_defaults(allow_network=True, allow_provider=True)
+    parser.set_defaults(allow_network=False, allow_provider=False, use_local_model=False)
     parser.add_argument("--goal", required=True)
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes. Enabled by default for mixed API mode.")
+    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes.")
     parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes for a fully local composition.")
-    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API routes. Enabled by default for mixed API mode.")
+    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API routes.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API routes.")
+    parser.add_argument("--use-local-model", dest="use_local_model", action="store_true", help="Use CGNK_LOCAL_MODEL_CMD or local Ollama for route hints.")
     args = parser.parse_args()
     result = compose(
         args.goal,
         allow_network=bool(args.allow_network),
         allow_provider=bool(args.allow_provider),
+        use_local_model=bool(args.use_local_model),
     )
     out_path = pathlib.Path(args.out)
     if not out_path.is_absolute():

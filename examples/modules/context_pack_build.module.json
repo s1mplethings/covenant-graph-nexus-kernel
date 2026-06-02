@@ -1,0 +1,52 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.context_pack.build",
+  "version": "1",
+  "ports": {
+    "input": {
+      "state": {
+        "artifact_type": "artifact.conversation_state@1",
+        "required": true
+      },
+      "checkpoint": {
+        "artifact_type": "artifact.generation_checkpoint@1",
+        "required": false
+      },
+      "agent_plan": {
+        "artifact_type": "artifact.local_agent_plan@1",
+        "required": false
+      }
+    },
+    "output": {
+      "context_pack": {
+        "artifact_type": "artifact.context_pack@1",
+        "description": "Bounded context pack for one agent step, module step, or provider call."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.write",
+        "scope": ["examples/runtime_runs/**"]
+      }
+    ],
+    "context": ["run_id", "active_module", "flow_ref"]
+  },
+  "effects": {
+    "fs_read": ["examples/runtime_runs/**"],
+    "fs_write": ["examples/runtime_runs/**"],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Build a bounded context object from compressed conversation state and the latest generation checkpoint."
+  }
+}

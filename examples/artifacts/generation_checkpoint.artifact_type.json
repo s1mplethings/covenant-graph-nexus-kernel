@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.generation_checkpoint",
+  "version": "1",
+  "type_name": "GenerationCheckpoint",
+  "schema_ref": "schemas/generation_checkpoint.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "checkpoint_id", "stage", "artifact_refs", "file_manifest"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "long_context_generation_v1",
+    "ref": "artifact.generation_checkpoint@1",
+    "purpose": "Resume point for long generation after each key stage or chunk."
+  }
+}

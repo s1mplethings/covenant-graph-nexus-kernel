@@ -27,6 +27,7 @@ examples/migrations/                    MigrationSpec examples.
 examples/compile_results/               Expected CompileResult snapshots.
 scripts/validate_bundle.py              Dependency-light semantic checker.
 scripts/requirement_blueprint.py        Generic requirement blueprint generator.
+scripts/context_prompt.py               Local context compression, key-point extraction, and prompt-pack generator.
 scripts/compose_local_pipeline.py       Local pipeline composer.
 scripts/run_local_pipeline.py           Generic local runtime executor.
 scripts/compose_test_pipeline.py        Test pipeline composer.
@@ -94,6 +95,12 @@ For blueprint-only inspection:
 python scripts/requirement_blueprint.py --requirement "Build a requirement blueprint generator" --assume-defaults --outputs-dir generated/requirement_blueprint_outputs
 ```
 
+For local context compression and prompt-pack inspection:
+
+```bash
+python scripts/context_prompt.py --requirement "Build a requirement blueprint generator" --max-chars 6000 --json
+```
+
 For local pipeline composition:
 
 ```bash
@@ -106,7 +113,7 @@ For local execution:
 python scripts/run_local_pipeline.py --goal "Generate a generic CGNK project" --no-provider
 ```
 
-Network and provider actions are disabled unless explicitly enabled with runtime flags.
+Network, provider, API, and optional local-model route hints are disabled unless explicitly enabled with runtime flags. Use `--allow-network`, `--allow-provider`, `--use-api`, and `--use-local-model` only when that run needs them.
 
 ## Testing
 
@@ -117,4 +124,4 @@ python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_c
 python scripts/check_connectivity.py
 ```
 
-`scripts/check_connectivity.py --live` performs a live OpenAI-compatible API probe when credentials are configured.
+`scripts/check_connectivity.py --live` performs a live OpenAI-compatible API probe when credentials are configured. Test pipeline composition defaults to configuration checks only; pass `--live-api` to `scripts/compose_test_pipeline.py` when a live probe is intended.

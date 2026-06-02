@@ -1,0 +1,50 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.conversation.reduce",
+  "version": "1",
+  "ports": {
+    "input": {
+      "turns": {
+        "artifact_type": "artifact.conversation_turn@1",
+        "required": true,
+        "multi": true,
+        "description": "Append-only conversation turns accumulated for the current run."
+      }
+    },
+    "output": {
+      "state": {
+        "artifact_type": "artifact.conversation_state@1",
+        "description": "Compressed state containing stable facts, unresolved questions, and recent turns."
+      },
+      "decision_ledger": {
+        "artifact_type": "artifact.decision_ledger@1",
+        "description": "Durable decision ledger extracted from turns and module outputs."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.write",
+        "scope": ["examples/runtime_runs/**"]
+      }
+    ],
+    "context": ["run_id", "trace_sink"]
+  },
+  "effects": {
+    "fs_read": ["examples/runtime_runs/**"],
+    "fs_write": ["examples/runtime_runs/**"],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Reduce a long conversation into durable state so downstream modules consume bounded context instead of full history."
+  }
+}

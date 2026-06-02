@@ -1,0 +1,52 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.generation_checkpoint.commit",
+  "version": "1",
+  "ports": {
+    "input": {
+      "generation_trace": {
+        "artifact_type": "artifact.generation_trace@1",
+        "required": true
+      },
+      "project_blueprint": {
+        "artifact_type": "artifact.project_blueprint@1",
+        "required": false
+      },
+      "effect_report": {
+        "artifact_type": "artifact.effect_report@1",
+        "required": false
+      }
+    },
+    "output": {
+      "checkpoint": {
+        "artifact_type": "artifact.generation_checkpoint@1",
+        "description": "Latest resume checkpoint for the current generation run."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.write",
+        "scope": ["examples/runtime_runs/**", "generated/**"]
+      }
+    ],
+    "context": ["run_id", "generation_root", "trace_sink"]
+  },
+  "effects": {
+    "fs_read": ["examples/runtime_runs/**", "generated/**"],
+    "fs_write": ["examples/runtime_runs/**"],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "policy_bounded"
+  },
+  "metadata": {
+    "purpose": "Commit a resumable generation checkpoint at key generation stages and after chunk validation."
+  }
+}

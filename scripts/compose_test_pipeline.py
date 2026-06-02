@@ -62,7 +62,7 @@ def detect_project_dir(goal: str, requested: str) -> pathlib.Path | None:
     return best if best_score > 1 else None
 
 
-def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: str, explicit: list[str], live_browser: bool) -> list[dict[str, Any]]:
+def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: str, explicit: list[str], live_browser: bool, live_api: bool) -> list[dict[str, Any]]:
     available: dict[str, dict[str, Any]] = {
         "contract_catalog": {
             "id": "contract_catalog",
@@ -84,6 +84,13 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
             "scope": ["scripts/check_connectivity.py --live", "environment variable presence"],
             "default": False,
             "external": "live API probe",
+        },
+        "connectivity_config_check": {
+            "id": "connectivity_config_check",
+            "label": "External API configuration check",
+            "scope": ["scripts/check_connectivity.py", "environment variable presence"],
+            "default": False,
+            "external": "none",
         },
         "local_runtime_artifacts": {
             "id": "local_runtime_artifacts",
@@ -120,13 +127,17 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
         if live_browser:
             selected_ids.append("local_browser_runtime")
     elif profile == "connectivity":
-        selected_ids = ["contract_catalog", "connectivity_live_probe"]
+        selected_ids = ["contract_catalog", "connectivity_config_check"]
+        if live_api:
+            selected_ids.append("connectivity_live_probe")
     elif profile == "full":
         selected_ids = list(available.keys())
     else:
         selected_ids = [env_id for env_id, row in available.items() if row.get("default")]
         if has_any(goal, ("api", "connectivity", "连通", "接口")):
-            selected_ids.append("connectivity_live_probe")
+            selected_ids.append("connectivity_config_check")
+            if live_api:
+                selected_ids.append("connectivity_live_probe")
         if has_any(goal, ("runtime", "运行产物", "执行产物", "artifact")):
             selected_ids.append("local_runtime_artifacts")
     rows = []
@@ -140,7 +151,7 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
     return rows
 
 
-def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, explicit: list[str], live_browser: bool) -> list[dict[str, Any]]:
+def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, explicit: list[str], live_browser: bool, live_api: bool) -> list[dict[str, Any]]:
     env_ids = {row["id"] for row in environments if row.get("available")}
     available: dict[str, dict[str, Any]] = {
         "schema_validation": {
@@ -165,6 +176,12 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
             "id": "connectivity_live_probe",
             "label": "Check external API configuration with live API probes",
             "compatible_environments": ["connectivity_live_probe"],
+            "gate": "warning",
+        },
+        "connectivity_config_check": {
+            "id": "connectivity_config_check",
+            "label": "Check external API configuration without live requests",
+            "compatible_environments": ["connectivity_config_check"],
             "gate": "warning",
         },
         "runtime_artifact_inspection": {
@@ -195,7 +212,9 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
         if live_browser:
             selected_ids.append("browser_smoke_live")
     elif profile == "connectivity":
-        selected_ids = ["schema_validation", "connectivity_live_probe"]
+        selected_ids = ["schema_validation", "connectivity_config_check"]
+        if live_api:
+            selected_ids.append("connectivity_live_probe")
     elif profile == "full":
         selected_ids = list(available.keys())
     else:
@@ -206,6 +225,8 @@ def method_catalog(goal: str, environments: list[dict[str, Any]], profile: str, 
             selected_ids.append("browser_smoke_live")
         if "connectivity_live_probe" in env_ids:
             selected_ids.append("connectivity_live_probe")
+        if "connectivity_config_check" in env_ids:
+            selected_ids.append("connectivity_config_check")
         if "local_runtime_artifacts" in env_ids:
             selected_ids.append("runtime_artifact_inspection")
     rows = []
@@ -246,6 +267,13 @@ def build_steps(methods: list[dict[str, Any]], project_dir: pathlib.Path | None,
             "timeout_seconds": 120,
             "non_blocking": True,
         },
+        "connectivity_config_check": {
+            "id": "connectivity_config_check",
+            "kind": "command",
+            "command": ["python", "scripts/check_connectivity.py"],
+            "timeout_seconds": 60,
+            "non_blocking": True,
+        },
         "runtime_artifact_inspection": {
             "id": "runtime_artifact_inspection",
             "kind": "internal",
@@ -279,13 +307,13 @@ def build_steps(methods: list[dict[str, Any]], project_dir: pathlib.Path | None,
     return steps
 
 
-def compose(goal: str, project_dir_arg: str, profile: str, environments_arg: list[str], methods_arg: list[str], run_dir_arg: str, live_browser: bool) -> dict[str, Any]:
+def compose(goal: str, project_dir_arg: str, profile: str, environments_arg: list[str], methods_arg: list[str], run_dir_arg: str, live_browser: bool, live_api: bool) -> dict[str, Any]:
     project_dir = detect_project_dir(goal, project_dir_arg)
     run_dir = pathlib.Path(run_dir_arg)
     if not run_dir.is_absolute():
         run_dir = ROOT / run_dir
-    environments = environment_catalog(goal, project_dir, profile, environments_arg, live_browser)
-    methods = method_catalog(goal, environments, profile, methods_arg, live_browser)
+    environments = environment_catalog(goal, project_dir, profile, environments_arg, live_browser, live_api)
+    methods = method_catalog(goal, environments, profile, methods_arg, live_browser, live_api)
     steps = build_steps(methods, project_dir, run_dir.resolve())
     matrix = [
         {
@@ -317,8 +345,8 @@ def compose(goal: str, project_dir_arg: str, profile: str, environments_arg: lis
             "target": target,
             "environments": environments,
             "constraints": {
-                "network": "enabled for live connectivity probes",
-                "provider": "enabled for API-backed validation probes",
+                "network": "enabled for live connectivity probes" if live_api else "disabled by default; pass --live-api for live probes",
+                "provider": "enabled for API-backed validation probes" if live_api else "disabled by default; pass --live-api for provider probes",
                 "live_browser_execution": "declared-only unless a browser runner is explicitly added",
                 "loopback_browser": "enabled" if live_browser else "disabled",
             },
@@ -380,11 +408,12 @@ def main() -> int:
     parser.add_argument("--environment", action="append", default=[], help="Select an environment id. Can be passed multiple times.")
     parser.add_argument("--method", action="append", default=[], help="Select a method id. Can be passed multiple times.")
     parser.add_argument("--live-browser", action="store_true", help="Add loopback headless-browser smoke execution for generated browser projects.")
+    parser.add_argument("--live-api", action="store_true", help="Add live external API connectivity probes. Default only checks local configuration.")
     parser.add_argument("--run-dir", default="examples/runtime_runs/local-pipeline-execution")
     parser.add_argument("--out", default=str(DEFAULT_OUT))
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    result = compose(args.goal, args.project_dir, args.profile, args.environment, args.method, args.run_dir, args.live_browser)
+    result = compose(args.goal, args.project_dir, args.profile, args.environment, args.method, args.run_dir, args.live_browser, args.live_api)
     out_path = pathlib.Path(args.out)
     if not out_path.is_absolute():
         out_path = ROOT / out_path

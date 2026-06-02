@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.conversation_state",
+  "version": "1",
+  "type_name": "ConversationState",
+  "schema_ref": "schemas/conversation_state.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "stable_facts", "open_questions", "artifact_refs"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "long_context_generation_v1",
+    "ref": "artifact.conversation_state@1",
+    "purpose": "Compressed durable state used instead of replaying the full conversation into agent context."
+  }
+}

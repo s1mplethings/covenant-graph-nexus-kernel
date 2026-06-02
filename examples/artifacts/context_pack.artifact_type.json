@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.context_pack",
+  "version": "1",
+  "type_name": "ContextPack",
+  "schema_ref": "schemas/context_pack.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "active_module", "conversation_state_ref", "checkpoint_ref"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "long_context_generation_v1",
+    "ref": "artifact.context_pack@1",
+    "purpose": "Bounded context assembled for a single agent or provider call."
+  }
+}

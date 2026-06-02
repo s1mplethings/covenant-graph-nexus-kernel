@@ -42,6 +42,7 @@ def load_json(path: pathlib.Path) -> dict[str, Any]:
 
 def plan_goal(plan_doc: dict[str, Any]) -> str:
     candidates = [
+        plan_doc.get("original_requirement"),
         plan_doc.get("goal"),
         plan_doc.get("pipeline_plan", {}).get("payload", {}).get("requirement"),
         plan_doc.get("pipeline_plan", {}).get("payload", {}).get("goal"),

@@ -1,0 +1,18 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.decision_ledger",
+  "version": "1",
+  "type_name": "DecisionLedger",
+  "schema_ref": "schemas/decision_ledger.v1.schema.json",
+  "identity": {
+    "hash_fields": ["run_id", "decisions"]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "long_context_generation_v1",
+    "ref": "artifact.decision_ledger@1",
+    "purpose": "Durable record of generation decisions, defaults, rejected options, and rationale."
+  }
+}
