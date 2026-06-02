@@ -2,15 +2,21 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import pathlib
 import re
+import shutil
+import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from typing import Any
 
 import check_connectivity
 import compose_local_pipeline
+import market_research_agent
+import online_input_agent
 import requirement_blueprint
 
 
@@ -19,13 +25,17 @@ DEFAULT_RUN_DIR = ROOT / "examples" / "runtime_runs" / "local-pipeline-execution
 DEFAULT_GENERATED_DIR = ROOT / "generated" / "cgnk_generated_project"
 DEFAULT_RESULT_PATH = ROOT / "examples" / "test_results" / "local_pipeline_execution_result.json"
 
-REQUIRED_PROJECT_FILES = {"README.md", "TEST_PLAN.md"}
 FORBIDDEN_PROJECT_NAMES = {"template", "fallback", "generic"}
+BINARY_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".webm", ".mov", ".pdf", ".zip"}
 GENERATION_POLICY = {
     "project_files_authority": "api_provider_only",
     "local_allowed_scope": [
         "pipeline_composition",
         "requirement_blueprint",
+        "online_input_discovery",
+        "feature_market_research",
+        "example_input_download",
+        "example_based_test_artifact_generation",
         "provider_call_orchestration",
         "provider_output_validation",
         "audit_artifact_writing",
@@ -124,12 +134,12 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
         payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 12000}
     last_error = ""
-    for attempt in range(3):
+    for attempt in range(6):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
         if doc is not None:
             break
         last_error = error
-        time.sleep(2.0 * (attempt + 1))
+        time.sleep(min(20.0, 2.0 * (attempt + 1)))
     else:
         raise RuntimeError(last_error)
     text = check_connectivity._extract_text(doc)
@@ -138,7 +148,16 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
     return text
 
 
-def provider_generate_project(goal: str, plan_doc: dict[str, Any], blueprint: dict[str, Any], model: str, timeout: int) -> dict[str, Any]:
+def provider_generate_project(
+    goal: str,
+    plan_doc: dict[str, Any],
+    blueprint: dict[str, Any],
+    online_inputs: dict[str, Any],
+    market_research: dict[str, Any],
+    repair_errors: list[str],
+    model: str,
+    timeout: int,
+) -> dict[str, Any]:
     system = """You are the sole project-file generator for CGNK.
 Return a complete, runnable project as strict JSON. Do not return markdown outside JSON.
 
@@ -146,8 +165,23 @@ Hard rules:
 - Do not use a generic template, starter shell, placeholder app, or fallback project.
 - Generate project-specific files that directly implement the user's request.
 - Include realistic README and TEST_PLAN.
-- If a browser UI is appropriate, include index.html, styles.css, app.js and any data files needed.
+- Include a browser preview surface when it is appropriate for the project, and include non-browser runnable entry points when that better fits the request.
+- If media preview is part of the request, include UI elements and sample data that visibly show preview frames/timeline/output status when appropriate.
+- Use provided online_input_examples as realistic test fixtures in the generated project files, documentation, tests, and preview UI when relevant. The manifest includes project_type, input_spec, routing attempts, and source metadata. Do not claim example-based testing unless the examples are represented in project files.
+- Use provided market_research findings to choose libraries, models, APIs, and product features. For each core feature, prefer the recommended candidate unless you explicitly justify a better choice in project docs/code comments.
+- Include a concise market-research summary in the generated project documentation so the user can see why the selected stack/features were chosen.
 - If a backend/CLI/library is appropriate, include runnable source files and tests.
+- Do not emit empty files, .gitkeep files, .keep files, or directory placeholder files. Every file in files[] must contain meaningful runnable code, configuration, tests, or documentation.
+- Dependency choices must match the provided runtime_context. Prefer unpinned or current compatible package ranges over stale exact pins. Avoid heavy native dependencies such as opencv-python unless the requested project truly needs them and the version supports the current Python runtime.
+- For browser workflow demos, the external usage agent records the actual UI flow. The generated project should still create its requested artifacts, but it does not need a fragile in-app video encoder just to prove the UI was used.
+- Web app entry points must be automation-friendly: bind to 127.0.0.1 on the planned port, and disable debug reloaders or child-process reloaders (for example Flask app.run(..., debug=False, use_reloader=False)).
+- Do not put binary files such as PNG, JPG, MP4, PDF, ZIP into files[]. JSON text cannot carry those project files directly. If binary artifacts are needed, generate source code/scripts that create them or reference the runtime online_input_examples/example_outputs artifacts.
+- If the user asks for self-generated images, do not satisfy it with copied examples, solid-color placeholders, or text-only placeholder art. Implement a real local generation path appropriate for a first version: procedural layered art, local model/API integration, or another concrete image-generation algorithm that creates distinct background and character outputs from user input.
+- For VN/background/character art requests, simple circles/rectangles, plain gradients, text labels, or clip-art placeholders are not enough. The generated project must create visually meaningful assets with multiple scene/character-specific layers and recognizable composition, or integrate a real image-generation API/local model path.
+- If online_input_examples.image_generation_models contains candidates and the user asks for serious AI-generated background/character art, prefer an online AI image generation provider/model integration over procedural drawing. The project should expose provider configuration, run a capability check, generate images from prompts, and clearly report if required image credentials are missing.
+- Do not present procedural PIL/canvas drawing as the ideal solution for serious VN立绘/背景 image generation. Procedural drawing may be an explicit offline fallback only, and the UI/report must label it as fallback.
+- If the user asks for an agent/demo workflow, include a local UI or CLI flow that an agent can actually run end-to-end: input data, trigger generation, observe outputs, and verify generated artifacts.
+- If validation_errors are provided, regenerate the full project and fix every error. Do not explain; return only corrected JSON.
 - Keep file paths relative. Never use absolute paths. Never write outside the project root.
 
 JSON shape:
@@ -167,6 +201,15 @@ JSON shape:
         "goal": goal,
         "pipeline_plan": plan_doc,
         "requirement_blueprint": blueprint,
+        "online_input_examples": online_inputs,
+        "market_research": market_research,
+        "runtime_context": {
+            "python_version": sys.version,
+            "python_executable": sys.executable,
+            "platform": sys.platform,
+            "ffmpeg_available": bool(shutil.which("ffmpeg")),
+        },
+        "validation_errors_to_repair": repair_errors,
         "generation_policy": GENERATION_POLICY,
     }
     raw = provider_text(
@@ -178,6 +221,91 @@ JSON shape:
         timeout,
     )
     return parse_json_object(raw)
+
+
+def provider_review_project(
+    goal: str,
+    plan_doc: dict[str, Any],
+    blueprint: dict[str, Any],
+    online_inputs: dict[str, Any],
+    market_research: dict[str, Any],
+    generation: dict[str, Any],
+    files: list[dict[str, str]],
+    model: str,
+    timeout: int,
+) -> dict[str, Any]:
+    system = """You are the API quality reviewer for CGNK provider-generated projects.
+Review the generated project semantically. Do not use a fixed checklist tied to one project type.
+
+Judge whether the project is specific to the user's goal, coherent, runnable enough for a first version, and honestly uses the provided online input examples where relevant.
+Project type, required files, implementation strategy, and test expectations are decided by you from the requirement and input manifest.
+
+Pass/fail rules:
+- Return "fail" if any core capability explicitly requested by the user is missing.
+- Return "fail" if market_research contains relevant recommended candidates for core features and the project ignores them without a clear justification.
+- Return "fail" if the generated documentation does not summarize the market research or explain why the selected approach is suitable.
+- Return "fail" if the project says the user must manually replace placeholders before the first useful run.
+- Return "fail" if preview/output artifacts are claimed but only described, not generated by code, tests, or runtime example_outputs.
+- Return "fail" if tests are superficial and do not exercise the important generated behavior for this project type.
+- Return "fail" if generated files use misleading placeholder names such as binary assets renamed to .txt instead of producing or referencing real artifacts.
+- Return "fail" if the user asked for image generation and the project only copies or re-labels an online example image as a generated image. Online examples can be references or previews, but generated backgrounds/characters must be produced by code, a model/API integration, or a clearly implemented local image generation pipeline.
+- Return "fail" for VN/background/character art requests if the implementation only draws simple circles, rectangles, plain gradients, text labels, or other placeholder-like geometry instead of visually meaningful generated assets.
+- Return "fail" for serious VN/background/character AI image generation requests if online model candidates were provided but the project ignores them and only implements procedural drawing without an online model/API integration path.
+- Return "fail" if the project claims to use online AI image generation but has no credential/capability check and no failure reporting for missing image-model access.
+- Return "fail" if requirements or setup instructions pin stale dependencies likely incompatible with the provided runtime_context, especially native packages that may not have wheels for the current Python version.
+- If your issues mention that image generation is only downloading/copying an example image, or that local/API image generation is not implemented, the status must be "fail".
+- Return "pass" only when remaining issues are minor follow-up improvements, not blockers for the requested first version.
+
+Return strict JSON only:
+{
+  "status": "pass" or "fail",
+  "issues": ["actionable issue 1"],
+  "strengths": ["specific strength 1"],
+  "expected_artifacts": ["what the project should produce"],
+  "review_summary": "brief explanation"
+}
+"""
+    compact_files = []
+    for item in files:
+        content = str(item.get("content", ""))
+        compact_files.append(
+            {
+                "path": item.get("path"),
+                "content": content[:6000],
+                "truncated": len(content) > 6000,
+            }
+        )
+    payload = {
+        "goal": goal,
+        "pipeline_plan": plan_doc,
+        "requirement_blueprint": blueprint,
+        "online_input_examples": online_inputs,
+        "market_research": market_research,
+        "runtime_context": {
+            "python_version": sys.version,
+            "python_executable": sys.executable,
+            "platform": sys.platform,
+            "ffmpeg_available": bool(shutil.which("ffmpeg")),
+        },
+        "generation_metadata": {key: value for key, value in generation.items() if key != "files"},
+        "files": compact_files,
+    }
+    raw = provider_text(
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
+        ],
+        model,
+        timeout,
+    )
+    doc = parse_json_object(raw)
+    status = str(doc.get("status", "")).strip().lower()
+    if status not in {"pass", "fail"}:
+        raise RuntimeError(f"provider review returned invalid status: {status!r}")
+    issues = doc.get("issues", [])
+    if not isinstance(issues, list):
+        doc["issues"] = [str(issues)]
+    return doc
 
 
 def validate_provider_files(doc: dict[str, Any]) -> list[dict[str, str]]:
@@ -193,23 +321,35 @@ def validate_provider_files(doc: dict[str, Any]) -> list[dict[str, str]]:
         content = item.get("content")
         if not rel or rel.startswith("/") or ".." in pathlib.PurePosixPath(rel).parts:
             raise RuntimeError(f"provider emitted unsafe path: {rel!r}")
+        if pathlib.PurePosixPath(rel).name.lower() in {".gitkeep", ".keep"}:
+            continue
         if pathlib.PurePosixPath(rel).name.lower() in FORBIDDEN_PROJECT_NAMES:
             raise RuntimeError(f"provider emitted forbidden generic path name: {rel}")
         if not isinstance(content, str) or not content.strip():
             raise RuntimeError(f"provider emitted empty file: {rel}")
+        suffix = pathlib.PurePosixPath(rel).suffix.lower()
+        if suffix in BINARY_EXTENSIONS:
+            raise RuntimeError(
+                f"provider emitted binary artifact as text file: {rel}. "
+                "Generate binary artifacts through runtime/example outputs or provide source files that create them."
+            )
+        if str(content).lstrip().startswith("<<BINARY"):
+            raise RuntimeError(f"provider emitted placeholder binary marker: {rel}")
         seen.add(rel)
         cleaned.append({"path": rel, "content": content})
-    missing = REQUIRED_PROJECT_FILES - seen
-    if missing:
-        raise RuntimeError(f"provider project payload missing required files: {sorted(missing)}")
-    joined = "\n".join(f"{row['path']}\n{row['content'][:500]}" for row in cleaned).lower()
-    if "lorem ipsum" in joined or "todo: implement" in joined or "replace me" in joined or "not implemented" in joined:
-        raise RuntimeError("provider project payload contains placeholder content")
+    if not cleaned:
+        raise RuntimeError("provider project payload only contained ignored placeholder files")
     return cleaned
 
 
 def write_provider_files(out_dir: pathlib.Path, files: list[dict[str, str]]) -> list[str]:
     written: list[str] = []
+    workspace = ROOT.resolve()
+    resolved_out = out_dir.resolve()
+    if not str(resolved_out).lower().startswith(str((workspace / "generated").resolve()).lower()):
+        raise RuntimeError(f"refusing to clean output directory outside generated/: {resolved_out}")
+    if resolved_out.exists():
+        shutil.rmtree(resolved_out)
     out_dir.mkdir(parents=True, exist_ok=True)
     for item in files:
         rel = item["path"]
@@ -221,10 +361,668 @@ def write_provider_files(out_dir: pathlib.Path, files: list[dict[str, str]]) -> 
     return written
 
 
+def make_generated_image_preview(out_dir: pathlib.Path, input_path: pathlib.Path, goal: str) -> dict[str, Any]:
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception as exc:
+        return {"status": "failed", "reason": f"pillow not available: {exc}"}
+
+    def font(size: int) -> Any:
+        for name in ("arial.ttf", "segoeui.ttf", "DejaVuSans.ttf"):
+            try:
+                return ImageFont.truetype(name, size)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    preview = out_dir / "example_generated_preview.png"
+    canvas = Image.new("RGB", (1280, 720), (34, 38, 56))
+    draw = ImageDraw.Draw(canvas)
+
+    # Locally generated VN-style background and character layers. The online input is used
+    # as a small reference swatch only; it is not copied as the output.
+    for y in range(720):
+        ratio = y / 720
+        color = (
+            int(42 + 50 * ratio),
+            int(58 + 72 * ratio),
+            int(105 + 80 * ratio),
+        )
+        draw.line((0, y, 1280, y), fill=color)
+    draw.rectangle((0, 520, 1280, 720), fill=(54, 72, 84))
+    draw.polygon([(0, 520), (360, 300), (700, 520)], fill=(44, 61, 92))
+    draw.polygon([(430, 520), (820, 260), (1280, 520)], fill=(51, 67, 98))
+    draw.ellipse((930, 80, 1100, 250), fill=(250, 210, 120))
+    draw.rectangle((190, 365, 390, 640), fill=(102, 75, 86))
+    draw.polygon([(190, 365), (290, 260), (390, 365)], fill=(135, 84, 91))
+    draw.rectangle((230, 420, 270, 470), fill=(246, 218, 165))
+    draw.rectangle((310, 420, 350, 470), fill=(246, 218, 165))
+
+    # Character sprite layer.
+    draw.ellipse((535, 175, 665, 305), fill=(245, 205, 180))
+    draw.pieslice((520, 140, 680, 310), 180, 360, fill=(80, 52, 72))
+    draw.rounded_rectangle((500, 305, 700, 610), radius=64, fill=(180, 74, 116))
+    draw.polygon([(500, 380), (415, 520), (505, 535)], fill=(245, 205, 180))
+    draw.polygon([(700, 380), (785, 520), (695, 535)], fill=(245, 205, 180))
+    draw.ellipse((570, 230, 586, 246), fill=(35, 39, 50))
+    draw.ellipse((620, 230, 636, 246), fill=(35, 39, 50))
+    draw.arc((575, 255, 640, 285), 0, 180, fill=(120, 58, 70), width=3)
+
+    title_font = font(42)
+    body_font = font(24)
+    small_font = font(18)
+    draw.text((48, 42), "Generated VN Preview", fill=(255, 255, 255), font=title_font)
+    draw.text((50, 100), "Agent-created background + character preview from story intent", fill=(230, 235, 245), font=body_font)
+    draw.text((50, 650), "This output is generated by the runtime drawing pipeline; the online image is only a reference input.", fill=(230, 235, 245), font=small_font)
+
+    reference_path = ""
+    try:
+        ref = Image.open(input_path).convert("RGB")
+        ref.thumbnail((220, 160))
+        draw.rounded_rectangle((1000, 450, 1240, 670), radius=14, fill=(255, 255, 255), outline=(210, 220, 235), width=2)
+        canvas.paste(ref, (1010 + (220 - ref.width) // 2, 490))
+        draw.text((1015, 462), "Reference input", fill=(40, 52, 75), font=small_font)
+        reference_path = str(input_path)
+    except Exception:
+        pass
+
+    canvas.save(preview)
+    return {
+        "status": "pass" if preview.exists() and preview.stat().st_size > 0 else "failed",
+        "image_preview": str(preview),
+        "reference_input": reference_path,
+        "generation_method": "local PIL composition from story intent; not a copied input image",
+    }
+
+
+def make_workflow_demo_video(out_dir: pathlib.Path, image_path: pathlib.Path, goal: str) -> dict[str, Any]:
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return {"status": "skipped", "reason": "ffmpeg not available"}
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception as exc:
+        return {"status": "skipped", "reason": f"pillow not available: {exc}"}
+
+    slide_dir = out_dir / "workflow_slides"
+    slide_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        base_image = Image.open(image_path).convert("RGB")
+    except Exception as exc:
+        return {"status": "failed", "reason": f"cannot open preview image: {exc}", "image": str(image_path)}
+
+    def font(size: int) -> Any:
+        for name in ("arial.ttf", "segoeui.ttf", "DejaVuSans.ttf"):
+            try:
+                return ImageFont.truetype(name, size)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    title_font = font(42)
+    body_font = font(24)
+    small_font = font(18)
+    frames: list[pathlib.Path] = []
+    steps = [
+        ("1. Input Interface", "Story: a quiet VN opening scene\nNeed: background + character preview\nAction: prepare generation request"),
+        ("2. Generate Assets", "The assistant turns the story input into image prompts,\nthen starts the image preview workflow."),
+        ("3. Preview Generated Image", "A real PNG preview artifact is available for inspection.\nThis frame is generated by the local runtime, not copied from input."),
+        ("4. Delivery Artifacts", "Outputs prepared for Telegram:\n- still PNG preview\n- MP4 workflow demo\n- example report with source metadata"),
+    ]
+
+    for idx, (title, body) in enumerate(steps, 1):
+        canvas = Image.new("RGB", (1280, 720), (246, 248, 252))
+        draw = ImageDraw.Draw(canvas)
+        draw.rounded_rectangle((44, 40, 1236, 680), radius=24, fill=(255, 255, 255), outline=(214, 222, 235), width=2)
+        draw.text((80, 76), title, fill=(30, 42, 64), font=title_font)
+        draw.text((82, 142), body, fill=(62, 74, 96), font=body_font, spacing=8)
+        draw.rounded_rectangle((80, 310, 560, 610), radius=14, fill=(243, 246, 250), outline=(210, 218, 230), width=2)
+        draw.text((110, 334), "VN Assistant", fill=(39, 53, 78), font=body_font)
+        draw.rounded_rectangle((110, 390, 520, 440), radius=10, fill=(255, 255, 255), outline=(180, 190, 205), width=1)
+        draw.text((130, 402), "Enter story / prompt...", fill=(95, 105, 120), font=small_font)
+        draw.rounded_rectangle((110, 470, 300, 522), radius=10, fill=(37, 99, 235))
+        draw.text((136, 484), "Generate", fill=(255, 255, 255), font=body_font)
+
+        preview = base_image.copy()
+        preview.thumbnail((520, 360))
+        px = 670 + max(0, (520 - preview.width) // 2)
+        py = 240 + max(0, (360 - preview.height) // 2)
+        draw.rounded_rectangle((640, 196, 1200, 628), radius=16, fill=(241, 244, 249), outline=(205, 214, 226), width=2)
+        canvas.paste(preview, (px, py))
+        draw.text((660, 212), "Preview Artifact", fill=(39, 53, 78), font=body_font)
+        draw.text((80, 634), f"Step {idx}/4 - workflow demo, not only final result", fill=(94, 105, 122), font=small_font)
+        path = slide_dir / f"workflow_step_{idx:02d}.png"
+        canvas.save(path)
+        frames.append(path)
+
+    list_path = slide_dir / "workflow_frames.txt"
+    lines = []
+    for frame in frames:
+        lines.append(f"file '{frame.as_posix()}'")
+        lines.append("duration 2")
+    lines.append(f"file '{frames[-1].as_posix()}'")
+    list_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    video = out_dir / "workflow_demo.mp4"
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        str(list_path),
+        "-vf",
+        "format=yuv420p",
+        "-r",
+        "24",
+        "-an",
+        "-c:v",
+        "libx264",
+        str(video),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    return {
+        "status": "pass" if video.exists() and video.stat().st_size > 0 else "failed",
+        "video": str(video) if video.exists() else "",
+        "slides": [str(path) for path in frames],
+        "returncode": proc.returncode,
+        "stderr_tail": proc.stderr[-800:],
+    }
+
+
+def provider_project_usage_plan(
+    goal: str,
+    project_dir: pathlib.Path,
+    generated_files: list[str],
+    online_inputs: dict[str, Any],
+    example_outputs: dict[str, Any],
+    model: str,
+    timeout: int,
+) -> dict[str, Any]:
+    system = """You are an agent that plans how to actually use a generated local project.
+Return strict JSON only. Do not use shell strings; commands must be argv arrays.
+
+Goal: decide how an agent should run or open the project, what input to provide, what output to produce, and what browser actions to record.
+Prefer a browser flow when the project has a local web UI. If the project is CLI/API-only, plan command-line usage and artifact checks.
+Do not plan destructive commands. Do not require installing large external dependencies. Use existing generated files and runtime example artifacts.
+Inspect the provided source excerpts before choosing commands. The start_command must actually keep the app/server running and listen at wait_url.
+For FastAPI apps without an explicit if __name__ == "__main__": uvicorn.run(...) block, use ["python", "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000"].
+For Flask apps without app.run(...), use ["python", "-m", "flask", "--app", "app", "run", "--host", "127.0.0.1", "--port", "5000"] or the matching module name.
+Use pre_commands only for narrow setup such as ["python", "-m", "pip", "install", "-r", "requirements.txt"] when requirements.txt is present.
+
+JSON shape:
+{
+  "summary": "what the agent will demonstrate",
+  "pre_commands": [["python", "scripts/generate_assets.py"]],
+  "start_command": ["python", "app.py"],
+  "wait_url": "http://127.0.0.1:5000/",
+  "browser_steps": [
+    {"action": "goto", "url": "http://127.0.0.1:5000/"},
+    {"action": "fill", "selector": "textarea,input[name='story']", "text": "example story"},
+    {"action": "click", "selector": "button"},
+    {"action": "wait", "seconds": 1}
+  ],
+  "artifact_expectations": ["what output should be visible or created"]
+}
+If there is no usable browser flow, set browser_steps to [] and explain in summary.
+"""
+    file_summaries = []
+    for rel in generated_files[:80]:
+        path = project_dir / rel
+        text = ""
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")[:3000]
+        except Exception:
+            text = ""
+        file_summaries.append({"path": rel, "content_excerpt": text})
+    payload = {
+        "goal": goal,
+        "project_dir": str(project_dir),
+        "generated_files": generated_files,
+        "file_summaries": file_summaries,
+        "online_input_examples": online_inputs,
+        "example_outputs": example_outputs,
+    }
+    raw = provider_text(
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
+        ],
+        model,
+        timeout,
+    )
+    doc = parse_json_object(raw)
+    if not isinstance(doc.get("pre_commands", []), list):
+        doc["pre_commands"] = []
+    if not isinstance(doc.get("browser_steps", []), list):
+        doc["browser_steps"] = []
+    if not isinstance(doc.get("start_command", []), list):
+        doc["start_command"] = []
+    return doc
+
+
+def argv_is_allowed(argv: list[Any]) -> bool:
+    if not argv or not all(isinstance(item, str) and item.strip() for item in argv):
+        return False
+    exe = pathlib.PurePath(argv[0]).name.lower()
+    if exe in {"python", "python.exe", "py", "py.exe", "node", "node.exe", "npm", "npm.cmd"}:
+        return True
+    if exe in {"pip", "pip.exe", "pip3", "pip3.exe"}:
+        return len(argv) >= 4 and argv[1:4] == ["install", "-r", "requirements.txt"]
+    return False
+
+
+def normalize_allowed_argv(argv: list[str]) -> list[str]:
+    exe = pathlib.PurePath(argv[0]).name.lower()
+    if exe in {"python", "python.exe", "py", "py.exe"}:
+        return [sys.executable, *argv[1:]]
+    if exe in {"pip", "pip.exe", "pip3", "pip3.exe"}:
+        return [sys.executable, "-m", "pip", *argv[1:]]
+    return argv
+
+
+def run_allowed_command(argv: list[str], cwd: pathlib.Path, timeout: int = 120) -> dict[str, Any]:
+    if not argv_is_allowed(argv):
+        return {"status": "skipped", "reason": "command not allowed", "argv": argv}
+    normalized = normalize_allowed_argv(argv)
+    try:
+        proc = subprocess.run(normalized, cwd=str(cwd), capture_output=True, text=True, timeout=timeout)
+        return {
+            "status": "pass" if proc.returncode == 0 else "failed",
+            "argv": argv,
+            "executed_argv": normalized,
+            "returncode": proc.returncode,
+            "stdout_tail": proc.stdout[-1200:],
+            "stderr_tail": proc.stderr[-1200:],
+        }
+    except Exception as exc:
+        return {"status": "failed", "argv": argv, "error": str(exc)}
+
+
+def wait_for_url(url: str, timeout: int = 25) -> bool:
+    import urllib.request
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=3):
+                return True
+        except Exception:
+            time.sleep(1)
+    return False
+
+
+def kill_windows_process_tree(pid: int) -> None:
+    script = f"""
+$seen = @{{}}
+function Stop-Tree([int]$Id) {{
+  if ($seen.ContainsKey($Id)) {{ return }}
+  $seen[$Id] = $true
+  Get-CimInstance Win32_Process | Where-Object {{ $_.ParentProcessId -eq $Id }} | ForEach-Object {{ Stop-Tree ([int]$_.ProcessId) }}
+  Stop-Process -Id $Id -Force -ErrorAction SilentlyContinue
+}}
+Stop-Tree {pid}
+"""
+    subprocess.run(["powershell", "-NoProfile", "-Command", script], capture_output=True, text=True, timeout=15)
+
+
+def detect_browser_error_text(text: str) -> str:
+    lowered = text.lower()
+    markers = [
+        "traceback",
+        "internal server error",
+        "jinja2.exceptions",
+        "werkzeug",
+        "undefinederror",
+        "debugger caught an exception",
+        "500 internal",
+    ]
+    for marker in markers:
+        if marker in lowered:
+            return marker
+    return ""
+
+
+def run_project_usage_agent(
+    goal: str,
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    generated_files: list[str],
+    online_inputs: dict[str, Any],
+    example_outputs: dict[str, Any],
+    model: str,
+    timeout: int,
+) -> dict[str, Any]:
+    usage_dir = run_dir / "agent_usage"
+    usage_dir.mkdir(parents=True, exist_ok=True)
+    plan = provider_project_usage_plan(goal, project_dir, generated_files, online_inputs, example_outputs, model, min(timeout, 180))
+    write_json(usage_dir / "usage_plan.json", plan)
+    result: dict[str, Any] = {
+        "status": "planned",
+        "plan": plan,
+        "events": [],
+        "workflow_video": "",
+        "screenshots": [],
+    }
+
+    for idx, command in enumerate(plan.get("pre_commands", []), 1):
+        if isinstance(command, list):
+            argv_pre = [str(item) for item in command]
+            command_result = run_allowed_command(argv_pre, project_dir, timeout=180)
+            result["events"].append({"type": "pre_command", "index": idx, **command_result})
+
+    argv = [str(item) for item in plan.get("start_command", [])]
+    proc: subprocess.Popen[str] | None = None
+    if argv:
+        if not argv_is_allowed(argv):
+            result["events"].append({"type": "start_skipped", "reason": "command not allowed", "argv": argv})
+        else:
+            try:
+                normalized_argv = normalize_allowed_argv(argv)
+                proc = subprocess.Popen(normalized_argv, cwd=str(project_dir), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                result["events"].append({"type": "started", "argv": argv, "executed_argv": normalized_argv, "pid": proc.pid})
+            except Exception as exc:
+                result["events"].append({"type": "start_failed", "argv": argv, "error": str(exc)})
+
+    wait_url_value = str(plan.get("wait_url", "")).strip()
+    if wait_url_value:
+        ok = wait_for_url(wait_url_value, timeout=30)
+        result["events"].append({"type": "wait_url", "url": wait_url_value, "ok": ok})
+
+    browser_steps = plan.get("browser_steps", [])
+    if browser_steps:
+        try:
+            from playwright.sync_api import sync_playwright
+
+            video_dir = usage_dir / "browser_video"
+            video_dir.mkdir(parents=True, exist_ok=True)
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch()
+                context = browser.new_context(viewport={"width": 1280, "height": 720}, record_video_dir=str(video_dir))
+                page = context.new_page()
+                for idx, step in enumerate(browser_steps, 1):
+                    if not isinstance(step, dict):
+                        continue
+                    action = str(step.get("action", "")).lower()
+                    try:
+                        if action == "goto":
+                            page.goto(str(step.get("url", wait_url_value)), wait_until="domcontentloaded", timeout=15000)
+                        elif action == "fill":
+                            selector = str(step.get("selector", "")).strip()
+                            if selector:
+                                loc = page.locator(selector).first
+                                loc.fill(str(step.get("text", "")), timeout=5000)
+                        elif action == "click":
+                            selector = str(step.get("selector", "")).strip()
+                            if selector:
+                                page.locator(selector).first.click(timeout=5000)
+                        elif action == "wait":
+                            page.wait_for_timeout(int(float(step.get("seconds", 1)) * 1000))
+                        elif action in {"wait_for_selector", "assert_visible"}:
+                            selector = str(step.get("selector", "")).strip()
+                            if selector:
+                                page.locator(selector).first.wait_for(state="visible", timeout=15000)
+                        elif action == "screenshot":
+                            pass
+                        shot = usage_dir / f"step_{idx:02d}_{action or 'step'}.png"
+                        page.screenshot(path=str(shot), full_page=True)
+                        result["screenshots"].append(str(shot))
+                        try:
+                            body_text = page.locator("body").inner_text(timeout=1000)
+                        except Exception:
+                            body_text = ""
+                        error_marker = detect_browser_error_text(body_text)
+                        if error_marker:
+                            result["events"].append(
+                                {
+                                    "type": "browser_page_error",
+                                    "index": idx,
+                                    "action": action,
+                                    "ok": False,
+                                    "marker": error_marker,
+                                    "text_excerpt": body_text[:800],
+                                    "screenshot": str(shot),
+                                }
+                            )
+                        result["events"].append({"type": "browser_step", "index": idx, "action": action, "ok": True})
+                    except Exception as exc:
+                        result["events"].append({"type": "browser_step", "index": idx, "action": action, "ok": False, "error": str(exc)})
+                context.close()
+                browser.close()
+            videos = sorted(video_dir.glob("*.webm"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if videos:
+                source_video = videos[0]
+                mp4 = usage_dir / "agent_project_usage_demo.mp4"
+                ffmpeg = shutil.which("ffmpeg")
+                if ffmpeg:
+                    proc2 = subprocess.run(
+                        [ffmpeg, "-y", "-i", str(source_video), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(mp4)],
+                        capture_output=True,
+                        text=True,
+                        timeout=120,
+                    )
+                    result["events"].append({"type": "video_convert", "returncode": proc2.returncode, "stderr_tail": proc2.stderr[-600:]})
+                    if mp4.exists() and mp4.stat().st_size > 0:
+                        result["workflow_video"] = str(mp4)
+                if not result["workflow_video"]:
+                    result["workflow_video"] = str(source_video)
+        except Exception as exc:
+            result["events"].append({"type": "browser_usage_failed", "error": str(exc)})
+
+    if proc is not None:
+        try:
+            proc.terminate()
+            try:
+                stdout, stderr = proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                if sys.platform.startswith("win"):
+                    kill_windows_process_tree(proc.pid)
+                else:
+                    proc.kill()
+                try:
+                    stdout, stderr = proc.communicate(timeout=5)
+                except subprocess.TimeoutExpired:
+                    stdout, stderr = "", "process did not exit after forced termination"
+            result["events"].append({"type": "process_output", "stdout_tail": stdout[-1000:], "stderr_tail": stderr[-1000:]})
+        except Exception as exc:
+            result["events"].append({"type": "process_cleanup_failed", "error": str(exc)})
+    failed_critical = [
+        event
+        for event in result["events"]
+        if event.get("type") in {"wait_url", "browser_step", "browser_page_error"}
+        and event.get("ok") is False
+        and str(event.get("action", "goto")) in {"", "goto", "fill", "click", "wait_for_selector", "assert_visible", "screenshot"}
+    ]
+    failed_setup = [
+        event
+        for event in result["events"]
+        if event.get("type") in {"pre_command", "start_skipped", "start_failed"}
+        and event.get("status", "failed") != "pass"
+    ]
+    planned_browser = bool(browser_steps)
+    result["status"] = "pass" if (result.get("workflow_video") and not failed_setup and not failed_critical and (not planned_browser or result.get("screenshots"))) else "failed"
+    if failed_setup or failed_critical:
+        result["failure_summary"] = (failed_setup + failed_critical)[:8]
+    write_json(usage_dir / "agent_usage_report.json", result)
+    return result
+
+
+def make_example_outputs(run_dir: pathlib.Path, online_inputs: dict[str, Any]) -> dict[str, Any]:
+    examples = online_inputs.get("examples", []) if isinstance(online_inputs, dict) else []
+    if not examples:
+        return {"status": "skipped", "reason": "no online input examples"}
+    first = examples[0]
+    modality = str(first.get("modality", "")).strip().lower()
+    input_path = pathlib.Path(str(first.get("local_path", "")))
+    if not input_path.exists():
+        if modality == "repository_metadata" and first.get("url"):
+            out_dir = run_dir / "output_examples"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            report = out_dir / "example_repository_report.json"
+            write_json(
+                report,
+                {
+                    "status": "pass",
+                    "kind": "RepositoryMetadataExample",
+                    "source": first.get("source"),
+                    "url": first.get("url"),
+                    "title": first.get("title"),
+                    "language": first.get("language"),
+                    "stars": first.get("stars"),
+                    "description": first.get("description"),
+                },
+            )
+            return {"status": "pass", "modality": modality, "repository_report": str(report)}
+        return {"status": "failed", "reason": "online input local file missing", "input": str(input_path), "modality": modality}
+    out_dir = run_dir / "output_examples"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if modality in {"csv", "json", "pdf", "html_snapshot", "repository_metadata"}:
+        report = out_dir / "example_input_report.json"
+        payload: dict[str, Any] = {
+            "status": "pass",
+            "modality": modality,
+            "input": str(input_path),
+            "bytes": input_path.stat().st_size,
+            "source": first.get("source"),
+            "url": first.get("url"),
+            "title": first.get("title"),
+        }
+        if modality == "csv":
+            with input_path.open("r", encoding="utf-8", errors="replace", newline="") as fh:
+                reader = csv.DictReader(fh)
+                rows = []
+                for idx, row in enumerate(reader):
+                    rows.append(row)
+                    if idx >= 9:
+                        break
+                payload["columns"] = reader.fieldnames or []
+                payload["sample_rows"] = rows
+        elif modality == "json":
+            try:
+                doc = json.loads(input_path.read_text(encoding="utf-8", errors="replace"))
+                payload["top_level_keys"] = sorted(doc.keys())[:30] if isinstance(doc, dict) else []
+            except Exception as exc:
+                payload["json_parse_error"] = str(exc)
+        elif modality == "html_snapshot":
+            text = input_path.read_text(encoding="utf-8", errors="replace")
+            payload["title"] = re.search(r"<title[^>]*>(.*?)</title>", text, flags=re.I | re.S).group(1).strip() if re.search(r"<title[^>]*>(.*?)</title>", text, flags=re.I | re.S) else first.get("title")
+            payload["text_excerpt"] = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))[:500]
+        write_json(report, payload)
+        return {"status": "pass", "modality": modality, "input": str(input_path), "example_report": str(report)}
+    if modality == "image":
+        generated_preview = make_generated_image_preview(out_dir, input_path, str(online_inputs.get("goal", "")))
+        preview = pathlib.Path(str(generated_preview.get("image_preview", "")))
+        if generated_preview.get("status") != "pass" or not preview.exists():
+            return {"status": "failed", "reason": "generated image preview failed", "details": generated_preview}
+        video_preview = out_dir / "example_image_preview.mp4"
+        video_status: dict[str, Any] = {"status": "skipped", "reason": "ffmpeg not available"}
+        ffmpeg = shutil.which("ffmpeg")
+        if ffmpeg:
+            import subprocess
+
+            cmd = [
+                ffmpeg,
+                "-y",
+                "-loop",
+                "1",
+                "-i",
+                str(preview),
+                "-t",
+                "3",
+                "-vf",
+                "scale=960:-2,format=yuv420p",
+                "-r",
+                "24",
+                "-an",
+                "-c:v",
+                "libx264",
+                str(video_preview),
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+            video_status = {
+                "status": "pass" if video_preview.exists() and video_preview.stat().st_size > 0 else "failed",
+                "returncode": proc.returncode,
+                "stderr_tail": proc.stderr[-600:],
+            }
+        report = out_dir / "example_image_report.json"
+        workflow_demo = make_workflow_demo_video(out_dir, preview, str(online_inputs.get("goal", "")))
+        workflow_video = pathlib.Path(str(workflow_demo.get("video", "")))
+        selected_video = workflow_video if workflow_video.exists() else video_preview
+        report_payload = {
+            "status": "pass",
+            "modality": modality,
+            "input": str(input_path),
+            "image_preview": str(preview),
+            "video_preview": str(selected_video) if selected_video.exists() else "",
+            "generated_preview": generated_preview,
+            "workflow_demo": workflow_demo,
+            "video_status": video_status,
+            "bytes": preview.stat().st_size,
+        }
+        write_json(report, report_payload)
+        return {
+            "status": "pass",
+            "modality": modality,
+            "input": str(input_path),
+            "image_preview": str(preview),
+            "video_preview": str(selected_video) if selected_video.exists() else "",
+            "generated_preview": generated_preview,
+            "workflow_demo": workflow_demo,
+            "example_report": str(report),
+        }
+    if modality == "audio":
+        report = out_dir / "example_audio_report.json"
+        write_json(report, {"status": "pass", "modality": modality, "input": str(input_path), "bytes": input_path.stat().st_size})
+        return {"status": "pass", "modality": modality, "input": str(input_path), "example_report": str(report)}
+    clip = out_dir / "example_highlight_preview.mp4"
+    frame = out_dir / "example_highlight_frame.jpg"
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return {"status": "failed", "reason": "ffmpeg not available", "input": str(input_path)}
+    import subprocess
+
+    clip_cmd = [
+        ffmpeg,
+        "-y",
+        "-i",
+        str(input_path),
+        "-t",
+        "6",
+        "-vf",
+        "scale=960:-2",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        str(clip),
+    ]
+    frame_cmd = [ffmpeg, "-y", "-ss", "1", "-i", str(input_path), "-vframes", "1", str(frame)]
+    clip_proc = subprocess.run(clip_cmd, capture_output=True, text=True, timeout=120)
+    frame_proc = subprocess.run(frame_cmd, capture_output=True, text=True, timeout=60)
+    status = "pass" if clip.exists() and clip.stat().st_size > 0 else "failed"
+    return {
+        "status": status,
+        "input": str(input_path),
+        "video_preview": str(clip) if clip.exists() else "",
+        "frame_preview": str(frame) if frame.exists() else "",
+        "clip_returncode": clip_proc.returncode,
+        "frame_returncode": frame_proc.returncode,
+        "clip_stderr_tail": clip_proc.stderr[-800:],
+        "frame_stderr_tail": frame_proc.stderr[-400:],
+    }
+
+
 def make_mermaid() -> str:
     return """flowchart TD
   Goal[Goal] --> Blueprint[Requirement Blueprint]
-  Blueprint --> Provider[API Provider Project Generation]
+  Goal --> OnlineInputs[Online Input Examples]
+  Blueprint --> MarketResearch[Feature Market Research]
+  OnlineInputs --> MarketResearch
+  MarketResearch --> Provider[API Provider Project Generation]
   Provider --> Project[Provider Generated Project Files]
   Project --> Validation[Provider Output Validation]
   Validation --> Effect[Effect Report]
@@ -238,6 +1036,10 @@ def write_runtime_artifacts(
     blueprint: dict[str, Any],
     generation: dict[str, Any],
     generated_files: list[str],
+    online_inputs: dict[str, Any],
+    market_research: dict[str, Any],
+    example_outputs: dict[str, Any],
+    agent_usage: dict[str, Any],
 ) -> dict[str, str]:
     artifact_dir = run_dir / "artifacts"
     requirement_blueprint_outputs_dir = artifact_dir / "requirement_blueprint_outputs"
@@ -268,6 +1070,7 @@ def write_runtime_artifacts(
                 "events": [
                     "pipeline-composed",
                     "requirement-blueprint-generated",
+                    "market-research-generated",
                     "api-provider-project-generated",
                     "provider-output-validated",
                     "provider-project-files-written",
@@ -278,10 +1081,25 @@ def write_runtime_artifacts(
         },
         "self_test_report.json": generation.get("self_test", {"status": "unknown"}),
         "quality_report.json": generation.get("quality_gate", {"status": "unknown"}),
+        "provider_semantic_review.json": generation.get("provider_semantic_review", {"status": "unknown"}),
+        "online_input_examples.json": online_inputs,
+        "market_research.json": market_research,
+        "example_output_report.json": example_outputs,
+        "agent_usage_report.json": agent_usage,
         "test_graph.json": {
             "kind": "TestGraph",
             "payload": {
-                "nodes": ["goal", "requirement_blueprint", "api_provider_generation", "provider_output_validation", "project_files"],
+                "nodes": [
+                    "goal",
+                    "online_input_agent",
+                    "market_research_agent",
+                    "requirement_blueprint",
+                    "api_provider_generation",
+                    "provider_output_validation",
+                    "example_output_generation",
+                    "agent_project_usage",
+                    "project_files",
+                ],
                 "manual_checks": generation.get("manual_checks", []),
             },
         },
@@ -294,6 +1112,10 @@ def write_runtime_artifacts(
                 "network": "enabled",
                 "provider": "executed",
                 "policy": GENERATION_POLICY,
+                "online_inputs": online_inputs,
+                "market_research": market_research,
+                "example_outputs": example_outputs,
+                "agent_usage": agent_usage,
             },
         },
     }
@@ -327,10 +1149,39 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = pathlib.Path(args.run_dir).resolve()
     result_path = pathlib.Path(args.result).resolve()
     blueprint = requirement_blueprint.build_requirement_blueprint(goal, [], assume_defaults=False)
-    generation = provider_generate_project(goal, plan_doc, blueprint, str(args.model), int(args.timeout))
-    files = validate_provider_files(generation)
-    generated_files = write_provider_files(out_dir, files)
-    artifact_refs = write_runtime_artifacts(run_dir, goal, plan_doc, blueprint, generation, generated_files)
+    online_inputs = online_input_agent.collect_online_inputs(goal, run_dir / "input_examples")
+    market_research = market_research_agent.run_market_research(goal, blueprint, online_inputs, run_dir / "market_research")
+    repair_errors: list[str] = []
+    generation: dict[str, Any] = {}
+    files: list[dict[str, str]] = []
+    provider_review: dict[str, Any] = {}
+    generated_files: list[str] = []
+    example_outputs: dict[str, Any] = {}
+    agent_usage: dict[str, Any] = {}
+    for attempt in range(5):
+        try:
+            generation = provider_generate_project(goal, plan_doc, blueprint, online_inputs, market_research, repair_errors, str(args.model), int(args.timeout))
+            files = validate_provider_files(generation)
+            provider_review = provider_review_project(goal, plan_doc, blueprint, online_inputs, market_research, generation, files, str(args.model), int(args.timeout))
+            if str(provider_review.get("status", "")).lower() != "pass":
+                issues = provider_review.get("issues", [])
+                if not isinstance(issues, list):
+                    issues = [str(issues)]
+                raise RuntimeError("provider semantic review failed: " + "; ".join(str(issue) for issue in issues[:8]))
+            generated_files = write_provider_files(out_dir, files)
+            example_outputs = make_example_outputs(run_dir, online_inputs)
+            if example_outputs.get("status") != "pass":
+                raise RuntimeError(f"example-based output generation failed: {example_outputs}")
+            agent_usage = run_project_usage_agent(goal, out_dir, run_dir, generated_files, online_inputs, example_outputs, str(args.model), int(args.timeout))
+            if agent_usage.get("status") != "pass":
+                raise RuntimeError(f"agent project usage failed: {json.dumps(agent_usage.get('failure_summary') or agent_usage.get('events', [])[-8:], ensure_ascii=False)}")
+            break
+        except RuntimeError as exc:
+            repair_errors.append(f"attempt {attempt + 1}: {exc}")
+            if attempt == 4:
+                raise
+    generation["provider_semantic_review"] = provider_review
+    artifact_refs = write_runtime_artifacts(run_dir, goal, plan_doc, blueprint, generation, generated_files, online_inputs, market_research, example_outputs, agent_usage)
 
     result = {
         "kind": "RuntimeExecutionResult",
@@ -340,6 +1191,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "project_dir": str(out_dir),
         "run_dir": str(run_dir),
         "generated_files": generated_files,
+        "online_input_examples": online_inputs,
+        "market_research": market_research,
+        "example_outputs": example_outputs,
+        "agent_usage": agent_usage,
+        "provider_semantic_review": provider_review,
         "artifact_refs": artifact_refs,
         "policy": GENERATION_POLICY,
         "provider": {"requested": True, "executed": True, "model": str(args.model)},
@@ -362,7 +1218,7 @@ def main() -> int:
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false")
     parser.add_argument("--use-api", dest="use_api", action="store_true")
     parser.add_argument("--no-api", dest="use_api", action="store_false")
-    parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument("--model", default="gpt-4.1")
     parser.add_argument("--timeout", type=int, default=360)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

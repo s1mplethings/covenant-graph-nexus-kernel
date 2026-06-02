@@ -42,6 +42,10 @@
 - 如果没有预览，说明是本轮测试没有产出 preview artifact，并建议下一步补预览任务。
 - 可以保留项目目录、测试报告、效果报告路径，但路径不是主体。
 
+## Visual Art Generation
+
+当用户明确要求“正经生成图片”“AI 生成图”“立绘”“背景”这类视觉产出时，默认策略应是寻找并使用可调用的在线 AI 图像生成模型/API，例如 OpenAI Images、Replicate、Hugging Face text-to-image provider 或用户已配置的同类服务。程序化绘图只能作为离线 fallback，必须明确标注为 fallback，不能作为理想交付假装通过。
+
 ## Error Handling
 
 API 或网络临时失败时，不把底层错误发给用户。用户侧只说连接中断、已经记录、可以继续；完整错误写日志。

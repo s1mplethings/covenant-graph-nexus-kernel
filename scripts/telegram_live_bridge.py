@@ -99,17 +99,36 @@ class TelegramClient:
     def __init__(self, token: str, timeout: int) -> None:
         self.base = f"https://api.telegram.org/bot{token}"
         self.timeout = timeout
+        try:
+            import requests
+
+            self.session = requests.Session()
+        except Exception:
+            self.session = None
 
     def call(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        data = urllib.parse.urlencode(payload or {}).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base}/{method}",
-            data=data,
-            method="POST",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+        last_exc: Exception | None = None
+        for attempt in range(4):
+            try:
+                if self.session is not None:
+                    resp = self.session.post(f"{self.base}/{method}", data=payload or {}, timeout=self.timeout)
+                    doc = resp.json()
+                else:
+                    data = urllib.parse.urlencode(payload or {}).encode("utf-8")
+                    req = urllib.request.Request(
+                        f"{self.base}/{method}",
+                        data=data,
+                        method="POST",
+                        headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    )
+                    with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+                break
+            except Exception as exc:
+                last_exc = exc
+                time.sleep(min(8.0, 1.5 * (attempt + 1)))
+        else:
+            raise RuntimeError(f"Telegram {method} transport failed: {last_exc}")
         if not isinstance(doc, dict) or not doc.get("ok"):
             raise RuntimeError(f"Telegram {method} failed: {doc}")
         return doc
@@ -129,6 +148,8 @@ class TelegramClient:
             return False
         boundary = "----CGNKTelegramBoundary"
         fields = {"chat_id": str(chat_id), "caption": caption[:900]}
+        suffix = path.suffix.lower()
+        content_type = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
         body = bytearray()
         for key, value in fields.items():
             body.extend(f"--{boundary}\r\n".encode())
@@ -139,7 +160,7 @@ class TelegramClient:
         body.extend(
             (
                 f'Content-Disposition: form-data; name="photo"; filename="{path.name}"\r\n'
-                "Content-Type: image/png\r\n\r\n"
+                f"Content-Type: {content_type}\r\n\r\n"
             ).encode()
         )
         body.extend(path.read_bytes())
@@ -151,11 +172,73 @@ class TelegramClient:
             method="POST",
             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
         )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                doc = json.loads(resp.read().decode("utf-8", errors="replace"))
-        except Exception:
+        for attempt in range(3):
+            try:
+                if self.session is not None:
+                    with path.open("rb") as fh:
+                        resp = self.session.post(
+                            f"{self.base}/sendPhoto",
+                            data=fields,
+                            files={"photo": (path.name, fh, content_type)},
+                            timeout=self.timeout,
+                        )
+                    doc = resp.json()
+                else:
+                    with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+                break
+            except Exception:
+                if attempt == 2:
+                    return False
+                time.sleep(min(8.0, 2.0 * (attempt + 1)))
+        return bool(isinstance(doc, dict) and doc.get("ok"))
+
+    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        if not path.exists() or not path.is_file():
             return False
+        boundary = "----CGNKTelegramBoundary"
+        fields = {"chat_id": str(chat_id), "caption": caption[:900], "supports_streaming": "true"}
+        body = bytearray()
+        for key, value in fields.items():
+            body.extend(f"--{boundary}\r\n".encode())
+            body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
+            body.extend(str(value).encode("utf-8"))
+            body.extend(b"\r\n")
+        body.extend(f"--{boundary}\r\n".encode())
+        body.extend(
+            (
+                f'Content-Disposition: form-data; name="video"; filename="{path.name}"\r\n'
+                "Content-Type: video/mp4\r\n\r\n"
+            ).encode()
+        )
+        body.extend(path.read_bytes())
+        body.extend(b"\r\n")
+        body.extend(f"--{boundary}--\r\n".encode())
+        req = urllib.request.Request(
+            f"{self.base}/sendVideo",
+            data=bytes(body),
+            method="POST",
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        )
+        for attempt in range(3):
+            try:
+                if self.session is not None:
+                    with path.open("rb") as fh:
+                        resp = self.session.post(
+                            f"{self.base}/sendVideo",
+                            data=fields,
+                            files={"video": (path.name, fh, "video/mp4")},
+                            timeout=max(self.timeout, 120),
+                        )
+                    doc = resp.json()
+                else:
+                    with urllib.request.urlopen(req, timeout=max(self.timeout, 120)) as resp:
+                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+                break
+            except Exception:
+                if attempt == 2:
+                    return False
+                time.sleep(min(12.0, 3.0 * (attempt + 1)))
         return bool(isinstance(doc, dict) and doc.get("ok"))
 
     def get_updates(self, offset: int, poll_timeout: int) -> list[dict[str, Any]]:
@@ -241,16 +324,22 @@ def is_smalltalk(text: str) -> bool:
 
 def is_generate_command(text: str) -> bool:
     compact = re.sub(r"\s+", "", text.lower())
-    triggers = (
-        "/generate",
-        "/build",
+    if compact in {"/generate", "/build"}:
+        return True
+    control_phrases = {
         "开始生成",
         "可以生成",
         "直接生成",
         "生成项目",
         "开始吧",
-    )
-    return any(trigger in compact for trigger in triggers)
+        "开工",
+        "做吧",
+    }
+    if compact in control_phrases:
+        return True
+    # Long requirement text can naturally contain words like "生成图片".
+    # Treat generation triggers as commands only when the whole message is a short control phrase.
+    return len(compact) <= 10 and any(phrase == compact for phrase in control_phrases)
 
 
 def assistant_invited_start(session: dict[str, Any]) -> bool:
@@ -322,12 +411,12 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
         payload = {"model": model, "input": prompt, "temperature": 0.25, "max_output_tokens": 900}
     last_error = ""
-    for attempt in range(3):
+    for attempt in range(6):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
         if doc is not None:
             break
         last_error = error
-        time.sleep(1.5 * (attempt + 1))
+        time.sleep(min(20.0, 2.0 * (attempt + 1)))
     else:
         raise RuntimeError(last_error)
     text = check_connectivity._extract_text(doc)
@@ -532,20 +621,138 @@ def log_bridge_error(log_dir: pathlib.Path, event: str, chat_id: int | str, exc:
     )
 
 
-def find_delivery_image(result: dict[str, Any]) -> pathlib.Path | None:
-    candidates: list[pathlib.Path] = []
-    for key in ("project_dir", "runtime_dir"):
-        root = pathlib.Path(str(result.get(key, "")))
+def is_valid_image_file(path: pathlib.Path) -> bool:
+    if not path.exists() or not path.is_file() or path.stat().st_size < 32:
+        return False
+    try:
+        head = path.read_bytes()[:16]
+    except Exception:
+        return False
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    if head.startswith(b"\xff\xd8\xff"):
+        return True
+    if head.startswith(b"GIF87a") or head.startswith(b"GIF89a"):
+        return True
+    if head.startswith(b"RIFF") and b"WEBP" in head:
+        return True
+    return False
+
+
+def delivery_image_candidates(result: dict[str, Any]) -> list[pathlib.Path]:
+    candidates: list[tuple[int, pathlib.Path]] = []
+    agent_usage = result.get("agent_usage", {})
+    if isinstance(agent_usage, dict):
+        screenshots = [pathlib.Path(str(item)) for item in agent_usage.get("screenshots", []) if str(item).strip()]
+        for path in screenshots:
+            if path.exists():
+                candidates.append((0, path))
+    project_dir = pathlib.Path(str(result.get("project_dir", "")))
+    if project_dir.exists():
+        preferred_dirs = [
+            project_dir / "static" / "output",
+            project_dir / "static" / "generated",
+            project_dir / "output",
+            project_dir / "outputs",
+            project_dir / "generated",
+        ]
+        for directory in preferred_dirs:
+            if directory.exists():
+                candidates.extend((1, p) for p in directory.rglob("*.png"))
+                candidates.extend((1, p) for p in directory.rglob("*.jpg"))
+                candidates.extend((1, p) for p in directory.rglob("*.jpeg"))
+    example_outputs = result.get("example_outputs", {})
+    if isinstance(example_outputs, dict):
+        for key in ("image_preview", "frame_preview"):
+            path = pathlib.Path(str(example_outputs.get(key, "")))
+            if path.exists():
+                candidates.append((2, path))
+    online_inputs = result.get("online_input_examples", {})
+    if isinstance(online_inputs, dict):
+        for item in online_inputs.get("examples", []):
+            if isinstance(item, dict) and str(item.get("modality", "")).lower() == "image":
+                path = pathlib.Path(str(item.get("local_path", "")))
+                if path.exists():
+                    candidates.append((4, path))
+    for key in ("project_dir", "runtime_dir", "run_dir"):
+        raw_root = str(result.get(key, "")).strip()
+        if not raw_root:
+            continue
+        root = pathlib.Path(raw_root)
         if root.exists():
-            candidates.extend(root.rglob("*.png"))
-            candidates.extend(root.rglob("*.jpg"))
-            candidates.extend(root.rglob("*.jpeg"))
+            candidates.extend((3, p) for p in root.rglob("*.png"))
+            candidates.extend((3, p) for p in root.rglob("*.jpg"))
+            candidates.extend((3, p) for p in root.rglob("*.jpeg"))
     root_pngs = sorted(ROOT.glob("*telegram*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
-    candidates.extend(root_pngs[:5])
-    valid = [p for p in candidates if p.exists() and p.is_file() and p.stat().st_size > 0]
+    candidates.extend((5, p) for p in root_pngs[:5])
+    unique: dict[str, tuple[int, pathlib.Path]] = {}
+    for priority, path in candidates:
+        try:
+            key = str(path.resolve()).lower()
+            existing = unique.get(key)
+            if existing is None or priority < existing[0]:
+                unique[key] = (priority, path)
+        except Exception:
+            continue
+    valid = [(priority, p) for priority, p in unique.values() if is_valid_image_file(p)]
+    return [p for _, p in sorted(valid, key=lambda item: (item[0], -item[1].stat().st_mtime))]
+
+
+def find_delivery_image(result: dict[str, Any]) -> pathlib.Path | None:
+    candidates = delivery_image_candidates(result)
+    if not candidates:
+        return None
+    return candidates[0]
+
+
+def find_delivery_video(result: dict[str, Any]) -> pathlib.Path | None:
+    candidates: list[tuple[int, pathlib.Path]] = []
+    agent_usage = result.get("agent_usage", {})
+    if isinstance(agent_usage, dict):
+        path = pathlib.Path(str(agent_usage.get("workflow_video", "")))
+        if path.exists():
+            candidates.append((0, path))
+    example_outputs = result.get("example_outputs", {})
+    if isinstance(example_outputs, dict):
+        path = pathlib.Path(str(example_outputs.get("video_preview", "")))
+        if path.exists():
+            candidates.append((2, path))
+    for key in ("project_dir", "runtime_dir", "run_dir"):
+        raw_root = str(result.get(key, "")).strip()
+        if not raw_root:
+            continue
+        root = pathlib.Path(raw_root)
+        if root.exists():
+            candidates.extend((1, p) for p in root.rglob("*.mp4"))
+            candidates.extend((1, p) for p in root.rglob("*.webm"))
+            candidates.extend((1, p) for p in root.rglob("*.mov"))
+    valid = [(priority, p) for priority, p in candidates if p.exists() and p.is_file() and p.stat().st_size > 0]
     if not valid:
         return None
-    return sorted(valid, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+    return sorted(valid, key=lambda item: (item[0], -item[1].stat().st_mtime))[0][1]
+
+
+def render_project_preview_image(result: dict[str, Any], log_dir: pathlib.Path) -> pathlib.Path | None:
+    project_dir = pathlib.Path(str(result.get("project_dir", "")))
+    index = project_dir / "index.html"
+    if not index.exists():
+        return None
+    out = log_dir / f"{safe_id(project_dir.name)}_preview.png"
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
+            page.goto(index.resolve().as_uri(), wait_until="networkidle")
+            page.screenshot(path=str(out), full_page=True)
+            browser.close()
+    except Exception as exc:
+        print(f"preview render failed: {exc}", flush=True)
+        return None
+    if out.exists() and out.stat().st_size > 0:
+        return out
+    return None
 
 
 def read_short_file(path: pathlib.Path, limit: int = 1800) -> str:
@@ -583,6 +790,8 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
         "readme_excerpt": read_short_file(project_dir / "README.md"),
         "test_plan_excerpt": read_short_file(project_dir / "TEST_PLAN.md"),
         "effect_report_summary": effect_report,
+        "online_input_examples": result.get("online_input_examples", {}),
+        "example_outputs": result.get("example_outputs", {}),
     }
 
 
@@ -593,6 +802,7 @@ def run_generation_job(
     log_dir: pathlib.Path,
     model: str,
     timeout: int,
+    announce_start: bool = False,
 ) -> None:
     session = load_session(session_dir, chat_id)
     if session.get("generation", {}).get("status") == "running":
@@ -612,16 +822,48 @@ def run_generation_job(
         return
     session["generation"] = {"status": "running", "started_at": now()}
     save_session(session_dir, session)
-    send_provider_message(
-        client,
-        chat_id,
-        event="generation_started",
-        session=session,
-        facts={"requirement": requirement, "policy": "provider-only project generation; no local template fallback"},
-        model=model,
-        timeout=timeout,
-    )
-    save_session(session_dir, session)
+    if announce_start:
+        send_provider_message(
+            client,
+            chat_id,
+            event="generation_started",
+            session=session,
+            facts={
+                "requirement": requirement,
+                "policy": "provider-only project generation; no local template fallback",
+                "important": "Generation has just started. Do not claim tests passed or project completed.",
+            },
+            model=model,
+            timeout=timeout,
+        )
+        save_session(session_dir, session)
+    stop_progress = threading.Event()
+
+    def progress_worker() -> None:
+        for step in range(3):
+            if stop_progress.wait(75):
+                return
+            current = load_session(session_dir, chat_id)
+            if current.get("generation", {}).get("status") != "running":
+                return
+            if send_provider_message(
+                client,
+                chat_id,
+                event="generation_progress",
+                session=current,
+                facts={
+                    "elapsed_seconds_lower_bound": 75 * (step + 1),
+                    "status": "still_running",
+                    "current_stage": "online example input, provider generation, validation, preview artifact creation",
+                    "message_policy": "progress heartbeat; do not claim completion",
+                },
+                model=model,
+                timeout=timeout,
+            ):
+                save_session(session_dir, current)
+
+    progress_thread = threading.Thread(target=progress_worker, daemon=True)
+    progress_thread.start()
 
     slug = f"telegram-live-{safe_id(chat_id)}"
     result_path = log_dir / f"{slug}_generation_result.json"
@@ -640,6 +882,7 @@ def run_generation_job(
     try:
         result = generate_project.run_generation(args)
     except Exception as exc:
+        stop_progress.set()
         session = load_session(session_dir, chat_id)
         session["generation"] = {"status": "failed", "finished_at": now(), "error": str(exc)}
         save_session(session_dir, session)
@@ -661,24 +904,72 @@ def run_generation_job(
         save_session(session_dir, session)
         return
 
+    stop_progress.set()
     session = load_session(session_dir, chat_id)
     session["generation"] = {"status": result.get("status", "unknown"), "finished_at": now(), "result_path": str(result_path)}
     save_session(session_dir, session)
 
     status = str(result.get("status", "unknown")).upper()
     if status == "PASS":
+        video = find_delivery_video(result)
+        image_candidates = delivery_image_candidates(result)
+        rendered_image = render_project_preview_image(result, log_dir)
+        if rendered_image and is_valid_image_file(rendered_image):
+            image_candidates.append(rendered_image)
+        image = image_candidates[0] if image_candidates else None
+        facts = project_delivery_facts(result)
+        facts["preview"] = {
+            "video_found": bool(video),
+            "video_path": str(video) if video else "",
+            "image_found": bool(image),
+            "image_path": str(image) if image else "",
+            "note": "Video preview is available." if video else ("Preview image is available." if image else "No preview artifact was found in this run."),
+        }
         send_provider_message(
             client,
             chat_id,
             event="generation_passed",
             session=session,
-            facts=project_delivery_facts(result),
+            facts=facts,
             model=model,
             timeout=timeout,
         )
         save_session(session_dir, session)
-        image = find_delivery_image(result)
-        if image:
+        if video:
+            caption = ""
+            try:
+                caption = provider_user_message(
+                    event="test_video_caption",
+                    session=session,
+                    facts={"video_path": str(video), "purpose": "example-based output preview video"},
+                    model=model,
+                    timeout=min(timeout, 60),
+                )
+            except Exception as exc:
+                print(f"video caption provider failed: {exc}", flush=True)
+            video_sent = client.send_video(chat_id, video, caption or "")
+            if not video_sent:
+                log_bridge_error(log_dir, "send_video_failed", chat_id, RuntimeError("video send failed"), {"video": str(video)})
+            if image_candidates:
+                image_caption = ""
+                try:
+                    image_caption = provider_user_message(
+                        event="test_image_caption",
+                        session=session,
+                        facts={"image_path": str(image_candidates[0]), "purpose": "still image preview for the generated project"},
+                        model=model,
+                        timeout=min(timeout, 60),
+                    )
+                except Exception as exc:
+                    print(f"image caption provider failed: {exc}", flush=True)
+                sent = False
+                for candidate in image_candidates:
+                    if client.send_photo(chat_id, candidate, image_caption or ""):
+                        sent = True
+                        break
+                if not sent:
+                    log_bridge_error(log_dir, "send_photo_failed", chat_id, RuntimeError("all image candidates failed"), {"candidates": [str(p) for p in image_candidates]})
+        elif image:
             caption = ""
             try:
                 caption = provider_user_message(
@@ -690,18 +981,13 @@ def run_generation_job(
                 )
             except Exception as exc:
                 print(f"caption provider failed: {exc}", flush=True)
-            client.send_photo(chat_id, image, caption or "")
-        else:
-            send_provider_message(
-                client,
-                chat_id,
-                event="generation_passed_without_image",
-                session=session,
-                facts={"execution_path": result.get("execution_path"), "reason": "no image file found"},
-                model=model,
-                timeout=timeout,
-            )
-            save_session(session_dir, session)
+            sent = False
+            for candidate in image_candidates:
+                if client.send_photo(chat_id, candidate, caption or ""):
+                    sent = True
+                    break
+            if not sent:
+                log_bridge_error(log_dir, "send_photo_failed", chat_id, RuntimeError("all image candidates failed"), {"candidates": [str(p) for p in image_candidates]})
     else:
         send_provider_message(
             client,
@@ -768,7 +1054,7 @@ def handle_text(
     if is_generate_command(text) or is_human_start_confirmation(text, session):
         thread = threading.Thread(
             target=run_generation_job,
-            args=(client, chat_id, session_dir, log_dir, model, timeout),
+            args=(client, chat_id, session_dir, log_dir, model, timeout, False),
             daemon=True,
         )
         thread.start()
@@ -789,7 +1075,7 @@ def handle_text(
     if action == "start_generation":
         thread = threading.Thread(
             target=run_generation_job,
-            args=(client, chat_id, session_dir, log_dir, model, timeout),
+            args=(client, chat_id, session_dir, log_dir, model, timeout, False),
             daemon=True,
         )
         thread.start()
@@ -849,7 +1135,7 @@ def main() -> int:
     parser.add_argument("--chat-id", default="")
     parser.add_argument("--session-dir", default=str(DEFAULT_SESSION_DIR))
     parser.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4.1"))
     parser.add_argument("--generation-timeout", type=int, default=420)
     parser.add_argument("--http-timeout", type=int, default=35)
     parser.add_argument("--poll-timeout", type=int, default=20)
