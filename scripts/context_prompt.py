@@ -160,6 +160,9 @@ def summarize_blueprint(
         "raw_requirement": clip_text(blueprint.get("raw_requirement", ""), 1200),
         "requirement": {
             "project_type": compact_source(requirement_spec.get("project_type", {})),
+            "domain": compact_source(requirement_spec.get("domain", {})),
+            "required_features": compact_source(requirement_spec.get("required_features", {}), []),
+            "non_goals": compact_source(requirement_spec.get("non_goals", {}), []),
             "business_goal": compact_source(requirement_spec.get("business_goal", {})),
             "target_users": compact_source(requirement_spec.get("target_users", {}), []),
             "scope_boundary": [
@@ -203,6 +206,9 @@ def extract_key_points(requirement: str, answers: list[dict[str, str]], blueprin
     for key in ("project_type", "business_goal", "target_users"):
         item = req.get(key, {})
         points.append({"type": key, "text": item.get("value"), "source_type": item.get("source_type"), "confidence": item.get("confidence")})
+    for key in ("domain", "required_features", "non_goals"):
+        item = req.get(key, {})
+        points.append({"type": key, "text": item.get("value"), "source_type": item.get("source_type"), "confidence": item.get("confidence")})
     for gap in summary["gaps"]["blocking"] + summary["gaps"]["open"]:
         points.append({"type": "gap", "field": gap["field"], "severity": gap["severity"], "text": gap["question"], "impact": gap["impact"]})
     for feature in summary["features"]:
@@ -241,6 +247,9 @@ def compact_prompt_context(summary: dict[str, Any]) -> dict[str, Any]:
         "status": summary.get("status", "unknown"),
         "raw": summary.get("raw_requirement", ""),
         "project_type": req.get("project_type", {}),
+        "domain": req.get("domain", {}),
+        "required_features": req.get("required_features", {}),
+        "non_goals": req.get("non_goals", {}),
         "goal": req.get("business_goal", {}),
         "users": req.get("target_users", {}),
         "scope": req.get("scope_boundary", []),

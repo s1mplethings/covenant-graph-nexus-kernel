@@ -6,12 +6,19 @@ import csv
 import json
 import pathlib
 import re
+import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from typing import Any
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import local_intent_router
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
@@ -132,6 +139,9 @@ def media_query_for(goal: str, project_type: str) -> str:
 
 
 def classify_project_type(goal: str) -> str:
+    routed = local_intent_router.classify_project_type(goal)
+    if routed.get("project_type") != "unknown_project_type":
+        return str(routed["project_type"])
     text = goal.lower()
     tokens = set(re.findall(r"[a-z0-9_+#.-]+", text))
     phrase = f" {text} "
@@ -171,6 +181,11 @@ def input_spec_for(project_type: str) -> dict[str, Any]:
             "required_modalities": ["image"],
             "preferred_sources": ["Wikimedia Commons", "Hugging Face Hub text-to-image models"],
             "expected_artifacts": ["image_preview", "analysis_report", "image_generation_model_candidates"],
+        },
+        "game_demo_telemetry_analyzer": {
+            "required_modalities": ["csgo2_demo_file"],
+            "preferred_sources": ["user_upload", "local_fixture"],
+            "expected_artifacts": ["operation_statistics", "heatmap_visualization", "frequency_curve", "image_report", "pdf_report"],
         },
         "media_audio": {
             "required_modalities": ["audio"],
@@ -609,7 +624,30 @@ def collect_web_page_example(out_dir: pathlib.Path) -> tuple[list[dict[str, Any]
     ], [{"agent": "WebPageExampleAgent", "source": "example.com", "candidate_count": 1}]
 
 
+def collect_game_demo_fixture(out_dir: pathlib.Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    target = out_dir / "csgo2_demo_fixture_manifest.json"
+    fixture = {
+        "kind": "CSGO2DemoFixtureManifest",
+        "note": "Synthetic local fixture metadata only; no real cheat verdict and no external download.",
+        "expected_input": "user supplied .dem file",
+        "telemetry_fields": ["tick", "player_id", "mouse_dx", "mouse_dy", "click", "key", "view_yaw", "view_pitch", "crosshair_x", "crosshair_y"],
+    }
+    target.write_text(json.dumps(fixture, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return [
+        {
+            "title": "CSGO2 demo telemetry fixture manifest",
+            "source": "local_synthetic_fixture",
+            "modality": "demo_telemetry_manifest",
+            "mime": "application/json",
+            "local_path": str(target),
+            "downloaded_bytes": target.stat().st_size,
+        }
+    ], [{"agent": "LocalGameDemoFixtureAgent", "source": "local", "candidate_count": 1}]
+
+
 def route_collectors(goal: str, out_dir: pathlib.Path, project_type: str, max_bytes: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if project_type == "game_demo_telemetry_analyzer":
+        return collect_game_demo_fixture(out_dir)
     if project_type in {"media_video", "media_image", "media_audio"}:
         return collect_media(goal, out_dir, project_type, max_bytes)
     if project_type in {"tabular_data", "ml_dataset", "financial_data"}:

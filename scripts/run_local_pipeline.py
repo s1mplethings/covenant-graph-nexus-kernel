@@ -19,6 +19,8 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import check_connectivity
 import compose_local_pipeline
+import local_intent_router
+import local_usage_planner
 import long_context_state
 import market_research_agent
 import online_input_agent
@@ -66,6 +68,30 @@ def write_text(path: pathlib.Path, text: str) -> None:
 
 def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
     write_text(path, json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+
+
+def append_phase_log(path_value: Any, phase: str, status: str, message: str, artifacts_written: list[str] | None = None, started_at: float | None = None) -> None:
+    raw = str(path_value or "").strip()
+    if not raw:
+        return
+    path = pathlib.Path(raw)
+    elapsed = 0.0 if started_at is None else round(time.time() - started_at, 3)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(
+            json.dumps(
+                {
+                    "ts": now(),
+                    "phase": phase,
+                    "status": status,
+                    "message": message,
+                    "artifacts_written": artifacts_written or [],
+                    "elapsed_seconds": elapsed,
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
 
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
@@ -948,15 +974,58 @@ def run_project_usage_agent(
     example_outputs: dict[str, Any],
     model: str,
     timeout: int,
+    *,
+    allow_model_usage_planning: bool = False,
+    phase_log_path: pathlib.Path | str | None = None,
 ) -> dict[str, Any]:
     usage_dir = run_dir / "agent_usage"
     usage_dir.mkdir(parents=True, exist_ok=True)
-    plan = provider_project_usage_plan(goal, project_dir, generated_files, online_inputs, example_outputs, model, min(timeout, 180))
+    usage_started = time.time()
+    append_phase_log(phase_log_path, "usage_planning", "started", "Building usage plan.", started_at=usage_started)
+    project_type = str(online_inputs.get("project_type", "")) if isinstance(online_inputs, dict) else ""
+    if allow_model_usage_planning:
+        try:
+            plan = provider_project_usage_plan(goal, project_dir, generated_files, online_inputs, example_outputs, model, min(timeout, 60))
+            plan["planner"] = "model_with_local_fallback"
+            plan["uses_model"] = True
+        except Exception as exc:
+            plan = local_usage_planner.create_usage_plan(project_dir, project_type)
+            plan["fallback_reason"] = f"model usage planning failed: {exc}"
+    else:
+        plan = local_usage_planner.create_usage_plan(project_dir, project_type)
     plan = normalize_usage_plan_placeholders(plan, project_dir, run_dir)
     write_json(usage_dir / "usage_plan.json", plan)
+    runtime_check = local_usage_planner.create_runtime_check(project_dir, plan)
+    visual_evidence_plan = local_usage_planner.create_visual_evidence_plan(project_dir, plan)
+    write_json(usage_dir / "runtime_check.json", runtime_check)
+    write_json(usage_dir / "visual_evidence_plan.json", visual_evidence_plan)
+    append_phase_log(
+        phase_log_path,
+        "usage_planning",
+        "completed",
+        "Usage plan written.",
+        [str(usage_dir / "usage_plan.json")],
+        started_at=usage_started,
+    )
+    append_phase_log(
+        phase_log_path,
+        "runtime_check",
+        "completed",
+        "Runtime check written.",
+        [str(usage_dir / "runtime_check.json")],
+    )
+    append_phase_log(
+        phase_log_path,
+        "visual_evidence",
+        "completed",
+        "Visual evidence plan written.",
+        [str(usage_dir / "visual_evidence_plan.json")],
+    )
     result: dict[str, Any] = {
         "status": "planned",
         "plan": plan,
+        "runtime_check": runtime_check,
+        "visual_evidence_plan": visual_evidence_plan,
         "events": [],
         "workflow_video": "",
         "screenshots": [],
@@ -1113,7 +1182,10 @@ def run_project_usage_agent(
         and event.get("status", "failed") != "pass"
     ]
     planned_browser = bool(browser_steps)
-    result["status"] = "pass" if (result.get("workflow_video") and not failed_setup and not failed_critical and (not planned_browser or result.get("screenshots"))) else "failed"
+    if not planned_browser and plan.get("planner") == "local_deterministic":
+        result["status"] = "partial"
+    else:
+        result["status"] = "pass" if (result.get("workflow_video") and not failed_setup and not failed_critical and (not planned_browser or result.get("screenshots"))) else "failed"
     if failed_setup or failed_critical:
         result["failure_summary"] = (failed_setup + failed_critical)[:8]
     write_json(usage_dir / "agent_usage_report.json", result)
@@ -1549,6 +1621,8 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     agent_usage: dict[str, Any] = {}
     for attempt in range(5):
         try:
+            generation_started = time.time()
+            append_phase_log(getattr(args, "phase_log_path", ""), "project_generation", "started", f"Provider project generation attempt {attempt + 1} started.", started_at=generation_started)
             generation = provider_generate_project_by_components(
                 goal,
                 component_pipeline,
@@ -1568,11 +1642,40 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                     issues = [str(issues)]
                 raise RuntimeError("provider semantic review failed: " + "; ".join(str(issue) for issue in issues[:8]))
             generated_files = write_provider_files(out_dir, files)
+            append_phase_log(getattr(args, "phase_log_path", ""), "project_generation", "completed", "Project files written.", [str(out_dir)], started_at=generation_started)
             example_outputs = make_example_outputs(run_dir, online_inputs)
             if example_outputs.get("status") != "pass":
                 raise RuntimeError(f"example-based output generation failed: {example_outputs}")
-            agent_usage = run_project_usage_agent(goal, out_dir, run_dir, generated_files, online_inputs, example_outputs, str(args.model), int(args.timeout))
-            if agent_usage.get("status") != "pass":
+            expected_intent = local_intent_router.classify_project_type(goal)
+            conflict = local_intent_router.detect_project_type_conflict(expected_intent, out_dir)
+            if conflict.get("conflict"):
+                blocked = {
+                    "kind": "RuntimeExecutionResult",
+                    "status": "BLOCKED",
+                    "reason": "project_type_mismatch",
+                    "generated_at": now(),
+                    "goal": goal,
+                    "project_dir": str(out_dir),
+                    "run_dir": str(run_dir),
+                    "project_type_conflict": conflict,
+                    "can_retry": True,
+                }
+                write_json(result_path, blocked)
+                append_phase_log(getattr(args, "phase_log_path", ""), "delivery_bundle", "failed", "Project type mismatch blocked delivery.", [str(result_path)])
+                return blocked
+            agent_usage = run_project_usage_agent(
+                goal,
+                out_dir,
+                run_dir,
+                generated_files,
+                online_inputs,
+                example_outputs,
+                str(args.model),
+                int(args.timeout),
+                allow_model_usage_planning=bool(getattr(args, "allow_model_usage_planning", False)),
+                phase_log_path=getattr(args, "phase_log_path", ""),
+            )
+            if agent_usage.get("status") == "failed":
                 raise RuntimeError(f"agent project usage failed: {json.dumps(agent_usage.get('failure_summary') or agent_usage.get('events', [])[-8:], ensure_ascii=False)}")
             break
         except RuntimeError as exc:
@@ -1635,6 +1738,8 @@ def main() -> int:
     parser.add_argument("--no-api", dest="use_api", action="store_false")
     parser.add_argument("--model", default="gpt-4.1")
     parser.add_argument("--timeout", type=int, default=360)
+    parser.add_argument("--allow-model-usage-planning", action="store_true", help="Opt in to model-planned usage validation; local deterministic planning is the default.")
+    parser.add_argument("--phase-log-path", default="")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     result = execute(args)

@@ -7,8 +7,15 @@ import io
 import json
 import pathlib
 import re
+import sys
 from datetime import datetime, timezone
 from typing import Any
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import local_intent_router
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -58,7 +65,10 @@ def answer_map(answers: list[dict[str, str]] | None) -> dict[str, str]:
 
 
 def infer_project_type(requirement: str) -> str:
-    if contains_any(requirement, ("blueprint", "requirement", "prd", "spec", "plan", "需求", "蓝图", "技术方案")):
+    routed = local_intent_router.classify_project_type(requirement)
+    if routed.get("project_type") != "unknown_project_type":
+        return str(routed["project_type"])
+    if contains_any(requirement, ("blueprint generator", "requirement blueprint generator", "需求蓝图生成器")):
         return "requirement_blueprint_generator"
     if contains_any(requirement, ("refactor", "migration", "rewrite", "重构", "迁移")):
         return "project_refactor"
@@ -66,7 +76,7 @@ def infer_project_type(requirement: str) -> str:
         return "project_test_pipeline"
     if contains_any(requirement, ("dashboard", "report", "报表", "报告", "统计")):
         return "reporting_application"
-    return "custom_application"
+    return "unknown_project_type"
 
 
 def infer_target_users(requirement: str, answers: dict[str, str]) -> list[str]:
@@ -81,12 +91,16 @@ def infer_target_users(requirement: str, answers: dict[str, str]) -> list[str]:
 
 
 def build_requirement_spec(requirement: str, answers: dict[str, str]) -> dict[str, Any]:
-    project_type = infer_project_type(requirement)
+    intent = local_intent_router.classify_project_type(requirement)
+    project_type = str(intent.get("project_type") or infer_project_type(requirement))
     target_users = infer_target_users(requirement, answers)
     boundary = answers.get("scope_boundary", "").strip()
     return {
-        "project_type": source_value(project_type, "inferred", 0.72),
-        "business_goal": source_value(clean_text(requirement) or "Turn a user request into a buildable project plan.", "explicit", 0.95),
+        "project_type": source_value(project_type, str(intent.get("intent_source", "raw_user_message")), float(intent.get("confidence", 0.72))),
+        "domain": source_value(str(intent.get("domain", "unknown")), str(intent.get("intent_source", "raw_user_message")), float(intent.get("confidence", 0.72))),
+        "required_features": source_value(intent.get("required_features", []), str(intent.get("intent_source", "raw_user_message")), float(intent.get("confidence", 0.72))),
+        "non_goals": source_value(intent.get("non_goals", []), str(intent.get("intent_source", "raw_user_message")), float(intent.get("confidence", 0.72))),
+        "business_goal": source_value(clean_text(intent.get("raw_user_message") or requirement) or "User request needs explicit clarification before project generation.", "explicit", 0.95),
         "target_users": source_value(target_users, "explicit" if answers.get("target_user") else "inferred", 0.76),
         "scenarios": [
             source_value("User submits a natural-language project request.", "explicit", 0.9),
@@ -209,7 +223,22 @@ def build_gap_analysis(requirement: str, answers: dict[str, str], assume_default
 
 def build_feature_spec(requirement: str, answers: dict[str, str]) -> dict[str, Any]:
     core_answer = answers.get("core_features", "").strip()
-    features = [
+    intent = local_intent_router.classify_project_type(requirement)
+    if intent.get("project_type") == "game_demo_telemetry_analyzer":
+        features = [
+            ("CSGO2 demo import", "Load standard CSGO2 .dem files as local analysis input.", ["demo_file"], ["parsed_demo"]),
+            ("Mouse movement analysis", "Extract and summarize player mouse movement deltas over time.", ["parsed_demo"], ["mouse_movement_metrics"]),
+            ("Click analysis", "Detect and count attack/click events and timing patterns.", ["parsed_demo"], ["click_metrics"]),
+            ("Keyboard input analysis", "Extract movement and action key events when available from demo telemetry.", ["parsed_demo"], ["keyboard_metrics"]),
+            ("View angle analysis", "Analyze view angle changes and suspicious aim transitions.", ["parsed_demo"], ["view_angle_metrics"]),
+            ("Crosshair movement analysis", "Track crosshair movement and target-transition patterns.", ["parsed_demo"], ["crosshair_metrics"]),
+            ("Operation statistics", "Aggregate per-player operation statistics for review.", ["mouse_movement_metrics", "click_metrics", "keyboard_metrics"], ["operation_statistics"]),
+            ("Heatmap visualization", "Render heatmap-style visual summaries for movement or aim activity.", ["operation_statistics"], ["heatmap_visualization"]),
+            ("Frequency curve", "Render operation frequency curves over match time.", ["operation_statistics"], ["frequency_curve"]),
+            ("Image and PDF report export", "Export visual report images and a PDF report without claiming final cheat verdicts.", ["operation_statistics", "heatmap_visualization", "frequency_curve"], ["image_report", "pdf_report"]),
+        ]
+    else:
+        features = [
         ("Project intake", "Capture the user's project goal and supporting assumptions.", ["plain_text"], ["goal"]),
         ("Requirement understanding", "Extract business goal, users, scenarios, pain points, and boundaries.", ["goal"], ["requirement_spec"]),
         ("Input/output contract analysis", "Model input sources, processing steps, outputs, storage, and unknowns.", ["requirement_spec"], ["io_contract"]),
@@ -219,7 +248,7 @@ def build_feature_spec(requirement: str, answers: dict[str, str]) -> dict[str, A
         ("Technology decision", "Choose technology options from capabilities and constraints.", ["capability_map"], ["tech_decisions"]),
         ("Blueprint generation", "Emit architecture, API, database, frontend, PRD, and task artifacts.", ["tech_decisions"], ["requirement_blueprint"]),
         ("Review report", "Summarize readiness, assumptions, and risks.", ["requirement_blueprint"], ["review_report"]),
-    ]
+        ]
     if core_answer:
         features.insert(1, ("Explicit scope", core_answer, ["goal"], ["scope_boundary"]))
     return {

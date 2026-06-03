@@ -4,7 +4,14 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import sys
 from typing import Any
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import local_intent_router
 
 
 GUI_KEYWORDS = ("gui", "界面", "窗口", "图片", "image", "截图", "screenshot", "visual")
@@ -72,6 +79,21 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
     has_gui_or_image = contains_keyword(combined, GUI_KEYWORDS)
     roles = build_roles(goal, input_text, output_text)
     required_outputs = build_required_outputs(output_text, has_gui_or_image)
+    intent = local_intent_router.classify_project_type(combined)
+    explicit_project_type = str(intent.get("project_type", "unknown_project_type"))
+    domain = str(intent.get("domain", "unknown"))
+    if explicit_project_type == "game_demo_telemetry_analyzer":
+        product_name = "CSGO2 Demo Telemetry Analyzer"
+        runtime_target = "local demo telemetry analyzer"
+        plan_focus = [
+            "Keep frozen_project_type=game_demo_telemetry_analyzer.",
+            "Build CSGO2 demo import, telemetry extraction, statistics, visualizations, and report export.",
+            "Do not claim deep ML cheat detection or final cheat verdicts.",
+        ]
+    else:
+        product_name = goal[:80]
+        runtime_target = "local GUI" if has_gui_or_image else "local runnable project"
+        plan_focus = ["Create an executable build plan for the requested project."]
     known_limits = [
         "This run only generates a Product Studio run artifact.",
         "No real project has been generated yet.",
@@ -83,6 +105,12 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
         "customer_intent": {
             "kind": "customer_intent",
             "goal": goal,
+            "raw_user_message": str(intent.get("raw_user_message") or combined),
+            "explicit_project_type": explicit_project_type,
+            "domain": domain,
+            "required_features": intent.get("required_features", []),
+            "non_goals": intent.get("non_goals", []),
+            "intent_source": "raw_user_message",
             "input_expectation": split_text(input_text),
             "output_expectation": split_text(output_text),
             "constraints": constraints,
@@ -96,7 +124,11 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
         "output_contract": {
             "kind": "output_contract",
             "required_outputs": required_outputs,
-            "runtime_target": "local GUI" if has_gui_or_image else "local runnable project",
+            "frozen_project_type": explicit_project_type,
+            "domain": domain,
+            "required_features": intent.get("required_features", []),
+            "non_goals": intent.get("non_goals", []),
+            "runtime_target": runtime_target,
             "delivery_format": "compact product_studio_run artifact plus future delivery bundle",
         },
         "virtual_team_roster": {
@@ -107,9 +139,10 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
         },
         "product_story": {
             "kind": "product_story",
-            "product_name": goal[:80],
+            "product_name": product_name,
             "main_problem": f"User needs a delivered project for: {goal}",
             "acceptance_implications": [
+                f"Generated project type must remain {explicit_project_type}.",
                 "Output contract must be preserved.",
                 "Test data and test_report are required before PASS.",
                 "delivery_bundle is required before PASS.",
@@ -120,7 +153,7 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
             "kind": "mvp_scope",
             "must_have": [
                 "Preserve customer_intent and output_contract.",
-                "Create an executable build plan for the requested project.",
+                *plan_focus,
                 "Collect test evidence before PASS.",
                 "Package delivery bundle before PASS.",
             ],
@@ -132,7 +165,8 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
         },
         "technical_plan": {
             "kind": "technical_plan",
-            "runtime_target": "local GUI" if has_gui_or_image else "local project",
+            "runtime_target": runtime_target,
+            "frozen_project_type": explicit_project_type,
             "technology_choices": [
                 "Use local tooling only in this skeleton phase.",
                 "Do not call network or provider.",
@@ -141,6 +175,7 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
         "build_plan": {
             "kind": "build_plan",
             "tasks": [
+                f"Preserve frozen project type: {explicit_project_type}.",
                 "Hand off compact product_studio_run to Agent Build.",
                 "Generate real project files in a later phase.",
                 "Run or attempt validation in a later phase.",

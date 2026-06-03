@@ -24,6 +24,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import check_connectivity
+import product_studio_reply
 import project_memory_md
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
@@ -163,6 +164,12 @@ class TelegramClient:
         except Exception:
             self.session = None
 
+    def redact_for_log(self, text: Any) -> str:
+        value = str(text)
+        if self.token:
+            value = value.replace(self.token, "<telegram-token>")
+        return re.sub(r"/bot[^/\s]+", "/bot<telegram-token>", value)
+
     def call(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         last_exc: Exception | None = None
         for attempt in range(4):
@@ -185,7 +192,7 @@ class TelegramClient:
                 last_exc = exc
                 time.sleep(min(8.0, 1.5 * (attempt + 1)))
         else:
-            raise RuntimeError(f"Telegram {method} transport failed: {last_exc}")
+            raise RuntimeError(f"Telegram {method} transport failed: {self.redact_for_log(last_exc)}")
         if not isinstance(doc, dict) or not doc.get("ok"):
             raise RuntimeError(f"Telegram {method} failed: {doc}")
         return doc
@@ -1573,6 +1580,69 @@ def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
+def phase_log_path_for_project(project_slug: str) -> pathlib.Path:
+    return ROOT / "examples" / "runtime_runs" / project_slug / "artifacts" / "generation_phase_log.jsonl"
+
+
+def last_known_phase(phase_log_path: pathlib.Path) -> str:
+    if not phase_log_path.exists():
+        return ""
+    phase = ""
+    for line in phase_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            doc = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(doc, dict) and doc.get("phase"):
+            phase = str(doc["phase"])
+    return phase
+
+
+def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_path: pathlib.Path) -> tuple[list[str], list[str]]:
+    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
+    project_dir = ROOT / "generated" / project_slug
+    paths = {
+        "generation_result.json": result_path,
+        "generation_phase_log.jsonl": phase_log_path,
+        "product_studio_run.json": run_dir / "artifacts" / "product_studio_run.json",
+        "usage_plan.json": run_dir / "agent_usage" / "usage_plan.json",
+        "runtime_check.json": run_dir / "agent_usage" / "runtime_check.json",
+        "visual_evidence_plan.json": run_dir / "agent_usage" / "visual_evidence_plan.json",
+        "README.md": project_dir / "README.md",
+    }
+    detected: list[str] = []
+    missing: list[str] = []
+    for name, path in paths.items():
+        (detected if path.exists() else missing).append(name)
+    return detected, missing
+
+
+def write_timeout_failure_result(args: argparse.Namespace, timeout_seconds: int, result_path: pathlib.Path) -> dict[str, Any]:
+    phase_log_path = phase_log_path_for_project(str(args.project_slug))
+    detected, missing = artifact_inventory(str(args.project_slug), result_path, phase_log_path)
+    result = {
+        "kind": "CustomerProjectGenerationResult",
+        "created_at": now(),
+        "status": "BLOCKED",
+        "reason": "generation subprocess exceeded total timeout",
+        "timeout_seconds": timeout_seconds,
+        "last_known_phase": last_known_phase(phase_log_path),
+        "artifacts_detected": detected,
+        "missing_artifacts": missing,
+        "phase_log_path": str(phase_log_path),
+        "can_retry": True,
+        "retry_should_reuse": [
+            "product_studio_run.json",
+            "customer_intent.raw_user_message",
+            "output_contract",
+            "frozen_project_type",
+        ],
+    }
+    write_json(result_path, result)
+    write_json(result_path.with_name(result_path.stem.replace("_generation_result", "_failure_result") + ".json"), result)
+    return result
+
+
 def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
     command = generation_subprocess_command(args)
     result_path = pathlib.Path(str(args.result_path))
@@ -1586,6 +1656,7 @@ def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -
             timeout=timeout_seconds,
         )
     except subprocess.TimeoutExpired as exc:
+        failure_result = write_timeout_failure_result(args, timeout_seconds, result_path)
         append_jsonl(
             log_dir / "generation_subprocess.jsonl",
             {
@@ -1593,11 +1664,12 @@ def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -
                 "event": "generation_subprocess_timeout",
                 "project_slug": str(args.project_slug),
                 "timeout_seconds": timeout_seconds,
+                "failure_result_path": str(result_path),
                 "stdout_tail": str(exc.stdout or "")[-2000:],
                 "stderr_tail": str(exc.stderr or "")[-2000:],
             },
         )
-        raise TimeoutError(f"generation subprocess exceeded total timeout of {timeout_seconds} seconds") from exc
+        return failure_result
     append_jsonl(
         log_dir / "generation_subprocess.jsonl",
         {
@@ -1826,6 +1898,12 @@ def run_generation_job(
             else:
                 append_memory_event(session, "preview_media_sent", data={"video": str(video) if video else "", "images": sent})
                 save_session(session_dir, session)
+    elif status == "BLOCKED":
+        text = product_studio_reply.compose_timeout_or_blocked_reply(result)
+        session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": "product_studio_reply_composer"})
+        append_memory_event(session, "assistant_message", text, {"source": "product_studio_reply_composer", "event": "generation_blocked"})
+        save_session(session_dir, session)
+        client.send_message(chat_id, text)
     else:
         send_provider_message(
             client,
@@ -2066,8 +2144,8 @@ def run(args: argparse.Namespace) -> None:
     while True:
         try:
             updates = client.get_updates(offset, args.poll_timeout)
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
-            print(f"poll failed: {exc}", flush=True)
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError, RuntimeError) as exc:
+            print(f"poll failed: {client.redact_for_log(exc)}", flush=True)
             time.sleep(args.retry_delay)
             continue
         for update in updates:
