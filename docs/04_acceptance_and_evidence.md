@@ -1,0 +1,171 @@
+# Acceptance and Evidence Contract
+
+## 0. Purpose
+
+This document defines what counts as a successful Product Studio delivery.
+
+CGNK MUST judge success by usable output and evidence, not by code creation alone.
+
+## 1. Required delivery evidence
+
+A PASS delivery MUST include:
+
+```text
+runnable_project
+README or startup instructions
+test_data
+test_report
+visual_evidence
+project_package
+known_limits
+revision_entry
+```
+
+A delivery MAY include:
+
+```text
+demo_video
+GIF walkthrough
+installer
+export samples
+API docs
+user manual
+```
+
+## 2. Evidence artifact map
+
+| Evidence | Required when | Minimum requirement |
+| --- | --- | --- |
+| `runnable_project` | Always | Project files exist and startup path is documented. |
+| `README` | Always | Includes install/start/test instructions and known limits. |
+| `test_data` | Always | At least one sample input or fixture. |
+| `test_report` | Always | Records what was tested and the result. |
+| `visual_evidence` | GUI or visual output projects | At least one screenshot from the generated result. |
+| `demo_video` | Interaction-heavy projects | SHOULD be produced when practical. |
+| `project_package` | Always | A zip or equivalent package path. |
+| `known_limits` | Always | Honest limits, missing pieces, and deferred items. |
+| `revision_entry` | Always | How user feedback should continue the project. |
+
+## 3. Acceptance matrix
+
+A Product Studio run SHOULD create `acceptance_matrix` with rows like:
+
+```json
+{
+  "claim": "User can import a folder and see processed results.",
+  "source": "product_story.first_run_experience",
+  "required_artifact": "generated_project + visual_evidence",
+  "test_method": "run app with sample folder and capture result screen",
+  "status": "PASS | PARTIAL | BLOCKED | FAIL"
+}
+```
+
+Each important product story claim SHOULD map to at least one acceptance row.
+
+## 4. PASS rule
+
+A run can be PASS only when:
+
+```text
+output_contract exists
+product_story exists
+technical_plan exists
+generated_project exists
+environment run was attempted
+test data exists
+test report exists
+delivery bundle exists
+required visual evidence exists
+known limits are recorded
+```
+
+## 5. PARTIAL rule
+
+A run SHOULD be PARTIAL when the generated project is useful but one or more promised outputs are incomplete.
+
+Examples:
+
+```text
+project runs but video evidence is missing
+GUI exists but only one screen is implemented
+export feature exists but only sample export is verified
+README exists but installer is not packaged
+```
+
+PARTIAL MUST include known limits and next actions.
+
+## 6. BLOCKED rule
+
+A run SHOULD be BLOCKED when a required external condition prevents completion.
+
+Examples:
+
+```text
+missing credentials
+missing required local runtime
+unsupported dependency
+user-required output format cannot be produced in the current environment
+```
+
+BLOCKED MUST include a clear blocker reason and recommended recovery action.
+
+## 7. FAIL rule
+
+A run SHOULD be FAIL when the generated project does not satisfy the required contract and has no usable partial delivery.
+
+Examples:
+
+```text
+project files missing
+startup path missing
+core user journey missing
+test evidence missing
+delivery package missing
+```
+
+## 8. Visual evidence rule
+
+For GUI projects, screenshots are required for PASS.
+
+The preferred screenshot priority is:
+
+```text
+final UI screen
+result screen
+app home screen
+error screen with explanation, only for BLOCKED/PARTIAL
+```
+
+Visual evidence MUST be linked from `delivery_bundle`.
+
+## 9. Test data rule
+
+Test data MUST be concrete enough for a user or agent to rerun verification.
+
+Examples:
+
+```text
+sample images
+sample CSV
+sample JSON
+sample text files
+seed database
+mock API response
+```
+
+A test report without input data SHOULD NOT be PASS.
+
+## 10. Delivery bundle rule
+
+`delivery_bundle` MUST summarize:
+
+```text
+what was generated
+how to run it
+what was tested
+where the evidence is
+what is incomplete
+how to request revision
+```
+
+Internal logs alone are not a user-facing delivery.
