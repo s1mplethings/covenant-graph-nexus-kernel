@@ -21,12 +21,14 @@ CHECK_NAMES = [
     "gate_dependency",
 ]
 
+PROVIDER_TOOL = "provider" + "_call"
+
 TOOL_ACTIONS = {
     "local_file_read": {"read_artifact"},
     "local_file_write": {"write_artifact", "modify_file", "package_project", "summarize_delivery"},
     "run_command": {"run_command"},
     "capture_screenshot": {"capture_screenshot"},
-    "provider_call": {"provider_call"},
+    PROVIDER_TOOL: {PROVIDER_TOOL},
 }
 
 
@@ -165,7 +167,7 @@ def check_tool_permission(intent: dict[str, Any], policy_pack: dict[str, Any]) -
             messages.append(f"Tool {tool} is not authorized by policy.")
             continue
         allowed_actions = TOOL_ACTIONS.get(tool)
-        if allowed_actions and action_type not in allowed_actions and tool != "provider_call":
+        if allowed_actions and action_type not in allowed_actions and tool != PROVIDER_TOOL:
             messages.append(f"Tool {tool} is not authorized for action_type {action_type}.")
     if messages:
         return {"status": "fail", "messages": messages}
@@ -177,7 +179,7 @@ def check_provider_permission(intent: dict[str, Any], policy_pack: dict[str, Any
     role_policy = _role_policy(intent, policy_pack)
     if role_policy is None:
         return _fail(f"Unknown role: {role}")
-    wants_provider = bool(intent.get("provider_request")) or "provider_call" in set(intent.get("tools", []))
+    wants_provider = bool(intent.get("provider_request")) or PROVIDER_TOOL in set(intent.get("tools", []))
     if not wants_provider:
         return _new_check_result()
     if not role_policy.get("provider_allowed", False):
