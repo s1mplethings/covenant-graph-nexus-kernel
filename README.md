@@ -86,8 +86,10 @@ flow.project_refactor@1: OK errors=0
 Use `scripts/generate_project.py` as the front door:
 
 ```bash
-python scripts/generate_project.py --requirement "Build a local project that turns a requirement into blueprint artifacts" --no-network --no-provider --no-api
+python scripts/generate_project.py --requirement "Build a local project that turns a requirement into blueprint artifacts"
 ```
+
+Project-file generation is provider-backed by policy. The local composer reduces API context by splitting the project into component-scoped generation calls, then merging component file batches with conflict checks. The generated `pipeline_plan` includes a `component_pipeline` with component ids, dependencies, path hints, prompt budgets, and merge policy.
 
 For blueprint-only inspection:
 
@@ -99,6 +101,14 @@ For local context compression and prompt-pack inspection:
 
 ```bash
 python scripts/context_prompt.py --requirement "Build a requirement blueprint generator" --max-chars 6000 --json
+```
+
+For durable long-context reduction and prompt-ready context packs:
+
+```bash
+python scripts/long_context_state.py append-turn --run-dir examples/runtime_runs/my-run --role user --content "Build a resumable generation flow"
+python scripts/long_context_state.py reduce --run-dir examples/runtime_runs/my-run
+python scripts/long_context_state.py context-pack --run-dir examples/runtime_runs/my-run --active-module module.project.generator@1 --purpose project_generation --prompt-max-chars 6000
 ```
 
 For local pipeline composition:
@@ -113,7 +123,10 @@ For local execution:
 python scripts/run_local_pipeline.py --goal "Generate a generic CGNK project" --no-provider
 ```
 
-Network, provider, API, and optional local-model route hints are disabled unless explicitly enabled with runtime flags. Use `--allow-network`, `--allow-provider`, `--use-api`, and `--use-local-model` only when that run needs them.
+Local execution writes the standard runtime artifacts plus durable long-context artifacts under the run directory:
+`conversation_state.json`, `decision_ledger.json`, `generation_checkpoint.json`, and `context_pack.json`.
+
+Optional local-model route hints are disabled unless explicitly enabled with `--use-local-model`. Project-file generation uses the configured provider/API by default; use `--no-api`, `--no-provider`, or `--no-network` only when you intentionally want the provider-only generation policy to fail before writing files.
 
 ## Testing
 
@@ -125,3 +138,37 @@ python scripts/check_connectivity.py
 ```
 
 `scripts/check_connectivity.py --live` performs a live OpenAI-compatible API probe when credentials are configured. Test pipeline composition defaults to configuration checks only; pass `--live-api` to `scripts/compose_test_pipeline.py` when a live probe is intended.
+
+## Telegram `/new` Reset Listener
+
+`scripts/telegram_new_listener.py` runs a long-polling Telegram listener. When an admin sends `/new`, it stops the configured frontend/backend processes, archives local conversation history, and starts the configured processes again.
+
+The main Telegram bridge also understands:
+
+```text
+/new             Archive only the current chat session and start fresh.
+/reset           Archive the current chat session plus this chat's generated outputs, then start fresh.
+/delete_history  Permanently delete the current chat session plus this chat's generated outputs.
+/status          Show background generation status.
+```
+
+During generation the bridge queues one background job per chat, sends a waiting message, and only sends the final delivery after project generation, checks, and preview discovery finish. Delivery sends available videos and up to three preview images directly; if no real preview image exists, it tries to create a summary PNG fallback.
+
+Set credentials in the shell that starts the listener:
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN="your-bot-token"
+$env:TELEGRAM_ADMIN_IDS="123456789"
+powershell -NoExit -File scripts/start_telegram_new_listener.ps1
+```
+
+Edit `scripts/telegram_new_config.example.json` to point `frontend` and `backend` at the real project directories and start commands. The default frontend entry restarts the latest generated static app on `127.0.0.1:8000`; the backend entry is disabled until a real command is configured.
+
+The reset archives matched history files under `generated/telegram_new_archives/<timestamp>/` by default instead of permanently deleting them. Set `"history_mode": "delete"` in the config only when permanent deletion is intended.
+
+For listener reset checks:
+
+```bash
+python scripts/telegram_new_listener.py --dry-run-reset
+python scripts/telegram_new_listener.py --reset-now
+```

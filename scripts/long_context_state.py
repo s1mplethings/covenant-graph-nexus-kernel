@@ -9,6 +9,8 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+import context_prompt
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_RUN_DIR = ROOT / "examples" / "runtime_runs" / "long-context"
@@ -288,6 +290,15 @@ def build_context_pack(args: argparse.Namespace) -> dict[str, Any]:
     if not state:
         raise ValueError("conversation_state.json does not exist; run reduce first")
     checkpoint_ref = str(checkpoint_path(run_dir)) if checkpoint else ""
+    prompt_pack = context_prompt.build_state_prompt_pack(
+        state,
+        checkpoint if isinstance(checkpoint, dict) else {},
+        active_module=args.active_module,
+        flow_ref=args.flow_ref,
+        purpose=args.purpose,
+        max_chars=int(args.prompt_max_chars),
+        recent_turns=int(args.recent_turns),
+    )
     pack = {
         "kind": "ContextPack",
         "run_id": run_id,
@@ -303,11 +314,16 @@ def build_context_pack(args: argparse.Namespace) -> dict[str, Any]:
             "recent_turns": state.get("recent_turns", [])[-args.recent_turns :],
             "artifact_refs": state.get("artifact_refs", {}),
             "resume": checkpoint if checkpoint else {},
+            "key_points": prompt_pack.get("key_points", []),
+            "prompt_budget": prompt_pack.get("budget", {}),
+            "prompt_quality": prompt_pack.get("quality", {}),
+            "prompt_text": prompt_pack.get("prompt_text", ""),
         },
     }
     path = pathlib.Path(args.output).resolve() if args.output else context_pack_path(run_dir, args.active_module)
     write_json(path, pack)
-    return {"status": "pass", "context_pack_path": str(path), "context_pack": pack}
+    quality = prompt_pack.get("quality", {})
+    return {"status": quality.get("status", "fail"), "context_pack_path": str(path), "prompt_quality": quality, "context_pack": pack}
 
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
@@ -356,6 +372,8 @@ def main() -> int:
     p_pack.add_argument("--active-module", required=True)
     p_pack.add_argument("--flow-ref", default=DEFAULT_FLOW_REF)
     p_pack.add_argument("--recent-turns", type=int, default=6)
+    p_pack.add_argument("--purpose", default="general", choices=["project_generation", "route_planning", "general"])
+    p_pack.add_argument("--prompt-max-chars", type=int, default=6000)
     p_pack.add_argument("--output", default="")
     p_pack.set_defaults(func=build_context_pack)
 

@@ -36,6 +36,40 @@ def rough_token_count(text: str) -> int:
     return cjk + latin
 
 
+def assess_prompt_quality(
+    *,
+    prompt_text: str,
+    budget: dict[str, Any],
+    key_points: list[dict[str, Any]],
+    required_types: list[str],
+) -> dict[str, Any]:
+    issues: list[str] = []
+    prompt_chars = len(prompt_text)
+    max_chars = int(budget.get("max_chars", 0))
+    if max_chars and prompt_chars > max_chars:
+        issues.append(f"prompt exceeds max_chars: {prompt_chars}>{max_chars}")
+    if "CGNK_CONTEXT_PROMPT" not in prompt_text:
+        issues.append("prompt marker missing")
+    if "Context JSON:" not in prompt_text:
+        issues.append("context json marker missing")
+    available_types = {
+        str(point.get("type", "")).strip()
+        for point in key_points
+        if isinstance(point, dict) and str(point.get("type", "")).strip()
+    }
+    missing = [item for item in required_types if item not in available_types]
+    if missing:
+        issues.append("missing key point types: " + ", ".join(missing))
+    return {
+        "status": "pass" if not issues else "fail",
+        "issues": issues,
+        "required_key_types": required_types,
+        "preserved_key_types": sorted(available_types),
+        "prompt_chars": prompt_chars,
+        "max_chars": max_chars,
+    }
+
+
 def source_value(row: Any, default: Any = "") -> Any:
     if isinstance(row, dict) and "value" in row:
         return row.get("value", default)
@@ -248,6 +282,189 @@ def render_prompt(purpose: str, context: dict[str, Any]) -> str:
     )
 
 
+def compact_turn(turn: dict[str, Any], limit: int = 220) -> dict[str, Any]:
+    return {
+        "turn_id": turn.get("turn_id", ""),
+        "role": turn.get("role", ""),
+        "content": clip_text(turn.get("content", ""), limit),
+        "artifact_refs": turn.get("artifact_refs", {}),
+    }
+
+
+def state_key_points(state: dict[str, Any], checkpoint: dict[str, Any]) -> list[dict[str, Any]]:
+    points: list[dict[str, Any]] = []
+    current_intent = clean_text(state.get("current_intent", ""))
+    if current_intent:
+        points.append({"type": "current_intent", "text": clip_text(current_intent, 360)})
+    for value in state.get("stable_facts", [])[:12]:
+        points.append({"type": "stable_fact", "text": clip_text(value, 260)})
+    for value in state.get("confirmed_constraints", [])[:10]:
+        points.append({"type": "constraint", "text": clip_text(value, 260)})
+    for value in state.get("user_preferences", [])[:8]:
+        points.append({"type": "preference", "text": clip_text(value, 220)})
+    for value in state.get("rejected_options", [])[:8]:
+        points.append({"type": "rejected_option", "text": clip_text(value, 220)})
+    for value in state.get("open_questions", [])[:8]:
+        points.append({"type": "open_question", "text": clip_text(value, 220)})
+    if checkpoint:
+        points.append(
+            {
+                "type": "checkpoint",
+                "stage": checkpoint.get("stage", ""),
+                "status": checkpoint.get("status", ""),
+                "completed_steps": checkpoint.get("completed_steps", []),
+                "pending_steps": checkpoint.get("pending_steps", []),
+            }
+        )
+    return points
+
+
+def compact_state_context(
+    state: dict[str, Any],
+    checkpoint: dict[str, Any],
+    *,
+    active_module: str,
+    flow_ref: str,
+    recent_turns: int = 6,
+) -> dict[str, Any]:
+    return {
+        "active_module": active_module,
+        "flow_ref": flow_ref,
+        "summary": clip_text(state.get("summary", ""), 1600),
+        "current_intent": clip_text(state.get("current_intent", ""), 500),
+        "stable_facts": [clip_text(value, 260) for value in state.get("stable_facts", [])[:16]],
+        "constraints": [clip_text(value, 260) for value in state.get("confirmed_constraints", [])[:12]],
+        "preferences": [clip_text(value, 220) for value in state.get("user_preferences", [])[:8]],
+        "rejected_options": [clip_text(value, 220) for value in state.get("rejected_options", [])[:8]],
+        "open_questions": [clip_text(value, 220) for value in state.get("open_questions", [])[:10]],
+        "recent_turns": [compact_turn(turn) for turn in state.get("recent_turns", [])[-recent_turns:]],
+        "artifact_refs": state.get("artifact_refs", {}),
+        "resume": {
+            "checkpoint_id": checkpoint.get("checkpoint_id", ""),
+            "stage": checkpoint.get("stage", ""),
+            "status": checkpoint.get("status", ""),
+            "completed_steps": checkpoint.get("completed_steps", []),
+            "pending_steps": checkpoint.get("pending_steps", []),
+            "artifact_refs": checkpoint.get("artifact_refs", {}),
+            "resume_command": checkpoint.get("resume_command", ""),
+            "failure": checkpoint.get("failure"),
+        } if checkpoint else {},
+    }
+
+
+def shrink_state_context(context: dict[str, Any], stage: int) -> dict[str, Any]:
+    doc = json.loads(json.dumps(context, ensure_ascii=False))
+    if stage >= 1:
+        doc["summary"] = clip_text(doc.get("summary", ""), 900)
+        doc["stable_facts"] = doc.get("stable_facts", [])[:10]
+        doc["constraints"] = doc.get("constraints", [])[:8]
+        doc["open_questions"] = doc.get("open_questions", [])[:6]
+        doc["recent_turns"] = doc.get("recent_turns", [])[-4:]
+    if stage >= 2:
+        doc["summary"] = clip_text(doc.get("summary", ""), 520)
+        doc["preferences"] = doc.get("preferences", [])[:4]
+        doc["rejected_options"] = doc.get("rejected_options", [])[:4]
+        for turn in doc.get("recent_turns", []):
+            turn["content"] = clip_text(turn.get("content", ""), 140)
+    if stage >= 3:
+        doc["recent_turns"] = doc.get("recent_turns", [])[-2:]
+        doc.get("resume", {}).pop("artifact_refs", None)
+        doc.get("resume", {}).pop("failure", None)
+    if stage >= 4:
+        doc.pop("preferences", None)
+        doc.pop("rejected_options", None)
+        doc["stable_facts"] = doc.get("stable_facts", [])[:6]
+        doc["constraints"] = doc.get("constraints", [])[:5]
+        doc["open_questions"] = doc.get("open_questions", [])[:3]
+        doc["artifact_refs"] = {key: doc.get("artifact_refs", {})[key] for key in list(doc.get("artifact_refs", {}))[:8]}
+    if stage >= 5:
+        doc["summary"] = clip_text(doc.get("summary", ""), 240)
+        doc["current_intent"] = clip_text(doc.get("current_intent", ""), 240)
+        doc.pop("recent_turns", None)
+    return doc
+
+
+def build_state_prompt_pack(
+    state: dict[str, Any],
+    checkpoint: dict[str, Any] | None = None,
+    *,
+    active_module: str,
+    flow_ref: str,
+    purpose: str = "general",
+    max_chars: int = 6000,
+    recent_turns: int = 6,
+) -> dict[str, Any]:
+    checkpoint_doc = checkpoint or {}
+    key_points = state_key_points(state, checkpoint_doc)
+    base_context = compact_state_context(
+        state,
+        checkpoint_doc,
+        active_module=active_module,
+        flow_ref=flow_ref,
+        recent_turns=recent_turns,
+    )
+    prompt_context = base_context
+    prompt_text = render_prompt(purpose, prompt_context)
+    shrink_stage = 0
+    if len(prompt_text) > max_chars:
+        for stage in range(1, 6):
+            shrink_stage = stage
+            prompt_context = shrink_state_context(base_context, stage)
+            prompt_text = render_prompt(purpose, prompt_context)
+            if len(prompt_text) <= max_chars:
+                break
+    if len(prompt_text) > max_chars:
+        shrink_stage = 6
+        minimal_context = {
+            "active_module": active_module,
+            "flow_ref": flow_ref,
+            "current_intent": clip_text(base_context.get("current_intent", ""), 180),
+            "stable_facts": base_context.get("stable_facts", [])[:3],
+            "constraints": base_context.get("constraints", [])[:3],
+            "open_questions": base_context.get("open_questions", [])[:2],
+            "resume": {
+                "stage": base_context.get("resume", {}).get("stage", ""),
+                "status": base_context.get("resume", {}).get("status", ""),
+                "pending_steps": base_context.get("resume", {}).get("pending_steps", [])[:3],
+            },
+        }
+        prompt_text = render_prompt(purpose, minimal_context)
+    if len(prompt_text) > max_chars:
+        shrink_stage = 7
+        minimal_context = {
+            "active_module": active_module,
+            "current_intent": clip_text(base_context.get("current_intent", ""), 120),
+            "constraints": [clip_text(value, 120) for value in base_context.get("constraints", [])[:2]],
+        }
+        prompt_text = render_prompt(purpose, minimal_context)
+    budget = {
+        "max_chars": max_chars,
+        "prompt_chars": len(prompt_text),
+        "rough_tokens": rough_token_count(prompt_text),
+        "shrink_stage": shrink_stage,
+    }
+    required_types = ["current_intent"]
+    if checkpoint_doc:
+        required_types.append("checkpoint")
+    if base_context.get("constraints"):
+        required_types.append("constraint")
+    return {
+        "kind": "ContextPromptPack",
+        "created_at": now(),
+        "purpose": purpose,
+        "budget": budget,
+        "quality": assess_prompt_quality(
+            prompt_text=prompt_text,
+            budget=budget,
+            key_points=key_points,
+            required_types=required_types,
+        ),
+        "compressed_context": base_context,
+        "key_points": key_points,
+        "prompt_text": prompt_text,
+    }
+
+
 def shrink_prompt_context(context: dict[str, Any], stage: int) -> dict[str, Any]:
     doc = json.loads(json.dumps(context, ensure_ascii=False))
     if stage >= 1:
@@ -325,19 +542,26 @@ def build_prompt_pack(
                 "outputs": prompt_context.get("io", {}).get("outputs", [])[:6],
             }
             prompt_text = render_prompt(purpose, prompt_context)
+    budget = {
+        "max_chars": max_chars,
+        "prompt_chars": len(prompt_text),
+        "rough_tokens": rough_token_count(prompt_text),
+        "feature_limit": feature_limit,
+        "gap_limit": gap_limit,
+        "tech_decision_limit": tech_limit,
+    }
 
     return {
         "kind": "ContextPromptPack",
         "created_at": now(),
         "purpose": purpose,
-        "budget": {
-            "max_chars": max_chars,
-            "prompt_chars": len(prompt_text),
-            "rough_tokens": rough_token_count(prompt_text),
-            "feature_limit": feature_limit,
-            "gap_limit": gap_limit,
-            "tech_decision_limit": tech_limit,
-        },
+        "budget": budget,
+        "quality": assess_prompt_quality(
+            prompt_text=prompt_text,
+            budget=budget,
+            key_points=key_points,
+            required_types=["explicit_requirement", "project_type", "business_goal"],
+        ),
         "compressed_context": summary,
         "key_points": key_points,
         "prompt_text": prompt_text,
@@ -377,9 +601,11 @@ def main() -> int:
     if args.json:
         print(json.dumps(pack, ensure_ascii=False, indent=2))
     else:
-        print(f"CONTEXT_PROMPT_PACK: OK chars={pack['budget']['prompt_chars']} rough_tokens={pack['budget']['rough_tokens']}")
+        print(f"CONTEXT_PROMPT_PACK: {str(pack['quality']['status']).upper()} chars={pack['budget']['prompt_chars']} rough_tokens={pack['budget']['rough_tokens']}")
         print(f"out={out_path}")
-    return 0
+        for issue in pack["quality"].get("issues", []):
+            print(f"issue={issue}")
+    return 0 if pack["quality"].get("status") == "pass" else 1
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@
     "checkpoint_ref": {"type": "string"},
     "bounded_context": {
       "type": "object",
-      "required": ["summary", "stable_facts", "open_questions", "recent_turns", "artifact_refs", "resume"],
+      "required": ["summary", "stable_facts", "open_questions", "recent_turns", "artifact_refs", "resume", "key_points", "prompt_budget", "prompt_quality", "prompt_text"],
       "additionalProperties": false,
       "properties": {
         "summary": {"type": "string"},
@@ -23,7 +23,39 @@
         "open_questions": {"type": "array", "items": {"type": "string"}},
         "recent_turns": {"type": "array", "items": {"$ref": "conversation_turn.v1.schema.json"}},
         "artifact_refs": {"type": "object", "additionalProperties": {"type": "string"}},
-        "resume": {"type": "object"}
+        "resume": {"type": "object"},
+        "key_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "prompt_budget": {
+          "type": "object",
+          "required": ["max_chars", "prompt_chars", "rough_tokens"],
+          "additionalProperties": true,
+          "properties": {
+            "max_chars": {"type": "integer", "minimum": 0},
+            "prompt_chars": {"type": "integer", "minimum": 0},
+            "rough_tokens": {"type": "integer", "minimum": 0},
+            "shrink_stage": {"type": "integer", "minimum": 0}
+          }
+        },
+        "prompt_quality": {
+          "type": "object",
+          "required": ["status", "issues", "required_key_types", "preserved_key_types", "prompt_chars", "max_chars"],
+          "additionalProperties": true,
+          "properties": {
+            "status": {"enum": ["pass", "fail"]},
+            "issues": {"type": "array", "items": {"type": "string"}},
+            "required_key_types": {"type": "array", "items": {"type": "string"}},
+            "preserved_key_types": {"type": "array", "items": {"type": "string"}},
+            "prompt_chars": {"type": "integer", "minimum": 0},
+            "max_chars": {"type": "integer", "minimum": 0}
+          }
+        },
+        "prompt_text": {"type": "string"}
       }
     }
   }

@@ -50,7 +50,38 @@ def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, d
     blueprint = inputs.get("project_blueprint", {}).get("payload", {})
     trace = inputs.get("generation_trace", {}).get("payload", {})
     test_graph = inputs.get("test_graph", {}).get("payload", {})
+    state = inputs.get("state", {}).get("payload", {})
+    checkpoint = inputs.get("checkpoint", {}).get("payload", {})
 
+    if module_ref == "module.conversation.reduce@1":
+        turn = inputs.get("turns", {}).get("payload", {})
+        content = turn.get("content", goal_text)
+        return {
+            "state": _artifact(
+                "ConversationState",
+                {
+                    "turn_count": 1,
+                    "summary": content,
+                    "stable_facts": [content],
+                    "open_questions": [],
+                    "current_intent": content,
+                    "next_recommended_action": "build_context_pack",
+                },
+            ),
+            "decision_ledger": _artifact(
+                "DecisionLedger",
+                {
+                    "decisions": [
+                        {
+                            "id": "local-first",
+                            "stage": "conversation_reduce",
+                            "decision": "use local deterministic state compression",
+                            "rationale": "provider calls are disabled by default",
+                        }
+                    ]
+                },
+            ),
+        }
     if module_ref == "module.customer.service@1":
         return {
             "request": _artifact(
@@ -179,12 +210,47 @@ def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, d
                 },
             )
         }
+    if module_ref == "module.generation_checkpoint.commit@1":
+        return {
+            "checkpoint": _artifact(
+                "GenerationCheckpoint",
+                {
+                    "stage": "effect_report",
+                    "status": "pass",
+                    "completed_steps": ["project_generator", "test_graph", "effect_report"],
+                    "pending_steps": [],
+                    "artifact_refs": {
+                        "generation_trace": "n_project_generator.generation_trace",
+                        "project_blueprint": "n_project_generator.project_blueprint",
+                        "effect_report": "n_effect_report_emit.effect_report",
+                    },
+                },
+            )
+        }
+    if module_ref == "module.context_pack.build@1":
+        return {
+            "context_pack": _artifact(
+                "ContextPack",
+                {
+                    "active_module": "module.project.generator@1",
+                    "summary": state.get("summary", ""),
+                    "stable_facts": state.get("stable_facts", []),
+                    "open_questions": state.get("open_questions", []),
+                    "resume": checkpoint,
+                    "agent_steps": agent_plan.get("steps", []),
+                },
+            )
+        }
     if module_ref == "module.unified_control@1":
         return {
             "project_blueprint": inputs["project_blueprint"],
             "generation_trace": inputs["generation_trace"],
             "test_graph": inputs["test_graph"],
             "effect_report": inputs["effect_report"],
+            "conversation_state": inputs["conversation_state"],
+            "decision_ledger": inputs["decision_ledger"],
+            "generation_checkpoint": inputs["generation_checkpoint"],
+            "context_pack": inputs["context_pack"],
         }
     raise KeyError(f"no simulator for {module_ref}")
 
@@ -204,7 +270,14 @@ def run() -> dict[str, Any]:
         for path in sorted((ROOT / "examples" / "modules").glob("*.module.json"))
     }
     values: dict[tuple[str, str], dict[str, Any]] = {
-        ("flow_input", "goal"): _artifact("Goal", {"text": "生成一个通用 CGNK 项目"})
+        ("flow_input", "goal"): _artifact("Goal", {"text": "生成一个通用 CGNK 项目"}),
+        ("flow_input", "conversation_turn"): _artifact(
+            "ConversationTurn",
+            {
+                "role": "user",
+                "content": "生成一个通用 CGNK 项目，并在关键节点保存可续跑状态。",
+            },
+        ),
     }
     module_rows: list[dict[str, Any]] = []
     for node in flow["nodes"]:

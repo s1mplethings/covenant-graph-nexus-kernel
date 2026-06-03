@@ -29,6 +29,54 @@ CORE_PROJECT_GENERATION = [
     "module.unified_control@1",
 ]
 
+BASE_COMPONENT_PIPELINE = [
+    {
+        "id": "foundation",
+        "label": "Project foundation",
+        "active_module": "module.project.generator@1",
+        "depends_on": [],
+        "outputs": ["project_structure", "shared_config", "dependency_manifest"],
+        "path_hints": ["pyproject.toml", "package.json", "requirements.txt", "src/**", "app/**"],
+        "prompt_max_chars": 4200,
+    },
+    {
+        "id": "backend",
+        "label": "Backend, CLI, data, or service logic",
+        "active_module": "module.project.generator@1",
+        "depends_on": ["foundation"],
+        "outputs": ["backend_code", "data_model", "service_contracts"],
+        "path_hints": ["src/**", "server/**", "api/**", "cgnk_app/**"],
+        "prompt_max_chars": 4200,
+    },
+    {
+        "id": "frontend",
+        "label": "User-facing interface",
+        "active_module": "module.project.generator@1",
+        "depends_on": ["foundation", "backend"],
+        "outputs": ["frontend_code", "browser_preview", "interaction_flow"],
+        "path_hints": ["index.html", "static/**", "templates/**", "src/**", "app/**"],
+        "prompt_max_chars": 4200,
+    },
+    {
+        "id": "tests",
+        "label": "Verification and smoke tests",
+        "active_module": "module.test_graph.emit@1",
+        "depends_on": ["foundation", "backend", "frontend"],
+        "outputs": ["test_files", "test_plan", "smoke_checks"],
+        "path_hints": ["tests/**", "TEST_PLAN.md", "scripts/**"],
+        "prompt_max_chars": 3600,
+    },
+    {
+        "id": "docs",
+        "label": "Documentation and run instructions",
+        "active_module": "module.effect_report.emit@1",
+        "depends_on": ["foundation", "backend", "frontend", "tests"],
+        "outputs": ["readme", "usage_docs", "market_research_summary"],
+        "path_hints": ["README.md", "docs/**"],
+        "prompt_max_chars": 3000,
+    },
+]
+
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -108,6 +156,50 @@ def score_modules(goal: str, modules: list[dict[str, Any]]) -> list[dict[str, An
             }
         )
     return sorted(scored, key=lambda row: (-int(row["score"]), row["module_ref"]))
+
+
+def build_component_pipeline(goal: str) -> dict[str, Any]:
+    lowered = str(goal or "").lower()
+    components = [dict(row) for row in BASE_COMPONENT_PIPELINE]
+    if any(token in lowered for token in ("image", "video", "audio", "media", "图片", "图像", "视频", "音频", "立绘", "背景")):
+        components.insert(
+            3,
+            {
+                "id": "media",
+                "label": "Media, asset, or model integration",
+                "active_module": "module.project.generator@1",
+                "depends_on": ["foundation", "backend", "frontend"],
+                "outputs": ["media_generation_code", "asset_pipeline", "preview_artifacts"],
+                "path_hints": ["assets/**", "media/**", "src/**", "static/**"],
+                "prompt_max_chars": 4200,
+            },
+        )
+    if any(token in lowered for token in ("database", "db", "sql", "storage", "数据", "数据库", "存储")):
+        components.insert(
+            2,
+            {
+                "id": "data",
+                "label": "Persistence and data model",
+                "active_module": "module.project.generator@1",
+                "depends_on": ["foundation"],
+                "outputs": ["schema", "storage_layer", "fixtures"],
+                "path_hints": ["schema.sql", "migrations/**", "data/**", "src/**"],
+                "prompt_max_chars": 3600,
+            },
+        )
+    component_ids = [row["id"] for row in components]
+    return {
+        "kind": "ComponentPipelinePlan",
+        "strategy": "local_composer_splits_project_into_component_provider_calls",
+        "quality_goal": "Reduce provider context per call while preserving typed module artifacts and merge gates.",
+        "components": components,
+        "merge_policy": {
+            "duplicate_path": "fail_unless_identical",
+            "required_final_files": ["README.md", "TEST_PLAN.md"],
+            "retry_scope": "failed_component_only",
+        },
+        "execution_order": component_ids,
+    }
 
 
 def env_truthy(name: str) -> bool:
@@ -462,6 +554,7 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
             "requirement": goal,
             "selected_modules": selected,
             "support_modules": support_modules,
+            "component_pipeline": build_component_pipeline(goal),
             "external_routes": external_routes,
             "edges": edges,
             "outputs": ["requirement_blueprint", "project_blueprint", "generation_trace", "test_graph", "effect_report"],

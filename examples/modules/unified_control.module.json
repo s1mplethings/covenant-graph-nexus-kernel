@@ -43,6 +43,22 @@
       "effect_report": {
         "artifact_type": "artifact.effect_report@1",
         "required": true
+      },
+      "conversation_state": {
+        "artifact_type": "artifact.conversation_state@1",
+        "required": true
+      },
+      "decision_ledger": {
+        "artifact_type": "artifact.decision_ledger@1",
+        "required": true
+      },
+      "generation_checkpoint": {
+        "artifact_type": "artifact.generation_checkpoint@1",
+        "required": true
+      },
+      "context_pack": {
+        "artifact_type": "artifact.context_pack@1",
+        "required": true
       }
     },
     "output": {
@@ -57,6 +73,18 @@
       },
       "effect_report": {
         "artifact_type": "artifact.effect_report@1"
+      },
+      "conversation_state": {
+        "artifact_type": "artifact.conversation_state@1"
+      },
+      "decision_ledger": {
+        "artifact_type": "artifact.decision_ledger@1"
+      },
+      "generation_checkpoint": {
+        "artifact_type": "artifact.generation_checkpoint@1"
+      },
+      "context_pack": {
+        "artifact_type": "artifact.context_pack@1"
       }
     }
   },
@@ -78,6 +106,6 @@
     "effect_rule": "subset_or_equal"
   },
   "metadata": {
-    "purpose": "Single convergence module. It routes final outputs after all independent module lines have produced typed artifacts."
+    "purpose": "Single convergence module. It routes final outputs and durable long-context state after all independent module lines have produced typed artifacts."
   }
 }

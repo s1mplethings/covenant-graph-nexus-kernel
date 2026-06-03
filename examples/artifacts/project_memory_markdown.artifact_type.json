@@ -1,0 +1,24 @@
+{
+  "kind": "ArtifactTypeSpec",
+  "id": "artifact.project_memory_markdown",
+  "version": "1",
+  "type_name": "ProjectMemoryMarkdown",
+  "schema_ref": "schemas/project_memory_markdown.v1.schema.json",
+  "identity": {
+    "hash_fields": [
+      "markdown_path",
+      "flow_ref",
+      "customer_request",
+      "module_mapping",
+      "artifact_mapping"
+    ]
+  },
+  "compatibility": {
+    "backward_compatible_with": []
+  },
+  "metadata": {
+    "first_use": "modular_project_generation_v1",
+    "ref": "artifact.project_memory_markdown@1",
+    "purpose": "Human-maintainable project memory Markdown with a JSON mirror aligned to CGNK modular project-generation contracts."
+  }
+}

@@ -40,6 +40,9 @@ def build_enriched_goal(requirement: str, answers: list[dict[str, str]], bluepri
         purpose="project_generation",
         max_chars=max_chars,
     )
+    if pack.get("quality", {}).get("status") != "pass":
+        issues = ", ".join(str(item) for item in pack.get("quality", {}).get("issues", []))
+        raise SystemExit(f"context prompt quality failed: {issues}")
     return str(pack["prompt_text"]), pack
 
 
@@ -120,16 +123,16 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.set_defaults(allow_network=False, allow_provider=False, use_api=False, use_local_model=False)
+    parser.set_defaults(allow_network=True, allow_provider=True, use_api=True, use_local_model=False)
     parser.add_argument("--requirement", required=True)
     parser.add_argument("--project-slug", default="")
     parser.add_argument("--assume-defaults", action="store_true", help="Deprecated no-op. Local default-answer templates are disabled.")
-    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes.")
-    parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes for a fully local run.")
-    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls.")
+    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes. Enabled by default for provider project generation.")
+    parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes. Project-file generation will fail under provider-only policy.")
+    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls. Enabled by default for provider project generation.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API calls.")
-    parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation.")
-    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation and use the generic local materializer.")
+    parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation. Enabled by default.")
+    parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation. Project-file generation will fail under provider-only policy.")
     parser.add_argument("--use-local-model", dest="use_local_model", action="store_true", help="Use CGNK_LOCAL_MODEL_CMD or local Ollama for route hints.")
     parser.add_argument("--prompt-max-chars", type=int, default=6000, help="Maximum local compressed context prompt size before route/generation use.")
     parser.add_argument("--model", default="gpt-4o-mini")

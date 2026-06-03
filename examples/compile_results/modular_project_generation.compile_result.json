@@ -8,8 +8,8 @@
     "flow_ref": "flow.modular_project_generation@1",
     "policy_ref": "policy.safe_modular_project_generation@1",
     "symbols": {
-      "node_count": 11,
-      "edge_count": 34
+      "node_count": 14,
+      "edge_count": 49
     },
     "checks": {
       "refs": "ok",
