@@ -108,6 +108,13 @@ python scripts/validate_bundle.py --flow flow.project_refactor@1
 python scripts/validate_bundle.py --flow flow.modular_project_generation@1
 ```
 
+Boundary Guard sidecar preflight examples:
+
+```bash
+python scripts/cgnk_boundary_guard.py --intent examples/boundary/sample_intents.json --case allow_product_story --json
+python scripts/cgnk_boundary_guard.py --intent examples/boundary/sample_intents.json --case block_product_agent_generated_path --json
+```
+
 Expected result:
 
 ```text

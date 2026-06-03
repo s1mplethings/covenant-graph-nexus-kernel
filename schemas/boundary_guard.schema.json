@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/boundary_guard.schema.json",
+  "title": "CGNK Boundary Guard",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AgentActionIntent"
+    },
+    {
+      "$ref": "#/$defs/BoundaryDecision"
+    }
+  ],
+  "$defs": {
+    "AgentActionIntent": {
+      "type": "object",
+      "required": [
+        "kind",
+        "agent_id",
+        "role",
+        "stage",
+        "lane",
+        "action_type",
+        "reads",
+        "writes",
+        "paths_read",
+        "paths_write",
+        "tools",
+        "provider_request",
+        "reason"
+      ],
+      "properties": {
+        "kind": {
+          "const": "AgentActionIntent"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "stage": {
+          "type": "string"
+        },
+        "lane": {
+          "type": "string"
+        },
+        "action_type": {
+          "type": "string"
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "paths_read": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "paths_write": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_request": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "BoundaryDecision": {
+      "type": "object",
+      "required": [
+        "kind",
+        "status",
+        "reason",
+        "agent_id",
+        "checks",
+        "messages",
+        "suggested_rewrite",
+        "requires_approval_from"
+      ],
+      "properties": {
+        "kind": {
+          "const": "BoundaryDecision"
+        },
+        "status": {
+          "enum": ["allow", "rewrite", "block", "escalate"]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "object",
+          "required": [
+            "role_contract",
+            "stage_lane",
+            "artifact_boundary",
+            "tool_permission",
+            "provider_permission",
+            "gate_dependency"
+          ],
+          "properties": {
+            "role_contract": {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            "stage_lane": {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            "artifact_boundary": {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            "tool_permission": {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            "provider_permission": {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            "gate_dependency": {
+              "$ref": "#/$defs/CheckStatus"
+            }
+          },
+          "additionalProperties": false
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suggested_rewrite": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentActionIntent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requires_approval_from": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "CheckStatus": {
+      "enum": ["pass", "fail", "warning", "not_applicable"]
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "kind": "BoundaryPolicyPack",
+  "version": "1",
+  "forbidden_mainline_insertion": true,
+  "roles": {
+    "product_agent": {
+      "allowed_stages": ["product_design"],
+      "allowed_lanes": ["product_studio"],
+      "allowed_actions": ["read_artifact", "write_artifact", "propose_scope"],
+      "can_write_artifacts": [
+        "artifact.virtual_team_roster@1",
+        "artifact.product_story@1",
+        "artifact.mvp_scope@1"
+      ],
+      "cannot_write_paths": ["src/**", "generated/**", "tests/**"],
+      "provider_allowed": false
+    },
+    "planning_agent": {
+      "allowed_stages": ["planning"],
+      "allowed_lanes": ["product_studio"],
+      "allowed_actions": ["read_artifact", "write_artifact", "propose_plan"],
+      "can_write_artifacts": [
+        "artifact.technical_plan@1",
+        "artifact.build_plan@1"
+      ],
+      "cannot_write_paths": ["src/**", "generated/**", "tests/**"],
+      "provider_allowed": false
+    },
+    "build_agent": {
+      "allowed_stages": ["build"],
+      "allowed_lanes": ["build"],
+      "allowed_actions": ["read_artifact", "write_artifact", "modify_file", "run_command"],
+      "can_write_paths": ["generated/**"],
+      "can_write_artifacts": [
+        "artifact.generated_project@1",
+        "artifact.generation_trace@1"
+      ],
+      "provider_allowed": false
+    },
+    "qa_agent": {
+      "allowed_stages": ["qa_evidence"],
+      "allowed_lanes": ["qa"],
+      "allowed_actions": ["read_artifact", "write_artifact", "run_command", "capture_screenshot"],
+      "can_write_artifacts": [
+        "artifact.test_report@1",
+        "artifact.screenshot_evidence@1",
+        "artifact.effect_report@1"
+      ],
+      "provider_allowed": false
+    },
+    "delivery_agent": {
+      "allowed_stages": ["delivery"],
+      "allowed_lanes": ["delivery"],
+      "allowed_actions": ["read_artifact", "write_artifact", "package_project", "summarize_delivery"],
+      "can_write_artifacts": [
+        "artifact.delivery_bundle@1",
+        "artifact.delivery_summary@1"
+      ],
+      "provider_allowed": false
+    }
+  },
+  "tools": {
+    "local_file_read": {
+      "local_only": true
+    },
+    "local_file_write": {
+      "local_only": true
+    },
+    "run_command": {
+      "local_only": true,
+      "restricted": true
+    },
+    "capture_screenshot": {
+      "local_only": true
+    },
+    "provider_call": {
+      "local_only": false,
+      "requires_provider_governor": true
+    }
+  },
+  "gates": {
+    "product_story": {
+      "requires": [
+        "artifact.customer_intent@1",
+        "artifact.virtual_team_roster@1"
+      ]
+    },
+    "mvp_scope": {
+      "requires": [
+        "artifact.product_story@1"
+      ]
+    },
+    "technical_plan": {
+      "requires": [
+        "artifact.mvp_scope@1"
+      ]
+    },
+    "build_plan": {
+      "requires": [
+        "artifact.technical_plan@1"
+      ]
+    },
+    "generated_project": {
+      "requires": [
+        "artifact.build_plan@1"
+      ]
+    },
+    "delivery_bundle": {
+      "requires": [
+        "artifact.test_report@1",
+        "artifact.screenshot_evidence@1",
+        "artifact.effect_report@1"
+      ]
+    }
+  }
+}

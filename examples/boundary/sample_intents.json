@@ -1,0 +1,155 @@
+{
+  "kind": "BoundaryGuardSampleIntents",
+  "cases": {
+    "allow_product_story": {
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.product_story",
+        "role": "product_agent",
+        "stage": "product_design",
+        "lane": "product_studio",
+        "action_type": "write_artifact",
+        "reads": [
+          "artifact.customer_intent@1",
+          "artifact.virtual_team_roster@1"
+        ],
+        "writes": [
+          "artifact.product_story@1"
+        ],
+        "paths_read": [],
+        "paths_write": [],
+        "tools": [
+          "local_file_write"
+        ],
+        "provider_request": false,
+        "reason": "Generate product story after customer intent is available."
+      }
+    },
+    "block_product_agent_generated_path": {
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.product_story",
+        "role": "product_agent",
+        "stage": "product_design",
+        "lane": "product_studio",
+        "action_type": "write_artifact",
+        "reads": [
+          "artifact.customer_intent@1",
+          "artifact.virtual_team_roster@1"
+        ],
+        "writes": [
+          "artifact.product_story@1"
+        ],
+        "paths_read": [],
+        "paths_write": [
+          "generated/app.py"
+        ],
+        "tools": [
+          "local_file_write"
+        ],
+        "provider_request": false,
+        "reason": "Attempt to write implementation output from product design."
+      }
+    },
+    "block_qa_writes_product_story": {
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.qa_review",
+        "role": "qa_agent",
+        "stage": "qa_evidence",
+        "lane": "qa",
+        "action_type": "write_artifact",
+        "reads": [
+          "artifact.generated_project@1"
+        ],
+        "writes": [
+          "artifact.product_story@1"
+        ],
+        "paths_read": [],
+        "paths_write": [],
+        "tools": [
+          "local_file_write"
+        ],
+        "provider_request": false,
+        "reason": "Attempt to rewrite product story from QA."
+      }
+    },
+    "block_delivery_missing_gates": {
+      "run_state": {
+        "artifacts": [
+          "artifact.generated_project@1"
+        ]
+      },
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.delivery",
+        "role": "delivery_agent",
+        "stage": "delivery",
+        "lane": "delivery",
+        "action_type": "write_artifact",
+        "reads": [
+          "artifact.generated_project@1"
+        ],
+        "writes": [
+          "artifact.delivery_bundle@1"
+        ],
+        "paths_read": [],
+        "paths_write": [],
+        "tools": [
+          "local_file_write"
+        ],
+        "provider_request": false,
+        "reason": "Package delivery before evidence is complete."
+      }
+    },
+    "block_provider_request": {
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.product_story",
+        "role": "product_agent",
+        "stage": "product_design",
+        "lane": "product_studio",
+        "action_type": "write_artifact",
+        "reads": [
+          "artifact.customer_intent@1",
+          "artifact.virtual_team_roster@1"
+        ],
+        "writes": [
+          "artifact.product_story@1"
+        ],
+        "paths_read": [],
+        "paths_write": [],
+        "tools": [
+          "local_file_write",
+          "provider_call"
+        ],
+        "provider_request": true,
+        "reason": "Attempt to call provider from a local-only product agent."
+      }
+    },
+    "rewrite_safe_artifact_alias": {
+      "intent": {
+        "kind": "AgentActionIntent",
+        "agent_id": "agent.product_story",
+        "role": "product_agent",
+        "stage": "product_design",
+        "lane": "product_studio",
+        "action_type": "write_artifact",
+        "reads": [
+          "customer_intent",
+          "virtual_team_roster"
+        ],
+        "writes": [
+          "product_story"
+        ],
+        "paths_read": [],
+        "paths_write": [],
+        "tools": [
+          "local_file_write"
+        ],
+        "provider_request": false,
+        "reason": "Use short local artifact aliases that can be canonicalized safely."
+      }
+    }
+  }
+}
