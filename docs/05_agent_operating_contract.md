@@ -8,6 +8,10 @@ Agents are primary implementers, but they are not allowed to redefine success. S
 
 ## 1. Agent authority
 
+The Lead Agent owns the project run. The Lead Agent MAY dynamically create specialist roles, choose modules, compose different pipelines for different project types, revise plans after test failure, request repair and retry, and decide whether to continue, repair, mark PARTIAL, mark BLOCKED, or deliver.
+
+The Lead Agent MUST preserve `output_contract`, required handoff artifacts, policy gates, validation attempts, test evidence, required visual evidence, and `delivery_bundle`.
+
 Agents MAY:
 
 ```text
@@ -19,9 +23,18 @@ create test fixtures
 write README files
 create delivery summaries
 propose technical changes
+create project-specific specialist agents
+choose modules based on project needs
+compose different pipelines for different project types
+revise plans after test failure
+request repair and retry
 ```
 
 Agents SHOULD explain implementation decisions through artifacts rather than free-form status text.
+
+Specialist Agents MUST own only the responsibilities delegated to their roles. A Product Lead MAY own `product_story`; a Solution Architect MAY own `technical_plan`; an Implementation Engineer MAY own `generated_project`; a QA Engineer MAY own `test_report` and `visual_evidence`; a Delivery Manager MAY own `delivery_bundle`.
+
+Specialist Agents MUST NOT override the Lead Agent, redefine the `output_contract`, or mark PASS without evidence.
 
 ## 2. Required inputs
 
@@ -130,6 +143,10 @@ claim delivery complete without delivery_bundle
 hide known limits
 replace requested output format without recording the change
 use internal logs as the only user-facing delivery
+mark PASS without evidence
+mark PASS without test data
+mark PASS without test_report
+mark PASS for GUI delivery without screenshot or visual evidence when required
 ```
 
 ## 9. Status rule

@@ -4,6 +4,10 @@ CGNK 的目标是让用户只提供项目目标、输入、输出和约束，就
 
 CGNK 不是只生成代码。它是一个 **Autonomous Project Studio Kernel**：系统必须自动组织虚拟项目团队，完成产品故事、MVP 范围、技术方案、实现计划、测试证据和交付包。
 
+CGNK 是 agent 主控、契约护航的自动项目工作室。
+
+Lead Agent 可以按需求创建不同虚拟角色和不同管线，但必须留下 artifact、通过契约检查、产出测试证据和交付包。
+
 ## Target Workflow
 
 ```text
@@ -65,6 +69,8 @@ CGNK 必须根据项目类型自动创建虚拟团队。
 ## Generation Rule
 
 CGNK 必须通过模块契约拼管线，不允许把所有逻辑硬连成一条不可解释的脚本。
+
+Lead Agent 主控执行路线。Layer 是工作区和交接边界，不是替代 agent 规划的固定硬编码流程。
 
 最终生成流程必须至少保留：
 

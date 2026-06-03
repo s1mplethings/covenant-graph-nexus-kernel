@@ -6,9 +6,15 @@ This document defines the required execution stages for CGNK as an Autonomous Pr
 
 The flow keeps product intent, design, implementation, testing, evidence, and delivery in one traceable mainline.
 
+Stages are agent-led work areas and handoff boundaries.
+
+Stages are handoff/work areas, not a rigid script.
+
+The Lead Agent controls the run and MAY revisit or adapt stages when evidence, policy, or user feedback requires it. However, required artifacts and pass gates cannot be skipped for PASS.
+
 ## 1. Stage list
 
-A Product Studio run MUST use these stages:
+A Product Studio run MUST preserve these stages as required handoff and evidence areas:
 
 ```text
 S0 Intake

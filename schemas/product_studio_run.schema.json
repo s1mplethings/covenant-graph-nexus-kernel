@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Studio Run",
+  "type": "object",
+  "required": [
+    "customer_intent",
+    "output_contract",
+    "virtual_team_roster",
+    "product_story",
+    "mvp_scope",
+    "technical_plan",
+    "build_plan",
+    "test_evidence",
+    "delivery_bundle"
+  ],
+  "properties": {
+    "customer_intent": {
+      "type": "object",
+      "required": ["kind", "goal", "input_expectation", "output_expectation"],
+      "properties": {
+        "kind": { "const": "customer_intent" },
+        "goal": { "type": "string", "minLength": 1 },
+        "input_expectation": { "type": "array", "items": { "type": "string" } },
+        "output_expectation": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "output_contract": {
+      "type": "object",
+      "required": ["kind", "required_outputs"],
+      "properties": {
+        "kind": { "const": "output_contract" },
+        "required_outputs": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "virtual_team_roster": {
+      "type": "object",
+      "required": ["kind", "lead_agent", "specialist_agents"],
+      "properties": {
+        "kind": { "const": "virtual_team_roster" },
+        "lead_agent": { "type": "string", "minLength": 1 },
+        "specialist_agents": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "product_story": {
+      "type": "object",
+      "required": ["kind", "product_name", "main_problem", "acceptance_implications"],
+      "properties": {
+        "kind": { "const": "product_story" },
+        "product_name": { "type": "string", "minLength": 1 },
+        "main_problem": { "type": "string", "minLength": 1 },
+        "acceptance_implications": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "mvp_scope": {
+      "type": "object",
+      "required": ["kind", "must_have"],
+      "properties": {
+        "kind": { "const": "mvp_scope" },
+        "must_have": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "technical_plan": {
+      "type": "object",
+      "required": ["kind", "runtime_target"],
+      "properties": {
+        "kind": { "const": "technical_plan" },
+        "runtime_target": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "build_plan": {
+      "type": "object",
+      "required": ["kind", "tasks"],
+      "properties": {
+        "kind": { "const": "build_plan" },
+        "tasks": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "test_evidence": {
+      "type": "object",
+      "required": ["kind", "status"],
+      "properties": {
+        "kind": { "const": "test_evidence" },
+        "status": { "enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL"] }
+      },
+      "additionalProperties": true
+    },
+    "delivery_bundle": {
+      "type": "object",
+      "required": ["kind", "status", "included_evidence"],
+      "properties": {
+        "kind": { "const": "delivery_bundle" },
+        "status": { "enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL"] },
+        "included_evidence": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

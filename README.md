@@ -2,6 +2,8 @@
 
 This repository is the CovenantGraph Nexus Kernel machine-first baseline for building an **Autonomous Project Studio Kernel**: a contract-governed project production system where coding agents plan, generate, test, evidence, and package modular projects safely.
 
+CGNK is agent-led, contract-guarded, artifact-traced, module-composed, evidence-delivered, and user-revisable.
+
 The product goal is one-sentence project delivery: a user gives a goal, input expectation, output requirement, and constraints; CGNK creates a virtual team, builds a product story, freezes an output contract, composes a local pipeline, materializes a bounded generated project, produces test/visual evidence, and emits a delivery bundle.
 
 ## Name
@@ -24,6 +26,7 @@ docs/02_product_story_contract.md       Product story and MVP contract.
 docs/03_execution_flow.md               Product Studio execution stage contract.
 docs/04_acceptance_and_evidence.md      Delivery evidence contract.
 docs/05_agent_operating_contract.md     Agent operating rules.
+docs/06_agent_led_layered_architecture.md Agent-led layered architecture contract.
 schemas/                                JSON Schemas for contract objects and compiled outputs.
 examples/artifacts/                     ArtifactTypeSpec examples.
 examples/modules/                       ModuleContract examples.
@@ -100,6 +103,9 @@ A generated project MUST NOT be marked PASS unless the delivery contains a runna
 ## Quick Validation
 
 ```bash
+python scripts/check_product_studio_contract.py
+python scripts/check_product_studio_contract.py --json
+pytest tests/test_product_studio_contract.py
 python scripts/validate_bundle.py
 python scripts/validate_bundle.py --json
 python scripts/validate_bundle.py --schema
@@ -170,6 +176,15 @@ Local execution writes the standard runtime artifacts plus durable long-context 
 `conversation_state.json`, `decision_ledger.json`, `generation_checkpoint.json`, and `context_pack.json`.
 
 Optional local-model route hints are disabled unless explicitly enabled with `--use-local-model`. Project-file generation uses the configured provider/API by default; use `--no-api`, `--no-provider`, or `--no-network` only when you intentionally want the provider-only generation policy to fail before writing files.
+
+For a compact Product Studio run artifact:
+
+```bash
+python scripts/run_product_studio.py --goal "Build a local GUI image rename tool" --input "image folder, prefix + index rule" --output "renamed images, report, README, test data, test report, screenshot evidence, delivery bundle" --out examples/product_studio/runs/demo
+python scripts/check_product_studio_contract.py --run-file examples/product_studio/runs/demo/product_studio_run.json
+python scripts/deliver_product_studio.py --run-file examples/product_studio/runs/minimal_gui_tool_run/product_studio_run.json --out examples/product_studio/runs/minimal_gui_tool_run
+python scripts/check_product_studio_contract.py --run-file examples/product_studio/runs/minimal_gui_tool_run/product_studio_run.json --json
+```
 
 ## Testing
 

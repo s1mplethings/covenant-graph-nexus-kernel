@@ -6,6 +6,10 @@ This document is the top-level product contract for CGNK.
 
 CGNK is an **Autonomous Project Studio Kernel**. It is not only a contract compiler and not only a code generator. Its product line is to turn a user's goal, input, output, and constraints into a usable project with design artifacts, implementation artifacts, test evidence, and a delivery bundle.
 
+CGNK is agent-led and contract-guarded.
+
+The Lead Agent owns the run. The Product Studio mainline is a required evidence and handoff structure, not a hardcoded script that replaces agent planning.
+
 ## 1. Primary user
 
 CGNK serves users who do not want to design the full project path, research the architecture, configure the environment, or manually prove whether the result works.
@@ -24,7 +28,7 @@ CGNK MUST convert that into a project delivery process.
 
 ## 2. Required mainline
 
-Every product-generation run MUST follow this mainline:
+Every product-generation run MUST preserve this mainline:
 
 ```text
 customer_intent
@@ -40,6 +44,8 @@ customer_intent
 ```
 
 A run MUST NOT be marked PASS unless the required artifacts exist and are internally consistent.
+
+The Lead Agent MAY revisit, repair, or adapt the route through these artifacts when evidence, policy, or user feedback requires it. Required artifacts and PASS gates MUST NOT be skipped for PASS.
 
 ## 3. Required artifacts
 
@@ -174,4 +180,6 @@ repackage delivery
 
 The contract compiler remains important. It validates artifacts, module contracts, flows, policies, and diagnostics.
 
-However, the product studio contract is the top-level product rule. The compiler, pipeline composer, agent builder, QA runner, and delivery packager MUST serve this mainline.
+However, the product studio contract is the top-level product rule. The compiler, pipeline composer, agent builder, QA runner, and delivery packager MUST serve the Lead Agent, this mainline, and the required evidence gates.
+
+The contract compiler MUST act as validator and guardrail. It MUST NOT replace the Lead Agent or own product decisions.
