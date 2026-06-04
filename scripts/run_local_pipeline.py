@@ -34,7 +34,7 @@ DEFAULT_RESULT_PATH = ROOT / "examples" / "test_results" / "local_pipeline_execu
 FORBIDDEN_PROJECT_NAMES = {"template", "fallback", "generic"}
 BINARY_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".webm", ".mov", ".pdf", ".zip"}
 GENERATION_POLICY = {
-    "project_files_authority": "local_simulator_default_provider_escalation_only",
+    "project_files_authority": "api_provider_for_delivery_simulator_for_preflight_only",
     "local_allowed_scope": [
         "pipeline_composition",
         "requirement_blueprint",
@@ -52,7 +52,7 @@ GENERATION_POLICY = {
         "synthetic_project_code",
         "post_generation_architecture_rewrite",
     ],
-    "failure_rule": "Provider/API is disabled by default and may only run after BLOCKED plus an explicit escalation request.",
+    "failure_rule": "Simulator mode is allowed to stop at BLOCKED. Telegram delivery mode must use API/provider or fail fast with a clear configuration error.",
 }
 
 

@@ -219,13 +219,23 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420)
         self.assertEqual(12000, args.prompt_max_chars)
         self.assertFalse(args.use_local_model)
-        self.assertFalse(args.allow_provider)
-        self.assertFalse(args.use_api)
+        self.assertTrue(args.allow_provider)
+        self.assertTrue(args.use_api)
         command = bridge.generation_subprocess_command(args)
         self.assertIn("--prompt-max-chars", command)
         self.assertIn("12000", command)
+        self.assertIn("--allow-network", command)
+        self.assertIn("--allow-provider", command)
+        self.assertIn("--use-api", command)
+        self.assertNotIn("--no-api", command)
+
+    def test_generation_command_uses_no_api_flags_in_simulator_mode(self) -> None:
+        args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420, "simulator")
+        command = bridge.generation_subprocess_command(args)
+        self.assertIn("--no-network", command)
         self.assertIn("--no-provider", command)
         self.assertIn("--no-api", command)
+        self.assertNotIn("--use-api", command)
 
     def test_greeting_does_not_start_generation_or_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -281,35 +291,49 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assert_public_reply_style(client.messages[-1][1])
             self.assertNotRegex(client.messages[-1][1], r"[A-Za-z]:\\")
 
-    def test_generation_confirmation_uses_local_simulator_not_api(self) -> None:
+    def test_generation_confirmation_starts_backend_thread(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
             original_provider_text = bridge.provider_text
+            original_run_generation_job = bridge.run_generation_job
+            called = {}
+
+            def fake_run_generation_job(*args, **kwargs):
+                called["ran"] = True
+                called["control_id"] = kwargs.get("control_id")
+                called["generation_mode"] = kwargs.get("generation_mode")
+
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
+            bridge.run_generation_job = fake_run_generation_job
             try:
                 bridge.handle_text(client, "chat-4", "做一个本地待办事项应用", session_dir, log_dir, "gpt-test", 60)
                 bridge.handle_text(client, "chat-4", "开始生成", session_dir, log_dir, "gpt-test", 60)
             finally:
                 bridge.provider_text = original_provider_text
+                bridge.run_generation_job = original_run_generation_job
             session = bridge.load_session(session_dir, "chat-4")
-            self.assertEqual("local_simulator_company", session["generation"]["driver"])
-            self.assertIn("当前状态", client.messages[-1][1])
-            self.assertNotIn("项目已完成", client.messages[-1][1])
-            self.assertNotIn("已经完成并交付", client.messages[-1][1])
+            self.assertTrue(called["ran"])
+            self.assertEqual(session["generation"]["control_id"], called["control_id"])
+            self.assertEqual("api", called["generation_mode"])
+            self.assertEqual("api_provider", session["generation"]["driver"])
+            self.assertIn("正式生成", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
-            entries = bridge.read_truth_ledger(session_dir, "chat-4")
-            self.assertTrue(any(entry.get("stage") == "local_simulator_company" for entry in entries))
 
     def test_generation_confirmation_writes_backend_control_command(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
+            original_run_generation_job = bridge.run_generation_job
+            bridge.run_generation_job = lambda *args, **kwargs: None
 
-            bridge.handle_text(client, "chat-control", "做一个本地 VN 助手，要时间线和图片预览", session_dir, log_dir, "gpt-test", 60)
-            bridge.handle_text(client, "chat-control", "开始生成", session_dir, log_dir, "gpt-test", 60)
+            try:
+                bridge.handle_text(client, "chat-control", "做一个本地 VN 助手，要时间线和图片预览", session_dir, log_dir, "gpt-test", 60)
+                bridge.handle_text(client, "chat-control", "开始生成", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.run_generation_job = original_run_generation_job
 
             session = bridge.load_session(session_dir, "chat-control")
             controls = session.get("backend_controls", [])
@@ -317,6 +341,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(1, len(start_controls))
             self.assertEqual("queued", start_controls[0]["status"])
             self.assertIn("本地 VN 助手", start_controls[0]["payload"]["requirement"])
+            self.assertTrue(start_controls[0]["payload"]["control_flags"]["api_allowed"])
             self.assertEqual(start_controls[0]["id"], session["generation"]["control_id"])
             self.assertTrue(any(event["type"] == "backend_control_queued" for event in session["memory_events"]))
 
@@ -325,10 +350,15 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
+            original_run_generation_job = bridge.run_generation_job
+            bridge.run_generation_job = lambda *args, **kwargs: None
 
-            bridge.handle_text(client, "chat-revise", "做一个本地图片生成工具", session_dir, log_dir, "gpt-test", 60)
-            bridge.handle_text(client, "chat-revise", "开始生成", session_dir, log_dir, "gpt-test", 60)
-            bridge.handle_text(client, "chat-revise", "背景和立绘必须分开两个入口", session_dir, log_dir, "gpt-test", 60)
+            try:
+                bridge.handle_text(client, "chat-revise", "做一个本地图片生成工具", session_dir, log_dir, "gpt-test", 60)
+                bridge.handle_text(client, "chat-revise", "开始生成", session_dir, log_dir, "gpt-test", 60)
+                bridge.handle_text(client, "chat-revise", "背景和立绘必须分开两个入口", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.run_generation_job = original_run_generation_job
 
             session = bridge.load_session(session_dir, "chat-revise")
             controls = session.get("backend_controls", [])

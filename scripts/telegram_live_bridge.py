@@ -911,6 +911,35 @@ def update_active_run_status(session: dict[str, Any], status: str, **fields: Any
     return run
 
 
+def mark_generation_retry(
+    session: dict[str, Any],
+    *,
+    reason: str,
+    max_retries: int = 2,
+) -> bool:
+    run = active_run(session) or {
+        "kind": "TelegramHumanFrontdeskRun",
+        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-manual",
+        "created_at": now(),
+    }
+    retry_count = int(run.get("local_retry_count") or 0) + 1
+    run["local_retry_count"] = retry_count
+    run["last_retry_reason"] = reason
+    run["updated_at"] = now()
+    exhausted = retry_count >= max_retries
+    run["local_retry_exhausted"] = exhausted
+    session["active_run"] = run
+    return not exhausted
+
+
+def assert_api_generation_ready(generation_mode: str) -> None:
+    if str(generation_mode or "api").lower() != "api":
+        return
+    creds = check_connectivity._resolve_api_credentials()
+    if not str(creds.get("api_key", "")).strip():
+        raise RuntimeError("api_generation_mode requires configured OpenAI-compatible API key")
+
+
 def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
     pending = session.get("pending_decision")
     if isinstance(pending, dict) and str(pending.get("status", "")) == "pending" and str(pending.get("question", "")).strip():
@@ -1037,6 +1066,29 @@ def append_backend_control(
     return control
 
 
+def update_backend_control_status(
+    session: dict[str, Any],
+    control_id: str,
+    status: str,
+    *,
+    reason: str = "",
+    result_path: str = "",
+) -> None:
+    controls = session.get("backend_controls", [])
+    if not isinstance(controls, list):
+        return
+    for control in reversed(controls):
+        if isinstance(control, dict) and str(control.get("id", "")) == str(control_id):
+            control["status"] = status
+            control["updated_at"] = now()
+            if reason:
+                control["reason"] = reason
+            if result_path:
+                control["result_path"] = result_path
+            break
+    session["backend_controls"] = controls
+
+
 def latest_backend_control(session: dict[str, Any]) -> dict[str, Any]:
     controls = session.get("backend_controls", [])
     if not isinstance(controls, list) or not controls:
@@ -1057,8 +1109,9 @@ def has_open_backend_control(session: dict[str, Any], actions: set[str]) -> bool
     return False
 
 
-def generation_control_payload(session: dict[str, Any], requirement: str) -> dict[str, Any]:
+def generation_control_payload(session: dict[str, Any], requirement: str, generation_mode: str = "api") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    use_api = str(generation_mode or "api").lower() == "api"
     return {
         "requirement": requirement[:12000],
         "project_summary": str(whiteboard.get("project_summary", ""))[:2000],
@@ -1067,8 +1120,9 @@ def generation_control_payload(session: dict[str, Any], requirement: str) -> dic
         "change_requests": whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else [],
         "attachments": recent_attachments(session, limit=20),
         "control_flags": {
-            "provider_allowed": False,
-            "api_allowed": False,
+            "provider_allowed": use_api,
+            "api_allowed": use_api,
+            "generation_mode": "api" if use_api else "simulator",
             "must_not_claim_done_without_evidence": True,
         },
     }
@@ -1227,6 +1281,68 @@ def _evidence_path(raw: str) -> pathlib.Path | None:
     if not path.is_absolute():
         path = ROOT / path
     return path if path.exists() and path.is_file() else None
+
+
+def make_project_package(project_dir: pathlib.Path, log_dir: pathlib.Path) -> pathlib.Path:
+    source = pathlib.Path(project_dir)
+    if not source.exists() or not source.is_dir():
+        raise RuntimeError(f"project directory is missing for delivery package: {source}")
+    package_base = log_dir / f"{safe_id(source.name)}_final_project_bundle"
+    zip_path = pathlib.Path(str(package_base) + ".zip")
+    if zip_path.exists():
+        zip_path.unlink()
+    shutil.make_archive(str(package_base), "zip", root_dir=str(source))
+    return zip_path
+
+
+def ensure_verify_report(result: dict[str, Any], log_dir: pathlib.Path) -> pathlib.Path:
+    existing = pathlib.Path(str(result.get("effect_report_path", "")))
+    if existing.exists() and existing.is_file():
+        return existing
+    report = log_dir / f"{safe_id(result.get('project_dir', 'project'))}_verify_report.json"
+    write_json(
+        report,
+        {
+            "kind": "VerifyReport",
+            "status": str(result.get("status", "")).upper(),
+            "project_dir": result.get("project_dir", ""),
+            "runtime_dir": result.get("runtime_dir", ""),
+            "generated_files": result.get("generated_files", []),
+            "agent_usage": result.get("agent_usage", {}),
+        },
+    )
+    return report
+
+
+def emit_delivery_evidence(
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    result: dict[str, Any],
+    screenshot: pathlib.Path | None,
+    log_dir: pathlib.Path,
+) -> dict[str, str]:
+    project_dir = pathlib.Path(str(result.get("project_dir", "")))
+    package = make_project_package(project_dir, log_dir)
+    verify_report = ensure_verify_report(result, log_dir)
+    refs = {
+        "package": str(package),
+        "verify_report": str(verify_report),
+        "verify_passed": str(verify_report),
+    }
+    if screenshot:
+        refs["screenshot"] = str(screenshot)
+    for artifact, path in refs.items():
+        append_truth_ledger(
+            session_dir,
+            session,
+            artifact,
+            f"{artifact} evidence recorded",
+            status="pass",
+            evidence_ref=path,
+            data={"artifact": artifact, "verify_passed": artifact == "verify_passed"},
+        )
+    save_session(session_dir, session)
+    return refs
 
 
 def send_delivery_artifacts(
@@ -2111,22 +2227,31 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_generation_args(chat_id: int | str, requirement: str, log_dir: pathlib.Path, model: str, timeout: int) -> argparse.Namespace:
+def build_generation_args(
+    chat_id: int | str,
+    requirement: str,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    generation_mode: str = "api",
+) -> argparse.Namespace:
+    use_api = str(generation_mode or "api").lower() == "api"
     slug = f"telegram-live-{safe_id(chat_id)}"
     result_path = log_dir / f"{slug}_generation_result.json"
     return argparse.Namespace(
         requirement=requirement,
         project_slug=f"telegram_{slug}",
         assume_defaults=False,
-        allow_network=False,
-        allow_provider=False,
-        use_api=False,
+        allow_network=use_api,
+        allow_provider=use_api,
+        use_api=use_api,
         use_local_model=False,
         prompt_max_chars=12000,
         model=model,
         timeout=timeout,
         result_path=str(result_path),
         json=True,
+        generation_mode="api" if use_api else "simulator",
     )
 
 
@@ -2138,9 +2263,6 @@ def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
         str(args.requirement),
         "--project-slug",
         str(args.project_slug),
-        "--no-network",
-        "--no-provider",
-        "--no-api",
         "--prompt-max-chars",
         str(args.prompt_max_chars),
         "--model",
@@ -2151,6 +2273,9 @@ def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
         str(args.result_path),
         "--json",
     ]
+    command.append("--allow-network" if bool(getattr(args, "allow_network", False)) else "--no-network")
+    command.append("--allow-provider" if bool(getattr(args, "allow_provider", False)) else "--no-provider")
+    command.append("--use-api" if bool(getattr(args, "use_api", False)) else "--no-api")
     if bool(getattr(args, "use_local_model", False)):
         command.append("--use-local-model")
     return command
@@ -2340,6 +2465,8 @@ def run_generation_job(
     model: str,
     timeout: int,
     announce_start: bool = False,
+    control_id: str = "",
+    generation_mode: str = "api",
 ) -> None:
     session = load_session(session_dir, chat_id)
     if session.get("generation", {}).get("status") == "running":
@@ -2363,10 +2490,17 @@ def run_generation_job(
                 session,
                 event="missing_requirement_before_generation",
                 facts={"message": "刚才连接中断了一下。我还没有拿到足够的项目需求，你可以继续描述想做的东西。"},
-            )
+        )
         return
-    session["generation"] = {"status": "running", "started_at": now()}
-    append_memory_event(session, "generation_started", data={"requirement": requirement[:6000]})
+    if control_id:
+        update_backend_control_status(session, control_id, "running")
+    session["generation"] = {
+        "status": "running",
+        "started_at": now(),
+        "control_id": control_id,
+        "generation_mode": str(generation_mode or "api"),
+    }
+    append_memory_event(session, "generation_started", data={"requirement": requirement[:6000], "generation_mode": str(generation_mode or "api"), "control_id": control_id})
     save_session(session_dir, session)
     if announce_start:
         send_provider_message(
@@ -2409,13 +2543,16 @@ def run_generation_job(
     progress_thread = threading.Thread(target=progress_worker, daemon=True)
     progress_thread.start()
 
-    args = build_generation_args(chat_id, requirement, log_dir, model, timeout)
+    args = build_generation_args(chat_id, requirement, log_dir, model, timeout, generation_mode)
     try:
+        assert_api_generation_ready(generation_mode)
         result = run_generation_subprocess(args, log_dir)
     except Exception as exc:
         stop_progress.set()
         session = load_session(session_dir, chat_id)
-        session["generation"] = {"status": "failed", "finished_at": now(), "error": str(exc)}
+        if control_id:
+            update_backend_control_status(session, control_id, "failed", reason=str(exc))
+        session["generation"] = {"status": "failed", "finished_at": now(), "error": str(exc), "control_id": control_id, "generation_mode": str(generation_mode or "api")}
         safe_facts = safe_generation_failure_facts(requirement, exc)
         append_memory_event(session, "generation_failed", data={"error": str(exc), "safe_facts": safe_facts})
         save_session(session_dir, session)
@@ -2436,7 +2573,21 @@ def run_generation_job(
 
     stop_progress.set()
     session = load_session(session_dir, chat_id)
-    session["generation"] = {"status": result.get("status", "unknown"), "finished_at": now(), "result_path": str(args.result_path)}
+    status = str(result.get("status", "unknown")).upper()
+    session["generation"] = {
+        "status": result.get("status", "unknown"),
+        "finished_at": now(),
+        "result_path": str(args.result_path),
+        "control_id": control_id,
+        "generation_mode": str(generation_mode or "api"),
+    }
+    if control_id:
+        update_backend_control_status(
+            session,
+            control_id,
+            "completed" if status == "PASS" else ("blocked" if status == "BLOCKED" else "completed"),
+            result_path=str(args.result_path),
+        )
     if str(result.get("status", "")).lower() == "pass" and isinstance(session.get("whiteboard"), dict):
         session["whiteboard"]["ready_to_generate"] = False
     append_memory_event(
@@ -2451,7 +2602,6 @@ def run_generation_job(
     )
     save_session(session_dir, session)
 
-    status = str(result.get("status", "unknown")).upper()
     if status == "PASS":
         video = find_delivery_video(result)
         image_candidates = delivery_image_candidates(result)
@@ -2464,6 +2614,12 @@ def run_generation_job(
                 image_candidates.append(fallback_image)
         image_candidates = unique_media_paths([p for p in image_candidates if is_valid_image_file(p)], limit=3)
         image = image_candidates[0] if image_candidates else None
+        try:
+            emit_delivery_evidence(session_dir, session, result, image, log_dir)
+            evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+            send_delivery_artifacts(client, chat_id, session_dir, session, evidence)
+        except Exception as exc:
+            log_bridge_error(log_dir, "emit_delivery_evidence_failed", chat_id, exc, {"result_path": str(args.result_path)})
         facts = project_delivery_facts(result)
         facts["preview"] = {
             "video_found": bool(video),
@@ -2524,6 +2680,40 @@ def run_generation_job(
                 append_memory_event(session, "preview_media_sent", data={"video": str(video) if video else "", "images": sent})
                 save_session(session_dir, session)
     elif status == "BLOCKED":
+        can_retry = mark_generation_retry(session, reason=str(result.get("reason", "")))
+        append_truth_ledger(
+            session_dir,
+            session,
+            "blocked",
+            "本地生成流程返回 BLOCKED",
+            status="BLOCKED",
+            evidence_ref=str(result.get("phase_log_path", "")),
+            data={"artifact": "blocked", "reason": str(result.get("reason", ""))},
+        )
+        if control_id and can_retry:
+            update_backend_control_status(session, control_id, "queued", reason="auto_retry_after_blocked", result_path=str(args.result_path))
+            session["generation"]["status"] = "queued"
+            save_session(session_dir, session)
+            threading.Thread(
+                target=run_generation_job,
+                args=(client, chat_id, session_dir, log_dir, model, timeout),
+                kwargs={"announce_start": False, "control_id": control_id, "generation_mode": generation_mode},
+                daemon=True,
+            ).start()
+            return
+        if not can_retry:
+            append_truth_ledger(
+                session_dir,
+                session,
+                "local_retry_exhausted",
+                "本地重试次数已耗尽，可以允许升级处理",
+                status="pass",
+                evidence_ref=str(result.get("phase_log_path", "")),
+                data={"artifact": "local_retry_exhausted"},
+            )
+            if control_id:
+                update_backend_control_status(session, control_id, "blocked", reason="local_retry_exhausted", result_path=str(args.result_path))
+            save_session(session_dir, session)
         text = product_studio_reply.compose_timeout_or_blocked_reply(result)
         send_customer_reply(
             client,
@@ -2562,6 +2752,7 @@ def queue_generation_job(
     timeout: int,
     *,
     announce_start: bool,
+    generation_mode: str = "api",
 ) -> None:
     session = load_session(session_dir, chat_id)
     status = str(session.get("generation", {}).get("status", "idle")).lower()
@@ -2588,12 +2779,15 @@ def queue_generation_job(
             facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
         )
         return
-    update_active_run_status(session, "simulator_running", driver="local_simulator_company")
+    use_api = str(generation_mode or "api").lower() == "api"
+    driver = "api_provider" if use_api else "local_simulator_company"
+    update_active_run_status(session, "queued", driver=driver, provider_allowed=use_api)
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     generation.update(
         {
             "status": "queued",
-            "driver": "local_simulator_company",
+            "driver": driver,
+            "generation_mode": "api" if use_api else "simulator",
             "started_at": generation.get("started_at") or now(),
         }
     )
@@ -2602,7 +2796,7 @@ def queue_generation_job(
         session_dir,
         session,
         "start_generation",
-        payload=generation_control_payload(session, requirement),
+        payload=generation_control_payload(session, requirement, "api" if use_api else "simulator"),
         status="queued",
         reason="frontdesk_generation_confirmation",
     )
@@ -2610,21 +2804,26 @@ def queue_generation_job(
     append_memory_event(
         session,
         "generation_started",
-        data={"source": "local_simulator_company", "provider_used": False, "api_used": False, "control_id": control["id"]},
+        data={"source": driver, "provider_used": use_api, "api_used": use_api, "control_id": control["id"], "generation_mode": "api" if use_api else "simulator"},
     )
     append_truth_ledger(
         session_dir,
         session,
-        "simulator_team",
-        "中间阶段由本地 simulator team 接手推进",
-        evidence_ref="local_simulator_company",
-        data={"artifact": "simulator_progress", "provider_used": False, "api_used": False},
+        "generation_queue",
+        "后台生成控制命令已排队并准备执行",
+        evidence_ref=control["id"],
+        data={"artifact": "generation_queue", "provider_used": use_api, "api_used": use_api, "generation_mode": "api" if use_api else "simulator"},
     )
-    memo = append_backend_memo(
+    append_backend_memo(
         session_dir,
         session,
-        "simulator_team",
-        f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：拆需求、列证据门禁、等 package/screenshot/verify report 齐了再交付。当前没有调用 API。",
+        "generation_queue",
+        (
+            f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：使用 API/provider 路线生成项目，"
+            "等 package/screenshot/verify report 齐了再交付。"
+            if use_api
+            else f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：当前是 simulator dry-run，只做预检推进，不会产出完整项目包。"
+        ),
     )
     client.send_chat_action(chat_id, "typing")
     send_customer_reply(
@@ -2632,9 +2831,21 @@ def queue_generation_job(
         chat_id,
         session_dir,
         session,
-        event="simulator_started",
-        facts={"message": "我开始按这版需求往下推进。当前只是进入制作流程，还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"},
+        event="simulator_started" if not use_api else "generation_started",
+        facts={
+            "message": (
+                "我开始按这版需求进入正式生成。完成前不会提前说已交付；等可运行项目、效果预览和测试结论齐了再发给你。"
+                if use_api
+                else "我开始做一次模拟预检推进；这不会产出完整项目包。没有可运行项目、效果预览和测试结论前，不会说已经完成。"
+            )
+        },
     )
+    threading.Thread(
+        target=run_generation_job,
+        args=(client, chat_id, session_dir, log_dir, model, timeout),
+        kwargs={"announce_start": False, "control_id": control["id"], "generation_mode": "api" if use_api else "simulator"},
+        daemon=True,
+    ).start()
 
 
 def continue_customer_turn(
@@ -2699,6 +2910,7 @@ def handle_text(
     log_dir: pathlib.Path,
     model: str,
     timeout: int,
+    generation_mode: str = "api",
 ) -> None:
     session = load_session(session_dir, chat_id)
     text = text.strip()
@@ -2878,7 +3090,7 @@ def handle_text(
         return
 
     if intent == "generation_confirmation":
-        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True)
+        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True, generation_mode=generation_mode)
         return
 
     if intent == "escalation_request":
@@ -3073,7 +3285,7 @@ def run(args: argparse.Namespace) -> None:
                     args.generation_timeout,
                 )
                 continue
-            handle_text(client, chat_id, text, session_dir, log_dir, args.model, args.generation_timeout)
+            handle_text(client, chat_id, text, session_dir, log_dir, args.model, args.generation_timeout, args.generation_mode)
 
 
 def main() -> int:
@@ -3085,6 +3297,7 @@ def main() -> int:
     parser.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR))
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4.1"))
     parser.add_argument("--generation-timeout", type=int, default=420)
+    parser.add_argument("--generation-mode", choices=["simulator", "api"], default=os.environ.get("CGNK_TELEGRAM_GENERATION_MODE", "api"))
     parser.add_argument("--http-timeout", type=int, default=35)
     parser.add_argument("--poll-timeout", type=int, default=20)
     parser.add_argument("--retry-delay", type=float, default=3.0)
