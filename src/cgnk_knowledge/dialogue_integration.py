@@ -56,7 +56,7 @@ def update_knowledge_from_dialogue_turn(
     state = dict(state)
     state["current_event_ids"] = [event["event_id"] for event in events]
     extraction = extract_keypoints_from_turn(state, user_message, assistant_message)
-    target_pack = pack or new_project_knowledge_pack(str(state.get("project") or "CGNK"))
+    target_pack = pack or new_project_knowledge_pack(str(state.get("project") or "CGKN"))
     existing_items = target_pack.get("all_items", [])
     normalization = normalize_keypoints_to_knowledge_items(extraction["keypoints"], existing_items=existing_items)
     upsert_items = normalization["items"] + normalization["updated_existing_items"] + normalization["superseded"]

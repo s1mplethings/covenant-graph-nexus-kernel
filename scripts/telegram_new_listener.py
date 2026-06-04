@@ -229,24 +229,6 @@ def plan_reset(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class TelegramClient:
-    def __init__(self, token: str) -> None:
-        self.base = f"https://api.telegram.org/bot{token}"
-
-    def call(self, method: str, payload: dict[str, Any], timeout: int = 70) -> dict[str, Any]:
-        data = urllib.parse.urlencode(payload).encode("utf-8")
-        req = urllib.request.Request(f"{self.base}/{method}", data=data)
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-
-    def get_updates(self, offset: int, timeout: int) -> list[dict[str, Any]]:
-        result = self.call("getUpdates", {"offset": offset, "timeout": timeout}, timeout=timeout + 10)
-        return list(result.get("result", []))
-
-    def send_message(self, chat_id: int, text: str) -> None:
-        self.call("sendMessage", {"chat_id": chat_id, "text": text}, timeout=20)
-
-
 def summarize_reset(result: dict[str, Any]) -> str:
     stopped_count = sum(len(item.get("pids", [])) for item in result.get("stopped", []))
     started = [item for item in result.get("started", []) if item.get("status") == "started"]
@@ -271,36 +253,12 @@ def message_text(update: dict[str, Any]) -> tuple[int | None, int | None, str]:
 
 
 def run_listener(args: argparse.Namespace) -> int:
-    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-    if not token:
-        raise SystemExit("TELEGRAM_BOT_TOKEN is required")
-    admin_ids = parse_admin_ids(os.environ.get("TELEGRAM_ADMIN_IDS", ""))
-    if not admin_ids:
-        raise SystemExit("TELEGRAM_ADMIN_IDS is required, for example: 123456789")
-    config = load_config(resolve_path(args.config))
-    client = TelegramClient(token)
-    offset = int(args.offset or 0)
-    print("Telegram /new listener is running. Press Ctrl+C to stop.", flush=True)
-    while True:
-        try:
-            updates = client.get_updates(offset=offset, timeout=int(args.poll_timeout))
-            for update in updates:
-                offset = max(offset, int(update.get("update_id", 0)) + 1)
-                chat_id, user_id, text = message_text(update)
-                if not chat_id or not user_id or not text.startswith("/new"):
-                    continue
-                if user_id not in admin_ids:
-                    client.send_message(chat_id, "Not allowed.")
-                    continue
-                client.send_message(chat_id, "收到 /new，正在停止进程并清理历史...")
-                result = reset_stack(config)
-                client.send_message(chat_id, summarize_reset(result))
-        except KeyboardInterrupt:
-            print("Listener stopped.", flush=True)
-            return 0
-        except (urllib.error.URLError, TimeoutError) as exc:
-            print(f"Telegram polling error: {exc}", flush=True)
-            time.sleep(3)
+    print(
+        "telegram_new_listener long-polling output is disabled. "
+        "Use scripts/telegram_live_bridge.py as the single Telegram customer-service output.",
+        file=sys.stderr,
+    )
+    return 2
 
 
 def main() -> int:
@@ -320,7 +278,13 @@ def main() -> int:
         result = reset_stack(config)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
-    return run_listener(args)
+    print(
+        "telegram_new_listener long-polling output is disabled. "
+        "Use scripts/telegram_live_bridge.py as the single Telegram customer-service output, "
+        "or pass --dry-run-reset / --reset-now for local reset maintenance.",
+        file=sys.stderr,
+    )
+    return 2
 
 
 if __name__ == "__main__":

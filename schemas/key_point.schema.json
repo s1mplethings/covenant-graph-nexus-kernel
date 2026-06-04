@@ -11,7 +11,7 @@
     "category": {"enum": ["goal", "constraint", "decision", "preference", "requirement", "risk", "open_question", "artifact_ref", "module_mapping", "agent_mapping", "next_step", "research_finding", "test_result", "correction"]},
     "text": {"type": "string"},
     "source_event_ids": {"type": "array", "items": {"type": "string"}},
-    "scope": {"enum": ["session", "project", "global", "project.ctcp", "project.cgnk", "agent", "module"]},
+    "scope": {"enum": ["session", "project", "global", "project.cgkn", "project.cgnk", "agent", "module"]},
     "importance": {"enum": ["critical", "high", "medium", "low", "noise"]},
     "need_state": {"enum": ["needed_now", "needed_later", "reference_only", "not_needed", "unknown"]},
     "retention": {"enum": ["keep", "compress", "discard", "archive", "ephemeral"]},

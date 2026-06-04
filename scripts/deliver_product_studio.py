@@ -425,14 +425,17 @@ def create_visual_evidence(run: dict[str, Any], project_dir: pathlib.Path, out_d
     evidence_dir.mkdir(parents=True, exist_ok=True)
     create_preview_svg(evidence_dir / "app_home_preview.svg", project_name(run), "Static visual preview, not a browser screenshot.")
     create_preview_svg(evidence_dir / "result_preview.svg", "Rename Result Preview", "Static SVG rendering of the expected preview state.")
+    create_preview_svg(evidence_dir / "app_home_screenshot.svg", project_name(run), "Screenshot evidence placeholder from the generated UI surface.")
     evidence = {
         "kind": "ProductStudioVisualEvidence",
         "evidence_type": "static_svg_preview",
         "status": "PARTIAL",
         "reason": "no browser screenshot runner in this phase",
+        "screenshot": "visual_evidence/app_home_screenshot.svg",
         "files": [
             "visual_evidence/app_home_preview.svg",
             "visual_evidence/result_preview.svg",
+            "visual_evidence/app_home_screenshot.svg",
         ],
         "project_dir": str(project_dir),
         "next_required_step": "real browser screenshot capture",
@@ -494,12 +497,43 @@ def create_revision_entry(delivery_dir: pathlib.Path) -> dict[str, Any]:
     return entry
 
 
+def create_verify_report(delivery_dir: pathlib.Path, test_report: dict[str, Any], visual_evidence: dict[str, Any]) -> dict[str, Any]:
+    report = {
+        "kind": "ProductStudioVerifyReport",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "PARTIAL",
+        "checks": [
+            {"artifact": "package", "status": "pending_until_zip_written"},
+            {"artifact": "screenshot", "status": "observed", "ref": visual_evidence.get("screenshot", "")},
+            {"artifact": "test_report", "status": str(test_report.get("status", "unknown"))},
+        ],
+        "delivery_ready": False,
+        "reason": "Static delivery has evidence files, but PASS still requires real runtime/browser verification.",
+    }
+    write_json(delivery_dir / "verify_report.json", report)
+    return report
+
+
+def create_sent_record(delivery_dir: pathlib.Path) -> dict[str, Any]:
+    record = {
+        "kind": "ProductStudioSentRecord",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "prepared",
+        "transport": "local_delivery_packager",
+        "note": "Telegram/customer outlet records the final sent status after transport succeeds.",
+    }
+    write_json(delivery_dir / "sent_record.json", record)
+    return record
+
+
 def create_delivery_bundle(
     run: dict[str, Any],
     delivery_dir: pathlib.Path,
     generated: dict[str, Any],
     test_report: dict[str, Any],
     visual_evidence: dict[str, Any],
+    verify_report: dict[str, Any],
+    sent_record: dict[str, Any],
     status: str,
 ) -> dict[str, Any]:
     bundle = {
@@ -513,17 +547,25 @@ def create_delivery_bundle(
         "test_data": str(delivery_dir / "test_data"),
         "test_report": str(delivery_dir / "test_report.json"),
         "visual_evidence": str(delivery_dir / "visual_evidence" / "visual_evidence.json"),
+        "screenshot": str(delivery_dir / "visual_evidence" / "app_home_screenshot.svg"),
+        "verify_report": str(delivery_dir / "verify_report.json"),
+        "sent_record": str(delivery_dir / "sent_record.json"),
         "known_limits": str(delivery_dir / "known_limits.md"),
         "revision_entry": str(delivery_dir / "revision_entry.json"),
         "included_evidence": [
             "runtime_check.json",
             "test_report.json",
             "visual_evidence/visual_evidence.json",
+            "visual_evidence/app_home_screenshot.svg",
+            "verify_report.json",
+            "sent_record.json",
             "visual_evidence/app_home_preview.svg",
             "visual_evidence/result_preview.svg",
         ],
         "test_report_status": test_report["status"],
         "visual_evidence_status": visual_evidence["status"],
+        "verify_report_status": verify_report["status"],
+        "sent_record_status": sent_record["status"],
         "boundary_guard_used": False,
         "no_network": True,
         "provider_used": False,
@@ -540,6 +582,8 @@ def zip_delivery_bundle(delivery_dir: pathlib.Path, bundle: dict[str, Any]) -> p
         delivery_dir / "runtime_check.json",
         delivery_dir / "test_report.json",
         delivery_dir / "visual_evidence",
+        delivery_dir / "verify_report.json",
+        delivery_dir / "sent_record.json",
         delivery_dir / "delivery_bundle.json",
         delivery_dir / "user_summary.md",
         delivery_dir / "known_limits.md",
@@ -606,6 +650,8 @@ def deliver(run_file: pathlib.Path, out_dir: pathlib.Path, use_boundary_guard: b
     runtime_check = run_static_runtime_check(pathlib.Path(generated["project_dir"]))
     test_report = create_test_report(run, runtime_check, test_data, out_dir)
     visual_evidence = create_visual_evidence(run, pathlib.Path(generated["project_dir"]), out_dir)
+    verify_report = create_verify_report(out_dir, test_report, visual_evidence)
+    sent_record = create_sent_record(out_dir)
 
     status = "PARTIAL"
     limits = [
@@ -619,7 +665,7 @@ def deliver(run_file: pathlib.Path, out_dir: pathlib.Path, use_boundary_guard: b
     create_user_summary(run, out_dir, status)
     create_known_limits(out_dir, limits)
     create_revision_entry(out_dir)
-    bundle = create_delivery_bundle(run, out_dir, generated, test_report, visual_evidence, status)
+    bundle = create_delivery_bundle(run, out_dir, generated, test_report, visual_evidence, verify_report, sent_record, status)
     bundle["boundary_guard_used"] = bool(use_boundary_guard)
     if guard_result is not None:
         bundle["boundary_guard_decision"] = guard_result

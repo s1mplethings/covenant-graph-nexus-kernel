@@ -15,18 +15,18 @@ from test_knowledge_store_retrieve import item
 
 class AgentContextPackTests(unittest.TestCase):
     def test_context_pack_filters_and_groups_items(self) -> None:
-        pack = new_project_knowledge_pack("CGNK")
-        critical = item("ki_ctcp_readonly", importance="critical", need="needed_now")
+        pack = new_project_knowledge_pack("CGKN")
+        critical = item("ki_cgkn_readonly", importance="critical", need="needed_now")
         preference = item("ki_preference", type_="preference", importance="low", need="needed_later")
         decision = item("ki_decision", type_="decision", importance="high", need="needed_now")
         discarded = item("ki_discard", retention="discard")
         rejected = item("ki_rejected", review="rejected")
         superseded = item("ki_superseded", status="superseded")
         pack = upsert_knowledge_items(pack, [critical, preference, decision, discarded, rejected, superseded])
-        context = build_agent_context_pack(pack, {"id": "goal1", "scope": "project.ctcp"}, max_items=20)
-        self.assertEqual("ki_ctcp_readonly", context["critical_constraints"][0]["id"])
+        context = build_agent_context_pack(pack, {"id": "goal1", "scope": "project.cgkn"}, max_items=20)
+        self.assertEqual("ki_cgkn_readonly", context["critical_constraints"][0]["id"])
         self.assertEqual("ki_decision", context["active_decisions"][0]["id"])
-        self.assertIn("ki_ctcp_readonly", [row["id"] for row in context["needed_now"]])
+        self.assertIn("ki_cgkn_readonly", [row["id"] for row in context["needed_now"]])
         usable_ids = {row["id"] for key in ("critical_constraints", "active_decisions", "needed_now", "needed_later") for row in context[key]}
         self.assertNotIn("ki_discard", usable_ids)
         self.assertNotIn("ki_rejected", usable_ids)

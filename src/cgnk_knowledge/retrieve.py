@@ -6,7 +6,7 @@ from .store import IMPORTANCE_RANK, NEED_RANK
 
 
 REVIEW_RANK = {"accepted": 0, "auto_extracted": 1, "candidate": 2, "conflict": 3, "rejected": 9}
-SCOPE_RANK = {"project.ctcp": 0, "project": 1, "project.cgnk": 1, "global": 2, "module": 3, "agent": 3, "session": 4}
+SCOPE_RANK = {"project.cgkn": 0, "project": 1, "project.cgnk": 1, "global": 2, "module": 3, "agent": 3, "session": 4}
 
 
 def _exclude_reason(item: dict[str, Any], query: dict[str, Any]) -> str | None:

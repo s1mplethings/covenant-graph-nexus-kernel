@@ -197,11 +197,11 @@ python scripts/check_connectivity.py
 
 `scripts/check_connectivity.py --live` performs a live OpenAI-compatible API probe when credentials are configured. Test pipeline composition defaults to configuration checks only; pass `--live-api` to `scripts/compose_test_pipeline.py` when a live probe is intended.
 
-## Telegram `/new` Reset Listener
+## Telegram Customer-Service Output
 
-`scripts/telegram_new_listener.py` runs a long-polling Telegram listener. When an admin sends `/new`, it stops the configured frontend/backend processes, archives local conversation history, and starts the configured processes again.
+`scripts/telegram_live_bridge.py` is the single Telegram customer-service output. It handles normal replies, generation status, final delivery text, blocked/timeout replies, and reset commands through one guarded outbound path.
 
-The main Telegram bridge also understands:
+The bridge understands:
 
 ```text
 /new             Archive only the current chat session and start fresh.
@@ -216,15 +216,14 @@ Set credentials in the shell that starts the listener:
 
 ```powershell
 $env:TELEGRAM_BOT_TOKEN="your-bot-token"
-$env:TELEGRAM_ADMIN_IDS="123456789"
-powershell -NoExit -File scripts/start_telegram_new_listener.ps1
+python scripts/telegram_live_bridge.py --chat-id "123456789" --generation-timeout 900
 ```
 
-Edit `scripts/telegram_new_config.example.json` to point `frontend` and `backend` at the real project directories and start commands. The default frontend entry restarts the latest generated static app on `127.0.0.1:8000`; the backend entry is disabled until a real command is configured.
+`scripts/telegram_new_listener.py` is no longer a Telegram customer-service listener. Keep it only for local reset maintenance with `--dry-run-reset` or `--reset-now`; do not run it as a second Telegram output.
 
 The reset archives matched history files under `generated/telegram_new_archives/<timestamp>/` by default instead of permanently deleting them. Set `"history_mode": "delete"` in the config only when permanent deletion is intended.
 
-For listener reset checks:
+For local reset checks:
 
 ```bash
 python scripts/telegram_new_listener.py --dry-run-reset

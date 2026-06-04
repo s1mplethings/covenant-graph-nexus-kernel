@@ -294,6 +294,56 @@ class TelegramClient:
                 time.sleep(min(8.0, 2.0 * (attempt + 1)))
         return bool(isinstance(doc, dict) and doc.get("ok"))
 
+    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        if not path.exists() or not path.is_file():
+            return False
+        fields = {"chat_id": str(chat_id), "caption": caption[:900]}
+        content_type = "application/octet-stream"
+        doc: dict[str, Any] | None = None
+        for attempt in range(3):
+            try:
+                if self.session is not None:
+                    with path.open("rb") as fh:
+                        resp = self.session.post(
+                            f"{self.base}/sendDocument",
+                            data=fields,
+                            files={"document": (path.name, fh, content_type)},
+                            timeout=max(self.timeout, 120),
+                        )
+                    doc = resp.json()
+                else:
+                    boundary = "----CGNKTelegramBoundary"
+                    body = bytearray()
+                    for key, value in fields.items():
+                        body.extend(f"--{boundary}\r\n".encode())
+                        body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
+                        body.extend(str(value).encode("utf-8"))
+                        body.extend(b"\r\n")
+                    body.extend(f"--{boundary}\r\n".encode())
+                    body.extend(
+                        (
+                            f'Content-Disposition: form-data; name="document"; filename="{path.name}"\r\n'
+                            f"Content-Type: {content_type}\r\n\r\n"
+                        ).encode()
+                    )
+                    body.extend(path.read_bytes())
+                    body.extend(b"\r\n")
+                    body.extend(f"--{boundary}--\r\n".encode())
+                    req = urllib.request.Request(
+                        f"{self.base}/sendDocument",
+                        data=bytes(body),
+                        method="POST",
+                        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+                    )
+                    with urllib.request.urlopen(req, timeout=max(self.timeout, 120)) as resp:
+                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
+                break
+            except Exception:
+                if attempt == 2:
+                    return False
+                time.sleep(min(8.0, 2.0 * (attempt + 1)))
+        return bool(isinstance(doc, dict) and doc.get("ok"))
+
     def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         if not path.exists() or not path.is_file():
             return False
@@ -379,6 +429,11 @@ def default_session(chat_id: int | str) -> dict[str, Any]:
             "ready_to_generate": False,
         },
         "generation": {"status": "idle"},
+        "active_run": None,
+        "pending_decision": None,
+        "intake_tickets": [],
+        "backend_memos": [],
+        "backend_controls": [],
     }
 
 
@@ -707,6 +762,508 @@ def append_memory_event(session: dict[str, Any], event_type: str, text: str = ""
         event["data"] = data
     events.append(event)
     session["memory_events"] = events[-250:]
+
+
+def truth_ledger_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
+    return session_dir / f"{safe_id(chat_id)}.truth_ledger.jsonl"
+
+
+def append_truth_ledger(
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    stage: str,
+    claim: str,
+    *,
+    status: str = "observed",
+    evidence_ref: str = "",
+    can_user_see: bool = False,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    entry = {
+        "kind": "TruthLedgerEntry",
+        "created_at": now(),
+        "chat_id": str(session.get("chat_id", "")),
+        "stage": stage,
+        "claim": claim,
+        "status": status,
+        "evidence_ref": evidence_ref,
+        "can_user_see": bool(can_user_see),
+        "data": data or {},
+    }
+    path = truth_ledger_path(session_dir, session.get("chat_id", ""))
+    append_jsonl(path, entry)
+    session["truth_ledger_path"] = str(path)
+    append_memory_event(session, "truth_ledger_entry", data={k: entry[k] for k in ("stage", "claim", "status", "evidence_ref")})
+    return entry
+
+
+def read_truth_ledger(session_dir: pathlib.Path, chat_id: int | str) -> list[dict[str, Any]]:
+    path = truth_ledger_path(session_dir, chat_id)
+    if not path.exists():
+        return []
+    entries: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            doc = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(doc, dict):
+            entries.append(doc)
+    return entries
+
+
+def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    required = {
+        "package": False,
+        "screenshot": False,
+        "verify_report": False,
+        "verify_passed": False,
+    }
+    refs: dict[str, str] = {}
+    sent_record = False
+    for entry in entries:
+        status = str(entry.get("status", "")).lower()
+        stage = str(entry.get("stage", "")).lower()
+        data = entry.get("data", {}) if isinstance(entry.get("data"), dict) else {}
+        artifact = str(data.get("artifact") or stage).lower()
+        if status not in {"observed", "pass", "sent"}:
+            continue
+        if bool(data.get("verify_passed")) or stage == "verify_passed" or artifact == "verify_passed":
+            required["verify_passed"] = True
+            refs["verify_passed"] = str(entry.get("evidence_ref", ""))
+        for key in required:
+            if key in artifact or key in stage:
+                required[key] = True
+                refs[key] = str(entry.get("evidence_ref", ""))
+        if stage == "delivery_attachment_sent" or artifact == "delivery_attachment_sent":
+            sent_record = True
+    ready = all(required.values())
+    return {
+        "delivery_ready": ready,
+        "required": required,
+        "missing": [key for key, present in required.items() if not present],
+        "refs": refs,
+        "sent_record": sent_record,
+    }
+
+
+def classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, Any]:
+    stripped = str(text or "").strip()
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", stripped.lower())
+    generation_status = str(session.get("generation", {}).get("status", "idle")).lower()
+    if stripped in {"/new", "/reset", "/restart", "/delete_history", "/help", "/status"}:
+        intent = "status_query" if stripped == "/status" else "admin_command"
+    elif is_smalltalk(stripped):
+        intent = "greeting"
+    elif compact in {"现在怎么样了", "怎么样了", "进度怎么样", "当前状态", "状态", "status", "howisitgoing", "有结果了吗", "好了没"}:
+        intent = "status_query"
+    elif compact in {"升级", "交给agent", "调用api", "用provider", "人工介入", "请求升级", "escalate"} or "升级" in compact:
+        intent = "escalation_request"
+    elif is_generate_command(stripped) or is_human_start_confirmation(stripped, session):
+        intent = "generation_confirmation"
+    elif generation_status in {"queued", "running"}:
+        intent = "project_update"
+    elif substantive_user_turn_count(session) == 0:
+        intent = "new_project_request"
+    else:
+        intent = "project_update"
+    return {"kind": "CustomerMessageClassification", "intent": intent, "text": stripped, "classified_at": now()}
+
+
+def active_run(session: dict[str, Any]) -> dict[str, Any] | None:
+    run = session.get("active_run")
+    return run if isinstance(run, dict) else None
+
+
+def create_active_run(session: dict[str, Any], ticket: dict[str, Any], text: str) -> dict[str, Any]:
+    run = {
+        "kind": "TelegramHumanFrontdeskRun",
+        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-{len(session.get('intake_tickets', []))}",
+        "ticket_id": str(ticket.get("id", "")),
+        "status": "simulator_running",
+        "driver": "local_simulator_company",
+        "goal": text,
+        "created_at": now(),
+        "updated_at": now(),
+        "local_retry_count": 0,
+        "local_retry_exhausted": False,
+        "provider_allowed": False,
+    }
+    session["active_run"] = run
+    session["generation"] = {"status": "running", "started_at": run["created_at"], "driver": "local_simulator_company"}
+    return run
+
+
+def update_active_run_status(session: dict[str, Any], status: str, **fields: Any) -> dict[str, Any]:
+    run = active_run(session) or {
+        "kind": "TelegramHumanFrontdeskRun",
+        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-manual",
+        "created_at": now(),
+        "driver": "local_simulator_company",
+    }
+    run.update(fields)
+    run["status"] = status
+    run["updated_at"] = now()
+    session["active_run"] = run
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation["status"] = status
+    session["generation"] = generation
+    return run
+
+
+def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
+    pending = session.get("pending_decision")
+    if isinstance(pending, dict) and str(pending.get("status", "")) == "pending" and str(pending.get("question", "")).strip():
+        return pending
+    questions = session.get("whiteboard", {}).get("blocking_questions", []) if isinstance(session.get("whiteboard"), dict) else []
+    if isinstance(questions, list) and questions:
+        question = str(questions[0]).strip()
+        if question:
+            pending = {"kind": "PendingDecision", "status": "pending", "question": question, "created_at": now()}
+            session["pending_decision"] = pending
+            return pending
+    return None
+
+
+def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], text: str) -> dict[str, Any]:
+    tickets = session.setdefault("intake_tickets", [])
+    ticket_id = f"ticket-{safe_id(session.get('chat_id', 'chat'))}-{len(tickets) + 1}"
+    ticket = {
+        "kind": "CustomerIntakeTicket",
+        "id": ticket_id,
+        "created_at": now(),
+        "raw_user_message": text,
+        "status": "open",
+    }
+    tickets.append(ticket)
+    session["intake_tickets"] = tickets[-40:]
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    next_whiteboard = merge_whiteboard(
+        whiteboard,
+        {
+            "project_summary": text,
+            "known_facts": [f"用户提出的新项目需求: {text}"],
+            "first_version_plan": [
+                "先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。",
+            ],
+            "decision_log": ["默认禁用 provider/API，先走本地 simulator team。"],
+            "ready_to_generate": False,
+        },
+    )
+    session["whiteboard"] = enforce_backend_updates_from_user_text(session, next_whiteboard)
+    append_whiteboard_version(session, session["whiteboard"])
+    append_memory_event(session, "intake_ticket_created", data={"ticket_id": ticket_id, "raw_user_message": text[:1200]})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "intake_ticket",
+        "新项目需求已进入本地 intake",
+        evidence_ref=ticket_id,
+        data={"artifact": "intake_ticket", "ticket_id": ticket_id},
+    )
+    return ticket
+
+
+def append_backend_memo(session_dir: pathlib.Path, session: dict[str, Any], stage: str, text: str) -> dict[str, Any]:
+    memo = {"kind": "HumanBackendMemo", "created_at": now(), "stage": stage, "text": text}
+    memos = session.setdefault("backend_memos", [])
+    memos.append(memo)
+    session["backend_memos"] = memos[-80:]
+    append_memory_event(session, "backend_memo", text, {"stage": stage})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "backend_memo",
+        "后台同事式进度 memo 已生成",
+        evidence_ref=stage,
+        data={"artifact": "human_backend_memo"},
+    )
+    return memo
+
+
+def latest_backend_memo(session: dict[str, Any]) -> str:
+    memos = session.get("backend_memos", [])
+    if not isinstance(memos, list) or not memos:
+        return ""
+    last = memos[-1]
+    return str(last.get("text", "")) if isinstance(last, dict) else ""
+
+
+def append_backend_control(
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    action: str,
+    *,
+    payload: dict[str, Any] | None = None,
+    status: str = "queued",
+    reason: str = "",
+) -> dict[str, Any]:
+    controls = session.setdefault("backend_controls", [])
+    if not isinstance(controls, list):
+        controls = []
+    run = active_run(session) or {}
+    control = {
+        "kind": "BackendControlCommand",
+        "id": f"ctrl-{safe_id(session.get('chat_id', 'chat'))}-{len(controls) + 1}",
+        "action": action,
+        "status": status,
+        "reason": reason,
+        "active_run_id": str(run.get("id", "")),
+        "ticket_id": str(run.get("ticket_id", "")),
+        "created_at": now(),
+        "updated_at": now(),
+        "payload": payload or {},
+    }
+    controls.append(control)
+    session["backend_controls"] = controls[-120:]
+    if isinstance(run, dict) and run:
+        run["last_control_id"] = control["id"]
+        run["last_control_action"] = action
+        run["updated_at"] = now()
+        session["active_run"] = run
+    append_memory_event(
+        session,
+        "backend_control_queued",
+        data={"control_id": control["id"], "action": action, "status": status, "reason": reason},
+    )
+    append_truth_ledger(
+        session_dir,
+        session,
+        "backend_control",
+        "前台控制命令已写入后台队列",
+        evidence_ref=control["id"],
+        data={"artifact": "backend_control_command", "control_id": control["id"], "action": action, "status": status},
+    )
+    return control
+
+
+def latest_backend_control(session: dict[str, Any]) -> dict[str, Any]:
+    controls = session.get("backend_controls", [])
+    if not isinstance(controls, list) or not controls:
+        return {}
+    last = controls[-1]
+    return last if isinstance(last, dict) else {}
+
+
+def has_open_backend_control(session: dict[str, Any], actions: set[str]) -> bool:
+    controls = session.get("backend_controls", [])
+    if not isinstance(controls, list):
+        return False
+    for control in reversed(controls):
+        if not isinstance(control, dict):
+            continue
+        if str(control.get("action", "")) in actions and str(control.get("status", "")).lower() in {"queued", "running", "applied"}:
+            return True
+    return False
+
+
+def generation_control_payload(session: dict[str, Any], requirement: str) -> dict[str, Any]:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    return {
+        "requirement": requirement[:12000],
+        "project_summary": str(whiteboard.get("project_summary", ""))[:2000],
+        "acceptance_criteria": whiteboard.get("acceptance_criteria", []) if isinstance(whiteboard.get("acceptance_criteria"), list) else [],
+        "delivery_requirements": whiteboard.get("delivery_requirements", []) if isinstance(whiteboard.get("delivery_requirements"), list) else [],
+        "change_requests": whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else [],
+        "attachments": recent_attachments(session, limit=20),
+        "control_flags": {
+            "provider_allowed": False,
+            "api_allowed": False,
+            "must_not_claim_done_without_evidence": True,
+        },
+    }
+
+
+def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any] | None = None, backend_memo: str = "") -> str:
+    facts = facts or {}
+    if event == "greeting":
+        return "你好，我在。你直接说想做的项目和最重要的效果就行，我会按一个可交付项目来整理和推进。"
+    if event == "status_requested":
+        generation = active_run(session) or (session.get("generation", {}) if isinstance(session.get("generation"), dict) else {})
+        evidence = facts.get("evidence_state", {}) if isinstance(facts.get("evidence_state"), dict) else {}
+        status = str(generation.get("status", "idle"))
+        status_label = {
+            "idle": "还没开始生成",
+            "queued": "已排队",
+            "running": "正在处理",
+            "simulator_running": "正在处理",
+            "waiting_decision": "等你确认一个关键问题",
+            "failed": "已中断",
+            "pass": "可以交付",
+        }.get(status.lower(), status)
+        missing_labels = {
+            "package": "可运行项目文件",
+            "screenshot": "效果预览",
+            "verify_report": "测试结论",
+            "verify_passed": "测试通过确认",
+        }
+        missing = "、".join(missing_labels.get(str(item), str(item)) for item in evidence.get("missing", [])) or "无"
+        return f"当前状态：{status_label}。还缺：{missing}。没有可运行结果、预览或测试结论前，我不会说已经完成。"
+    if event == "pending_decision":
+        question = str(facts.get("question", "")).strip()
+        return f"这里先确认一个关键点：{question}"
+    if event == "intake_ticket_created":
+        summary = str(facts.get("project_summary") or latest_user_text(session) or "这个项目").strip()
+        return f"收到，方向我记下来了：{summary}\n我会按本地可运行的第一版来整理：核心功能、输入输出、可见预览和测试标准都会一起考虑。没有做出能检查的结果前，我不会把它说成完成。"
+    if event == "simulator_started":
+        return "当前状态：正在处理。我开始按这版需求往下推进；还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"
+    if event == "blocked":
+        reason = str(facts.get("reason", "当前证据不足或流程被阻断"))
+        return f"这轮先停住：{reason}。我会把已确认的需求保留下来，下一次可以从这个方向继续。"
+    if event == "delivery_ready":
+        return "可交付材料已经齐了，我会直接发项目结果、效果预览和测试结论。"
+    if event == "unsupported_attachment_received":
+        return "我收到了非文本消息。当前可接收图片、文档、视频、音频这几类资料；你也可以补一句它要怎么用于项目。"
+    if event == "generation_failed":
+        return str(facts.get("user_visible_cause") or "后台流程中断，当前不能交付。我已经记录问题，后续可以重试或升级处理。")
+    return str(facts.get("message") or backend_memo or "我已记录，会继续按当前项目上下文处理。")
+
+
+def pre_send_guard(text: str) -> str:
+    guarded = str(text or "").strip()
+    guarded = re.sub(r"[A-Za-z]:\\[^\s，。；；]+", "本地工作区记录", guarded)
+    guarded = re.sub(r"/(?:[^/\s，。；]+/){2,}[^/\s，。；]+", "本地工作区记录", guarded)
+    replacements = {
+        "provider_user_message": "回复",
+        "customer_service_reply": "回复",
+        "truth_ledger.jsonl": "交付记录",
+        "intake ticket": "项目记录",
+        "simulator team": "制作流程",
+        "local_simulator_company": "制作流程",
+        "local_simulator_team": "制作流程",
+        "simulator": "制作流程",
+        "agent/provider": "后续处理",
+        "provider": "后续处理",
+        "API": "外部接口",
+        "后台 memo:": "",
+        "package": "可运行项目文件",
+        "verify report": "测试结论",
+        "truth ledger": "交付记录",
+        "证据账本": "交付记录",
+        "BLOCKED": "暂停",
+    }
+    for old, new in replacements.items():
+        guarded = guarded.replace(old, new)
+    guarded = guarded.replace("JSON", "结构化记录")
+    return guarded[:3900] or "我已记录。"
+
+
+def send_customer_reply(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    *,
+    event: str,
+    facts: dict[str, Any] | None = None,
+    backend_memo: str = "",
+    source: str = "frontdesk_composer",
+    direct_text: str = "",
+) -> bool:
+    text = pre_send_guard(direct_text or frontdesk_compose(event, session, facts, backend_memo))
+    session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": source, "event": event})
+    append_memory_event(session, "assistant_message", text, {"source": source, "event": event})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "frontdesk_outbound",
+        "用户可见回复已通过客服 composer 和发送前 guard",
+        evidence_ref=event,
+        can_user_see=True,
+        data={"artifact": "frontdesk_reply", "event": event},
+    )
+    ok = client.send_message(chat_id, text)
+    append_truth_ledger(
+        session_dir,
+        session,
+        "sent_record",
+        "客服出口发送结果已记录",
+        status="sent" if ok else "failed",
+        evidence_ref=event,
+        can_user_see=ok,
+        data={"artifact": "sent_record", "event": event, "transport": "telegram_message"},
+    )
+    save_session(session_dir, session)
+    return ok
+
+
+def provider_escalation_allowed(session_dir: pathlib.Path, chat_id: int | str, classification: dict[str, Any]) -> bool:
+    if str(classification.get("intent")) != "escalation_request":
+        return False
+    session = load_session(session_dir, chat_id)
+    run = active_run(session) or {}
+    ledger = read_truth_ledger(session_dir, chat_id)
+    has_blocked_ledger = any(str(entry.get("status", "")).upper() == "BLOCKED" or str(entry.get("stage", "")).lower() == "blocked" for entry in ledger)
+    local_retry_exhausted = bool(run.get("local_retry_exhausted")) or any(
+        str(entry.get("stage", "")).lower() == "local_retry_exhausted" and str(entry.get("status", "")).lower() in {"observed", "pass"}
+        for entry in ledger
+    )
+    return has_blocked_ledger and local_retry_exhausted
+
+
+def maybe_auto_deliver_if_ready(client: TelegramClient, chat_id: int | str, session_dir: pathlib.Path) -> dict[str, Any]:
+    session = load_session(session_dir, chat_id)
+    evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+    if evidence["delivery_ready"] and not evidence.get("sent_record"):
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="delivery_ready",
+            facts={"evidence_state": evidence},
+            backend_memo=latest_backend_memo(session),
+        )
+        send_delivery_artifacts(client, chat_id, session_dir, session, evidence)
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+    return evidence
+
+
+def _evidence_path(raw: str) -> pathlib.Path | None:
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    path = pathlib.Path(text)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path if path.exists() and path.is_file() else None
+
+
+def send_delivery_artifacts(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    evidence: dict[str, Any],
+) -> list[dict[str, Any]]:
+    refs = evidence.get("refs", {}) if isinstance(evidence.get("refs"), dict) else {}
+    sent: list[dict[str, Any]] = []
+    screenshot = _evidence_path(str(refs.get("screenshot", "")))
+    if screenshot:
+        client.send_chat_action(chat_id, "upload_photo")
+        if client.send_photo(chat_id, screenshot, "效果预览"):
+            sent.append({"kind": "photo", "path": str(screenshot)})
+    for key, caption in (("package", "可运行项目文件"), ("verify_report", "测试结论")):
+        path = _evidence_path(str(refs.get(key, "")))
+        if not path:
+            continue
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, path, caption):
+            sent.append({"kind": "document", "artifact": key, "path": str(path)})
+    if sent:
+        append_truth_ledger(
+            session_dir,
+            session,
+            "delivery_attachment_sent",
+            "真实交付附件已通过 Telegram 发送",
+            status="sent",
+            evidence_ref="telegram_delivery",
+            can_user_see=True,
+            data={"artifact": "delivery_attachment_sent", "sent": sent},
+        )
+        append_memory_event(session, "delivery_attachment_sent", data={"sent": sent})
+        save_session(session_dir, session)
+    return sent
 
 
 def append_whiteboard_version(session: dict[str, Any], whiteboard: dict[str, Any]) -> None:
@@ -1235,6 +1792,7 @@ def provider_user_message(
 def send_provider_message(
     client: TelegramClient,
     chat_id: int | str,
+    session_dir: pathlib.Path,
     *,
     event: str,
     session: dict[str, Any],
@@ -1247,14 +1805,24 @@ def send_provider_message(
     except Exception as exc:
         print(f"user-message provider failed: {exc}", flush=True)
         return False
-    session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": "provider_user_message"})
-    append_memory_event(session, "assistant_message", text, {"source": "provider_user_message", "event": event})
-    return client.send_message(chat_id, text)
+    append_backend_memo(session_dir, session, f"provider_{event}", text)
+    return send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event=event,
+        facts=facts,
+        source="provider_user_message",
+        direct_text="",
+        backend_memo=text,
+    )
 
 
 def send_provider_or_technical_error(
     client: TelegramClient,
     chat_id: int | str,
+    session_dir: pathlib.Path,
     *,
     event: str,
     session: dict[str, Any],
@@ -1263,9 +1831,17 @@ def send_provider_or_technical_error(
     timeout: int,
     technical_error: str,
 ) -> None:
-    if send_provider_message(client, chat_id, event=event, session=session, facts=facts, model=model, timeout=timeout):
+    if send_provider_message(client, chat_id, session_dir, event=event, session=session, facts=facts, model=model, timeout=timeout):
         return
-    client.send_message(chat_id, "刚才连接中断了一下，我已经把问题记录下来了。你可以继续补充需求，我会接着处理。")
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event=event,
+        facts={"message": "刚才连接中断了一下，我已经把问题记录下来了。你可以继续补充需求，我会接着处理。", "technical_error": technical_error},
+        source="frontdesk_composer",
+    )
 
 
 def log_bridge_error(log_dir: pathlib.Path, event: str, chat_id: int | str, exc: Exception, context: dict[str, Any] | None = None) -> None:
@@ -1542,9 +2118,9 @@ def build_generation_args(chat_id: int | str, requirement: str, log_dir: pathlib
         requirement=requirement,
         project_slug=f"telegram_{slug}",
         assume_defaults=False,
-        allow_network=True,
-        allow_provider=True,
-        use_api=True,
+        allow_network=False,
+        allow_provider=False,
+        use_api=False,
         use_local_model=False,
         prompt_max_chars=12000,
         model=model,
@@ -1562,9 +2138,9 @@ def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
         str(args.requirement),
         "--project-slug",
         str(args.project_slug),
-        "--allow-network",
-        "--allow-provider",
-        "--use-api",
+        "--no-network",
+        "--no-provider",
+        "--no-api",
         "--prompt-max-chars",
         str(args.prompt_max_chars),
         "--model",
@@ -1598,6 +2174,35 @@ def last_known_phase(phase_log_path: pathlib.Path) -> str:
     return phase
 
 
+def recent_phase_events(phase_log_path: pathlib.Path, limit: int = 8) -> list[dict[str, Any]]:
+    if not phase_log_path.exists():
+        return []
+    events: list[dict[str, Any]] = []
+    for line in phase_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            doc = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(doc, dict):
+            events.append(doc)
+    return events[-max(1, limit):]
+
+
+def read_timeout_diagnostics(project_slug: str) -> dict[str, Any]:
+    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
+    diagnostics_path = run_dir / "agent_usage" / "usage_planning_diagnostics.json"
+    if not diagnostics_path.exists():
+        return {}
+    try:
+        doc = json.loads(diagnostics_path.read_text(encoding="utf-8", errors="replace"))
+    except Exception as exc:
+        return {"path": str(diagnostics_path), "status": "unreadable", "error": str(exc)}
+    if isinstance(doc, dict):
+        doc.setdefault("path", str(diagnostics_path))
+        return doc
+    return {"path": str(diagnostics_path), "status": "invalid"}
+
+
 def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_path: pathlib.Path) -> tuple[list[str], list[str]]:
     run_dir = ROOT / "examples" / "runtime_runs" / project_slug
     project_dir = ROOT / "generated" / project_slug
@@ -1608,6 +2213,7 @@ def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_p
         "usage_plan.json": run_dir / "agent_usage" / "usage_plan.json",
         "runtime_check.json": run_dir / "agent_usage" / "runtime_check.json",
         "visual_evidence_plan.json": run_dir / "agent_usage" / "visual_evidence_plan.json",
+        "usage_planning_diagnostics.json": run_dir / "agent_usage" / "usage_planning_diagnostics.json",
         "README.md": project_dir / "README.md",
     }
     detected: list[str] = []
@@ -1627,6 +2233,8 @@ def write_timeout_failure_result(args: argparse.Namespace, timeout_seconds: int,
         "reason": "generation subprocess exceeded total timeout",
         "timeout_seconds": timeout_seconds,
         "last_known_phase": last_known_phase(phase_log_path),
+        "recent_phase_events": recent_phase_events(phase_log_path),
+        "timeout_diagnostics": read_timeout_diagnostics(str(args.project_slug)),
         "artifacts_detected": detected,
         "missing_artifacts": missing,
         "phase_log_path": str(phase_log_path),
@@ -1741,13 +2349,21 @@ def run_generation_job(
         if not send_provider_message(
             client,
             chat_id,
+            session_dir,
             event="missing_requirement_before_generation",
             session=session,
             facts={"reason": "user asked to generate before a usable project requirement was captured"},
             model=model,
             timeout=timeout,
         ):
-            client.send_message(chat_id, "刚才连接中断了一下。我还没有拿到足够的项目需求，你可以继续描述想做的东西。")
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="missing_requirement_before_generation",
+                facts={"message": "刚才连接中断了一下。我还没有拿到足够的项目需求，你可以继续描述想做的东西。"},
+            )
         return
     session["generation"] = {"status": "running", "started_at": now()}
     append_memory_event(session, "generation_started", data={"requirement": requirement[:6000]})
@@ -1756,6 +2372,7 @@ def run_generation_job(
         send_provider_message(
             client,
             chat_id,
+            session_dir,
             event="generation_started",
             session=session,
             facts={
@@ -1778,10 +2395,16 @@ def run_generation_job(
             if current.get("generation", {}).get("status") != "running":
                 return
             text = generation_progress_text(elapsed)
-            current.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": "generation_progress"})
-            append_memory_event(current, "assistant_message", text, {"source": "generation_progress", "elapsed_seconds": elapsed})
-            save_session(session_dir, current)
-            client.send_message(chat_id, text)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                current,
+                event="generation_progress",
+                facts={"elapsed_seconds": elapsed},
+                source="generation_progress",
+                direct_text=text,
+            )
 
     progress_thread = threading.Thread(target=progress_worker, daemon=True)
     progress_thread.start()
@@ -1800,6 +2423,7 @@ def run_generation_job(
         send_provider_or_technical_error(
             client,
             chat_id,
+            session_dir,
             event="generation_failed",
             session=session,
             facts=safe_facts,
@@ -1852,6 +2476,7 @@ def run_generation_job(
         send_provider_message(
             client,
             chat_id,
+            session_dir,
             event="generation_passed",
             session=session,
             facts=facts,
@@ -1900,14 +2525,21 @@ def run_generation_job(
                 save_session(session_dir, session)
     elif status == "BLOCKED":
         text = product_studio_reply.compose_timeout_or_blocked_reply(result)
-        session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": "product_studio_reply_composer"})
-        append_memory_event(session, "assistant_message", text, {"source": "product_studio_reply_composer", "event": "generation_blocked"})
-        save_session(session_dir, session)
-        client.send_message(chat_id, text)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_blocked",
+            facts={"status": status, "result": result},
+            source="product_studio_reply_composer",
+            direct_text=text,
+        )
     else:
         send_provider_message(
             client,
             chat_id,
+            session_dir,
             event="generation_completed_non_pass",
             session=session,
             facts={
@@ -1933,20 +2565,76 @@ def queue_generation_job(
 ) -> None:
     session = load_session(session_dir, chat_id)
     status = str(session.get("generation", {}).get("status", "idle")).lower()
-    if status in {"queued", "running"}:
-        client.send_message(chat_id, "后台已经在生成了。我会等它跑完测试和预览后再发结果、图片或视频，不会让你重复开一轮。")
+    if has_open_backend_control(session, {"start_generation"}):
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="status_requested",
+            facts={"generation": session.get("generation", {}), "evidence_state": evidence},
+            backend_memo=latest_backend_memo(session),
+        )
         return
-    session["generation"] = {"status": "queued", "queued_at": now()}
-    append_memory_event(session, "generation_queued", data={"source": "telegram"})
-    save_session(session_dir, session)
-    client.send_chat_action(chat_id, "typing")
-    client.send_message(chat_id, "我已经把这轮放进后台生成队列。接下来会等后台完成项目文件、测试、截图/视频预览检查后再发交付结果。")
-    thread = threading.Thread(
-        target=run_generation_job,
-        args=(client, chat_id, session_dir, log_dir, model, timeout, announce_start),
-        daemon=True,
+    requirement = combined_requirement(session)
+    if not requirement:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="missing_requirement_before_generation",
+            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+        )
+        return
+    update_active_run_status(session, "simulator_running", driver="local_simulator_company")
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation.update(
+        {
+            "status": "queued",
+            "driver": "local_simulator_company",
+            "started_at": generation.get("started_at") or now(),
+        }
     )
-    thread.start()
+    session["generation"] = generation
+    control = append_backend_control(
+        session_dir,
+        session,
+        "start_generation",
+        payload=generation_control_payload(session, requirement),
+        status="queued",
+        reason="frontdesk_generation_confirmation",
+    )
+    session["generation"]["control_id"] = control["id"]
+    append_memory_event(
+        session,
+        "generation_started",
+        data={"source": "local_simulator_company", "provider_used": False, "api_used": False, "control_id": control["id"]},
+    )
+    append_truth_ledger(
+        session_dir,
+        session,
+        "simulator_team",
+        "中间阶段由本地 simulator team 接手推进",
+        evidence_ref="local_simulator_company",
+        data={"artifact": "simulator_progress", "provider_used": False, "api_used": False},
+    )
+    memo = append_backend_memo(
+        session_dir,
+        session,
+        "simulator_team",
+        f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：拆需求、列证据门禁、等 package/screenshot/verify report 齐了再交付。当前没有调用 API。",
+    )
+    client.send_chat_action(chat_id, "typing")
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="simulator_started",
+        facts={"message": "我开始按这版需求往下推进。当前只是进入制作流程，还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"},
+    )
 
 
 def continue_customer_turn(
@@ -1959,35 +2647,48 @@ def continue_customer_turn(
     timeout: int,
     context: dict[str, Any] | None = None,
 ) -> None:
-    try:
-        reply, whiteboard, action = customer_service_reply(session, model, min(timeout, 60))
-    except Exception as exc:
-        log_bridge_error(log_dir, "customer_service_failed", chat_id, exc, context or {})
-        print(f"customer service provider failed: {exc}", flush=True)
-        client.send_message(chat_id, "刚才连接中断了一下。你这句我已经记下来了，可以继续补充，我会接着整理方案。")
-        return
-    if isinstance(whiteboard, dict):
-        session["whiteboard"] = whiteboard
-        append_whiteboard_version(session, whiteboard)
-        append_memory_event(
-            session,
-            "whiteboard_revision",
-            data={
-                "project_summary": whiteboard.get("project_summary", ""),
-                "acceptance_criteria": whiteboard.get("acceptance_criteria", []),
-                "change_requests": whiteboard.get("change_requests", []),
-                "delivery_requirements": whiteboard.get("delivery_requirements", []),
-                "blocking_questions": whiteboard.get("blocking_questions", []),
-                "open_questions": whiteboard.get("open_questions", []),
-                "decision_log": whiteboard.get("decision_log", []),
+    latest = latest_user_text(session)
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    if latest:
+        whiteboard = merge_whiteboard(
+            whiteboard,
+            {
+                "project_summary": str(whiteboard.get("project_summary", "") or latest),
+                "known_facts": [f"用户补充: {latest}"],
+                "decision_log": ["本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。"],
             },
         )
-    session.setdefault("messages", []).append({"role": "assistant", "text": reply, "created_at": now()})
-    append_memory_event(session, "assistant_message", reply, {"source": "customer_service_reply"})
-    save_session(session_dir, session)
-    client.send_message(chat_id, reply)
-    if action == "start_generation" and str(session.get("generation", {}).get("status", "idle")).lower() not in {"queued", "running", "pass"}:
-        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=False)
+        session["whiteboard"] = enforce_backend_updates_from_user_text(session, whiteboard)
+        append_whiteboard_version(session, session["whiteboard"])
+        append_memory_event(session, "whiteboard_revision", data={"source": "local_frontdesk", "latest_user_text": latest[:1200]})
+        generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
+        action = "revise_generation_scope" if generation_status in {"queued", "running", "simulator_running"} else "update_project_context"
+        append_backend_control(
+            session_dir,
+            session,
+            action,
+            payload={
+                "latest_user_text": latest[:4000],
+                "whiteboard": session["whiteboard"],
+                "requirement": combined_requirement(session)[:12000],
+            },
+            status="queued",
+            reason="user_project_update",
+        )
+    memo = append_backend_memo(
+        session_dir,
+        session,
+        "project_update",
+        "我已把用户补充写进项目白板，并同步成后台控制命令。当前仍以本地 simulator 为主线，等证据账本齐全后才会交付。",
+    )
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="project_update",
+        facts={"message": "我已记下这条补充，会按最新方向继续推进。没有可运行结果、预览或测试结论前，不会说已经完成。"},
+    )
 
 
 def handle_text(
@@ -2001,60 +2702,238 @@ def handle_text(
 ) -> None:
     session = load_session(session_dir, chat_id)
     text = text.strip()
+    classification = classify_customer_message(text, session)
+    append_truth_ledger(
+        session_dir,
+        session,
+        "message_classification",
+        "用户消息入口已先分类",
+        evidence_ref=str(classification.get("intent", "")),
+        data={"artifact": "message_classification", "classification": classification},
+    )
     if text == "/new":
         clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=False, delete=False)
         session = default_session(chat_id)
         append_memory_event(session, "session_reset", "/new", {"clear_result": clear_result})
-        save_session(session_dir, session)
-        client.send_message(chat_id, reset_summary_text(clear_result) + "\n你可以直接发新的项目想法。")
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="admin_command",
+            facts={"message": reset_summary_text(clear_result) + "\n你可以直接发新的项目想法。"},
+        )
         return
     if text in {"/reset", "/restart"}:
         clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=True, delete=False)
         session = default_session(chat_id)
         append_memory_event(session, "session_reset", text, {"clear_result": clear_result})
-        save_session(session_dir, session)
-        client.send_message(chat_id, reset_summary_text(clear_result) + "\n项目会话已重启，你可以从一句新需求开始。")
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="admin_command",
+            facts={"message": reset_summary_text(clear_result) + "\n项目会话已重启，你可以从一句新需求开始。"},
+        )
         return
     if text == "/delete_history":
         clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=True, delete=True)
         session = default_session(chat_id)
         append_memory_event(session, "session_deleted", text, {"clear_result": clear_result})
-        save_session(session_dir, session)
-        client.send_message(chat_id, reset_summary_text(clear_result) + "\n已打开空白会话。")
-        return
-    if text == "/help":
-        client.send_message(
-            chat_id,
-            "可用命令：\n"
-            "/status 查看后台生成状态\n"
-            "/new 归档当前对话并开新会话\n"
-            "/reset 归档当前对话和本轮生成历史后重启\n"
-            "/delete_history 永久删除当前对话和本轮生成历史\n"
-            "平时直接描述项目需求即可；生成完成后我会直接发结果、图片或视频预览。",
-        )
-        return
-    if text == "/status":
-        generation = session.get("generation", {})
-        if send_provider_message(
+        send_customer_reply(
             client,
             chat_id,
-            event="status_requested",
-            session=session,
-            facts={"generation": generation},
-            model=model,
-            timeout=timeout,
-        ):
-            save_session(session_dir, session)
-        else:
-            client.send_message(chat_id, "刚才连接中断了一下，状态说明没能生成。我已经记录了这个问题。")
+            session_dir,
+            session,
+            event="admin_command",
+            facts={"message": reset_summary_text(clear_result) + "\n已打开空白会话。"},
+        )
+        return
+    if text == "/help":
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="admin_command",
+            facts={
+                "message": (
+                    "可用命令：\n"
+                    "/status 查看后台生成状态\n"
+                    "/new 归档当前对话并开新会话\n"
+                    "/reset 归档当前对话和本轮生成历史后重启\n"
+                    "/delete_history 永久删除当前对话和本轮生成历史\n"
+                    "平时直接描述项目需求即可；生成完成后我会直接发结果、图片或视频预览。"
+                )
+            },
+        )
         return
 
-    session.setdefault("messages", []).append({"role": "user", "text": text, "created_at": now()})
-    append_memory_event(session, "user_message", text)
+    session.setdefault("messages", []).append({"role": "user", "text": text, "created_at": now(), "classification": classification})
+    append_memory_event(session, "user_message", text, {"classification": classification})
     save_session(session_dir, session)
 
-    if is_generate_command(text) or is_human_start_confirmation(text, session):
+    intent = str(classification.get("intent", ""))
+    if intent == "greeting":
+        send_customer_reply(client, chat_id, session_dir, session, event="greeting")
+        return
+    if intent == "status_query":
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="status_requested",
+            facts={"generation": session.get("generation", {}), "evidence_state": evidence},
+            backend_memo=latest_backend_memo(session),
+        )
+        return
+
+    pending = current_pending_decision(session)
+    if pending and intent not in {"admin_command", "greeting", "status_query"}:
+        if not pending.get("asked_at"):
+            pending["asked_at"] = now()
+            session["pending_decision"] = pending
+            update_active_run_status(session, "waiting_decision")
+            append_backend_control(
+                session_dir,
+                session,
+                "wait_for_user_decision",
+                payload={"question": pending["question"], "whiteboard": session.get("whiteboard", {})},
+                status="waiting_user",
+                reason="blocking_question",
+            )
+            append_backend_memo(session_dir, session, "pending_decision", f"需要用户先确认关键问题：{pending['question']}")
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="pending_decision",
+                facts={"question": pending["question"]},
+            )
+            return
+        pending["status"] = "resolved"
+        pending["answer"] = text
+        pending["resolved_at"] = now()
+        session["pending_decision"] = pending
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        questions = whiteboard.get("blocking_questions", []) if isinstance(whiteboard.get("blocking_questions"), list) else []
+        whiteboard["blocking_questions"] = questions[1:]
+        whiteboard["known_facts"] = unique_strings(list(whiteboard.get("known_facts", [])) + [f"用户确认关键问题: {text}"])
+        session["whiteboard"] = whiteboard
+        update_active_run_status(session, "simulator_running")
+        append_backend_control(
+            session_dir,
+            session,
+            "user_decision_resolved",
+            payload={"answer": text, "whiteboard": whiteboard},
+            status="queued",
+            reason="blocking_question_answered",
+        )
+
+    if intent == "new_project_request":
+        ticket = create_intake_ticket(session_dir, session, text)
+        run = create_active_run(session, ticket, text)
+        append_backend_control(
+            session_dir,
+            session,
+            "open_intake",
+            payload={"raw_user_message": text, "whiteboard": session.get("whiteboard", {})},
+            status="applied",
+            reason="new_project_request",
+        )
+        append_truth_ledger(
+            session_dir,
+            session,
+            "active_run_bound",
+            "Telegram chat_id 已绑定 active run",
+            evidence_ref=str(run.get("id", "")),
+            data={"artifact": "active_run", "run_id": run.get("id", ""), "ticket_id": ticket.get("id", "")},
+        )
+        append_truth_ledger(
+            session_dir,
+            session,
+            "local_simulator_company",
+            "本地制作流程已开始推进",
+            evidence_ref=str(run.get("id", "")),
+            data={"artifact": "local_simulator_progress", "provider_used": False, "api_used": False},
+        )
+        memo = append_backend_memo(
+            session_dir,
+            session,
+            "intake",
+            "我这边已经把新需求建成 intake ticket。下一步先由本地 simulator team 做第一轮拆解和证据清单，不触发 provider/API。",
+        )
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="intake_ticket_created",
+            facts={"project_summary": text},
+        )
+        return
+
+    if intent == "generation_confirmation":
         queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True)
+        return
+
+    if intent == "escalation_request":
+        if provider_escalation_allowed(session_dir, chat_id, classification):
+            append_truth_ledger(
+                session_dir,
+                session,
+                "provider_escalation",
+                "BLOCKED 后用户明确请求升级，允许 agent/provider 介入",
+                status="pass",
+                evidence_ref="escalation_request",
+                data={"artifact": "provider_escalation_gate"},
+            )
+            append_backend_control(
+                session_dir,
+                session,
+                "escalate_generation",
+                payload={"classification": classification, "whiteboard": session.get("whiteboard", {})},
+                status="queued",
+                reason="user_requested_escalation_after_blocked_retry",
+            )
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="project_update",
+                facts={"message": "收到，我会把下一步标记为需要更强的处理方式，并保留当前已经确认的项目方向。"},
+            )
+        else:
+            append_truth_ledger(
+                session_dir,
+                session,
+                "provider_escalation",
+                "未满足 BLOCKED + escalation_request，拒绝默认 provider/API 介入",
+                status="blocked",
+                evidence_ref="escalation_request",
+                data={"artifact": "provider_escalation_gate"},
+            )
+            append_backend_control(
+                session_dir,
+                session,
+                "escalation_denied",
+                payload={"classification": classification},
+                status="blocked",
+                reason="missing_blocked_or_retry_exhausted_evidence",
+            )
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="blocked",
+                facts={"reason": "现在还没有足够的中断依据，不能贸然切换处理方式。"},
+            )
         return
 
     continue_customer_turn(client, chat_id, session, session_dir, log_dir, model, timeout, {"text": text})
@@ -2076,17 +2955,31 @@ def handle_attachment_message(
         attachments, skipped = download_message_attachments(client, chat_id, message, upload_dir)
     except Exception as exc:
         log_bridge_error(log_dir, "attachment_download_failed", chat_id, exc, {"message_id": message.get("message_id")})
-        client.send_message(chat_id, "我这边接到上传消息了，但刚才下载文件时连接中断。你可以重新发一次，或者先用文字补充这个资料的用途。")
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="attachment_download_failed",
+            facts={"message": "我这边接到上传消息了，但刚才下载文件时连接中断。你可以重新发一次，或者先用文字补充这个资料的用途。"},
+        )
         return
     if not attachments:
         if skipped:
             append_memory_event(session, "user_attachment_skipped", data={"skipped": skipped})
-            save_session(session_dir, session)
-            client.send_message(chat_id, "我收到了上传消息，但文件太大或 Telegram 没有返回可下载路径。你可以换成小一点的文件，或先用文字描述关键内容。")
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="attachment_skipped",
+                facts={"message": "我收到了上传消息，但文件太大或 Telegram 没有返回可下载路径。你可以换成小一点的文件，或先用文字描述关键内容。", "skipped": skipped},
+            )
             return
         if send_provider_message(
             client,
             chat_id,
+            session_dir,
             event="unsupported_attachment_received",
             session=session,
             facts={"message_type": "non_text", "supported": ["photo", "document", "video", "animation", "audio", "voice"]},
@@ -2095,7 +2988,14 @@ def handle_attachment_message(
         ):
             save_session(session_dir, session)
         else:
-            client.send_message(chat_id, "我收到了非文本消息。现在可直接接收图片、文档、视频、音频这几类资料；你也可以补一句它们要怎么用于项目。")
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="unsupported_attachment_received",
+                facts={"message": "我收到了非文本消息。现在可直接接收图片、文档、视频、音频这几类资料；你也可以补一句它们要怎么用于项目。"},
+            )
         return
     if skipped:
         append_memory_event(session, "user_attachment_partially_skipped", data={"skipped": skipped})

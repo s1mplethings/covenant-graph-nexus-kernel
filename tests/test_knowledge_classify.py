@@ -10,8 +10,8 @@ from cgnk_knowledge.classify import classify_keypoint
 
 
 class KnowledgeClassifyTests(unittest.TestCase):
-    def test_ctcp_read_only_is_critical(self) -> None:
-        row = classify_keypoint("Do not modify CTCP; CTCP is read-only.", source="user")
+    def test_cgkn_read_only_is_critical(self) -> None:
+        row = classify_keypoint("Do not modify CGKN; CGKN is read-only.", source="user")
         self.assertEqual(("critical", "needed_now", "keep", "accepted"), (row["importance"], row["need_state"], row["retention"], row["review_state"]))
 
     def test_no_provider_call_is_critical(self) -> None:
@@ -30,8 +30,8 @@ class KnowledgeClassifyTests(unittest.TestCase):
         row = classify_keypoint("Agent interaction benchmark report passed.", source="auto")
         self.assertEqual(("medium", "reference_only", "compress"), (row["importance"], row["need_state"], row["retention"]))
 
-    def test_rejected_ctcp_write_plan_is_rejected(self) -> None:
-        row = classify_keypoint("不要改 CTCP，之前那个错了", source="user")
+    def test_rejected_cgkn_write_plan_is_rejected(self) -> None:
+        row = classify_keypoint("不要改 CGKN，之前那个错了", source="user")
         self.assertEqual(("rejected", "not_needed", "archive"), (row["review_state"], row["need_state"], row["retention"]))
 
     def test_noise_is_discarded(self) -> None:

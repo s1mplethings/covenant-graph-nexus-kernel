@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-03T06:56:48.861731+00:00
-revision_count: 5
+generated_at: 2026-06-04T11:54:09.832163+00:00
+revision_count: 2
 ---
 
 # Project Memory
@@ -23,16 +23,12 @@ revision_count: 5
 
 ## Current Project Summary
 
-本地可运行的 VN 项目助手，支持梳理故事逻辑时间线（流程图/节点编辑），集成 AI 生成背景和立绘图片，图片生成为真实 AI 产出，可本地保存和预览，适用于 VN 项目开发。
+你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## Known Facts
 
-- 用户需要本地可运行的工具
-- 必须支持故事逻辑时间线梳理
-- 必须能生成背景和立绘图片
-- 图片生成要求为真正的 AI 生成图
-- 图片生成模型必须本地部署
-- 背景和立绘生成要分开处理
+- 用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+- 用户补充: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## User Rules
 
@@ -40,46 +36,28 @@ revision_count: 5
 
 ## Default Assumptions
 
-- 操作系统默认 Windows
-- 图片生成模型默认 Stable Diffusion 本地部署
-- 风格默认通用二次元风
-- 故事逻辑编辑采用节点/流程图方式
-- 图片输出格式为 PNG/JPG
-- 生成图片后可本地预览和保存
-- 背景和立绘生成入口分开
+- 未记录
 
 ## First Version Plan
 
-- 实现本地桌面或 Web 应用，支持故事逻辑时间线梳理（节点/流程图）
-- 集成本地 AI 图像生成（背景、立绘），支持基础 prompt 输入
-- 支持图片预览和本地导出
-- 集成本地 AI 图像生成（背景、立绘），分别提供生成入口，支持基础 prompt 输入
+- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
 
 ## Acceptance Criteria
 
-- 工具可在本地运行，无需联网
-- 支持梳理和编辑故事逻辑时间线
-- 生成的背景和立绘为真实 AI 生成图片
-- 生成图片可本地预览和保存
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
-- 背景和立绘生成入口必须分开
 
 ## Change Requests
 
-- 图片生成模型必须本地部署
-- 背景和立绘生成要分开处理
+- 未记录
 
 ## Delivery Requirements
 
-- 生成图片需直接展示预览
-- 交付时需有截图或图片产物
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 
 ## Decision Log
 
-- 采用 Stable Diffusion 本地部署作为默认 AI 图片生成模型，因其支持本地运行和二次元风格。
-- 故事逻辑编辑采用节点/流程图方式，便于梳理分支和时间线。
-- 背景和立绘生成入口分开，分别调用本地 AI 模型。
+- 默认禁用 provider/API，先走本地 simulator team。
+- 本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。
 
 ## Uploaded Project Inputs
 
@@ -87,10 +65,7 @@ revision_count: 5
 
 ## Open Questions
 
-- 是否有特定的 VN 脚本格式需要支持？
-- 图片分辨率有无特殊要求？
-- 是否需要导出完整 VN 项目脚本？
-- 是否需要支持 Mac/Linux？
+- 未记录
 
 ## Blocking Questions
 
@@ -133,15 +108,14 @@ revision_count: 5
 
 1. 你好
 2. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-3. 我主要的要求就是用本地的图片生成模型，然后背景和立绘是要分开的
-4. 开始做吧
-5. 重新开始吧
+3. 你好
+4. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## Generation State
 
-- Status: `stopped_by_user`
+- Status: `idle`
 - Started at: ``
-- Finished at: `2026-06-03T06:56:48.861199+00:00`
+- Finished at: ``
 - Result path: ``
 
 ## Update Rules

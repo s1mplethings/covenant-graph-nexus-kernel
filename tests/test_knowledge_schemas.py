@@ -37,7 +37,7 @@ class KnowledgeSchemaTests(unittest.TestCase):
         return list(validator.iter_errors(doc))
 
     def test_all_new_examples_validate_against_schemas(self) -> None:
-        pack = json.loads((ROOT / "examples" / "knowledge" / "ctcp_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        pack = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(pack, "project_knowledge_pack.schema.json"))
         query = json.loads((ROOT / "examples" / "knowledge" / "knowledge_retrieval_query.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(query, "knowledge_retrieval_query.schema.json"))
@@ -50,12 +50,12 @@ class KnowledgeSchemaTests(unittest.TestCase):
             self.assertEqual([], self.validate_doc(point, "key_point.schema.json"))
 
     def test_invalid_importance_enum_fails(self) -> None:
-        doc = json.loads((ROOT / "examples" / "knowledge" / "ctcp_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        doc = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         doc["all_items"][0]["importance"] = "urgent"
         self.assertTrue(self.validate_doc(doc, "project_knowledge_pack.schema.json"))
 
     def test_invalid_retention_enum_fails(self) -> None:
-        doc = json.loads((ROOT / "examples" / "knowledge" / "ctcp_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        doc = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         doc["all_items"][0]["retention"] = "forever"
         self.assertTrue(self.validate_doc(doc, "project_knowledge_pack.schema.json"))
 

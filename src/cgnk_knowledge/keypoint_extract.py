@@ -56,8 +56,8 @@ def _category_for(text: str) -> str | None:
 
 def _scope_for(text: str, session_state: dict[str, Any]) -> str:
     lowered = text.lower()
-    if "ctcp" in lowered:
-        return "project.ctcp"
+    if "cgkn" in lowered or session_state.get("project") == "CGKN":
+        return "project.cgkn"
     if "cgnk" in lowered or session_state.get("project") == "CGNK":
         return "project.cgnk"
     if "agent" in lowered:
@@ -105,7 +105,7 @@ def extract_keypoints_from_turn(session_state: dict[str, Any] | None, user_messa
                     "review_state": classification["review_state"],
                     "confidence": classification["confidence"],
                     "status": classification["status"],
-                    "tags": sorted(set(re.findall(r"\b(?:CTCP|CGNK|AgentComposer|WorkGraph|Gate|module|agent|schema)\b", point, flags=re.I))),
+                    "tags": sorted(set(re.findall(r"\b(?:CGKN|CGNK|AgentComposer|WorkGraph|Gate|module|agent|schema)\b", point, flags=re.I))),
                     "diagnostics": classification["diagnostics"],
                 }
             )

@@ -15,8 +15,7 @@ from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RESULT_PATH = ROOT / "examples" / "test_results" / "connectivity_check_result.json"
-DEFAULT_COMPAT_ROOT = pathlib.Path(r"D:\.c_projects\adc\ctcp")
-DEFAULT_NOTES_PATH = DEFAULT_COMPAT_ROOT / ".agent_private" / "NOTES.md"
+DEFAULT_NOTES_PATH = ROOT / ".agent_private" / "NOTES.md"
 EMBEDDED_BASE_URL = "https://api.gptsapi.net"
 
 
@@ -46,7 +45,7 @@ def _is_gptsapi_base_url(value: str) -> bool:
 
 
 def _load_local_notes_defaults() -> dict[str, str]:
-    path_text = str(os.environ.get("CTCP_LOCAL_NOTES_PATH", "")).strip()
+    path_text = str(os.environ.get("CGKN_LOCAL_NOTES_PATH", "")).strip()
     path = pathlib.Path(path_text) if path_text else DEFAULT_NOTES_PATH
     if not path.exists():
         return {}
@@ -64,18 +63,74 @@ def _load_local_notes_defaults() -> dict[str, str]:
     return out
 
 
+def _windows_env_value(name: str, target: str) -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        import winreg  # type: ignore
+    except Exception:
+        return ""
+    hive, subkey = (
+        (winreg.HKEY_CURRENT_USER, "Environment")
+        if target == "User"
+        else (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")
+    )
+    try:
+        with winreg.OpenKey(hive, subkey) as key:
+            value, _ = winreg.QueryValueEx(key, name)
+    except OSError:
+        return ""
+    return str(value).strip()
+
+
+def _first_credential(candidates: list[tuple[str, str]]) -> tuple[str, str]:
+    for source, value in candidates:
+        text = str(value or "").strip()
+        if text:
+            return text, source
+    return "", ""
+
+
 def _resolve_api_credentials() -> dict[str, str]:
     defaults = _load_local_notes_defaults()
     env_key = str(os.environ.get("OPENAI_API_KEY", "")).strip()
     env_base_url = str(os.environ.get("OPENAI_BASE_URL", "")).strip()
-    compat_key = str(os.environ.get("CTCP_OPENAI_API_KEY", "")).strip()
-    compat_base_url = str(os.environ.get("CTCP_OPENAI_BASE_URL", "")).strip()
+    compat_key = str(os.environ.get("CGKN_OPENAI_API_KEY", "")).strip()
+    compat_base_url = str(os.environ.get("CGKN_OPENAI_BASE_URL", "")).strip()
+    user_env_key = _windows_env_value("OPENAI_API_KEY", "User")
+    user_env_base_url = _windows_env_value("OPENAI_BASE_URL", "User")
+    machine_env_key = _windows_env_value("OPENAI_API_KEY", "Machine")
+    machine_env_base_url = _windows_env_value("OPENAI_BASE_URL", "Machine")
+    user_compat_key = _windows_env_value("CGKN_OPENAI_API_KEY", "User")
+    user_compat_base_url = _windows_env_value("CGKN_OPENAI_BASE_URL", "User")
+    machine_compat_key = _windows_env_value("CGKN_OPENAI_API_KEY", "Machine")
+    machine_compat_base_url = _windows_env_value("CGKN_OPENAI_BASE_URL", "Machine")
     notes_key = str(defaults.get("api_key", "")).strip()
     notes_base_url = str(defaults.get("base_url", "")).strip()
-    key = env_key or compat_key or notes_key
-    key_source = "OPENAI_API_KEY" if env_key else ("CTCP_OPENAI_API_KEY" if compat_key else ("local_notes" if notes_key else ""))
-    base_url = _normalize_base_url(env_base_url or compat_base_url or notes_base_url or EMBEDDED_BASE_URL)
-    base_source = "OPENAI_BASE_URL" if env_base_url else ("CTCP_OPENAI_BASE_URL" if compat_base_url else ("local_notes" if notes_base_url else "embedded_default"))
+    key, key_source = _first_credential(
+        [
+            ("CGKN_OPENAI_API_KEY", compat_key),
+            ("CGKN_OPENAI_API_KEY(User)", user_compat_key),
+            ("CGKN_OPENAI_API_KEY(Machine)", machine_compat_key),
+            ("local_notes", notes_key),
+            ("OPENAI_API_KEY(User)", user_env_key),
+            ("OPENAI_API_KEY(Machine)", machine_env_key),
+            ("OPENAI_API_KEY", env_key),
+        ]
+    )
+    raw_base_url, base_source = _first_credential(
+        [
+            ("CGKN_OPENAI_BASE_URL", compat_base_url),
+            ("CGKN_OPENAI_BASE_URL(User)", user_compat_base_url),
+            ("CGKN_OPENAI_BASE_URL(Machine)", machine_compat_base_url),
+            ("local_notes", notes_base_url),
+            ("OPENAI_BASE_URL(User)", user_env_base_url),
+            ("OPENAI_BASE_URL(Machine)", machine_env_base_url),
+            ("OPENAI_BASE_URL", env_base_url),
+            ("embedded_default", EMBEDDED_BASE_URL),
+        ]
+    )
+    base_url = _normalize_base_url(raw_base_url)
     return {"api_key": key, "api_key_source": key_source, "base_url": base_url, "base_url_source": base_source}
 
 

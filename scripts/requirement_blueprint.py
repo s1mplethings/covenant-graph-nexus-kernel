@@ -224,21 +224,7 @@ def build_gap_analysis(requirement: str, answers: dict[str, str], assume_default
 def build_feature_spec(requirement: str, answers: dict[str, str]) -> dict[str, Any]:
     core_answer = answers.get("core_features", "").strip()
     intent = local_intent_router.classify_project_type(requirement)
-    if intent.get("project_type") == "game_demo_telemetry_analyzer":
-        features = [
-            ("CSGO2 demo import", "Load standard CSGO2 .dem files as local analysis input.", ["demo_file"], ["parsed_demo"]),
-            ("Mouse movement analysis", "Extract and summarize player mouse movement deltas over time.", ["parsed_demo"], ["mouse_movement_metrics"]),
-            ("Click analysis", "Detect and count attack/click events and timing patterns.", ["parsed_demo"], ["click_metrics"]),
-            ("Keyboard input analysis", "Extract movement and action key events when available from demo telemetry.", ["parsed_demo"], ["keyboard_metrics"]),
-            ("View angle analysis", "Analyze view angle changes and suspicious aim transitions.", ["parsed_demo"], ["view_angle_metrics"]),
-            ("Crosshair movement analysis", "Track crosshair movement and target-transition patterns.", ["parsed_demo"], ["crosshair_metrics"]),
-            ("Operation statistics", "Aggregate per-player operation statistics for review.", ["mouse_movement_metrics", "click_metrics", "keyboard_metrics"], ["operation_statistics"]),
-            ("Heatmap visualization", "Render heatmap-style visual summaries for movement or aim activity.", ["operation_statistics"], ["heatmap_visualization"]),
-            ("Frequency curve", "Render operation frequency curves over match time.", ["operation_statistics"], ["frequency_curve"]),
-            ("Image and PDF report export", "Export visual report images and a PDF report without claiming final cheat verdicts.", ["operation_statistics", "heatmap_visualization", "frequency_curve"], ["image_report", "pdf_report"]),
-        ]
-    else:
-        features = [
+    features = [
         ("Project intake", "Capture the user's project goal and supporting assumptions.", ["plain_text"], ["goal"]),
         ("Requirement understanding", "Extract business goal, users, scenarios, pain points, and boundaries.", ["goal"], ["requirement_spec"]),
         ("Input/output contract analysis", "Model input sources, processing steps, outputs, storage, and unknowns.", ["requirement_spec"], ["io_contract"]),
@@ -248,9 +234,20 @@ def build_feature_spec(requirement: str, answers: dict[str, str]) -> dict[str, A
         ("Technology decision", "Choose technology options from capabilities and constraints.", ["capability_map"], ["tech_decisions"]),
         ("Blueprint generation", "Emit architecture, API, database, frontend, PRD, and task artifacts.", ["tech_decisions"], ["requirement_blueprint"]),
         ("Review report", "Summarize readiness, assumptions, and risks.", ["requirement_blueprint"], ["review_report"]),
-        ]
+    ]
     if core_answer:
         features.insert(1, ("Explicit scope", core_answer, ["goal"], ["scope_boundary"]))
+    for feature_id in reversed([str(item) for item in intent.get("required_features", []) if str(item).strip()]):
+        readable_name = feature_id.replace("_", " ").title()
+        features.insert(
+            1,
+            (
+                readable_name,
+                f"Implement explicitly requested capability: {feature_id}.",
+                ["goal"],
+                [feature_id],
+            ),
+        )
     return {
         "features": [
             {

@@ -80,20 +80,14 @@ def build_product_studio_run(goal: str, input_text: str, output_text: str, const
     roles = build_roles(goal, input_text, output_text)
     required_outputs = build_required_outputs(output_text, has_gui_or_image)
     intent = local_intent_router.classify_project_type(combined)
-    explicit_project_type = str(intent.get("project_type", "unknown_project_type"))
-    domain = str(intent.get("domain", "unknown"))
-    if explicit_project_type == "game_demo_telemetry_analyzer":
-        product_name = "CSGO2 Demo Telemetry Analyzer"
-        runtime_target = "local demo telemetry analyzer"
-        plan_focus = [
-            "Keep frozen_project_type=game_demo_telemetry_analyzer.",
-            "Build CSGO2 demo import, telemetry extraction, statistics, visualizations, and report export.",
-            "Do not claim deep ML cheat detection or final cheat verdicts.",
-        ]
-    else:
-        product_name = goal[:80]
-        runtime_target = "local GUI" if has_gui_or_image else "local runnable project"
-        plan_focus = ["Create an executable build plan for the requested project."]
+    explicit_project_type = str(intent.get("project_type", "custom_application"))
+    domain = str(intent.get("domain", "general_local_project"))
+    product_name = goal[:80]
+    runtime_target = "local GUI" if has_gui_or_image else "local runnable project"
+    plan_focus = [
+        "Keep frozen_project_type aligned with the explicit user request.",
+        "Build the requested inputs, outputs, and required features without substituting a default project type.",
+    ]
     known_limits = [
         "This run only generates a Product Studio run artifact.",
         "No real project has been generated yet.",

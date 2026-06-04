@@ -14,7 +14,7 @@ class KnowledgeKeypointExtractTests(unittest.TestCase):
         message = "\n".join(
             [
                 "Goal: build a modular conversation knowledge system.",
-                "Do not modify CTCP; CTCP is read-only.",
+                "Do not modify CGKN; CGKN is read-only.",
                 "Architecture decision: agents are generated from module composition.",
                 "Artifact created: examples/knowledge/agent_context_pack.example.json",
                 "Agent interaction benchmark tests passed in commit abc123.",

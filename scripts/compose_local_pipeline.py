@@ -202,6 +202,155 @@ def build_component_pipeline(goal: str) -> dict[str, Any]:
     }
 
 
+def string_items(value: Any, *, limit: int = 8) -> list[str]:
+    if isinstance(value, list):
+        values = value
+    elif isinstance(value, str) and value.strip():
+        values = [value]
+    else:
+        values = []
+    result: list[str] = []
+    for item in values:
+        text = str(item).strip()
+        if text and text not in result:
+            result.append(text[:240])
+        if len(result) >= limit:
+            break
+    return result
+
+
+def safe_phase_id(value: Any, fallback: str) -> str:
+    raw = str(value or "").strip().lower()
+    raw = re.sub(r"[^a-z0-9_\-]+", "-", raw)
+    raw = raw.strip("-_")
+    return raw[:48] or fallback
+
+
+def clamp_prompt_chars(value: Any, fallback: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = fallback
+    return max(1200, min(6000, parsed))
+
+
+def clamp_count(value: Any, fallback: int, *, low: int = 1, high: int = 20) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = fallback
+    return max(low, min(high, parsed))
+
+
+def local_model_result(model_hint: dict[str, Any]) -> dict[str, Any]:
+    result = model_hint.get("result", {}) if isinstance(model_hint, dict) else {}
+    return result if isinstance(result, dict) else {}
+
+
+def normalize_phase_routing(
+    model_doc: dict[str, Any],
+    *,
+    selected: list[str],
+    fallback_pipeline: dict[str, Any],
+) -> list[dict[str, Any]]:
+    raw_routes = model_doc.get("phase_routing")
+    if not isinstance(raw_routes, list):
+        raw_routes = model_doc.get("component_routes")
+    valid_modules = set(selected)
+    normalized: list[dict[str, Any]] = []
+    known_ids: set[str] = set()
+    fallback_components = [row for row in fallback_pipeline.get("components", []) if isinstance(row, dict)]
+    for idx, row in enumerate(raw_routes if isinstance(raw_routes, list) else []):
+        if not isinstance(row, dict):
+            continue
+        fallback = fallback_components[min(idx, len(fallback_components) - 1)] if fallback_components else {}
+        phase_id = safe_phase_id(row.get("id") or row.get("phase_id") or row.get("phase"), f"phase-{idx + 1}")
+        if phase_id in known_ids:
+            phase_id = f"{phase_id}-{idx + 1}"
+        known_ids.add(phase_id)
+        active_module = str(row.get("active_module") or row.get("module") or fallback.get("active_module") or "module.project.generator@1")
+        if active_module not in valid_modules:
+            active_module = str(fallback.get("active_module") or "module.project.generator@1")
+        depends_on = [item for item in string_items(row.get("depends_on"), limit=10) if item in known_ids]
+        if not depends_on and idx > 0:
+            depends_on = [normalized[-1]["id"]]
+        normalized.append(
+            {
+                "id": phase_id,
+                "label": str(row.get("label") or row.get("name") or fallback.get("label") or phase_id).strip()[:120],
+                "active_module": active_module,
+                "depends_on": depends_on,
+                "outputs": string_items(row.get("outputs") or fallback.get("outputs"), limit=10),
+                "path_hints": string_items(row.get("path_hints") or fallback.get("path_hints"), limit=10),
+                "prompt_max_chars": clamp_prompt_chars(row.get("prompt_max_chars"), int(fallback.get("prompt_max_chars", 3600) or 3600)),
+                "agent_focus": str(row.get("agent_focus") or row.get("responsibility") or "").strip()[:300],
+                "acceptance_gate": string_items(row.get("acceptance_gate") or row.get("gates"), limit=8),
+                "handoff_notes": string_items(row.get("handoff_notes") or row.get("handoffs"), limit=8),
+            }
+        )
+    return normalized
+
+
+def normalize_local_agent_management(
+    *,
+    model_hint: dict[str, Any],
+    selected: list[str],
+    fallback_pipeline: dict[str, Any],
+) -> dict[str, Any]:
+    model_doc = local_model_result(model_hint)
+    phase_routing = normalize_phase_routing(model_doc, selected=selected, fallback_pipeline=fallback_pipeline)
+    source = "local_model" if model_hint.get("ok") and phase_routing else "deterministic"
+    if not phase_routing:
+        phase_routing = [
+            {
+                **row,
+                "agent_focus": "Deterministic local component route.",
+                "acceptance_gate": ["Required files for this component exist and are referenced by the final delivery bundle."],
+                "handoff_notes": [],
+            }
+            for row in fallback_pipeline.get("components", [])
+            if isinstance(row, dict)
+        ]
+    retry_policy = model_doc.get("retry_policy", {}) if isinstance(model_doc.get("retry_policy"), dict) else {}
+    return {
+        "source": source,
+        "model_enabled": bool(model_hint.get("enabled")),
+        "model_ok": bool(model_hint.get("ok")),
+        "phase_routing": phase_routing,
+        "delivery_gates": string_items(model_doc.get("delivery_gates"), limit=10),
+        "evidence_requirements": string_items(model_doc.get("evidence_requirements"), limit=10),
+        "retry_policy": {
+            "retry_scope": str(retry_policy.get("retry_scope") or fallback_pipeline.get("merge_policy", {}).get("retry_scope") or "failed_component_only"),
+            "max_repair_notes": clamp_count(retry_policy.get("max_repair_notes"), 6, low=1, high=20),
+            "escalate_when": string_items(retry_policy.get("escalate_when"), limit=8),
+        },
+        "handoff_order": [row["id"] for row in phase_routing],
+        "assumptions": string_items(model_doc.get("assumptions"), limit=8),
+        "risks": string_items(model_doc.get("risks"), limit=10),
+    }
+
+
+def component_pipeline_from_management(fallback_pipeline: dict[str, Any], management: dict[str, Any]) -> dict[str, Any]:
+    if management.get("source") != "local_model":
+        return fallback_pipeline
+    components = [row for row in management.get("phase_routing", []) if isinstance(row, dict)]
+    if not components:
+        return fallback_pipeline
+    merge_policy = dict(fallback_pipeline.get("merge_policy", {}))
+    retry_policy = management.get("retry_policy", {}) if isinstance(management.get("retry_policy"), dict) else {}
+    if retry_policy.get("retry_scope"):
+        merge_policy["retry_scope"] = retry_policy["retry_scope"]
+    return {
+        **fallback_pipeline,
+        "strategy": "local_model_managed_component_routing",
+        "quality_goal": "Local model manages component boundaries, handoffs, gates, and repair scope before provider or execution stages.",
+        "components": components,
+        "merge_policy": merge_policy,
+        "execution_order": [row["id"] for row in components],
+        "local_agent_management_source": management.get("source", ""),
+    }
+
+
 def env_truthy(name: str) -> bool:
     return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
 
@@ -213,8 +362,13 @@ def optional_local_model_hint(goal: str, catalog: dict[str, Any], *, use_local_m
         return {"enabled": False, "provider": "none", "ok": False, "error": "local model hint not requested"}
     prompt = {
         "task": (
-            "Act as CGNK local librarian and route manager. Inspect available_modules, choose the route for this "
-            "project request, and return strict JSON with selected_modules, librarian_notes, route_notes, and risks."
+            "Act as CGNK local librarian, route manager, and local agent manager. Inspect available_modules, choose "
+            "the route for this project request, split the work into fine-grained phases, define handoffs and "
+            "delivery gates, and return strict JSON. Required keys: selected_modules, librarian_notes, route_notes, "
+            "phase_routing, delivery_gates, evidence_requirements, retry_policy, assumptions, risks. "
+            "phase_routing items must include id, label, active_module, depends_on, outputs, path_hints, "
+            "prompt_max_chars, agent_focus, acceptance_gate, and handoff_notes. selected_modules and active_module "
+            "values must only contain refs from available_modules."
         ),
         "goal": goal,
         "available_modules": [ref_of(m) for m in catalog["modules"]],
@@ -302,8 +456,10 @@ def ollama_model_hint(prompt: dict[str, Any]) -> dict[str, Any]:
         return {"enabled": False, "provider": "ollama", "ok": False, "error": "no ollama models installed"}
     model_prompt = (
         "You are the local CGNK pipeline composer agent. "
-        "Return only JSON. The JSON shape is {\"selected_modules\": [string], \"notes\": string}. "
-        "selected_modules must only contain refs from available_modules.\n\n"
+        "Return only JSON with selected_modules, librarian_notes, route_notes, phase_routing, delivery_gates, "
+        "evidence_requirements, retry_policy, assumptions, and risks. "
+        "phase_routing must be a list of detailed local-agent-managed work phases. "
+        "selected_modules and phase_routing.active_module must only contain refs from available_modules.\n\n"
         + json.dumps(prompt, ensure_ascii=False, indent=2)
     )
     try:
@@ -493,6 +649,13 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
                 "missing_adapter": "No producer for artifact.external_api_request@1 in flow.modular_project_generation@1",
             }
         )
+    fallback_component_pipeline = build_component_pipeline(goal)
+    local_agent_management = normalize_local_agent_management(
+        model_hint=model_hint,
+        selected=selected,
+        fallback_pipeline=fallback_component_pipeline,
+    )
+    component_pipeline = component_pipeline_from_management(fallback_component_pipeline, local_agent_management)
     local_index = {
         "kind": "LocalLibraryIndex",
         "payload": {
@@ -520,12 +683,20 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
                 "provider": model_hint.get("provider", "structured"),
                 "model": model_hint.get("model", ""),
                 "selection_source": "ollama" if model_hint.get("ok") else "contract_catalog_deterministic",
-                "local_model_scope": ["local_librarian", "route_manager"],
+                "local_model_scope": [
+                    "local_librarian",
+                    "route_manager",
+                    "local_agent_manager",
+                    "phase_router",
+                    "delivery_gate_planner",
+                    "repair_scope_manager",
+                ],
                 "provider_scope": ["project_generation", "project_repair", "final_project_logic"],
                 "notes": model_hint.get("result", {}).get("route_notes", "") if isinstance(model_hint.get("result"), dict) else "",
                 "risks": model_hint.get("result", {}).get("risks", []) if isinstance(model_hint.get("result"), dict) else [],
                 "support_modules": support_modules,
             },
+            "local_agent_management": local_agent_management,
             "known_flows": [ref_of(flow) for flow in catalog["flows"]],
             "capability_groups": {
                 "intake": ["module.customer.service@1"],
@@ -554,7 +725,8 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
             "requirement": goal,
             "selected_modules": selected,
             "support_modules": support_modules,
-            "component_pipeline": build_component_pipeline(goal),
+            "component_pipeline": component_pipeline,
+            "local_agent_management": local_agent_management,
             "external_routes": external_routes,
             "edges": edges,
             "outputs": ["requirement_blueprint", "project_blueprint", "generation_trace", "test_graph", "effect_report"],

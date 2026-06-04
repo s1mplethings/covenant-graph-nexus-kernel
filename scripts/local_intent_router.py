@@ -7,50 +7,30 @@ import re
 from typing import Any
 
 
-CSGO2_REQUIRED_FEATURES = [
-    "csgo2_demo_import",
-    "mouse_movement_analysis",
-    "click_analysis",
-    "keyboard_input_analysis",
-    "view_angle_analysis",
-    "crosshair_movement_analysis",
-    "operation_statistics",
-    "heatmap_visualization",
-    "frequency_curve",
-    "image_report_export",
-    "pdf_report_export",
-]
-
-CSGO2_NON_GOALS = [
-    "deep_ml_cheat_detection",
-    "final_cheat_verdict",
-]
-
-CSGO2_KEYWORDS = (
-    "csgo2",
-    "cs2",
-    "demo",
-    ".dem",
-    "鼠标",
-    "mouse",
-    "点击",
-    "click",
-    "键盘",
-    "keyboard",
-    "视角",
-    "view angle",
-    "准星",
-    "crosshair",
-    "热力图",
-    "heatmap",
-    "操作频率",
-    "frequency",
-    "pdf",
-)
-
 MEMORY_TITLE_MARKERS = (
     "requirement blueprint generator",
     "cgnk requirement blueprint generator",
+    "需求蓝图生成器",
+)
+
+BLUEPRINT_PROJECT_TYPES = {"requirement_blueprint_generator"}
+
+PROJECT_TYPE_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("api_backend", "backend_service", ("api", "backend", "server", "接口", "后端", "服务端")),
+    ("data_analysis_tool", "data_analysis", ("csv", "excel", "数据", "表格", "分析", "上传", "文件", "file")),
+    ("reporting_application", "reporting", ("dashboard", "report", "analytics", "统计", "报表", "报告", "可视化", "图表")),
+    ("media_tool", "media_processing", ("image", "video", "图片", "图像", "视频", "截图", "音频")),
+    ("local_application", "local_tooling", ("本地", "local", "工具", "app", "应用", "桌面")),
+)
+
+FEATURE_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("file_import", ("上传", "导入", "文件", "file", "upload", "import", "csv", "excel")),
+    ("data_analysis", ("分析", "analysis", "analytics", "统计", "metrics")),
+    ("statistics_report", ("统计", "报表", "报告", "report")),
+    ("visualization", ("可视化", "图表", "曲线", "热力图", "dashboard", "chart", "visualization", "heatmap")),
+    ("image_export", ("图片", "截图", "image", "screenshot", "png", "jpg")),
+    ("pdf_export", ("pdf", "PDF")),
+    ("local_runtime", ("本地", "local", "离线")),
 )
 
 
@@ -58,12 +38,24 @@ def _clean_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
 
 
-def _looks_like_csgo2_request(text: str) -> bool:
-    lowered = text.lower()
-    hits = sum(1 for keyword in CSGO2_KEYWORDS if keyword.lower() in lowered)
-    has_game = any(keyword in lowered for keyword in ("csgo2", "cs2", "demo", ".dem"))
-    has_telemetry = any(keyword in lowered for keyword in ("鼠标", "mouse", "键盘", "keyboard", "视角", "准星", "crosshair", "热力图", "操作频率"))
-    return has_game and has_telemetry and hits >= 3
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    lowered = str(text or "").lower()
+    return any(term.lower() in lowered for term in terms)
+
+
+def _has_blueprint_title(text: str) -> bool:
+    return _contains_any(text, MEMORY_TITLE_MARKERS)
+
+
+def _explicitly_requests_blueprint_generator(text: str) -> bool:
+    lowered = str(text or "").lower()
+    if "requirement blueprint generator" in lowered or "cgnk requirement blueprint generator" in lowered:
+        return True
+    if "需求蓝图生成器" in text:
+        return True
+    if "blueprint generator" in lowered and ("requirement" in lowered or "需求" in text):
+        return True
+    return False
 
 
 def _extract_visible_user_messages(text: str) -> list[str]:
@@ -100,72 +92,82 @@ def _extract_current_project_summary(text: str) -> str:
     return _clean_text(" ".join(lines))
 
 
+def _is_memory_title_only_candidate(candidate: str, raw_message: str) -> bool:
+    if not should_ignore_memory_title(candidate, raw_message):
+        return False
+    cleaned = _clean_text(candidate)
+    lowered = cleaned.lower()
+    return cleaned.startswith("#") or any(marker in lowered for marker in MEMORY_TITLE_MARKERS)
+
+
 def extract_explicit_user_goal(raw_message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
     text = str(raw_message or "")
     candidates: list[dict[str, Any]] = []
+    if context:
+        for key in ("raw_user_message", "goal", "project_summary"):
+            value = _clean_text(context.get(key, ""))
+            if value:
+                candidates.append({"text": value, "source": f"context.{key}"})
     for message in _extract_visible_user_messages(text):
         candidates.append({"text": message, "source": "visible_user_message_log"})
     summary = _extract_current_project_summary(text)
     if summary:
         candidates.append({"text": summary, "source": "current_project_summary"})
-    if context:
-        for key in ("raw_user_message", "goal", "project_summary"):
-            value = _clean_text(context.get(key, ""))
-            if value:
-                candidates.insert(0, {"text": value, "source": f"context.{key}"})
     cleaned = _clean_text(text)
     if cleaned:
         candidates.append({"text": cleaned, "source": "raw_message"})
 
     for candidate in candidates:
-        if _looks_like_csgo2_request(candidate["text"]):
-            return {
-                "raw_user_message": candidate["text"],
-                "source": candidate["source"],
-                "confidence": 1.0,
-                "candidates": candidates[:8],
-            }
-
-    for candidate in candidates:
         text_value = _clean_text(candidate["text"])
-        if text_value and not should_ignore_memory_title(text_value, raw_message):
+        if text_value and not _is_memory_title_only_candidate(text_value, raw_message):
             return {
                 "raw_user_message": text_value,
                 "source": candidate["source"],
-                "confidence": 0.72,
+                "confidence": 0.86 if str(candidate["source"]).startswith("context.") else 0.74,
                 "candidates": candidates[:8],
             }
     return {"raw_user_message": cleaned, "source": "raw_message", "confidence": 0.5, "candidates": candidates[:8]}
 
 
 def should_ignore_memory_title(memory_text: str, raw_message: str) -> bool:
-    memory_lower = str(memory_text or "").lower()
-    if not any(marker in memory_lower for marker in MEMORY_TITLE_MARKERS):
+    if not _has_blueprint_title(str(memory_text or "")):
         return False
-    return _looks_like_csgo2_request(str(raw_message or ""))
+    return not _explicitly_requests_blueprint_generator(str(raw_message or ""))
+
+
+def _extract_required_features(text: str) -> list[str]:
+    features: list[str] = []
+    for feature, terms in FEATURE_RULES:
+        if _contains_any(text, terms):
+            features.append(feature)
+    return features
+
+
+def _classify_non_blueprint(text: str) -> tuple[str, str]:
+    for project_type, domain, terms in PROJECT_TYPE_RULES:
+        if _contains_any(text, terms):
+            return project_type, domain
+    return "custom_application", "general_local_project"
 
 
 def classify_project_type(raw_message: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
     explicit = extract_explicit_user_goal(raw_message, context)
     raw_user_message = str(explicit.get("raw_user_message", raw_message or ""))
-    if _looks_like_csgo2_request(raw_user_message) or _looks_like_csgo2_request(raw_message):
-        return {
-            "project_type": "game_demo_telemetry_analyzer",
-            "domain": "esports_demo_analysis",
-            "required_features": list(CSGO2_REQUIRED_FEATURES),
-            "non_goals": list(CSGO2_NON_GOALS),
-            "intent_source": "raw_user_message",
-            "raw_user_message": raw_user_message,
-            "confidence": 1.0,
-        }
+    if _explicitly_requests_blueprint_generator(raw_user_message):
+        project_type = "requirement_blueprint_generator"
+        domain = "product_planning"
+        required_features = ["requirement_intake", "blueprint_generation", "artifact_export"]
+    else:
+        project_type, domain = _classify_non_blueprint(raw_user_message)
+        required_features = _extract_required_features(raw_user_message)
     return {
-        "project_type": "unknown_project_type",
-        "domain": "unknown",
-        "required_features": [],
+        "project_type": project_type,
+        "domain": domain,
+        "required_features": required_features,
         "non_goals": [],
         "intent_source": "raw_user_message",
         "raw_user_message": raw_user_message,
-        "confidence": float(explicit.get("confidence", 0.5)),
+        "confidence": float(explicit.get("confidence", 0.72)),
     }
 
 
@@ -202,14 +204,14 @@ def detect_project_type_conflict(expected: dict[str, Any], generated_project_dir
     story_name = str(expected.get("product_name") or expected.get("product_story", {}).get("product_name", "")).strip()
 
     conflict_reasons: list[str] = []
-    if expected_type == "game_demo_telemetry_analyzer":
-        lowered_title = readme_title.lower()
-        if "requirement blueprint generator" in lowered_title:
+    expected_is_blueprint = expected_type in BLUEPRINT_PROJECT_TYPES
+    if expected_type and not expected_is_blueprint:
+        if _has_blueprint_title(readme_title):
             conflict_reasons.append("readme_title_is_requirement_blueprint_generator")
-        if manifest_type and manifest_type not in {"game_demo_telemetry_analyzer", "esports_demo_analysis"}:
-            conflict_reasons.append("manifest_project_type_mismatch")
-        if story_name and "blueprint generator" in story_name.lower():
+        if story_name and _has_blueprint_title(story_name):
             conflict_reasons.append("product_story_name_mismatch")
+        if manifest_type in BLUEPRINT_PROJECT_TYPES:
+            conflict_reasons.append("manifest_project_type_mismatch")
 
     return {
         "conflict": bool(conflict_reasons),

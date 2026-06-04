@@ -30,13 +30,22 @@ class TelegramGenerationTimeoutResultTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             phase_log = self.run_dir / "artifacts" / "generation_phase_log.jsonl"
             phase_log.parent.mkdir(parents=True, exist_ok=True)
-            phase_log.write_text('{"phase":"usage_planning","status":"started"}\n', encoding="utf-8")
+            phase_log.write_text(
+                '{"phase":"usage_planning","status":"started"}\n'
+                '{"phase":"usage_planning_local","status":"started"}\n',
+                encoding="utf-8",
+            )
+            diagnostics = self.run_dir / "agent_usage" / "usage_planning_diagnostics.json"
+            diagnostics.parent.mkdir(parents=True, exist_ok=True)
+            diagnostics.write_text('{"status":"started","planner":"local_deterministic"}\n', encoding="utf-8")
             result_path = pathlib.Path(temp_dir) / "generation_result.json"
             args = argparse.Namespace(project_slug=self.project_slug)
             result = bridge.write_timeout_failure_result(args, 900, result_path)
             self.assertTrue(result_path.exists())
             self.assertEqual("BLOCKED", result["status"])
-            self.assertEqual("usage_planning", result["last_known_phase"])
+            self.assertEqual("usage_planning_local", result["last_known_phase"])
+            self.assertEqual("usage_planning_local", result["recent_phase_events"][-1]["phase"])
+            self.assertEqual("started", result["timeout_diagnostics"]["status"])
             self.assertIn("missing_artifacts", result)
             self.assertTrue(result["can_retry"])
 

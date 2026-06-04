@@ -10,7 +10,7 @@
     "id": {"type": "string"},
     "title": {"type": "string"},
     "type": {"enum": ["goal", "constraint", "decision", "preference", "requirement", "risk", "open_question", "artifact_ref", "module_mapping", "agent_mapping", "next_step", "research_finding", "test_result", "correction"]},
-    "scope": {"enum": ["session", "project", "global", "project.ctcp", "project.cgnk", "agent", "module"]},
+    "scope": {"enum": ["session", "project", "global", "project.cgkn", "project.cgnk", "agent", "module"]},
     "content": {"type": "string"},
     "source_refs": {"type": "array", "items": {"type": "string"}},
     "tags": {"type": "array", "items": {"type": "string"}},

@@ -48,14 +48,14 @@ def _knowledge_item_from_keypoint(keypoint: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _ctcp_write_allowed(text: str) -> bool:
+def _cgkn_write_allowed(text: str) -> bool:
     lowered = normalize_text(text)
-    return "ctcp" in lowered and any(phrase in lowered for phrase in ("may be modified", "can modify", "work in ctcp", "directly work in ctcp", "修改 ctcp"))
+    return "cgkn" in lowered and any(phrase in lowered for phrase in ("may be modified", "can modify", "work in cgkn", "directly work in cgkn", "修改 cgkn"))
 
 
-def _ctcp_read_only(text: str) -> bool:
+def _cgkn_read_only(text: str) -> bool:
     lowered = normalize_text(text)
-    return "ctcp" in lowered and any(phrase in lowered for phrase in ("read-only", "只读", "do not modify ctcp", "no ctcp modification", "不要改 ctcp"))
+    return "cgkn" in lowered and any(phrase in lowered for phrase in ("read-only", "只读", "do not modify cgkn", "no cgkn modification", "不要改 cgkn"))
 
 
 def _cgnk_only(text: str) -> bool:
@@ -66,9 +66,9 @@ def _cgnk_only(text: str) -> bool:
 def _supersedes(new_item: dict[str, Any], old_item: dict[str, Any]) -> bool:
     new_text = new_item.get("content", "")
     old_text = old_item.get("content", "")
-    if _ctcp_read_only(new_text) and _ctcp_write_allowed(old_text):
+    if _cgkn_read_only(new_text) and _cgkn_write_allowed(old_text):
         return True
-    if _cgnk_only(new_text) and _ctcp_write_allowed(old_text):
+    if _cgnk_only(new_text) and _cgkn_write_allowed(old_text):
         return True
     return False
 

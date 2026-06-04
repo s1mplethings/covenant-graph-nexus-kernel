@@ -104,7 +104,7 @@ def save_project_knowledge(path: str | pathlib.Path, pack: dict[str, Any]) -> di
 
 
 def upsert_knowledge_items(pack: dict[str, Any], items: list[dict[str, Any]]) -> dict[str, Any]:
-    out = dict(pack or new_project_knowledge_pack("CGNK"))
+    out = dict(pack or new_project_knowledge_pack("CGKN"))
     by_id = {str(row.get("id")): dict(row) for row in out.get("all_items", [])}
     diagnostics: list[dict[str, Any]] = []
     for item in items:

@@ -6,6 +6,7 @@ import json
 import pathlib
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -158,21 +159,24 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
     product_studio_run_path = artifacts_dir / "product_studio_run.json"
     product_studio_run = run_product_studio.build_product_studio_run(
         str(intent.get("raw_user_message") or requirement),
-        "CSGO2 demo file" if intent.get("project_type") == "game_demo_telemetry_analyzer" else "",
-        "operation statistics, heatmap/frequency visualizations, image report, PDF report",
-        ["Do not claim deep ML cheat detection or final cheat verdicts."],
+        "user supplied project input",
+        "runnable project, README, test report, visual evidence, delivery bundle",
+        ["Do not claim unfinished delivery as complete."],
     )
     write_json(product_studio_run_path, product_studio_run)
     append_phase_log(phase_log_path, "product_studio_run", "completed", "Product Studio run artifact written.", [str(product_studio_run_path)])
     enriched_goal, prompt_pack = build_enriched_goal(requirement, answers, blueprint, int(args.prompt_max_chars))
 
     composition = compose_local_pipeline.compose(
-        enriched_goal,
+        requirement,
         allow_network=bool(args.allow_network),
         allow_provider=bool(args.allow_provider),
         use_local_model=bool(args.use_local_model),
     )
     composition["original_requirement"] = requirement
+    composition["internal_context_prompt"] = enriched_goal
+    composition["customer_intent"] = intent
+    composition["frozen_project_type"] = intent.get("project_type", "")
     composition["requirement_blueprint"] = blueprint
     composition["requirement_blueprint_ref"] = str(requirement_blueprint_path)
     composition["context_prompt_ref"] = str(context_prompt_path)
@@ -181,7 +185,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
     write_json(context_prompt_path, prompt_pack)
 
     ns = argparse.Namespace(
-        goal=enriched_goal,
+        goal=requirement,
         plan=str(composition_path),
         out_dir=str(out_dir),
         run_dir=str(run_dir),
@@ -191,6 +195,7 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
         use_api=bool(args.use_api),
         model=str(args.model),
         timeout=int(args.timeout),
+        generation_deadline=time.time() + max(30, int(args.timeout)),
         allow_model_usage_planning=bool(getattr(args, "allow_model_usage_planning", False)),
         phase_log_path=str(phase_log_path),
         json=False,
@@ -258,15 +263,15 @@ def run_generation(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.set_defaults(allow_network=True, allow_provider=True, use_api=True, use_local_model=False)
+    parser.set_defaults(allow_network=False, allow_provider=False, use_api=False, use_local_model=False)
     parser.add_argument("--requirement", required=True)
     parser.add_argument("--project-slug", default="")
     parser.add_argument("--assume-defaults", action="store_true", help="Deprecated no-op. Local default-answer templates are disabled.")
-    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes. Enabled by default for provider project generation.")
-    parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes. Project-file generation will fail under provider-only policy.")
-    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls. Enabled by default for provider project generation.")
+    parser.add_argument("--allow-network", dest="allow_network", action="store_true", help="Allow network routes after an explicit escalation gate.")
+    parser.add_argument("--no-network", dest="allow_network", action="store_false", help="Disable network routes.")
+    parser.add_argument("--allow-provider", dest="allow_provider", action="store_true", help="Allow provider/API calls after an explicit escalation gate.")
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false", help="Disable provider/API calls.")
-    parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation. Enabled by default.")
+    parser.add_argument("--use-api", dest="use_api", action="store_true", help="Use API for provider-side generation after an explicit escalation gate.")
     parser.add_argument("--no-api", dest="use_api", action="store_false", help="Disable API generation. Project-file generation will fail under provider-only policy.")
     parser.add_argument("--use-local-model", dest="use_local_model", action="store_true", help="Use CGNK_LOCAL_MODEL_CMD or local Ollama for route hints.")
     parser.add_argument("--prompt-max-chars", type=int, default=6000, help="Maximum local compressed context prompt size before route/generation use.")

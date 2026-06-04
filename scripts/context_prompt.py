@@ -223,9 +223,11 @@ def extract_key_points(requirement: str, answers: list[dict[str, str]], blueprin
 def prompt_instructions(purpose: str) -> str:
     if purpose == "project_generation":
         return (
-            "Use the compressed context as the source of truth. Preserve explicit/inferred/assumed provenance. "
-            "Implement only the accepted scope, keep open gaps visible as assumptions or risks, and emit project files, "
-            "blueprint artifacts, generation trace, test graph, effect report, and runtime result."
+            "Use the raw explicit user requirement inside the context as the product source of truth. "
+            "Treat CGNK blueprint/module/artifact fields as supporting planning evidence, not as the product to build. "
+            "Preserve explicit/inferred/assumed provenance, implement only the accepted user-facing scope, "
+            "keep open gaps visible as assumptions or risks, and emit project files, generation trace, test graph, "
+            "effect report, and runtime result."
         )
     if purpose == "route_planning":
         return (

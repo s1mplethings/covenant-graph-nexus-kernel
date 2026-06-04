@@ -3,18 +3,18 @@
   "keypoints": [
     {
       "kind": "KeyPoint",
-      "id": "kp_ctcp_readonly",
+      "id": "kp_cgkn_readonly",
       "category": "constraint",
-      "text": "Do not modify CTCP; CTCP is read-only.",
+      "text": "Do not modify CGKN; CGKN is read-only.",
       "source_event_ids": ["evt_user_001"],
-      "scope": "project.ctcp",
+      "scope": "project.cgkn",
       "importance": "critical",
       "need_state": "needed_now",
       "retention": "keep",
       "review_state": "accepted",
       "confidence": 0.95,
       "status": "active",
-      "tags": ["CTCP"],
+      "tags": ["CGKN"],
       "diagnostics": []
     },
     {
@@ -23,7 +23,7 @@
       "category": "decision",
       "text": "Agents are generated from module composition.",
       "source_event_ids": ["evt_user_001"],
-      "scope": "project.cgnk",
+      "scope": "project.cgkn",
       "importance": "high",
       "need_state": "needed_now",
       "retention": "keep",

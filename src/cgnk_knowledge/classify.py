@@ -18,8 +18,8 @@ HARD_CONSTRAINTS = (
     "never",
     "read-only",
     "no provider",
-    "no ctcp modification",
-    "do not modify ctcp",
+    "no cgkn modification",
+    "do not modify cgkn",
     "no workspace write",
     "no db/sqlite",
     "no sqlite",
@@ -30,7 +30,7 @@ HARD_CONSTRAINTS = (
 
 CORRECTIONS = (
     "不是这个",
-    "不是 work in ctcp",
+    "不是 work in cgkn",
     "我不是要",
     "你说错了",
     "应该是",
@@ -55,7 +55,7 @@ ARCHITECTURE = (
 GOALS = ("我想要", "我要", "需要", "目标", "功能", "实现", "构建", "设计", "build", "goal", "requirement")
 TEST_REPORTS = ("commit", "tests passed", "validation passed", "full suite", "benchmark", "report", "测试结果", "验证结果")
 TEMPORARY = ("http://127.0.0.1", "localhost", "port", "gui 地址", "%temp%", "temp path", "temporary report", "one-off run data")
-REJECTED = ("不要这样", "不是这个方向", "这个不对", "不要改 ctcp", "之前那个错了")
+REJECTED = ("不要这样", "不是这个方向", "这个不对", "不要改 cgkn", "之前那个错了")
 NOISE = ("hi", "hello", "thanks", "谢谢", "好的", "ok", "嗯")
 
 
@@ -126,7 +126,7 @@ def classify_keypoint(text: str, category: str | None = None, source: str = "aut
         result.update(
             {
                 "category": category or "correction",
-                "importance": "critical" if "ctcp" in lowered or "目标" in value else "high",
+                "importance": "critical" if "cgkn" in lowered or "目标" in value else "high",
                 "need_state": "needed_now",
                 "retention": "keep",
                 "review_state": "accepted",

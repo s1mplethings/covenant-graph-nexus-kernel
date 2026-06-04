@@ -17,7 +17,7 @@ def item(item_id: str, *, type_: str = "constraint", importance: str = "high", n
         "id": item_id,
         "title": item_id,
         "type": type_,
-        "scope": "project.ctcp" if "ctcp" in item_id else "project.cgnk",
+        "scope": "project.cgkn",
         "content": item_id,
         "source_refs": ["evt"],
         "tags": ["module"] if "module" in item_id else [],
@@ -34,9 +34,9 @@ def item(item_id: str, *, type_: str = "constraint", importance: str = "high", n
 
 class KnowledgeStoreRetrieveTests(unittest.TestCase):
     def test_project_pack_can_be_saved_loaded_and_sorted(self) -> None:
-        pack = new_project_knowledge_pack("CGNK")
-        pack = upsert_knowledge_items(pack, [item("ki_low", importance="low"), item("ki_ctcp_critical", importance="critical")])
-        self.assertEqual(["ki_ctcp_critical", "ki_low"], [row["id"] for row in pack["all_items"]])
+        pack = new_project_knowledge_pack("CGKN")
+        pack = upsert_knowledge_items(pack, [item("ki_low", importance="low"), item("ki_cgkn_critical", importance="critical")])
+        self.assertEqual(["ki_cgkn_critical", "ki_low"], [row["id"] for row in pack["all_items"]])
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / "knowledge.json"
             save_project_knowledge(path, pack)
@@ -44,9 +44,9 @@ class KnowledgeStoreRetrieveTests(unittest.TestCase):
         self.assertEqual(pack["all_items"], loaded["all_items"])
 
     def test_retrieval_filters_and_ranks(self) -> None:
-        pack = new_project_knowledge_pack("CGNK")
+        pack = new_project_knowledge_pack("CGKN")
         rows = [
-            item("ki_ctcp_critical", importance="critical", need="needed_now"),
+            item("ki_cgkn_critical", importance="critical", need="needed_now"),
             item("ki_rejected", review="rejected"),
             item("ki_superseded", status="superseded"),
             item("ki_discard", retention="discard"),
@@ -55,7 +55,7 @@ class KnowledgeStoreRetrieveTests(unittest.TestCase):
         ]
         pack = upsert_knowledge_items(pack, rows)
         result = retrieve_relevant_knowledge(pack, {"kind": "KnowledgeRetrievalQuery", "selected_modules": [], "needed_types": [], "max_items": 20})
-        self.assertEqual("ki_ctcp_critical", result["selected_items"][0]["id"])
+        self.assertEqual("ki_cgkn_critical", result["selected_items"][0]["id"])
         reasons = {row["item"]["id"]: row["reason"] for row in result["excluded_items"]}
         self.assertEqual("rejected", reasons["ki_rejected"])
         self.assertEqual("superseded", reasons["ki_superseded"])
