@@ -26,6 +26,9 @@ if str(SCRIPTS_DIR) not in sys.path:
 import check_connectivity
 import agent_conversation_loop
 import backend_dialogue_loop
+import dynamic_pipeline_runner
+import pipeline_manifest as pipeline_manifest_module
+import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
 
@@ -1642,6 +1645,44 @@ def combined_requirement(session: dict[str, Any]) -> str:
     return "\n".join(lines).strip()
 
 
+def build_generation_context_snapshot(session: dict[str, Any], requirement: str) -> dict[str, Any]:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    user_messages = [
+        {
+            "text": str(message.get("text", ""))[:4000],
+            "created_at": message.get("created_at", ""),
+        }
+        for message in session.get("messages", [])
+        if isinstance(message, dict) and message.get("role") == "user" and str(message.get("text", "")).strip()
+    ][-20:]
+    memory_events = [
+        event
+        for event in session.get("memory_events", [])
+        if isinstance(event, dict) and str(event.get("type", "")) in {"backend_dialogue_tick", "whiteboard_revision", "agent_loop_started"}
+    ][-20:]
+    return {
+        "kind": "generation_context_snapshot",
+        "created_at": now(),
+        "requirement": requirement[:12000],
+        "whiteboard": whiteboard,
+        "user_messages": user_messages,
+        "backend_dialogue_ticks": memory_events,
+        "soft_questions_are_blocking": False,
+    }
+
+
+def ensure_generation_context_snapshot(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    requirement: str,
+) -> dict[str, Any]:
+    snapshot = build_generation_context_snapshot(session, requirement)
+    session["generation_context_snapshot"] = snapshot
+    append_agent_session_event(session_dir, chat_id, snapshot)
+    return snapshot
+
+
 def is_smalltalk(text: str) -> bool:
     compact = re.sub(r"[\s,.!?。！？~～]+", "", text.lower())
     return compact in {
@@ -2967,18 +3008,19 @@ def run_agent_generation_job(
         return
     session["generation"] = {
         "status": "running",
-        "driver": "agent_conversation_loop",
+        "driver": "agent_generated_pipeline",
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
-    append_memory_event(session, "agent_loop_started", data={"requirement": requirement[:6000]})
+    snapshot = ensure_generation_context_snapshot(session_dir, chat_id, session, requirement)
+    append_memory_event(session, "agent_pipeline_started", data={"requirement": requirement[:6000]})
     append_truth_ledger(
         session_dir,
         session,
-        "agent_loop_started",
-        "Agent conversation loop started directly from Telegram confirmation",
+        "agent_pipeline_started",
+        "Agent-generated pipeline generation started from Telegram confirmation",
         evidence_ref=str(agent_session_path(session_dir, chat_id)),
-        data={"artifact": "agent_session", "backend_controls_required": False},
+        data={"artifact": "agent_session", "backend_controls_required": False, "generation_context_snapshot": True},
     )
     save_session(session_dir, session)
     if announce_start:
@@ -2991,30 +3033,65 @@ def run_agent_generation_job(
             facts={"message": "我开始按这版需求生成项目。完成后会发送本地打包出来的项目 zip 和说明。"},
         )
     project_dir = log_dir / "agent_projects" / safe_id(chat_id)
+    project_dir.mkdir(parents=True, exist_ok=True)
     try:
-        result = agent_conversation_loop.run_agent_loop(
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        manifest = pipeline_planner_agent.plan_pipeline(
+            session_path=agent_session_path(session_dir, chat_id),
+            model=model,
+            timeout=timeout,
+            whiteboard=whiteboard,
+            api_budget="low",
+        )
+        manifest = pipeline_manifest_module.normalize_pipeline_manifest(manifest, whiteboard)
+        manifest_path = pipeline_manifest_module.write_pipeline_manifest(project_dir, manifest)
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {"kind": "pipeline_manifest", "role": "system", "manifest": manifest, "agent_generated": True, "manifest_path": str(manifest_path)},
+        )
+        result = dynamic_pipeline_runner.run_dynamic_pipeline(
             session_path=agent_session_path(session_dir, chat_id),
             project_dir=project_dir,
+            pipeline_manifest=manifest,
             model=model,
             timeout=timeout,
             max_turns=max_turns,
         )
     except Exception as exc:
-        session = load_session(session_dir, chat_id)
-        session["generation"] = {"status": "failed", "driver": "agent_conversation_loop", "finished_at": now(), "error": str(exc)}
-        append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc)})
-        append_memory_event(session, "agent_loop_failed", data={"error": str(exc)})
-        save_session(session_dir, session)
-        log_bridge_error(log_dir, "agent_loop_failed", chat_id, exc, {"project_dir": str(project_dir)})
-        send_customer_reply(
-            client,
-            chat_id,
+        append_agent_session_event(
             session_dir,
-            session,
-            event="generation_failed",
-            facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
+            chat_id,
+            {"kind": "pipeline_fallback", "role": "system", "reason": str(exc), "stage": "run_agent_generation_job"},
         )
-        return
+        try:
+            result = agent_conversation_loop.run_agent_loop(
+                session_path=agent_session_path(session_dir, chat_id),
+                project_dir=project_dir,
+                model=model,
+                timeout=timeout,
+                max_turns=max_turns,
+            )
+            result["driver"] = "agent_conversation_loop_fallback"
+        except Exception as fallback_exc:
+            session = load_session(session_dir, chat_id)
+            session["generation"] = {"status": "failed", "driver": "agent_generated_pipeline", "finished_at": now(), "error": str(fallback_exc)}
+            append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(fallback_exc)})
+            append_memory_event(session, "agent_pipeline_failed", data={"error": str(fallback_exc), "pipeline_error": str(exc)})
+            save_session(session_dir, session)
+            log_bridge_error(log_dir, "agent_pipeline_failed", chat_id, fallback_exc, {"project_dir": str(project_dir)})
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="generation_failed",
+                facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
+            )
+            return
+    if isinstance(result, dict) and result.get("pipeline_manifest") and "driver" not in result:
+        result["driver"] = "agent_generated_pipeline"
+        result["generation_context_snapshot"] = snapshot
     finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
 
 
@@ -3029,9 +3106,12 @@ def finish_agent_loop_delivery(
     if not manifest and result.get("manifest_path"):
         manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
     session = load_session(session_dir, chat_id)
+    driver = str(result.get("driver") or "agent_conversation_loop")
+    if driver == "agent_conversation_loop_fallback":
+        driver = "agent_conversation_loop"
     session["generation"] = {
         "status": str(result.get("status", "unknown")),
-        "driver": "agent_conversation_loop",
+        "driver": driver,
         "finished_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
         "project_dir": str(project_dir),
@@ -3076,10 +3156,10 @@ def start_agent_generation(
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    update_active_run_status(session, "running", driver="agent_conversation_loop")
+    update_active_run_status(session, "running", driver="agent_generated_pipeline")
     session["generation"] = {
         "status": "running",
-        "driver": "agent_conversation_loop",
+        "driver": "agent_generated_pipeline",
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
