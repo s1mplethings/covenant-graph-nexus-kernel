@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T16:30:23.880944+00:00
-revision_count: 1
+generated_at: 2026-06-05T16:17:55.487388+00:00
+revision_count: 4
 ---
 
 # Project Memory
@@ -28,6 +28,7 @@ revision_count: 1
 ## Known Facts
 
 - 用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+- 用户补充: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## User Rules
 
@@ -62,6 +63,7 @@ revision_count: 1
 - 前台确认和后台生成改为并行关系：新项目需求进入后自动写入 start_generation 控制命令。
 - 生成执行源仍强制限定为 API/provider 或已配置本地模型；本地规则和 simulator 不得冒充生成结果。
 - 已移除线性等待确认规则；当前流程是前台确认和后台生成并行。
+- 本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。
 
 ## Uploaded Project Inputs
 
@@ -113,12 +115,18 @@ revision_count: 1
 1. 你好
 2. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 3. 你好
+4. 你好
+5. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+6. 你好
+7. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+8. 你好
+9. 你好
 
 ## Generation State
 
 - Status: `running`
-- Started at: `2026-06-04T16:28:22.682103+00:00`
-- Finished at: ``
+- Started at: `2026-06-05T08:34:11.441251+00:00`
+- Finished at: `2026-06-05T08:11:24.037578+00:00`
 - Result path: ``
 
 ## Update Rules
