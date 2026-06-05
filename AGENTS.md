@@ -1,0 +1,11 @@
+# CGNK Kernel Contract - Do Not Break
+
+- You may modify generated project files.
+- You may modify tests when explicitly asked.
+- You may add approved skills only through reviewed changes.
+- You must not replace the Telegram generation mainline.
+- You must not reconnect legacy simulator/run_local_pipeline/generate_project.py as Telegram mainline.
+- You must preserve agent-generated pipeline_manifest + dynamic_pipeline_runner architecture.
+- You must preserve whiteboard + agent_session as shared communication.
+- You must preserve local_packager as the only delivery exit.
+- If you need to change kernel files, update docs/00_kernel_contract.md and tests/test_kernel_contract.py in the same commit.

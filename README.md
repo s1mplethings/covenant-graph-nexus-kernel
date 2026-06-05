@@ -21,6 +21,7 @@ Package/root name: covenant_graph_nexus_kernel_bundle
 COVENANT_GRAPH_NEXUS_KERNEL_DESIGN.md   Main design document.
 PRODUCT_GOAL.md                         Product goal and generation rule.
 docs/00_product_studio_contract.md      Top-level Product Studio contract.
+docs/00_kernel_contract.md              Stable Kernel Contract for Telegram, whiteboard, agent-generated pipeline, runner, and packager boundaries.
 docs/01_virtual_team_contract.md        Virtual team role and artifact ownership contract.
 docs/02_product_story_contract.md       Product story and MVP contract.
 docs/03_execution_flow.md               Product Studio execution stage contract.
@@ -48,6 +49,22 @@ codex_prompts/                          Ready-to-use coding-agent prompts.
 ```
 
 Generated apps and runtime/test outputs are not source. They are written to `generated/`, `examples/runtime_runs/`, and `examples/test_results/` when commands run.
+
+## Kernel Architecture
+
+```text
+Telegram
+  -> agent_session
+  -> whiteboard/backend_dialogue
+  -> pipeline_planner_agent
+  -> pipeline_manifest
+  -> dynamic_pipeline_runner
+  -> local_agent_actions / local_agent_skills
+  -> local_packager
+  -> delivery_manifest
+```
+
+The Kernel is stable. The pipeline is agent-generated for each project from the current whiteboard and session history. The project is fully generated inside the bounded project workspace. Skills are controlled capability modules, and the whiteboard is the shared communication surface across intake, planning, generation, and delivery.
 
 ## Product Studio Direction
 
