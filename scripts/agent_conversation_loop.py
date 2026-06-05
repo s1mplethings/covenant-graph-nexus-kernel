@@ -32,12 +32,23 @@ Return JSON only:
     {"type": "list_files", "path": "."},
     {"type": "run_command", "command": "python app.py"},
     {"type": "capture_screenshot", "path": "artifacts/screenshot.txt"},
+    {"type": "search_skills", "query": "test api screenshot"},
+    {"type": "use_skill", "name": "patch_file", "args": {"path": "README.md", "find": "old", "replace": "new"}},
+    {"type": "propose_skill", "name": "sqlite_query", "description": "...", "manifest": {}, "notes": "..."},
     {"type": "package_project", "startup_command": "python app.py", "known_limits": []},
     {"type": "final_message", "text": "What to tell the customer"}
   ]
 }
 Do not claim delivery is ready. Only the local package_project action can create final delivery.
-Use failed tool results to repair the project before trying package_project again."""
+Use failed tool results to repair the project before trying package_project again.
+You may use search_skills to discover approved local skills.
+You may use use_skill to call approved local skills.
+You may use propose_skill to draft a missing skill, but draft skills are not automatically approved.
+Prefer existing skills before inventing new ones.
+Skill failures are tool results; inspect them and repair the project.
+Do not claim delivery is ready unless package_project creates a delivery manifest.
+For local web apps, prefer run_tests/http_request/browser_screenshot when useful.
+For small edits, prefer patch_file over rewriting the whole file."""
 
 
 def now() -> str:

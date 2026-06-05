@@ -6,9 +6,15 @@ import os
 import pathlib
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from typing import Any
 
+SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+import local_agent_skills
 import local_packager
 
 
@@ -72,6 +78,12 @@ class LocalAgentActionExecutor:
                 result = self.capture_screenshot(action)
             elif action_type == "package_project":
                 result = self.package_project(action)
+            elif action_type == "search_skills":
+                result = self.search_skills(str(action.get("query", "")))
+            elif action_type == "use_skill":
+                result = self.use_skill(str(action.get("name", "")), action.get("args", {}))
+            elif action_type == "propose_skill":
+                result = self.propose_skill(action)
             else:
                 raise ValueError(f"unsupported action type: {action_type}")
             ok = not (action_type == "run_command" and int(result.get("returncode", 0)) != 0)
@@ -159,6 +171,23 @@ class LocalAgentActionExecutor:
             else [],
         )
         return {"manifest": manifest, "package_path": manifest.get("package_path"), "manifest_path": manifest.get("manifest_path")}
+
+    def search_skills(self, query: str) -> dict[str, Any]:
+        return local_agent_skills.search_skills(query)
+
+    def use_skill(self, name: str, args: Any) -> dict[str, Any]:
+        clean_args = args if isinstance(args, dict) else {}
+        return local_agent_skills.use_skill(self.project_dir, name, clean_args)
+
+    def propose_skill(self, action: dict[str, Any]) -> dict[str, Any]:
+        manifest = action.get("manifest", {})
+        return local_agent_skills.propose_skill(
+            self.project_dir,
+            str(action.get("name", "")),
+            str(action.get("description", "")),
+            manifest if isinstance(manifest, dict) else {},
+            str(action.get("notes", "")),
+        )
 
 
 def execute_action(project_dir: str | pathlib.Path, action: dict[str, Any]) -> dict[str, Any]:
