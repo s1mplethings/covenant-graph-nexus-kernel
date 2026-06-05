@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T11:54:09.833596+00:00",
+  "generated_at": "2026-06-04T16:30:23.882452+00:00",
   "chat_id": "6092527664",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\6092527664\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -11,11 +11,15 @@
   "customer_request": {
     "project_summary": "你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
     "known_facts": [
-      "用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
-      "用户补充: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的"
+      "用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的"
     ],
     "default_assumptions": [],
-    "user_rules": [],
+    "user_rules": [
+      "任何生成项目、代码、背景、立绘、图片或可运行结果，必须使用已配置的 API/provider 或已配置的本地模型后端。",
+      "不允许用本地规则、deterministic simulator、模板、占位图或假进度冒充生成结果。",
+      "客户提出需求时后端必须同步看到并开始找库、定方法、生成和验证；客服同时继续确认。",
+      "流程不允许线性等待固定开始口令；前台和后台必须并行开工。"
+    ],
     "acceptance_criteria": [
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
     ],
@@ -24,8 +28,10 @@
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
     ],
     "decision_log": [
-      "默认禁用 provider/API，先走本地 simulator team。",
-      "本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。"
+      "生成执行源已强制限定为 API/provider 或已配置的本地模型后端；本地规则和 simulator 不得作为生成结果。",
+      "前台确认和后台生成改为并行关系：新项目需求进入后自动写入 start_generation 控制命令。",
+      "生成执行源仍强制限定为 API/provider 或已配置本地模型；本地规则和 simulator 不得冒充生成结果。",
+      "已移除线性等待确认规则；当前流程是前台确认和后台生成并行。"
     ],
     "open_questions": [],
     "blocking_questions": []
@@ -34,11 +40,13 @@
   "visible_user_messages": [
     "你好",
     "你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
-    "你好",
-    "你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的"
+    "你好"
   ],
   "generation": {
-    "status": "idle"
+    "status": "running",
+    "started_at": "2026-06-04T16:28:22.682103+00:00",
+    "control_id": "ctrl-6092527664-3",
+    "generation_mode": "api"
   },
   "module_mapping": [
     {
@@ -158,5 +166,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 1
 }

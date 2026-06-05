@@ -24,6 +24,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import check_connectivity
+import agent_conversation_loop
 import product_studio_reply
 import project_memory_md
 
@@ -68,9 +69,16 @@ def read_customer_agent_policy() -> str:
 
 def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.{time.time_ns()}.tmp")
     tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    for attempt in range(5):
+        try:
+            tmp.replace(path)
+            return
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(0.05 * (attempt + 1))
 
 
 def append_jsonl(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -439,6 +447,18 @@ def default_session(chat_id: int | str) -> dict[str, Any]:
 
 def session_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
     return session_dir / f"{safe_id(chat_id)}.json"
+
+
+def agent_session_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
+    return session_dir / safe_id(chat_id) / "agent_session.jsonl"
+
+
+def append_agent_session_event(session_dir: pathlib.Path, chat_id: int | str, event: dict[str, Any]) -> pathlib.Path:
+    path = agent_session_path(session_dir, chat_id)
+    doc = {"kind": "event", "chat_id": str(chat_id), **event}
+    doc.setdefault("created_at", now())
+    append_jsonl(path, doc)
+    return path
 
 
 def load_session(session_dir: pathlib.Path, chat_id: int | str) -> dict[str, Any]:
@@ -880,17 +900,17 @@ def create_active_run(session: dict[str, Any], ticket: dict[str, Any], text: str
         "kind": "TelegramHumanFrontdeskRun",
         "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-{len(session.get('intake_tickets', []))}",
         "ticket_id": str(ticket.get("id", "")),
-        "status": "simulator_running",
-        "driver": "local_simulator_company",
+        "status": "intake_open",
+        "driver": "frontdesk_intake",
         "goal": text,
         "created_at": now(),
         "updated_at": now(),
         "local_retry_count": 0,
         "local_retry_exhausted": False,
-        "provider_allowed": False,
+        "provider_allowed": True,
     }
     session["active_run"] = run
-    session["generation"] = {"status": "running", "started_at": run["created_at"], "driver": "local_simulator_company"}
+    session["generation"] = {"status": "idle", "driver": "not_started", "generation_mode": "unstarted"}
     return run
 
 
@@ -899,7 +919,7 @@ def update_active_run_status(session: dict[str, Any], status: str, **fields: Any
         "kind": "TelegramHumanFrontdeskRun",
         "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-manual",
         "created_at": now(),
-        "driver": "local_simulator_company",
+        "driver": "frontdesk_intake",
     }
     run.update(fields)
     run["status"] = status
@@ -973,9 +993,9 @@ def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], tex
             "project_summary": text,
             "known_facts": [f"用户提出的新项目需求: {text}"],
             "first_version_plan": [
-                "先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。",
+                "先建立 intake ticket；后台同步并行启动真实生成，前台继续确认细节并把补充写入修订控制命令。",
             ],
-            "decision_log": ["默认禁用 provider/API，先走本地 simulator team。"],
+            "decision_log": ["项目需求进入后即并行启动后台生成；正式生成只能由 API/provider 或已配置的本地模型后端执行。"],
             "ready_to_generate": False,
         },
     )
@@ -1111,7 +1131,6 @@ def has_open_backend_control(session: dict[str, Any], actions: set[str]) -> bool
 
 def generation_control_payload(session: dict[str, Any], requirement: str, generation_mode: str = "api") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    use_api = str(generation_mode or "api").lower() == "api"
     return {
         "requirement": requirement[:12000],
         "project_summary": str(whiteboard.get("project_summary", ""))[:2000],
@@ -1120,10 +1139,10 @@ def generation_control_payload(session: dict[str, Any], requirement: str, genera
         "change_requests": whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else [],
         "attachments": recent_attachments(session, limit=20),
         "control_flags": {
-            "provider_allowed": use_api,
-            "api_allowed": use_api,
-            "generation_mode": "api" if use_api else "simulator",
-            "must_not_claim_done_without_evidence": True,
+            "provider_allowed": False,
+            "api_allowed": False,
+            "generation_mode": "agent_conversation_loop",
+            "backend_controls_are_log_only": True,
         },
     }
 
@@ -1158,6 +1177,12 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
         return f"这里先确认一个关键点：{question}"
     if event == "intake_ticket_created":
         summary = str(facts.get("project_summary") or latest_user_text(session) or "这个项目").strip()
+        if facts.get("backend_parallel_started"):
+            return (
+                f"收到，方向我记下来了：{summary}\n"
+                "我会继续和你确认细节；后台也已经并行接到这版需求，开始按可运行项目、依赖库、实现方法、预览和测试证据推进。"
+                "没有做出能检查的结果前，我不会把它说成完成。"
+            )
         return f"收到，方向我记下来了：{summary}\n我会按本地可运行的第一版来整理：核心功能、输入输出、可见预览和测试标准都会一起考虑。没有做出能检查的结果前，我不会把它说成完成。"
     if event == "simulator_started":
         return "当前状态：正在处理。我开始按这版需求往下推进；还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"
@@ -1242,17 +1267,7 @@ def send_customer_reply(
 
 
 def provider_escalation_allowed(session_dir: pathlib.Path, chat_id: int | str, classification: dict[str, Any]) -> bool:
-    if str(classification.get("intent")) != "escalation_request":
-        return False
-    session = load_session(session_dir, chat_id)
-    run = active_run(session) or {}
-    ledger = read_truth_ledger(session_dir, chat_id)
-    has_blocked_ledger = any(str(entry.get("status", "")).upper() == "BLOCKED" or str(entry.get("stage", "")).lower() == "blocked" for entry in ledger)
-    local_retry_exhausted = bool(run.get("local_retry_exhausted")) or any(
-        str(entry.get("stage", "")).lower() == "local_retry_exhausted" and str(entry.get("status", "")).lower() in {"observed", "pass"}
-        for entry in ledger
-    )
-    return has_blocked_ledger and local_retry_exhausted
+    return str(classification.get("intent")) == "escalation_request"
 
 
 def maybe_auto_deliver_if_ready(client: TelegramClient, chat_id: int | str, session_dir: pathlib.Path) -> dict[str, Any]:
@@ -1379,6 +1394,72 @@ def send_delivery_artifacts(
         )
         append_memory_event(session, "delivery_attachment_sent", data={"sent": sent})
         save_session(session_dir, session)
+    return sent
+
+
+def read_delivery_manifest(path: str | pathlib.Path) -> dict[str, Any]:
+    manifest_path = pathlib.Path(str(path))
+    if not manifest_path.exists():
+        return {}
+    try:
+        doc = json.loads(manifest_path.read_text(encoding="utf-8", errors="replace"))
+    except Exception:
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def send_delivery_from_manifest(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+    package = _evidence_path(str(manifest.get("package_path", "")))
+    manifest_path = _evidence_path(str(manifest.get("manifest_path", "")))
+    readme = _evidence_path(str(manifest.get("readme_path", "")))
+    startup_command = str(manifest.get("startup_command", "")).strip()
+    known_limits = manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else []
+    lines = ["项目包已经生成，可以直接下载。"]
+    if startup_command:
+        lines.append(f"启动方式：{startup_command}")
+    if known_limits:
+        lines.append("已记录的限制：" + "；".join(str(item) for item in known_limits[:4]))
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="delivery_manifest_ready",
+        facts={"manifest": manifest},
+        source="local_packager_manifest",
+        direct_text="\n".join(lines),
+    )
+    session = load_session(session_dir, chat_id)
+    for path, caption, kind in (
+        (package, "可运行项目文件", "package"),
+        (manifest_path, "交付清单", "delivery_manifest"),
+        (readme, "项目说明", "readme"),
+    ):
+        if not path:
+            continue
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, path, caption):
+            sent.append({"kind": kind, "path": str(path)})
+            append_truth_ledger(
+                session_dir,
+                session,
+                kind,
+                f"{kind} sent from local delivery manifest",
+                status="sent",
+                evidence_ref=str(path),
+                can_user_see=True,
+                data={"artifact": kind, "source": "delivery_manifest"},
+            )
+    if sent:
+        append_memory_event(session, "delivery_manifest_sent", data={"sent": sent, "manifest": manifest})
+    save_session(session_dir, session)
     return sent
 
 
@@ -2754,6 +2835,176 @@ def queue_generation_job(
     announce_start: bool,
     generation_mode: str = "api",
 ) -> None:
+    start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        announce_start=announce_start,
+        reason="queue_generation_job_compat",
+    )
+    return
+
+
+def run_agent_generation_job(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    announce_start: bool = False,
+    max_turns: int = 12,
+) -> None:
+    session = load_session(session_dir, chat_id)
+    requirement = combined_requirement(session)
+    if not requirement:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="missing_requirement_before_generation",
+            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+        )
+        return
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation.update({"status": "running", "driver": "agent_conversation_loop", "started_at": generation.get("started_at") or now()})
+    session["generation"] = generation
+    append_memory_event(session, "agent_loop_started", data={"requirement": requirement[:6000]})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "agent_loop_started",
+        "Agent conversation loop started directly from Telegram confirmation",
+        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        data={"artifact": "agent_session", "backend_controls_required": False},
+    )
+    save_session(session_dir, session)
+    if announce_start:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_started",
+            facts={"message": "我开始按这版需求生成项目。完成后会发送本地打包出来的项目 zip 和说明。"},
+        )
+    project_dir = log_dir / "agent_projects" / safe_id(chat_id)
+    try:
+        result = agent_conversation_loop.run_agent_loop(
+            session_path=agent_session_path(session_dir, chat_id),
+            project_dir=project_dir,
+            model=model,
+            timeout=timeout,
+            max_turns=max_turns,
+        )
+    except Exception as exc:
+        session = load_session(session_dir, chat_id)
+        session["generation"] = {"status": "failed", "driver": "agent_conversation_loop", "finished_at": now(), "error": str(exc)}
+        append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc)})
+        append_memory_event(session, "agent_loop_failed", data={"error": str(exc)})
+        save_session(session_dir, session)
+        log_bridge_error(log_dir, "agent_loop_failed", chat_id, exc, {"project_dir": str(project_dir)})
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_failed",
+            facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
+        )
+        return
+    manifest = result.get("manifest", {}) if isinstance(result.get("manifest"), dict) else {}
+    if not manifest and result.get("manifest_path"):
+        manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
+    session = load_session(session_dir, chat_id)
+    session["generation"] = {
+        "status": str(result.get("status", "unknown")),
+        "driver": "agent_conversation_loop",
+        "finished_at": now(),
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "project_dir": str(project_dir),
+        "manifest_path": str(manifest.get("manifest_path", result.get("manifest_path", ""))),
+        "package_path": str(manifest.get("package_path", result.get("package_path", ""))),
+    }
+    append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
+    save_session(session_dir, session)
+    if manifest and str(manifest.get("package_path", "")).strip():
+        send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
+    else:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_completed_non_pass",
+            facts={"message": "这轮生成还没有拿到本地 packager 产出的项目包，我已把过程写入会话记录供下一轮继续。"},
+        )
+
+
+def start_agent_generation(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    announce_start: bool,
+    reason: str = "frontdesk_generation_confirmation",
+) -> None:
+    session = load_session(session_dir, chat_id)
+    requirement = combined_requirement(session)
+    if not requirement:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="missing_requirement_before_generation",
+            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+        )
+        return
+    update_active_run_status(session, "running", driver="agent_conversation_loop", provider_allowed=False, api_allowed=False)
+    session["generation"] = {
+        "status": "running",
+        "driver": "agent_conversation_loop",
+        "started_at": now(),
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+    }
+    append_backend_control(
+        session_dir,
+        session,
+        "agent_loop_started",
+        payload={"requirement": requirement[:12000], "agent_session_path": str(agent_session_path(session_dir, chat_id))},
+        status="logged",
+        reason=reason,
+    )
+    save_session(session_dir, session)
+    client.send_chat_action(chat_id, "typing")
+    threading.Thread(
+        target=run_agent_generation_job,
+        args=(client, chat_id, session_dir, log_dir, model, timeout),
+        kwargs={"announce_start": announce_start},
+        daemon=True,
+    ).start()
+
+
+def queue_generation_job_legacy_disabled(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    announce_start: bool,
+    generation_mode: str = "api",
+) -> None:
     session = load_session(session_dir, chat_id)
     status = str(session.get("generation", {}).get("status", "idle")).lower()
     if has_open_backend_control(session, {"start_generation"}):
@@ -2798,7 +3049,7 @@ def queue_generation_job(
         "start_generation",
         payload=generation_control_payload(session, requirement, "api" if use_api else "simulator"),
         status="queued",
-        reason="frontdesk_generation_confirmation",
+        reason="frontdesk_generation_confirmation" if announce_start else "frontdesk_parallel_auto_start",
     )
     session["generation"]["control_id"] = control["id"]
     append_memory_event(
@@ -2826,26 +3077,62 @@ def queue_generation_job(
         ),
     )
     client.send_chat_action(chat_id, "typing")
-    send_customer_reply(
-        client,
-        chat_id,
-        session_dir,
-        session,
-        event="simulator_started" if not use_api else "generation_started",
-        facts={
-            "message": (
-                "我开始按这版需求进入正式生成。完成前不会提前说已交付；等可运行项目、效果预览和测试结论齐了再发给你。"
-                if use_api
-                else "我开始做一次模拟预检推进；这不会产出完整项目包。没有可运行项目、效果预览和测试结论前，不会说已经完成。"
-            )
-        },
-    )
+    if announce_start:
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="simulator_started" if not use_api else "generation_started",
+            facts={
+                "message": (
+                    "我开始按这版需求进入正式生成。完成前不会提前说已交付；等可运行项目、效果预览和测试结论齐了再发给你。"
+                    if use_api
+                    else "我开始做一次模拟预检推进；这不会产出完整项目包。没有可运行项目、效果预览和测试结论前，不会说已经完成。"
+                )
+            },
+        )
+    else:
+        save_session(session_dir, session)
     threading.Thread(
         target=run_generation_job,
         args=(client, chat_id, session_dir, log_dir, model, timeout),
         kwargs={"announce_start": False, "control_id": control["id"], "generation_mode": "api" if use_api else "simulator"},
         daemon=True,
     ).start()
+
+
+def auto_start_pending_intakes(
+    client: TelegramClient,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    allowed_chat: str = "",
+    generation_mode: str = "api",
+) -> int:
+    session_paths = [session_path(session_dir, allowed_chat)] if allowed_chat else sorted(session_dir.glob("*.json"))
+    started = 0
+    for path in session_paths:
+        if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
+            continue
+        chat_id = path.stem
+        session = load_session(session_dir, chat_id)
+        run = active_run(session) or {}
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        status = str(generation.get("status", "idle")).lower()
+        if status not in {"idle", "unstarted"}:
+            continue
+        if str(run.get("status", "")).lower() != "intake_open":
+            continue
+        if has_open_backend_control(session, {"start_generation"}):
+            continue
+        if not combined_requirement(session):
+            continue
+        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=False, generation_mode=generation_mode)
+        started += 1
+    return started
 
 
 def continue_customer_turn(
@@ -2914,6 +3201,8 @@ def handle_text(
 ) -> None:
     session = load_session(session_dir, chat_id)
     text = text.strip()
+    if text:
+        append_agent_session_event(session_dir, chat_id, {"kind": "user", "role": "user", "text": text})
     classification = classify_customer_message(text, session)
     append_truth_ledger(
         session_dir,
@@ -3004,7 +3293,7 @@ def handle_text(
         return
 
     pending = current_pending_decision(session)
-    if pending and intent not in {"admin_command", "greeting", "status_query"}:
+    if pending and intent not in {"admin_command", "greeting", "status_query", "generation_confirmation"}:
         if not pending.get("asked_at"):
             pending["asked_at"] = now()
             session["pending_decision"] = pending
@@ -3036,7 +3325,7 @@ def handle_text(
         whiteboard["blocking_questions"] = questions[1:]
         whiteboard["known_facts"] = unique_strings(list(whiteboard.get("known_facts", [])) + [f"用户确认关键问题: {text}"])
         session["whiteboard"] = whiteboard
-        update_active_run_status(session, "simulator_running")
+        update_active_run_status(session, "intake_open", driver="frontdesk_intake")
         append_backend_control(
             session_dir,
             session,
@@ -3068,16 +3357,16 @@ def handle_text(
         append_truth_ledger(
             session_dir,
             session,
-            "local_simulator_company",
-            "本地制作流程已开始推进",
+            "parallel_generation_requested",
+            "新需求已进入 agent_session，会等待用户确认后启动 agent loop",
             evidence_ref=str(run.get("id", "")),
-            data={"artifact": "local_simulator_progress", "provider_used": False, "api_used": False},
+            data={"artifact": "agent_session_intake", "auto_start": False},
         )
         memo = append_backend_memo(
             session_dir,
             session,
             "intake",
-            "我这边已经把新需求建成 intake ticket。下一步先由本地 simulator team 做第一轮拆解和证据清单，不触发 provider/API。",
+            "我这边已经把新需求写入 agent session；等待用户确认后直接启动 AgentConversationLoop，backend_controls 只保留为日志。",
         )
         send_customer_reply(
             client,
@@ -3085,67 +3374,40 @@ def handle_text(
             session_dir,
             session,
             event="intake_ticket_created",
-            facts={"project_summary": text},
+            facts={"project_summary": text, "backend_parallel_started": False},
         )
         return
 
     if intent == "generation_confirmation":
-        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True, generation_mode=generation_mode)
+        start_agent_generation(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True)
         return
 
     if intent == "escalation_request":
-        if provider_escalation_allowed(session_dir, chat_id, classification):
-            append_truth_ledger(
-                session_dir,
-                session,
-                "provider_escalation",
-                "BLOCKED 后用户明确请求升级，允许 agent/provider 介入",
-                status="pass",
-                evidence_ref="escalation_request",
-                data={"artifact": "provider_escalation_gate"},
-            )
-            append_backend_control(
-                session_dir,
-                session,
-                "escalate_generation",
-                payload={"classification": classification, "whiteboard": session.get("whiteboard", {})},
-                status="queued",
-                reason="user_requested_escalation_after_blocked_retry",
-            )
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="project_update",
-                facts={"message": "收到，我会把下一步标记为需要更强的处理方式，并保留当前已经确认的项目方向。"},
-            )
-        else:
-            append_truth_ledger(
-                session_dir,
-                session,
-                "provider_escalation",
-                "未满足 BLOCKED + escalation_request，拒绝默认 provider/API 介入",
-                status="blocked",
-                evidence_ref="escalation_request",
-                data={"artifact": "provider_escalation_gate"},
-            )
-            append_backend_control(
-                session_dir,
-                session,
-                "escalation_denied",
-                payload={"classification": classification},
-                status="blocked",
-                reason="missing_blocked_or_retry_exhausted_evidence",
-            )
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="blocked",
-                facts={"reason": "现在还没有足够的中断依据，不能贸然切换处理方式。"},
-            )
+        append_truth_ledger(
+            session_dir,
+            session,
+            "provider_escalation_note",
+            "用户升级请求已作为会话上下文记录，不再作为正式生成 gate",
+            status="observed",
+            evidence_ref="escalation_request",
+            data={"artifact": "escalation_note"},
+        )
+        append_backend_control(
+            session_dir,
+            session,
+            "escalation_note",
+            payload={"classification": classification, "whiteboard": session.get("whiteboard", {})},
+            status="logged",
+            reason="user_requested_escalation_context",
+        )
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="project_update",
+            facts={"message": "收到，我会把这条升级诉求写进同一个生成会话，正式生成仍由 agent loop 连续推进。"},
+        )
         return
 
     continue_customer_turn(client, chat_id, session, session_dir, log_dir, model, timeout, {"text": text})
@@ -3253,6 +3515,17 @@ def run(args: argparse.Namespace) -> None:
     allowed_chat = str(args.chat_id).strip()
     offset = int(args.offset)
     print(f"TELEGRAM_ONLY_BRIDGE: running chat_id={allowed_chat or '*'} session_dir={session_dir}", flush=True)
+    auto_started = auto_start_pending_intakes(
+        client,
+        session_dir,
+        log_dir,
+        args.model,
+        args.generation_timeout,
+        allowed_chat=allowed_chat,
+        generation_mode=args.generation_mode,
+    )
+    if auto_started:
+        print(f"TELEGRAM_ONLY_BRIDGE: auto_started_pending_intakes={auto_started}", flush=True)
     while True:
         try:
             updates = client.get_updates(offset, args.poll_timeout)

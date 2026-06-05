@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T11:54:09.832163+00:00
-revision_count: 2
+generated_at: 2026-06-04T16:30:23.880944+00:00
+revision_count: 1
 ---
 
 # Project Memory
@@ -28,11 +28,13 @@ revision_count: 2
 ## Known Facts
 
 - 用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-- 用户补充: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## User Rules
 
-- 未记录
+- 任何生成项目、代码、背景、立绘、图片或可运行结果，必须使用已配置的 API/provider 或已配置的本地模型后端。
+- 不允许用本地规则、deterministic simulator、模板、占位图或假进度冒充生成结果。
+- 客户提出需求时后端必须同步看到并开始找库、定方法、生成和验证；客服同时继续确认。
+- 流程不允许线性等待固定开始口令；前台和后台必须并行开工。
 
 ## Default Assumptions
 
@@ -40,7 +42,7 @@ revision_count: 2
 
 ## First Version Plan
 
-- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
+- 客户提出项目需求后，后台立即并行进入 API/provider 生成队列；前台继续确认细节并把补充写入修订控制。
 
 ## Acceptance Criteria
 
@@ -56,8 +58,10 @@ revision_count: 2
 
 ## Decision Log
 
-- 默认禁用 provider/API，先走本地 simulator team。
-- 本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。
+- 生成执行源已强制限定为 API/provider 或已配置的本地模型后端；本地规则和 simulator 不得作为生成结果。
+- 前台确认和后台生成改为并行关系：新项目需求进入后自动写入 start_generation 控制命令。
+- 生成执行源仍强制限定为 API/provider 或已配置本地模型；本地规则和 simulator 不得冒充生成结果。
+- 已移除线性等待确认规则；当前流程是前台确认和后台生成并行。
 
 ## Uploaded Project Inputs
 
@@ -109,12 +113,11 @@ revision_count: 2
 1. 你好
 2. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 3. 你好
-4. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## Generation State
 
-- Status: `idle`
-- Started at: ``
+- Status: `running`
+- Started at: `2026-06-04T16:28:22.682103+00:00`
 - Finished at: ``
 - Result path: ``
 

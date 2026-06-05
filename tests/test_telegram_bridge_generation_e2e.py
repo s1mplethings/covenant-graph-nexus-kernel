@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pathlib
 import tempfile
-import time
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -11,6 +10,7 @@ import sys
 sys.path.insert(0, str(ROOT))
 
 import scripts.telegram_live_bridge as bridge
+import scripts.local_packager as local_packager
 
 
 class FakeTelegramClient:
@@ -95,60 +95,45 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
             project_dir.mkdir()
             (project_dir / "README.md").write_text("# Local task manager\n", encoding="utf-8")
             (project_dir / "app.py").write_text("print('ok')\n", encoding="utf-8")
-            screenshot = root / "preview.png"
-            screenshot.write_bytes(b"png")
-            result_path = log_dir / "telegram-live-chat-e2e_generation_result.json"
-            result = {
-                "status": "PASS",
-                "project_dir": str(project_dir),
-                "runtime_dir": str(root / "run"),
-                "generated_files": ["README.md", "app.py"],
-                "effect_report_path": "",
-            }
             client = FakeTelegramClient()
-            original_run_generation_job = bridge.run_generation_job
+            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_thread = bridge.threading.Thread
 
-            def fake_run_generation_job(fake_client, chat_id, fake_session_dir, fake_log_dir, model, timeout, announce_start=False, control_id="", generation_mode="api"):
-                session = bridge.load_session(fake_session_dir, chat_id)
-                bridge.update_backend_control_status(session, control_id, "running")
-                result_path.parent.mkdir(parents=True, exist_ok=True)
-                bridge.write_json(result_path, result)
-                session["generation"] = {
-                    "status": "pass",
-                    "finished_at": bridge.now(),
-                    "result_path": str(result_path),
-                    "control_id": control_id,
-                    "generation_mode": generation_mode,
-                }
-                bridge.update_backend_control_status(session, control_id, "completed", result_path=str(result_path))
-                bridge.emit_delivery_evidence(fake_session_dir, session, result, screenshot, fake_log_dir)
-                evidence = bridge.delivery_evidence_state(bridge.read_truth_ledger(fake_session_dir, chat_id))
-                bridge.send_delivery_artifacts(fake_client, chat_id, fake_session_dir, session, evidence)
-                bridge.save_session(fake_session_dir, session)
+            def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
+                target = pathlib.Path(project_dir)
+                target.mkdir(parents=True, exist_ok=True)
+                (target / "README.md").write_text("# Local task manager\n", encoding="utf-8")
+                (target / "app.py").write_text("print('ok')\n", encoding="utf-8")
+                manifest = local_packager.package_project(target, startup_command="python app.py")
+                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
 
-            bridge.run_generation_job = fake_run_generation_job
+            class InlineThread:
+                def __init__(self, target, args=(), kwargs=None, daemon=None):
+                    self.target = target
+                    self.args = args
+                    self.kwargs = kwargs or {}
+
+                def start(self):
+                    self.target(*self.args, **self.kwargs)
+
+            bridge.agent_conversation_loop.run_agent_loop = fake_run_agent_loop
+            bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-e2e", "做一个本地任务管理器", session_dir, log_dir, "gpt-test", 60, "api")
                 bridge.handle_text(client, "chat-e2e", "开始生成", session_dir, log_dir, "gpt-test", 60, "api")
-                for _ in range(100):
-                    current = bridge.load_session(session_dir, "chat-e2e")
-                    if str(current.get("generation", {}).get("status", "")).lower() not in {"queued", "running"}:
-                        break
-                    time.sleep(0.02)
             finally:
-                bridge.run_generation_job = original_run_generation_job
+                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.threading.Thread = original_thread
 
             session = bridge.load_session(session_dir, "chat-e2e")
-            self.assertIn(str(session["generation"]["status"]).lower(), {"pass", "blocked", "failed"})
+            self.assertIn(str(session["generation"]["status"]).lower(), {"ready", "ready_with_warnings"})
             self.assertNotEqual("queued", str(session["generation"]["status"]).lower())
             ledger_text = bridge.truth_ledger_path(session_dir, "chat-e2e").read_text(encoding="utf-8")
             self.assertIn("package", ledger_text)
-            self.assertIn("screenshot", ledger_text)
-            self.assertIn("verify_report", ledger_text)
-            self.assertIn("verify_passed", ledger_text)
-            self.assertGreaterEqual(len(client.photos), 1)
+            self.assertIn("delivery_manifest", ledger_text)
+            self.assertEqual(0, len(client.photos))
             self.assertGreaterEqual(len(client.documents), 2)
-            self.assertTrue(result_path.exists() or pathlib.Path(session["generation"]["result_path"]).exists())
+            self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
 
 
 if __name__ == "__main__":

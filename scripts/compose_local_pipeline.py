@@ -610,13 +610,18 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
     if not selected:
         selected = [ref for ref in CORE_PROJECT_GENERATION if ref in valid_refs]
     required_control_modules = [
+        "module.conversation.reduce@1",
         "module.customer.service@1",
         "module.requirement_blueprint.generator@1",
         "module.local.librarian@1",
+        "module.feature.library_search@1",
         "module.local_agent.plan@1",
+        "module.adversarial_generation@1",
         "module.project.generator@1",
         "module.test_graph.emit@1",
         "module.effect_report.emit@1",
+        "module.generation_checkpoint.commit@1",
+        "module.context_pack.build@1",
         "module.unified_control@1",
     ]
     for ref in required_control_modules:

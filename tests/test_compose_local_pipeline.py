@@ -11,6 +11,36 @@ import scripts.compose_local_pipeline as compose_local_pipeline
 
 
 class ComposeLocalPipelineTests(unittest.TestCase):
+    def test_full_agent_route_compiles_without_unbound_control_inputs(self) -> None:
+        result = compose_local_pipeline.compose(
+            "Need customer intake, requirement blueprint, local librarian, online library sources, feature library search, "
+            "local agent planning, adversarial review, project generation, test graph, effect report, checkpoint, "
+            "context pack, and unified control running together",
+            allow_network=True,
+            allow_provider=True,
+        )
+        payload = result["pipeline_plan"]["payload"]
+        selected = payload["selected_modules"]
+        for ref in [
+            "module.conversation.reduce@1",
+            "module.customer.service@1",
+            "module.requirement_blueprint.generator@1",
+            "module.local.librarian@1",
+            "module.online.library_sources@1",
+            "module.feature.library_search@1",
+            "module.local_agent.plan@1",
+            "module.adversarial_generation@1",
+            "module.project.generator@1",
+            "module.test_graph.emit@1",
+            "module.effect_report.emit@1",
+            "module.generation_checkpoint.commit@1",
+            "module.context_pack.build@1",
+            "module.unified_control@1",
+        ]:
+            self.assertIn(ref, selected)
+        self.assertEqual("pass", payload["route_quality_report"]["route_compile_status"])
+        self.assertEqual([], payload["route_quality_report"]["unbound_inputs"])
+
     def test_local_model_manages_component_routing_when_available(self) -> None:
         original_hint = compose_local_pipeline.optional_local_model_hint
         try:
