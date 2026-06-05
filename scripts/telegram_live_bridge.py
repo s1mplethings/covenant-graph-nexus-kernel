@@ -832,6 +832,9 @@ def read_truth_ledger(session_dir: pathlib.Path, chat_id: int | str) -> list[dic
     return entries
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
     required = {
         "package": False,
@@ -1043,7 +1046,7 @@ def append_backend_control(
     action: str,
     *,
     payload: dict[str, Any] | None = None,
-    status: str = "queued",
+    status: str = "logged",
     reason: str = "",
 ) -> dict[str, Any]:
     controls = session.setdefault("backend_controls", [])
@@ -1051,10 +1054,11 @@ def append_backend_control(
         controls = []
     run = active_run(session) or {}
     control = {
-        "kind": "BackendControlCommand",
+        "kind": "BackendControlLog",
         "id": f"ctrl-{safe_id(session.get('chat_id', 'chat'))}-{len(controls) + 1}",
         "action": action,
         "status": status,
+        "log_only": True,
         "reason": reason,
         "active_run_id": str(run.get("id", "")),
         "ticket_id": str(run.get("ticket_id", "")),
@@ -1071,16 +1075,16 @@ def append_backend_control(
         session["active_run"] = run
     append_memory_event(
         session,
-        "backend_control_queued",
+        "backend_control_logged",
         data={"control_id": control["id"], "action": action, "status": status, "reason": reason},
     )
     append_truth_ledger(
         session_dir,
         session,
         "backend_control",
-        "前台控制命令已写入后台队列",
+        "前台事件已写入兼容日志，正式生成由 agent_session 和 agent loop 推进。",
         evidence_ref=control["id"],
-        data={"artifact": "backend_control_command", "control_id": control["id"], "action": action, "status": status},
+        data={"artifact": "backend_control_log", "control_id": control["id"], "action": action, "status": status, "log_only": True},
     )
     return control
 
@@ -1117,6 +1121,8 @@ def latest_backend_control(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def has_open_backend_control(session: dict[str, Any], actions: set[str]) -> bool:
+    # Legacy status display only. Telegram generation_confirmation must not use
+    # backend_controls as a queue or blocker.
     controls = session.get("backend_controls", [])
     if not isinstance(controls, list):
         return False
@@ -1324,6 +1330,9 @@ def ensure_verify_report(result: dict[str, Any], log_dir: pathlib.Path) -> pathl
     return report
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def emit_delivery_evidence(
     session_dir: pathlib.Path,
     session: dict[str, Any],
@@ -2303,6 +2312,9 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def build_generation_args(
     chat_id: int | str,
     requirement: str,
@@ -2330,6 +2342,9 @@ def build_generation_args(
     )
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
     command = [
         sys.executable,
@@ -2451,6 +2466,9 @@ def write_timeout_failure_result(args: argparse.Namespace, timeout_seconds: int,
     return result
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
     command = generation_subprocess_command(args)
     result_path = pathlib.Path(str(args.result_path))
@@ -2532,6 +2550,9 @@ def generation_progress_text(elapsed_seconds: int) -> str:
     )
 
 
+# LEGACY PROVIDER PIPELINE.
+# Telegram mainline must not call this.
+# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def run_generation_job(
     client: TelegramClient,
     chat_id: int | str,
@@ -2817,31 +2838,6 @@ def run_generation_job(
         )
         save_session(session_dir, session)
 
-
-def queue_generation_job(
-    client: TelegramClient,
-    chat_id: int | str,
-    session_dir: pathlib.Path,
-    log_dir: pathlib.Path,
-    model: str,
-    timeout: int,
-    *,
-    announce_start: bool,
-    generation_mode: str = "api",
-) -> None:
-    start_agent_generation(
-        client,
-        chat_id,
-        session_dir,
-        log_dir,
-        model,
-        timeout,
-        announce_start=announce_start,
-        reason="queue_generation_job_compat",
-    )
-    return
-
-
 def run_agent_generation_job(
     client: TelegramClient,
     chat_id: int | str,
@@ -3001,6 +2997,7 @@ def queue_generation_job_legacy_disabled(
     announce_start: bool,
     generation_mode: str = "api",
 ) -> None:
+    # Legacy compatibility only. Telegram mainline must not call this.
     start_agent_generation(
         client,
         chat_id,
@@ -3039,12 +3036,16 @@ def auto_start_pending_intakes(
             continue
         if not combined_requirement(session):
             continue
-        threading.Thread(
-            target=run_agent_generation_job,
-            args=(client, chat_id, session_dir, log_dir, model, timeout),
-            kwargs={"announce_start": False},
-            daemon=True,
-        ).start()
+        start_agent_generation(
+            client,
+            chat_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            announce_start=False,
+            reason="startup_pending_intake",
+        )
         started += 1
     return started
 
@@ -3293,60 +3294,15 @@ def handle_text(
         return
 
     if intent == "generation_confirmation":
-        requirement = combined_requirement(session)
-        if not requirement:
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="missing_requirement_before_generation",
-                facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
-            )
-            return
-        update_active_run_status(session, "running", driver="agent_conversation_loop")
-        session["generation"] = {
-            "status": "running",
-            "driver": "agent_conversation_loop",
-            "started_at": now(),
-            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
-        }
-        append_memory_event(session, "agent_loop_started", data={"requirement": requirement[:6000]})
-        save_session(session_dir, session)
-        send_customer_reply(
+        start_agent_generation(
             client,
             chat_id,
             session_dir,
-            session,
-            event="generation_started",
-            facts={"message": "我开始按这版需求生成项目。完成后会发送本地打包出来的项目 zip 和说明。"},
+            log_dir,
+            model,
+            timeout,
+            announce_start=True,
         )
-        project_dir = log_dir / "agent_projects" / safe_id(chat_id)
-        try:
-            result = agent_conversation_loop.run_agent_loop(
-                session_path=agent_session_path(session_dir, chat_id),
-                project_dir=project_dir,
-                model=model,
-                timeout=timeout,
-                max_turns=12,
-            )
-        except Exception as exc:
-            session = load_session(session_dir, chat_id)
-            session["generation"] = {"status": "failed", "driver": "agent_conversation_loop", "finished_at": now(), "error": str(exc)}
-            append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc)})
-            append_memory_event(session, "agent_loop_failed", data={"error": str(exc)})
-            save_session(session_dir, session)
-            log_bridge_error(log_dir, "agent_loop_failed", chat_id, exc, {"project_dir": str(project_dir)})
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="generation_failed",
-                facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
-            )
-            return
-        finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
         return
 
     if intent == "escalation_request":

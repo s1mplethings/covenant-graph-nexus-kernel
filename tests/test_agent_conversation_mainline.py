@@ -122,6 +122,79 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertTrue(called["ran"])
 
+    def test_generation_confirmation_uses_start_agent_generation_async(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            log_dir = root / "logs"
+            client = FakeTelegramClient()
+            called: dict[str, object] = {}
+            original_start = bridge.start_agent_generation
+            original_loop = bridge.agent_conversation_loop.run_agent_loop
+
+            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["chat_id"] = str(chat_id)
+                called["session_dir"] = str(session_dir_arg)
+                called["log_dir"] = str(log_dir_arg)
+                called["announce_start"] = announce_start
+                called["reason"] = reason
+
+            def forbidden_loop(*args, **kwargs):
+                raise AssertionError("generation_confirmation must not synchronously call run_agent_loop")
+
+            bridge.start_agent_generation = fake_start
+            bridge.agent_conversation_loop.run_agent_loop = forbidden_loop
+            try:
+                bridge.handle_text(client, "chat-async", "做一个本地看板应用", session_dir, log_dir, "gpt-test", 30)
+                bridge.handle_text(client, "chat-async", "开始生成", session_dir, log_dir, "gpt-test", 30)
+            finally:
+                bridge.start_agent_generation = original_start
+                bridge.agent_conversation_loop.run_agent_loop = original_loop
+
+            self.assertEqual("chat-async", called["chat_id"])
+            self.assertEqual(str(session_dir), called["session_dir"])
+            self.assertEqual(str(log_dir), called["log_dir"])
+            self.assertTrue(called["announce_start"])
+
+    def test_old_backend_controls_do_not_block_agent_mainline(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            log_dir = root / "logs"
+            client = FakeTelegramClient()
+            original_start = bridge.start_agent_generation
+            called = {"start": False}
+
+            def fake_start(*args, **kwargs):
+                called["start"] = True
+
+            bridge.start_agent_generation = fake_start
+            try:
+                bridge.handle_text(client, "chat-old-control", "做一个本地表格工具", session_dir, log_dir, "gpt-test", 30)
+                session = bridge.load_session(session_dir, "chat-old-control")
+                session["backend_controls"] = [{"action": "start_generation", "status": "queued"}]
+                bridge.save_session(session_dir, session)
+                bridge.handle_text(client, "chat-old-control", "开始生成", session_dir, log_dir, "gpt-test", 30)
+            finally:
+                bridge.start_agent_generation = original_start
+
+            self.assertTrue(called["start"])
+            self.assertFalse(any("状态" in text or "status" in text.lower() for _, text in client.messages[-1:]))
+
+    def test_backend_control_log_is_log_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            session = bridge.default_session("chat-log")
+
+            control = bridge.append_backend_control(session_dir, session, "start_generation", payload={"x": 1})
+
+            self.assertEqual("BackendControlLog", control["kind"])
+            self.assertEqual("logged", control["status"])
+            self.assertTrue(control["log_only"])
+            ledger = bridge.truth_ledger_path(session_dir, "chat-log").read_text(encoding="utf-8")
+            self.assertIn("兼容日志", ledger)
+            self.assertNotIn("后台队列", ledger)
+
     def test_agent_loop_preserves_conversation_history(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_path = pathlib.Path(temp_dir) / "agent_session.jsonl"
