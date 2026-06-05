@@ -159,7 +159,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertEqual("chat-async", called["chat_id"])
             self.assertEqual(str(session_dir), called["session_dir"])
             self.assertEqual(str(log_dir), called["log_dir"])
-            self.assertTrue(called["announce_start"])
+            self.assertFalse(called["announce_start"])
 
     def test_old_backend_controls_do_not_block_agent_mainline(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

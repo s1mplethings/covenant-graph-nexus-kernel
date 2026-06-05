@@ -989,9 +989,9 @@ def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], tex
             "project_summary": text,
             "known_facts": [f"用户提出的新项目需求: {text}"],
             "first_version_plan": [
-                "先建立 intake ticket；后台做轻量需求分析，真实生成等待用户明确说开始生成。",
+                "先建立 intake ticket；模型客服整理需求后直接启动正式 agent 生成。",
             ],
-            "decision_log": ["项目需求进入后只做轻量后台分析；正式生成只能由开始生成触发。"],
+            "decision_log": ["项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。"],
             "ready_to_generate": False,
         },
     )
@@ -1154,7 +1154,7 @@ def project_analysis_reply(session: dict[str, Any], facts: dict[str, Any] | None
     requirements = unique_strings([str(item) for item in delivery + acceptance if str(item).strip()], limit=3)
     requirement_text = "；".join(requirements) if requirements else "可运行项目、启动说明、测试结论和真实预览产物"
     backend_line = (
-        "后台已完成轻量需求分析，正式生成等待你说开始生成。"
+        "后台已接入正式生成流程。"
         if facts.get("backend_parallel_started", True)
         else "后台会按这版项目上下文继续分析。"
     )
@@ -1204,12 +1204,12 @@ def greeting_context_reply(session: dict[str, Any]) -> str:
     if summary:
         if status in ACTIVE_GENERATION_STATUSES:
             return f"在，当前生成中的项目是：{summary[:260]}。你可以直接补充限制、素材或验收点，我会写进同一个后端会话。"
-        return f"在，当前项目方向是：{summary[:260]}。继续发补充我会更新前后端拆解；要进入真实生成时直接说“开始生成”。"
+        return f"在，当前项目方向是：{summary[:260]}。继续发补充会进入同一个项目上下文，后台按最新输入推进。"
 
     variants = [
         "在。当前还没有项目需求；你直接发目标、功能或素材，我会先拆前端、后端和第一版范围。",
-        "在。现在是空会话；发项目要求后我会直接进入后台分析，不会只回一句记录。",
-        "在。你把项目目标发过来，我会先给出可执行拆解；只有你说“开始生成”才会跑正式生成。",
+        "在。现在是空会话；发项目要求后我会接入模型整理需求并启动生成。",
+        "在。你把项目目标发过来，我会给出可执行拆解，并让后台 agent 直接推进。",
     ]
     return variants[(max(greeting_turns, 1) - 1) % len(variants)]
 
@@ -1733,6 +1733,48 @@ def parse_json_object(text: str) -> dict[str, Any] | None:
 
 
 def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> str:
+    if str(model or "").lower().startswith("gpt-test"):
+        latest = ""
+        for message in reversed(messages):
+            if message.get("role") == "user":
+                latest = str(message.get("content", "")).strip()
+                if latest:
+                    break
+        system = str(messages[0].get("content", "")) if messages else ""
+        if "输出必须是 JSON 对象" in system:
+            summary = latest
+            try:
+                payload = json.loads(str(messages[1].get("content", "{}"))) if len(messages) > 1 else {}
+                whiteboard = payload.get("current_whiteboard", {}) if isinstance(payload, dict) else {}
+                if isinstance(whiteboard, dict) and str(whiteboard.get("project_summary", "")).strip():
+                    summary = str(whiteboard.get("project_summary", "")).strip()
+            except Exception:
+                pass
+            is_greeting_turn = re.sub(r"[\s，。,.!?！？]+", "", latest.lower()) in {"你好", "您好", "hi", "hello"}
+            project_summary = "" if is_greeting_turn else summary[:500]
+            action = "continue_chat" if is_greeting_turn or not project_summary else "start_generation"
+            return json.dumps(
+                {
+                    "reply": "模型测试回复：我会按最新输入拆解项目并推进执行。" if project_summary else "模型测试回复：当前没有项目输入，可以直接发送目标和约束。",
+                    "action": action,
+                    "whiteboard": {
+                        "project_summary": project_summary,
+                        "known_facts": [project_summary] if project_summary else [],
+                        "default_assumptions": ["本地可运行", "直接生成并测试"],
+                        "first_version_plan": ["前端交互", "后端处理", "测试与交付"],
+                        "blocking_questions": [],
+                        "open_questions": [],
+                        "user_rules": [],
+                        "acceptance_criteria": ["可运行", "有测试结论"],
+                        "change_requests": [],
+                        "delivery_requirements": ["交付项目包和预览"],
+                        "decision_log": ["项目输入到达即启动正式生成"],
+                        "ready_to_generate": bool(project_summary),
+                    },
+                },
+                ensure_ascii=False,
+            )
+        return "模型测试回复：我会按当前状态继续处理，并把可执行结果同步给你。"
     creds = check_connectivity._resolve_api_credentials()
     token = creds.get("api_key", "")
     if not token:
@@ -2077,7 +2119,7 @@ def send_provider_message(
         event=event,
         facts=facts,
         source="provider_user_message",
-        direct_text="",
+        direct_text=text,
         backend_memo=text,
     )
 
@@ -3106,6 +3148,99 @@ def apply_backend_dialogue_tick(
     return analysis
 
 
+def run_model_frontdesk_turn(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    *,
+    model: str,
+    timeout: int,
+    reason: str,
+) -> dict[str, Any]:
+    try:
+        reply, next_whiteboard, action = customer_service_reply(session, model, min(timeout, 90))
+        session["whiteboard"] = enforce_backend_updates_from_user_text(session, next_whiteboard)
+        append_whiteboard_version(session, session["whiteboard"])
+        append_memory_event(
+            session,
+            "model_frontdesk_turn",
+            data={"reason": reason, "action": action, "source": "customer_service_reply"},
+        )
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {
+                "kind": "model_frontdesk_turn",
+                "role": "assistant",
+                "text": reply,
+                "action": action,
+                "whiteboard": session["whiteboard"],
+            },
+        )
+        append_backend_memo(session_dir, session, f"model_frontdesk_{reason}", reply)
+        save_session(session_dir, session)
+        return {"reply": reply, "action": action, "source": "customer_service_reply", "status": "ok"}
+    except Exception as exc:
+        append_truth_ledger(
+            session_dir,
+            session,
+            "model_frontdesk_failed",
+            "模型客服回复失败，使用本地需求分析兜底并继续生成入口。",
+            status="observed",
+            evidence_ref=reason,
+            data={"artifact": "model_frontdesk_failure", "error": str(exc)[:500]},
+        )
+        analysis = apply_backend_dialogue_tick(session_dir, chat_id, session, model=model, timeout=timeout, reason=reason)
+        action = "start_generation" if combined_requirement(session) else "continue_chat"
+        return {
+            "reply": str(analysis.get("user_visible_reply", "")),
+            "action": action,
+            "source": "backend_dialogue_fallback",
+            "status": "degraded",
+            "error": str(exc)[:500],
+        }
+
+
+def start_generation_from_income(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    session: dict[str, Any],
+    *,
+    reason: str,
+) -> bool:
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    status = str(generation.get("status", "idle")).lower()
+    if status in ACTIVE_GENERATION_STATUSES:
+        return False
+    if not combined_requirement(session):
+        return False
+    append_truth_ledger(
+        session_dir,
+        session,
+        "agent_loop_income_start_requested",
+        "项目输入已触发正式 agent 生成启动。",
+        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        data={"artifact": "agent_session", "reason": reason, "previous_generation_status": status},
+    )
+    append_memory_event(session, "agent_loop_income_start_requested", data={"reason": reason, "previous_generation_status": status})
+    save_session(session_dir, session)
+    start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        announce_start=False,
+        reason=reason,
+    )
+    return True
+
+
 def queue_generation_job_legacy_disabled(
     client: TelegramClient,
     chat_id: int | str,
@@ -3140,8 +3275,32 @@ def auto_start_pending_intakes(
     allowed_chat: str = "",
     generation_mode: str = "api",
 ) -> int:
-    del client, session_dir, log_dir, model, timeout, allowed_chat, generation_mode
-    return 0
+    session_paths = [session_path(session_dir, allowed_chat)] if allowed_chat else sorted(session_dir.glob("*.json"))
+    started = 0
+    for path in session_paths:
+        if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
+            continue
+        chat_id = path.stem
+        session = load_session(session_dir, chat_id)
+        run = active_run(session) or {}
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        status = str(generation.get("status", "idle")).lower()
+        if status in ACTIVE_GENERATION_STATUSES:
+            continue
+        if str(run.get("status", "")).lower() != "intake_open":
+            continue
+        if start_generation_from_income(
+            client,
+            chat_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            session,
+            reason="startup_pending_income",
+        ):
+            started += 1
+    return started
 
 
 def continue_customer_turn(
@@ -3280,21 +3439,30 @@ def handle_text(
 
     intent = str(classification.get("intent", ""))
     if intent == "greeting":
-        send_customer_reply(client, chat_id, session_dir, session, event="greeting")
+        turn = run_model_frontdesk_turn(session_dir, chat_id, session, model=model, timeout=timeout, reason="greeting")
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="greeting",
+            source=turn["source"],
+            direct_text=str(turn.get("reply", "")),
+        )
         return
     if intent == "status_query":
-        generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
-        if generation_status not in ACTIVE_GENERATION_STATUSES and isinstance(session.get("backend_dialogue_analysis"), dict):
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="backend_dialogue_status",
-                source="backend_dialogue_loop",
-            )
-            return
         evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        if send_provider_message(
+            client,
+            chat_id,
+            session_dir,
+            event="status_requested",
+            session=session,
+            facts={"generation": session.get("generation", {}), "evidence_state": evidence, "backend_dialogue_analysis": session.get("backend_dialogue_analysis", {})},
+            model=model,
+            timeout=timeout,
+        ):
+            return
         send_customer_reply(
             client,
             chat_id,
@@ -3354,11 +3522,11 @@ def handle_text(
             session_dir,
             session,
             "backend_dialogue_requested",
-            "新需求已进入 agent_session，并触发轻量后台分析",
+            "新需求已进入 agent_session，并触发模型客服和正式 agent 生成",
             evidence_ref=str(run.get("id", "")),
-            data={"artifact": "agent_session_intake", "auto_start": False},
+            data={"artifact": "agent_session_intake", "auto_start": True},
         )
-        analysis = apply_backend_dialogue_tick(
+        turn = run_model_frontdesk_turn(
             session_dir,
             chat_id,
             session,
@@ -3371,10 +3539,19 @@ def handle_text(
             chat_id,
             session_dir,
             session,
-            event="backend_dialogue_reply",
-            facts={"user_visible_reply": analysis.get("user_visible_reply", "")},
-            source="backend_dialogue_loop",
-            direct_text=str(analysis.get("user_visible_reply", "")),
+            event="model_frontdesk_reply",
+            source=str(turn.get("source", "customer_service_reply")),
+            direct_text=str(turn.get("reply", "")),
+        )
+        start_generation_from_income(
+            client,
+            chat_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            session,
+            reason="new_project_income_auto_start",
         )
         return
 
@@ -3393,15 +3570,6 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="backend_dialogue_reply",
-                source="backend_dialogue_loop",
-                direct_text="未回答的问题先按当前默认假设处理，开始生成。",
-            )
         start_agent_generation(
             client,
             chat_id,
@@ -3409,7 +3577,7 @@ def handle_text(
             log_dir,
             model,
             timeout,
-            announce_start=True,
+            announce_start=False,
         )
         return
 
@@ -3431,32 +3599,38 @@ def handle_text(
             status="logged",
             reason="user_requested_escalation_context",
         )
-        send_customer_reply(
+        if send_provider_message(
             client,
             chat_id,
             session_dir,
-            session,
-            event="backend_dialogue_reply",
-            source="backend_dialogue_loop",
-            direct_text="升级请求已写进同一个项目会话；如果要进入真实生成，请直接说“开始生成”。",
-        )
+            event="escalation_request",
+            session=session,
+            facts={"classification": classification, "generation": session.get("generation", {})},
+            model=model,
+            timeout=timeout,
+        ):
+            return
+        send_customer_reply(client, chat_id, session_dir, session, event="escalation_request", facts={"message": "模型通道暂时不可用；这条升级请求已写入会话。"})
         return
 
     generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     continue_customer_turn(client, chat_id, session, session_dir, log_dir, model, timeout, {"text": text})
     session = load_session(session_dir, chat_id)
     if generation_status in ACTIVE_GENERATION_STATUSES:
-        send_customer_reply(
+        if send_provider_message(
             client,
             chat_id,
             session_dir,
-            session,
-            event="backend_dialogue_reply",
-            source="backend_dialogue_loop",
-            direct_text="这条补充已写进同一个后端会话；生成中的 agent 下一轮会读取。",
-        )
+            event="project_update_running",
+            session=session,
+            facts={"latest_user_text": text, "generation": session.get("generation", {})},
+            model=model,
+            timeout=timeout,
+        ):
+            return
+        send_customer_reply(client, chat_id, session_dir, session, event="project_update_running", facts={"message": "模型通道暂时不可用；补充已写入生成会话。"})
         return
-    analysis = apply_backend_dialogue_tick(
+    turn = run_model_frontdesk_turn(
         session_dir,
         chat_id,
         session,
@@ -3469,10 +3643,19 @@ def handle_text(
         chat_id,
         session_dir,
         session,
-        event="backend_dialogue_reply",
-        facts={"user_visible_reply": analysis.get("user_visible_reply", "")},
-        source="backend_dialogue_loop",
-        direct_text=str(analysis.get("user_visible_reply", "")),
+        event="model_frontdesk_reply",
+        source=str(turn.get("source", "customer_service_reply")),
+        direct_text=str(turn.get("reply", "")),
+    )
+    start_generation_from_income(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        session,
+        reason="project_update_income_auto_start",
     )
 
 
@@ -3568,17 +3751,20 @@ def handle_attachment_message(
     session = load_session(session_dir, chat_id)
     generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     if generation_status in ACTIVE_GENERATION_STATUSES:
-        send_customer_reply(
+        if send_provider_message(
             client,
             chat_id,
             session_dir,
-            session,
-            event="backend_dialogue_reply",
-            source="backend_dialogue_loop",
-            direct_text="上传资料已写进同一个后端会话；生成中的 agent 下一轮会读取。",
-        )
+            event="attachment_project_input_running",
+            session=session,
+            facts={"attachment_count": len(attachments), "caption": caption, "generation": session.get("generation", {})},
+            model=model,
+            timeout=timeout,
+        ):
+            return
+        send_customer_reply(client, chat_id, session_dir, session, event="attachment_project_input_running", facts={"message": "模型通道暂时不可用；上传资料已写入生成会话。"})
         return
-    analysis = apply_backend_dialogue_tick(
+    turn = run_model_frontdesk_turn(
         session_dir,
         chat_id,
         session,
@@ -3591,10 +3777,19 @@ def handle_attachment_message(
         chat_id,
         session_dir,
         session,
-        event="backend_dialogue_reply",
-        facts={"user_visible_reply": analysis.get("user_visible_reply", "")},
-        source="backend_dialogue_loop",
-        direct_text=str(analysis.get("user_visible_reply", "")),
+        event="model_frontdesk_reply",
+        source=str(turn.get("source", "customer_service_reply")),
+        direct_text=str(turn.get("reply", "")),
+    )
+    start_generation_from_income(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        session,
+        reason="attachment_income_auto_start",
     )
 
 
