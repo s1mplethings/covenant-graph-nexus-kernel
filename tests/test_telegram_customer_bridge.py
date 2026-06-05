@@ -345,7 +345,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assert_public_reply_style(client.messages[-1][1])
 
-    def test_generation_confirmation_writes_backend_control_command(self) -> None:
+    def test_generation_confirmation_does_not_require_backend_control_command(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -372,12 +372,10 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-control")
             controls = session.get("backend_controls", [])
             start_controls = [row for row in controls if row.get("action") == "agent_loop_started"]
-            self.assertEqual(1, len(start_controls))
-            self.assertEqual("logged", start_controls[0]["status"])
-            self.assertEqual("frontdesk_generation_confirmation", start_controls[0]["reason"])
-            self.assertIn("本地 VN 助手", start_controls[0]["payload"]["requirement"])
-            self.assertIn("agent_session.jsonl", start_controls[0]["payload"]["agent_session_path"])
-            self.assertTrue(any(event["type"] == "backend_control_queued" for event in session["memory_events"]))
+            self.assertEqual(0, len(start_controls))
+            self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
+            self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
+            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 
     def test_startup_auto_starts_pending_intake(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -412,8 +410,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertTrue(called["ran"])
             self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
             controls = [row for row in session.get("backend_controls", []) if row.get("action") == "agent_loop_started"]
-            self.assertEqual(1, len(controls))
-            self.assertEqual("queue_generation_job_compat", controls[0]["reason"])
+            self.assertEqual(0, len(controls))
 
     def test_running_project_update_writes_revision_control_command(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

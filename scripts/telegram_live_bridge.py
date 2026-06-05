@@ -2912,6 +2912,16 @@ def run_agent_generation_job(
             facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
         )
         return
+    finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
+
+
+def finish_agent_loop_delivery(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    project_dir: pathlib.Path,
+    result: dict[str, Any],
+) -> None:
     manifest = result.get("manifest", {}) if isinstance(result.get("manifest"), dict) else {}
     if not manifest and result.get("manifest_path"):
         manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
@@ -2970,14 +2980,6 @@ def start_agent_generation(
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
-    append_backend_control(
-        session_dir,
-        session,
-        "agent_loop_started",
-        payload={"requirement": requirement[:12000], "agent_session_path": str(agent_session_path(session_dir, chat_id))},
-        status="logged",
-        reason=reason,
-    )
     save_session(session_dir, session)
     client.send_chat_action(chat_id, "typing")
     threading.Thread(
@@ -3037,7 +3039,12 @@ def auto_start_pending_intakes(
             continue
         if not combined_requirement(session):
             continue
-        queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=False, generation_mode=generation_mode)
+        threading.Thread(
+            target=run_agent_generation_job,
+            args=(client, chat_id, session_dir, log_dir, model, timeout),
+            kwargs={"announce_start": False},
+            daemon=True,
+        ).start()
         started += 1
     return started
 
@@ -3286,7 +3293,60 @@ def handle_text(
         return
 
     if intent == "generation_confirmation":
-        start_agent_generation(client, chat_id, session_dir, log_dir, model, timeout, announce_start=True)
+        requirement = combined_requirement(session)
+        if not requirement:
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="missing_requirement_before_generation",
+                facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+            )
+            return
+        update_active_run_status(session, "running", driver="agent_conversation_loop")
+        session["generation"] = {
+            "status": "running",
+            "driver": "agent_conversation_loop",
+            "started_at": now(),
+            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        }
+        append_memory_event(session, "agent_loop_started", data={"requirement": requirement[:6000]})
+        save_session(session_dir, session)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_started",
+            facts={"message": "我开始按这版需求生成项目。完成后会发送本地打包出来的项目 zip 和说明。"},
+        )
+        project_dir = log_dir / "agent_projects" / safe_id(chat_id)
+        try:
+            result = agent_conversation_loop.run_agent_loop(
+                session_path=agent_session_path(session_dir, chat_id),
+                project_dir=project_dir,
+                model=model,
+                timeout=timeout,
+                max_turns=12,
+            )
+        except Exception as exc:
+            session = load_session(session_dir, chat_id)
+            session["generation"] = {"status": "failed", "driver": "agent_conversation_loop", "finished_at": now(), "error": str(exc)}
+            append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc)})
+            append_memory_event(session, "agent_loop_failed", data={"error": str(exc)})
+            save_session(session_dir, session)
+            log_bridge_error(log_dir, "agent_loop_failed", chat_id, exc, {"project_dir": str(project_dir)})
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="generation_failed",
+                facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
+            )
+            return
+        finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
         return
 
     if intent == "escalation_request":
