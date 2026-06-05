@@ -35,13 +35,18 @@ def _mask_secret(value: str) -> str:
 
 def _normalize_base_url(value: str) -> str:
     root = str(value or "").strip().rstrip("/")
-    if root.lower() in {"https://api.gptsapi.net/v1", "http://api.gptsapi.net/v1"}:
+    if root.lower() in {"https://api.gptsapi.net/v1", "http://api.gptsapi.net/v1", "https://gptsapi.net/v1", "http://gptsapi.net/v1"}:
         return root[:-3].rstrip("/")
     return root
 
 
 def _is_gptsapi_base_url(value: str) -> bool:
-    return _normalize_base_url(value).lower() in {"https://api.gptsapi.net", "http://api.gptsapi.net"}
+    return _normalize_base_url(value).lower() in {
+        "https://api.gptsapi.net",
+        "http://api.gptsapi.net",
+        "https://gptsapi.net",
+        "http://gptsapi.net",
+    }
 
 
 def _load_local_notes_defaults() -> dict[str, str]:

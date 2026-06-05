@@ -207,8 +207,8 @@ def extract_json_object(text: str) -> dict[str, Any]:
 def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, Any], *, model: str, timeout: int) -> tuple[dict[str, Any] | None, str]:
     creds = check_connectivity._resolve_api_credentials()
     api_key = str(creds.get("api_key", "")).strip()
-    base_url = str(creds.get("base_url", "")).rstrip("/")
-    if not api_key or not base_url:
+    root = str(creds.get("base_url", "")).rstrip("/")
+    if not api_key or not root:
         return None, "missing credentials"
     prompt = (
         "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
@@ -218,15 +218,15 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
         f"\n用户最新需求: {latest_text[:4000]}"
         f"\n本地初稿: {json.dumps(local, ensure_ascii=False)[:6000]}"
     )
-    if check_connectivity._is_gptsapi_base_url(base_url):
-        endpoint = f"{base_url}/v1/chat/completions"
+    if check_connectivity._is_gptsapi_base_url(root):
+        endpoint = root + "/chat/completions"
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.2,
         }
     else:
-        endpoint = f"{base_url}/v1/responses"
+        endpoint = root + "/responses"
         payload = {
             "model": model,
             "input": prompt,

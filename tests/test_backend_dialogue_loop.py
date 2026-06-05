@@ -91,6 +91,51 @@ class BackendDialogueLoopTests(unittest.TestCase):
         self.assertTrue(result["backend_plan"])
         self.assertEqual(1, session["backend_dialogue_budget"]["api_calls"])
 
+    def test_provider_endpoint_does_not_duplicate_v1(self) -> None:
+        captured: dict[str, object] = {}
+        original_creds = dialogue.check_connectivity._resolve_api_credentials
+        original_post = dialogue.check_connectivity._post_json
+        original_extract = dialogue.check_connectivity._extract_text
+
+        def fake_post(endpoint, payload, token, timeout):
+            captured["endpoint"] = endpoint
+            captured["payload"] = payload
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"project_summary":"demo","frontend_plan":["ui"],'
+                                '"backend_plan":["api"],"data_model":["item"],'
+                                '"first_version_scope":["v1"],"assumptions":[],"soft_questions":[],'
+                                '"user_visible_reply":"第一版会先做 demo。"}'
+                            )
+                        }
+                    }
+                ]
+            }, ""
+
+        dialogue.check_connectivity._resolve_api_credentials = lambda: {"api_key": "test-key", "base_url": "https://gptsapi.net/v1"}
+        dialogue.check_connectivity._post_json = fake_post
+        dialogue.check_connectivity._extract_text = lambda doc: doc["choices"][0]["message"]["content"]
+        try:
+            result, error = dialogue.call_provider(
+                {"messages": []},
+                "请分析一个 demo",
+                {"project_summary": "demo"},
+                model="gpt-test",
+                timeout=30,
+            )
+        finally:
+            dialogue.check_connectivity._resolve_api_credentials = original_creds
+            dialogue.check_connectivity._post_json = original_post
+            dialogue.check_connectivity._extract_text = original_extract
+
+        self.assertEqual("", error)
+        self.assertIsNotNone(result)
+        self.assertEqual("https://gptsapi.net/v1/chat/completions", captured["endpoint"])
+        self.assertNotIn("/v1/v1/", str(captured["endpoint"]))
+
 
 if __name__ == "__main__":
     unittest.main()
