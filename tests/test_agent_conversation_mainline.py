@@ -322,7 +322,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertTrue(called["loop"])
             session = bridge.load_session(session_dir, "chat-no-api")
-            self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
+            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
             self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
 
 

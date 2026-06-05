@@ -73,8 +73,28 @@ def check_telegram(results: list[CheckResult]) -> None:
     add(results, "backend_controls remain log-only compatibility records", ok, ", ".join(missing))
 
     generation_branch = section_between(text, r'if\s+intent\s*==\s*"generation_confirmation"\s*:', r'^\s*if\s+intent\s*==\s*"escalation_request"\s*:')
-    forbidden = [item for item in ["generate_project.py", "run_local_pipeline", "simulator", "run_generation_subprocess"] if item in generation_branch]
+    forbidden = [
+        item
+        for item in [
+            "generate_project.py",
+            "run_local_pipeline",
+            "simulator",
+            "run_generation_subprocess",
+            "run_agent_loop",
+            "run_generation_job",
+        ]
+        if item in generation_branch
+    ]
     add(results, "generation_confirmation does not call legacy pipeline", bool(generation_branch) and not forbidden, ", ".join(forbidden))
+    generation_calls = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", generation_branch)
+    start_calls = [call for call in generation_calls if call == "start_agent_generation"]
+    forbidden_generation_calls = [call for call in generation_calls if call in {"run_agent_loop", "run_generation_job", "run_generation_subprocess"}]
+    add(
+        results,
+        "generation_confirmation only starts formal generation through start_agent_generation",
+        bool(start_calls) and not forbidden_generation_calls,
+        ", ".join(forbidden_generation_calls) or "start_agent_generation missing",
+    )
 
     gate_pattern = r'if[^\n]*(soft_questions|blocking_questions)[^\n]*:\s*\n(?:\s+.*\n){0,6}?\s+return\b'
     gate = re.search(gate_pattern, generation_branch)
@@ -83,8 +103,20 @@ def check_telegram(results: list[CheckResult]) -> None:
     job = function_body(text, "run_agent_generation_job")
     planner_index = job.find("pipeline_planner_agent.plan_pipeline")
     runner_index = job.find("dynamic_pipeline_runner.run_dynamic_pipeline")
-    manifest_index = job.find("write_pipeline_manifest")
+    manifest_index = job.find("pipeline_manifest_module.write_pipeline_manifest")
     fallback_index = job.find('"pipeline_fallback"')
+    finish_index = job.find("finish_agent_loop_delivery")
+    ok, missing = contains_all(
+        job,
+        [
+            "pipeline_planner_agent.plan_pipeline",
+            "pipeline_manifest_module.write_pipeline_manifest",
+            "dynamic_pipeline_runner.run_dynamic_pipeline",
+            '"pipeline_fallback"',
+            "finish_agent_loop_delivery",
+        ],
+    )
+    add(results, "run_agent_generation_job contains consolidated pipeline landmarks", ok, ", ".join(missing))
     add(
         results,
         "run_agent_generation_job plans manifest before dynamic runner",
@@ -92,6 +124,7 @@ def check_telegram(results: list[CheckResult]) -> None:
         "planner/write/runner order missing",
     )
     add(results, "pipeline fallback is explicitly recorded", fallback_index >= 0, "pipeline_fallback missing")
+    add(results, "finish_agent_loop_delivery remains final handoff", finish_index > runner_index, "finish_agent_loop_delivery not after runner")
 
 
 def check_planner(results: list[CheckResult]) -> None:
@@ -111,7 +144,11 @@ def check_manifest(results: list[CheckResult]) -> None:
             "normalize_pipeline_manifest",
             "default_minimal_pipeline_manifest",
             "ALLOWED_STEP_TYPES",
+            "MAX_ROLES",
+            "MAX_STEPS",
             "steps[{index}].type is not allowed",
+            "must not call legacy generation paths",
+            "FORBIDDEN_LEGACY_PATTERNS",
         ],
     )
     add(results, "pipeline manifest validates allowed step types", ok, ", ".join(missing))
@@ -130,7 +167,7 @@ def check_runner(results: list[CheckResult]) -> None:
         ],
     )
     add(results, "dynamic runner interprets manifest through local actions", ok, ", ".join(missing))
-    forbidden = [item for item in ["exec(", "eval(", "compile("] if item in text]
+    forbidden = [item for item in ["exec(", "eval(", "compile(", "subprocess.run("] if item in text]
     add(results, "dynamic runner does not expose arbitrary Python execution", not forbidden, ", ".join(forbidden))
 
 

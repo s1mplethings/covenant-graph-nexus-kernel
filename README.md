@@ -227,7 +227,7 @@ The bridge understands:
 /status          Show background generation status.
 ```
 
-During generation the bridge queues one background job per chat, sends a waiting message, and only sends the final delivery after project generation, checks, and preview discovery finish. Delivery sends available videos and up to three preview images directly; if no real preview image exists, it tries to create a summary PNG fallback.
+During generation the bridge starts one background job per chat, sends a waiting message, and only sends the final delivery after project generation, checks, and preview discovery finish. Delivery sends available videos and up to three preview images directly; if no real preview image exists, it tries to create a summary PNG fallback.
 
 Set credentials in the shell that starts the listener:
 

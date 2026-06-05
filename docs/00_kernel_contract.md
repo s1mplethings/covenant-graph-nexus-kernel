@@ -46,3 +46,11 @@ Telegram
 ```
 
 The kernel is stable. The pipeline is agent-generated per project. The project itself is fully generated inside the bounded project directory. Skills are controlled capability modules. The whiteboard is the shared communication surface between intake, planning, generation, and delivery.
+
+## Consolidated Kernel Rule
+
+CGNK Kernel does not contain a fixed project generation pipeline. CGNK Kernel requires every formal generation run to first produce a `pipeline_manifest`.
+
+The `pipeline_manifest` is agent-generated from `whiteboard` and `agent_session`. `dynamic_pipeline_runner` interprets that manifest through `local_agent_actions` and `local_agent_skills`.
+
+Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.

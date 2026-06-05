@@ -9,3 +9,8 @@
 - You must preserve whiteboard + agent_session as shared communication.
 - You must preserve local_packager as the only delivery exit.
 - If you need to change kernel files, update docs/00_kernel_contract.md and tests/test_kernel_contract.py in the same commit.
+- Prefer deleting or isolating legacy branches over adding more compatibility paths.
+- Do not add a new formal generation path.
+- The only formal path is agent-generated pipeline_manifest + dynamic_pipeline_runner.
+- If you add a fallback, record pipeline_fallback and test it.
+- If a change increases user-visible internal jargon, reject it.

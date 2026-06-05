@@ -992,7 +992,7 @@ def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], tex
             "project_summary": text,
             "known_facts": [f"用户提出的新项目需求: {text}"],
             "first_version_plan": [
-                "先建立 intake ticket；模型客服整理需求后直接启动正式 agent 生成。",
+                "先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。",
             ],
             "decision_log": ["项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。"],
             "ready_to_generate": False,
@@ -1227,7 +1227,7 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
         status = str(generation.get("status", "idle"))
         status_label = {
             "idle": "还没开始生成",
-            "queued": "已排队",
+            "queued": "准备中",
             "running": "正在处理",
             "waiting_decision": "正在处理",
             "failed": "已中断",
@@ -1284,6 +1284,9 @@ def pre_send_guard(text: str) -> str:
         "package": "可运行项目文件",
         "verify report": "测试结论",
         "truth ledger": "交付记录",
+        "queue": "准备流程",
+        "gate": "检查点",
+        "pipeline failed with internal status": "生成过程已切换到修复路径",
         "证据账本": "交付记录",
         "BLOCKED": "暂停",
     }
@@ -1681,6 +1684,68 @@ def ensure_generation_context_snapshot(
     session["generation_context_snapshot"] = snapshot
     append_agent_session_event(session_dir, chat_id, snapshot)
     return snapshot
+
+
+def write_generation_context_snapshot(project_dir: pathlib.Path, snapshot: dict[str, Any]) -> pathlib.Path:
+    path = pathlib.Path(project_dir) / "generation_context_snapshot.json"
+    write_json(path, snapshot)
+    return path
+
+
+def pipeline_steps_from_session(session_path_value: pathlib.Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    statuses: dict[str, dict[str, Any]] = {}
+    if session_path_value.exists():
+        for line in session_path_value.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(event, dict) and event.get("kind") == "pipeline_step_result":
+                step_id = str(event.get("step_id", ""))
+                if step_id:
+                    statuses[step_id] = event
+    steps: list[dict[str, Any]] = []
+    for step in manifest.get("steps", []) if isinstance(manifest.get("steps"), list) else []:
+        if not isinstance(step, dict):
+            continue
+        step_id = str(step.get("id", ""))
+        event = statuses.get(step_id, {})
+        steps.append(
+            {
+                "id": step_id,
+                "type": str(step.get("type", "")),
+                "role": str(step.get("role", event.get("role", ""))),
+                "status": str(event.get("status", "unknown" if not event else "")) or "unknown",
+            }
+        )
+    return steps
+
+
+def write_pipeline_run_summary(
+    project_dir: pathlib.Path,
+    *,
+    driver: str,
+    pipeline_manifest_path: pathlib.Path | str,
+    agent_session_path_value: pathlib.Path,
+    manifest: dict[str, Any],
+    fallback_used: bool,
+    fallback_reason: str = "",
+) -> pathlib.Path:
+    summary: dict[str, Any] = {
+        "driver": driver,
+        "pipeline_manifest_path": str(pipeline_manifest_path),
+        "agent_session_path": str(agent_session_path_value),
+        "project_dir": str(pathlib.Path(project_dir).resolve()),
+        "fallback_used": fallback_used,
+        "steps": pipeline_steps_from_session(agent_session_path_value, manifest),
+    }
+    if fallback_used:
+        summary["fallback_reason"] = fallback_reason
+    path = pathlib.Path(project_dir) / "pipeline_run_summary.json"
+    write_json(path, summary)
+    return path
 
 
 def is_smalltalk(text: str) -> bool:
@@ -2611,8 +2676,7 @@ def write_timeout_failure_result(args: argparse.Namespace, timeout_seconds: int,
     return result
 
 
-# LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
+# LEGACY ONLY. Telegram formal generation must not call this.
 # Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
     command = generation_subprocess_command(args)
@@ -2695,8 +2759,7 @@ def generation_progress_text(elapsed_seconds: int) -> str:
     )
 
 
-# LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
+# LEGACY ONLY. Telegram formal generation must not call this.
 # Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def run_generation_job(
     client: TelegramClient,
@@ -2737,6 +2800,7 @@ def run_generation_job(
         update_backend_control_status(session, control_id, "running")
     session["generation"] = {
         "status": "running",
+        "driver": "legacy_provider_pipeline",
         "started_at": now(),
         "control_id": control_id,
         "generation_mode": str(generation_mode or "api"),
@@ -2793,7 +2857,14 @@ def run_generation_job(
         session = load_session(session_dir, chat_id)
         if control_id:
             update_backend_control_status(session, control_id, "failed", reason=str(exc))
-        session["generation"] = {"status": "failed", "finished_at": now(), "error": str(exc), "control_id": control_id, "generation_mode": str(generation_mode or "api")}
+        session["generation"] = {
+            "status": "failed",
+            "driver": "legacy_provider_pipeline",
+            "finished_at": now(),
+            "error": str(exc),
+            "control_id": control_id,
+            "generation_mode": str(generation_mode or "api"),
+        }
         safe_facts = safe_generation_failure_facts(requirement, exc)
         append_memory_event(session, "generation_failed", data={"error": str(exc), "safe_facts": safe_facts})
         save_session(session_dir, session)
@@ -2817,6 +2888,7 @@ def run_generation_job(
     status = str(result.get("status", "unknown")).upper()
     session["generation"] = {
         "status": result.get("status", "unknown"),
+        "driver": "legacy_provider_pipeline",
         "finished_at": now(),
         "result_path": str(args.result_path),
         "control_id": control_id,
@@ -3034,10 +3106,16 @@ def run_agent_generation_job(
         )
     project_dir = log_dir / "agent_projects" / safe_id(chat_id)
     project_dir.mkdir(parents=True, exist_ok=True)
+    session_file = agent_session_path(session_dir, chat_id)
+    snapshot_path = write_generation_context_snapshot(project_dir, snapshot)
+    manifest: dict[str, Any] = {}
+    manifest_path: pathlib.Path | str = ""
+    fallback_used = False
+    fallback_reason = ""
     try:
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         manifest = pipeline_planner_agent.plan_pipeline(
-            session_path=agent_session_path(session_dir, chat_id),
+            session_path=session_file,
             model=model,
             timeout=timeout,
             whiteboard=whiteboard,
@@ -3051,7 +3129,7 @@ def run_agent_generation_job(
             {"kind": "pipeline_manifest", "role": "system", "manifest": manifest, "agent_generated": True, "manifest_path": str(manifest_path)},
         )
         result = dynamic_pipeline_runner.run_dynamic_pipeline(
-            session_path=agent_session_path(session_dir, chat_id),
+            session_path=session_file,
             project_dir=project_dir,
             pipeline_manifest=manifest,
             model=model,
@@ -3059,14 +3137,16 @@ def run_agent_generation_job(
             max_turns=max_turns,
         )
     except Exception as exc:
+        fallback_used = True
+        fallback_reason = str(exc)
         append_agent_session_event(
             session_dir,
             chat_id,
-            {"kind": "pipeline_fallback", "role": "system", "reason": str(exc), "stage": "run_agent_generation_job"},
+            {"kind": "pipeline_fallback", "role": "system", "reason": fallback_reason, "stage": "run_agent_generation_job"},
         )
         try:
             result = agent_conversation_loop.run_agent_loop(
-                session_path=agent_session_path(session_dir, chat_id),
+                session_path=session_file,
                 project_dir=project_dir,
                 model=model,
                 timeout=timeout,
@@ -3091,7 +3171,25 @@ def run_agent_generation_job(
             return
     if isinstance(result, dict) and result.get("pipeline_manifest") and "driver" not in result:
         result["driver"] = "agent_generated_pipeline"
-        result["generation_context_snapshot"] = snapshot
+    if str(result.get("driver", "")) == "agent_conversation_loop_fallback":
+        fallback_used = True
+        if not fallback_reason:
+            fallback_reason = "dynamic_pipeline_runner_fallback"
+    result["generation_context_snapshot"] = snapshot
+    result["generation_context_snapshot_path"] = str(snapshot_path)
+    if manifest_path:
+        result["pipeline_manifest_path"] = str(manifest_path)
+    summary_driver = "agent_conversation_loop_fallback" if fallback_used else str(result.get("driver") or "agent_generated_pipeline")
+    summary_path = write_pipeline_run_summary(
+        project_dir,
+        driver=summary_driver,
+        pipeline_manifest_path=manifest_path or project_dir / "pipeline_manifest.json",
+        agent_session_path_value=session_file,
+        manifest=manifest,
+        fallback_used=fallback_used,
+        fallback_reason=fallback_reason,
+    )
+    result["pipeline_run_summary_path"] = str(summary_path)
     finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
 
 
@@ -3107,8 +3205,6 @@ def finish_agent_loop_delivery(
         manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
     session = load_session(session_dir, chat_id)
     driver = str(result.get("driver") or "agent_conversation_loop")
-    if driver == "agent_conversation_loop_fallback":
-        driver = "agent_conversation_loop"
     session["generation"] = {
         "status": str(result.get("status", "unknown")),
         "driver": driver,
@@ -3117,6 +3213,9 @@ def finish_agent_loop_delivery(
         "project_dir": str(project_dir),
         "manifest_path": str(manifest.get("manifest_path", result.get("manifest_path", ""))),
         "package_path": str(manifest.get("package_path", result.get("package_path", ""))),
+        "pipeline_manifest_path": str(result.get("pipeline_manifest_path", "")),
+        "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
+        "pipeline_run_summary_path": str(result.get("pipeline_run_summary_path", "")),
     }
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
     save_session(session_dir, session)
@@ -3332,7 +3431,7 @@ def queue_generation_job_legacy_disabled(
     announce_start: bool,
     generation_mode: str = "api",
 ) -> None:
-    # Legacy compatibility only. Telegram mainline must not call this.
+    # LEGACY ONLY. Telegram formal generation must not call this.
     start_agent_generation(
         client,
         chat_id,
@@ -3355,6 +3454,9 @@ def auto_start_pending_intakes(
     allowed_chat: str = "",
     generation_mode: str = "api",
 ) -> int:
+    # LEGACY ONLY startup compatibility scanner. It may only redirect pending
+    # intake records into start_agent_generation; it must not call the legacy
+    # provider pipeline or backend_controls as an execution queue.
     session_paths = [session_path(session_dir, allowed_chat)] if allowed_chat else sorted(session_dir.glob("*.json"))
     started = 0
     for path in session_paths:
@@ -3426,7 +3528,7 @@ def continue_customer_turn(
         session_dir,
         session,
         "project_update",
-        "我已把用户补充写进项目白板和 agent session；backend_controls 只作为日志，不作为生成入口。",
+        "我已把用户补充写进项目白板和生成会话；兼容记录只作为日志，不作为生成入口。",
     )
     save_session(session_dir, session)
 
@@ -3666,7 +3768,7 @@ def handle_text(
             session_dir,
             session,
             "provider_escalation_note",
-            "用户升级请求已作为会话上下文记录，不再作为正式生成 gate",
+            "用户升级请求已作为会话上下文记录，不再作为正式生成检查点",
             status="observed",
             evidence_ref="escalation_request",
             data={"artifact": "escalation_note"},

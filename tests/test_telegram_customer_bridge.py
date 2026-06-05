@@ -361,7 +361,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-4")
             self.assertTrue(called["ran"])
             self.assertIn("agent_session.jsonl", called["session_path"])
-            self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
+            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assert_public_reply_style(client.messages[-1][1])
 
@@ -393,7 +393,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             controls = session.get("backend_controls", [])
             start_controls = [row for row in controls if row.get("action") == "agent_loop_started"]
             self.assertEqual(0, len(start_controls))
-            self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
+            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
             self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 
