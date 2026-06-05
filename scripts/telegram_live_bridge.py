@@ -674,7 +674,7 @@ def attachment_user_text(attachments: list[dict[str, Any]], caption: str = "") -
     label_summary = "、".join(unique_strings(labels, limit=8)) or "资料"
     if caption:
         return f"用户上传了{label_summary}作为项目资料，并补充说明: {caption}"
-    return f"用户上传了{label_summary}作为项目资料，请把这些资料纳入后端需求和后续生成。"
+    return f"用户上传了{label_summary}作为项目资料；这些资料会纳入后端需求和后续生成。"
 
 
 def inside_workspace(path: pathlib.Path) -> bool:
@@ -966,13 +966,6 @@ def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
     pending = session.get("pending_decision")
     if isinstance(pending, dict) and str(pending.get("status", "")) == "pending" and str(pending.get("question", "")).strip():
         return pending
-    questions = session.get("whiteboard", {}).get("blocking_questions", []) if isinstance(session.get("whiteboard"), dict) else []
-    if isinstance(questions, list) and questions:
-        question = str(questions[0]).strip()
-        if question:
-            pending = {"kind": "PendingDecision", "status": "pending", "question": question, "created_at": now()}
-            session["pending_decision"] = pending
-            return pending
     return None
 
 
@@ -1150,6 +1143,29 @@ def generation_control_payload(session: dict[str, Any], requirement: str, genera
     }
 
 
+def project_analysis_reply(session: dict[str, Any], facts: dict[str, Any] | None = None) -> str:
+    facts = facts or {}
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    summary = str(facts.get("project_summary") or whiteboard.get("project_summary") or latest_user_text(session) or "这个项目").strip()
+    summary = re.sub(r"\s+", " ", summary)[:900]
+    delivery = whiteboard.get("delivery_requirements", []) if isinstance(whiteboard.get("delivery_requirements"), list) else []
+    acceptance = whiteboard.get("acceptance_criteria", []) if isinstance(whiteboard.get("acceptance_criteria"), list) else []
+    requirements = unique_strings([str(item) for item in delivery + acceptance if str(item).strip()], limit=3)
+    requirement_text = "；".join(requirements) if requirements else "可运行项目、启动说明、测试结论和真实预览产物"
+    backend_line = (
+        "后台 agent 已同步进入项目生成流程。"
+        if facts.get("backend_parallel_started", True)
+        else "后台 agent 会按这版项目上下文继续推进。"
+    )
+    return (
+        "我按项目需求处理，不停在记录阶段。\n"
+        f"当前目标：{summary}\n"
+        "第一版拆解：故事时间线管理、本地运行入口、背景生成、立绘生成、产物预览和交付包。\n"
+        f"验收重点：{requirement_text}。\n"
+        f"{backend_line}前台继续接收你的补充；后端同时找实现方式、写项目、运行检查，没产物前不报完成。"
+    )
+
+
 def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any] | None = None, backend_memo: str = "") -> str:
     facts = facts or {}
     if event == "greeting":
@@ -1162,7 +1178,7 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
             "idle": "还没开始生成",
             "queued": "已排队",
             "running": "正在处理",
-            "waiting_decision": "等你确认一个关键问题",
+            "waiting_decision": "正在处理",
             "failed": "已中断",
             "pass": "可以交付",
         }.get(status.lower(), status)
@@ -1175,17 +1191,11 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
         missing = "、".join(missing_labels.get(str(item), str(item)) for item in evidence.get("missing", [])) or "无"
         return f"当前状态：{status_label}。还缺：{missing}。没有可运行结果、预览或测试结论前，我不会说已经完成。"
     if event == "pending_decision":
-        question = str(facts.get("question", "")).strip()
-        return f"这里先确认一个关键点：{question}"
+        return project_analysis_reply(session, {**facts, "backend_parallel_started": True})
     if event == "intake_ticket_created":
-        summary = str(facts.get("project_summary") or latest_user_text(session) or "这个项目").strip()
-        if facts.get("backend_parallel_started"):
-            return (
-                f"收到，方向我记下来了：{summary}\n"
-                "我会继续和你确认细节；后台也已经并行接到这版需求，开始按可运行项目、依赖库、实现方法、预览和测试证据推进。"
-                "没有做出能检查的结果前，我不会把它说成完成。"
-            )
-        return f"收到，方向我记下来了：{summary}\n我会按本地可运行的第一版来整理：核心功能、输入输出、可见预览和测试标准都会一起考虑。没有做出能检查的结果前，我不会把它说成完成。"
+        return project_analysis_reply(session, facts)
+    if event == "project_update":
+        return project_analysis_reply(session, facts)
     if event == "simulator_started":
         return "当前状态：正在处理。我开始按这版需求往下推进；还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"
     if event == "blocked":
@@ -1194,10 +1204,10 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
     if event == "delivery_ready":
         return "可交付材料已经齐了，我会直接发项目结果、效果预览和测试结论。"
     if event == "unsupported_attachment_received":
-        return "我收到了非文本消息。当前可接收图片、文档、视频、音频这几类资料；你也可以补一句它要怎么用于项目。"
+        return "非文本资料已进入入口检查；图片、文档、视频、音频会作为项目输入进入后台。"
     if event == "generation_failed":
-        return str(facts.get("user_visible_cause") or "后台流程中断，当前不能交付。我已经记录问题，后续可以重试或升级处理。")
-    return str(facts.get("message") or backend_memo or "我已记录，会继续按当前项目上下文处理。")
+        return str(facts.get("user_visible_cause") or "后台流程中断，当前不能交付；下一条项目输入会重新触发后台。")
+    return str(facts.get("message") or backend_memo or "当前项目上下文已进入处理；后台按最新目标推进。")
 
 
 def pre_send_guard(text: str) -> str:
@@ -1225,7 +1235,7 @@ def pre_send_guard(text: str) -> str:
     for old, new in replacements.items():
         guarded = guarded.replace(old, new)
     guarded = guarded.replace("JSON", "结构化记录")
-    return guarded[:3900] or "我已记录。"
+    return guarded[:3900] or "当前项目上下文已进入处理。"
 
 
 def send_customer_reply(
@@ -1849,7 +1859,7 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 - 不要要求用户回复固定口令，不要写“请回复开始生成”。
 - 如果信息足以生成第一版，回复里自然说明“我按这个方向开始做第一版”，并把 action 设为 "start_generation"。
 - 当 action 是 "start_generation" 时，reply 不能只有一句“开始做”；要简短列出将生成的第一版能力、默认假设和测试/预览目标。
-- 如果用户只是第一次提出项目想法，先给出你建议的第一版方案和默认假设，通常不要立刻启动生成；等用户继续补充、确认方向或没有提出硬性限制后，再把 action 设为 "start_generation"。
+- 如果用户提出项目想法或项目补充，前台给出第一版方案和默认假设，同时 action 直接设为 "start_generation"；不要等待固定口令或确认。
 - 回复必须紧扣最近一条用户消息和 current_whiteboard，不要把话题切到无关产品、无关技术栈或通用客服话术。
 - 如果最近用户在纠正你，先承认修正点并更新白板，再继续推进；不要沿用旧理解。
 - 如果用户要求图片、视频、预览或可视化，必须把它写入 delivery_requirements 和 acceptance_criteria。
@@ -2040,7 +2050,7 @@ def send_provider_or_technical_error(
         session_dir,
         session,
         event=event,
-        facts={"message": "刚才连接中断了一下，我已经把问题记录下来了。你可以继续补充需求，我会接着处理。", "technical_error": technical_error},
+        facts={"message": "后台连接中断；当前轮次停止，下一条项目输入会重新触发后台。", "technical_error": technical_error},
         source="frontdesk_composer",
     )
 
@@ -2585,7 +2595,7 @@ def run_generation_job(
                 session_dir,
                 session,
                 event="missing_requirement_before_generation",
-                facts={"message": "刚才连接中断了一下。我还没有拿到足够的项目需求，你可以继续描述想做的东西。"},
+                facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
     if control_id:
@@ -2858,12 +2868,15 @@ def run_agent_generation_job(
             session_dir,
             session,
             event="missing_requirement_before_generation",
-            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+            facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    generation.update({"status": "running", "driver": "agent_conversation_loop", "started_at": generation.get("started_at") or now()})
-    session["generation"] = generation
+    session["generation"] = {
+        "status": "running",
+        "driver": "agent_conversation_loop",
+        "started_at": now(),
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+    }
     append_memory_event(session, "agent_loop_started", data={"requirement": requirement[:6000]})
     append_truth_ledger(
         session_dir,
@@ -2942,7 +2955,7 @@ def finish_agent_loop_delivery(
             session_dir,
             session,
             event="generation_completed_non_pass",
-            facts={"message": "这轮生成还没有拿到本地 packager 产出的项目包，我已把过程写入会话记录供下一轮继续。"},
+            facts={"message": "本轮没有拿到交付包；下一条项目输入会重新触发后台。"},
         )
 
 
@@ -2966,7 +2979,7 @@ def start_agent_generation(
             session_dir,
             session,
             event="missing_requirement_before_generation",
-            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
+            facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
     update_active_run_status(session, "running", driver="agent_conversation_loop")
@@ -2984,6 +2997,50 @@ def start_agent_generation(
         kwargs={"announce_start": announce_start},
         daemon=True,
     ).start()
+
+
+ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision"}
+
+
+def maybe_start_agent_generation(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    session: dict[str, Any],
+    *,
+    reason: str,
+    announce_start: bool = False,
+) -> bool:
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    status = str(generation.get("status", "idle")).lower()
+    if status in ACTIVE_GENERATION_STATUSES:
+        return False
+    if not combined_requirement(session):
+        return False
+    append_truth_ledger(
+        session_dir,
+        session,
+        "agent_loop_auto_start_requested",
+        "项目需求或补充已触发 agent loop 自动启动",
+        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        data={"artifact": "agent_session", "reason": reason, "previous_generation_status": status},
+    )
+    append_memory_event(session, "agent_loop_auto_start_requested", data={"reason": reason, "previous_generation_status": status})
+    save_session(session_dir, session)
+    start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        announce_start=announce_start,
+        reason=reason,
+    )
+    return True
 
 
 def queue_generation_job_legacy_disabled(
@@ -3094,13 +3151,25 @@ def continue_customer_turn(
         "project_update",
         "我已把用户补充写进项目白板和 agent session；backend_controls 只作为日志，不作为生成入口。",
     )
+    backend_started = maybe_start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        session,
+        reason="project_update_auto_start",
+        announce_start=False,
+    )
+    session = load_session(session_dir, chat_id)
     send_customer_reply(
         client,
         chat_id,
         session_dir,
         session,
         event="project_update",
-        facts={"message": "我已记下这条补充，会按最新方向继续推进。没有可运行结果、预览或测试结论前，不会说已经完成。"},
+        facts={"backend_parallel_started": backend_started or str(session.get("generation", {}).get("status", "")).lower() in ACTIVE_GENERATION_STATUSES},
     )
 
 
@@ -3209,45 +3278,27 @@ def handle_text(
 
     pending = current_pending_decision(session)
     if pending and intent not in {"admin_command", "greeting", "status_query", "generation_confirmation"}:
-        if not pending.get("asked_at"):
-            pending["asked_at"] = now()
-            session["pending_decision"] = pending
-            update_active_run_status(session, "waiting_decision")
-            append_backend_control(
-                session_dir,
-                session,
-                "wait_for_user_decision",
-                payload={"question": pending["question"], "whiteboard": session.get("whiteboard", {})},
-                status="logged",
-                reason="blocking_question",
-            )
-            append_backend_memo(session_dir, session, "pending_decision", f"需要用户先确认关键问题：{pending['question']}")
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="pending_decision",
-                facts={"question": pending["question"]},
-            )
-            return
-        pending["status"] = "resolved"
+        pending["status"] = "superseded"
         pending["answer"] = text
         pending["resolved_at"] = now()
         session["pending_decision"] = pending
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        questions = whiteboard.get("blocking_questions", []) if isinstance(whiteboard.get("blocking_questions"), list) else []
-        whiteboard["blocking_questions"] = questions[1:]
-        whiteboard["known_facts"] = unique_strings(list(whiteboard.get("known_facts", [])) + [f"用户确认关键问题: {text}"])
+        whiteboard["blocking_questions"] = []
+        whiteboard["open_questions"] = unique_strings(
+            list(whiteboard.get("open_questions", []) if isinstance(whiteboard.get("open_questions"), list) else [])
+            + [str(pending.get("question", ""))],
+            limit=40,
+        )
+        whiteboard["known_facts"] = unique_strings(list(whiteboard.get("known_facts", [])) + [f"用户补充: {text}"])
         session["whiteboard"] = whiteboard
         update_active_run_status(session, "intake_open", driver="frontdesk_intake")
         append_backend_control(
             session_dir,
             session,
-            "user_decision_resolved",
-            payload={"answer": text, "whiteboard": whiteboard},
+            "blocking_question_removed",
+            payload={"latest_user_text": text, "whiteboard": whiteboard},
             status="logged",
-            reason="blocking_question_answered",
+            reason="project_input_must_not_pause_for_question",
         )
 
     if intent == "new_project_request":
@@ -3273,23 +3324,35 @@ def handle_text(
             session_dir,
             session,
             "parallel_generation_requested",
-            "新需求已进入 agent_session，会等待用户确认后启动 agent loop",
+            "新需求已进入 agent_session，并将自动启动 agent loop",
             evidence_ref=str(run.get("id", "")),
-            data={"artifact": "agent_session_intake", "auto_start": False},
+            data={"artifact": "agent_session_intake", "auto_start": True},
         )
         memo = append_backend_memo(
             session_dir,
             session,
             "intake",
-            "我这边已经把新需求写入 agent session；等待用户确认后直接启动 AgentConversationLoop，backend_controls 只保留为日志。",
+            "我这边已经把新需求写入 agent session；将自动启动 AgentConversationLoop，backend_controls 只保留为日志。",
         )
+        backend_started = maybe_start_agent_generation(
+            client,
+            chat_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            session,
+            reason="new_project_request_auto_start",
+            announce_start=False,
+        )
+        session = load_session(session_dir, chat_id)
         send_customer_reply(
             client,
             chat_id,
             session_dir,
             session,
             event="intake_ticket_created",
-            facts={"project_summary": text, "backend_parallel_started": False},
+            facts={"project_summary": text, "backend_parallel_started": backend_started or str(session.get("generation", {}).get("status", "")).lower() in ACTIVE_GENERATION_STATUSES},
         )
         return
 
@@ -3329,7 +3392,7 @@ def handle_text(
             session_dir,
             session,
             event="project_update",
-            facts={"message": "收到，我会把这条升级诉求写进同一个生成会话，正式生成仍由 agent loop 连续推进。"},
+            facts={"backend_parallel_started": True},
         )
         return
 
@@ -3358,7 +3421,7 @@ def handle_attachment_message(
             session_dir,
             session,
             event="attachment_download_failed",
-            facts={"message": "我这边接到上传消息了，但刚才下载文件时连接中断。你可以重新发一次，或者先用文字补充这个资料的用途。"},
+            facts={"message": "上传资料下载中断；这条资料未进入后台。"},
         )
         return
     if not attachments:
@@ -3370,7 +3433,7 @@ def handle_attachment_message(
                 session_dir,
                 session,
                 event="attachment_skipped",
-                facts={"message": "我收到了上传消息，但文件太大或 Telegram 没有返回可下载路径。你可以换成小一点的文件，或先用文字描述关键内容。", "skipped": skipped},
+                facts={"message": "上传资料未进入后台：文件过大或 Telegram 未返回可下载路径。", "skipped": skipped},
             )
             return
         if send_provider_message(
@@ -3391,7 +3454,7 @@ def handle_attachment_message(
                 session_dir,
                 session,
                 event="unsupported_attachment_received",
-                facts={"message": "我收到了非文本消息。现在可直接接收图片、文档、视频、音频这几类资料；你也可以补一句它们要怎么用于项目。"},
+                facts={"message": "非文本资料已进入入口检查；图片、文档、视频、音频会作为项目输入进入后台。"},
             )
         return
     if skipped:
@@ -3414,6 +3477,19 @@ def handle_attachment_message(
         {"source": "attachment_message", "attachment_count": len(attachments)},
     )
     save_session(session_dir, session)
+    session = load_session(session_dir, chat_id)
+    maybe_start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        session,
+        reason="attachment_project_input_auto_start",
+        announce_start=False,
+    )
+    session = load_session(session_dir, chat_id)
     continue_customer_turn(
         client,
         chat_id,

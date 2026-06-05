@@ -59,7 +59,12 @@ class AgentConversationMainlineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             client = FakeTelegramClient()
-            bridge.handle_text(client, "chat-a", "做一个本地任务管理器", session_dir, pathlib.Path(temp_dir) / "logs", "gpt-test", 30)
+            original_start = bridge.start_agent_generation
+            bridge.start_agent_generation = lambda *args, **kwargs: None
+            try:
+                bridge.handle_text(client, "chat-a", "做一个本地任务管理器", session_dir, pathlib.Path(temp_dir) / "logs", "gpt-test", 30)
+            finally:
+                bridge.start_agent_generation = original_start
 
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-a"))
             self.assertTrue(any(event.get("role") == "user" and "本地任务管理器" in event.get("text", "") for event in events))
