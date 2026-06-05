@@ -1188,10 +1188,36 @@ def backend_dialogue_status_text(session: dict[str, Any]) -> str:
     )
 
 
+def greeting_context_reply(session: dict[str, Any]) -> str:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    summary = str(whiteboard.get("project_summary", "")).strip()
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    status = str(generation.get("status", "idle")).lower()
+    greeting_turns = 0
+    for message in session.get("messages", []):
+        if not isinstance(message, dict) or str(message.get("role", "")) != "user":
+            continue
+        classification = message.get("classification", {}) if isinstance(message.get("classification"), dict) else {}
+        if str(classification.get("intent", "")) == "greeting":
+            greeting_turns += 1
+
+    if summary:
+        if status in ACTIVE_GENERATION_STATUSES:
+            return f"在，当前生成中的项目是：{summary[:260]}。你可以直接补充限制、素材或验收点，我会写进同一个后端会话。"
+        return f"在，当前项目方向是：{summary[:260]}。继续发补充我会更新前后端拆解；要进入真实生成时直接说“开始生成”。"
+
+    variants = [
+        "在。当前还没有项目需求；你直接发目标、功能或素材，我会先拆前端、后端和第一版范围。",
+        "在。现在是空会话；发项目要求后我会直接进入后台分析，不会只回一句记录。",
+        "在。你把项目目标发过来，我会先给出可执行拆解；只有你说“开始生成”才会跑正式生成。",
+    ]
+    return variants[(max(greeting_turns, 1) - 1) % len(variants)]
+
+
 def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any] | None = None, backend_memo: str = "") -> str:
     facts = facts or {}
     if event == "greeting":
-        return "你好，我在。你直接说想做的项目和最重要的效果就行，我会按一个可交付项目来整理和推进。"
+        return greeting_context_reply(session)
     if event == "status_requested":
         generation = active_run(session) or (session.get("generation", {}) if isinstance(session.get("generation"), dict) else {})
         evidence = facts.get("evidence_state", {}) if isinstance(facts.get("evidence_state"), dict) else {}

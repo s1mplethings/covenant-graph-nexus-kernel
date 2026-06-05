@@ -264,7 +264,11 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-1")
             self.assertEqual("idle", session["generation"]["status"])
             self.assertFalse(session.get("intake_tickets"))
-            self.assertIn("你好", client.messages[-1][1])
+            self.assertNotIn("你好，我在", client.messages[-1][1])
+            self.assertNotIn("我已记下", client.messages[-1][1])
+            self.assertNotIn("收到", client.messages[-1][1])
+            self.assertIn("项目需求", client.messages[-1][1])
+            self.assert_public_reply_style(client.messages[-1][1])
 
     def test_status_query_only_reads_status_and_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
