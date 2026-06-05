@@ -907,7 +907,6 @@ def create_active_run(session: dict[str, Any], ticket: dict[str, Any], text: str
         "updated_at": now(),
         "local_retry_count": 0,
         "local_retry_exhausted": False,
-        "provider_allowed": True,
     }
     session["active_run"] = run
     session["generation"] = {"status": "idle", "driver": "not_started", "generation_mode": "unstarted"}
@@ -1139,8 +1138,6 @@ def generation_control_payload(session: dict[str, Any], requirement: str, genera
         "change_requests": whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else [],
         "attachments": recent_attachments(session, limit=20),
         "control_flags": {
-            "provider_allowed": False,
-            "api_allowed": False,
             "generation_mode": "agent_conversation_loop",
             "backend_controls_are_log_only": True,
         },
@@ -1159,7 +1156,6 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
             "idle": "还没开始生成",
             "queued": "已排队",
             "running": "正在处理",
-            "simulator_running": "正在处理",
             "waiting_decision": "等你确认一个关键问题",
             "failed": "已中断",
             "pass": "可以交付",
@@ -1208,7 +1204,6 @@ def pre_send_guard(text: str) -> str:
         "truth_ledger.jsonl": "交付记录",
         "intake ticket": "项目记录",
         "simulator team": "制作流程",
-        "local_simulator_company": "制作流程",
         "local_simulator_team": "制作流程",
         "simulator": "制作流程",
         "agent/provider": "后续处理",
@@ -2316,23 +2311,22 @@ def build_generation_args(
     timeout: int,
     generation_mode: str = "api",
 ) -> argparse.Namespace:
-    use_api = str(generation_mode or "api").lower() == "api"
     slug = f"telegram-live-{safe_id(chat_id)}"
     result_path = log_dir / f"{slug}_generation_result.json"
     return argparse.Namespace(
         requirement=requirement,
         project_slug=f"telegram_{slug}",
         assume_defaults=False,
-        allow_network=use_api,
-        allow_provider=use_api,
-        use_api=use_api,
+        allow_network=True,
+        allow_provider=True,
+        use_api=True,
         use_local_model=False,
         prompt_max_chars=12000,
         model=model,
         timeout=timeout,
         result_path=str(result_path),
         json=True,
-        generation_mode="api" if use_api else "simulator",
+        generation_mode="api",
     )
 
 
@@ -2354,9 +2348,9 @@ def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
         str(args.result_path),
         "--json",
     ]
-    command.append("--allow-network" if bool(getattr(args, "allow_network", False)) else "--no-network")
-    command.append("--allow-provider" if bool(getattr(args, "allow_provider", False)) else "--no-provider")
-    command.append("--use-api" if bool(getattr(args, "use_api", False)) else "--no-api")
+    command.append("--allow-network")
+    command.append("--allow-provider")
+    command.append("--use-api")
     if bool(getattr(args, "use_local_model", False)):
         command.append("--use-local-model")
     return command
@@ -2969,7 +2963,7 @@ def start_agent_generation(
             facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
         )
         return
-    update_active_run_status(session, "running", driver="agent_conversation_loop", provider_allowed=False, api_allowed=False)
+    update_active_run_status(session, "running", driver="agent_conversation_loop")
     session["generation"] = {
         "status": "running",
         "driver": "agent_conversation_loop",
@@ -3005,101 +2999,16 @@ def queue_generation_job_legacy_disabled(
     announce_start: bool,
     generation_mode: str = "api",
 ) -> None:
-    session = load_session(session_dir, chat_id)
-    status = str(session.get("generation", {}).get("status", "idle")).lower()
-    if has_open_backend_control(session, {"start_generation"}):
-        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="status_requested",
-            facts={"generation": session.get("generation", {}), "evidence_state": evidence},
-            backend_memo=latest_backend_memo(session),
-        )
-        return
-    requirement = combined_requirement(session)
-    if not requirement:
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="missing_requirement_before_generation",
-            facts={"message": "我还没有拿到足够的项目需求。你先描述想做的东西、输入和希望看到的结果。"},
-        )
-        return
-    use_api = str(generation_mode or "api").lower() == "api"
-    driver = "api_provider" if use_api else "local_simulator_company"
-    update_active_run_status(session, "queued", driver=driver, provider_allowed=use_api)
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    generation.update(
-        {
-            "status": "queued",
-            "driver": driver,
-            "generation_mode": "api" if use_api else "simulator",
-            "started_at": generation.get("started_at") or now(),
-        }
-    )
-    session["generation"] = generation
-    control = append_backend_control(
+    start_agent_generation(
+        client,
+        chat_id,
         session_dir,
-        session,
-        "start_generation",
-        payload=generation_control_payload(session, requirement, "api" if use_api else "simulator"),
-        status="queued",
-        reason="frontdesk_generation_confirmation" if announce_start else "frontdesk_parallel_auto_start",
+        log_dir,
+        model,
+        timeout,
+        announce_start=announce_start,
+        reason="legacy_queue_generation_job_redirect",
     )
-    session["generation"]["control_id"] = control["id"]
-    append_memory_event(
-        session,
-        "generation_started",
-        data={"source": driver, "provider_used": use_api, "api_used": use_api, "control_id": control["id"], "generation_mode": "api" if use_api else "simulator"},
-    )
-    append_truth_ledger(
-        session_dir,
-        session,
-        "generation_queue",
-        "后台生成控制命令已排队并准备执行",
-        evidence_ref=control["id"],
-        data={"artifact": "generation_queue", "provider_used": use_api, "api_used": use_api, "generation_mode": "api" if use_api else "simulator"},
-    )
-    append_backend_memo(
-        session_dir,
-        session,
-        "generation_queue",
-        (
-            f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：使用 API/provider 路线生成项目，"
-            "等 package/screenshot/verify report 齐了再交付。"
-            if use_api
-            else f"我这边已经接到 intake，并写入后台控制命令 {control['id']}：当前是 simulator dry-run，只做预检推进，不会产出完整项目包。"
-        ),
-    )
-    client.send_chat_action(chat_id, "typing")
-    if announce_start:
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="simulator_started" if not use_api else "generation_started",
-            facts={
-                "message": (
-                    "我开始按这版需求进入正式生成。完成前不会提前说已交付；等可运行项目、效果预览和测试结论齐了再发给你。"
-                    if use_api
-                    else "我开始做一次模拟预检推进；这不会产出完整项目包。没有可运行项目、效果预览和测试结论前，不会说已经完成。"
-                )
-            },
-        )
-    else:
-        save_session(session_dir, session)
-    threading.Thread(
-        target=run_generation_job,
-        args=(client, chat_id, session_dir, log_dir, model, timeout),
-        kwargs={"announce_start": False, "control_id": control["id"], "generation_mode": "api" if use_api else "simulator"},
-        daemon=True,
-    ).start()
 
 
 def auto_start_pending_intakes(
@@ -3126,8 +3035,6 @@ def auto_start_pending_intakes(
             continue
         if str(run.get("status", "")).lower() != "intake_open":
             continue
-        if has_open_backend_control(session, {"start_generation"}):
-            continue
         if not combined_requirement(session):
             continue
         queue_generation_job(client, chat_id, session_dir, log_dir, model, timeout, announce_start=False, generation_mode=generation_mode)
@@ -3153,14 +3060,14 @@ def continue_customer_turn(
             {
                 "project_summary": str(whiteboard.get("project_summary", "") or latest),
                 "known_facts": [f"用户补充: {latest}"],
-                "decision_log": ["本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。"],
+                "decision_log": ["本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。"],
             },
         )
         session["whiteboard"] = enforce_backend_updates_from_user_text(session, whiteboard)
         append_whiteboard_version(session, session["whiteboard"])
         append_memory_event(session, "whiteboard_revision", data={"source": "local_frontdesk", "latest_user_text": latest[:1200]})
         generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
-        action = "revise_generation_scope" if generation_status in {"queued", "running", "simulator_running"} else "update_project_context"
+        action = "revise_generation_scope" if generation_status in {"queued", "running"} else "update_project_context"
         append_backend_control(
             session_dir,
             session,
@@ -3170,14 +3077,14 @@ def continue_customer_turn(
                 "whiteboard": session["whiteboard"],
                 "requirement": combined_requirement(session)[:12000],
             },
-            status="queued",
+            status="logged",
             reason="user_project_update",
         )
     memo = append_backend_memo(
         session_dir,
         session,
         "project_update",
-        "我已把用户补充写进项目白板，并同步成后台控制命令。当前仍以本地 simulator 为主线，等证据账本齐全后才会交付。",
+        "我已把用户补充写进项目白板和 agent session；backend_controls 只作为日志，不作为生成入口。",
     )
     send_customer_reply(
         client,
@@ -3303,7 +3210,7 @@ def handle_text(
                 session,
                 "wait_for_user_decision",
                 payload={"question": pending["question"], "whiteboard": session.get("whiteboard", {})},
-                status="waiting_user",
+                status="logged",
                 reason="blocking_question",
             )
             append_backend_memo(session_dir, session, "pending_decision", f"需要用户先确认关键问题：{pending['question']}")
@@ -3331,7 +3238,7 @@ def handle_text(
             session,
             "user_decision_resolved",
             payload={"answer": text, "whiteboard": whiteboard},
-            status="queued",
+            status="logged",
             reason="blocking_question_answered",
         )
 
@@ -3343,7 +3250,7 @@ def handle_text(
             session,
             "open_intake",
             payload={"raw_user_message": text, "whiteboard": session.get("whiteboard", {})},
-            status="applied",
+            status="logged",
             reason="new_project_request",
         )
         append_truth_ledger(

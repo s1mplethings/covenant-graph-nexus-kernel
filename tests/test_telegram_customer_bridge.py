@@ -240,13 +240,15 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("--use-api", command)
         self.assertNotIn("--no-api", command)
 
-    def test_generation_command_uses_no_api_flags_in_simulator_mode(self) -> None:
+    def test_generation_command_does_not_use_no_api_flags_in_simulator_mode(self) -> None:
         args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420, "simulator")
         command = bridge.generation_subprocess_command(args)
-        self.assertIn("--no-network", command)
-        self.assertIn("--no-provider", command)
-        self.assertIn("--no-api", command)
-        self.assertNotIn("--use-api", command)
+        self.assertIn("--allow-network", command)
+        self.assertIn("--allow-provider", command)
+        self.assertIn("--use-api", command)
+        self.assertNotIn("--no-network", command)
+        self.assertNotIn("--no-provider", command)
+        self.assertNotIn("--no-api", command)
 
     def test_greeting_does_not_start_generation_or_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

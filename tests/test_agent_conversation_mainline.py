@@ -212,6 +212,41 @@ class AgentConversationMainlineTests(unittest.TestCase):
             ledger = bridge.truth_ledger_path(session_dir, "chat-d").read_text(encoding="utf-8")
             self.assertIn("delivery_manifest", ledger)
 
+    def test_run_local_pipeline_no_api_blocked_not_connected_to_telegram_mainline(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            log_dir = root / "logs"
+            client = FakeTelegramClient()
+            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_subprocess = bridge.run_generation_subprocess
+            original_thread = bridge.threading.Thread
+            called = {"loop": False}
+
+            def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
+                called["loop"] = True
+                manifest = make_manifest(pathlib.Path(project_dir))
+                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+
+            def forbidden_subprocess(*args, **kwargs):
+                raise AssertionError("Telegram mainline must not call old no-api subprocess path")
+
+            bridge.agent_conversation_loop.run_agent_loop = fake_loop
+            bridge.run_generation_subprocess = forbidden_subprocess
+            bridge.threading.Thread = InlineThread
+            try:
+                bridge.handle_text(client, "chat-no-api", "做一个本地笔记应用", session_dir, log_dir, "gpt-test", 30, "simulator")
+                bridge.handle_text(client, "chat-no-api", "开始生成", session_dir, log_dir, "gpt-test", 30, "simulator")
+            finally:
+                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.run_generation_subprocess = original_subprocess
+                bridge.threading.Thread = original_thread
+
+            self.assertTrue(called["loop"])
+            session = bridge.load_session(session_dir, "chat-no-api")
+            self.assertEqual("agent_conversation_loop", session["generation"]["driver"])
+            self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
+
 
 if __name__ == "__main__":
     unittest.main()
