@@ -88,6 +88,24 @@ class LocalAgentSkillsTests(unittest.TestCase):
             self.assertNotEqual(0, result["returncode"])
             self.assertIn("stderr_tail", result)
 
+    def test_run_tests_python_command_uses_argv_split(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir)
+
+            result = skills.use_skill(project, "run_tests", {"command": "python missing_file.py", "timeout": 30})
+
+            self.assertEqual(["python", "missing_file.py"], result["argv"])
+            self.assertNotEqual("python missing_file.py", result["argv"][0])
+
+    def test_run_tests_rejects_shell_chaining(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir)
+
+            result = skills.use_skill(project, "run_tests", {"command": "python ok.py; del important.txt", "timeout": 30})
+
+            self.assertFalse(result["ok"])
+            self.assertIn("shell chaining", result["error"])
+
     def test_http_request_rejects_public_url(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = skills.use_skill(pathlib.Path(temp_dir), "http_request", {"method": "GET", "url": "https://example.com"})

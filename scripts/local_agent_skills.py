@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import urllib.error
@@ -144,8 +145,11 @@ def _run_tests(project_dir: pathlib.Path, args: dict[str, Any]) -> dict[str, Any
             return _error(skill, "shell chaining characters are not allowed")
         if not _command_allowed(command):
             return _error(skill, "command prefix is not approved")
+        argv = shlex.split(command)
+        if not argv:
+            return _error(skill, "command is required")
         proc = subprocess.run(
-            command,
+            argv,
             cwd=str(project_dir),
             shell=False,
             capture_output=True,
@@ -156,6 +160,7 @@ def _run_tests(project_dir: pathlib.Path, args: dict[str, Any]) -> dict[str, Any
             "ok": proc.returncode == 0,
             "skill": skill,
             "command": command,
+            "argv": argv,
             "returncode": proc.returncode,
             "stdout_tail": _tail(proc.stdout),
             "stderr_tail": _tail(proc.stderr),
