@@ -7,7 +7,6 @@ import os
 import pathlib
 import re
 import shutil
-import subprocess
 import sys
 import threading
 import time
@@ -48,7 +47,7 @@ It is the front-office interface for the CGNK project generation and delivery wo
 - Represent the CGNK workflow that can clarify requirements, maintain project memory, generate projects, run checks, and deliver preview media.
 - Understand the user's goal first, then propose a first-version product and technical plan.
 - Infer reasonable defaults for optional fields instead of asking the user to fill every field.
-- Ask only questions that block generation.
+- Ask at most a small number of non-blocking soft questions; continue with explicit assumptions when the user confirms generation.
 - Accept uploaded images, documents, videos, audio, and data files as project input when Telegram provides them.
 - When enough information exists, proceed naturally; do not require a fixed command phrase.
 - Delivery messages should present product capabilities, test status, preview artifacts, and next-step suggestions.
@@ -2522,9 +2521,7 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+# LEGACY ONLY. Telegram formal generation must not call this.
 def build_generation_args(
     chat_id: int | str,
     requirement: str,
@@ -2533,234 +2530,99 @@ def build_generation_args(
     timeout: int,
     generation_mode: str = "api",
 ) -> argparse.Namespace:
-    slug = f"telegram-live-{safe_id(chat_id)}"
-    result_path = log_dir / f"{slug}_generation_result.json"
-    return argparse.Namespace(
-        requirement=requirement,
-        project_slug=f"telegram_{slug}",
-        assume_defaults=False,
-        allow_network=True,
-        allow_provider=True,
-        use_api=True,
-        use_local_model=False,
-        prompt_max_chars=12000,
-        model=model,
-        timeout=timeout,
-        result_path=str(result_path),
-        json=True,
-        generation_mode="api",
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.build_generation_args(
+        chat_id,
+        requirement,
+        log_dir,
+        model,
+        timeout,
+        generation_mode,
+        root=ROOT,
+        safe_id_fn=safe_id,
     )
 
 
-# LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
-def generation_subprocess_command(args: argparse.Namespace) -> list[str]:
-    command = [
-        sys.executable,
-        str(SCRIPTS_DIR / "generate_project.py"),
-        "--requirement",
-        str(args.requirement),
-        "--project-slug",
-        str(args.project_slug),
-        "--prompt-max-chars",
-        str(args.prompt_max_chars),
-        "--model",
-        str(args.model),
-        "--timeout",
-        str(args.timeout),
-        "--result-path",
-        str(args.result_path),
-        "--json",
-    ]
-    command.append("--allow-network")
-    command.append("--allow-provider")
-    command.append("--use-api")
-    if bool(getattr(args, "use_local_model", False)):
-        command.append("--use-local-model")
-    return command
-
-
+# LEGACY ONLY. Telegram formal generation must not call this.
 def phase_log_path_for_project(project_slug: str) -> pathlib.Path:
-    return ROOT / "examples" / "runtime_runs" / project_slug / "artifacts" / "generation_phase_log.jsonl"
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.phase_log_path_for_project(project_slug, root=ROOT)
 
 
+# LEGACY ONLY. Telegram formal generation must not call this.
 def last_known_phase(phase_log_path: pathlib.Path) -> str:
-    if not phase_log_path.exists():
-        return ""
-    phase = ""
-    for line in phase_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            doc = json.loads(line)
-        except Exception:
-            continue
-        if isinstance(doc, dict) and doc.get("phase"):
-            phase = str(doc["phase"])
-    return phase
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.last_known_phase(phase_log_path)
 
 
+# LEGACY ONLY. Telegram formal generation must not call this.
 def recent_phase_events(phase_log_path: pathlib.Path, limit: int = 8) -> list[dict[str, Any]]:
-    if not phase_log_path.exists():
-        return []
-    events: list[dict[str, Any]] = []
-    for line in phase_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            doc = json.loads(line)
-        except Exception:
-            continue
-        if isinstance(doc, dict):
-            events.append(doc)
-    return events[-max(1, limit):]
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.recent_phase_events(phase_log_path, limit)
 
 
+# LEGACY ONLY. Telegram formal generation must not call this.
 def read_timeout_diagnostics(project_slug: str) -> dict[str, Any]:
-    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
-    diagnostics_path = run_dir / "agent_usage" / "usage_planning_diagnostics.json"
-    if not diagnostics_path.exists():
-        return {}
-    try:
-        doc = json.loads(diagnostics_path.read_text(encoding="utf-8", errors="replace"))
-    except Exception as exc:
-        return {"path": str(diagnostics_path), "status": "unreadable", "error": str(exc)}
-    if isinstance(doc, dict):
-        doc.setdefault("path", str(diagnostics_path))
-        return doc
-    return {"path": str(diagnostics_path), "status": "invalid"}
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.read_timeout_diagnostics(project_slug, root=ROOT)
 
 
+# LEGACY ONLY. Telegram formal generation must not call this.
 def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_path: pathlib.Path) -> tuple[list[str], list[str]]:
-    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
-    project_dir = ROOT / "generated" / project_slug
-    paths = {
-        "generation_result.json": result_path,
-        "generation_phase_log.jsonl": phase_log_path,
-        "product_studio_run.json": run_dir / "artifacts" / "product_studio_run.json",
-        "usage_plan.json": run_dir / "agent_usage" / "usage_plan.json",
-        "runtime_check.json": run_dir / "agent_usage" / "runtime_check.json",
-        "visual_evidence_plan.json": run_dir / "agent_usage" / "visual_evidence_plan.json",
-        "usage_planning_diagnostics.json": run_dir / "agent_usage" / "usage_planning_diagnostics.json",
-        "README.md": project_dir / "README.md",
-    }
-    detected: list[str] = []
-    missing: list[str] = []
-    for name, path in paths.items():
-        (detected if path.exists() else missing).append(name)
-    return detected, missing
+    import legacy_provider_pipeline
 
-
-def write_timeout_failure_result(args: argparse.Namespace, timeout_seconds: int, result_path: pathlib.Path) -> dict[str, Any]:
-    phase_log_path = phase_log_path_for_project(str(args.project_slug))
-    detected, missing = artifact_inventory(str(args.project_slug), result_path, phase_log_path)
-    result = {
-        "kind": "CustomerProjectGenerationResult",
-        "created_at": now(),
-        "status": "BLOCKED",
-        "reason": "generation subprocess exceeded total timeout",
-        "timeout_seconds": timeout_seconds,
-        "last_known_phase": last_known_phase(phase_log_path),
-        "recent_phase_events": recent_phase_events(phase_log_path),
-        "timeout_diagnostics": read_timeout_diagnostics(str(args.project_slug)),
-        "artifacts_detected": detected,
-        "missing_artifacts": missing,
-        "phase_log_path": str(phase_log_path),
-        "can_retry": True,
-        "retry_should_reuse": [
-            "product_studio_run.json",
-            "customer_intent.raw_user_message",
-            "output_contract",
-            "frozen_project_type",
-        ],
-    }
-    write_json(result_path, result)
-    write_json(result_path.with_name(result_path.stem.replace("_generation_result", "_failure_result") + ".json"), result)
-    return result
+    return legacy_provider_pipeline.artifact_inventory(project_slug, result_path, phase_log_path, root=ROOT)
 
 
 # LEGACY ONLY. Telegram formal generation must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
-def run_generation_subprocess(args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
-    command = generation_subprocess_command(args)
-    result_path = pathlib.Path(str(args.result_path))
-    timeout_seconds = max(GENERATION_TOTAL_TIMEOUT_SECONDS, int(args.timeout) + 180)
-    try:
-        proc = subprocess.run(
-            command,
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-        )
-    except subprocess.TimeoutExpired as exc:
-        failure_result = write_timeout_failure_result(args, timeout_seconds, result_path)
-        append_jsonl(
-            log_dir / "generation_subprocess.jsonl",
-            {
-                "created_at": now(),
-                "event": "generation_subprocess_timeout",
-                "project_slug": str(args.project_slug),
-                "timeout_seconds": timeout_seconds,
-                "failure_result_path": str(result_path),
-                "stdout_tail": str(exc.stdout or "")[-2000:],
-                "stderr_tail": str(exc.stderr or "")[-2000:],
-            },
-        )
-        return failure_result
-    append_jsonl(
-        log_dir / "generation_subprocess.jsonl",
-        {
-            "created_at": now(),
-            "event": "generation_subprocess_finished",
-            "project_slug": str(args.project_slug),
-            "returncode": proc.returncode,
-            "stdout_tail": proc.stdout[-2000:],
-            "stderr_tail": proc.stderr[-2000:],
-        },
+def write_timeout_failure_result(legacy_args: argparse.Namespace, timeout_seconds: int, result_path: pathlib.Path) -> dict[str, Any]:
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.write_timeout_failure_result(
+        legacy_args,
+        timeout_seconds,
+        result_path,
+        root=ROOT,
+        now_fn=now,
+        write_json_fn=write_json,
     )
-    if result_path.exists():
-        return json.loads(result_path.read_text(encoding="utf-8", errors="replace"))
-    if proc.returncode != 0:
-        raise RuntimeError(f"generation subprocess failed before writing result: {proc.stderr[-1200:] or proc.stdout[-1200:]}")
-    raise RuntimeError("generation subprocess completed without writing result")
 
 
+# LEGACY ONLY. Telegram formal generation must not call this.
+def run_generation_subprocess(legacy_args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.run_generation_subprocess(
+        legacy_args,
+        log_dir,
+        root=ROOT,
+        append_jsonl_fn=append_jsonl,
+        now_fn=now,
+        write_json_fn=write_json,
+        total_timeout_seconds=GENERATION_TOTAL_TIMEOUT_SECONDS,
+    )
+
+
+# LEGACY ONLY. Telegram formal generation must not call this.
 def safe_generation_failure_facts(requirement: str, exc: Exception) -> dict[str, Any]:
-    error = str(exc)
-    category = "generation_pipeline_error"
-    user_visible_cause = "后台生成流程中断，项目文件、测试和预览还没有完成。"
-    if "prompt_max_chars" in error or "Namespace" in error:
-        category = "generation_bridge_configuration_error"
-        user_visible_cause = "后台生成入口配置缺少必需参数，流程在进入项目文件生成前中断。"
-    elif "context prompt quality failed" in error.lower() or "prompt exceeds max_chars" in error.lower():
-        category = "context_prompt_budget_error"
-        user_visible_cause = "长期项目记忆和本轮需求压缩后仍超过当前生成上下文预算，流程在进入项目文件生成前中断。"
-    elif "timeout" in error.lower():
-        category = "generation_timeout"
-        user_visible_cause = "后台生成超过本轮总等待时间，项目文件、测试或预览还没有完整返回。"
-    elif "api" in error.lower() or "provider" in error.lower():
-        category = "provider_generation_error"
-        user_visible_cause = "后台生成模型/API 调用中断，项目文件、测试和预览还没有完整返回。"
-    return {
-        "requirement": requirement,
-        "error_category": category,
-        "user_visible_cause": user_visible_cause,
-        "impact": "No project delivery, tests, screenshots, images, or videos were completed in this run.",
-        "next_step": "Keep the captured project memory, fix the backend issue, and retry generation.",
-        "technical_error_logged": True,
-        "policy": "provider-only; no local template fallback",
-    }
+    import legacy_provider_pipeline
 
-
-def generation_progress_text(elapsed_seconds: int) -> str:
-    minutes = max(1, int(round(elapsed_seconds / 60)))
-    return (
-        f"后台仍在生成中，已运行约 {minutes} 分钟。"
-        "我目前只能确认生成流程还没有写出最终交付结果；不会把尚未验证的阶段说成已完成。"
-        "完成后我会再发送项目结果、测试状态，以及实际存在的截图/图片/视频预览。"
-    )
+    return legacy_provider_pipeline.safe_generation_failure_facts(requirement, exc)
 
 
 # LEGACY ONLY. Telegram formal generation must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+def generation_progress_text(elapsed_seconds: int) -> str:
+    import legacy_provider_pipeline
+
+    return legacy_provider_pipeline.generation_progress_text(elapsed_seconds)
+
+
+# LEGACY ONLY. Telegram formal generation must not call this.
 def run_generation_job(
     client: TelegramClient,
     chat_id: int | str,
@@ -2772,288 +2634,21 @@ def run_generation_job(
     control_id: str = "",
     generation_mode: str = "api",
 ) -> None:
-    session = load_session(session_dir, chat_id)
-    if session.get("generation", {}).get("status") == "running":
-        return
-    requirement = combined_requirement(session)
-    if not requirement:
-        if not send_provider_message(
-            client,
-            chat_id,
-            session_dir,
-            event="missing_requirement_before_generation",
-            session=session,
-            facts={"reason": "user asked to generate before a usable project requirement was captured"},
-            model=model,
-            timeout=timeout,
-        ):
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="missing_requirement_before_generation",
-                facts={"message": "当前没有可执行项目目标；后台未启动。"},
-        )
-        return
-    if control_id:
-        update_backend_control_status(session, control_id, "running")
-    session["generation"] = {
-        "status": "running",
-        "driver": "legacy_provider_pipeline",
-        "started_at": now(),
-        "control_id": control_id,
-        "generation_mode": str(generation_mode or "api"),
-    }
-    append_memory_event(session, "generation_started", data={"requirement": requirement[:6000], "generation_mode": str(generation_mode or "api"), "control_id": control_id})
-    save_session(session_dir, session)
-    if announce_start:
-        send_provider_message(
-            client,
-            chat_id,
-            session_dir,
-            event="generation_started",
-            session=session,
-            facts={
-                "requirement": requirement,
-                "policy": "provider-only project generation; no local template fallback",
-                "important": "Generation has just started. Do not claim tests passed or project completed.",
-            },
-            model=model,
-            timeout=timeout,
-        )
-        save_session(session_dir, session)
-    stop_progress = threading.Event()
+    import legacy_provider_pipeline
 
-    def progress_worker() -> None:
-        for step in range(2):
-            elapsed = 120 * (step + 1)
-            if stop_progress.wait(120):
-                return
-            current = load_session(session_dir, chat_id)
-            if current.get("generation", {}).get("status") != "running":
-                return
-            text = generation_progress_text(elapsed)
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                current,
-                event="generation_progress",
-                facts={"elapsed_seconds": elapsed},
-                source="generation_progress",
-                direct_text=text,
-            )
-
-    progress_thread = threading.Thread(target=progress_worker, daemon=True)
-    progress_thread.start()
-
-    args = build_generation_args(chat_id, requirement, log_dir, model, timeout, generation_mode)
-    try:
-        assert_api_generation_ready(generation_mode)
-        result = run_generation_subprocess(args, log_dir)
-    except Exception as exc:
-        stop_progress.set()
-        session = load_session(session_dir, chat_id)
-        if control_id:
-            update_backend_control_status(session, control_id, "failed", reason=str(exc))
-        session["generation"] = {
-            "status": "failed",
-            "driver": "legacy_provider_pipeline",
-            "finished_at": now(),
-            "error": str(exc),
-            "control_id": control_id,
-            "generation_mode": str(generation_mode or "api"),
-        }
-        safe_facts = safe_generation_failure_facts(requirement, exc)
-        append_memory_event(session, "generation_failed", data={"error": str(exc), "safe_facts": safe_facts})
-        save_session(session_dir, session)
-        log_bridge_error(log_dir, "generation_failed", chat_id, exc, {"requirement": requirement})
-        send_provider_or_technical_error(
-            client,
-            chat_id,
-            session_dir,
-            event="generation_failed",
-            session=session,
-            facts=safe_facts,
-            model=model,
-            timeout=timeout,
-            technical_error=str(exc),
-        )
-        save_session(session_dir, session)
-        return
-
-    stop_progress.set()
-    session = load_session(session_dir, chat_id)
-    status = str(result.get("status", "unknown")).upper()
-    session["generation"] = {
-        "status": result.get("status", "unknown"),
-        "driver": "legacy_provider_pipeline",
-        "finished_at": now(),
-        "result_path": str(args.result_path),
-        "control_id": control_id,
-        "generation_mode": str(generation_mode or "api"),
-    }
-    if control_id:
-        update_backend_control_status(
-            session,
-            control_id,
-            "completed" if status == "PASS" else ("blocked" if status == "BLOCKED" else "completed"),
-            result_path=str(args.result_path),
-        )
-    if str(result.get("status", "")).lower() == "pass" and isinstance(session.get("whiteboard"), dict):
-        session["whiteboard"]["ready_to_generate"] = False
-    append_memory_event(
-        session,
-        "generation_finished",
-        data={
-            "status": result.get("status", "unknown"),
-            "result_path": str(args.result_path),
-            "project_dir": result.get("project_dir", ""),
-            "runtime_dir": result.get("runtime_dir", ""),
-        },
+    legacy_provider_pipeline.run_generation_job(
+        sys.modules[__name__],
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        announce_start=announce_start,
+        control_id=control_id,
+        generation_mode=generation_mode,
     )
-    save_session(session_dir, session)
 
-    if status == "PASS":
-        video = find_delivery_video(result)
-        image_candidates = delivery_image_candidates(result)
-        rendered_image = render_project_preview_image(result, log_dir)
-        if rendered_image and is_valid_image_file(rendered_image):
-            image_candidates.append(rendered_image)
-        if not image_candidates:
-            fallback_image = make_delivery_summary_image(result, log_dir)
-            if fallback_image:
-                image_candidates.append(fallback_image)
-        image_candidates = unique_media_paths([p for p in image_candidates if is_valid_image_file(p)], limit=3)
-        image = image_candidates[0] if image_candidates else None
-        try:
-            emit_delivery_evidence(session_dir, session, result, image, log_dir)
-            evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
-            send_delivery_artifacts(client, chat_id, session_dir, session, evidence)
-        except Exception as exc:
-            log_bridge_error(log_dir, "emit_delivery_evidence_failed", chat_id, exc, {"result_path": str(args.result_path)})
-        facts = project_delivery_facts(result)
-        facts["preview"] = {
-            "video_found": bool(video),
-            "video_path": str(video) if video else "",
-            "image_found": bool(image),
-            "image_path": str(image) if image else "",
-            "image_count": len(image_candidates),
-            "note": "Video preview is available." if video else ("Preview image is available." if image else "No preview artifact was found in this run."),
-        }
-        send_provider_message(
-            client,
-            chat_id,
-            session_dir,
-            event="generation_passed",
-            session=session,
-            facts=facts,
-            model=model,
-            timeout=timeout,
-        )
-        save_session(session_dir, session)
-        if video:
-            caption = ""
-            try:
-                caption = provider_user_message(
-                    event="test_video_caption",
-                    session=session,
-                    facts={"video_path": str(video), "purpose": "example-based output preview video"},
-                    model=model,
-                    timeout=min(timeout, 60),
-                )
-            except Exception as exc:
-                print(f"video caption provider failed: {exc}", flush=True)
-            client.send_chat_action(chat_id, "upload_video")
-            video_sent = client.send_video(chat_id, video, caption or "")
-            if not video_sent:
-                log_bridge_error(log_dir, "send_video_failed", chat_id, RuntimeError("video send failed"), {"video": str(video)})
-        if image_candidates:
-            caption = ""
-            try:
-                caption = provider_user_message(
-                    event="test_image_caption",
-                    session=session,
-                    facts={"image_paths": [str(path) for path in image_candidates], "purpose": "delivery preview images"},
-                    model=model,
-                    timeout=min(timeout, 60),
-                )
-            except Exception as exc:
-                print(f"caption provider failed: {exc}", flush=True)
-            sent: list[str] = []
-            for candidate in image_candidates:
-                client.send_chat_action(chat_id, "upload_photo")
-                if client.send_photo(chat_id, candidate, caption or ""):
-                    sent.append(str(candidate))
-                    caption = ""
-            if not sent:
-                log_bridge_error(log_dir, "send_photo_failed", chat_id, RuntimeError("all image candidates failed"), {"candidates": [str(p) for p in image_candidates]})
-            else:
-                append_memory_event(session, "preview_media_sent", data={"video": str(video) if video else "", "images": sent})
-                save_session(session_dir, session)
-    elif status == "BLOCKED":
-        can_retry = mark_generation_retry(session, reason=str(result.get("reason", "")))
-        append_truth_ledger(
-            session_dir,
-            session,
-            "blocked",
-            "本地生成流程返回 BLOCKED",
-            status="BLOCKED",
-            evidence_ref=str(result.get("phase_log_path", "")),
-            data={"artifact": "blocked", "reason": str(result.get("reason", ""))},
-        )
-        if control_id and can_retry:
-            update_backend_control_status(session, control_id, "queued", reason="auto_retry_after_blocked", result_path=str(args.result_path))
-            session["generation"]["status"] = "queued"
-            save_session(session_dir, session)
-            threading.Thread(
-                target=run_generation_job,
-                args=(client, chat_id, session_dir, log_dir, model, timeout),
-                kwargs={"announce_start": False, "control_id": control_id, "generation_mode": generation_mode},
-                daemon=True,
-            ).start()
-            return
-        if not can_retry:
-            append_truth_ledger(
-                session_dir,
-                session,
-                "local_retry_exhausted",
-                "本地重试次数已耗尽，可以允许升级处理",
-                status="pass",
-                evidence_ref=str(result.get("phase_log_path", "")),
-                data={"artifact": "local_retry_exhausted"},
-            )
-            if control_id:
-                update_backend_control_status(session, control_id, "blocked", reason="local_retry_exhausted", result_path=str(args.result_path))
-            save_session(session_dir, session)
-        text = product_studio_reply.compose_timeout_or_blocked_reply(result)
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="generation_blocked",
-            facts={"status": status, "result": result},
-            source="product_studio_reply_composer",
-            direct_text=text,
-        )
-    else:
-        send_provider_message(
-            client,
-            chat_id,
-            session_dir,
-            event="generation_completed_non_pass",
-            session=session,
-            facts={
-                "status": status,
-                "project_dir": result.get("project_dir"),
-                "execution_path": result.get("execution_path"),
-            },
-            model=model,
-            timeout=timeout,
-        )
-        save_session(session_dir, session)
 
 def run_agent_generation_job(
     client: TelegramClient,

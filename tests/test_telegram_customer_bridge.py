@@ -10,6 +10,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.telegram_live_bridge as bridge
+import scripts.legacy_provider_pipeline as legacy_provider_pipeline
 import scripts.project_memory_md as project_memory_md
 import scripts.local_packager as local_packager
 
@@ -232,7 +233,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertFalse(args.use_local_model)
         self.assertTrue(args.allow_provider)
         self.assertTrue(args.use_api)
-        command = bridge.generation_subprocess_command(args)
+        command = legacy_provider_pipeline.generation_subprocess_command(args, root=ROOT)
         self.assertIn("--prompt-max-chars", command)
         self.assertIn("12000", command)
         self.assertIn("--allow-network", command)
@@ -242,7 +243,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
 
     def test_generation_command_does_not_use_no_api_flags_in_simulator_mode(self) -> None:
         args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420, "simulator")
-        command = bridge.generation_subprocess_command(args)
+        command = legacy_provider_pipeline.generation_subprocess_command(args, root=ROOT)
         self.assertIn("--allow-network", command)
         self.assertIn("--allow-provider", command)
         self.assertIn("--use-api", command)

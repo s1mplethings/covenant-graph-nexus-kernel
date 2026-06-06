@@ -54,3 +54,15 @@ CGNK Kernel does not contain a fixed project generation pipeline. CGNK Kernel re
 The `pipeline_manifest` is agent-generated from `whiteboard` and `agent_session`. `dynamic_pipeline_runner` interprets that manifest through `local_agent_actions` and `local_agent_skills`.
 
 Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.
+
+## Legacy Code Policy
+
+Legacy provider pipeline code must not live inside `telegram_live_bridge.py`.
+
+Legacy CLI may exist only under `legacy/` or as a thin wrapper.
+
+Telegram formal generation must never call legacy provider pipeline, `generate_project.py`, `run_local_pipeline`, or `simulator`.
+
+Old `BLOCKED` and gate terminology must not be user-visible.
+
+`backend_controls` are compatibility logs only, never execution queues.

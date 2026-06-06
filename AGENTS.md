@@ -14,3 +14,8 @@
 - The only formal path is agent-generated pipeline_manifest + dynamic_pipeline_runner.
 - If you add a fallback, record pipeline_fallback and test it.
 - If a change increases user-visible internal jargon, reject it.
+- Prefer moving legacy code into legacy/ over keeping it inside kernel files.
+- telegram_live_bridge.py must stay focused on Telegram intake, backend dialogue, generation confirmation, and delivery.
+- Do not add new formal generation paths.
+- Do not reintroduce fixed local pipeline generation.
+- Do not expose legacy internal jargon to users.

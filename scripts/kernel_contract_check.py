@@ -55,6 +55,19 @@ def add(results: list[CheckResult], name: str, ok: bool, detail: str = "") -> No
 
 def check_telegram(results: list[CheckResult]) -> None:
     text = read_rel("scripts/telegram_live_bridge.py")
+    bridge_forbidden = [
+        item
+        for item in [
+            "generate_project.py",
+            "run_local_pipeline",
+            "run_generation_subprocess(args",
+            "subprocess.run(",
+            "generation_subprocess_command",
+        ]
+        if item in text
+    ]
+    add(results, "telegram bridge does not embed legacy provider pipeline", not bridge_forbidden, ", ".join(bridge_forbidden))
+
     ok, missing = contains_all(
         text,
         [
@@ -186,9 +199,22 @@ def check_packager(results: list[CheckResult]) -> None:
     add(results, "local packager remains delivery exit", ok, ", ".join(missing))
 
 
+def check_legacy_isolation(results: list[CheckResult]) -> None:
+    legacy_provider = ROOT / "scripts" / "legacy_provider_pipeline.py"
+    if legacy_provider.exists():
+        text = legacy_provider.read_text(encoding="utf-8", errors="replace")
+        ok, missing = contains_all(text, ["LEGACY ONLY", "Not part of CGNK formal Telegram generation"])
+        add(results, "legacy provider pipeline is explicitly marked legacy", ok, ", ".join(missing))
+    wrapper = ROOT / "scripts" / "generate_project.py"
+    if wrapper.exists():
+        text = wrapper.read_text(encoding="utf-8", errors="replace")
+        ok, missing = contains_all(text, ["LEGACY CLI ONLY", "Not used by Telegram formal generation"])
+        add(results, "generate_project CLI wrapper is explicitly marked legacy", ok, ", ".join(missing))
+
+
 def run_checks() -> list[CheckResult]:
     results: list[CheckResult] = []
-    for checker in (check_telegram, check_planner, check_manifest, check_runner, check_local_actions, check_packager):
+    for checker in (check_telegram, check_planner, check_manifest, check_runner, check_local_actions, check_packager, check_legacy_isolation):
         try:
             checker(results)
         except Exception as exc:
