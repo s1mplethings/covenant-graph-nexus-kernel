@@ -101,6 +101,18 @@ class KernelContractTests(unittest.TestCase):
             self.assertEqual("chat-soft", called.get("chat_id"))
             self.assertFalse(called.get("announce_start"))
 
+    def test_soft_questions_prevent_auto_start_until_explicit_confirmation(self) -> None:
+        analysis = {
+            "needs_direction_confirmation": False,
+            "soft_questions": ["第一版按本地网页可以吗？"],
+            "critical_questions": [],
+            "missing_required_inputs": [],
+            "confidence": 0.95,
+        }
+
+        self.assertEqual((False, "soft_questions_pending"), bridge.should_auto_start_generation({}, analysis, "做一个系统"))
+        self.assertEqual((True, "explicit_start_requested"), bridge.should_auto_start_generation({}, analysis, "按默认假设开始生成"))
+
     def test_critical_questions_are_not_gate_but_are_acceptance_context(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)

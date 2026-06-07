@@ -104,7 +104,7 @@ class BackendDialogueLoopTests(unittest.TestCase):
         self.assertGreaterEqual(len(result["soft_questions"]), 1)
         self.assertTrue(result["ready_to_generate"])
         self.assertEqual([], session["whiteboard"]["blocking_questions"])
-        self.assertIn("不会卡住生成", result["user_visible_reply"])
+        self.assertIn("我先不会自动生成", result["user_visible_reply"])
         self.assertTrue(result["needs_direction_confirmation"])
         self.assertIn("开始生成", result["user_visible_reply"])
 

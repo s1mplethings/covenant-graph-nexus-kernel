@@ -443,7 +443,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual("provider_user_message", session["messages"][-1]["source"])
             self.assert_public_reply_style(client.messages[-1][1])
 
-    def test_new_project_request_creates_intake_ticket_and_auto_starts_generation(self) -> None:
+    def test_new_project_request_creates_intake_ticket_and_waits_for_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -467,16 +467,16 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-3")
             self.assertEqual(1, len(session["intake_tickets"]))
             self.assertIsInstance(session.get("active_run"), dict)
-            self.assertEqual("running", session["active_run"]["status"])
-            self.assertEqual("running", session["generation"]["status"])
-            self.assertEqual("new_project_income_auto_start", called["reason"])
-            self.assertFalse(called["announce_start"])
+            self.assertEqual("intake_open", session["active_run"]["status"])
+            self.assertNotEqual("running", session["generation"]["status"])
+            self.assertTrue(session["generation_start_waiting"])
+            self.assertEqual({}, called)
             self.assertEqual(session["intake_tickets"][0]["id"], session["active_run"]["ticket_id"])
             self.assertTrue(session["backend_memos"])
             memo = "\n".join(item["text"] for item in session["backend_memos"])
             self.assertIn("模型测试回复", memo)
             self.assertNotIn("{", memo)
-            self.assertIn("模型测试回复", client.messages[-1][1])
+            self.assertIn("我先不会自动生成", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
@@ -606,7 +606,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             events = bridge.agent_session_path(session_dir, "chat-revise").read_text(encoding="utf-8")
             self.assertIn("背景和立绘", events)
 
-    def test_completed_project_update_auto_starts_generation(self) -> None:
+    def test_completed_project_update_waits_for_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -633,14 +633,15 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 bridge.start_agent_generation = original_start
 
             session = bridge.load_session(session_dir, "chat-restart")
-            self.assertEqual("running", session["generation"]["status"])
-            self.assertEqual("project_update_income_auto_start", called["reason"])
-            self.assertIn("模型测试回复", client.messages[-1][1])
+            self.assertNotEqual("running", session["generation"]["status"])
+            self.assertEqual({}, called)
+            self.assertTrue(session["generation_start_waiting"])
+            self.assertIn("我先不会自动生成", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
 
-    def test_project_attachment_auto_starts_generation(self) -> None:
+    def test_project_attachment_waits_for_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -694,10 +695,11 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 bridge.start_agent_generation = original_start
 
             session = bridge.load_session(session_dir, "chat-attachment")
-            self.assertEqual("running", session["generation"]["status"])
+            self.assertNotEqual("running", session["generation"]["status"])
             self.assertEqual(1, len(session["attachments"]))
-            self.assertEqual("attachment_income_auto_start", called["reason"])
-            self.assertIn("模型测试回复", client.messages[-1][1])
+            self.assertEqual({}, called)
+            self.assertTrue(session["generation_start_waiting"])
+            self.assertIn("我先不会自动生成", client.messages[-1][1])
 
     def test_delivery_ready_depends_only_on_truth_ledger_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

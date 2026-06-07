@@ -75,6 +75,7 @@ def check_telegram(results: list[CheckResult]) -> None:
             "run_agent_generation_job",
             "backend_dialogue_loop",
             "apply_backend_dialogue_tick",
+            "should_auto_start_generation",
             "agent_session_path",
             "finish_agent_loop_delivery",
         ],

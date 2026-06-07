@@ -1297,7 +1297,7 @@ def backend_dialogue_status_text(session: dict[str, Any]) -> str:
     backend_text = "；".join(str(item) for item in backend[:3] if str(item).strip()) or "已进入本地后端拆解"
     question_text = ""
     if questions:
-        question_text = "\n可补充但不阻塞生成：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
+        question_text = "\n可补充；你明确开始后我会按已记录假设推进：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
     return (
         f"当前后台分析：{summary[:500]}。\n"
         f"前端：{frontend_text}。\n"
@@ -1557,6 +1557,8 @@ def read_delivery_manifest(path: str | pathlib.Path) -> dict[str, Any]:
 def user_visible_known_limit(raw: Any) -> str:
     text = str(raw or "").strip()
     lowered = text.lower()
+    if "placeholder" in lowered or "占位" in text:
+        return "预览为占位示例，不算真实运行证据"
     if "screenshot not provided" in lowered or "screenshot missing" in lowered:
         return "本轮没有生成效果预览图，已先交付可运行项目文件"
     text = text.replace("not provided", "暂未提供")
@@ -1584,11 +1586,32 @@ def send_delivery_from_manifest(
     test_report_found = bool(quality_evidence.get("test_report_found"))
     delivery_notes_found = bool(quality_evidence.get("delivery_notes_found"))
     preview_evidence_found = bool(quality_evidence.get("preview_evidence_found"))
+    test_has_commands = bool(quality_evidence.get("test_report_has_commands"))
+    test_no_executed = bool(quality_evidence.get("test_report_has_no_test_executed"))
+    sample_input_found = bool(quality_evidence.get("sample_input_found") or quality_evidence.get("test_report_mentions_sample_input"))
+    preview_placeholder_found = bool(quality_evidence.get("preview_placeholder_found"))
+    status_raw = str(manifest.get("status", "")).strip().lower()
+    delivery_status = "PASS" if status_raw == "ready" else ("WARNING" if status_raw == "ready_with_warnings" else "PARTIAL")
+    if not test_report_found:
+        test_execution = "没有"
+    elif test_no_executed:
+        test_execution = "未执行真实测试"
+    elif test_has_commands:
+        test_execution = "已执行命令"
+    else:
+        test_execution = "仅人工检查"
+    preview_status = "真实预览" if preview_evidence_found else ("占位示例" if preview_placeholder_found else "没有")
+    forced_missing = bool(manifest.get("forced_start_with_missing_inputs"))
+    if not forced_missing:
+        forced_missing = any("缺少真实 demo 或样例输入" in str(item) for item in known_limits)
     lines = [
         "项目包：已生成",
         f"测试报告：{'有' if test_report_found else '没有'}",
+        f"测试执行：{test_execution}",
         f"交付复核：{'有' if delivery_notes_found else '没有'}",
-        f"预览证据：{'有' if preview_evidence_found else '没有'}",
+        f"真实输入验证：{'有' if sample_input_found else '没有'}",
+        f"预览证据：{preview_status}",
+        f"交付状态：{delivery_status}",
     ]
     if startup_command:
         lines.append(f"启动方式：{startup_command}")
@@ -1602,6 +1625,8 @@ def send_delivery_from_manifest(
         lines.append("这次没有完整测试报告，所以我不会把它标成完整测试通过。")
     if not delivery_notes_found:
         lines.append("这次没有交付复核说明，交付状态按 warning 处理。")
+    if forced_missing or any("缺少真实 demo 或样例输入" in str(item) for item in known_limits):
+        lines.append("这次按框架版/示例版交付，不能视为真实业务数据验证完成。")
     send_customer_reply(
         client,
         chat_id,
@@ -1756,6 +1781,14 @@ def combined_requirement(session: dict[str, Any]) -> str:
 
 def build_generation_context_snapshot(session: dict[str, Any], requirement: str) -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    pending_soft_questions = session.get("pending_soft_questions", []) if isinstance(session.get("pending_soft_questions"), list) else []
+    pending_critical_questions = session.get("pending_critical_questions", []) if isinstance(session.get("pending_critical_questions"), list) else []
+    pending_required_inputs = session.get("pending_required_inputs", []) if isinstance(session.get("pending_required_inputs"), list) else []
+    unanswered_questions = unique_strings(
+        [str(item) for item in pending_soft_questions + pending_critical_questions + pending_required_inputs if str(item).strip()],
+        limit=20,
+    )
+    forced_missing = bool(session.get("forced_start_with_missing_inputs") or pending_critical_questions or pending_required_inputs)
     user_messages = [
         {
             "text": str(message.get("text", ""))[:4000],
@@ -1777,6 +1810,12 @@ def build_generation_context_snapshot(session: dict[str, Any], requirement: str)
         "user_messages": user_messages,
         "backend_dialogue_ticks": memory_events,
         "soft_questions_are_blocking": False,
+        "unanswered_questions": unanswered_questions,
+        "pending_start_assumptions": session.get("pending_start_assumptions", []) if isinstance(session.get("pending_start_assumptions"), list) else [],
+        "missing_required_inputs": pending_required_inputs,
+        "forced_start_with_missing_inputs": forced_missing,
+        "scope_downgrade": "scaffold_only_or_partial" if forced_missing else "",
+        "must_not_claim_full_domain_validation": forced_missing,
     }
 
 
@@ -1877,10 +1916,19 @@ def is_generate_command(text: str) -> bool:
         "开始生成",
         "可以生成",
         "直接生成",
+        "按默认假设开始",
+        "按默认假设生成",
+        "按默认假设开始生成",
+        "按这个方向做",
+        "可以开始",
         "生成项目",
+        "生成吧",
         "开始吧",
         "开工",
+        "直接做",
         "做吧",
+        "start",
+        "go",
     }
     if compact in control_phrases:
         return True
@@ -1924,6 +1972,75 @@ def is_human_start_confirmation(text: str, session: dict[str, Any]) -> bool:
         "go",
     }
     return compact in confirmations
+
+
+COMPLEX_AUTO_START_KEYWORDS = (
+    "demo",
+    "视觉",
+    "鉴挂",
+    "模型",
+    "识别",
+    "分析",
+    "反作弊",
+    "外部文件",
+    "数据集",
+    "训练",
+    "图像",
+    "视频",
+    "api",
+    "传感器",
+)
+
+
+def explicit_start_requested(user_text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(user_text or "").lower())
+    if is_generate_command(user_text):
+        return True
+    contains_phrases = (
+        "开始生成",
+        "直接生成",
+        "可以开始",
+        "按默认假设开始",
+        "按默认假设生成",
+        "按默认假设开始生成",
+        "按这个方向做",
+        "直接做",
+        "生成吧",
+    )
+    if any(phrase in compact for phrase in contains_phrases):
+        return True
+    return compact in {"start", "go"}
+
+
+def _analysis_list(analysis: dict[str, Any], key: str) -> list[str]:
+    value = analysis.get(key, [])
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, Any], user_text: str) -> tuple[bool, str]:
+    del session
+    if explicit_start_requested(user_text):
+        return True, "explicit_start_requested"
+    if bool(analysis.get("needs_direction_confirmation")):
+        return False, "needs_direction_confirmation"
+    if _analysis_list(analysis, "soft_questions"):
+        return False, "soft_questions_pending"
+    if _analysis_list(analysis, "critical_questions"):
+        return False, "critical_questions_pending"
+    if _analysis_list(analysis, "missing_required_inputs"):
+        return False, "missing_required_inputs"
+    text = str(user_text or "").lower()
+    if any(keyword.lower() in text for keyword in COMPLEX_AUTO_START_KEYWORDS):
+        return False, "complex_domain_requires_confirmation"
+    try:
+        confidence = float(analysis.get("confidence") or 0)
+    except Exception:
+        confidence = 0.0
+    if confidence < 0.8:
+        return False, "complex_domain_requires_confirmation"
+    return True, "simple_clear_request"
 
 
 def parse_json_object(text: str) -> dict[str, Any] | None:
@@ -2297,20 +2414,20 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 - 必须先判断哪些功能是核心能力，不能只按最近一句里的单个功能局部补丁；核心能力要写入 capability_research_targets 或 decision_log。
 - 对核心能力要主动寻找成熟/高级路线：本地模型、成熟库、外部 API、专用工作流、真实运行验证；如果只做简化 fallback，必须标明不满足对应验收。
 - 如果两条路线有明显用户可感知差异，比如本地模型/云端模型、SQLite/JSON、网页/桌面、同模型/分模型、线性剧情/分支剧情，必须作为 critical_questions 问客户，而不是静默默认。
-- 对可默认的信息直接给默认假设并继续，不要阻塞用户。
+- 对可默认的信息直接给默认假设；但如果存在 soft_questions、critical_questions、缺少真实输入或复杂/高不确定领域，不要宣布已经开始生成。
 - 只有缺失信息会导致完全无法生成时，才问一个阻塞问题。
 - 必须维护持续记忆：保留 current_whiteboard 里已有的用户规则、验收标准、修改请求、交付要求和决策记录。
 - 用户用“不是、我要的是、为什么没有、后续修改、必须、不允许”等方式纠正时，要写入 change_requests 或 acceptance_criteria。
 - 对你的产品/技术判断用一句可审计摘要写入 decision_log；这不是隐藏思维链，而是给后续 agent 复用的决策记录。
 - 输出要体现你懂这个项目。例如游戏视频高光项目，应主动给出视频输入、事件检测、高光评分、剪辑导出、MP4/H.264、通用信号检测等方案。
-- 不要要求用户回复固定口令，不要写“请回复开始生成”。
-- 如果信息足以生成第一版，回复里自然说明“我按这个方向开始做第一版”，并把 action 设为 "start_generation"。
+- 不要要求用户回复固定口令，但可以自然说明：你可以补充信息；如果想先按默认假设推进，可以回复“开始生成”或“按默认假设开始生成”。
+- 只有用户最近一条消息明确要求开始生成时，才把 action 设为 "start_generation"。
 - 当 action 是 "start_generation" 时，reply 不能只有一句“开始做”；要简短列出将生成的第一版能力、默认假设和测试/预览目标。
-- 如果用户提出项目想法或项目补充，前台给出第一版方案和默认假设，同时 action 直接设为 "start_generation"；不要等待固定口令或确认。
+- 如果用户只是提出项目想法或项目补充，前台给出第一版方案、默认假设和需确认问题，把 action 设为 "continue_chat"，等待用户明确开始。
 - 回复必须紧扣最近一条用户消息和 current_whiteboard，不要把话题切到无关产品、无关技术栈或通用客服话术。
 - 如果最近用户在纠正你，先承认修正点并更新白板，再继续推进；不要沿用旧理解。
 - 如果用户要求图片、视频、预览或可视化，必须把它写入 delivery_requirements 和 acceptance_criteria。
-- 如果用户要求本地图片模型生成背景/立绘/图片，必须追问本地图片后端或模型目录配置；这个问题写入 critical_questions，同时继续生成项目接口和测试，不把降级预览当作图片验收通过。
+- 如果用户要求本地图片模型生成背景/立绘/图片，必须追问本地图片后端或模型目录配置；这个问题写入 critical_questions。用户明确开始前不要自动生成；用户强制开始后，也不能把降级预览当作图片验收通过。
 - 用户上传图片、文档、视频、音频或数据文件时，必须把它当作项目输入资料；结合 caption 和 current_attachments 更新 known_facts、验收点或修改要求，不要回复“只能收文字”。
 - 不要暴露内部模块名、API/provider 名称、路径堆栈。
 - 输出必须是 JSON 对象，不要 Markdown，不要额外文字。
@@ -3369,6 +3486,87 @@ def run_model_frontdesk_turn(
         }
 
 
+def record_generation_start_waiting(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    analysis: dict[str, Any],
+    reason: str,
+) -> None:
+    session["generation_start_waiting"] = True
+    session["start_wait_reason"] = reason
+    session["pending_start_assumptions"] = _analysis_list(analysis, "assumptions")
+    session["pending_soft_questions"] = _analysis_list(analysis, "soft_questions")
+    session["pending_critical_questions"] = _analysis_list(analysis, "critical_questions")
+    session["pending_required_inputs"] = _analysis_list(analysis, "missing_required_inputs")
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    if str(generation.get("status", "idle")).lower() not in ACTIVE_GENERATION_STATUSES:
+        generation["status"] = "waiting_confirmation"
+        generation["start_wait_reason"] = reason
+        session["generation"] = generation
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "generation_start_waiting",
+            "role": "system",
+            "reason": reason,
+            "pending_soft_questions": session["pending_soft_questions"],
+            "pending_critical_questions": session["pending_critical_questions"],
+            "pending_required_inputs": session["pending_required_inputs"],
+            "soft_questions_are_blocking": False,
+        },
+    )
+    append_memory_event(
+        session,
+        "generation_start_waiting",
+        data={
+            "reason": reason,
+            "pending_soft_questions": session["pending_soft_questions"],
+            "pending_critical_questions": session["pending_critical_questions"],
+            "pending_required_inputs": session["pending_required_inputs"],
+        },
+    )
+    save_session(session_dir, session)
+
+
+def record_forced_start_context(session_dir: pathlib.Path, chat_id: int | str, session: dict[str, Any]) -> None:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    soft = session.get("pending_soft_questions", []) if isinstance(session.get("pending_soft_questions"), list) else whiteboard.get("soft_questions", [])
+    critical = session.get("pending_critical_questions", []) if isinstance(session.get("pending_critical_questions"), list) else whiteboard.get("critical_questions", [])
+    missing = session.get("pending_required_inputs", []) if isinstance(session.get("pending_required_inputs"), list) else whiteboard.get("missing_required_inputs", [])
+    unanswered = unique_strings([str(item) for item in list(soft or []) + list(critical or []) + list(missing or []) if str(item).strip()], limit=20)
+    if unanswered:
+        whiteboard["unanswered_questions"] = unique_strings(
+            list(whiteboard.get("unanswered_questions", []) if isinstance(whiteboard.get("unanswered_questions"), list) else []) + unanswered,
+            limit=30,
+        )
+        assumptions = list(whiteboard.get("default_assumptions", []) if isinstance(whiteboard.get("default_assumptions"), list) else [])
+        assumptions.extend(f"未回答/缺失项按默认假设推进: {item}" for item in unanswered)
+        whiteboard["default_assumptions"] = unique_strings(assumptions, limit=40)
+    if critical or missing:
+        session["forced_start_with_missing_inputs"] = True
+        session["missing_required_inputs"] = unique_strings([str(item) for item in missing if str(item).strip()], limit=20)
+        whiteboard["scope_downgrade"] = "scaffold_only_or_partial"
+        whiteboard["must_not_claim_full_domain_validation"] = True
+    session["generation_start_waiting"] = False
+    session["whiteboard"] = whiteboard
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "forced_generation_start_context",
+            "role": "system",
+            "unanswered_questions": unanswered,
+            "missing_required_inputs": session.get("missing_required_inputs", []),
+            "forced_start_with_missing_inputs": bool(session.get("forced_start_with_missing_inputs")),
+            "scope_downgrade": "scaffold_only_or_partial" if session.get("forced_start_with_missing_inputs") else "",
+            "must_not_claim_full_domain_validation": bool(session.get("forced_start_with_missing_inputs")),
+        },
+    )
+    save_session(session_dir, session)
+
+
 def start_generation_from_income(
     client: TelegramClient,
     chat_id: int | str,
@@ -3457,6 +3655,8 @@ def auto_start_pending_intakes(
         generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
         status = str(generation.get("status", "idle")).lower()
         if status in ACTIVE_GENERATION_STATUSES:
+            continue
+        if bool(session.get("generation_start_waiting")) or status == "waiting_confirmation":
             continue
         if str(run.get("status", "")).lower() != "intake_open":
             continue
@@ -3709,9 +3909,17 @@ def handle_text(
             session_dir,
             session,
             "backend_dialogue_requested",
-            "新需求已进入 agent_session，并触发模型客服和正式 agent 生成",
+            "新需求已进入 agent_session，并等待启动策略判断是否需要用户确认",
             evidence_ref=str(run.get("id", "")),
-            data={"artifact": "agent_session_intake", "auto_start": True},
+            data={"artifact": "agent_session_intake", "auto_start": False},
+        )
+        analysis = apply_backend_dialogue_tick(
+            session_dir,
+            chat_id,
+            session,
+            model=model,
+            timeout=timeout,
+            reason="new_project_request",
         )
         turn = run_model_frontdesk_turn(
             session_dir,
@@ -3721,6 +3929,19 @@ def handle_text(
             timeout=timeout,
             reason="new_project_request",
         )
+        auto_start, start_reason = should_auto_start_generation(session, analysis, text)
+        if not auto_start:
+            record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="model_frontdesk_reply",
+                source="backend_dialogue_start_policy",
+                direct_text=str(analysis.get("user_visible_reply") or turn.get("reply", "")),
+            )
+            return
         send_customer_reply(
             client,
             chat_id,
@@ -3743,6 +3964,8 @@ def handle_text(
         return
 
     if intent == "generation_confirmation":
+        record_forced_start_context(session_dir, chat_id, session)
+        session = load_session(session_dir, chat_id)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         soft_questions = whiteboard.get("soft_questions", []) if isinstance(whiteboard.get("soft_questions"), list) else []
         if soft_questions:
@@ -3754,6 +3977,8 @@ def handle_text(
                     "role": "system",
                     "soft_questions": soft_questions[:2],
                     "assumptions": whiteboard.get("default_assumptions", []),
+                    "unanswered_questions": whiteboard.get("unanswered_questions", []),
+                    "missing_required_inputs": session.get("missing_required_inputs", []),
                     "soft_questions_are_blocking": False,
                 },
             )
@@ -3825,6 +4050,29 @@ def handle_text(
         timeout=timeout,
         reason="project_update",
     )
+    analysis = session.get("backend_dialogue_analysis", {}) if isinstance(session.get("backend_dialogue_analysis"), dict) else {}
+    if not analysis or str(analysis.get("reason", "")) != "project_update":
+        analysis = apply_backend_dialogue_tick(
+            session_dir,
+            chat_id,
+            session,
+            model=model,
+            timeout=timeout,
+            reason="project_update",
+        )
+    auto_start, start_reason = should_auto_start_generation(session, analysis, text)
+    if not auto_start:
+        record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="model_frontdesk_reply",
+            source="backend_dialogue_start_policy",
+            direct_text=str(analysis.get("user_visible_reply") or turn.get("reply", "")),
+        )
+        return
     send_customer_reply(
         client,
         chat_id,
@@ -3959,6 +4207,27 @@ def handle_attachment_message(
         timeout=timeout,
         reason="attachment_project_input",
     )
+    analysis = apply_backend_dialogue_tick(
+        session_dir,
+        chat_id,
+        session,
+        model=model,
+        timeout=timeout,
+        reason="attachment_project_input",
+    )
+    auto_start, start_reason = should_auto_start_generation(session, analysis, user_text)
+    if not auto_start:
+        record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="model_frontdesk_reply",
+            source="backend_dialogue_start_policy",
+            direct_text=str(analysis.get("user_visible_reply") or turn.get("reply", "")),
+        )
+        return
     send_customer_reply(
         client,
         chat_id,

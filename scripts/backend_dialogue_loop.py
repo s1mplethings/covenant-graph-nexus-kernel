@@ -27,6 +27,7 @@ LIST_FIELDS = (
     "first_version_scope",
     "assumptions",
     "soft_questions",
+    "missing_required_inputs",
 )
 
 
@@ -71,6 +72,24 @@ def first_sentence(text: str, limit: int = 220) -> str:
     return value[:limit] or "这个项目"
 
 
+COMPLEX_DOMAIN_KEYWORDS = (
+    "csgo",
+    "csgo2",
+    "cs2",
+    "demo",
+    "鉴挂",
+    "反作弊",
+    "鼠标",
+    "键盘",
+    "视觉",
+    "行为分析",
+    "模型",
+    "数据集",
+    "视频",
+    "图像",
+)
+
+
 def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str = "project_update") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     existing_summary = str(whiteboard.get("project_summary", "")).strip()
@@ -85,9 +104,11 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     assumptions: list[str] = []
     questions: list[str] = []
     critical_questions: list[str] = []
+    missing_required_inputs: list[str] = []
     local_image_discovery: dict[str, Any] = {}
 
     text = latest_text or summary
+    complex_domain = contains_any(text, COMPLEX_DOMAIN_KEYWORDS)
     strategy = capability_strategy.build_capability_strategy(text, SCRIPTS_DIR.parent)
     if strategy.get("local_image_model_discovery"):
         local_image_discovery = strategy.get("local_image_model_discovery", {})
@@ -127,6 +148,26 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     if contains_any(text, ("截图", "测试", "报告", "可运行", "本地")):
         backend_plan.extend(["启动脚本", "基础自检", "交付清单"])
         scope.extend(["交付启动说明、测试结论和预览截图"])
+    if complex_domain:
+        frontend_plan.extend(["分析结果工作台", "时间线/事件查看", "风险提示视图"])
+        backend_plan.extend(["真实输入文件解析接口", "特征提取流程", "验证证据记录", "样例数据检查"])
+        data_model.extend(["demo_file", "input_event", "visual_signal", "risk_assessment"])
+        scope.extend(["第一版先做框架版/示例版分析流程，缺少真实输入时不宣称完成真实验证"])
+        assumptions.append("缺少真实 demo 或样例输入时，只能交付框架版/示例版并在限制中标记未完成真实验证")
+        missing_required_inputs.extend(
+            [
+                "实际 demo 文件或公开 demo 示例",
+                "判别标准或疑似外挂行为定义",
+                "期望输出形式，例如报告、时间线、可视化或风险评分",
+            ]
+        )
+        questions.extend(
+            [
+                "是否可以提供实际 demo 文件或公开示例？",
+                "鉴挂判别主要看动作规律、视角异常、命中事件，还是综合评分？",
+                "第一版输出要偏报告、时间线可视化，还是风险评分？",
+            ]
+        )
 
     if not frontend_plan:
         frontend_plan = ["项目工作台", "输入与配置区", "结果预览区"]
@@ -143,7 +184,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     short_request = len(compact) <= 8
     run_shape_unclear = not contains_any(text, ("本地", "网页", "app", "gui", "telegram", "桌面", "命令行", "cli", "小程序"))
     output_shape_unclear = not contains_any(text, ("界面", "文件", "导出", "自动化", "流程", "api", "报表", "网页", "工具"))
-    needs_direction_confirmation = bool(short_request or run_shape_unclear or output_shape_unclear)
+    needs_direction_confirmation = bool(short_request or run_shape_unclear or output_shape_unclear or complex_domain)
     if short_request:
         questions = ["这个项目第一版最核心的使用场景是什么？"]
         if run_shape_unclear:
@@ -160,11 +201,17 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     confidence = 0.82
     if len(compact) <= 8:
         confidence = 0.55
+    elif complex_domain:
+        confidence = 0.62
     elif questions:
         confidence = 0.72
 
     critical_questions = unique_strings(critical_questions, limit=3)
     soft_questions = unique_strings(questions, limit=3)
+    missing_required_inputs = unique_strings(missing_required_inputs, limit=6)
+    domain_risk_level = "high" if complex_domain else ("medium" if needs_direction_confirmation else "low")
+    recommended_next_action = "ask_user" if domain_risk_level == "high" or missing_required_inputs else ("wait_for_confirmation" if needs_direction_confirmation or soft_questions or critical_questions else "can_start")
+    start_allowed_with_assumptions = True
     frontend_plan = unique_strings(frontend_plan, limit=8)
     backend_plan = unique_strings(backend_plan, limit=8)
     data_model = unique_strings(data_model, limit=8)
@@ -175,16 +222,16 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     if critical_questions:
         question_text = "\n这里有一个关键配置要确认：" + "；".join(critical_questions)
     if soft_questions:
-        question_text += "\n我先带着默认假设继续，不会卡住生成；需要你补的话只问这一点：" + "；".join(soft_questions)
+        question_text += "\n需要你确认或补充：" + "；".join(soft_questions)
 
     if needs_direction_confirmation:
-        suggested_confirmation_reply = "你可以补充，也可以说开始生成，我会按这些假设推进"
+        suggested_confirmation_reply = "你可以补充这些信息；如果你想先做框架版，也可以回复“按默认假设开始生成”，我会把缺少真实 demo 验证写进限制"
         user_visible_reply = (
             f"我现在的理解：{summary}。\n"
             f"第一版默认假设：{'；'.join(assumptions[:3])}。\n"
             f"第一版先做：{'；'.join(scope[:3])}。\n"
             f"需要确认的问题：{'；'.join(soft_questions[:3]) if soft_questions else '暂无必须确认的问题'}。\n"
-            f"{suggested_confirmation_reply}。"
+            f"我先不会自动生成，避免做成空壳。{suggested_confirmation_reply}。"
             f"{question_text}"
         )
     else:
@@ -210,6 +257,10 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "assumptions": assumptions,
         "soft_questions": soft_questions,
         "critical_questions": critical_questions,
+        "missing_required_inputs": missing_required_inputs,
+        "domain_risk_level": domain_risk_level,
+        "recommended_next_action": recommended_next_action,
+        "start_allowed_with_assumptions": start_allowed_with_assumptions,
         "capability_strategy": strategy,
         "local_image_model_discovery": local_image_discovery,
         "ready_to_generate": True,
@@ -250,7 +301,7 @@ def backend_dialogue_prompt(latest_text: str, local: dict[str, Any]) -> str:
     return (
         "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
         "根据用户最新需求和本地初稿，输出 JSON，字段只能包括: "
-        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, needs_direction_confirmation, suggested_confirmation_reply, user_visible_reply。"
+        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, missing_required_inputs, domain_risk_level, recommended_next_action, start_allowed_with_assumptions, needs_direction_confirmation, suggested_confirmation_reply, user_visible_reply。"
         "soft_questions 最多 3 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
         "critical_questions 只用于本地模型、凭据、外部能力等关键配置缺口；不能作为生成硬门禁。"
         f"\n用户最新需求: {latest_text[:4000]}"
@@ -322,6 +373,18 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
             merged["backend_memo"] = f"后台拆解: {merged.get('project_summary', '')}"
         if "needs_direction_confirmation" in provider:
             merged["needs_direction_confirmation"] = bool(provider.get("needs_direction_confirmation"))
+        for key in ("missing_required_inputs",):
+            if isinstance(provider.get(key), list):
+                merged[key] = unique_strings(
+                    list(local.get(key, []) if isinstance(local.get(key), list) else []) + list(provider.get(key, [])),
+                    limit=6,
+                )
+        for key in ("domain_risk_level", "recommended_next_action"):
+            value = str(provider.get(key, "")).strip()
+            if value:
+                merged[key] = value[:80]
+        if "start_allowed_with_assumptions" in provider:
+            merged["start_allowed_with_assumptions"] = bool(provider.get("start_allowed_with_assumptions"))
         if str(provider.get("suggested_confirmation_reply", "")).strip():
             merged["suggested_confirmation_reply"] = str(provider.get("suggested_confirmation_reply", "")).strip()[:500]
         merged["source"] = provider_source
@@ -331,7 +394,11 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
             merged["local_model_name"] = str(provider.get("_local_model_name", ""))
     merged["soft_questions"] = unique_strings(merged.get("soft_questions", []), limit=3)
     merged["critical_questions"] = unique_strings(merged.get("critical_questions", []), limit=3)
+    merged["missing_required_inputs"] = unique_strings(merged.get("missing_required_inputs", []), limit=6)
     merged["ready_to_generate"] = True
+    merged.setdefault("domain_risk_level", "low")
+    merged.setdefault("recommended_next_action", "can_start")
+    merged.setdefault("start_allowed_with_assumptions", True)
     merged["updated_at"] = now()
     return merged
 
@@ -354,9 +421,13 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
     )
     critical_questions = unique_strings(analysis.get("critical_questions", []), limit=3)
     soft_questions = unique_strings(analysis.get("soft_questions", []), limit=3)
-    whiteboard["open_questions"] = unique_strings(critical_questions + soft_questions, limit=4)
+    missing_required_inputs = unique_strings(analysis.get("missing_required_inputs", []), limit=6)
+    whiteboard["open_questions"] = unique_strings(critical_questions + soft_questions + missing_required_inputs, limit=8)
     whiteboard["soft_questions"] = unique_strings(analysis.get("soft_questions", []), limit=3)
     whiteboard["critical_questions"] = critical_questions
+    whiteboard["missing_required_inputs"] = missing_required_inputs
+    whiteboard["domain_risk_level"] = str(analysis.get("domain_risk_level", "low"))
+    whiteboard["recommended_next_action"] = str(analysis.get("recommended_next_action", "can_start"))
     if analysis.get("local_image_model_discovery"):
         whiteboard["local_image_model_discovery"] = analysis.get("local_image_model_discovery")
     if analysis.get("capability_strategy"):

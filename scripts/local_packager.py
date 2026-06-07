@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import time
 import zipfile
 from datetime import datetime, timezone
@@ -42,6 +43,62 @@ def _ensure_readme(project_dir: pathlib.Path, startup_command: str) -> pathlib.P
     return readme
 
 
+def _read_text(path: pathlib.Path, limit: int = 50000) -> str:
+    if not path.exists() or not path.is_file():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")[:limit]
+
+
+def _has_nonempty_commands_run(text: str) -> bool:
+    lowered = text.lower()
+    if "commands_run" not in lowered:
+        return False
+    match = re.search(r"commands_run\s*:?(.*?)(?:\n\s*(?:results|failures|repairs|remaining_warnings)\s*:|\Z)", text, flags=re.I | re.S)
+    section = match.group(1) if match else ""
+    cleaned = re.sub(r"[\s`\-:\[\],]+", "", section).lower()
+    return bool(cleaned) and cleaned not in {"none", "null", "empty", "无", "未执行"}
+
+
+def _is_placeholder_preview(path: pathlib.Path) -> bool:
+    lowered = path.name.lower()
+    if any(token in lowered for token in ("placeholder", "mock", "fallback", "delivery_summary", "summary_preview")):
+        return True
+    if path.suffix.lower() in {".html", ".txt", ".md", ".svg"}:
+        text = _read_text(path, limit=8000).lower()
+        return any(token in text for token in ("placeholder", "mock screenshot", "占位", "示例预览", "自动生成的交付摘要图"))
+    return False
+
+
+def _preview_candidates(project: pathlib.Path) -> list[pathlib.Path]:
+    preview_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".html"}
+    if not project.exists():
+        return []
+    return [path for path in project.rglob("*") if path.is_file() and path.suffix.lower() in preview_suffixes]
+
+
+def _sample_input_found(project: pathlib.Path) -> bool:
+    tokens = ("sample", "samples", "fixture", "fixtures", "test_data", "input", "inputs", "demo")
+    suffixes = {".dem", ".demo", ".json", ".csv", ".txt", ".mp4", ".avi", ".mov", ".png", ".jpg", ".jpeg"}
+    if not project.exists():
+        return False
+    for path in project.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = str(path.relative_to(project)).replace("\\", "/").lower()
+        if any(token in rel for token in tokens) and path.suffix.lower() in suffixes:
+            if path.name not in {"delivery_manifest.json"}:
+                return True
+    return False
+
+
+def _looks_like_demo_data_project(project: pathlib.Path, known_limits: list[str] | None) -> bool:
+    haystack = "\n".join(str(item) for item in known_limits or [])
+    for name in ("README.md", "PRODUCT_PLAN.md", "OUTPUT_CONTRACT.md", "TECHNICAL_PLAN.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
+        haystack += "\n" + _read_text(project / name, limit=12000)
+    lowered = haystack.lower()
+    return any(token in lowered for token in ("csgo", "csgo2", "cs2", "demo", "数据分析", "data analysis", "鉴挂", "反作弊", "外部文件", "样例输入"))
+
+
 def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     paths = {
@@ -53,19 +110,24 @@ def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
         "technical_plan": project / "TECHNICAL_PLAN.md",
         "build_plan": project / "BUILD_PLAN.md",
     }
-    preview_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".html"}
-    preview_found = False
-    if project.exists():
-        preview_found = any(path.is_file() and path.suffix.lower() in preview_suffixes for path in project.rglob("*"))
+    test_report_text = _read_text(paths["test_report"])
+    preview_candidates = _preview_candidates(project)
+    real_preview_candidates = [path for path in preview_candidates if not _is_placeholder_preview(path)]
+    placeholder_preview_candidates = [path for path in preview_candidates if _is_placeholder_preview(path)]
     return {
         "readme_found": paths["readme"].exists(),
         "test_report_found": paths["test_report"].exists(),
+        "test_report_has_commands": _has_nonempty_commands_run(test_report_text),
+        "test_report_has_no_test_executed": "NO TEST EXECUTED" in test_report_text.upper(),
+        "test_report_mentions_sample_input": bool(re.search(r"\b(sample|fixture|demo|input|test_data)\b|样例|示例|真实输入|测试数据", test_report_text, flags=re.I)),
         "delivery_notes_found": paths["delivery_notes"].exists(),
         "product_plan_found": paths["product_plan"].exists(),
         "output_contract_found": paths["output_contract"].exists(),
         "technical_plan_found": paths["technical_plan"].exists(),
         "build_plan_found": paths["build_plan"].exists(),
-        "preview_evidence_found": preview_found,
+        "preview_evidence_found": bool(real_preview_candidates),
+        "preview_placeholder_found": bool(placeholder_preview_candidates),
+        "sample_input_found": _sample_input_found(project),
         "test_report_path": str(paths["test_report"].resolve()) if paths["test_report"].exists() else "",
         "delivery_notes_path": str(paths["delivery_notes"].resolve()) if paths["delivery_notes"].exists() else "",
     }
@@ -94,10 +156,16 @@ def package_project(
         warnings.append("README.md 由 packager 自动补齐，内容可能不完整")
     if not quality_evidence["test_report_found"]:
         warnings.append("未找到 TEST_REPORT.md，本轮测试证据不足")
+    elif quality_evidence["test_report_has_no_test_executed"]:
+        warnings.append("测试报告存在，但未执行真实测试命令")
     if not quality_evidence["delivery_notes_found"]:
         warnings.append("未找到 DELIVERY_NOTES.md，本轮交付复核不足")
+    if quality_evidence.get("preview_placeholder_found"):
+        warnings.append("预览为占位示例，不算真实运行证据")
     if not quality_evidence["preview_evidence_found"]:
         warnings.append("未找到预览证据")
+    if _looks_like_demo_data_project(project, known_limits) and not quality_evidence.get("sample_input_found") and not quality_evidence.get("test_report_mentions_sample_input"):
+        warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
     run_log = pathlib.Path(run_log_path).resolve() if run_log_path else target_dir / "packager_run_log.txt"
     if not run_log.exists():
         run_log.write_text(f"{now()} packaged project\n", encoding="utf-8")
@@ -105,6 +173,8 @@ def package_project(
         screenshot = pathlib.Path(screenshot_path)
         if not screenshot.exists():
             warnings.append(f"效果预览文件未找到: {screenshot}")
+        elif _is_placeholder_preview(screenshot):
+            warnings.append("预览为占位示例，不算真实运行证据")
     else:
         warnings.append("本轮没有生成效果预览图，已先交付可运行项目文件")
 

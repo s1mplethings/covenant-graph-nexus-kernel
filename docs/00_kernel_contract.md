@@ -24,6 +24,7 @@ CGNK Kernel is fixed responsible for:
 16. Recording a project-level capability strategy for core capabilities, advanced-method candidates, obvious route differences, and acceptance limits. This is universal planning context for the same manifest/runner flow, not a project-type-specific generator.
 17. Requiring every formal `pipeline_manifest` to cover Product Studio evidence stages: `product_plan`, `technical_plan`, `build`, `test`, `review`, and `package`.
 18. Auditing quality evidence before `package_project`, including `TEST_REPORT.md` and `DELIVERY_NOTES.md`, and recording missing evidence as warnings instead of hiding it.
+19. Waiting for explicit user start confirmation when backend dialogue finds soft questions, critical questions, missing required inputs, or complex/high-uncertainty domains. These questions are not hard gates once the user explicitly starts; they become assumptions and delivery warnings.
 
 ## Kernel Prohibitions
 
@@ -40,6 +41,7 @@ CGNK Kernel must not:
 9. Enter a fixed project generation flow without first recording a `pipeline_manifest`, except when an explicit `pipeline_fallback` event is recorded.
 10. Count any fallback preview, placeholder, stub, procedural substitute, simulated result, or basic implementation as satisfying an explicitly requested core capability that requires a mature method, configured model, external API, local service, data source, automation engine, or runtime evidence.
 11. Encode a project type, industry, object, or domain label as a special formal generation path. Domain labels may only help infer underlying capabilities; the manifest/runner route remains universal.
+12. Automatically start complex or under-specified project generation merely because soft questions are non-blocking. Non-blocking means the user may explicitly start with assumptions, not that the system starts by itself.
 
 ## Stable Flow
 
@@ -76,6 +78,8 @@ Local-model routing may reduce provider cost for low-risk tasks. Public reply ta
 Configured local models do not create a new formal generation path.
 
 Critical setup questions, such as a missing model service, unavailable API credential, absent data source, storage choice, automation engine, runtime target, or security boundary, may be recorded in `critical_questions` and `open_questions`. They do not block the manifest/runner flow, but they must be reflected in acceptance criteria so fallback output is not misreported as satisfying the requested capability.
+
+Telegram intake uses `should_auto_start_generation` before starting formal generation from a new project request, project update, or attachment. If `needs_direction_confirmation`, `soft_questions`, `critical_questions`, `missing_required_inputs`, a complex/high-uncertainty domain, or low confidence is present, intake records `generation_start_waiting` and waits. If the user explicitly says to start, unanswered questions and missing inputs are written into `generation_context_snapshot` as assumptions and warnings; outputs with missing real inputs must be partial/scaffold evidence, not full validation.
 
 Capability strategy fields such as `capability_strategy` and `capability_research_targets` guide CFO planning and support agents for every project. They must describe underlying capabilities and advanced-method candidates, not project-type-specific branches. They do not authorize legacy pipelines, arbitrary execution, or bypassing manifest validation.
 
