@@ -476,7 +476,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             memo = "\n".join(item["text"] for item in session["backend_memos"])
             self.assertIn("模型测试回复", memo)
             self.assertNotIn("{", memo)
-            self.assertIn("我先不会自动生成", client.messages[-1][1])
+            self.assertIn("周衡", client.messages[-1][1])
+            self.assertIn("团队先不急着开工", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
@@ -500,7 +501,10 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 called["session_path"] = str(session_path)
                 pathlib.Path(project_dir).mkdir(parents=True, exist_ok=True)
                 (pathlib.Path(project_dir) / "README.md").write_text("# Todo\n", encoding="utf-8")
-                manifest = local_packager.package_project(pathlib.Path(project_dir), startup_command="")
+                (pathlib.Path(project_dir) / "app.py").write_text("print('todo')\n", encoding="utf-8")
+                (pathlib.Path(project_dir) / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (pathlib.Path(project_dir) / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+                manifest = local_packager.package_project(pathlib.Path(project_dir), startup_command="python app.py")
                 return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
 
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
@@ -531,6 +535,9 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
                 pathlib.Path(project_dir).mkdir(parents=True, exist_ok=True)
                 (pathlib.Path(project_dir) / "README.md").write_text("# VN\n", encoding="utf-8")
+                (pathlib.Path(project_dir) / "app.py").write_text("print('vn')\n", encoding="utf-8")
+                (pathlib.Path(project_dir) / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (pathlib.Path(project_dir) / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
                 manifest = local_packager.package_project(pathlib.Path(project_dir), startup_command="")
                 return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
 
@@ -550,7 +557,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(0, len(start_controls))
             self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
             self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertIn(session["generation"]["status"].upper(), {"BLOCKED", "REWORK"})
 
     def test_startup_auto_starts_pending_intake(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -636,7 +644,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertNotEqual("running", session["generation"]["status"])
             self.assertEqual({}, called)
             self.assertTrue(session["generation_start_waiting"])
-            self.assertIn("我先不会自动生成", client.messages[-1][1])
+            self.assertIn("周衡", client.messages[-1][1])
+            self.assertIn("团队先不急着开工", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
@@ -699,7 +708,9 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(1, len(session["attachments"]))
             self.assertEqual({}, called)
             self.assertTrue(session["generation_start_waiting"])
-            self.assertIn("我先不会自动生成", client.messages[-1][1])
+            self.assertIn("周衡", client.messages[-1][1])
+            self.assertIn("许楠", client.messages[-1][1])
+            self.assertIn("做成空壳", client.messages[-1][1])
 
     def test_delivery_ready_depends_only_on_truth_ledger_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -730,8 +741,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertTrue(state["delivery_ready"])
             self.assertTrue(state["sent_record"])
             self.assertEqual(1, len(client.photos))
-            self.assertEqual(2, len(client.documents))
-            self.assertIn("可交付材料已经齐了", client.messages[-1][1])
+            self.assertEqual(1, len(client.documents))
+            self.assertIn("乔安完成了交付复核", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_pending_decision_asks_one_question_and_pauses(self) -> None:

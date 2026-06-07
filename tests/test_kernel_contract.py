@@ -219,6 +219,33 @@ class KernelContractTests(unittest.TestCase):
         self.assertGreater(local_model_router.local_model_temperature("customer_public_reply"), 0.5)
         self.assertEqual(0.1, local_model_router.local_model_temperature("cfo_pipeline"))
 
+    def test_public_delivery_gate_is_part_of_kernel_contract(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        send_manifest = function_body(bridge_source, "send_delivery_from_manifest")
+        send_checkpoint = function_body(bridge_source, "send_evidence_checkpoint")
+
+        self.assertIn("Telegram public delivery gate", doc)
+        self.assertIn("README-only/docs-only", doc)
+        self.assertIn("NO TEST EXECUTED", doc)
+        self.assertIn("`.zip`", doc)
+        self.assertIn("PUBLIC_DELIVERY_SUFFIXES", bridge_source)
+        self.assertIn("evaluate_public_delivery_gate", send_manifest)
+        self.assertIn("evaluate_public_delivery_gate", send_checkpoint)
+        self.assertIn("emit_public_delivery", send_manifest)
+        self.assertIn("emit_public_delivery", send_checkpoint)
+
+    def test_public_team_narration_is_expression_layer_only(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        bridge = read_source("scripts/telegram_live_bridge.py")
+
+        self.assertIn("Public team narration is allowed only at Telegram reply boundaries", doc)
+        self.assertIn("does not create a new formal generation path", doc)
+        self.assertIn("team_narration", bridge)
+        self.assertIn("pipeline_manifest", doc)
+        self.assertIn("dynamic_pipeline_runner", doc)
+        self.assertIn("local_packager", doc)
+
     def test_malformed_agent_json_recovery_stays_inside_manifest_step(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         runner = read_source("scripts/dynamic_pipeline_runner.py")

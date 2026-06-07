@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+try:
+    import team_narration
+except ModuleNotFoundError:  # pragma: no cover - direct package import fallback
+    from scripts import team_narration
+
 
 class ProductStudioReplyComposer:
     def timeout_or_blocked_reply(self, failure_result: dict[str, Any]) -> str:
@@ -11,18 +16,18 @@ class ProductStudioReplyComposer:
         if not isinstance(missing, list):
             missing = []
         missing_text = "、".join(str(item) for item in missing[:8]) or "未记录"
-        retry = "可以重试，并复用 product_studio_run.json、customer_intent.raw_user_message、output_contract 和 frozen_project_type。"
+        retry = "你可以继续补充要求，林然会复用已记录的项目方向，许楠和陈序从同一上下文继续修复。"
         if reason == "project_type_mismatch":
-            lead = "虚拟项目组已阻止交付：项目方向偏题，生成内容与冻结项目类型不一致。"
+            lead = "乔安暂时阻止交付：项目方向出现偏差，当前产物和林然整理的目标不一致。"
         elif "timeout" in reason:
-            lead = "虚拟项目组已暂停交付：后台生成超过本轮等待时间，不能把未验证产物说成完成。"
+            lead = "乔安暂时暂停交付：这一轮等待时间已到，陈序还不能把未验证产物标成完成。"
         else:
-            lead = "虚拟项目组已暂停交付：生成链被阻断，当前不能进入交付。"
-        return (
+            lead = "乔安暂时暂停交付：许楠这轮实现被阻断，当前不能进入交付。"
+        return team_narration.redact_internal_terms(
             f"{lead}\n"
             f"阻断原因: {reason}\n"
-            f"最后阶段: {last_phase}\n"
-            f"缺失 artifact: {missing_text}\n"
+            f"最后进展: {last_phase}\n"
+            f"缺失材料: {missing_text}\n"
             f"{retry}"
         )
 

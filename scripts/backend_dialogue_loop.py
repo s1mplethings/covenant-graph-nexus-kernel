@@ -18,6 +18,7 @@ import check_connectivity
 import capability_strategy
 import local_image_model_discovery
 import local_model_router
+import team_narration
 
 
 LIST_FIELDS = (
@@ -244,24 +245,24 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     if needs_direction_confirmation:
         suggested_confirmation_reply = "你可以补充这些信息；如果你想先做框架版，也可以回复“按默认假设开始生成”，我会把缺少真实 demo 验证写进限制"
         user_visible_reply = (
-            f"我现在的理解：{summary}。\n"
-            f"第一版默认假设：{'；'.join(assumptions[:3])}。\n"
-            f"第一版先做：{'；'.join(scope[:3])}。\n"
-            f"需要确认的问题：{'；'.join(soft_questions[:3]) if soft_questions else '暂无必须确认的问题'}。\n"
-            f"我先不会自动生成，避免做成空壳。{suggested_confirmation_reply}。"
+            f"林然先按这个方向整理第一版范围：{summary}。\n"
+            f"林然采用的默认假设：{'；'.join(assumptions[:3])}。\n"
+            f"许楠第一版先做：{'；'.join(scope[:3])}。\n"
+            f"需要你确认：{'；'.join(soft_questions[:3]) if soft_questions else '暂无必须确认的问题'}。\n"
+            f"周衡建议先确认这些点，避免许楠直接做成空壳。{suggested_confirmation_reply}。"
             f"{question_text}"
         )
     else:
         suggested_confirmation_reply = ""
         user_visible_reply = (
-            f"我按项目需求开始拆：{summary}。\n"
-            f"第一版先做：{'；'.join(scope[:3])}。\n"
-            f"前端重点：{'；'.join(frontend_plan[:4])}。\n"
-            f"后端重点：{'；'.join(backend_plan[:4])}。"
+            f"林然先按这个方向整理第一版范围：{summary}。\n"
+            f"许楠第一版先做：{'；'.join(scope[:3])}。\n"
+            f"沈镜会关注：{'；'.join(frontend_plan[:4])}。\n"
+            f"周衡建议技术路线：{'；'.join(backend_plan[:4])}。"
             f"{question_text}"
         )
     if requires_user_evidence_review:
-        user_visible_reply += "\n生成后我会先给你测试代码、测试命令和可视化/视频/预览证据，让你判断，再进入最终打包。"
+        user_visible_reply += "\n陈序会整理测试代码和测试命令，沈镜会把可视化/视频/预览证据发给你判断，再让乔安进入最终复核。"
 
     return {
         "kind": "BackendDialogueAnalysis",
@@ -287,7 +288,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "needs_direction_confirmation": needs_direction_confirmation,
         "suggested_confirmation_reply": suggested_confirmation_reply,
         "confidence": confidence,
-        "user_visible_reply": user_visible_reply[:1500],
+        "user_visible_reply": team_narration.redact_internal_terms(user_visible_reply)[:1500],
         "source": "local_heuristic",
         "updated_at": now(),
     }

@@ -20,6 +20,8 @@ class FakeTelegramClient:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
+        self.photos: list[tuple[str, pathlib.Path, str]] = []
+        self.videos: list[tuple[str, pathlib.Path, str]] = []
 
     def send_message(self, chat_id: int | str, text: str) -> bool:
         self.messages.append((str(chat_id), text))
@@ -30,6 +32,14 @@ class FakeTelegramClient:
 
     def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
+        return True
+
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+        return True
+
+    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.videos.append((str(chat_id), pathlib.Path(path), caption))
         return True
 
 
@@ -51,6 +61,8 @@ def make_manifest(project_dir: pathlib.Path) -> dict:
     project_dir.mkdir(parents=True, exist_ok=True)
     (project_dir / "README.md").write_text("# Demo\n", encoding="utf-8")
     (project_dir / "app.py").write_text("print('ok')\n", encoding="utf-8")
+    (project_dir / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+    (project_dir / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
     return local_packager.package_project(project_dir, startup_command="python app.py")
 
 
@@ -353,11 +365,12 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertTrue(any(item["kind"] == "package" for item in sent))
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
-            self.assertTrue(any(path.name == "delivery_manifest.json" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "delivery_manifest.json" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "README.md" for _, path, _ in client.documents))
             self.assertNotIn("screenshot", client.messages[-1][1].lower())
             self.assertNotIn("not provided", client.messages[-1][1].lower())
             ledger = bridge.truth_ledger_path(session_dir, "chat-d").read_text(encoding="utf-8")
-            self.assertIn("delivery_manifest", ledger)
+            self.assertIn("public_delivery_attachment_sent", ledger)
 
     def test_non_pass_generation_updates_active_run_out_of_running(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

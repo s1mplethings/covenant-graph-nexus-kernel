@@ -29,12 +29,14 @@ import agent_conversation_loop
 import backend_dialogue_loop
 import capability_strategy
 import dynamic_pipeline_runner
+import local_packager
 import local_image_model_discovery
 import local_model_router
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
+import team_narration
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
 DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "telegram_live_logs"
@@ -43,6 +45,12 @@ DEFAULT_UPLOAD_DIR = ROOT / "examples" / "test_results" / "telegram_live_uploads
 POLICY_PATH = ROOT / "config" / "customer_agent_policy.md"
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 GENERATION_TOTAL_TIMEOUT_SECONDS = 900
+PUBLIC_DELIVERY_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".zip"}
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+VIDEO_SUFFIXES = {".mp4", ".webm"}
+INTERNAL_EVIDENCE_SUFFIXES = {".md", ".json", ".txt", ".log"}
+DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", ".yml", ".toml", ".ini"}
+RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
 
 DEFAULT_CUSTOMER_AGENT_POLICY = """# Customer Agent Policy
 
@@ -1272,17 +1280,12 @@ def project_analysis_reply(session: dict[str, Any], facts: dict[str, Any] | None
     acceptance = whiteboard.get("acceptance_criteria", []) if isinstance(whiteboard.get("acceptance_criteria"), list) else []
     requirements = unique_strings([str(item) for item in delivery + acceptance if str(item).strip()], limit=3)
     requirement_text = "；".join(requirements) if requirements else "可运行项目、启动说明、测试结论和真实预览产物"
-    backend_line = (
-        "后台已接入正式生成流程。"
-        if facts.get("backend_parallel_started", True)
-        else "后台会按这版项目上下文继续分析。"
-    )
+    team_line = "许楠会先做可运行版本，陈序准备测试记录，沈镜整理预览证据。" if facts.get("backend_parallel_started", True) else "林然和周衡会继续把范围和技术路线整理清楚。"
     return (
-        "我按项目需求处理，不停在记录阶段。\n"
-        f"当前目标：{summary}\n"
-        "第一版拆解：故事时间线管理、本地运行入口、背景生成、立绘生成、产物预览和交付包。\n"
+        f"林然已经把需求整理成第一版方向：{summary}\n"
+        "周衡会按核心能力拆技术路线，许楠负责把第一版做成可运行项目。\n"
         f"验收重点：{requirement_text}。\n"
-        f"{backend_line}前台继续接收你的补充；后端同时找实现方式、写项目、运行检查，没产物前不报完成。"
+        f"{team_line}没看到真实产物前，乔安不会把它标成完成。"
     )
 
 
@@ -1293,17 +1296,17 @@ def backend_dialogue_status_text(session: dict[str, Any]) -> str:
     frontend = analysis.get("frontend_plan") if isinstance(analysis.get("frontend_plan"), list) else whiteboard.get("frontend_plan", [])
     backend = analysis.get("backend_plan") if isinstance(analysis.get("backend_plan"), list) else whiteboard.get("backend_plan", [])
     questions = analysis.get("soft_questions") if isinstance(analysis.get("soft_questions"), list) else whiteboard.get("soft_questions", [])
-    frontend_text = "；".join(str(item) for item in frontend[:3] if str(item).strip()) or "已进入第一版界面拆解"
-    backend_text = "；".join(str(item) for item in backend[:3] if str(item).strip()) or "已进入本地后端拆解"
+    frontend_text = "；".join(str(item) for item in frontend[:3] if str(item).strip()) or "沈镜先按第一版体验拆界面和预览"
+    backend_text = "；".join(str(item) for item in backend[:3] if str(item).strip()) or "周衡先按本地运行方式拆核心流程"
     question_text = ""
     if questions:
-        question_text = "\n可补充；你明确开始后我会按已记录假设推进：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
+        question_text = "\n林然建议补充：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
     return (
-        f"当前后台分析：{summary[:500]}。\n"
-        f"前端：{frontend_text}。\n"
-        f"后端：{backend_text}。"
+        f"林然先按这个方向整理第一版范围：{summary[:500]}。\n"
+        f"沈镜关注：{frontend_text}。\n"
+        f"周衡建议：{backend_text}。"
         f"{question_text}\n"
-        "正式生成还没开始；你说“开始生成”后才会进入真实生成流程。"
+        "如果你说“开始生成”，我会让许楠按已记录假设先做可运行版本，陈序同步准备测试记录。"
     )
 
 
@@ -1320,21 +1323,22 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
     if event == "project_update":
         return project_analysis_reply(session, facts)
     if event == "simulator_started":
-        return "当前状态：正在处理。我开始按这版需求往下推进；还没有可运行项目、效果预览和测试结论，所以不会提前说完成。"
+        return team_narration.team_say("generation_started", facts)
     if event == "blocked":
         reason = str(facts.get("reason", "当前证据不足或流程被阻断"))
         return f"这轮先停住：{reason}。我会把已确认的需求保留下来，下一次可以从这个方向继续。"
     if event == "delivery_ready":
-        return "可交付材料已经齐了，我会直接发项目结果、效果预览和测试结论。"
+        return team_narration.team_say("delivery_ready", facts)
     if event == "unsupported_attachment_received":
-        return "非文本资料已进入入口检查；图片、文档、视频、音频会作为项目输入进入后台。"
+        return "林然已把这份资料记为项目输入；图片、文档、视频、音频都会交给团队作为需求和验证材料。"
     if event == "generation_failed":
-        return str(facts.get("user_visible_cause") or "后台流程中断，当前不能交付；下一条项目输入会重新触发后台。")
-    return str(facts.get("message") or backend_memo or "当前项目上下文已进入处理；后台按最新目标推进。")
+        return str(facts.get("user_visible_cause") or "许楠这轮实现过程被中断，乔安暂时不能交付；你继续补充项目输入后，团队会从同一上下文修复。")
+    return str(facts.get("message") or backend_memo or "林然已记录当前项目上下文，团队会按最新目标继续处理。")
 
 
 def pre_send_guard(text: str) -> str:
     guarded = str(text or "").strip()
+    guarded = team_narration.redact_internal_terms(guarded)
     guarded = re.sub(r"[A-Za-z]:\\[^\s，。；；]+", "本地工作区记录", guarded)
     guarded = re.sub(
         r"(?<![\w\u4e00-\u9fff])/(?:Users|home|tmp|var|mnt|workspace|app|src|data|generated|examples|root)(?:/[^\s，。；；]+)+",
@@ -1367,7 +1371,8 @@ def pre_send_guard(text: str) -> str:
     for old, new in replacements.items():
         guarded = guarded.replace(old, new)
     guarded = guarded.replace("JSON", "结构化记录")
-    return guarded[:3900] or "当前项目上下文已进入处理。"
+    guarded = team_narration.redact_internal_terms(guarded)
+    return guarded[:3900] or "林然已记录当前项目上下文，团队会按最新目标继续处理。"
 
 
 def send_customer_reply(
@@ -1479,6 +1484,359 @@ def _evidence_paths(project_dir: pathlib.Path, values: Any, *, limit: int = 6) -
     return paths
 
 
+def _path_list(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    return [str(item).strip() for item in values if str(item).strip()]
+
+
+def _asset_label_text(path: pathlib.Path) -> str:
+    return str(path).replace("\\", "/").lower()
+
+
+def _looks_like_screenshot_asset(path: pathlib.Path) -> bool:
+    text = _asset_label_text(path)
+    return any(token in text for token in ("screenshot", "screen", "ui", "window", "interface", "界面", "截图"))
+
+
+def _looks_like_generated_image_asset(path: pathlib.Path) -> bool:
+    text = _asset_label_text(path)
+    return any(
+        token in text
+        for token in (
+            "generated",
+            "generation",
+            "output",
+            "outputs",
+            "asset",
+            "background",
+            "bg",
+            "scene",
+            "sprite",
+            "character",
+            "portrait",
+            "立绘",
+            "背景",
+            "角色",
+        )
+    )
+
+
+def _looks_like_background_asset(path: pathlib.Path) -> bool:
+    text = _asset_label_text(path)
+    return any(token in text for token in ("background", "bg_", "bg-", "/bg/", "scene", "背景"))
+
+
+def _looks_like_sprite_asset(path: pathlib.Path) -> bool:
+    text = _asset_label_text(path)
+    return any(token in text for token in ("sprite", "character", "portrait", "standing", "立绘", "角色"))
+
+
+def _add_asset(bucket: list[pathlib.Path], path: pathlib.Path | None) -> None:
+    if not path or not path.exists() or not path.is_file():
+        return
+    suffix = path.suffix.lower()
+    if suffix not in PUBLIC_DELIVERY_SUFFIXES:
+        return
+    try:
+        resolved = path.resolve()
+    except Exception:
+        resolved = path
+    if str(resolved) not in {str(item.resolve()) for item in bucket}:
+        bucket.append(resolved)
+
+
+def collect_public_delivery_assets(
+    project_dir: pathlib.Path,
+    manifest: dict[str, Any] | None = None,
+    evidence: dict[str, Any] | None = None,
+) -> dict[str, list[pathlib.Path]]:
+    project = pathlib.Path(project_dir).resolve()
+    manifest = manifest if isinstance(manifest, dict) else {}
+    evidence = evidence if isinstance(evidence, dict) else {}
+    assets: dict[str, list[pathlib.Path]] = {
+        "packages": [],
+        "screenshots": [],
+        "generated_images": [],
+        "generated_backgrounds": [],
+        "generated_sprites": [],
+        "videos": [],
+    }
+
+    package = _evidence_path(str(manifest.get("package_path", "")))
+    _add_asset(assets["packages"], package)
+    if project.exists():
+        for path in sorted(project.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in PUBLIC_DELIVERY_SUFFIXES:
+                continue
+            suffix = path.suffix.lower()
+            if suffix == ".zip":
+                _add_asset(assets["packages"], path)
+            elif suffix in VIDEO_SUFFIXES or suffix == ".gif":
+                _add_asset(assets["videos"], path)
+            elif suffix in IMAGE_SUFFIXES:
+                if _looks_like_screenshot_asset(path):
+                    _add_asset(assets["screenshots"], path)
+                if _looks_like_generated_image_asset(path):
+                    _add_asset(assets["generated_images"], path)
+                if _looks_like_background_asset(path):
+                    _add_asset(assets["generated_backgrounds"], path)
+                if _looks_like_sprite_asset(path):
+                    _add_asset(assets["generated_sprites"], path)
+
+    for raw in _path_list(evidence.get("screenshots", [])):
+        _add_asset(assets["screenshots"], _project_evidence_path(project, raw))
+    for raw in _path_list(evidence.get("videos", [])):
+        _add_asset(assets["videos"], _project_evidence_path(project, raw))
+    for key in ("generated_images", "backgrounds", "characters", "sprites"):
+        for raw in _path_list(evidence.get(key, [])):
+            path = _project_evidence_path(project, raw)
+            _add_asset(assets["generated_images"], path)
+            if path and (key == "backgrounds" or _looks_like_background_asset(path)):
+                _add_asset(assets["generated_backgrounds"], path)
+            if path and (key in {"characters", "sprites"} or _looks_like_sprite_asset(path)):
+                _add_asset(assets["generated_sprites"], path)
+    return assets
+
+
+def _requirement_text(session: dict[str, Any], fallback: str = "") -> str:
+    parts = [fallback]
+    for message in session.get("messages", []):
+        if not isinstance(message, dict) or str(message.get("role", "")) != "user":
+            continue
+        text = str(message.get("text", "")).strip()
+        if text:
+            parts.append(text)
+    for attachment in session.get("attachments", []):
+        if not isinstance(attachment, dict):
+            continue
+        for key in ("caption", "file_name", "mime_type"):
+            value = str(attachment.get(key, "")).strip()
+            if value:
+                parts.append(value)
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    for key in ("project_summary", "known_facts", "acceptance_criteria", "delivery_requirements", "change_requests", "user_rules"):
+        value = whiteboard.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+        elif isinstance(value, list):
+            parts.extend(str(item) for item in value if str(item).strip())
+    return "\n".join(part for part in parts if str(part).strip())
+
+
+def infer_public_delivery_requirements(session: dict[str, Any], fallback: str = "") -> dict[str, bool]:
+    text = _requirement_text(session, fallback).lower()
+    compact = re.sub(r"\s+", "", text)
+    return {
+        "screenshot": any(token in compact for token in ("截图", "界面", "桌面界面", "gui", "desktop", "interface", "screenshot")),
+        "video": any(token in compact for token in ("视频", "演示视频", "录屏", "video", "mp4", "webm")),
+        "generated_image": any(token in compact for token in ("图片", "图像", "照片", "生成图", "直接生成背景", "直接生成立绘", "image", "photo", "picture")),
+        "background": any(token in compact for token in ("背景", "背景图", "background", "sceneart")),
+        "sprite": any(token in compact for token in ("立绘", "角色图", "character", "sprite", "portrait")),
+        "demo_video": any(token in compact for token in ("演示", "demo", "展示视频")),
+    }
+
+
+def project_has_runnable_surface(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None) -> bool:
+    project = pathlib.Path(project_dir).resolve()
+    if not project.exists() or not project.is_dir():
+        return False
+    if any((project / name).exists() for name in RUNNABLE_ENTRYPOINTS):
+        return True
+    startup = str((manifest or {}).get("startup_command", "")).strip()
+    return bool(startup) and any(path.is_file() and path.suffix.lower() not in DOC_ONLY_SUFFIXES for path in project.rglob("*"))
+
+
+def project_is_docs_only(project_dir: pathlib.Path) -> bool:
+    project = pathlib.Path(project_dir).resolve()
+    if not project.exists() or not project.is_dir():
+        return True
+    files = [path for path in project.rglob("*") if path.is_file()]
+    if not files:
+        return True
+    user_files = [
+        path
+        for path in files
+        if path.name not in {"delivery_manifest.json", "packager_run_log.txt", "final_project_bundle.zip"}
+        and not path.name.endswith(".tmp")
+    ]
+    return bool(user_files) and all(path.suffix.lower() in DOC_ONLY_SUFFIXES for path in user_files)
+
+
+def _quality_evidence_for_gate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None) -> dict[str, Any]:
+    manifest = manifest if isinstance(manifest, dict) else {}
+    quality = manifest.get("quality_evidence", {}) if isinstance(manifest.get("quality_evidence"), dict) else {}
+    if quality:
+        return quality
+    try:
+        return local_packager.collect_quality_evidence(project_dir)
+    except Exception:
+        return {}
+
+
+def evaluate_public_delivery_gate(
+    project_dir: pathlib.Path,
+    manifest: dict[str, Any] | None,
+    session: dict[str, Any],
+    *,
+    evidence: dict[str, Any] | None = None,
+    phase: str = "final",
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    manifest = manifest if isinstance(manifest, dict) else {}
+    quality = _quality_evidence_for_gate(project, manifest)
+    assets = collect_public_delivery_assets(project, manifest, evidence)
+    req = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
+    missing: list[str] = []
+
+    if project_is_docs_only(project) or not project_has_runnable_surface(project, manifest):
+        missing.append("runnable_project")
+    if not assets["packages"]:
+        missing.append("project_package")
+    if not quality.get("test_report_found"):
+        missing.append("test_report")
+    if quality.get("test_report_has_no_test_executed"):
+        missing.append("real_test_execution")
+    elif not quality.get("test_report_has_commands"):
+        missing.append("test_commands")
+    if req["screenshot"] and not assets["screenshots"]:
+        missing.append("screenshots")
+    if (req["video"] or req["demo_video"]) and not assets["videos"]:
+        missing.append("videos")
+    if req["generated_image"] and not assets["generated_images"]:
+        missing.append("generated_images")
+    if req["background"] and not assets["generated_backgrounds"]:
+        missing.append("generated_background")
+    if req["sprite"] and not assets["generated_sprites"]:
+        missing.append("generated_sprite")
+
+    delivery_allowed = not missing
+    return {
+        "delivery_allowed": delivery_allowed,
+        "status": "READY" if delivery_allowed else "REWORK",
+        "phase": phase,
+        "missing": missing,
+        "requirements": req,
+        "asset_counts": {key: len(value) for key, value in assets.items()},
+        "quality_evidence": quality,
+        "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
+    }
+
+
+def record_public_delivery_gate(
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    gate: dict[str, Any],
+    project_dir: pathlib.Path,
+) -> None:
+    append_truth_ledger(
+        session_dir,
+        session,
+        "public_delivery_gate",
+        "公开交付 gate 已完成检查",
+        status=str(gate.get("status", "REWORK")),
+        evidence_ref=str(project_dir),
+        data={"artifact": "public_delivery_gate", **gate},
+    )
+    append_memory_event(session, "public_delivery_gate", data=gate)
+
+
+def public_delivery_gate_failed_reply() -> str:
+    return (
+        "后台生成未通过，不会把内部报告当成果发给你。\n"
+        "我会回到构建/补修阶段，先补齐可运行项目、真实测试，以及你要求的截图、图片或视频证据。"
+    )
+
+
+def mark_public_delivery_rework(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    project_dir: pathlib.Path,
+    gate: dict[str, Any],
+) -> None:
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation.update({"status": "rework", "delivery_allowed": False, "delivery_gate": gate, "project_dir": str(project_dir)})
+    session["generation"] = generation
+    update_active_run_status(session, "rework", delivery_allowed=False, delivery_gate=gate, project_dir=str(project_dir))
+    record_public_delivery_gate(session_dir, session, gate, project_dir)
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="public_delivery_gate_failed",
+        facts={"delivery_gate": gate},
+        source="public_delivery_gate",
+        direct_text=public_delivery_gate_failed_reply(),
+    )
+
+
+def _public_caption_for(kind: str, path: pathlib.Path) -> str:
+    if kind == "package":
+        return "项目包"
+    if kind == "screenshot":
+        return "界面截图"
+    if kind == "background":
+        return "生成背景"
+    if kind == "sprite":
+        return "生成立绘"
+    if kind == "generated_image":
+        return "生成图片"
+    if kind == "video":
+        return "演示视频"
+    return path.name
+
+
+def emit_public_delivery(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    items: list[tuple[pathlib.Path, str]],
+    *,
+    source: str,
+) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for path, kind in items:
+        if not path.exists() or not path.is_file() or path.suffix.lower() not in PUBLIC_DELIVERY_SUFFIXES:
+            continue
+        key = str(path.resolve()).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        caption = _public_caption_for(kind, path)
+        suffix = path.suffix.lower()
+        if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+            client.send_chat_action(chat_id, "upload_photo")
+            if client.send_photo(chat_id, path, caption):
+                sent.append({"kind": kind, "path": str(path), "caption": caption})
+        elif suffix in VIDEO_SUFFIXES:
+            client.send_chat_action(chat_id, "upload_video")
+            if client.send_video(chat_id, path, caption):
+                sent.append({"kind": kind, "path": str(path), "caption": caption})
+        else:
+            client.send_chat_action(chat_id, "upload_document")
+            if client.send_document(chat_id, path, caption):
+                sent.append({"kind": kind, "path": str(path), "caption": caption})
+    if sent:
+        append_truth_ledger(
+            session_dir,
+            session,
+            "public_delivery_attachment_sent",
+            "公开交付附件已按类型白名单发送",
+            status="sent",
+            evidence_ref=source,
+            can_user_see=True,
+            data={"artifact": "public_delivery_attachment_sent", "sent": sent, "source": source},
+        )
+        append_memory_event(session, "public_delivery_attachment_sent", data={"sent": sent, "source": source})
+    return sent
+
+
 def is_user_review_continue(text: str) -> bool:
     normalized = re.sub(r"\s+", "", str(text or "").lower())
     if not normalized:
@@ -1507,30 +1865,32 @@ def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
     commands = evidence.get("test_commands", []) if isinstance(evidence.get("test_commands"), list) else []
     missing = evidence.get("missing", []) if isinstance(evidence.get("missing"), list) else []
     lines = [
-        "中间测试和预览证据已准备好，先给你判断。",
-        f"测试报告：{'有' if evidence.get('test_report_path') else '没有'}",
-        f"测试代码：{count('test_code_files')} 个",
-        f"测试命令：{len(commands)} 条",
+        team_narration.team_say("evidence_checkpoint", evidence),
+        f"陈序的测试记录：{'已执行命令' if commands else '没有真实执行证据'}",
+        f"陈序整理的测试代码：{count('test_code_files')} 个",
+        f"陈序记录的测试命令：{len(commands)} 条",
         f"样例输入：{count('sample_inputs')} 个",
-        f"截图：{count('screenshots')} 张",
-        f"视频：{count('videos')} 个",
-        f"预览/数据文件：{count('preview_files')} 个",
+        f"界面截图：{count('screenshots')} 张",
+        f"生成图片：{count('generated_images')} 张",
+        f"演示视频：{count('videos')} 个",
     ]
     if commands:
-        lines.append("可复查命令：" + "；".join(str(item) for item in commands[:4]))
+        lines.append("陈序给出的可复查命令：" + "；".join(str(item) for item in commands[:4]))
     if missing:
         labels = {
             "TEST_REPORT.md": "测试报告",
             "EVIDENCE_REVIEW.md": "证据复核说明",
             "test_code_files": "测试代码",
             "sample_inputs": "样例输入",
-            "screenshots": "截图",
-            "videos": "视频",
-            "preview_files": "预览/数据文件",
+            "screenshots": "界面截图",
+            "generated_images": "生成图片",
+            "generated_background": "生成背景",
+            "generated_sprite": "生成立绘",
+            "videos": "演示视频",
+            "preview_files": "预览文件",
         }
-        lines.append("缺少的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
-    lines.append("你看完后回复“继续/打包”进入最终交付；如果要改，直接说要改哪里，我会回到生成和测试阶段补修。")
-    return "\n".join(lines)
+        lines.append("还缺的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
+    return team_narration.redact_internal_terms("\n".join(lines))
 
 
 def send_evidence_checkpoint(
@@ -1542,6 +1902,10 @@ def send_evidence_checkpoint(
     evidence: dict[str, Any],
 ) -> list[dict[str, Any]]:
     sent: list[dict[str, Any]] = []
+    gate = evaluate_public_delivery_gate(project_dir, {}, session, evidence=evidence, phase="checkpoint")
+    if not gate.get("delivery_allowed"):
+        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        return []
     send_customer_reply(
         client,
         chat_id,
@@ -1552,29 +1916,19 @@ def send_evidence_checkpoint(
         direct_text=evidence_checkpoint_summary(evidence),
     )
     session = load_session(session_dir, chat_id)
-    for key, caption in (("test_report_path", "测试报告"), ("evidence_review_path", "证据复核说明")):
-        path = _project_evidence_path(project_dir, evidence.get(key, ""))
-        if not path:
-            continue
-        client.send_chat_action(chat_id, "upload_document")
-        if client.send_document(chat_id, path, caption):
-            sent.append({"kind": key, "path": str(path)})
-    for path in _evidence_paths(project_dir, evidence.get("screenshots", []), limit=6):
-        client.send_chat_action(chat_id, "upload_photo")
-        if client.send_photo(chat_id, path, "中间效果截图"):
-            sent.append({"kind": "screenshot", "path": str(path)})
-    for path in _evidence_paths(project_dir, evidence.get("videos", []), limit=4):
-        client.send_chat_action(chat_id, "upload_video")
-        if path.suffix.lower() in {".mp4", ".webm", ".mov"} and client.send_video(chat_id, path, "中间效果视频"):
-            sent.append({"kind": "video", "path": str(path)})
-        else:
-            client.send_chat_action(chat_id, "upload_document")
-            if client.send_document(chat_id, path, "中间效果视频/动图"):
-                sent.append({"kind": "video_document", "path": str(path)})
-    for path in _evidence_paths(project_dir, evidence.get("preview_files", []), limit=8):
-        client.send_chat_action(chat_id, "upload_document")
-        if client.send_document(chat_id, path, "中间预览/数据文件"):
-            sent.append({"kind": "preview_file", "path": str(path)})
+    assets = collect_public_delivery_assets(project_dir, {}, evidence)
+    items: list[tuple[pathlib.Path, str]] = []
+    items.extend((path, "package") for path in assets["packages"][:1])
+    items.extend((path, "screenshot") for path in assets["screenshots"][:3])
+    items.extend((path, "background") for path in assets["generated_backgrounds"][:2])
+    items.extend((path, "sprite") for path in assets["generated_sprites"][:2])
+    for path in assets["generated_images"]:
+        if path not in assets["generated_backgrounds"] and path not in assets["generated_sprites"]:
+            items.append((path, "generated_image"))
+        if len(items) >= 8:
+            break
+    items.extend((path, "video") for path in assets["videos"][:2])
+    sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
     if sent:
         append_truth_ledger(
             session_dir,
@@ -1670,13 +2024,11 @@ def send_delivery_artifacts(
         client.send_chat_action(chat_id, "upload_photo")
         if client.send_photo(chat_id, screenshot, "效果预览"):
             sent.append({"kind": "photo", "path": str(screenshot)})
-    for key, caption in (("package", "可运行项目文件"), ("verify_report", "测试结论")):
-        path = _evidence_path(str(refs.get(key, "")))
-        if not path:
-            continue
+    package = _evidence_path(str(refs.get("package", "")))
+    if package and package.suffix.lower() == ".zip":
         client.send_chat_action(chat_id, "upload_document")
-        if client.send_document(chat_id, path, caption):
-            sent.append({"kind": "document", "artifact": key, "path": str(path)})
+        if client.send_document(chat_id, package, "项目包"):
+            sent.append({"kind": "document", "artifact": "package", "path": str(package)})
     if sent:
         append_truth_ledger(
             session_dir,
@@ -1716,20 +2068,10 @@ def user_visible_known_limit(raw: Any) -> str:
     text = text.replace("screenshot", "效果预览")
     text = text.replace("package", "可运行项目文件")
     text = text.replace("verify_report", "测试结论")
-    return pre_send_guard(text)
+    return pre_send_guard(team_narration.redact_internal_terms(text))
 
 
-def send_delivery_from_manifest(
-    client: TelegramClient,
-    chat_id: int | str,
-    session_dir: pathlib.Path,
-    session: dict[str, Any],
-    manifest: dict[str, Any],
-) -> list[dict[str, Any]]:
-    sent: list[dict[str, Any]] = []
-    package = _evidence_path(str(manifest.get("package_path", "")))
-    manifest_path = _evidence_path(str(manifest.get("manifest_path", "")))
-    readme = _evidence_path(str(manifest.get("readme_path", "")))
+def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
     startup_command = str(manifest.get("startup_command", "")).strip()
     known_limits = manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else []
     quality_evidence = manifest.get("quality_evidence", {}) if isinstance(manifest.get("quality_evidence"), dict) else {}
@@ -1744,23 +2086,29 @@ def send_delivery_from_manifest(
     delivery_status = "PASS" if status_raw == "ready" else ("WARNING" if status_raw == "ready_with_warnings" else "PARTIAL")
     if not test_report_found:
         test_execution = "没有"
+        test_record_status = "没有"
     elif test_no_executed:
         test_execution = "未执行真实测试"
+        test_record_status = "没有真实执行证据"
     elif test_has_commands:
         test_execution = "已执行命令"
+        test_record_status = "已执行命令"
     else:
         test_execution = "仅人工检查"
+        test_record_status = "没有真实执行证据"
     preview_status = "真实预览" if preview_evidence_found else ("占位示例" if preview_placeholder_found else "没有")
     forced_missing = bool(manifest.get("forced_start_with_missing_inputs"))
     if not forced_missing:
         forced_missing = any("缺少真实 demo 或样例输入" in str(item) for item in known_limits)
     lines = [
+        team_narration.team_say("delivery_ready", manifest),
+        "乔安完成了交付复核：",
         "项目包：已生成",
-        f"测试报告：{'有' if test_report_found else '没有'}",
-        f"测试执行：{test_execution}",
-        f"交付复核：{'有' if delivery_notes_found else '没有'}",
+        f"陈序的测试记录：{test_record_status}",
+        f"测试执行情况：{test_execution}",
+        f"乔安的交付说明：{'有' if delivery_notes_found else '没有'}",
+        f"沈镜的预览证据：{preview_status}",
         f"真实输入验证：{'有' if sample_input_found else '没有'}",
-        f"预览证据：{preview_status}",
         f"交付状态：{delivery_status}",
     ]
     if startup_command:
@@ -1768,15 +2116,50 @@ def send_delivery_from_manifest(
     if known_limits:
         visible_limits = [item for item in (user_visible_known_limit(item) for item in known_limits[:4]) if item]
         if visible_limits:
-            lines.append("已记录的限制：" + "；".join(visible_limits))
+            lines.append("已知限制：" + "；".join(visible_limits))
     else:
         lines.append("已知限制：暂无")
     if not test_report_found:
-        lines.append("这次没有完整测试报告，所以我不会把它标成完整测试通过。")
+        lines.append("陈序提醒：这轮没有完整测试报告，所以不能标成完整测试通过。")
     if not delivery_notes_found:
-        lines.append("这次没有交付复核说明，交付状态按 warning 处理。")
+        lines.append("乔安提醒：这轮缺少完整交付复核说明，交付状态只能按 warning 处理。")
     if forced_missing or any("缺少真实 demo 或样例输入" in str(item) for item in known_limits):
-        lines.append("这次按框架版/示例版交付，不能视为真实业务数据验证完成。")
+        lines.append(team_narration.team_say("generation_warning", {"warning": "陈序提醒：这轮缺少真实 demo 或样例输入，只能算框架版/样例级验证。"}))
+    return pre_send_guard("\n".join(lines))
+
+
+def build_intake_waiting_text(analysis: dict[str, Any], fallback_reply: str = "") -> str:
+    questions: list[str] = []
+    for key in ("critical_questions", "missing_required_inputs", "soft_questions"):
+        values = analysis.get(key, []) if isinstance(analysis.get(key), list) else []
+        questions.extend(str(item).strip() for item in values if str(item).strip())
+    text = team_narration.team_say("intake_waiting", {"questions": unique_strings(questions, limit=3)})
+    if fallback_reply and not questions:
+        text += "\n\n" + str(fallback_reply).strip()[:500]
+    return pre_send_guard(text)
+
+
+def send_delivery_from_manifest(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+    project_dir = pathlib.Path(str(manifest.get("project_dir", ""))).resolve()
+    gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+    manifest["delivery_allowed"] = bool(gate.get("delivery_allowed"))
+    manifest["delivery_gate"] = gate
+    manifest_path = _evidence_path(str(manifest.get("manifest_path", "")))
+    if manifest_path:
+        try:
+            write_json(manifest_path, manifest)
+        except Exception:
+            pass
+    if not gate.get("delivery_allowed"):
+        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        return []
     send_customer_reply(
         client,
         chat_id,
@@ -1784,30 +2167,24 @@ def send_delivery_from_manifest(
         session,
         event="delivery_manifest_ready",
         facts={"manifest": manifest},
-        source="local_packager_manifest",
-        direct_text="\n".join(lines),
+        source="delivery_team_summary",
+        direct_text=build_delivery_summary_text(manifest),
     )
     session = load_session(session_dir, chat_id)
-    for path, caption, kind in (
-        (package, "可运行项目文件", "package"),
-        (manifest_path, "交付清单", "delivery_manifest"),
-        (readme, "项目说明", "readme"),
-    ):
-        if not path:
-            continue
-        client.send_chat_action(chat_id, "upload_document")
-        if client.send_document(chat_id, path, caption):
-            sent.append({"kind": kind, "path": str(path)})
-            append_truth_ledger(
-                session_dir,
-                session,
-                kind,
-                f"{kind} sent from local delivery manifest",
-                status="sent",
-                evidence_ref=str(path),
-                can_user_see=True,
-                data={"artifact": kind, "source": "delivery_manifest"},
-            )
+    record_public_delivery_gate(session_dir, session, gate, project_dir)
+    assets = collect_public_delivery_assets(project_dir, manifest)
+    items: list[tuple[pathlib.Path, str]] = []
+    items.extend((path, "package") for path in assets["packages"][:1])
+    items.extend((path, "screenshot") for path in assets["screenshots"][:3])
+    items.extend((path, "background") for path in assets["generated_backgrounds"][:2])
+    items.extend((path, "sprite") for path in assets["generated_sprites"][:2])
+    for path in assets["generated_images"]:
+        if path not in assets["generated_backgrounds"] and path not in assets["generated_sprites"]:
+            items.append((path, "generated_image"))
+        if len(items) >= 8:
+            break
+    items.extend((path, "video") for path in assets["videos"][:2])
+    sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="delivery_manifest")
     if sent:
         append_memory_event(session, "delivery_manifest_sent", data={"sent": sent, "manifest": manifest})
     save_session(session_dir, session)
@@ -2558,6 +2935,14 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 - 你的主要任务不是陪聊，而是推进项目落地：默认值、边界、验收点、图片/视频/截图交付、后续修改都要落到白板。
 - 用户问你是谁或能做什么时，回答你是 CGNK 项目交付接口，可以帮助生成项目、测试、预览、保存长期记忆和清理/重启会话。
 
+对外表达：
+- 你对用户呈现的是一个拟人化 CGNK 后台项目团队，而不是程序管线。
+- 可以称呼内部角色为：林然，产品经理；周衡，架构师；许楠，工程师；沈镜，体验设计；陈序，测试工程师；乔安，交付负责人。
+- 如果需要描述内部状态，改成人类化说法：林然在整理范围、周衡在确认技术路线、许楠在实现、陈序在准备测试、沈镜在整理预览、乔安在复核交付。
+- 不要声称这些是真实人类员工；它们是 CGNK 后台项目团队角色。
+- 禁止向用户暴露 pipeline_manifest、dynamic_pipeline_runner、agent_session、local_packager、delivery_manifest、backend_dialogue_loop、whiteboard、truth ledger、jsonl、scripts、internal module names。
+- 除非是用户需要下载的交付文件名，不要输出文件系统路径。
+
 核心策略：
 - 不要逐项审问字段，不要“复述一句再问一个缺口”的客服脚本。
 - 先做专业判断：拆解产品层、技术层、默认方案和第一版边界。
@@ -2746,6 +3131,8 @@ def local_public_reply_message(event: str, session: dict[str, Any], facts: dict[
 - 不生成项目文件，不改白板，不决定是否开始生成。
 - 不宣布完成；没有交付包、预览和测试结论时不能说已经完成。
 - 不暴露 provider、API、manifest、pipeline、truth ledger、package、内部路径或调试字段。
+- 对用户呈现为 CGNK 后台项目团队角色：林然整理范围，周衡确认技术路线，许楠实现，沈镜整理预览，陈序准备测试，乔安复核交付。
+- 不要说这些是真实人类员工；它们是后台团队角色。
 - 不使用固定问候模板；即使事实相同，也要根据 facts、whiteboard、generation 和 recent_dialogue 自然改写。
 - 只根据输入 facts 和当前状态说清楚当前发生了什么、用户补充是否已进入后台、下一步会怎样。
 - 如果 generation.status 是 idle、没有 active_run、也没有项目摘要，短问候只能表达“在线/空会话/没有后台任务/可以发新目标”，不要说正在补齐交付物。
@@ -2811,6 +3198,8 @@ def provider_user_message(
 
 规则：
 - 自我定位要稳定：你代表 CGNK 后台工作流推进需求、生成、测试、预览和交付，不是普通聊天机器人。
+- 对用户呈现为拟人化 CGNK 后台项目团队：林然负责需求范围，周衡负责技术路线，许楠负责实现，沈镜负责预览体验，陈序负责测试，乔安负责交付复核。
+- 不要声称这些是真实雇员；它们是 CGNK 后台团队角色。
 - 不要使用固定口令、模板腔、机器人流程话术。
 - 不要要求用户回复固定词，例如“开始生成”。
 - 不要暴露内部模块名。
@@ -3347,7 +3736,7 @@ def run_agent_generation_job(
             session_dir,
             session,
             event="generation_started",
-            facts={"message": "我开始按这版需求生成项目。完成后会发送本地打包出来的项目 zip 和说明。"},
+            direct_text=team_narration.team_say("generation_started", {}),
         )
     project_dir = log_dir / "agent_projects" / safe_id(chat_id)
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -3567,8 +3956,8 @@ def resume_after_evidence_review_job(
         session_dir,
         session,
         event="user_evidence_review_approved",
-        source="agent_generated_pipeline",
-        direct_text="收到，我继续进入最终复核和打包。",
+        source="delivery_team_summary",
+        direct_text=team_narration.team_say("review_continue", {}),
     )
     session_file = agent_session_path(session_dir, chat_id)
     append_agent_session_event(
@@ -3678,8 +4067,8 @@ def record_evidence_review_feedback(
         session_dir,
         session,
         event="user_evidence_feedback_received",
-        source="agent_generated_pipeline",
-        direct_text="收到，我会按这条反馈回到生成、测试和证据复核阶段补修，不会直接最终打包。",
+        source="delivery_team_summary",
+        direct_text=team_narration.team_say("review_revision", {}),
     )
     start_agent_generation(
         client,
@@ -4309,7 +4698,7 @@ def handle_text(
                 session,
                 event="model_frontdesk_reply",
                 source="backend_dialogue_start_policy",
-                direct_text=str(analysis.get("user_visible_reply") or turn.get("reply", "")),
+                direct_text=build_intake_waiting_text(analysis, str(turn.get("reply", ""))),
             )
             return
         send_customer_reply(
@@ -4352,6 +4741,15 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_started",
+            source="team_narration",
+            direct_text=team_narration.team_say("generation_started", {}),
+        )
         start_agent_generation(
             client,
             chat_id,
@@ -4439,7 +4837,7 @@ def handle_text(
             session,
             event="model_frontdesk_reply",
             source="backend_dialogue_start_policy",
-            direct_text=str(analysis.get("user_visible_reply") or turn.get("reply", "")),
+            direct_text=build_intake_waiting_text(analysis, str(turn.get("reply", ""))),
         )
         return
     send_customer_reply(

@@ -91,6 +91,29 @@ def _sample_input_found(project: pathlib.Path) -> bool:
     return False
 
 
+def _looks_like_generated_image(path: pathlib.Path) -> bool:
+    lowered = str(path).replace("\\", "/").lower()
+    return any(
+        token in lowered
+        for token in (
+            "generated",
+            "generation",
+            "output",
+            "outputs",
+            "asset",
+            "background",
+            "bg",
+            "scene",
+            "sprite",
+            "character",
+            "portrait",
+            "立绘",
+            "背景",
+            "角色",
+        )
+    )
+
+
 def _looks_like_demo_data_project(project: pathlib.Path, known_limits: list[str] | None) -> bool:
     haystack = "\n".join(str(item) for item in known_limits or [])
     for name in ("README.md", "PRODUCT_PLAN.md", "OUTPUT_CONTRACT.md", "TECHNICAL_PLAN.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
@@ -118,7 +141,7 @@ def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
         "readme_found": paths["readme"].exists(),
         "test_report_found": paths["test_report"].exists(),
         "test_report_has_commands": _has_nonempty_commands_run(test_report_text),
-        "test_report_has_no_test_executed": "NO TEST EXECUTED" in test_report_text.upper(),
+        "test_report_has_no_test_executed": bool(re.search(r"NO[\s_]+TEST[\s_]+EXECUTED", test_report_text.upper())),
         "test_report_mentions_sample_input": bool(re.search(r"\b(sample|fixture|demo|input|test_data)\b|样例|示例|真实输入|测试数据", test_report_text, flags=re.I)),
         "delivery_notes_found": paths["delivery_notes"].exists(),
         "product_plan_found": paths["product_plan"].exists(),
@@ -162,6 +185,11 @@ def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         "test_code_files": files(("tests/**/*.py", "test_*.py", "*_test.py")),
         "sample_inputs": files(("samples/**/*", "test_data/**/*", "demo/**/*")),
         "screenshots": files(("screenshots/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp"), {".png", ".jpg", ".jpeg", ".webp"}),
+        "generated_images": [
+            item
+            for item in files(("generated/**/*", "outputs/**/*", "output/**/*", "assets/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif"), media_suffixes)
+            if _looks_like_generated_image(project / item)
+        ],
         "videos": files(("artifacts/**/*", "preview/**/*", "**/*.mp4", "**/*.webm", "**/*.gif"), {".mp4", ".webm", ".gif"}),
         "preview_files": files(("artifacts/**/*", "preview/**/*", "**/*.html", "**/*.csv", "**/*.json", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif", "**/*.mp4", "**/*.webm"), preview_suffixes),
     }

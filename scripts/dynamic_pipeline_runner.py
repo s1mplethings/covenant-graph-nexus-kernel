@@ -42,6 +42,29 @@ USER_REVIEW_KEYWORDS = (
 )
 
 
+def _looks_like_generated_image(path: pathlib.Path) -> bool:
+    lowered = str(path).replace("\\", "/").lower()
+    return any(
+        token in lowered
+        for token in (
+            "generated",
+            "generation",
+            "output",
+            "outputs",
+            "asset",
+            "background",
+            "bg",
+            "scene",
+            "sprite",
+            "character",
+            "portrait",
+            "立绘",
+            "背景",
+            "角色",
+        )
+    )
+
+
 def _role_by_id(manifest: dict[str, Any], role_id: str) -> dict[str, Any]:
     for role in manifest.get("roles", []):
         if isinstance(role, dict) and str(role.get("id", "")) == role_id:
@@ -347,6 +370,11 @@ def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
     test_code_files = _find_files(project, ("tests/**/*.py", "test_*.py", "*_test.py"))
     sample_inputs = _find_files(project, ("samples/**/*", "test_data/**/*", "demo/**/*"))
     screenshots = [item for item in _find_files(project, ("screenshots/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp")) if pathlib.Path(item).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
+    generated_images = [
+        item
+        for item in _find_files(project, ("generated/**/*", "outputs/**/*", "output/**/*", "assets/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif"))
+        if pathlib.Path(item).suffix.lower() in MEDIA_SUFFIXES and _looks_like_generated_image(project / item)
+    ]
     videos = [item for item in _find_files(project, ("artifacts/**/*", "preview/**/*", "**/*.mp4", "**/*.webm", "**/*.gif")) if pathlib.Path(item).suffix.lower() in {".mp4", ".webm", ".gif"}]
     preview_files = [item for item in _find_files(project, ("artifacts/**/*", "preview/**/*", "**/*.html", "**/*.csv", "**/*.json", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif", "**/*.mp4", "**/*.webm")) if pathlib.Path(item).suffix.lower() in PREVIEW_SUFFIXES]
     missing: list[str] = []
@@ -360,6 +388,8 @@ def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         missing.append("sample_inputs")
     if not screenshots:
         missing.append("screenshots")
+    if not generated_images:
+        missing.append("generated_images")
     if not videos:
         missing.append("videos")
     if not preview_files:
@@ -371,6 +401,7 @@ def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         "test_commands": _extract_test_commands(test_report),
         "sample_inputs": sample_inputs,
         "screenshots": screenshots,
+        "generated_images": generated_images,
         "videos": videos,
         "preview_files": preview_files,
         "missing": missing,

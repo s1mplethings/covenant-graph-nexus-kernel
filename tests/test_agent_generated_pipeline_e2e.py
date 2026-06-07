@@ -185,7 +185,10 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 project = pathlib.Path(project_dir)
                 project.mkdir(parents=True, exist_ok=True)
                 (project / "README.md").write_text("# Fallback\n", encoding="utf-8")
-                manifest = local_packager.package_project(project)
+                (project / "app.py").write_text("print('fallback')\n", encoding="utf-8")
+                (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
+                manifest = local_packager.package_project(project, startup_command="python app.py")
                 return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
 
             try:

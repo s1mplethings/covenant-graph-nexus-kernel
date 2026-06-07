@@ -35,6 +35,9 @@ class FakeTelegramClient:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
         return True
 
+    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        return True
+
 
 class TelegramBridgeGenerationE2ETests(unittest.TestCase):
     def test_api_generation_without_key_fails_fast(self) -> None:
@@ -104,6 +107,8 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 target.mkdir(parents=True, exist_ok=True)
                 (target / "README.md").write_text("# Local task manager\n", encoding="utf-8")
                 (target / "app.py").write_text("print('ok')\n", encoding="utf-8")
+                (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
                 manifest = local_packager.package_project(target, startup_command="python app.py")
                 return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
 
@@ -130,9 +135,9 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
             self.assertNotEqual("queued", str(session["generation"]["status"]).lower())
             ledger_text = bridge.truth_ledger_path(session_dir, "chat-e2e").read_text(encoding="utf-8")
             self.assertIn("package", ledger_text)
-            self.assertIn("delivery_manifest", ledger_text)
+            self.assertIn("public_delivery_attachment_sent", ledger_text)
             self.assertEqual(0, len(client.photos))
-            self.assertGreaterEqual(len(client.documents), 2)
+            self.assertEqual(1, len(client.documents))
             self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
 
 
