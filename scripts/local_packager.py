@@ -133,6 +133,40 @@ def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
     }
 
 
+def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    evidence_review = project / "EVIDENCE_REVIEW.md"
+    test_report = project / "TEST_REPORT.md"
+    media_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm"}
+    preview_suffixes = media_suffixes | {".html", ".csv", ".json"}
+
+    def rel(path: pathlib.Path) -> str:
+        try:
+            return str(path.resolve().relative_to(project)).replace("\\", "/")
+        except ValueError:
+            return str(path)
+
+    def files(patterns: tuple[str, ...], suffixes: set[str] | None = None) -> list[str]:
+        out: list[str] = []
+        for pattern in patterns:
+            for path in sorted(project.glob(pattern)):
+                if path.is_file() and (suffixes is None or path.suffix.lower() in suffixes):
+                    value = rel(path)
+                    if value not in out:
+                        out.append(value)
+        return out[:80]
+
+    return {
+        "evidence_review_found": evidence_review.exists(),
+        "test_report_found": test_report.exists(),
+        "test_code_files": files(("tests/**/*.py", "test_*.py", "*_test.py")),
+        "sample_inputs": files(("samples/**/*", "test_data/**/*", "demo/**/*")),
+        "screenshots": files(("screenshots/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp"), {".png", ".jpg", ".jpeg", ".webp"}),
+        "videos": files(("artifacts/**/*", "preview/**/*", "**/*.mp4", "**/*.webm", "**/*.gif"), {".mp4", ".webm", ".gif"}),
+        "preview_files": files(("artifacts/**/*", "preview/**/*", "**/*.html", "**/*.csv", "**/*.json", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif", "**/*.mp4", "**/*.webm"), preview_suffixes),
+    }
+
+
 def package_project(
     project_dir: str | pathlib.Path,
     *,
@@ -141,6 +175,8 @@ def package_project(
     run_log_path: str | pathlib.Path | None = None,
     screenshot_path: str | pathlib.Path | None = None,
     known_limits: list[str] | None = None,
+    user_review_required: bool = False,
+    user_review_completed: bool = False,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
@@ -152,6 +188,9 @@ def package_project(
     readme_existed = (project / "README.md").exists()
     readme = _ensure_readme(project, startup)
     quality_evidence = collect_quality_evidence(project)
+    user_review_evidence = collect_user_review_evidence(project)
+    user_review_evidence["user_review_required"] = bool(user_review_required)
+    user_review_evidence["user_review_completed"] = bool(user_review_completed)
     if not readme_existed:
         warnings.append("README.md 由 packager 自动补齐，内容可能不完整")
     if not quality_evidence["test_report_found"]:
@@ -166,6 +205,8 @@ def package_project(
         warnings.append("未找到预览证据")
     if _looks_like_demo_data_project(project, known_limits) and not quality_evidence.get("sample_input_found") and not quality_evidence.get("test_report_mentions_sample_input"):
         warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
+    if user_review_required and not user_review_completed:
+        warnings.append("用户尚未确认中间测试/预览证据")
     run_log = pathlib.Path(run_log_path).resolve() if run_log_path else target_dir / "packager_run_log.txt"
     if not run_log.exists():
         run_log.write_text(f"{now()} packaged project\n", encoding="utf-8")
@@ -203,6 +244,7 @@ def package_project(
         "run_log_path": str(run_log.resolve()),
         "known_limits": combined_limits,
         "quality_evidence": quality_evidence,
+        "user_review_evidence": user_review_evidence,
     }
     manifest_path = target_dir / "delivery_manifest.json"
     manifest["manifest_path"] = str(manifest_path.resolve())

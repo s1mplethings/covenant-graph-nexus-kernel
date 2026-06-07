@@ -17,6 +17,7 @@ REQUIRED_STAGES = [
     "technical_plan",
     "build",
     "test",
+    "evidence_review",
     "review",
     "package",
 ]
@@ -215,6 +216,27 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {
+                "id": "evidence_review",
+                "type": "agent_turn",
+                "stage": "evidence_review",
+                "role": "qa",
+                "goal": (
+                    "整理用户可判断的中间证据。必须读取 TEST_REPORT.md，列出测试代码、测试命令、样例输入、截图/视频/预览文件。"
+                    "如果没有真实输入或视频，必须明确说明缺少什么。写 EVIDENCE_REVIEW.md，且必须包含字段: "
+                    "test_code_files, test_commands, sample_inputs, screenshots, videos, preview_files, "
+                    "what_user_should_check, missing_real_evidence, next_recommended_action"
+                ),
+                "allowed_actions": [
+                    "write_file",
+                    "read_file",
+                    "list_files",
+                    "run_command",
+                    "capture_screenshot",
+                    "search_skills",
+                    "use_skill",
+                ],
+            },
+            {
                 "id": "cfo_review",
                 "type": "agent_turn",
                 "stage": "review",
@@ -274,9 +296,13 @@ def validate_required_stages(manifest: Any) -> tuple[bool, list[str]]:
     issues = list(missing)
     if "package" in first_index:
         package_index = first_index["package"]
-        for stage in ("test", "review"):
+        for stage in ("test", "evidence_review", "review"):
             if stage in first_index and package_index < first_index[stage]:
                 issues.append(f"package_before_{stage}")
+    if "evidence_review" in first_index and "test" in first_index and first_index["evidence_review"] < first_index["test"]:
+        issues.append("evidence_review_before_test")
+    if "review" in first_index and "evidence_review" in first_index and first_index["review"] < first_index["evidence_review"]:
+        issues.append("review_before_evidence_review")
     if invalid:
         issues.extend(f"invalid_stage:{stage}" for stage in invalid)
     return not issues, issues

@@ -174,6 +174,8 @@ class LocalAgentActionExecutor:
             known_limits=[str(item) for item in action.get("known_limits", []) if str(item).strip()]
             if isinstance(action.get("known_limits"), list)
             else [],
+            user_review_required=bool(action.get("user_review_required", False)),
+            user_review_completed=bool(action.get("user_review_completed", False)),
         )
         return {"manifest": manifest, "package_path": manifest.get("package_path"), "manifest_path": manifest.get("manifest_path")}
 

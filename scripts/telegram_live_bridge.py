@@ -1441,6 +1441,156 @@ def _evidence_path(raw: str) -> pathlib.Path | None:
     return path if path.exists() and path.is_file() else None
 
 
+def _project_evidence_path(project_dir: pathlib.Path, raw: Any) -> pathlib.Path | None:
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    path = pathlib.Path(text)
+    if not path.is_absolute():
+        path = project_dir / path
+    try:
+        resolved = path.resolve()
+        project_root = project_dir.resolve()
+        if project_root not in resolved.parents and resolved != project_root:
+            return None
+    except Exception:
+        return None
+    if resolved.exists() and resolved.is_file():
+        return resolved
+    return None
+
+
+def _evidence_paths(project_dir: pathlib.Path, values: Any, *, limit: int = 6) -> list[pathlib.Path]:
+    if not isinstance(values, list):
+        return []
+    paths: list[pathlib.Path] = []
+    seen: set[str] = set()
+    for value in values:
+        path = _project_evidence_path(project_dir, value)
+        if not path:
+            continue
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        paths.append(path)
+        if len(paths) >= limit:
+            break
+    return paths
+
+
+def is_user_review_continue(text: str) -> bool:
+    normalized = re.sub(r"\s+", "", str(text or "").lower())
+    if not normalized:
+        return False
+    continue_words = (
+        "继续",
+        "可以",
+        "没问题",
+        "打包",
+        "最终交付",
+        "继续生成",
+        "继续打包",
+        "确认",
+        "通过",
+        "ok",
+        "go",
+    )
+    return any(word in normalized for word in continue_words)
+
+
+def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
+    def count(name: str) -> int:
+        value = evidence.get(name, [])
+        return len(value) if isinstance(value, list) else 0
+
+    commands = evidence.get("test_commands", []) if isinstance(evidence.get("test_commands"), list) else []
+    missing = evidence.get("missing", []) if isinstance(evidence.get("missing"), list) else []
+    lines = [
+        "中间测试和预览证据已准备好，先给你判断。",
+        f"测试报告：{'有' if evidence.get('test_report_path') else '没有'}",
+        f"测试代码：{count('test_code_files')} 个",
+        f"测试命令：{len(commands)} 条",
+        f"样例输入：{count('sample_inputs')} 个",
+        f"截图：{count('screenshots')} 张",
+        f"视频：{count('videos')} 个",
+        f"预览/数据文件：{count('preview_files')} 个",
+    ]
+    if commands:
+        lines.append("可复查命令：" + "；".join(str(item) for item in commands[:4]))
+    if missing:
+        labels = {
+            "TEST_REPORT.md": "测试报告",
+            "EVIDENCE_REVIEW.md": "证据复核说明",
+            "test_code_files": "测试代码",
+            "sample_inputs": "样例输入",
+            "screenshots": "截图",
+            "videos": "视频",
+            "preview_files": "预览/数据文件",
+        }
+        lines.append("缺少的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
+    lines.append("你看完后回复“继续/打包”进入最终交付；如果要改，直接说要改哪里，我会回到生成和测试阶段补修。")
+    return "\n".join(lines)
+
+
+def send_evidence_checkpoint(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    project_dir: pathlib.Path,
+    evidence: dict[str, Any],
+) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="user_evidence_checkpoint",
+        source="agent_generated_pipeline",
+        direct_text=evidence_checkpoint_summary(evidence),
+    )
+    session = load_session(session_dir, chat_id)
+    for key, caption in (("test_report_path", "测试报告"), ("evidence_review_path", "证据复核说明")):
+        path = _project_evidence_path(project_dir, evidence.get(key, ""))
+        if not path:
+            continue
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, path, caption):
+            sent.append({"kind": key, "path": str(path)})
+    for path in _evidence_paths(project_dir, evidence.get("screenshots", []), limit=6):
+        client.send_chat_action(chat_id, "upload_photo")
+        if client.send_photo(chat_id, path, "中间效果截图"):
+            sent.append({"kind": "screenshot", "path": str(path)})
+    for path in _evidence_paths(project_dir, evidence.get("videos", []), limit=4):
+        client.send_chat_action(chat_id, "upload_video")
+        if path.suffix.lower() in {".mp4", ".webm", ".mov"} and client.send_video(chat_id, path, "中间效果视频"):
+            sent.append({"kind": "video", "path": str(path)})
+        else:
+            client.send_chat_action(chat_id, "upload_document")
+            if client.send_document(chat_id, path, "中间效果视频/动图"):
+                sent.append({"kind": "video_document", "path": str(path)})
+    for path in _evidence_paths(project_dir, evidence.get("preview_files", []), limit=8):
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, path, "中间预览/数据文件"):
+            sent.append({"kind": "preview_file", "path": str(path)})
+    if sent:
+        append_truth_ledger(
+            session_dir,
+            session,
+            "user_evidence_checkpoint_sent",
+            "中间测试和预览证据已发送给用户判断",
+            status="sent",
+            evidence_ref=str(project_dir),
+            can_user_see=True,
+            data={"artifact": "user_evidence_checkpoint", "sent": sent},
+        )
+        append_memory_event(session, "user_evidence_checkpoint_sent", data={"sent": sent, "evidence": evidence})
+        save_session(session_dir, session)
+    return sent
+
+
 def make_project_package(project_dir: pathlib.Path, log_dir: pathlib.Path) -> pathlib.Path:
     source = pathlib.Path(project_dir)
     if not source.exists() or not source.is_dir():
@@ -3230,6 +3380,7 @@ def run_agent_generation_job(
             model=model,
             timeout=timeout,
             max_turns=max_turns,
+            whiteboard=whiteboard,
         )
     except Exception as exc:
         fallback_used = True
@@ -3274,6 +3425,33 @@ def run_agent_generation_job(
     result["generation_context_snapshot_path"] = str(snapshot_path)
     if manifest_path:
         result["pipeline_manifest_path"] = str(manifest_path)
+    if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting_user_review":
+        evidence = result.get("evidence", {}) if isinstance(result.get("evidence"), dict) else {}
+        checkpoint_project_dir = pathlib.Path(str(result.get("project_dir") or project_dir))
+        session = load_session(session_dir, chat_id)
+        session["generation"] = {
+            "status": "waiting_user_review",
+            "driver": "agent_generated_pipeline",
+            "updated_at": now(),
+            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+            "project_dir": str(checkpoint_project_dir),
+            "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
+            "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
+        }
+        session["pending_evidence_checkpoint"] = {
+            "status": "waiting_user_review",
+            "created_at": now(),
+            "project_dir": str(checkpoint_project_dir),
+            "pipeline_manifest": result.get("pipeline_manifest") if isinstance(result.get("pipeline_manifest"), dict) else manifest,
+            "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
+            "agent_session_path": str(session_file),
+            "evidence": evidence,
+        }
+        update_active_run_status(session, "waiting_user_review", driver="agent_generated_pipeline")
+        append_memory_event(session, "user_evidence_checkpoint_waiting", data={"evidence": evidence})
+        save_session(session_dir, session)
+        send_evidence_checkpoint(client, chat_id, session_dir, session, checkpoint_project_dir, evidence)
+        return
     summary_driver = "agent_conversation_loop_fallback" if fallback_used else str(result.get("driver") or "agent_generated_pipeline")
     summary_path = write_pipeline_run_summary(
         project_dir,
@@ -3336,6 +3514,174 @@ def finish_agent_loop_delivery(
         )
 
 
+def resume_after_evidence_review_job(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    max_turns: int = 12,
+) -> None:
+    session = load_session(session_dir, chat_id)
+    checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+    project_dir = pathlib.Path(str(checkpoint.get("project_dir") or session.get("generation", {}).get("project_dir", "")))
+    if not project_dir.exists():
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="user_evidence_resume_missing_project",
+            facts={"message": "中间项目目录不存在，无法继续最终打包；我已记录，需要重新生成。"},
+        )
+        return
+    manifest = checkpoint.get("pipeline_manifest") if isinstance(checkpoint.get("pipeline_manifest"), dict) else {}
+    if not manifest:
+        manifest_path = pathlib.Path(str(checkpoint.get("pipeline_manifest_path", "")))
+        if manifest_path.exists():
+            try:
+                loaded = json.loads(manifest_path.read_text(encoding="utf-8", errors="replace"))
+                manifest = loaded if isinstance(loaded, dict) else {}
+            except Exception:
+                manifest = {}
+    if not manifest:
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        manifest = pipeline_manifest_module.default_minimal_pipeline_manifest(whiteboard)
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    session["generation"] = {
+        "status": "running",
+        "driver": "agent_generated_pipeline",
+        "started_at": now(),
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "project_dir": str(project_dir),
+        "resume_reason": "user_evidence_approved",
+    }
+    update_active_run_status(session, "running", driver="agent_generated_pipeline")
+    append_memory_event(session, "user_evidence_review_approved", data={"project_dir": str(project_dir)})
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="user_evidence_review_approved",
+        source="agent_generated_pipeline",
+        direct_text="收到，我继续进入最终复核和打包。",
+    )
+    session_file = agent_session_path(session_dir, chat_id)
+    try:
+        result = dynamic_pipeline_runner.run_dynamic_pipeline(
+            session_path=session_file,
+            project_dir=project_dir,
+            pipeline_manifest=manifest,
+            model=model,
+            timeout=timeout,
+            max_turns=max_turns,
+            whiteboard=whiteboard,
+            skip_user_evidence_checkpoint=True,
+        )
+    except Exception as exc:
+        session = load_session(session_dir, chat_id)
+        session["generation"] = {"status": "failed", "driver": "agent_generated_pipeline", "finished_at": now(), "error": str(exc)}
+        append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc), "stage": "resume_after_evidence_review"})
+        append_memory_event(session, "agent_pipeline_failed", data={"error": str(exc), "stage": "resume_after_evidence_review"})
+        save_session(session_dir, session)
+        log_bridge_error(log_dir, "agent_pipeline_resume_failed", chat_id, exc, {"project_dir": str(project_dir)})
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="generation_failed",
+            facts={"message": "继续打包时中断了；失败信息已写回会话记录，可以从同一会话继续修复。"},
+        )
+        return
+    result["driver"] = result.get("driver") or "agent_generated_pipeline"
+    if checkpoint.get("pipeline_manifest_path"):
+        result["pipeline_manifest_path"] = str(checkpoint.get("pipeline_manifest_path", ""))
+    session = load_session(session_dir, chat_id)
+    checkpoint["status"] = "approved"
+    checkpoint["approved_at"] = now()
+    session["pending_evidence_checkpoint"] = checkpoint
+    save_session(session_dir, session)
+    finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
+
+
+def resume_after_evidence_review(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+) -> None:
+    client.send_chat_action(chat_id, "typing")
+    threading.Thread(
+        target=resume_after_evidence_review_job,
+        args=(client, chat_id, session_dir, log_dir, model, timeout),
+        daemon=True,
+    ).start()
+
+
+def record_evidence_review_feedback(
+    client: TelegramClient,
+    chat_id: int | str,
+    text: str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    session: dict[str, Any],
+) -> None:
+    checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+    checkpoint["status"] = "feedback_received"
+    checkpoint["feedback"] = text
+    checkpoint["feedback_at"] = now()
+    session["pending_evidence_checkpoint"] = checkpoint
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    whiteboard["change_requests"] = unique_strings(
+        list(whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else []) + [text],
+        limit=60,
+    )
+    session["whiteboard"] = whiteboard
+    session["generation"] = {"status": "idle", "driver": "agent_generated_pipeline", "updated_at": now()}
+    update_active_run_status(session, "intake_open", driver="agent_generated_pipeline")
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "user_evidence_feedback",
+            "role": "user",
+            "text": text,
+            "checkpoint_project_dir": checkpoint.get("project_dir", ""),
+            "instruction": "Return to build/test/evidence_review before final package.",
+        },
+    )
+    append_memory_event(session, "user_evidence_feedback", text, {"checkpoint": checkpoint})
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="user_evidence_feedback_received",
+        source="agent_generated_pipeline",
+        direct_text="收到，我会按这条反馈回到生成、测试和证据复核阶段补修，不会直接最终打包。",
+    )
+    start_agent_generation(
+        client,
+        chat_id,
+        session_dir,
+        log_dir,
+        model,
+        timeout,
+        announce_start=False,
+        reason="user_evidence_feedback",
+    )
+
+
 def start_agent_generation(
     client: TelegramClient,
     chat_id: int | str,
@@ -3376,7 +3722,7 @@ def start_agent_generation(
     ).start()
 
 
-ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision"}
+ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_user_review"}
 
 
 def apply_backend_dialogue_tick(
@@ -3861,6 +4207,19 @@ def handle_text(
         )
         return
 
+    generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
+    if generation_status == "waiting_user_review" and intent not in {"admin_command", "greeting", "status_query"}:
+        if is_user_review_continue(text):
+            append_agent_session_event(
+                session_dir,
+                chat_id,
+                {"kind": "user_evidence_review_approved", "role": "user", "text": text},
+            )
+            resume_after_evidence_review(client, chat_id, session_dir, log_dir, model, timeout)
+            return
+        record_evidence_review_feedback(client, chat_id, text, session_dir, log_dir, model, timeout, session)
+        return
+
     pending = current_pending_decision(session)
     if pending and intent not in {"admin_command", "greeting", "status_query", "generation_confirmation"}:
         pending["status"] = "superseded"
@@ -4025,7 +4384,6 @@ def handle_text(
         send_customer_reply(client, chat_id, session_dir, session, event="escalation_request", facts={"message": "模型通道暂时不可用；这条升级请求已写入会话。"})
         return
 
-    generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     continue_customer_turn(client, chat_id, session, session_dir, log_dir, model, timeout, {"text": text})
     session = load_session(session_dir, chat_id)
     if generation_status in ACTIVE_GENERATION_STATUSES:

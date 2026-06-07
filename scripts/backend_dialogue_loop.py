@@ -89,6 +89,22 @@ COMPLEX_DOMAIN_KEYWORDS = (
     "图像",
 )
 
+EVIDENCE_REVIEW_KEYWORDS = (
+    "图片",
+    "视频",
+    "截图",
+    "可视化",
+    "demo",
+    "csgo",
+    "csgo2",
+    "cs2",
+    "鉴挂",
+    "鼠标键盘动作",
+    "视觉信息",
+    "模型效果",
+    "识别结果",
+)
+
 
 def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str = "project_update") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
@@ -109,6 +125,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
 
     text = latest_text or summary
     complex_domain = contains_any(text, COMPLEX_DOMAIN_KEYWORDS)
+    requires_user_evidence_review = contains_any(text, EVIDENCE_REVIEW_KEYWORDS)
     strategy = capability_strategy.build_capability_strategy(text, SCRIPTS_DIR.parent)
     if strategy.get("local_image_model_discovery"):
         local_image_discovery = strategy.get("local_image_model_discovery", {})
@@ -243,6 +260,8 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
             f"后端重点：{'；'.join(backend_plan[:4])}。"
             f"{question_text}"
         )
+    if requires_user_evidence_review:
+        user_visible_reply += "\n生成后我会先给你测试代码、测试命令和可视化/视频/预览证据，让你判断，再进入最终打包。"
 
     return {
         "kind": "BackendDialogueAnalysis",
@@ -264,6 +283,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "capability_strategy": strategy,
         "local_image_model_discovery": local_image_discovery,
         "ready_to_generate": True,
+        "requires_user_evidence_review": requires_user_evidence_review,
         "needs_direction_confirmation": needs_direction_confirmation,
         "suggested_confirmation_reply": suggested_confirmation_reply,
         "confidence": confidence,
@@ -301,7 +321,7 @@ def backend_dialogue_prompt(latest_text: str, local: dict[str, Any]) -> str:
     return (
         "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
         "根据用户最新需求和本地初稿，输出 JSON，字段只能包括: "
-        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, missing_required_inputs, domain_risk_level, recommended_next_action, start_allowed_with_assumptions, needs_direction_confirmation, suggested_confirmation_reply, user_visible_reply。"
+        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, missing_required_inputs, domain_risk_level, recommended_next_action, start_allowed_with_assumptions, needs_direction_confirmation, requires_user_evidence_review, suggested_confirmation_reply, user_visible_reply。"
         "soft_questions 最多 3 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
         "critical_questions 只用于本地模型、凭据、外部能力等关键配置缺口；不能作为生成硬门禁。"
         f"\n用户最新需求: {latest_text[:4000]}"
@@ -373,6 +393,8 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
             merged["backend_memo"] = f"后台拆解: {merged.get('project_summary', '')}"
         if "needs_direction_confirmation" in provider:
             merged["needs_direction_confirmation"] = bool(provider.get("needs_direction_confirmation"))
+        if "requires_user_evidence_review" in provider:
+            merged["requires_user_evidence_review"] = bool(provider.get("requires_user_evidence_review")) or bool(local.get("requires_user_evidence_review"))
         for key in ("missing_required_inputs",):
             if isinstance(provider.get(key), list):
                 merged[key] = unique_strings(
@@ -399,6 +421,7 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
     merged.setdefault("domain_risk_level", "low")
     merged.setdefault("recommended_next_action", "can_start")
     merged.setdefault("start_allowed_with_assumptions", True)
+    merged["requires_user_evidence_review"] = bool(merged.get("requires_user_evidence_review", False))
     merged["updated_at"] = now()
     return merged
 
@@ -434,6 +457,7 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
         whiteboard["capability_strategy"] = analysis.get("capability_strategy")
     whiteboard["blocking_questions"] = []
     whiteboard["ready_to_generate"] = bool(analysis.get("ready_to_generate", True))
+    whiteboard["requires_user_evidence_review"] = bool(analysis.get("requires_user_evidence_review", False))
     whiteboard["backend_dialogue_updated_at"] = str(analysis.get("updated_at", now()))
     whiteboard["backend_dialogue_confidence"] = float(analysis.get("confidence") or 0)
     session["whiteboard"] = whiteboard

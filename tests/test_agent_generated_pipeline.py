@@ -178,7 +178,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
-                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file", "read_file", "list_files"],
@@ -198,6 +198,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 max_turns=3,
                 agent=fake_agent,
                 fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
             )
 
             self.assertTrue(pathlib.Path(result["package_path"]).exists())
@@ -212,7 +213,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             project_dir = root / "project"
             manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
             manifest["steps"] = [
-                {**manifest["steps"][0], "stage": ["product_plan", "technical_plan", "build", "test", "review"]},
+                {**manifest["steps"][0], "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"]},
                 {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
             original_local_call = dynamic_runner.local_model_router.call_text_task
@@ -233,6 +234,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                     timeout=5,
                     max_turns=2,
                     fallback_to_agent_loop=False,
+                    skip_user_evidence_checkpoint=True,
                 )
             finally:
                 dynamic_runner.local_model_router.call_text_task = original_local_call
@@ -251,7 +253,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
-                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file"],
@@ -275,6 +277,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 max_turns=3,
                 agent=fake_agent,
                 fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
             )
 
             events = read_jsonl(session_path)
@@ -293,7 +296,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "backend",
                     "type": "agent_turn",
-                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
                     "role": "backend",
                     "goal": "write backend",
                     "allowed_actions": ["write_file"],
@@ -321,6 +324,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 max_turns=3,
                 agent=fake_agent,
                 fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
             )
 
             events = read_jsonl(session_path)
@@ -341,7 +345,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "context_support",
                     "type": "agent_turn",
-                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
                     "role": "context_librarian",
                     "goal": "write context db",
                     "allowed_actions": ["write_file"],
@@ -370,6 +374,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 max_turns=3,
                 agent=fake_agent,
                 fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
             )
 
             events = read_jsonl(session_path)
@@ -393,7 +398,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 calls.append("planner")
                 return pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
 
-            def fake_runner(*, session_path, project_dir, pipeline_manifest, model, timeout, max_turns):
+            def fake_runner(*, session_path, project_dir, pipeline_manifest, model, timeout, max_turns, **kwargs):
                 calls.append("runner")
                 return package_result(pathlib.Path(project_dir)) | {"pipeline_manifest": pipeline_manifest, "driver": "agent_generated_pipeline"}
 
@@ -486,7 +491,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
-                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file"],
@@ -507,6 +512,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 max_turns=3,
                 agent=fake_agent,
                 fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
             )
 
             self.assertIn("generation_context_snapshot", captured["kinds"])

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 import time
 from typing import Any, Callable
@@ -20,6 +21,25 @@ import pipeline_planner_agent
 
 
 AgentCallable = Callable[[list[dict[str, Any]], str, int], str | dict[str, Any]]
+
+
+MEDIA_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm"}
+PREVIEW_SUFFIXES = MEDIA_SUFFIXES | {".html", ".csv", ".json"}
+USER_REVIEW_KEYWORDS = (
+    "gui",
+    "visual",
+    "image",
+    "video",
+    "demo",
+    "csgo",
+    "cs2",
+    "csgo2",
+    "鉴挂",
+    "模型检测",
+    "数据分析",
+    "视觉信息",
+    "截图",
+)
 
 
 def _role_by_id(manifest: dict[str, Any], role_id: str) -> dict[str, Any]:
@@ -275,6 +295,104 @@ def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
     }
     evidence["missing"] = [label for key, label in missing_keys.items() if not evidence.get(key)]
     return evidence
+
+
+def _rel(project: pathlib.Path, path: pathlib.Path) -> str:
+    try:
+        return str(path.resolve().relative_to(project.resolve())).replace("\\", "/")
+    except ValueError:
+        return str(path)
+
+
+def _find_files(project: pathlib.Path, patterns: tuple[str, ...], *, limit: int = 80) -> list[str]:
+    out: list[str] = []
+    if not project.exists():
+        return out
+    for pattern in patterns:
+        for path in sorted(project.glob(pattern)):
+            if path.is_file():
+                rel = _rel(project, path)
+                if rel not in out:
+                    out.append(rel)
+            if len(out) >= limit:
+                return out
+    return out
+
+
+def _extract_test_commands(test_report: pathlib.Path) -> list[str]:
+    if not test_report.exists():
+        return []
+    text = test_report.read_text(encoding="utf-8", errors="replace")
+    match = None
+    for pattern in (
+        r"commands_run\s*:?(.*?)(?:\n\s*(?:results|failures|repairs|remaining_warnings|#)\s*:|\Z)",
+        r"test_commands\s*:?(.*?)(?:\n\s*(?:results|failures|repairs|remaining_warnings|#)\s*:|\Z)",
+    ):
+        match = re.search(pattern, text, flags=re.I | re.S)
+        if match:
+            break
+    section = match.group(1) if match else ""
+    commands: list[str] = []
+    for line in section.splitlines():
+        cleaned = line.strip().strip("-*` ").strip()
+        if cleaned and cleaned.lower() not in {"none", "no test executed", "未执行"}:
+            commands.append(cleaned[:500])
+    return commands[:20]
+
+
+def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    test_report = project / "TEST_REPORT.md"
+    evidence_review = project / "EVIDENCE_REVIEW.md"
+    test_code_files = _find_files(project, ("tests/**/*.py", "test_*.py", "*_test.py"))
+    sample_inputs = _find_files(project, ("samples/**/*", "test_data/**/*", "demo/**/*"))
+    screenshots = [item for item in _find_files(project, ("screenshots/**/*", "artifacts/**/*", "preview/**/*", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp")) if pathlib.Path(item).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
+    videos = [item for item in _find_files(project, ("artifacts/**/*", "preview/**/*", "**/*.mp4", "**/*.webm", "**/*.gif")) if pathlib.Path(item).suffix.lower() in {".mp4", ".webm", ".gif"}]
+    preview_files = [item for item in _find_files(project, ("artifacts/**/*", "preview/**/*", "**/*.html", "**/*.csv", "**/*.json", "**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif", "**/*.mp4", "**/*.webm")) if pathlib.Path(item).suffix.lower() in PREVIEW_SUFFIXES]
+    missing: list[str] = []
+    if not test_report.exists():
+        missing.append("TEST_REPORT.md")
+    if not evidence_review.exists():
+        missing.append("EVIDENCE_REVIEW.md")
+    if not test_code_files:
+        missing.append("test_code_files")
+    if not sample_inputs:
+        missing.append("sample_inputs")
+    if not screenshots:
+        missing.append("screenshots")
+    if not videos:
+        missing.append("videos")
+    if not preview_files:
+        missing.append("preview_files")
+    return {
+        "test_report_path": _rel(project, test_report) if test_report.exists() else "",
+        "evidence_review_path": _rel(project, evidence_review) if evidence_review.exists() else "",
+        "test_code_files": test_code_files,
+        "test_commands": _extract_test_commands(test_report),
+        "sample_inputs": sample_inputs,
+        "screenshots": screenshots,
+        "videos": videos,
+        "preview_files": preview_files,
+        "missing": missing,
+    }
+
+
+def requires_user_evidence_judgement(manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> bool:
+    board = whiteboard if isinstance(whiteboard, dict) else {}
+    if board.get("requires_user_evidence_review") is True:
+        return True
+    parts: list[str] = []
+    for value in (manifest.get("project_goal"), board.get("project_summary")):
+        if isinstance(value, str):
+            parts.append(value)
+    for key in ("known_facts", "acceptance_criteria", "delivery_requirements", "user_rules", "change_requests"):
+        values = board.get(key, [])
+        if isinstance(values, list):
+            parts.extend(str(item) for item in values if str(item).strip())
+        elif isinstance(values, str):
+            parts.append(values)
+    text = "\n".join(parts).lower()
+    return any(token in text for token in USER_REVIEW_KEYWORDS)
 
 
 def _write_repair_test_report(project: pathlib.Path, missing: list[str]) -> None:
@@ -549,6 +667,8 @@ def run_dynamic_pipeline(
     max_turns: int = 12,
     agent: AgentCallable | None = None,
     fallback_to_agent_loop: bool = True,
+    whiteboard: dict[str, Any] | None = None,
+    skip_user_evidence_checkpoint: bool = False,
 ) -> dict[str, Any]:
     session_file = pathlib.Path(session_path).resolve()
     project = pathlib.Path(project_dir).resolve()
@@ -598,6 +718,31 @@ def run_dynamic_pipeline(
                     break
                 if result.get("status") != "ok":
                     raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('summary', '')}")
+                stages = pipeline_manifest_module._stage_values(step.get("stage"))
+                if "evidence_review" in stages:
+                    evidence = collect_user_review_evidence(project)
+                    requires_review = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
+                    agent_conversation_loop.append_event(
+                        session_file,
+                        {
+                            "kind": "user_evidence_checkpoint",
+                            "role": "system",
+                            "step_id": step_id,
+                            "evidence": evidence,
+                            "requires_user_judgement": requires_review,
+                            "message": "中间测试和预览证据已准备好，等待用户判断或继续。",
+                        },
+                    )
+                    if requires_review and not skip_user_evidence_checkpoint:
+                        return {
+                            "status": "waiting_user_review",
+                            "session_path": str(session_file),
+                            "project_dir": str(project),
+                            "pipeline_manifest": pipeline_manifest,
+                            "evidence": evidence,
+                            "requires_user_judgement": True,
+                            "message": "中间测试和预览证据已准备好，等待用户判断或继续。",
+                        }
             elif step_type in {"use_skill", "run_command", "package_project"}:
                 action = _step_action(step)
                 if step_type == "package_project":
@@ -605,6 +750,8 @@ def run_dynamic_pipeline(
                     known_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
                     known_limits.extend(audit.get("known_limits", []))
                     action["known_limits"] = known_limits
+                    action["user_review_required"] = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
+                    action["user_review_completed"] = bool(skip_user_evidence_checkpoint) or not action["user_review_required"]
                 allowed = {action["type"]} if action.get("type") else set()
                 if action.get("type") == "run_command" and _forbidden_command(str(action.get("command", ""))):
                     result = {"ok": False, "type": "run_command", "error": "legacy generation command rejected"}

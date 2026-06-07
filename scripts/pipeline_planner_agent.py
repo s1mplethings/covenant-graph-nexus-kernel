@@ -33,14 +33,18 @@ You may freely design the roles and steps for this project, but the pipeline_man
 - technical_plan
 - build
 - test
+- evidence_review
 - review
 - package
 Stage rules:
 - Do not skip product_plan.
 - Do not skip technical_plan.
 - Do not skip test.
+- Do not skip evidence_review.
 - Do not skip review.
-- Do not put package before test or review.
+- Do not put package before test, evidence_review, or review.
+- evidence_review must happen after test and before review.
+- Do not jump directly from test to package.
 - Simple projects may merge stages, but TEST_REPORT.md and DELIVERY_NOTES.md still must be generated.
 - Every step must declare stage. Use either a string stage or a list of stages for merged steps.
 - Every step must explain goal.
@@ -56,6 +60,9 @@ CFO design requirements:
 - Worker steps should be scoped to assigned modules and should leave handoff artifacts.
 - Worker steps should read MODULE_PIPELINE.md plus any CFO support artifacts such as CFO_CONTEXT_DB.json and CFO_RISK_REGISTER.md.
 - QA/test steps must write TEST_REPORT.md, attempt at least one feasible check command when possible, and record NO TEST EXECUTED with reason when no check can run.
+- The evidence_review stage must write EVIDENCE_REVIEW.md. It is not final delivery; it prepares test code, test commands, sample inputs, screenshots, videos, preview files, missing real evidence, what the user should check, and the next recommended action.
+- If the project involves GUI, visual output, video, demo files, image generation, data analysis, model effects, cheat detection, labels, preview, csgo/cs2/csgo2, 鉴挂, or user-visible screenshots/videos/tests, evidence_review must prepare evidence the user can judge before final package.
+- Do not allow a complete PASS without EVIDENCE_REVIEW.md.
 - A later cfo review step must inspect support artifacts, worker handoffs, test evidence, preview evidence, and whiteboard acceptance criteria before package_project.
 - Review steps must read TEST_REPORT.md and write DELIVERY_NOTES.md. If TEST_REPORT.md is missing, review cannot mark PASS.
 - The manifest may include a cfo_contract object describing authority, planning artifact, review artifact, support artifacts, support agent rule, worker handoff rule, and evidence rule.

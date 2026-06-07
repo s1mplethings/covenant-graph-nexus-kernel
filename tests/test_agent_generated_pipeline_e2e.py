@@ -84,6 +84,14 @@ def simple_manifest() -> dict:
                 "allowed_actions": ["write_file"],
             },
             {
+                "id": "evidence_review",
+                "type": "agent_turn",
+                "stage": "evidence_review",
+                "role": "qa",
+                "goal": "write EVIDENCE_REVIEW.md",
+                "allowed_actions": ["write_file"],
+            },
+            {
                 "id": "review",
                 "type": "agent_turn",
                 "stage": "review",
@@ -93,7 +101,7 @@ def simple_manifest() -> dict:
             },
             {"id": "package", "type": "package_project", "stage": "package", "goal": "package delivery"},
         ],
-        "limits": {"max_agent_turns_per_step": 2, "max_total_steps": 5, "allow_dynamic_new_steps": False},
+        "limits": {"max_agent_turns_per_step": 2, "max_total_steps": 6, "allow_dynamic_new_steps": False},
     }
 
 
@@ -122,6 +130,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                     }
                 if "Current step goal: write TEST_REPORT.md" in prompt:
                     return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Test Report\n\ncommands_run:\n- python app.py\n\nresults:\n- planned fixture\n\nfailures:\n- none\n\nrepairs:\n- none\n\nremaining_warnings:\n- not executed in fixture\n"}]}
+                if "Current step goal: write EVIDENCE_REVIEW.md" in prompt:
+                    return {"actions": [{"type": "write_file", "path": "EVIDENCE_REVIEW.md", "content": "# Evidence Review\n\ntest_code_files: none\ntest_commands: python app.py\nsample_inputs: none\nscreenshots: none\nvideos: none\npreview_files: none\nwhat_user_should_check: CLI output\nmissing_real_evidence: no visual media required\nnext_recommended_action: package\n"}]}
                 if "Current step goal: write DELIVERY_NOTES.md" in prompt:
                     return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Delivery Notes\n\ndelivery_status: WARNING\ntests_executed: fixture evidence\nevidence_found: README, app.py, TEST_REPORT.md\nevidence_missing: none\nknown_limits: fixture did not execute command\nrevision_entry: initial\n"}]}
                 return {
