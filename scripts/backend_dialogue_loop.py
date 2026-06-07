@@ -15,6 +15,9 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import check_connectivity
+import capability_strategy
+import local_image_model_discovery
+import local_model_router
 
 
 LIST_FIELDS = (
@@ -81,14 +84,38 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     scope: list[str] = []
     assumptions: list[str] = []
     questions: list[str] = []
+    critical_questions: list[str] = []
+    local_image_discovery: dict[str, Any] = {}
 
     text = latest_text or summary
+    strategy = capability_strategy.build_capability_strategy(text, SCRIPTS_DIR.parent)
+    if strategy.get("local_image_model_discovery"):
+        local_image_discovery = strategy.get("local_image_model_discovery", {})
     if contains_any(text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘", "图片", "生成图片")):
         frontend_plan.extend(["时间线梳理视图", "角色/立绘管理", "背景生成与预览区", "场景卡片和故事逻辑检查"])
         backend_plan.extend(["本地项目状态存储", "图片生成适配层", "场景/角色/素材索引", "导出交付包"])
         data_model.extend(["scene", "character", "timeline_event", "asset_generation_job"])
         scope.extend(["第一版先做本地可运行 VN 项目助手", "支持时间线整理、背景生成、立绘生成和预览"])
         assumptions.extend(["图片生成先做可替换 provider 接口，生成结果落到本地素材库"])
+        critical_questions, local_image_discovery = local_image_model_discovery.critical_questions_for_text(text, SCRIPTS_DIR.parent)
+        if local_image_discovery.get("checked"):
+            backend_plan.append("本地图片模型能力探测（ComfyUI/AUTOMATIC1111/SD_MODEL_DIR）")
+        if critical_questions:
+            assumptions.append("背景和立绘必须使用已配置本地图片模型；未接上模型时只能标记为降级预览，不能算图片验收通过")
+        elif local_image_discovery.get("available"):
+            assumptions.append("背景和立绘按已发现的本地图片模型后端生成，并保留缺失能力报告")
+    if strategy.get("capabilities"):
+        backend_plan.append("核心能力识别和高级实现路线筛选")
+        for target in strategy.get("research_targets", [])[:4]:
+            capability = target.get("capability", {}) if isinstance(target, dict) else {}
+            label = str(capability.get("label", "")).strip()
+            if label:
+                scope.append(f"核心能力：{label}")
+        critical_questions = unique_strings(
+            critical_questions + list(strategy.get("critical_questions", []) if isinstance(strategy.get("critical_questions"), list) else []),
+            limit=4,
+        )
+        assumptions.extend(strategy.get("acceptance_criteria", []) if isinstance(strategy.get("acceptance_criteria"), list) else [])
     if contains_any(text, ("后台", "后端", "api", "数据库", "登录", "管理", "系统", "agent")):
         frontend_plan.extend(["管理页", "列表/详情视图", "筛选和状态反馈"])
         backend_plan.extend(["本地接口层", "数据读写模块", "任务状态记录", "错误恢复记录"])
@@ -126,6 +153,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     elif questions:
         confidence = 0.72
 
+    critical_questions = unique_strings(critical_questions, limit=3)
     soft_questions = unique_strings(questions, limit=2)
     frontend_plan = unique_strings(frontend_plan, limit=8)
     backend_plan = unique_strings(backend_plan, limit=8)
@@ -134,8 +162,10 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     assumptions = unique_strings(assumptions, limit=6)
 
     question_text = ""
+    if critical_questions:
+        question_text = "\n这里有一个关键配置要确认：" + "；".join(critical_questions)
     if soft_questions:
-        question_text = "\n我先带着默认假设继续，不会卡住生成；需要你补的话只问这一点：" + "；".join(soft_questions)
+        question_text += "\n我先带着默认假设继续，不会卡住生成；需要你补的话只问这一点：" + "；".join(soft_questions)
 
     user_visible_reply = (
         f"我按项目需求开始拆：{summary}。\n"
@@ -157,6 +187,9 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "first_version_scope": scope,
         "assumptions": assumptions,
         "soft_questions": soft_questions,
+        "critical_questions": critical_questions,
+        "capability_strategy": strategy,
+        "local_image_model_discovery": local_image_discovery,
         "ready_to_generate": True,
         "confidence": confidence,
         "user_visible_reply": user_visible_reply[:1500],
@@ -168,8 +201,9 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
 def should_call_provider(session: dict[str, Any], latest_text: str, local: dict[str, Any], *, reason: str, api_budget: str) -> bool:
     if str(api_budget or "low").lower() in {"off", "none", "disabled"}:
         return False
+    local_enabled = local_model_router.task_enabled("backend_dialogue")
     creds = check_connectivity._resolve_api_credentials()
-    if not str(creds.get("api_key", "")).strip():
+    if not local_enabled and not str(creds.get("api_key", "")).strip():
         return False
     budget = session.get("backend_dialogue_budget", {}) if isinstance(session.get("backend_dialogue_budget"), dict) else {}
     if budget.get("last_text_fingerprint") == text_fingerprint(latest_text) and budget.get("last_provider_status") == "ok":
@@ -185,39 +219,41 @@ def should_call_provider(session: dict[str, Any], latest_text: str, local: dict[
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
-    value = str(text or "").strip()
-    if value.startswith("```"):
-        value = re.sub(r"^```(?:json)?\s*", "", value)
-        value = re.sub(r"\s*```$", "", value)
-    try:
-        doc = json.loads(value)
-        return doc if isinstance(doc, dict) else {}
-    except Exception:
-        pass
-    match = re.search(r"\{.*\}", value, flags=re.S)
-    if not match:
-        return {}
-    try:
-        doc = json.loads(match.group(0))
-    except Exception:
-        return {}
-    return doc if isinstance(doc, dict) else {}
+    return local_model_router.extract_json(text) or {}
+
+
+def backend_dialogue_prompt(latest_text: str, local: dict[str, Any]) -> str:
+    return (
+        "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
+        "根据用户最新需求和本地初稿，输出 JSON，字段只能包括: "
+        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, user_visible_reply。"
+        "soft_questions 最多 2 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
+        "critical_questions 只用于本地模型、凭据、外部能力等关键配置缺口；不能作为生成硬门禁。"
+        f"\n用户最新需求: {latest_text[:4000]}"
+        f"\n本地初稿: {json.dumps(local, ensure_ascii=False)[:6000]}"
+    )
 
 
 def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, Any], *, model: str, timeout: int) -> tuple[dict[str, Any] | None, str]:
+    prompt = backend_dialogue_prompt(latest_text, local)
+    local_result = local_model_router.call_json_task(
+        "backend_dialogue",
+        "Return strict JSON for lightweight project requirement analysis. Do not write files.",
+        prompt,
+        timeout,
+    )
+    if local_result.get("ok") and isinstance(local_result.get("json"), dict):
+        parsed = dict(local_result["json"])
+        parsed["_provider_source"] = "local_model"
+        parsed["_local_model_provider"] = local_result.get("provider", "")
+        parsed["_local_model_name"] = local_result.get("model", "")
+        return parsed, ""
+
     creds = check_connectivity._resolve_api_credentials()
     api_key = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).rstrip("/")
     if not api_key or not root:
-        return None, "missing credentials"
-    prompt = (
-        "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
-        "根据用户最新需求和本地初稿，输出 JSON，字段只能包括: "
-        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, user_visible_reply。"
-        "soft_questions 最多 2 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
-        f"\n用户最新需求: {latest_text[:4000]}"
-        f"\n本地初稿: {json.dumps(local, ensure_ascii=False)[:6000]}"
-    )
+        return None, str(local_result.get("error") or "missing credentials")
     if check_connectivity._is_gptsapi_base_url(root):
         endpoint = root + "/chat/completions"
         payload = {
@@ -244,17 +280,29 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
 def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> dict[str, Any]:
     merged = dict(local)
     if provider:
+        provider_source = str(provider.get("_provider_source") or "provider_once_per_turn")
         for key in ("project_summary", "user_visible_reply"):
             value = str(provider.get(key, "")).strip()
             if value:
                 merged[key] = value[:1500]
         for key in LIST_FIELDS:
             merged[key] = unique_strings(provider.get(key, []) if isinstance(provider.get(key), list) else [provider.get(key)], limit=8)
+        provider_critical = provider.get("critical_questions", [])
+        if isinstance(provider_critical, list):
+            merged["critical_questions"] = unique_strings(
+                list(local.get("critical_questions", []) if isinstance(local.get("critical_questions"), list) else [])
+                + provider_critical,
+                limit=3,
+            )
         if not merged.get("backend_memo"):
             merged["backend_memo"] = f"后台拆解: {merged.get('project_summary', '')}"
-        merged["source"] = "provider_once_per_turn"
+        merged["source"] = provider_source
         merged["confidence"] = max(float(local.get("confidence") or 0), 0.86)
+        if provider_source == "local_model":
+            merged["local_model_provider"] = str(provider.get("_local_model_provider", ""))
+            merged["local_model_name"] = str(provider.get("_local_model_name", ""))
     merged["soft_questions"] = unique_strings(merged.get("soft_questions", []), limit=2)
+    merged["critical_questions"] = unique_strings(merged.get("critical_questions", []), limit=3)
     merged["ready_to_generate"] = True
     merged["updated_at"] = now()
     return merged
@@ -276,8 +324,15 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
         + list(analysis.get("assumptions", []) if isinstance(analysis.get("assumptions"), list) else []),
         limit=20,
     )
-    whiteboard["open_questions"] = unique_strings(analysis.get("soft_questions", []), limit=2)
+    critical_questions = unique_strings(analysis.get("critical_questions", []), limit=3)
+    soft_questions = unique_strings(analysis.get("soft_questions", []), limit=2)
+    whiteboard["open_questions"] = unique_strings(critical_questions + soft_questions, limit=4)
     whiteboard["soft_questions"] = unique_strings(analysis.get("soft_questions", []), limit=2)
+    whiteboard["critical_questions"] = critical_questions
+    if analysis.get("local_image_model_discovery"):
+        whiteboard["local_image_model_discovery"] = analysis.get("local_image_model_discovery")
+    if analysis.get("capability_strategy"):
+        whiteboard["capability_strategy"] = analysis.get("capability_strategy")
     whiteboard["blocking_questions"] = []
     whiteboard["ready_to_generate"] = bool(analysis.get("ready_to_generate", True))
     whiteboard["backend_dialogue_updated_at"] = str(analysis.get("updated_at", now()))
@@ -331,7 +386,10 @@ def run_backend_dialogue_tick(
     budget["last_reason"] = reason
     budget["last_provider_status"] = "ok" if provider_doc else ("failed" if provider_attempted else "skipped")
     if provider_attempted:
-        budget["api_calls"] = int(budget.get("api_calls") or 0) + 1
+        if str(analysis.get("source", "")) != "local_model":
+            budget["api_calls"] = int(budget.get("api_calls") or 0) + 1
+        else:
+            budget["local_model_calls"] = int(budget.get("local_model_calls") or 0) + 1
         budget["last_model"] = model
         budget["last_api_error"] = provider_error[:500]
     session["backend_dialogue_budget"] = budget

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import os
 import pathlib
+import random
 import re
 import shutil
 import sys
@@ -25,7 +27,10 @@ if str(SCRIPTS_DIR) not in sys.path:
 import check_connectivity
 import agent_conversation_loop
 import backend_dialogue_loop
+import capability_strategy
 import dynamic_pipeline_runner
+import local_image_model_discovery
+import local_model_router
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
 import product_studio_reply
@@ -873,27 +878,139 @@ def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+CUSTOMER_MESSAGE_INTENTS = {
+    "admin_command",
+    "greeting",
+    "status_query",
+    "escalation_request",
+    "generation_confirmation",
+    "new_project_request",
+    "project_update",
+}
+
+
+def looks_like_status_question(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    if compact in {
+        "现在怎么样了",
+        "怎么样了",
+        "进度怎么样",
+        "当前状态",
+        "状态",
+        "status",
+        "howisitgoing",
+        "有结果了吗",
+        "好了没",
+        "还在做吗",
+        "还做吗",
+        "在做吗",
+        "还在跑吗",
+        "还在生成吗",
+        "后台还在做吗",
+    }:
+        return True
+    status_words = ("进度", "状态", "做到哪", "做到哪里", "有动静", "跑到哪", "生成到哪", "结果了吗", "好了没", "还在做", "还在跑", "还在生成", "后台还在")
+    question_words = ("吗", "没", "没有", "哪", "如何", "怎么样", "怎样")
+    return any(word in compact for word in status_words) and (any(word in compact for word in question_words) or len(compact) <= 18)
+
+
+def looks_like_escalation_request(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    if compact in {"升级", "交给agent", "调用api", "用provider", "人工介入", "请求升级", "escalate"}:
+        return True
+    return any(word in compact for word in ("升级", "人工介入", "交给agent", "调用api", "用provider"))
+
+
+def model_classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, Any] | None:
+    stripped = str(text or "").strip()
+    if not stripped or not local_model_router.task_enabled("customer_classification"):
+        return None
+    prompt = json.dumps(
+        {
+            "text": stripped,
+            "generation_status": session.get("generation", {}).get("status", "idle") if isinstance(session.get("generation"), dict) else "idle",
+            "has_project_summary": bool(str((session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}).get("project_summary", "")).strip()),
+            "substantive_user_turn_count": substantive_user_turn_count(session),
+            "allowed_intents": sorted(CUSTOMER_MESSAGE_INTENTS),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    result = local_model_router.call_json_task(
+        "customer_classification",
+        "Classify the Telegram customer message. Return JSON only: {\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"short\"}. Do not start generation by yourself.",
+        prompt,
+        30,
+    )
+    doc = result.get("json") if isinstance(result.get("json"), dict) else None
+    if not doc:
+        return None
+    intent = str(doc.get("intent", "")).strip()
+    if intent not in CUSTOMER_MESSAGE_INTENTS:
+        return None
+    if intent == "generation_confirmation" and not (is_generate_command(stripped) or is_human_start_confirmation(stripped, session)):
+        return None
+    return {
+        "intent": intent,
+        "confidence": doc.get("confidence", 0),
+        "reason": str(doc.get("reason") or "local_model_classification")[:300],
+    }
+
+
 def classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, Any]:
     stripped = str(text or "").strip()
     compact = re.sub(r"[\s,.!?。！？~～]+", "", stripped.lower())
     generation_status = str(session.get("generation", {}).get("status", "idle")).lower()
+    source = "rule"
+    reason = ""
     if stripped in {"/new", "/reset", "/restart", "/delete_history", "/help", "/status"}:
         intent = "status_query" if stripped == "/status" else "admin_command"
+        reason = "explicit_admin_command"
     elif is_smalltalk(stripped):
         intent = "greeting"
-    elif compact in {"现在怎么样了", "怎么样了", "进度怎么样", "当前状态", "状态", "status", "howisitgoing", "有结果了吗", "好了没"}:
+        reason = "smalltalk"
+    elif looks_like_status_question(stripped):
         intent = "status_query"
-    elif compact in {"升级", "交给agent", "调用api", "用provider", "人工介入", "请求升级", "escalate"} or "升级" in compact:
+        reason = "status_question"
+    elif looks_like_escalation_request(stripped):
         intent = "escalation_request"
+        reason = "escalation_request"
     elif is_generate_command(stripped) or is_human_start_confirmation(stripped, session):
         intent = "generation_confirmation"
+        reason = "generation_confirmation"
     elif generation_status in {"queued", "running"}:
         intent = "project_update"
+        reason = "active_generation_update"
     elif substantive_user_turn_count(session) == 0:
-        intent = "new_project_request"
+        model_doc = model_classify_customer_message(stripped, session)
+        if model_doc:
+            intent = str(model_doc.get("intent") or "new_project_request")
+            source = "local_model"
+            reason = str(model_doc.get("reason") or "model_classification")
+        else:
+            intent = "new_project_request"
+            reason = "first_substantive_turn"
     else:
+        model_doc = model_classify_customer_message(stripped, session)
+        if model_doc:
+            intent = str(model_doc.get("intent") or "project_update")
+            source = "local_model"
+            reason = str(model_doc.get("reason") or "model_classification")
+        else:
+            intent = "project_update"
+            reason = "continuing_project_context"
+    if intent not in CUSTOMER_MESSAGE_INTENTS:
         intent = "project_update"
-    return {"kind": "CustomerMessageClassification", "intent": intent, "text": stripped, "classified_at": now()}
+        source = "rule"
+        reason = "invalid_model_intent_fallback"
+    return {
+        "kind": "CustomerMessageClassification",
+        "intent": intent,
+        "text": stripped,
+        "classified_at": now(),
+        "source": source,
+        "reason": reason,
+    }
 
 
 def active_run(session: dict[str, Any]) -> dict[str, Any] | None:
@@ -1190,56 +1307,8 @@ def backend_dialogue_status_text(session: dict[str, Any]) -> str:
     )
 
 
-def greeting_context_reply(session: dict[str, Any]) -> str:
-    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    summary = str(whiteboard.get("project_summary", "")).strip()
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    status = str(generation.get("status", "idle")).lower()
-    greeting_turns = 0
-    for message in session.get("messages", []):
-        if not isinstance(message, dict) or str(message.get("role", "")) != "user":
-            continue
-        classification = message.get("classification", {}) if isinstance(message.get("classification"), dict) else {}
-        if str(classification.get("intent", "")) == "greeting":
-            greeting_turns += 1
-
-    if summary:
-        if status in ACTIVE_GENERATION_STATUSES:
-            return f"在，当前生成中的项目是：{summary[:260]}。你可以直接补充限制、素材或验收点，我会写进同一个后端会话。"
-        return f"在，当前项目方向是：{summary[:260]}。继续发补充会进入同一个项目上下文，后台按最新输入推进。"
-
-    variants = [
-        "在。当前还没有项目需求；你直接发目标、功能或素材，我会先拆前端、后端和第一版范围。",
-        "在。现在是空会话；发项目要求后我会接入模型整理需求并启动生成。",
-        "在。你把项目目标发过来，我会给出可执行拆解，并让后台 agent 直接推进。",
-    ]
-    return variants[(max(greeting_turns, 1) - 1) % len(variants)]
-
-
 def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any] | None = None, backend_memo: str = "") -> str:
     facts = facts or {}
-    if event == "greeting":
-        return greeting_context_reply(session)
-    if event == "status_requested":
-        generation = active_run(session) or (session.get("generation", {}) if isinstance(session.get("generation"), dict) else {})
-        evidence = facts.get("evidence_state", {}) if isinstance(facts.get("evidence_state"), dict) else {}
-        status = str(generation.get("status", "idle"))
-        status_label = {
-            "idle": "还没开始生成",
-            "queued": "准备中",
-            "running": "正在处理",
-            "waiting_decision": "正在处理",
-            "failed": "已中断",
-            "pass": "可以交付",
-        }.get(status.lower(), status)
-        missing_labels = {
-            "package": "可运行项目文件",
-            "screenshot": "效果预览",
-            "verify_report": "测试结论",
-            "verify_passed": "测试通过确认",
-        }
-        missing = "、".join(missing_labels.get(str(item), str(item)) for item in evidence.get("missing", [])) or "无"
-        return f"当前状态：{status_label}。还缺：{missing}。没有可运行结果、预览或测试结论前，我不会说已经完成。"
     if event == "pending_decision":
         return project_analysis_reply(session, {**facts, "backend_parallel_started": True})
     if event == "backend_dialogue_reply":
@@ -1267,7 +1336,11 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
 def pre_send_guard(text: str) -> str:
     guarded = str(text or "").strip()
     guarded = re.sub(r"[A-Za-z]:\\[^\s，。；；]+", "本地工作区记录", guarded)
-    guarded = re.sub(r"/(?:[^/\s，。；]+/){2,}[^/\s，。；]+", "本地工作区记录", guarded)
+    guarded = re.sub(
+        r"(?<![\w\u4e00-\u9fff])/(?:Users|home|tmp|var|mnt|workspace|app|src|data|generated|examples|root)(?:/[^\s，。；；]+)+",
+        "本地工作区记录",
+        guarded,
+    )
     replacements = {
         "provider_user_message": "回复",
         "customer_service_reply": "回复",
@@ -1282,6 +1355,8 @@ def pre_send_guard(text: str) -> str:
         "后台 memo:": "",
         "package": "可运行项目文件",
         "verify report": "测试结论",
+        "verify_report": "测试结论",
+        "screenshot": "效果预览",
         "truth ledger": "交付记录",
         "queue": "准备流程",
         "gate": "检查点",
@@ -1479,6 +1554,19 @@ def read_delivery_manifest(path: str | pathlib.Path) -> dict[str, Any]:
     return doc if isinstance(doc, dict) else {}
 
 
+def user_visible_known_limit(raw: Any) -> str:
+    text = str(raw or "").strip()
+    lowered = text.lower()
+    if "screenshot not provided" in lowered or "screenshot missing" in lowered:
+        return "本轮没有生成效果预览图，已先交付可运行项目文件"
+    text = text.replace("not provided", "暂未提供")
+    text = text.replace("hard gate", "强制检查")
+    text = text.replace("screenshot", "效果预览")
+    text = text.replace("package", "可运行项目文件")
+    text = text.replace("verify_report", "测试结论")
+    return pre_send_guard(text)
+
+
 def send_delivery_from_manifest(
     client: TelegramClient,
     chat_id: int | str,
@@ -1496,7 +1584,9 @@ def send_delivery_from_manifest(
     if startup_command:
         lines.append(f"启动方式：{startup_command}")
     if known_limits:
-        lines.append("已记录的限制：" + "；".join(str(item) for item in known_limits[:4]))
+        visible_limits = [item for item in (user_visible_known_limit(item) for item in known_limits[:4]) if item]
+        if visible_limits:
+            lines.append("已记录的限制：" + "；".join(visible_limits))
     send_customer_reply(
         client,
         chat_id,
@@ -1564,6 +1654,8 @@ def merge_whiteboard(previous: dict[str, Any], next_whiteboard: dict[str, Any]) 
         "user_rules",
         "acceptance_criteria",
         "change_requests",
+        "critical_questions",
+        "capability_research_targets",
         "decision_log",
         "delivery_requirements",
     }
@@ -1820,21 +1912,62 @@ def is_human_start_confirmation(text: str, session: dict[str, Any]) -> bool:
 
 
 def parse_json_object(text: str) -> dict[str, Any] | None:
-    raw = str(text or "").strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
+    return local_model_router.extract_json(text)
+
+
+def extract_json_string_field(text: str, field: str) -> str:
+    raw = str(text or "")
+    marker = f'"{field}"'
+    index = raw.find(marker)
+    if index < 0:
+        return ""
+    colon = raw.find(":", index + len(marker))
+    if colon < 0:
+        return ""
+    quote = raw.find('"', colon + 1)
+    if quote < 0:
+        return ""
+    decoder = json.JSONDecoder()
     try:
-        doc = json.loads(raw)
+        value, _ = decoder.raw_decode(raw[quote:])
     except Exception:
-        match = re.search(r"\{.*\}", raw, flags=re.S)
-        if not match:
-            return None
-        try:
-            doc = json.loads(match.group(0))
-        except Exception:
-            return None
-    return doc if isinstance(doc, dict) else None
+        return ""
+    return str(value).strip() if isinstance(value, str) else ""
+
+
+def fallback_whiteboard_for_unparsed_frontdesk(session: dict[str, Any]) -> dict[str, Any]:
+    existing = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    user_text = latest_user_text(session)
+    summary = str(existing.get("project_summary", "")).strip() or user_text
+    return merge_whiteboard(
+        existing,
+        {
+            "project_summary": summary,
+            "known_facts": [f"用户项目需求: {user_text}"] if user_text else [],
+            "default_assumptions": ["先按本地可运行、可测试、带结果预览的第一版推进"],
+            "first_version_plan": ["整理输入解析", "生成核心分析流程", "提供可视化摘要和测试结论"],
+            "blocking_questions": [],
+            "open_questions": [],
+            "acceptance_criteria": ["项目必须能运行，并输出测试结论和可视化/预览结果"],
+            "delivery_requirements": ["交付可运行项目文件、效果预览和测试结论"],
+            "decision_log": ["模型前台返回结构化内容解析失败，本地兜底保留用户需求并继续正式生成主线。"],
+            "ready_to_generate": bool(summary),
+        },
+    )
+
+
+def customer_reply_temperature() -> float:
+    raw = os.environ.get("CGNK_CUSTOMER_TEMPERATURE", "0.72")
+    try:
+        base = float(raw)
+    except ValueError:
+        base = 0.72
+    base = max(0.2, min(base, 1.1))
+    return round(min(1.2, base + random.SystemRandom().uniform(0.0, 0.18)), 2)
+
+
+def reply_variation_seed() -> str:
+    return f"{int(time.time() * 1000)}-{random.SystemRandom().randint(1000, 9999)}"
 
 
 def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> str:
@@ -1885,13 +2018,14 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
     if not token:
         raise RuntimeError("missing OpenAI-compatible API key for Telegram customer service")
     root = str(creds.get("base_url", "")).rstrip("/")
+    temperature = customer_reply_temperature()
     if check_connectivity._is_gptsapi_base_url(root):
         endpoint = root + "/chat/completions"
-        payload = {"model": model, "messages": messages, "temperature": 0.25, "max_tokens": 900}
+        payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 900}
     else:
         endpoint = root + "/responses"
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-        payload = {"model": model, "input": prompt, "temperature": 0.25, "max_output_tokens": 900}
+        payload = {"model": model, "input": prompt, "temperature": temperature, "max_output_tokens": 900}
     last_error = ""
     for attempt in range(6):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
@@ -1992,6 +2126,64 @@ def visual_delivery_requirements_from_text(text: str) -> list[str]:
     return unique_strings(requirements, limit=12)
 
 
+def local_image_model_updates_from_text(text: str) -> dict[str, Any]:
+    if not local_image_model_discovery.requests_local_image_model(text):
+        return {}
+    questions, discovery = local_image_model_discovery.critical_questions_for_text(text, ROOT)
+    acceptance = [
+        "背景和立绘必须由已配置的本地图片模型生成；程序化占位图或降级预览不算图片验收通过",
+        "交付时必须明确本地图片模型是否实际可用，并给出背景/立绘生成证据",
+    ]
+    requirements = [
+        "背景图和立绘图必须作为可预览的本地图片 artifact 交付",
+    ]
+    assumptions = [
+        "本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过",
+    ]
+    known_facts = ["用户要求背景和立绘使用本地图片模型生成"]
+    if discovery.get("available"):
+        known_facts.append("已发现可用的本地图片模型后端")
+    else:
+        known_facts.append("当前未发现可调用的本地图片生成服务或模型目录")
+    return {
+        "critical_questions": questions,
+        "local_image_model_discovery": discovery,
+        "acceptance_criteria": acceptance,
+        "delivery_requirements": requirements,
+        "default_assumptions": assumptions,
+        "known_facts": known_facts,
+    }
+
+
+def capability_strategy_updates_from_text(text: str) -> dict[str, Any]:
+    strategy = capability_strategy.build_capability_strategy(text, ROOT)
+    if not strategy.get("capabilities"):
+        return {}
+    research_lines: list[str] = []
+    for target in strategy.get("research_targets", [])[:8]:
+        if not isinstance(target, dict):
+            continue
+        capability = target.get("capability", {}) if isinstance(target.get("capability"), dict) else {}
+        label = str(capability.get("label", "")).strip()
+        methods = target.get("advanced_methods", []) if isinstance(target.get("advanced_methods"), list) else []
+        method_names = [str(item.get("name", "")).strip() for item in methods[:3] if isinstance(item, dict) and str(item.get("name", "")).strip()]
+        if label and method_names:
+            research_lines.append(f"{label}: {' / '.join(method_names)}")
+    capability_labels = [
+        str(item.get("label", "")).strip()
+        for item in strategy.get("capabilities", [])
+        if isinstance(item, dict) and str(item.get("label", "")).strip()
+    ]
+    return {
+        "capability_strategy": strategy,
+        "capability_research_targets": research_lines,
+        "critical_questions": strategy.get("critical_questions", []) if isinstance(strategy.get("critical_questions"), list) else [],
+        "acceptance_criteria": strategy.get("acceptance_criteria", []) if isinstance(strategy.get("acceptance_criteria"), list) else [],
+        "decision_log": strategy.get("decision_log", []) if isinstance(strategy.get("decision_log"), list) else [],
+        "known_facts": [f"识别出的核心能力：{'；'.join(capability_labels[:6])}"] if capability_labels else [],
+    }
+
+
 def normalize_question_fields(whiteboard: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(whiteboard)
     blocking = unique_strings(normalized.get("blocking_questions", []) if isinstance(normalized.get("blocking_questions"), list) else [], limit=20)
@@ -2018,6 +2210,44 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
             "backend_delivery_requirements_updated",
             data={"source": "latest_user_text", "requirements": visual_requirements},
         )
+    local_image_updates = local_image_model_updates_from_text(text)
+    if local_image_updates:
+        for key in ("critical_questions", "acceptance_criteria", "delivery_requirements", "default_assumptions", "known_facts"):
+            values = local_image_updates.get(key, [])
+            existing = normalized.get(key, [])
+            normalized[key] = unique_strings((existing if isinstance(existing, list) else []) + (values if isinstance(values, list) else []), limit=120)
+        normalized["open_questions"] = unique_strings(
+            normalized.get("open_questions", []) + normalized.get("critical_questions", []),
+            limit=40,
+        )
+        normalized["local_image_model_discovery"] = local_image_updates.get("local_image_model_discovery", {})
+        append_memory_event(
+            session,
+            "local_image_model_capability_checked",
+            data={
+                "available": bool(normalized["local_image_model_discovery"].get("available")),
+                "critical_questions": normalized.get("critical_questions", []),
+            },
+        )
+    strategy_updates = capability_strategy_updates_from_text(text)
+    if strategy_updates:
+        for key in ("critical_questions", "acceptance_criteria", "decision_log", "known_facts", "capability_research_targets"):
+            values = strategy_updates.get(key, [])
+            existing = normalized.get(key, [])
+            normalized[key] = unique_strings((existing if isinstance(existing, list) else []) + (values if isinstance(values, list) else []), limit=120)
+        normalized["open_questions"] = unique_strings(
+            normalized.get("open_questions", []) + normalized.get("critical_questions", []),
+            limit=40,
+        )
+        normalized["capability_strategy"] = strategy_updates.get("capability_strategy", {})
+        append_memory_event(
+            session,
+            "capability_strategy_updated",
+            data={
+                "capabilities": strategy_updates.get("capability_strategy", {}).get("capabilities", []),
+                "critical_questions": normalized.get("critical_questions", []),
+            },
+        )
     if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")):
         changes = normalized.get("change_requests", [])
         normalized["change_requests"] = unique_strings((changes if isinstance(changes, list) else []) + [text], limit=120)
@@ -2030,7 +2260,7 @@ def substantive_user_turn_count(session: dict[str, Any]) -> int:
         if not isinstance(msg, dict) or msg.get("role") != "user":
             continue
         text = str(msg.get("text", "")).strip()
-        if text and not text.startswith("/") and not is_smalltalk(text) and not is_generate_command(text):
+        if text and not text.startswith("/") and not is_smalltalk(text) and not is_generate_command(text) and not looks_like_status_question(text):
             count += 1
     return count
 
@@ -2049,6 +2279,9 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 核心策略：
 - 不要逐项审问字段，不要“复述一句再问一个缺口”的客服脚本。
 - 先做专业判断：拆解产品层、技术层、默认方案和第一版边界。
+- 必须先判断哪些功能是核心能力，不能只按最近一句里的单个功能局部补丁；核心能力要写入 capability_research_targets 或 decision_log。
+- 对核心能力要主动寻找成熟/高级路线：本地模型、成熟库、外部 API、专用工作流、真实运行验证；如果只做简化 fallback，必须标明不满足对应验收。
+- 如果两条路线有明显用户可感知差异，比如本地模型/云端模型、SQLite/JSON、网页/桌面、同模型/分模型、线性剧情/分支剧情，必须作为 critical_questions 问客户，而不是静默默认。
 - 对可默认的信息直接给默认假设并继续，不要阻塞用户。
 - 只有缺失信息会导致完全无法生成时，才问一个阻塞问题。
 - 必须维护持续记忆：保留 current_whiteboard 里已有的用户规则、验收标准、修改请求、交付要求和决策记录。
@@ -2062,6 +2295,7 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 - 回复必须紧扣最近一条用户消息和 current_whiteboard，不要把话题切到无关产品、无关技术栈或通用客服话术。
 - 如果最近用户在纠正你，先承认修正点并更新白板，再继续推进；不要沿用旧理解。
 - 如果用户要求图片、视频、预览或可视化，必须把它写入 delivery_requirements 和 acceptance_criteria。
+- 如果用户要求本地图片模型生成背景/立绘/图片，必须追问本地图片后端或模型目录配置；这个问题写入 critical_questions，同时继续生成项目接口和测试，不把降级预览当作图片验收通过。
 - 用户上传图片、文档、视频、音频或数据文件时，必须把它当作项目输入资料；结合 caption 和 current_attachments 更新 known_facts、验收点或修改要求，不要回复“只能收文字”。
 - 不要暴露内部模块名、API/provider 名称、路径堆栈。
 - 输出必须是 JSON 对象，不要 Markdown，不要额外文字。
@@ -2083,6 +2317,8 @@ JSON 结构：
     "default_assumptions": ["你主动采用的默认值"],
     "first_version_plan": ["第一版会做什么"],
     "blocking_questions": ["真正阻塞生成的问题；通常为空"],
+    "critical_questions": ["关键配置缺口；不作为硬门禁，但必须在回复中问清"],
+    "capability_research_targets": ["核心能力和高级路线候选"],
     "open_questions": ["不阻塞生成、后续可调的问题"],
     "user_rules": ["用户明确要求长期遵守的行为规则"],
     "acceptance_criteria": ["本项目必须满足的验收标准"],
@@ -2103,6 +2339,8 @@ JSON 结构：
                 {
                     "current_whiteboard": whiteboard if isinstance(whiteboard, dict) else {},
                     "substantive_user_turn_count": substantive_user_turn_count(session),
+                    "reply_variation_seed": reply_variation_seed(),
+                    "reply_variation_rule": "Do not reuse the exact wording, opening, or sentence rhythm of recent assistant replies when facts are unchanged.",
                     "recent_memory_events": session.get("memory_events", [])[-40:],
                     "current_attachments": recent_attachments(session, limit=30),
                     "attachment_requirement_lines": attachment_requirement_lines(session),
@@ -2118,7 +2356,18 @@ JSON 结构：
     raw = provider_text(messages, model, timeout)
     doc = parse_json_object(raw)
     if not doc:
-        return raw[:900], whiteboard if isinstance(whiteboard, dict) else {}, "continue_chat"
+        salvaged_reply = extract_json_string_field(raw, "reply")
+        salvaged_action = extract_json_string_field(raw, "action")
+        fallback_whiteboard = fallback_whiteboard_for_unparsed_frontdesk(session)
+        if not salvaged_reply:
+            salvaged_reply = grounded_customer_fallback(session, fallback_whiteboard)
+        action = "start_generation" if salvaged_action == "start_generation" and str(fallback_whiteboard.get("project_summary", "")).strip() else "continue_chat"
+        append_memory_event(
+            session,
+            "customer_reply_repaired",
+            data={"reason": "unparsed_json_from_provider", "raw_preview": raw[:500], "action": action},
+        )
+        return salvaged_reply[:1200], fallback_whiteboard, action
     reply = str(doc.get("reply", "")).strip()
     if not reply:
         raise RuntimeError("customer-service provider returned empty reply")
@@ -2145,9 +2394,121 @@ JSON 结构：
         action = "continue_chat"
         next_whiteboard["ready_to_generate"] = False
     next_whiteboard = enforce_backend_updates_from_user_text(session, next_whiteboard)
+    critical_questions = next_whiteboard.get("critical_questions", []) if isinstance(next_whiteboard.get("critical_questions"), list) else []
+    if critical_questions and not any(str(item).strip() and str(item).strip()[:18] in reply for item in critical_questions):
+        reply = (reply.rstrip() + "\n关键配置：" + "；".join(str(item).strip() for item in critical_questions[:2] if str(item).strip()))[:1200]
     if next_whiteboard.get("blocking_questions"):
         action = "continue_chat"
     return reply, next_whiteboard, action
+
+
+LOCAL_PUBLIC_REPLY_EVENTS = {
+    "admin_command",
+    "greeting",
+    "status_requested",
+    "escalation_request",
+    "project_update_running",
+    "attachment_project_input_running",
+    "unsupported_attachment_received",
+}
+
+
+def normalize_reply_for_similarity(text: str) -> str:
+    return re.sub(r"[\s，。,.!?！？；;：:、~～]+", "", str(text or "").lower())
+
+
+def reply_too_similar_to_recent_assistant(text: str, session: dict[str, Any]) -> bool:
+    current = normalize_reply_for_similarity(text)
+    if len(current) < 12:
+        return False
+    recent: list[str] = []
+    for message in reversed(session.get("messages", [])):
+        if not isinstance(message, dict) or str(message.get("role", "")) != "assistant":
+            continue
+        previous = str(message.get("text", "")).strip()
+        if previous:
+            recent.append(previous)
+        if len(recent) >= 4:
+            break
+    for previous in recent:
+        normalized = normalize_reply_for_similarity(previous)
+        if not normalized:
+            continue
+        if current == normalized or current.startswith(normalized[:18]) or normalized.startswith(current[:18]):
+            return True
+        if difflib.SequenceMatcher(None, current, normalized).ratio() >= 0.86:
+            return True
+    return False
+
+
+def local_public_reply_message(event: str, session: dict[str, Any], facts: dict[str, Any], timeout: int) -> str:
+    if event not in LOCAL_PUBLIC_REPLY_EVENTS:
+        return ""
+    task = "customer_status" if event == "status_requested" else "customer_public_reply"
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    active = active_run(session) or {}
+    has_project_summary = bool(str(whiteboard.get("project_summary", "")).strip())
+    has_active_or_delivery_context = (
+        has_project_summary
+        or bool(active)
+        or str(generation.get("status", "idle")).lower() not in {"", "idle"}
+    )
+    safe_facts = dict(facts or {})
+    if not has_active_or_delivery_context and isinstance(safe_facts.get("evidence_state"), dict):
+        safe_facts["evidence_state"] = {"delivery_ready": False, "missing": [], "refs": {}, "sent_record": False}
+        safe_facts["delivery_evidence_applicable"] = False
+        safe_facts["status_hint"] = "空会话，没有正在运行的后台任务；不要提可运行项目文件、效果预览或测试结论。"
+    system = """你是 CGNK Telegram 前台，只写一条要直接发给用户的中文短消息。
+边界：
+- 不生成项目文件，不改白板，不决定是否开始生成。
+- 不宣布完成；没有交付包、预览和测试结论时不能说已经完成。
+- 不暴露 provider、API、manifest、pipeline、truth ledger、package、内部路径或调试字段。
+- 不使用固定问候模板；即使事实相同，也要根据 facts、whiteboard、generation 和 recent_dialogue 自然改写。
+- 只根据输入 facts 和当前状态说清楚当前发生了什么、用户补充是否已进入后台、下一步会怎样。
+- 如果 generation.status 是 idle、没有 active_run、也没有项目摘要，短问候只能表达“在线/空会话/没有后台任务/可以发新目标”，不要说正在补齐交付物。
+- 如果用户只是问状态，且 generation 不在 queued/running/waiting_decision、active_run 也不是 running/queued，就说没有正在运行的后台任务；不要把 evidence_state.missing 解释为正在生成。
+- 如果 facts.delivery_evidence_applicable 是 false，禁止提可运行项目文件、效果预览、测试结论、补齐交付物。
+- facts.evidence_state.missing 里的 package/screenshot/verify_report 是后台还要补齐的交付证据，不要要求用户提供这些文件；要表达为“我这边继续补齐可运行项目文件、效果预览和测试结论”。
+- 只有已有 active_run/generation 或项目上下文时，才可以提到补齐可运行项目文件、效果预览和测试结论。
+- 把内部字段翻译成用户能懂的话：package=可运行项目文件，screenshot=效果预览，verify_report=测试结论。
+- 输出纯文本，不要 JSON，不要 Markdown 表格。"""
+    payload = {
+        "event": event,
+        "facts": safe_facts,
+        "whiteboard": whiteboard,
+        "generation": generation,
+        "active_run": active,
+        "recent_dialogue": recent_dialogue(session, limit=8),
+        "reply_variation_seed": reply_variation_seed(),
+    }
+    recent_assistant_replies = [
+        str(message.get("text", "")).strip()
+        for message in reversed(session.get("messages", []))
+        if isinstance(message, dict) and str(message.get("role", "")) == "assistant" and str(message.get("text", "")).strip()
+    ][:4]
+    for attempt in range(2):
+        attempt_payload = dict(payload)
+        if attempt:
+            attempt_payload["must_avoid_repeating_assistant_replies"] = recent_assistant_replies
+            attempt_payload["rewrite_instruction"] = "上一版和最近回复太像。必须换开头、换句式、换信息顺序，但事实不变。"
+        result = local_model_router.call_text_task(
+            task,
+            system,
+            json.dumps(attempt_payload, ensure_ascii=False, indent=2),
+            min(timeout, 45),
+        )
+        if not result.get("ok"):
+            return ""
+        text = pre_send_guard(str(result.get("text", "")).strip())
+        if not text or reply_looks_off_topic(session, text, whiteboard):
+            return ""
+        if reply_too_similar_to_recent_assistant(text, session) and attempt == 0:
+            continue
+        if reply_too_similar_to_recent_assistant(text, session):
+            return ""
+        return text[:900]
+    return ""
 
 
 def provider_user_message(
@@ -2158,6 +2519,10 @@ def provider_user_message(
     model: str,
     timeout: int,
 ) -> str:
+    local_text = local_public_reply_message(event, session, facts, timeout)
+    if local_text:
+        return local_text
+
     policy = read_customer_agent_policy()
     system = """你是 CGNK 项目生成与交付团队的 Telegram 前台接口。
 根据事件和事实生成一条自然、简短、像项目负责人/产品工程搭档的中文消息。
@@ -2178,6 +2543,8 @@ def provider_user_message(
     payload = {
         "event": event,
         "facts": facts,
+        "reply_variation_seed": reply_variation_seed(),
+        "reply_variation_rule": "Use a fresh wording pattern for this user-facing message while preserving facts.",
         "whiteboard": session.get("whiteboard", {}),
         "recent_dialogue": recent_dialogue(session, limit=20),
         "recent_memory_events": session.get("memory_events", [])[-40:],
@@ -2249,8 +2616,9 @@ def send_provider_or_technical_error(
         session_dir,
         session,
         event=event,
-        facts={"message": "后台连接中断；当前轮次停止，下一条项目输入会重新触发后台。", "technical_error": technical_error},
-        source="frontdesk_composer",
+        facts={"technical_error": technical_error},
+        source="technical_fallback",
+        direct_text="后台连接中断；当前轮次停止，下一条项目输入会重新触发后台。",
     )
 
 
@@ -2812,6 +3180,15 @@ def finish_agent_loop_delivery(
         "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
         "pipeline_run_summary_path": str(result.get("pipeline_run_summary_path", "")),
     }
+    run = active_run(session)
+    if run is not None:
+        run["status"] = "delivered" if manifest and str(manifest.get("package_path", "")).strip() else str(result.get("status", "failed"))
+        run["driver"] = driver
+        run["updated_at"] = now()
+        run["project_dir"] = str(project_dir)
+        run["package_path"] = str(manifest.get("package_path", result.get("package_path", "")))
+        run["manifest_path"] = str(manifest.get("manifest_path", result.get("manifest_path", "")))
+        session["active_run"] = run
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
     save_session(session_dir, session)
     if manifest and str(manifest.get("package_path", "")).strip():
@@ -2897,6 +3274,7 @@ def apply_backend_dialogue_tick(
             "status": analysis.get("status"),
             "source": analysis.get("source"),
             "soft_questions": analysis.get("soft_questions", []),
+            "critical_questions": analysis.get("critical_questions", []),
         },
     )
     append_agent_session_event(
@@ -2907,6 +3285,7 @@ def apply_backend_dialogue_tick(
             "role": "assistant",
             "analysis": analysis,
             "soft_questions_are_blocking": False,
+            "critical_questions_are_blocking": False,
         },
     )
     append_backend_memo(session_dir, session, "backend_dialogue", str(analysis.get("backend_memo", "")))
@@ -3216,15 +3595,31 @@ def handle_text(
 
     intent = str(classification.get("intent", ""))
     if intent == "greeting":
-        turn = run_model_frontdesk_turn(session_dir, chat_id, session, model=model, timeout=timeout, reason="greeting")
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        if send_provider_message(
+            client,
+            chat_id,
+            session_dir,
+            event="greeting",
+            session=session,
+            facts={
+                "classification": classification,
+                "generation": session.get("generation", {}),
+                "active_run": active_run(session) or {},
+                "evidence_state": evidence,
+            },
+            model=model,
+            timeout=timeout,
+        ):
+            return
         send_customer_reply(
             client,
             chat_id,
             session_dir,
             session,
             event="greeting",
-            source=turn["source"],
-            direct_text=str(turn.get("reply", "")),
+            source="technical_fallback",
+            direct_text="我在。当前消息已记录；回复模型暂时不可用，后台状态不会因为这条问候被改写。",
         )
         return
     if intent == "status_query":
@@ -3235,7 +3630,7 @@ def handle_text(
             session_dir,
             event="status_requested",
             session=session,
-            facts={"generation": session.get("generation", {}), "evidence_state": evidence, "backend_dialogue_analysis": session.get("backend_dialogue_analysis", {})},
+            facts={"generation": session.get("generation", {}), "evidence_state": evidence},
             model=model,
             timeout=timeout,
         ):
@@ -3246,8 +3641,8 @@ def handle_text(
             session_dir,
             session,
             event="status_requested",
-            facts={"generation": session.get("generation", {}), "evidence_state": evidence},
-            backend_memo=latest_backend_memo(session),
+            source="technical_fallback",
+            direct_text="当前状态查询已记录；回复模型暂时不可用，我不会把这条状态问句当成新的项目需求。",
         )
         return
 

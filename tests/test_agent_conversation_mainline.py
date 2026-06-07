@@ -250,6 +250,24 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertTrue(saw_failed_result["value"])
             self.assertTrue(pathlib.Path(result["package_path"]).exists())
 
+    def test_malformed_agent_json_is_returned_as_no_action_parse_error(self) -> None:
+        parsed = agent_loop.parse_agent_response('{"message":"bad","actions":[{"type":"write_file","path":"README.md"}')
+
+        self.assertEqual([], parsed["actions"])
+        self.assertIn("parse_error", parsed)
+
+    def test_truncated_agent_json_salvages_complete_write_file_actions(self) -> None:
+        raw = (
+            '{"message":"partial","actions":['
+            '{"type":"write_file","path":"backend/app.py","content":"print(\\"ok\\")\\n"},'
+            '{"type":"write_file","path":"HANDOFF_BACKEND.md","content":"# truncated'
+        )
+
+        parsed = agent_loop.parse_agent_response(raw)
+
+        self.assertEqual([{"type": "write_file", "path": "backend/app.py", "content": 'print("ok")\n'}], parsed["actions"])
+        self.assertIn("parse_error", parsed)
+
     def test_local_packager_creates_zip_without_screenshot_hard_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project_dir = pathlib.Path(temp_dir) / "project"
@@ -262,6 +280,19 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertTrue(pathlib.Path(manifest["package_path"]).exists())
             self.assertTrue(pathlib.Path(manifest["manifest_path"]).exists())
 
+    def test_local_packager_marks_known_limits_as_warning_status(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_dir = pathlib.Path(temp_dir) / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Demo\n", encoding="utf-8")
+            screenshot = project_dir / "preview.png"
+            screenshot.write_bytes(b"preview")
+
+            manifest = local_packager.package_project(project_dir, screenshot_path=screenshot, known_limits=["模型未配置"])
+
+            self.assertEqual("ready_with_warnings", manifest["status"])
+            self.assertIn("模型未配置", manifest["known_limits"])
+
     def test_agent_cannot_write_outside_project_dir(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project_dir = pathlib.Path(temp_dir) / "project"
@@ -271,6 +302,42 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertFalse(result["ok"])
             self.assertFalse((pathlib.Path(temp_dir) / "escape.txt").exists())
+
+    def test_executor_rejects_invalid_json_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_dir = pathlib.Path(temp_dir) / "project"
+            executor = local_actions.LocalAgentActionExecutor(project_dir)
+
+            result = executor.execute({"type": "write_file", "path": "CFO_CONTEXT_DB.json", "content": '{"bad":,,}'})
+
+            self.assertFalse(result["ok"])
+            self.assertIn("JSON content is invalid", result["error"])
+            self.assertFalse((project_dir / "CFO_CONTEXT_DB.json").exists())
+
+    def test_agent_loop_can_repair_invalid_json_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_path = pathlib.Path(temp_dir) / "agent_session.jsonl"
+            project_dir = pathlib.Path(temp_dir) / "project"
+            saw_json_failure = {"value": False}
+
+            def fake_agent(events, model, timeout):
+                tool_results = [event for event in events if event.get("kind") == "tool_result"]
+                if not tool_results:
+                    return {"actions": [{"type": "write_file", "path": "CFO_CONTEXT_DB.json", "content": '{"bad":,,}'}]}
+                saw_json_failure["value"] = any("JSON content is invalid" in str(event) for event in tool_results)
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "CFO_CONTEXT_DB.json", "content": '{"ok": true}'},
+                        {"type": "write_file", "path": "README.md", "content": "# Fixed\n"},
+                        {"type": "package_project", "startup_command": ""},
+                    ]
+                }
+
+            result = agent_loop.run_agent_loop(session_path=session_path, project_dir=project_dir, agent=fake_agent, max_turns=3)
+
+            self.assertTrue(saw_json_failure["value"])
+            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertEqual('{"ok": true}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
 
     def test_telegram_delivery_uses_delivery_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -287,8 +354,34 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertTrue(any(item["kind"] == "package" for item in sent))
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assertTrue(any(path.name == "delivery_manifest.json" for _, path, _ in client.documents))
+            self.assertNotIn("screenshot", client.messages[-1][1].lower())
+            self.assertNotIn("not provided", client.messages[-1][1].lower())
             ledger = bridge.truth_ledger_path(session_dir, "chat-d").read_text(encoding="utf-8")
             self.assertIn("delivery_manifest", ledger)
+
+    def test_non_pass_generation_updates_active_run_out_of_running(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project_dir = root / "project"
+            session = bridge.default_session("chat-non-pass")
+            session["active_run"] = {"id": "run-1", "status": "running", "created_at": bridge.now()}
+            session["generation"] = {"status": "running"}
+            bridge.save_session(session_dir, session)
+            client = FakeTelegramClient()
+
+            bridge.finish_agent_loop_delivery(
+                client,
+                "chat-non-pass",
+                session_dir,
+                project_dir,
+                {"status": "max_turns_reached", "driver": "agent_generated_pipeline"},
+            )
+
+            saved = bridge.load_session(session_dir, "chat-non-pass")
+            self.assertEqual("max_turns_reached", saved["generation"]["status"])
+            self.assertEqual("max_turns_reached", saved["active_run"]["status"])
+            self.assertFalse(client.documents)
 
     def test_run_local_pipeline_no_api_blocked_not_connected_to_telegram_mainline(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

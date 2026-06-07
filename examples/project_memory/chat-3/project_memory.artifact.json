@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T13:47:45.691518+00:00",
+  "generated_at": "2026-06-07T06:26:27.104362+00:00",
   "chat_id": "chat-3",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-3\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -11,23 +11,36 @@
   "customer_request": {
     "project_summary": "做一个本地图片批量重命名 GUI，要截图和测试报告",
     "known_facts": [
-      "用户提出的新项目需求: 做一个本地图片批量重命名 GUI，要截图和测试报告"
+      "用户提出的新项目需求: 做一个本地图片批量重命名 GUI，要截图和测试报告",
+      "识别出的核心能力：真实运行预览和证据；导入导出和格式互操作；产品界面和交互",
+      "做一个本地图片批量重命名 GUI，要截图和测试报告"
     ],
-    "default_assumptions": [],
+    "default_assumptions": [
+      "本地可运行",
+      "直接生成并测试"
+    ],
     "user_rules": [],
     "acceptance_criteria": [
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
-      "交付时必须直接发送截图或关键帧预览"
+      "交付时必须直接发送截图或关键帧预览",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。",
+      "可运行",
+      "有测试结论"
     ],
     "change_requests": [],
     "delivery_requirements": [
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
-      "交付时必须直接发送截图或关键帧预览"
+      "交付时必须直接发送截图或关键帧预览",
+      "交付项目包和预览"
     ],
     "decision_log": [
-      "默认禁用 provider/API，先走本地 simulator team。"
+      "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
+      "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
+      "项目输入到达即启动正式生成"
     ],
-    "open_questions": [],
+    "open_questions": [
+      "第一版运行形态要本地网页，还是桌面窗口？这会影响打包和测试方式。"
+    ],
     "blocking_questions": []
   },
   "uploaded_inputs": [],
@@ -36,8 +49,7 @@
   ],
   "generation": {
     "status": "running",
-    "started_at": "2026-06-04T13:47:45.680458+00:00",
-    "driver": "local_simulator_company"
+    "driver": "agent_conversation_loop"
   },
   "module_mapping": [
     {
@@ -157,5 +169,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 1
+  "revision_count": 2
 }

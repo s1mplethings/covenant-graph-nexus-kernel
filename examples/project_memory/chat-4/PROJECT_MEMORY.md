@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T13:47:45.501234+00:00
-revision_count: 1
+generated_at: 2026-06-07T06:26:26.728040+00:00
+revision_count: 2
 ---
 
 # Project Memory
@@ -35,11 +35,12 @@ revision_count: 1
 
 ## Default Assumptions
 
-- 未记录
+- 先按本地可运行、可测试、可扩展的默认方案推进
 
 ## First Version Plan
 
-- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
+- 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 交付启动说明、测试结论和预览截图
 
 ## Acceptance Criteria
 
@@ -55,7 +56,7 @@ revision_count: 1
 
 ## Decision Log
 
-- 默认禁用 provider/API，先走本地 simulator team。
+- 项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。
 
 ## Uploaded Project Inputs
 
@@ -109,9 +110,9 @@ revision_count: 1
 
 ## Generation State
 
-- Status: `queued`
-- Started at: `2026-06-04T13:47:45.427099+00:00`
-- Finished at: ``
+- Status: `ready_with_warnings`
+- Started at: ``
+- Finished at: `2026-06-07T06:26:26.682911+00:00`
 - Result path: ``
 
 ## Update Rules

@@ -10,6 +10,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import scripts.pipeline_manifest as pipeline_manifest
+import scripts.local_model_router as local_model_router
 import scripts.telegram_live_bridge as bridge
 
 
@@ -99,6 +101,45 @@ class KernelContractTests(unittest.TestCase):
             self.assertEqual("chat-soft", called.get("chat_id"))
             self.assertFalse(called.get("announce_start"))
 
+    def test_critical_questions_are_not_gate_but_are_acceptance_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            log_dir = root / "logs"
+            original_start = bridge.start_agent_generation
+            original_memory = bridge.DEFAULT_MEMORY_DIR
+            called: dict[str, object] = {}
+
+            def fake_start(client, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["chat_id"] = str(chat_id)
+                called["announce_start"] = announce_start
+
+            try:
+                bridge.DEFAULT_MEMORY_DIR = root / "memory"
+                session = bridge.default_session("chat-critical")
+                session["whiteboard"]["project_summary"] = "做一个本地 VN 助手"
+                session["whiteboard"]["critical_questions"] = ["本地模型或外部 API 配置在哪里？"]
+                session["whiteboard"]["acceptance_criteria"] = ["降级预览不算核心能力验收通过"]
+                bridge.save_session(session_dir, session)
+                bridge.start_agent_generation = fake_start
+
+                bridge.handle_text(FakeTelegramClient(), "chat-critical", "开始生成", session_dir, log_dir, "gpt-test", 5)
+            finally:
+                bridge.start_agent_generation = original_start
+                bridge.DEFAULT_MEMORY_DIR = original_memory
+
+            self.assertEqual("chat-critical", called.get("chat_id"))
+            doc = read_source("docs/00_kernel_contract.md")
+            self.assertIn("critical_questions", doc)
+            self.assertIn("fallback output is not misreported", doc)
+            universal = read_source("docs/07_universal_capability_strategy_contract.md")
+            self.assertIn("not tied to a project type", universal)
+            self.assertIn("Do not add project-type-specific rules", universal)
+            self.assertIn("underlying capabilities", universal)
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            self.assertIn("capability_strategy", manifest["shared_whiteboard_keys"])
+            self.assertIn("capability_research_targets", manifest["shared_whiteboard_keys"])
+
     def test_pipeline_manifest_required_before_dynamic_runner(self) -> None:
         body = function_body(read_source("scripts/telegram_live_bridge.py"), "run_agent_generation_job")
 
@@ -136,6 +177,45 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("package", evidence)
         self.assertNotIn("final_message", finish)
         self.assertNotIn("final_message", evidence)
+
+    def test_kernel_contract_defines_cfo_module_plan(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+
+        self.assertIn("CFO-controlled", doc)
+        self.assertIn("CFO support agents only inside the manifest", doc)
+        self.assertEqual("cfo", manifest["roles"][0]["id"])
+        self.assertEqual("cfo_pipeline", manifest["steps"][0]["id"])
+        self.assertEqual("context_support", manifest["steps"][1]["id"])
+        self.assertEqual("risk_support", manifest["steps"][2]["id"])
+        self.assertEqual("CFO_CONTEXT_DB.json", manifest["cfo_contract"]["support_artifacts"]["context_db"])
+        self.assertEqual("CFO_RISK_REGISTER.md", manifest["cfo_contract"]["support_artifacts"]["risk_register"])
+        self.assertIn("cfo_review", [step["id"] for step in manifest["steps"]])
+
+    def test_local_model_routing_is_not_formal_generation_path(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("local models do not create a new formal generation path", doc)
+        self.assertIn("pipeline_manifest", doc)
+        self.assertIn("local_packager", doc)
+        self.assertIn("Public reply tasks must not alter", doc)
+        self.assertTrue(local_model_router.task_is_public_reply_only("customer_public_reply"))
+        self.assertFalse(local_model_router.task_affects_generation("customer_public_reply"))
+        self.assertTrue(local_model_router.task_affects_generation("context_support"))
+        self.assertTrue(local_model_router.task_affects_generation("risk_support"))
+        self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
+        self.assertGreater(local_model_router.local_model_temperature("customer_public_reply"), 0.5)
+        self.assertEqual(0.1, local_model_router.local_model_temperature("cfo_pipeline"))
+
+    def test_malformed_agent_json_recovery_stays_inside_manifest_step(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        runner = read_source("scripts/dynamic_pipeline_runner.py")
+        parser = read_source("scripts/agent_conversation_loop.py")
+
+        self.assertIn("recover complete actions from malformed or truncated agent JSON", doc)
+        self.assertIn("_salvage_complete_write_file_actions", parser)
+        self.assertIn("partially recovered from malformed JSON", runner)
+        self.assertIn("same manifest step must return strict JSON", runner)
 
 
 if __name__ == "__main__":

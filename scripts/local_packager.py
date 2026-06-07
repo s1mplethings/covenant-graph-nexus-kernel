@@ -65,9 +65,9 @@ def package_project(
     if screenshot_path:
         screenshot = pathlib.Path(screenshot_path)
         if not screenshot.exists():
-            warnings.append(f"screenshot missing: {screenshot}")
+            warnings.append(f"效果预览文件未找到: {screenshot}")
     else:
-        warnings.append("screenshot not provided; package created without screenshot hard gate")
+        warnings.append("本轮没有生成效果预览图，已先交付可运行项目文件")
 
     package_path = target_dir / "final_project_bundle.zip"
     tmp_package = target_dir / f"final_project_bundle.{int(time.time() * 1000)}.tmp"
@@ -82,16 +82,17 @@ def package_project(
             zf.write(path, path.relative_to(project))
     tmp_package.replace(package_path)
 
+    combined_limits = list(known_limits or []) + warnings
     manifest = {
         "kind": "CGNKDeliveryManifest",
         "created_at": now(),
-        "status": "ready_with_warnings" if warnings else "ready",
+        "status": "ready_with_warnings" if combined_limits else "ready",
         "project_dir": str(project),
         "package_path": str(package_path.resolve()),
         "readme_path": str(readme.resolve()),
         "startup_command": startup,
         "run_log_path": str(run_log.resolve()),
-        "known_limits": list(known_limits or []) + warnings,
+        "known_limits": combined_limits,
     }
     manifest_path = target_dir / "delivery_manifest.json"
     manifest["manifest_path"] = str(manifest_path.resolve())

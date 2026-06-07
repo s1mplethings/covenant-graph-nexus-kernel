@@ -1,13 +1,13 @@
 ---
 kind: ProjectMemoryMarkdown
 schema_version: 1
-chat_id: manual-chat
+chat_id: chat-non-pass
 flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T10:52:39.178511+00:00
-revision_count: 1
+generated_at: 2026-06-07T06:26:23.628138+00:00
+revision_count: 0
 ---
 
 # Project Memory
@@ -19,15 +19,15 @@ revision_count: 1
 - Contract pack: `agent_context.modular_project_generation.contract_pack.json`
 - Flow: `flow.modular_project_generation@1`
 - Policy: `policy.safe_modular_project_generation@1`
-- JSON artifact mirror: `D:\CGKN\examples\project_memory\manual-chat\project_memory.artifact.json`
+- JSON artifact mirror: `D:\CGKN\examples\project_memory\chat-non-pass\project_memory.artifact.json`
 
 ## Current Project Summary
 
-做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片
+未记录
 
 ## Known Facts
 
-- 用户提出的新项目需求: 做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片
+- 未记录
 
 ## User Rules
 
@@ -39,11 +39,11 @@ revision_count: 1
 
 ## First Version Plan
 
-- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
+- 未记录
 
 ## Acceptance Criteria
 
-- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 未记录
 
 ## Change Requests
 
@@ -51,11 +51,11 @@ revision_count: 1
 
 ## Delivery Requirements
 
-- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 未记录
 
 ## Decision Log
 
-- 默认禁用 provider/API，先走本地 simulator team。
+- 未记录
 
 ## Uploaded Project Inputs
 
@@ -67,8 +67,7 @@ revision_count: 1
 
 ## Blocking Questions
 
-- 背景和立绘是否必须分开生成？
-- 是否需要导出脚本？
+- 未记录
 
 ## Module Map
 
@@ -105,16 +104,13 @@ revision_count: 1
 
 ## Visible User Message Log
 
-1. 你好
-2. 做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片
-3. 现在怎么样了
-4. 继续
+- 未记录
 
 ## Generation State
 
-- Status: `waiting_decision`
-- Started at: `2026-06-04T10:52:39.036178+00:00`
-- Finished at: ``
+- Status: `max_turns_reached`
+- Started at: ``
+- Finished at: `2026-06-07T06:26:23.618623+00:00`
 - Result path: ``
 
 ## Update Rules

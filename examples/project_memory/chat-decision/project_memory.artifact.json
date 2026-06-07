@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T13:47:45.753305+00:00",
+  "generated_at": "2026-06-07T06:26:27.430124+00:00",
   "chat_id": "chat-decision",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-decision\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -28,7 +28,16 @@
     "开始生成"
   ],
   "generation": {
-    "status": "waiting_decision"
+    "status": "max_turns_reached",
+    "driver": "agent_conversation_loop_fallback",
+    "finished_at": "2026-06-07T06:26:27.416824+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb9t3akqf\\sessions\\chat-decision\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb9t3akqf\\logs\\agent_projects\\chat-decision",
+    "manifest_path": "",
+    "package_path": "",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb9t3akqf\\logs\\agent_projects\\chat-decision\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb9t3akqf\\logs\\agent_projects\\chat-decision\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb9t3akqf\\logs\\agent_projects\\chat-decision\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {

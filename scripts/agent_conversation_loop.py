@@ -80,12 +80,13 @@ def read_session(session_path: pathlib.Path) -> list[dict[str, Any]]:
 
 def _extract_json_object(text: str) -> dict[str, Any]:
     raw = str(text or "").strip()
+    parse_error = ""
     try:
         doc = json.loads(raw)
         if isinstance(doc, dict):
             return doc
-    except Exception:
-        pass
+    except Exception as exc:
+        parse_error = str(exc)
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.S | re.I)
     if fenced:
         try:
@@ -96,10 +97,38 @@ def _extract_json_object(text: str) -> dict[str, Any]:
             pass
     match = re.search(r"\{.*\}", raw, flags=re.S)
     if match:
-        doc = json.loads(match.group(0))
-        if isinstance(doc, dict):
-            return doc
-    return {"message": raw, "actions": []}
+        try:
+            doc = json.loads(match.group(0))
+            if isinstance(doc, dict):
+                return doc
+        except Exception as exc:
+            parse_error = str(exc)
+    fallback = {"message": raw, "actions": _salvage_complete_write_file_actions(raw)}
+    if parse_error:
+        fallback["_parse_error"] = parse_error
+    return fallback
+
+
+def _decode_json_string_fragment(value: str) -> str:
+    return json.loads(f'"{value}"')
+
+
+def _salvage_complete_write_file_actions(raw: str) -> list[dict[str, Any]]:
+    """Recover fully closed write_file actions from a truncated agent JSON reply."""
+    actions: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r'\{\s*"type"\s*:\s*"write_file"\s*,\s*"path"\s*:\s*"((?:\\.|[^"\\])*)"\s*,\s*"content"\s*:\s*"((?:\\.|[^"\\])*)"\s*\}',
+        flags=re.S,
+    )
+    for match in pattern.finditer(raw):
+        try:
+            path = _decode_json_string_fragment(match.group(1))
+            content = _decode_json_string_fragment(match.group(2))
+        except Exception:
+            continue
+        if path.strip():
+            actions.append({"type": "write_file", "path": path, "content": content})
+    return actions
 
 
 def parse_agent_response(response: str | dict[str, Any]) -> dict[str, Any]:
@@ -113,7 +142,10 @@ def parse_agent_response(response: str | dict[str, Any]) -> dict[str, Any]:
     if not isinstance(actions, list):
         actions = []
     clean_actions = [action for action in actions if isinstance(action, dict)]
-    return {"message": str(doc.get("message", "")), "actions": clean_actions, "raw": response}
+    result = {"message": str(doc.get("message", "")), "actions": clean_actions, "raw": response}
+    if doc.get("_parse_error"):
+        result["parse_error"] = str(doc.get("_parse_error"))
+    return result
 
 
 def _history_for_agent(events: list[dict[str, Any]]) -> str:
@@ -137,11 +169,11 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
     ]
     if check_connectivity._is_gptsapi_base_url(root):
         endpoint = root + "/chat/completions"
-        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 1400}
+        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000}
     else:
         endpoint = root + "/responses"
         prompt = "\n".join(f"{item['role']}: {item['content']}" for item in messages)
-        payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 1400}
+        payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 6000}
     last_error = ""
     for attempt in range(4):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)

@@ -13,20 +13,31 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import check_connectivity
+import local_model_router
 import pipeline_manifest
 
 
-PLANNER_SYSTEM_PROMPT = """You are the CGNK pipeline planner agent.
-You are not the project generation agent. Your only job is to generate the pipeline_manifest JSON for this project.
+PLANNER_SYSTEM_PROMPT = """You are the CGNK CFO pipeline planner agent.
+The bottom-level orchestration model is one main agent named cfo. The cfo designs the modular pipeline and coordinates specialist agents that do the work.
+Your job is to generate the pipeline_manifest JSON that represents the cfo-controlled module pipeline for this project.
 Use the user messages, backend dialogue events, whiteboard, generation_context_snapshot, tool results, and delivery requirements.
 Do not write project code.
 Do not announce delivery completion.
 Output JSON only.
 The pipeline must be customized around the current project.
-If the project is a web app, roles may include frontend/backend/qa.
-If the project is a CLI tool, roles may include core/test/package.
-If the project is an image or video tool, roles may include asset_pipeline/ui/export/qa.
-Do not use a fixed template and do not over-split the work.
+Always include a role with id "cfo". The cfo must have an early step that writes or updates the module pipeline/assignments, and a later review step before package_project.
+Use specialist roles for the actual work, such as foundation, backend, frontend, asset_pipeline, data, integration, qa, docs, or export, depending on the project.
+Do not let specialist agents invent a separate formal generation route; they execute the cfo module pipeline through allowed actions.
+CFO design requirements:
+- The cfo owns module planning, handoff order, acceptance interpretation, evidence review, and delivery readiness.
+- The first cfo step should write or update MODULE_PIPELINE.md with module map, worker assignments, evidence targets, risk/default assumptions, and handoff order.
+- The cfo may use support agents before worker implementation. Prefer context_librarian for a factual CFO_CONTEXT_DB.json and risk_reviewer for CFO_RISK_REGISTER.md on non-trivial projects.
+- Support agents are advisory only: they maintain context/risk artifacts for cfo and workers, but they do not own scope, final routing, file generation strategy, or delivery readiness.
+- Worker steps should be scoped to assigned modules and should leave handoff artifacts.
+- Worker steps should read MODULE_PIPELINE.md plus any CFO support artifacts such as CFO_CONTEXT_DB.json and CFO_RISK_REGISTER.md.
+- A later cfo review step must inspect support artifacts, worker handoffs, test evidence, preview evidence, and whiteboard acceptance criteria before package_project.
+- The manifest may include a cfo_contract object describing authority, planning artifact, review artifact, support artifacts, support agent rule, worker handoff rule, and evidence rule.
+Do not over-split normal projects, but preserve the cfo -> module agents -> cfo review -> package shape.
 Every step must operate through allowed_actions.
 The manifest cannot execute arbitrary Python, modify CGNK core code, call generate_project.py, call run_local_pipeline, or use simulator.
 Allowed step types: agent_turn, use_skill, run_command, package_project, update_whiteboard.
@@ -77,32 +88,17 @@ def collect_generation_context(session_path: str | pathlib.Path, whiteboard: dic
 
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
-    raw = str(text or "").strip()
-    try:
-        doc = json.loads(raw)
-        return doc if isinstance(doc, dict) else None
-    except Exception:
-        pass
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.S | re.I)
-    if fenced:
-        try:
-            doc = json.loads(fenced.group(1))
-            return doc if isinstance(doc, dict) else None
-        except Exception:
-            pass
-    match = re.search(r"\{.*\}", raw, flags=re.S)
-    if match:
-        try:
-            doc = json.loads(match.group(0))
-            return doc if isinstance(doc, dict) else None
-        except Exception:
-            return None
-    return None
+    return local_model_router.extract_json(text)
 
 
 def _call_provider(prompt: str, model: str, timeout: int) -> str:
     if str(model).startswith("gpt-test"):
         raise RuntimeError("test model does not call provider")
+    local_result = local_model_router.call_json_task("pipeline_planner", PLANNER_SYSTEM_PROMPT, prompt, timeout)
+    if local_result.get("ok") and isinstance(local_result.get("json"), dict):
+        doc = dict(local_result["json"])
+        doc.setdefault("source", "local_model_planner")
+        return json.dumps(doc, ensure_ascii=False)
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     if not token:

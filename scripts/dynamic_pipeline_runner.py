@@ -14,6 +14,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 import agent_conversation_loop
 import check_connectivity
 import local_agent_actions
+import local_model_router
 import pipeline_manifest
 import pipeline_planner_agent
 
@@ -28,12 +29,55 @@ def _role_by_id(manifest: dict[str, Any], role_id: str) -> dict[str, Any]:
     return {"id": role_id, "name": role_id or "Pipeline Agent", "purpose": "Execute this pipeline step."}
 
 
+def _role_operating_rules(role: dict[str, Any], step: dict[str, Any], manifest: dict[str, Any]) -> str:
+    role_id = str(role.get("id", "")).strip()
+    cfo_contract = manifest.get("cfo_contract", {}) if isinstance(manifest.get("cfo_contract"), dict) else {}
+    support_artifacts = cfo_contract.get("support_artifacts", {}) if isinstance(cfo_contract.get("support_artifacts"), dict) else {}
+    context_db = support_artifacts.get("context_db", "CFO_CONTEXT_DB.json")
+    risk_register = support_artifacts.get("risk_register", "CFO_RISK_REGISTER.md")
+    if role_id == "cfo":
+        return f"""CFO operating rules:
+- You are the main coordinating agent, not a worker pretending to finish everything alone.
+- Your first responsibility is to convert the whiteboard into a concrete module pipeline with owners, handoffs, acceptance criteria, evidence targets, risks, and fallback boundaries.
+- Identify critical capabilities before assigning workers. Use capability_strategy, capability_research_targets, critical_questions, and acceptance criteria when present.
+- For each critical capability, prefer a mature/high-quality method or model/library/API/workflow. If the project uses a fallback, label it as fallback and do not mark the original capability as satisfied.
+- When route choices have obvious user-visible differences, preserve the question and the assumed default in MODULE_PIPELINE.md so workers and review do not silently collapse the distinction.
+- Write or update {cfo_contract.get('planning_artifact', 'MODULE_PIPELINE.md')} when planning.
+- Use support artifacts {context_db} and {risk_register} as your factual context database and risk register; support agents advise you but do not own route or readiness.
+- During review, inspect support artifacts, worker handoffs, test evidence, preview evidence, and project files against the whiteboard before delivery readiness.
+- Write or update {cfo_contract.get('review_artifact', 'DELIVERY_NOTES.md')} with pass/warning status, missing evidence, and any patched gaps.
+- Do not invent a new formal generation path; coordinate only through the manifest, project files, allowed actions, and handoff artifacts."""
+    if role_id == "context_librarian":
+        return f"""CFO support operating rules:
+- You are a support agent for the cfo, not a route owner.
+- Maintain {context_db} as a compact factual database of user intent, rules, constraints, acceptance criteria, delivery requirements, attachments, assumptions, module dependencies, and handoff references.
+- Include capability_strategy, capability_research_targets, critical_questions, and local capability discovery results as first-class facts when present.
+- Prefer structured JSON with source/evidence references where available.
+- Do not implement product features, do not decide delivery readiness, and do not create a new formal generation path."""
+    if role_id == "risk_reviewer":
+        return f"""CFO support operating rules:
+- You are a support agent for the cfo, not a route owner.
+- Maintain {risk_register} with risks, missing evidence, likely failure modes, user-visible quality concerns, checks to run, and repair priorities.
+- Treat a missing core capability, ignored advanced-method candidate, or fallback presented as success as a user-visible quality risk.
+- Ground every risk in the whiteboard, module plan, context database, handoffs, or project files.
+- Do not implement product features unless the current step explicitly allows a small artifact update, do not decide delivery readiness, and do not create a new formal generation path."""
+    return """Worker operating rules:
+- Treat the cfo as the owner of scope, module boundaries, handoff order, acceptance interpretation, and delivery readiness.
+- Read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoff files before changing project files when those artifacts exist.
+- Work only on the area assigned by the current step goal unless a small supporting file is required.
+- Leave a concise HANDOFF_<ROLE>.md or update the step-specific handoff with files changed, checks run, gaps, and next dependencies.
+- Do not claim final delivery readiness; that belongs to cfo_review and packaging."""
+
+
 def _system_prompt(role: dict[str, Any], step: dict[str, Any], manifest: dict[str, Any]) -> str:
     allowed = step.get("allowed_actions", [])
+    operating_rules = _role_operating_rules(role, step, manifest)
     return f"""You are {role.get('name')}.
+Role id: {role.get('id')}.
 Role purpose: {role.get('purpose')}.
 Current step goal: {step.get('goal')}.
 You must read the latest whiteboard, generation_context_snapshot, pipeline_manifest, and tool_result events in the provided session history.
+{operating_rules}
 You may only use these action types: {json.dumps(allowed, ensure_ascii=False)}.
 Return JSON only:
 {{
@@ -42,6 +86,7 @@ Return JSON only:
     {{"type": "write_file", "path": "README.md", "content": "..."}}
   ]
 }}
+Keep source-file actions compact enough to fit valid JSON. If a file would be long, write the most important file first and let the next repair turn add supporting files.
 Do not claim delivery is complete. Do not call old CGNK paths like generate_project.py, run_local_pipeline, or simulator.
 Pipeline manifest:
 {json.dumps(manifest, ensure_ascii=False)[:12000]}"""
@@ -69,14 +114,14 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
     messages = [{"role": "system", "content": system}, {"role": "user", "content": history}]
     if check_connectivity._is_gptsapi_base_url(root):
         endpoint = root + "/chat/completions"
-        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 1800}
+        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 7000}
     else:
         endpoint = root + "/responses"
         payload = {
             "model": model,
             "input": "\n".join(f"{item['role']}: {item['content']}" for item in messages),
             "temperature": 0.2,
-            "max_output_tokens": 1800,
+            "max_output_tokens": 7000,
         }
     last_error = ""
     for attempt in range(3):
@@ -88,6 +133,33 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
         last_error = error
         time.sleep(min(5.0, 1.2 * (attempt + 1)))
     raise RuntimeError(last_error or "empty dynamic pipeline agent response")
+
+
+def _local_task_for_step(role: dict[str, Any], step: dict[str, Any]) -> str:
+    role_id = str(role.get("id", "")).strip().lower()
+    step_id = str(step.get("id", "")).strip().lower()
+    if role_id == "cfo" and step_id == "cfo_pipeline":
+        return "cfo_pipeline"
+    if role_id == "context_librarian":
+        return "context_support"
+    if role_id == "risk_reviewer":
+        return "risk_support"
+    if role_id == "foundation":
+        return "foundation"
+    if role_id == "qa":
+        return "qa"
+    return ""
+
+
+def _call_step_agent(events: list[dict[str, Any]], model: str, timeout: int, *, role: dict[str, Any], step: dict[str, Any]) -> str:
+    local_task = _local_task_for_step(role, step)
+    if local_task:
+        system = str(events[0].get("content", "")) if events else ""
+        history = "\n".join(f"{event.get('kind', 'event')}: {json.dumps(event, ensure_ascii=False)}" for event in events[1:])[-60000:]
+        local_result = local_model_router.call_text_task(local_task, system, history, timeout)
+        if local_result.get("ok") and str(local_result.get("text", "")).strip():
+            return str(local_result["text"]).strip()
+    return _call_step_provider(events, model, timeout)
 
 
 def _forbidden_command(command: str) -> bool:
@@ -105,6 +177,17 @@ def _execute_manifest_action(
         return {"ok": False, "type": action_type, "error": f"action type not allowed for this step: {action_type}"}
     if action_type == "run_command" and _forbidden_command(str(action.get("command", ""))):
         return {"ok": False, "type": action_type, "error": "legacy generation command rejected"}
+    if action_type == "write_file" and str(action.get("path", "")).strip().lower().endswith(".json"):
+        content = str(action.get("content", ""))
+        try:
+            json.loads(content)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "type": action_type,
+                "path": str(action.get("path", "")),
+                "error": f"write_file JSON content is invalid: {exc}",
+            }
     return executor.execute(action)
 
 
@@ -141,13 +224,12 @@ def _run_agent_turn(
 ) -> dict[str, Any]:
     role = _role_by_id(manifest, str(step.get("role", "")))
     allowed_actions = {str(item) for item in step.get("allowed_actions", [])}
-    agent_fn = agent or _call_step_provider
     last_error = ""
     for turn in range(1, max(1, max_turns) + 1):
         system_prompt = _system_prompt(role, step, manifest)
         events = _history_for_step(session_file, system_prompt)
         try:
-            response = agent_fn(events, model, timeout)
+            response = agent(events, model, timeout) if agent else _call_step_agent(events, model, timeout, role=role, step=step)
         except Exception as exc:
             last_error = str(exc)
             agent_conversation_loop.append_event(
@@ -157,6 +239,7 @@ def _run_agent_turn(
             continue
         parsed = agent_conversation_loop.parse_agent_response(response)
         actions = parsed.get("actions", [])
+        parse_error = str(parsed.get("parse_error", "")).strip()
         agent_conversation_loop.append_event(
             session_file,
             {
@@ -166,16 +249,41 @@ def _run_agent_turn(
                 "turn": turn,
                 "message": parsed.get("message", ""),
                 "actions": actions,
+                "parse_error": parse_error,
             },
         )
         if not actions:
-            last_error = "agent returned no actions"
+            last_error = f"agent returned malformed JSON: {parse_error}" if parse_error else "agent returned no actions"
             agent_conversation_loop.append_event(
                 session_file,
-                {"kind": "tool_result", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "ok": False, "error": last_error},
+                {
+                    "kind": "tool_result",
+                    "role": role.get("id"),
+                    "step_id": step.get("id"),
+                    "turn": turn,
+                    "ok": False,
+                    "error": last_error,
+                    "repair_instruction": "Return strict JSON with a non-empty actions array for this same manifest step.",
+                    "raw_preview": str(parsed.get("raw", ""))[:1000],
+                },
             )
             continue
-        failed = False
+        failed = bool(parse_error)
+        if parse_error:
+            last_error = f"agent response was partially recovered from malformed JSON: {parse_error}"
+            agent_conversation_loop.append_event(
+                session_file,
+                {
+                    "kind": "tool_result",
+                    "role": role.get("id"),
+                    "step_id": step.get("id"),
+                    "turn": turn,
+                    "ok": False,
+                    "error": last_error,
+                    "repair_instruction": "Some complete write_file actions were executed, but the same manifest step must return strict JSON to finish.",
+                    "raw_preview": str(parsed.get("raw", ""))[:1000],
+                },
+            )
         package_result: dict[str, Any] | None = None
         for action in actions:
             agent_conversation_loop.append_event(session_file, {"kind": "action", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action})

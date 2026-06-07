@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T13:47:46.009665+00:00",
+  "generated_at": "2026-06-07T06:26:44.677622+00:00",
   "chat_id": "chat-revise",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-revise\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -12,22 +12,39 @@
     "project_summary": "做一个本地图片生成工具",
     "known_facts": [
       "用户提出的新项目需求: 做一个本地图片生成工具",
+      "用户要求背景和立绘使用本地图片模型生成",
+      "当前未发现可调用的本地图片生成服务或模型目录",
+      "识别出的核心能力：内容生成能力；导入导出和格式互操作",
+      "做一个本地图片生成工具",
       "用户补充: 背景和立绘必须分开两个入口"
     ],
-    "default_assumptions": [],
+    "default_assumptions": [
+      "本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过",
+      "本地可运行",
+      "直接生成并测试"
+    ],
     "user_rules": [],
     "acceptance_criteria": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
+      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
+      "背景和立绘必须由已配置的本地图片模型生成；程序化占位图或降级预览不算图片验收通过",
+      "交付时必须明确本地图片模型是否实际可用，并给出背景/立绘生成证据",
+      "生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。",
+      "可运行",
+      "有测试结论"
     ],
     "change_requests": [
       "背景和立绘必须分开两个入口"
     ],
     "delivery_requirements": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
+      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
+      "背景图和立绘图必须作为可预览的本地图片 artifact 交付",
+      "交付项目包和预览"
     ],
     "decision_log": [
-      "默认禁用 provider/API，先走本地 simulator team。",
-      "本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。"
+      "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
+      "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
+      "项目输入到达即启动正式生成",
+      "本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。"
     ],
     "open_questions": [],
     "blocking_questions": []
@@ -39,10 +56,16 @@
     "背景和立绘必须分开两个入口"
   ],
   "generation": {
-    "status": "queued",
-    "started_at": "2026-06-04T13:47:45.864036+00:00",
-    "driver": "local_simulator_company",
-    "control_id": "ctrl-chat-revise-2"
+    "status": "max_turns_reached",
+    "driver": "agent_conversation_loop_fallback",
+    "finished_at": "2026-06-07T06:26:44.653504+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\sessions\\chat-revise\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise",
+    "manifest_path": "",
+    "package_path": "",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {
@@ -162,5 +185,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 4
 }

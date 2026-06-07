@@ -2,46 +2,53 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T10:52:39.179511+00:00",
-  "chat_id": "manual-chat",
-  "markdown_path": "D:\\CGKN\\examples\\project_memory\\manual-chat\\PROJECT_MEMORY.md",
+  "generated_at": "2026-06-07T06:26:24.960545+00:00",
+  "chat_id": "chat-restart",
+  "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-restart\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
   "policy_ref": "policy.safe_modular_project_generation@1",
   "contract_pack": "agent_context.modular_project_generation.contract_pack.json",
   "customer_request": {
-    "project_summary": "做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片",
+    "project_summary": "做一个本地 VN 助手",
     "known_facts": [
-      "用户提出的新项目需求: 做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片"
+      "用户补充: 增加前端界面和图片预览",
+      "识别出的核心能力：真实运行预览和证据；导入导出和格式互操作；产品界面和交互",
+      "做一个本地 VN 助手"
     ],
-    "default_assumptions": [],
+    "default_assumptions": [
+      "本地可运行",
+      "直接生成并测试"
+    ],
     "user_rules": [],
     "acceptance_criteria": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
+      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
+      "交付时必须提供可视化预览或摘要图兜底",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。",
+      "可运行",
+      "有测试结论"
     ],
     "change_requests": [],
     "delivery_requirements": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径"
+      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
+      "交付时必须提供可视化预览或摘要图兜底",
+      "交付项目包和预览"
     ],
     "decision_log": [
-      "默认禁用 provider/API，先走本地 simulator team。"
+      "本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。",
+      "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
+      "项目输入到达即启动正式生成"
     ],
     "open_questions": [],
-    "blocking_questions": [
-      "背景和立绘是否必须分开生成？",
-      "是否需要导出脚本？"
-    ]
+    "blocking_questions": []
   },
   "uploaded_inputs": [],
   "visible_user_messages": [
-    "你好",
-    "做一个本地可运行的 VN 项目助手，可以梳理故事逻辑时间线，生成背景和立绘图片",
-    "现在怎么样了",
-    "继续"
+    "做一个本地 VN 助手",
+    "增加前端界面和图片预览"
   ],
   "generation": {
-    "status": "waiting_decision",
-    "started_at": "2026-06-04T10:52:39.036178+00:00",
-    "driver": "local_simulator_company"
+    "status": "running",
+    "driver": "agent_conversation_loop"
   },
   "module_mapping": [
     {
@@ -161,5 +168,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 1
+  "revision_count": 2
 }

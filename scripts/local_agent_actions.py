@@ -95,6 +95,11 @@ class LocalAgentActionExecutor:
         if not raw_path.strip():
             raise ValueError("write_file requires path")
         path = _project_path(self.project_dir, raw_path)
+        if path.suffix.lower() == ".json":
+            try:
+                json.loads(content)
+            except Exception as exc:
+                raise ValueError(f"write_file JSON content is invalid: {exc}") from exc
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
         return {"path": str(path), "bytes": len(content.encode("utf-8"))}

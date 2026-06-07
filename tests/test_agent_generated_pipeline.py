@@ -62,6 +62,54 @@ def package_result(project_dir: pathlib.Path) -> dict:
 
 
 class AgentGeneratedPipelineTests(unittest.TestCase):
+    def test_default_manifest_uses_cfo_controlled_module_pipeline(self) -> None:
+        manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+
+        role_ids = [role["id"] for role in manifest["roles"]]
+        step_ids = [step["id"] for step in manifest["steps"]]
+        self.assertEqual("cfo", role_ids[0])
+        self.assertIn("context_librarian", role_ids)
+        self.assertIn("risk_reviewer", role_ids)
+        self.assertIn("backend", role_ids)
+        self.assertIn("frontend", role_ids)
+        self.assertEqual("cfo_pipeline", step_ids[0])
+        self.assertEqual("context_support", step_ids[1])
+        self.assertEqual("risk_support", step_ids[2])
+        self.assertIn("cfo_review", step_ids)
+        self.assertEqual("package", step_ids[-1])
+        self.assertEqual(4, manifest["limits"]["max_agent_turns_per_step"])
+        self.assertEqual(10, manifest["limits"]["max_total_steps"])
+        self.assertEqual("MODULE_PIPELINE.md", manifest["cfo_contract"]["planning_artifact"])
+        self.assertEqual("DELIVERY_NOTES.md", manifest["cfo_contract"]["review_artifact"])
+        self.assertEqual("CFO_CONTEXT_DB.json", manifest["cfo_contract"]["support_artifacts"]["context_db"])
+        self.assertEqual("CFO_RISK_REGISTER.md", manifest["cfo_contract"]["support_artifacts"]["risk_register"])
+
+    def test_cfo_system_prompt_contains_orchestration_rules(self) -> None:
+        manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+        cfo_role = manifest["roles"][0]
+        cfo_step = manifest["steps"][0]
+
+        prompt = dynamic_runner._system_prompt(cfo_role, cfo_step, manifest)
+
+        self.assertIn("CFO operating rules", prompt)
+        self.assertIn("MODULE_PIPELINE.md", prompt)
+        self.assertIn("DELIVERY_NOTES.md", prompt)
+        self.assertIn("CFO_CONTEXT_DB.json", prompt)
+        self.assertIn("CFO_RISK_REGISTER.md", prompt)
+        self.assertIn("main coordinating agent", prompt)
+
+    def test_support_agent_system_prompt_is_advisory_only(self) -> None:
+        manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+        role = next(role for role in manifest["roles"] if role["id"] == "context_librarian")
+        step = next(step for step in manifest["steps"] if step["id"] == "context_support")
+
+        prompt = dynamic_runner._system_prompt(role, step, manifest)
+
+        self.assertIn("CFO support operating rules", prompt)
+        self.assertIn("CFO_CONTEXT_DB.json", prompt)
+        self.assertIn("not a route owner", prompt)
+        self.assertIn("Do not implement product features", prompt)
+
     def test_pipeline_planner_falls_back_to_default_manifest(self) -> None:
         original = planner_agent.check_connectivity._resolve_api_credentials
         planner_agent.check_connectivity._resolve_api_credentials = lambda: {"api_key": ""}
@@ -78,6 +126,29 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
         self.assertTrue(manifest["steps"])
         self.assertTrue(any(step.get("type") == "package_project" for step in manifest["steps"]))
 
+    def test_pipeline_planner_can_use_local_model_before_api(self) -> None:
+        original_local_call = planner_agent.local_model_router.call_json_task
+        original_creds = planner_agent.check_connectivity._resolve_api_credentials
+        try:
+            local_manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            local_manifest["source"] = "local_model_test"
+            planner_agent.local_model_router.call_json_task = lambda *args, **kwargs: {
+                "ok": True,
+                "provider": "test-local",
+                "json": local_manifest,
+            }
+            planner_agent.check_connectivity._resolve_api_credentials = lambda: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                session_path = pathlib.Path(temp_dir) / "agent_session.jsonl"
+                manifest = planner_agent.plan_pipeline(session_path, {"project_summary": "demo"}, "gpt-real", 5)
+        finally:
+            planner_agent.local_model_router.call_json_task = original_local_call
+            planner_agent.check_connectivity._resolve_api_credentials = original_creds
+
+        self.assertEqual("local_model_test", manifest["source"])
+        self.assertEqual("cfo", manifest["roles"][0]["id"])
+
     def test_pipeline_manifest_validation_rejects_unknown_step_type(self) -> None:
         manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
         manifest["steps"][0]["type"] = "execute_python"
@@ -86,6 +157,16 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
 
         self.assertFalse(ok)
         self.assertTrue(any("execute_python" in error for error in errors))
+
+    def test_normalize_manifest_preserves_cfo_support_contract(self) -> None:
+        raw = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+        raw["cfo_contract"]["support_artifacts"]["context_db"] = "CUSTOM_CONTEXT_DB.json"
+        raw["cfo_contract"]["support_agent_rule"] = "support stays advisory"
+
+        normalized = pipeline_manifest.normalize_pipeline_manifest(raw, {"project_summary": "demo"})
+
+        self.assertEqual("CUSTOM_CONTEXT_DB.json", normalized["cfo_contract"]["support_artifacts"]["context_db"])
+        self.assertEqual("support stays advisory", normalized["cfo_contract"]["support_agent_rule"])
 
     def test_dynamic_pipeline_runner_executes_agent_turn_and_package(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -97,7 +178,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
-                    "role": "builder",
+                    "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file", "read_file", "list_files"],
                 },
@@ -122,6 +203,172 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             events = read_jsonl(session_path)
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
+
+    def test_dynamic_pipeline_runner_uses_local_model_for_cfo_pipeline_task(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            manifest["steps"] = [manifest["steps"][0], {"id": "package", "type": "package_project", "goal": "package"}]
+            original_local_call = dynamic_runner.local_model_router.call_text_task
+            original_provider = dynamic_runner._call_step_provider
+            try:
+                dynamic_runner.local_model_router.call_text_task = lambda *args, **kwargs: {
+                    "ok": True,
+                    "provider": "test-local",
+                    "text": json.dumps({"actions": [{"type": "write_file", "path": "MODULE_PIPELINE.md", "content": "# Plan\n"}]}),
+                }
+                dynamic_runner._call_step_provider = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+
+                result = dynamic_runner.run_dynamic_pipeline(
+                    session_path=session_path,
+                    project_dir=project_dir,
+                    pipeline_manifest=manifest,
+                    model="gpt-real",
+                    timeout=5,
+                    max_turns=2,
+                    fallback_to_agent_loop=False,
+                )
+            finally:
+                dynamic_runner.local_model_router.call_text_task = original_local_call
+                dynamic_runner._call_step_provider = original_provider
+
+            self.assertTrue((project_dir / "MODULE_PIPELINE.md").exists())
+            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+
+    def test_dynamic_pipeline_runner_retries_malformed_agent_json_without_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            manifest["steps"] = [
+                {
+                    "id": "build",
+                    "type": "agent_turn",
+                    "role": "foundation",
+                    "goal": "write README",
+                    "allowed_actions": ["write_file"],
+                },
+                {"id": "package", "type": "package_project", "goal": "package"},
+            ]
+            calls = {"count": 0}
+
+            def fake_agent(events, model, timeout):
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    return '{"message":"bad","actions":[{"type":"write_file","path":"README.md"}'
+                return {"actions": [{"type": "write_file", "path": "README.md", "content": "# Recovered\n"}]}
+
+            result = dynamic_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=manifest,
+                model="gpt-test",
+                timeout=5,
+                max_turns=3,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+            )
+
+            events = read_jsonl(session_path)
+            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertGreaterEqual(calls["count"], 2)
+            self.assertFalse(any(event.get("kind") == "pipeline_fallback" for event in events))
+            self.assertTrue(any("malformed JSON" in str(event.get("error", "")) for event in events))
+
+    def test_dynamic_pipeline_runner_salvages_truncated_write_file_then_repairs_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            manifest["steps"] = [
+                {
+                    "id": "backend",
+                    "type": "agent_turn",
+                    "role": "backend",
+                    "goal": "write backend",
+                    "allowed_actions": ["write_file"],
+                },
+                {"id": "package", "type": "package_project", "goal": "package"},
+            ]
+            calls = {"count": 0}
+
+            def fake_agent(events, model, timeout):
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    return (
+                        '{"message":"partial","actions":['
+                        '{"type":"write_file","path":"backend/app.py","content":"print(\\"ok\\")\\n"},'
+                        '{"type":"write_file","path":"HANDOFF_BACKEND.md","content":"# cut'
+                    )
+                return {"actions": [{"type": "write_file", "path": "HANDOFF_BACKEND.md", "content": "# Backend\n"}]}
+
+            result = dynamic_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=manifest,
+                model="gpt-test",
+                timeout=5,
+                max_turns=3,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+            )
+
+            events = read_jsonl(session_path)
+            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertEqual('print("ok")\n', (project_dir / "backend" / "app.py").read_text(encoding="utf-8"))
+            self.assertEqual("# Backend\n", (project_dir / "HANDOFF_BACKEND.md").read_text(encoding="utf-8"))
+            self.assertEqual(2, calls["count"])
+            self.assertFalse(any(event.get("kind") == "pipeline_fallback" for event in events))
+            self.assertTrue(any("partially recovered" in str(event.get("error", "")) for event in events))
+
+    def test_dynamic_pipeline_runner_rejects_invalid_json_artifact_before_next_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            manifest["steps"] = [
+                {
+                    "id": "context_support",
+                    "type": "agent_turn",
+                    "role": "context_librarian",
+                    "goal": "write context db",
+                    "allowed_actions": ["write_file"],
+                },
+                {"id": "package", "type": "package_project", "goal": "package"},
+            ]
+            calls = {"count": 0}
+
+            def fake_agent(events, model, timeout):
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    return {"actions": [{"type": "write_file", "path": "CFO_CONTEXT_DB.json", "content": '{"project_goal":"demo",,'}]}
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "CFO_CONTEXT_DB.json", "content": '{"project_goal":"demo"}'},
+                        {"type": "write_file", "path": "README.md", "content": "# Demo\n"},
+                    ]
+                }
+
+            result = dynamic_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=manifest,
+                model="gpt-test",
+                timeout=5,
+                max_turns=3,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+            )
+
+            events = read_jsonl(session_path)
+            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertEqual('{"project_goal":"demo"}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
+            self.assertTrue(any("JSON content is invalid" in str(event) for event in events))
 
     def test_run_agent_generation_job_uses_pipeline_planner_before_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -232,7 +479,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
-                    "role": "builder",
+                    "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file"],
                 },

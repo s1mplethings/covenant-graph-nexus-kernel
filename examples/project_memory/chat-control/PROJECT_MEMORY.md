@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T13:47:45.610953+00:00
-revision_count: 1
+generated_at: 2026-06-07T06:26:25.971793+00:00
+revision_count: 2
 ---
 
 # Project Memory
@@ -28,6 +28,8 @@ revision_count: 1
 ## Known Facts
 
 - 用户提出的新项目需求: 做一个本地 VN 助手，要时间线和图片预览
+- 识别出的核心能力：结构化流程/关系建模；真实运行预览和证据；导入导出和格式互操作
+- 做一个本地 VN 助手，要时间线和图片预览
 
 ## User Rules
 
@@ -35,16 +37,23 @@ revision_count: 1
 
 ## Default Assumptions
 
-- 未记录
+- 本地可运行
+- 直接生成并测试
 
 ## First Version Plan
 
-- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
+- 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 前端交互
+- 后端处理
+- 测试与交付
 
 ## Acceptance Criteria
 
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 交付时必须提供可视化预览或摘要图兜底
+- 交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。
+- 可运行
+- 有测试结论
 
 ## Change Requests
 
@@ -54,10 +63,13 @@ revision_count: 1
 
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 交付时必须提供可视化预览或摘要图兜底
+- 交付项目包和预览
 
 ## Decision Log
 
-- 默认禁用 provider/API，先走本地 simulator team。
+- 项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。
+- 先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。
+- 项目输入到达即启动正式生成
 
 ## Uploaded Project Inputs
 
@@ -111,9 +123,9 @@ revision_count: 1
 
 ## Generation State
 
-- Status: `queued`
-- Started at: `2026-06-04T13:47:45.544639+00:00`
-- Finished at: ``
+- Status: `ready_with_warnings`
+- Started at: ``
+- Finished at: `2026-06-07T06:26:25.926243+00:00`
 - Result path: ``
 
 ## Update Rules

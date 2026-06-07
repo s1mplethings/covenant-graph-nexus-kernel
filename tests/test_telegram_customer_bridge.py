@@ -114,6 +114,52 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("图片", joined_acceptance)
         self.assertTrue(any(event["type"] == "backend_delivery_requirements_updated" for event in session["memory_events"]))
 
+    def test_local_image_model_requirement_records_critical_question(self) -> None:
+        session = bridge.default_session("test-chat")
+        session["messages"].append(
+            {
+                "role": "user",
+                "text": "VN 项目的背景和立绘都必须用本地图片模型真实生成",
+                "created_at": bridge.now(),
+            }
+        )
+        original_discovery = bridge.local_image_model_discovery.critical_questions_for_text
+        bridge.local_image_model_discovery.critical_questions_for_text = lambda text, root=None: (
+            ["本地图片生成准备用哪个后端：ComfyUI、AUTOMATIC1111，还是直接给 SD_MODEL_DIR/模型目录？"],
+            {"available": False, "checked": [{"kind": "ComfyUI", "status": "missing"}], "backends": []},
+        )
+        try:
+            updated = bridge.enforce_backend_updates_from_user_text(session, {"project_summary": "VN 项目"})
+        finally:
+            bridge.local_image_model_discovery.critical_questions_for_text = original_discovery
+
+        self.assertEqual([], updated["blocking_questions"])
+        self.assertIn("本地图片", "\n".join(updated["critical_questions"]))
+        self.assertIn("降级预览不算图片验收通过", "\n".join(updated["acceptance_criteria"]))
+        self.assertIn("本地图片模型", "\n".join(updated["known_facts"]))
+        self.assertTrue(any(event["type"] == "local_image_model_capability_checked" for event in session["memory_events"]))
+        self.assertTrue(any(event["type"] == "capability_strategy_updated" for event in session["memory_events"]))
+
+    def test_capability_strategy_records_generic_advanced_routes_and_obvious_choices(self) -> None:
+        session = bridge.default_session("test-chat")
+        session["messages"].append(
+            {
+                "role": "user",
+                "text": "做一个本地任务自动化系统，要流程状态、自动生成报告、保存历史，最好有可运行界面",
+                "created_at": bridge.now(),
+            }
+        )
+
+        updated = bridge.enforce_backend_updates_from_user_text(session, {"project_summary": "任务自动化系统"})
+
+        targets = "\n".join(updated["capability_research_targets"])
+        self.assertIn("结构化流程/关系建模", targets)
+        self.assertIn("内容生成能力", targets)
+        self.assertIn("Hosted provider/API backend", targets)
+        self.assertIn("SQLite", targets)
+        self.assertIn("生成能力优先走本地模型、外部高级 API", "\n".join(updated["critical_questions"]))
+        self.assertIn("核心能力", "\n".join(updated["known_facts"]))
+
     def test_blocking_questions_are_limited_and_rest_become_open_questions(self) -> None:
         whiteboard = {
             "blocking_questions": ["必须回答 A?", "必须回答 B?", "必须回答 C?"],
@@ -145,6 +191,22 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertEqual("新摘要", merged["project_summary"])
         self.assertEqual(["直接发送视频", "直接发送截图"], merged["delivery_requirements"])
         self.assertEqual(["不要只给路径", "必须保存后台状态"], merged["change_requests"])
+
+    def test_pre_send_guard_hides_internal_evidence_keys(self) -> None:
+        text = bridge.pre_send_guard("missing package, screenshot, verify_report")
+
+        self.assertNotIn("package", text)
+        self.assertNotIn("screenshot", text)
+        self.assertNotIn("verify_report", text)
+        self.assertIn("可运行项目文件", text)
+        self.assertIn("效果预览", text)
+        self.assertIn("测试结论", text)
+
+    def test_pre_send_guard_does_not_replace_chinese_slash_phrases(self) -> None:
+        text = bridge.pre_send_guard("提取玩家视角/鼠标/键盘动作，用于行为时间线分析。")
+
+        self.assertIn("视角/鼠标/键盘动作", text)
+        self.assertNotIn("本地工作区记录", text)
 
     def test_default_policy_identifies_project_delivery_interface(self) -> None:
         self.assertIn("project generation and delivery workflow", bridge.DEFAULT_CUSTOMER_AGENT_POLICY)
@@ -207,6 +269,82 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("Uploaded Project Inputs", md)
         self.assertIn("dataset.csv", md)
 
+    def test_status_reply_can_use_local_model_without_generation_decision(self) -> None:
+        session = bridge.default_session("test-chat")
+        session["whiteboard"]["project_summary"] = "做一个本地任务管理器"
+        original_local_call = bridge.local_model_router.call_text_task
+        original_provider_text = bridge.provider_text
+        try:
+            calls: list[str] = []
+
+            def fake_local(task, system, prompt, timeout):
+                calls.append(task)
+                return {"ok": True, "provider": "test-local", "text": "当前还在处理，补充会进入同一个项目上下文。"}
+
+            bridge.local_model_router.call_text_task = fake_local
+            bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+
+            text = bridge.provider_user_message(
+                event="status_requested",
+                session=session,
+                facts={"generation": {"status": "running"}, "evidence_state": {"missing": ["package"]}},
+                model="gpt-real",
+                timeout=30,
+            )
+        finally:
+            bridge.local_model_router.call_text_task = original_local_call
+            bridge.provider_text = original_provider_text
+
+        self.assertEqual(["customer_status"], calls)
+        self.assertIn("当前还在处理", text)
+        self.assert_public_reply_style(text)
+
+    def test_model_frontdesk_generation_decision_does_not_use_public_reply_local_task(self) -> None:
+        session = bridge.default_session("test-chat")
+        original_local_call = bridge.local_model_router.call_text_task
+        original_provider_text = bridge.provider_text
+        try:
+            bridge.local_model_router.call_text_task = lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("public reply local model must not decide generation")
+            )
+            bridge.provider_text = lambda *args, **kwargs: (
+                '{"reply":"我按这个方向开始做第一版。","action":"start_generation",'
+                '"whiteboard":{"project_summary":"做一个本地任务管理器","ready_to_generate":true,'
+                '"known_facts":[],"default_assumptions":[],"first_version_plan":[],"blocking_questions":[],'
+                '"open_questions":[],"user_rules":[],"acceptance_criteria":["可运行"],"change_requests":[],'
+                '"delivery_requirements":["交付项目包"],"decision_log":[]}}'
+            )
+
+            reply, whiteboard, action = bridge.customer_service_reply(session, model="gpt-real", timeout=30)
+        finally:
+            bridge.local_model_router.call_text_task = original_local_call
+            bridge.provider_text = original_provider_text
+
+        self.assertEqual("start_generation", action)
+        self.assertIn("本地任务管理器", whiteboard["project_summary"])
+        self.assertIn("第一版", reply)
+
+    def test_model_frontdesk_repairs_malformed_json_without_leaking_raw_object(self) -> None:
+        session = bridge.default_session("test-chat")
+        session["messages"].append({"role": "user", "text": "做一个 CS2 demo 鉴挂工具", "created_at": bridge.now()})
+        original_provider_text = bridge.provider_text
+        try:
+            bridge.provider_text = lambda *args, **kwargs: (
+                '{"reply":"我按 CS2 demo 鉴挂工具开始做第一版，会解析 demo、提取视角/鼠标/键盘动作并做可视化。",'
+                '"action":"start_generation","whiteboard":{"project_summary":"CS2 demo 鉴挂工具"'
+            )
+
+            reply, whiteboard, action = bridge.customer_service_reply(session, model="gpt-real", timeout=30)
+        finally:
+            bridge.provider_text = original_provider_text
+
+        self.assertEqual("start_generation", action)
+        self.assertIn("CS2 demo", reply)
+        self.assertIn("视角/鼠标/键盘动作", reply)
+        self.assertNotIn('{"reply"', reply)
+        self.assertNotIn('"whiteboard"', reply)
+        self.assertIn("CS2 demo 鉴挂工具", whiteboard["project_summary"])
+
     def test_summarize_message_attachments_accepts_photos_and_documents(self) -> None:
         message = {
             "caption": "用这个做参考",
@@ -257,18 +395,26 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
             original_provider_text = bridge.provider_text
+            original_local_call = bridge.local_model_router.call_text_task
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
+            bridge.local_model_router.call_text_task = lambda task, *args, **kwargs: {
+                "ok": True,
+                "provider": "test-local",
+                "text": "模型问候回复：我在；当前是空会话，直接发项目目标和约束即可。",
+            }
             try:
                 bridge.handle_text(client, "chat-1", "你好", session_dir, log_dir, "gpt-test", 60)
             finally:
                 bridge.provider_text = original_provider_text
+                bridge.local_model_router.call_text_task = original_local_call
             session = bridge.load_session(session_dir, "chat-1")
             self.assertEqual("idle", session["generation"]["status"])
             self.assertFalse(session.get("intake_tickets"))
             self.assertNotIn("你好，我在", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到", client.messages[-1][1])
-            self.assertIn("项目需求", client.messages[-1][1])
+            self.assertIn("模型问候回复", client.messages[-1][1])
+            self.assertEqual("provider_user_message", session["messages"][-1]["source"])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_status_query_only_reads_status_and_ledger(self) -> None:
@@ -277,16 +423,24 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
             original_provider_text = bridge.provider_text
+            original_local_call = bridge.local_model_router.call_text_task
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
+            bridge.local_model_router.call_text_task = lambda task, *args, **kwargs: {
+                "ok": True,
+                "provider": "test-local",
+                "text": "模型状态回复：当前没有正在运行的后台任务；可运行项目文件、效果预览和测试结论还没有交付证据。",
+            }
             try:
                 bridge.handle_text(client, "chat-2", "现在怎么样了", session_dir, log_dir, "gpt-test", 60)
             finally:
                 bridge.provider_text = original_provider_text
+                bridge.local_model_router.call_text_task = original_local_call
             session = bridge.load_session(session_dir, "chat-2")
             self.assertEqual("idle", session["generation"]["status"])
             self.assertFalse(session.get("intake_tickets"))
-            self.assertIn("当前状态", client.messages[-1][1])
+            self.assertIn("模型状态回复", client.messages[-1][1])
             self.assertIn("可运行项目文件", client.messages[-1][1])
+            self.assertEqual("provider_user_message", session["messages"][-1]["source"])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_new_project_request_creates_intake_ticket_and_auto_starts_generation(self) -> None:
@@ -614,6 +768,197 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session["active_run"] = {"id": "run-chat-6-1", "local_retry_exhausted": True}
             bridge.save_session(session_dir, session)
             self.assertTrue(bridge.provider_escalation_allowed(session_dir, "chat-6", classification))
+
+    def test_status_classification_handles_natural_progress_question(self) -> None:
+        session = bridge.default_session("chat-status")
+        classification = bridge.classify_customer_message("后台那边现在有动静吗", session)
+
+        self.assertEqual("status_query", classification["intent"])
+        self.assertEqual("status_question", classification["reason"])
+
+    def test_status_classification_handles_still_working_question(self) -> None:
+        session = bridge.default_session("chat-status-working")
+        session["generation"] = {"status": "max_turns_reached"}
+        session["whiteboard"]["project_summary"] = "做一个 VN 项目助手"
+
+        classification = bridge.classify_customer_message("还在做吗", session)
+
+        self.assertEqual("status_query", classification["intent"])
+        self.assertEqual("status_question", classification["reason"])
+        self.assertEqual(0, bridge.substantive_user_turn_count({"messages": [{"role": "user", "text": "还在做吗"}]}))
+
+    def test_status_query_does_not_update_project_or_restart_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-status-no-restart")
+            session["whiteboard"]["project_summary"] = "做一个 VN 项目助手"
+            session["generation"] = {"status": "max_turns_reached", "driver": "agent_generated_pipeline"}
+            bridge.save_session(session_dir, session)
+            original_start = bridge.start_agent_generation
+            original_provider_text = bridge.provider_text
+            original_local_call = bridge.local_model_router.call_text_task
+            bridge.start_agent_generation = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("status query must not restart generation"))
+            bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("status query should use public reply model"))
+            bridge.local_model_router.call_text_task = lambda task, *args, **kwargs: {
+                "ok": True,
+                "provider": "test-local",
+                "text": "模型状态回复：后台没有正在运行的任务；这条状态询问不会写成新需求。",
+            }
+            try:
+                bridge.handle_text(client, "chat-status-no-restart", "还在做吗", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.start_agent_generation = original_start
+                bridge.provider_text = original_provider_text
+                bridge.local_model_router.call_text_task = original_local_call
+
+            saved = bridge.load_session(session_dir, "chat-status-no-restart")
+            self.assertEqual("max_turns_reached", saved["generation"]["status"])
+            self.assertNotIn("还在做吗", str(saved["whiteboard"].get("known_facts", [])))
+            self.assertIn("模型状态回复", client.messages[-1][1])
+            self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
+            self.assertEqual("status_requested", saved["messages"][-1]["event"])
+
+    def test_status_reply_uses_public_reply_model_for_existing_package(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-status-package")
+            session["active_run"] = {"status": "delivered", "package_path": "final_project_bundle.zip"}
+            bridge.save_session(session_dir, session)
+            original_local_call = bridge.local_model_router.call_text_task
+            original_provider_text = bridge.provider_text
+            try:
+                called: list[str] = []
+
+                def fake_local(task, *args, **kwargs):
+                    called.append(task)
+                    return {
+                        "ok": True,
+                        "provider": "test-local",
+                        "text": "模型状态回复：可运行项目文件已经生成；预览和测试结论仍要补齐。",
+                    }
+
+                bridge.local_model_router.call_text_task = fake_local
+                bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+                bridge.handle_text(client, "chat-status-package", "还在做吗", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.local_model_router.call_text_task = original_local_call
+                bridge.provider_text = original_provider_text
+
+            saved = bridge.load_session(session_dir, "chat-status-package")
+            self.assertEqual(["customer_status"], called)
+            self.assertIn("可运行项目文件已经生成", client.messages[-1][1])
+            self.assertNotIn("没有可运行结果", client.messages[-1][1])
+            self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
+
+    def test_greeting_with_existing_failed_project_is_short_status_not_old_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-greeting-existing")
+            session["whiteboard"]["project_summary"] = "本地可运行的 VN 项目助手，具备故事时间线梳理、可视化和 AI 生成背景/立绘图片等能力"
+            session["generation"] = {"status": "max_turns_reached", "driver": "agent_generated_pipeline"}
+            bridge.save_session(session_dir, session)
+            original_local_call = bridge.local_model_router.call_text_task
+            original_provider_text = bridge.provider_text
+            try:
+                bridge.local_model_router.call_text_task = lambda task, *args, **kwargs: {
+                    "ok": True,
+                    "provider": "test-local",
+                    "text": "模型问候回复：我在；当前没有后台任务，继续补充会进入同一个上下文。",
+                }
+                bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+
+                bridge.handle_text(client, "chat-greeting-existing", "你好", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.local_model_router.call_text_task = original_local_call
+                bridge.provider_text = original_provider_text
+
+            saved = bridge.load_session(session_dir, "chat-greeting-existing")
+            self.assertEqual("max_turns_reached", saved["generation"]["status"])
+            self.assertNotIn("VN 项目助手", client.messages[-1][1])
+            self.assertIn("模型问候回复", client.messages[-1][1])
+            self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
+            self.assertEqual("greeting", saved["messages"][-1]["event"])
+
+    def test_greeting_with_delivered_project_uses_model_not_frontdesk_composer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-greeting-delivered")
+            session["whiteboard"]["project_summary"] = "本地任务工具"
+            session["generation"] = {"status": "ready_with_warnings", "package_path": "final_project_bundle.zip"}
+            session["active_run"] = {"status": "delivered", "package_path": "final_project_bundle.zip"}
+            bridge.save_session(session_dir, session)
+            original_local_call = bridge.local_model_router.call_text_task
+            original_provider_text = bridge.provider_text
+            try:
+                called: list[str] = []
+
+                def fake_local(task, *args, **kwargs):
+                    called.append(task)
+                    return {
+                        "ok": True,
+                        "provider": "test-local",
+                        "text": "模型问候回复：我在；项目包已经生成，现在没有新的后台任务。",
+                    }
+
+                bridge.local_model_router.call_text_task = fake_local
+                bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("api should not be needed"))
+                bridge.handle_text(client, "chat-greeting-delivered", "你好", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.local_model_router.call_text_task = original_local_call
+                bridge.provider_text = original_provider_text
+
+            saved = bridge.load_session(session_dir, "chat-greeting-delivered")
+            self.assertEqual(["customer_public_reply"], called)
+            self.assertIn("项目包已经生成", client.messages[-1][1])
+            self.assertIn("没有新的后台任务", client.messages[-1][1])
+            self.assertNotIn("当前有项目上下文记录着", client.messages[-1][1])
+            self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
+
+    def test_optional_local_classifier_handles_ambiguous_message_without_generation_confirmation(self) -> None:
+        session = bridge.default_session("chat-classify")
+        session["whiteboard"]["project_summary"] = "做一个 VN 项目助手"
+        original_enabled = bridge.local_model_router.task_enabled
+        original_call = bridge.local_model_router.call_json_task
+        try:
+            bridge.local_model_router.task_enabled = lambda task: task == "customer_classification"
+            bridge.local_model_router.call_json_task = lambda *args, **kwargs: {
+                "ok": True,
+                "json": {"intent": "status_query", "confidence": 0.82, "reason": "用户在问后台动向"},
+            }
+
+            classification = bridge.classify_customer_message("后台有推进吗", session)
+        finally:
+            bridge.local_model_router.task_enabled = original_enabled
+            bridge.local_model_router.call_json_task = original_call
+
+        self.assertEqual("status_query", classification["intent"])
+        self.assertEqual("local_model", classification["source"])
+
+    def test_optional_local_classifier_cannot_invent_generation_confirmation(self) -> None:
+        session = bridge.default_session("chat-classify")
+        original_enabled = bridge.local_model_router.task_enabled
+        original_call = bridge.local_model_router.call_json_task
+        try:
+            bridge.local_model_router.task_enabled = lambda task: task == "customer_classification"
+            bridge.local_model_router.call_json_task = lambda *args, **kwargs: {
+                "ok": True,
+                "json": {"intent": "generation_confirmation", "confidence": 0.9, "reason": "bad model guess"},
+            }
+
+            classification = bridge.classify_customer_message("这个方向听起来还行", session)
+        finally:
+            bridge.local_model_router.task_enabled = original_enabled
+            bridge.local_model_router.call_json_task = original_call
+
+        self.assertNotEqual("generation_confirmation", classification["intent"])
 
     def test_generation_failure_facts_hide_internal_parameter_names(self) -> None:
         facts = bridge.safe_generation_failure_facts("做一个 VN 助手", AttributeError("'Namespace' object has no attribute 'prompt_max_chars'"))

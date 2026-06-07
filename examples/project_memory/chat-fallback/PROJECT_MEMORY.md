@@ -1,13 +1,13 @@
 ---
 kind: ProjectMemoryMarkdown
 schema_version: 1
-chat_id: 6092527664
+chat_id: chat-fallback
 flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-05T16:17:55.487388+00:00
-revision_count: 4
+generated_at: 2026-06-07T06:26:14.970737+00:00
+revision_count: 0
 ---
 
 # Project Memory
@@ -19,23 +19,19 @@ revision_count: 4
 - Contract pack: `agent_context.modular_project_generation.contract_pack.json`
 - Flow: `flow.modular_project_generation@1`
 - Policy: `policy.safe_modular_project_generation@1`
-- JSON artifact mirror: `D:\CGKN\examples\project_memory\6092527664\project_memory.artifact.json`
+- JSON artifact mirror: `D:\CGKN\examples\project_memory\chat-fallback\project_memory.artifact.json`
 
 ## Current Project Summary
 
-你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+做一个本地任务管理器
 
 ## Known Facts
 
-- 用户提出的新项目需求: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-- 用户补充: 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+- 未记录
 
 ## User Rules
 
-- 任何生成项目、代码、背景、立绘、图片或可运行结果，必须使用已配置的 API/provider 或已配置的本地模型后端。
-- 不允许用本地规则、deterministic simulator、模板、占位图或假进度冒充生成结果。
-- 客户提出需求时后端必须同步看到并开始找库、定方法、生成和验证；客服同时继续确认。
-- 流程不允许线性等待固定开始口令；前台和后台必须并行开工。
+- 未记录
 
 ## Default Assumptions
 
@@ -43,11 +39,11 @@ revision_count: 4
 
 ## First Version Plan
 
-- 客户提出项目需求后，后台立即并行进入 API/provider 生成队列；前台继续确认细节并把补充写入修订控制。
+- 未记录
 
 ## Acceptance Criteria
 
-- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 未记录
 
 ## Change Requests
 
@@ -55,15 +51,11 @@ revision_count: 4
 
 ## Delivery Requirements
 
-- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 未记录
 
 ## Decision Log
 
-- 生成执行源已强制限定为 API/provider 或已配置的本地模型后端；本地规则和 simulator 不得作为生成结果。
-- 前台确认和后台生成改为并行关系：新项目需求进入后自动写入 start_generation 控制命令。
-- 生成执行源仍强制限定为 API/provider 或已配置本地模型；本地规则和 simulator 不得冒充生成结果。
-- 已移除线性等待确认规则；当前流程是前台确认和后台生成并行。
-- 本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。
+- 未记录
 
 ## Uploaded Project Inputs
 
@@ -112,21 +104,13 @@ revision_count: 4
 
 ## Visible User Message Log
 
-1. 你好
-2. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-3. 你好
-4. 你好
-5. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-6. 你好
-7. 你帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
-8. 你好
-9. 你好
+1. 做一个本地任务管理器
 
 ## Generation State
 
-- Status: `running`
-- Started at: `2026-06-05T08:34:11.441251+00:00`
-- Finished at: `2026-06-05T08:11:24.037578+00:00`
+- Status: `ready_with_warnings`
+- Started at: ``
+- Finished at: `2026-06-07T06:26:14.927415+00:00`
 - Result path: ``
 
 ## Update Rules

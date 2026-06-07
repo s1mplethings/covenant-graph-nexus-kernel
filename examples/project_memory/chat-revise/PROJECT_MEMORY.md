@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T13:47:46.008642+00:00
-revision_count: 2
+generated_at: 2026-06-07T06:26:44.676608+00:00
+revision_count: 4
 ---
 
 # Project Memory
@@ -28,6 +28,10 @@ revision_count: 2
 ## Known Facts
 
 - 用户提出的新项目需求: 做一个本地图片生成工具
+- 用户要求背景和立绘使用本地图片模型生成
+- 当前未发现可调用的本地图片生成服务或模型目录
+- 识别出的核心能力：内容生成能力；导入导出和格式互操作
+- 做一个本地图片生成工具
 - 用户补充: 背景和立绘必须分开两个入口
 
 ## User Rules
@@ -36,15 +40,25 @@ revision_count: 2
 
 ## Default Assumptions
 
-- 未记录
+- 本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过
+- 本地可运行
+- 直接生成并测试
 
 ## First Version Plan
 
-- 先建立 intake ticket，再由本地 simulator 推进需求拆解、验证证据和交付门禁。
+- 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 前端交互
+- 后端处理
+- 测试与交付
 
 ## Acceptance Criteria
 
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 背景和立绘必须由已配置的本地图片模型生成；程序化占位图或降级预览不算图片验收通过
+- 交付时必须明确本地图片模型是否实际可用，并给出背景/立绘生成证据
+- 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
+- 可运行
+- 有测试结论
 
 ## Change Requests
 
@@ -53,11 +67,15 @@ revision_count: 2
 ## Delivery Requirements
 
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 背景图和立绘图必须作为可预览的本地图片 artifact 交付
+- 交付项目包和预览
 
 ## Decision Log
 
-- 默认禁用 provider/API，先走本地 simulator team。
-- 本轮由 Human Frontdesk 记录补充，后端继续按本地 simulator 主线推进。
+- 项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。
+- 先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。
+- 项目输入到达即启动正式生成
+- 本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。
 
 ## Uploaded Project Inputs
 
@@ -112,9 +130,9 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `queued`
-- Started at: `2026-06-04T13:47:45.864036+00:00`
-- Finished at: ``
+- Status: `max_turns_reached`
+- Started at: ``
+- Finished at: `2026-06-07T06:26:44.653504+00:00`
 - Result path: ``
 
 ## Update Rules

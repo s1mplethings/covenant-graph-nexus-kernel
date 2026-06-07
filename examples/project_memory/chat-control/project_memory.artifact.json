@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-04T13:47:45.611950+00:00",
+  "generated_at": "2026-06-07T06:26:25.973824+00:00",
   "chat_id": "chat-control",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-control\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -11,21 +11,32 @@
   "customer_request": {
     "project_summary": "做一个本地 VN 助手，要时间线和图片预览",
     "known_facts": [
-      "用户提出的新项目需求: 做一个本地 VN 助手，要时间线和图片预览"
+      "用户提出的新项目需求: 做一个本地 VN 助手，要时间线和图片预览",
+      "识别出的核心能力：结构化流程/关系建模；真实运行预览和证据；导入导出和格式互操作",
+      "做一个本地 VN 助手，要时间线和图片预览"
     ],
-    "default_assumptions": [],
+    "default_assumptions": [
+      "本地可运行",
+      "直接生成并测试"
+    ],
     "user_rules": [],
     "acceptance_criteria": [
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
-      "交付时必须提供可视化预览或摘要图兜底"
+      "交付时必须提供可视化预览或摘要图兜底",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。",
+      "可运行",
+      "有测试结论"
     ],
     "change_requests": [],
     "delivery_requirements": [
       "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
-      "交付时必须提供可视化预览或摘要图兜底"
+      "交付时必须提供可视化预览或摘要图兜底",
+      "交付项目包和预览"
     ],
     "decision_log": [
-      "默认禁用 provider/API，先走本地 simulator team。"
+      "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
+      "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
+      "项目输入到达即启动正式生成"
     ],
     "open_questions": [],
     "blocking_questions": []
@@ -36,10 +47,16 @@
     "开始生成"
   ],
   "generation": {
-    "status": "queued",
-    "started_at": "2026-06-04T13:47:45.544639+00:00",
-    "driver": "local_simulator_company",
-    "control_id": "ctrl-chat-control-2"
+    "status": "ready_with_warnings",
+    "driver": "agent_conversation_loop_fallback",
+    "finished_at": "2026-06-07T06:26:25.926243+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\sessions\\chat-control\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control",
+    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\delivery_manifest.json",
+    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\final_project_bundle.zip",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {
@@ -159,5 +176,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 1
+  "revision_count": 2
 }

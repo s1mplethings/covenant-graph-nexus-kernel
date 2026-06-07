@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-04T13:47:45.400138+00:00
+generated_at: 2026-06-07T06:26:25.128181+00:00
 revision_count: 0
 ---
 

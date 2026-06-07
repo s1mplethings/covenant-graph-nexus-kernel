@@ -53,6 +53,25 @@ def _project_goal(whiteboard: dict[str, Any]) -> str:
     return "Generate the first usable version of the project described in the session."
 
 
+def _normalized_cfo_contract(candidate: Any, whiteboard: dict[str, Any]) -> dict[str, Any]:
+    defaults = default_minimal_pipeline_manifest(whiteboard)["cfo_contract"]
+    raw = candidate if isinstance(candidate, dict) else {}
+    support = raw.get("support_artifacts") if isinstance(raw.get("support_artifacts"), dict) else {}
+    default_support = defaults["support_artifacts"]
+    return {
+        "authority": str(raw.get("authority") or defaults["authority"]).strip()[:500],
+        "planning_artifact": str(raw.get("planning_artifact") or defaults["planning_artifact"]).strip()[:120],
+        "review_artifact": str(raw.get("review_artifact") or defaults["review_artifact"]).strip()[:120],
+        "support_artifacts": {
+            "context_db": str(support.get("context_db") or default_support["context_db"]).strip()[:120],
+            "risk_register": str(support.get("risk_register") or default_support["risk_register"]).strip()[:120],
+        },
+        "support_agent_rule": str(raw.get("support_agent_rule") or defaults["support_agent_rule"]).strip()[:500],
+        "worker_handoff_rule": str(raw.get("worker_handoff_rule") or defaults["worker_handoff_rule"]).strip()[:500],
+        "evidence_rule": str(raw.get("evidence_rule") or defaults["evidence_rule"]).strip()[:500],
+    }
+
+
 def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict[str, Any]:
     board = whiteboard if isinstance(whiteboard, dict) else {}
     goal = _project_goal(board)
@@ -61,10 +80,54 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
         "version": MANIFEST_VERSION,
         "project_goal": goal,
         "source": "planner_agent",
+        "cfo_contract": {
+            "authority": "cfo owns module planning, handoff order, acceptance interpretation, evidence review, and final delivery readiness",
+            "planning_artifact": "MODULE_PIPELINE.md",
+            "review_artifact": "DELIVERY_NOTES.md",
+            "support_artifacts": {
+                "context_db": "CFO_CONTEXT_DB.json",
+                "risk_register": "CFO_RISK_REGISTER.md",
+            },
+            "support_agent_rule": "support agents maintain factual context and risk artifacts for cfo and workers; they do not own scope, final route, or delivery readiness",
+            "worker_handoff_rule": "each worker must read MODULE_PIPELINE.md, update only its assigned project area, and leave a concise handoff note",
+            "evidence_rule": "cfo_review must compare project files, tests, previews, and packaging evidence against whiteboard acceptance criteria before delivery",
+        },
         "roles": [
-            {"id": "product", "name": "Product Planner", "purpose": "clarify scope and acceptance"},
-            {"id": "builder", "name": "Project Builder", "purpose": "create the project files from the whiteboard"},
-            {"id": "qa", "name": "QA Runner", "purpose": "run checks and repair failures"},
+            {
+                "id": "cfo",
+                "name": "CFO",
+                "purpose": "main coordinating agent that turns the whiteboard into a modular execution plan, assigns worker agents, controls scope, reviews evidence, and decides delivery readiness",
+            },
+            {
+                "id": "foundation",
+                "name": "Foundation Agent",
+                "purpose": "create project structure, README, dependency/config files, and shared contracts exactly from the CFO module plan and support artifacts",
+            },
+            {
+                "id": "context_librarian",
+                "name": "CFO Context Librarian",
+                "purpose": "maintain CFO_CONTEXT_DB.json as a factual project context database from whiteboard, session events, attachments, assumptions, acceptance criteria, module dependencies, and handoff references",
+            },
+            {
+                "id": "risk_reviewer",
+                "name": "CFO Risk Reviewer",
+                "purpose": "maintain CFO_RISK_REGISTER.md with implementation risks, missing evidence, dependency concerns, user-visible quality risks, and recommended checks for CFO review",
+            },
+            {
+                "id": "backend",
+                "name": "Backend Agent",
+                "purpose": "implement service, data, integration, generation, and non-UI logic assigned by the CFO module plan",
+            },
+            {
+                "id": "frontend",
+                "name": "Frontend Agent",
+                "purpose": "implement user-facing screens, interaction, visual preview, and static assets assigned by the CFO module plan",
+            },
+            {
+                "id": "qa",
+                "name": "QA Agent",
+                "purpose": "run checks, inspect generated files, repair assigned failures, and document evidence and remaining limits for CFO review",
+            },
         ],
         "shared_whiteboard_keys": [
             "project_summary",
@@ -75,35 +138,82 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             "first_version_plan",
             "default_assumptions",
             "assumptions",
+            "user_rules",
             "acceptance",
             "acceptance_criteria",
+            "change_requests",
             "delivery_requirements",
+            "critical_questions",
+            "capability_strategy",
+            "capability_research_targets",
+            "local_image_model_discovery",
         ],
         "steps": [
             {
-                "id": "plan",
+                "id": "cfo_pipeline",
                 "type": "agent_turn",
-                "role": "product",
-                "goal": "write PROJECT_PLAN.md with first-version scope, assumptions, and acceptance criteria",
-                "allowed_actions": ["write_file", "read_file", "use_skill", "search_skills"],
+                "role": "cfo",
+                "goal": "read the whiteboard, agent_session, generation_context_snapshot, user rules, and delivery requirements; write MODULE_PIPELINE.md with project intent, module map, support-agent tasks, worker assignments, handoff order, acceptance criteria, evidence plan, risks, and fallback boundaries",
+                "allowed_actions": [
+                    "write_file",
+                    "read_file",
+                    "list_files",
+                    "use_skill",
+                    "search_skills",
+                ],
             },
             {
-                "id": "build",
+                "id": "context_support",
                 "type": "agent_turn",
-                "role": "builder",
-                "goal": "create the project files according to PROJECT_PLAN.md and the whiteboard",
+                "role": "context_librarian",
+                "goal": "read MODULE_PIPELINE.md, whiteboard/session context, and available project inputs; write CFO_CONTEXT_DB.json as a compact factual database of project goal, user rules, acceptance criteria, delivery requirements, attachments, assumptions, module map, dependencies, handoff references, and open facts for CFO and workers",
+                "allowed_actions": ["write_file", "read_file", "list_files"],
+            },
+            {
+                "id": "risk_support",
+                "type": "agent_turn",
+                "role": "risk_reviewer",
+                "goal": "read MODULE_PIPELINE.md and CFO_CONTEXT_DB.json; write CFO_RISK_REGISTER.md with risks, default assumptions to verify, likely failure modes, user-visible quality checks, required evidence, and repair priorities for CFO review",
+                "allowed_actions": ["write_file", "read_file", "list_files"],
+            },
+            {
+                "id": "foundation",
+                "type": "agent_turn",
+                "role": "foundation",
+                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, and CFO_RISK_REGISTER.md; create the runnable project skeleton, README, dependency files, shared contracts, and HANDOFF_FOUNDATION.md",
                 "allowed_actions": ["write_file", "read_file", "list_files", "use_skill", "search_skills"],
+            },
+            {
+                "id": "backend",
+                "type": "agent_turn",
+                "role": "backend",
+                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs; implement assigned backend/data/API/generation/integration/command logic, run targeted checks when useful, and write HANDOFF_BACKEND.md",
+                "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "use_skill", "search_skills"],
+            },
+            {
+                "id": "frontend",
+                "type": "agent_turn",
+                "role": "frontend",
+                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs; implement assigned UI/CLI interaction, visual output, screenshots, preview assets, or static assets, and write HANDOFF_FRONTEND.md",
+                "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {
                 "id": "qa",
                 "type": "agent_turn",
                 "role": "qa",
-                "goal": "inspect the project, run appropriate local checks, and repair failures",
-                "allowed_actions": ["read_file", "list_files", "use_skill", "search_skills", "run_command", "write_file"],
+                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and handoffs; run appropriate checks, inspect generated output, repair assigned failures when possible, and write TEST_REPORT.md with evidence, gaps, and commands run",
+                "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
+            },
+            {
+                "id": "cfo_review",
+                "type": "agent_turn",
+                "role": "cfo",
+                "goal": "review MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, worker handoffs, TEST_REPORT.md, project files, and preview evidence against the whiteboard; patch small gaps when possible and write DELIVERY_NOTES.md with pass/warning status and delivery readiness",
+                "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {"id": "package", "type": "package_project", "goal": "create final_project_bundle.zip and delivery_manifest.json"},
         ],
-        "limits": {"max_agent_turns_per_step": 3, "max_total_steps": 12, "allow_dynamic_new_steps": False},
+        "limits": {"max_agent_turns_per_step": 4, "max_total_steps": 10, "allow_dynamic_new_steps": False},
     }
 
 
@@ -202,6 +312,7 @@ def normalize_pipeline_manifest(manifest: Any, whiteboard: dict[str, Any] | None
         "version": candidate.get("version") or MANIFEST_VERSION,
         "project_goal": str(candidate.get("project_goal") or _project_goal(board)).strip()[:2000],
         "source": str(candidate.get("source") or "planner_agent").strip()[:100],
+        "cfo_contract": _normalized_cfo_contract(candidate.get("cfo_contract"), board),
         "roles": [],
         "shared_whiteboard_keys": _strings(candidate.get("shared_whiteboard_keys", []), limit=32)
         or default_minimal_pipeline_manifest(board)["shared_whiteboard_keys"],
@@ -244,7 +355,7 @@ def normalize_pipeline_manifest(manifest: Any, whiteboard: dict[str, Any] | None
         normalized["steps"].append(clean_step)
     normalized["steps"] = normalized["steps"][:MAX_STEPS]
     limits = normalized["limits"]
-    limits["max_agent_turns_per_step"] = max(1, min(5, int(limits.get("max_agent_turns_per_step", 3) or 3)))
+    limits["max_agent_turns_per_step"] = max(1, min(8, int(limits.get("max_agent_turns_per_step", 4) or 4)))
     limits["max_total_steps"] = max(1, min(MAX_STEPS, int(limits.get("max_total_steps", MAX_STEPS) or MAX_STEPS)))
     limits["allow_dynamic_new_steps"] = False
 
