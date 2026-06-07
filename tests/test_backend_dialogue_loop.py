@@ -47,7 +47,7 @@ class BackendDialogueLoopTests(unittest.TestCase):
         self.assertIn("本地图片模型能力探测", "；".join(result["backend_plan"]))
         self.assertIn("核心能力识别", "；".join(result["backend_plan"]))
         self.assertTrue(result["ready_to_generate"])
-        self.assertLessEqual(len(result["soft_questions"]), 2)
+        self.assertLessEqual(len(result["soft_questions"]), 3)
         self.assertGreaterEqual(len(result["critical_questions"]), 1)
         self.assertIn("本地图片", "；".join(session["whiteboard"]["critical_questions"]))
         self.assertEqual([], session["whiteboard"]["blocking_questions"])
@@ -100,11 +100,13 @@ class BackendDialogueLoopTests(unittest.TestCase):
                 reason="new_project_request",
             )
 
-        self.assertLessEqual(len(result["soft_questions"]), 2)
+        self.assertLessEqual(len(result["soft_questions"]), 3)
         self.assertGreaterEqual(len(result["soft_questions"]), 1)
         self.assertTrue(result["ready_to_generate"])
         self.assertEqual([], session["whiteboard"]["blocking_questions"])
         self.assertIn("不会卡住生成", result["user_visible_reply"])
+        self.assertTrue(result["needs_direction_confirmation"])
+        self.assertIn("开始生成", result["user_visible_reply"])
 
     def test_provider_failure_degrades_to_local_result(self) -> None:
         session = {

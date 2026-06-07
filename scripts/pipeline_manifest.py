@@ -12,6 +12,15 @@ MANIFEST_VERSION = 1
 MAX_ROLES = 8
 MAX_STEPS = 12
 ALLOWED_STEP_TYPES = {"agent_turn", "use_skill", "run_command", "package_project", "update_whiteboard"}
+REQUIRED_STAGES = [
+    "product_plan",
+    "technical_plan",
+    "build",
+    "test",
+    "review",
+    "package",
+]
+ALLOWED_STAGES = set(REQUIRED_STAGES)
 ALLOWED_ACTION_TYPES = {
     "write_file",
     "read_file",
@@ -40,6 +49,16 @@ def _strings(value: Any, *, limit: int = 16) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item).strip()[:500] for item in value[:limit] if str(item).strip()]
+
+
+def _stage_values(value: Any) -> list[str]:
+    raw = value if isinstance(value, list) else [value]
+    stages: list[str] = []
+    for item in raw:
+        stage = str(item or "").strip()
+        if stage and stage not in stages:
+            stages.append(stage)
+    return stages
 
 
 def _project_goal(whiteboard: dict[str, Any]) -> str:
@@ -152,8 +171,9 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             {
                 "id": "cfo_pipeline",
                 "type": "agent_turn",
+                "stage": ["product_plan", "technical_plan"],
                 "role": "cfo",
-                "goal": "read the whiteboard, agent_session, generation_context_snapshot, user rules, and delivery requirements; write MODULE_PIPELINE.md with project intent, module map, support-agent tasks, worker assignments, handoff order, acceptance criteria, evidence plan, risks, and fallback boundaries",
+                "goal": "write PRODUCT_PLAN.md and OUTPUT_CONTRACT.md with user goal, first-version scope, default assumptions, non-goals, delivery format, and acceptance criteria; write TECHNICAL_PLAN.md and BUILD_PLAN.md with technical route, file structure, data flow, run method, test plan, risks, and dependencies; also update MODULE_PIPELINE.md for worker handoff order and evidence targets",
                 "allowed_actions": [
                     "write_file",
                     "read_file",
@@ -165,6 +185,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             {
                 "id": "context_support",
                 "type": "agent_turn",
+                "stage": "technical_plan",
                 "role": "context_librarian",
                 "goal": "read MODULE_PIPELINE.md, whiteboard/session context, and available project inputs; write CFO_CONTEXT_DB.json as a compact factual database of project goal, user rules, acceptance criteria, delivery requirements, attachments, assumptions, module map, dependencies, handoff references, and open facts for CFO and workers",
                 "allowed_actions": ["write_file", "read_file", "list_files"],
@@ -172,46 +193,41 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             {
                 "id": "risk_support",
                 "type": "agent_turn",
+                "stage": "technical_plan",
                 "role": "risk_reviewer",
                 "goal": "read MODULE_PIPELINE.md and CFO_CONTEXT_DB.json; write CFO_RISK_REGISTER.md with risks, default assumptions to verify, likely failure modes, user-visible quality checks, required evidence, and repair priorities for CFO review",
                 "allowed_actions": ["write_file", "read_file", "list_files"],
             },
             {
-                "id": "foundation",
+                "id": "build",
                 "type": "agent_turn",
-                "role": "foundation",
-                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, and CFO_RISK_REGISTER.md; create the runnable project skeleton, README, dependency files, shared contracts, and HANDOFF_FOUNDATION.md",
-                "allowed_actions": ["write_file", "read_file", "list_files", "use_skill", "search_skills"],
-            },
-            {
-                "id": "backend",
-                "type": "agent_turn",
+                "stage": "build",
                 "role": "backend",
-                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs; implement assigned backend/data/API/generation/integration/command logic, run targeted checks when useful, and write HANDOFF_BACKEND.md",
+                "goal": "read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, BUILD_PLAN.md, MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs when present; generate project files; must write README.md; must create a runnable entrypoint such as app.py, main.py, index.html, or package.json; do not package",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "use_skill", "search_skills"],
-            },
-            {
-                "id": "frontend",
-                "type": "agent_turn",
-                "role": "frontend",
-                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs; implement assigned UI/CLI interaction, visual output, screenshots, preview assets, or static assets, and write HANDOFF_FRONTEND.md",
-                "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {
                 "id": "qa",
                 "type": "agent_turn",
+                "stage": "test",
                 "role": "qa",
-                "goal": "read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and handoffs; run appropriate checks, inspect generated output, repair assigned failures when possible, and write TEST_REPORT.md with evidence, gaps, and commands run",
+                "goal": "must write TEST_REPORT.md; must attempt at least one feasible check command; if no test can run, TEST_REPORT.md must include NO TEST EXECUTED, the reason, manually inspected files, and missing evidence; TEST_REPORT.md must include commands_run, results, failures, repairs, and remaining_warnings",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {
                 "id": "cfo_review",
                 "type": "agent_turn",
+                "stage": "review",
                 "role": "cfo",
-                "goal": "review MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, worker handoffs, TEST_REPORT.md, project files, and preview evidence against the whiteboard; patch small gaps when possible and write DELIVERY_NOTES.md with pass/warning status and delivery readiness",
+                "goal": "must read TEST_REPORT.md; must write DELIVERY_NOTES.md containing delivery_status: PASS / WARNING / PARTIAL, tests_executed, evidence_found, evidence_missing, known_limits, and revision_entry; if TEST_REPORT.md is missing, do not write PASS",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
-            {"id": "package", "type": "package_project", "goal": "create final_project_bundle.zip and delivery_manifest.json"},
+            {
+                "id": "package",
+                "type": "package_project",
+                "stage": "package",
+                "goal": "call package_project to create final_project_bundle.zip and delivery_manifest.json",
+            },
         ],
         "limits": {"max_agent_turns_per_step": 4, "max_total_steps": 10, "allow_dynamic_new_steps": False},
     }
@@ -231,6 +247,39 @@ def _step_calls_forbidden_legacy(step: dict[str, Any]) -> bool:
         "name": step.get("name"),
     }
     return _contains_forbidden_legacy(executable_fields)
+
+
+def validate_required_stages(manifest: Any) -> tuple[bool, list[str]]:
+    if not isinstance(manifest, dict):
+        return False, list(REQUIRED_STAGES)
+    steps = manifest.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return False, list(REQUIRED_STAGES)
+
+    covered: set[str] = set()
+    first_index: dict[str, int] = {}
+    invalid: list[str] = []
+    for index, step in enumerate(steps):
+        if not isinstance(step, dict):
+            continue
+        stages = _stage_values(step.get("stage"))
+        for stage in stages:
+            if stage not in ALLOWED_STAGES:
+                invalid.append(stage)
+                continue
+            covered.add(stage)
+            first_index.setdefault(stage, index)
+
+    missing = [stage for stage in REQUIRED_STAGES if stage not in covered]
+    issues = list(missing)
+    if "package" in first_index:
+        package_index = first_index["package"]
+        for stage in ("test", "review"):
+            if stage in first_index and package_index < first_index[stage]:
+                issues.append(f"package_before_{stage}")
+    if invalid:
+        issues.extend(f"invalid_stage:{stage}" for stage in invalid)
+    return not issues, issues
 
 
 def validate_pipeline_manifest(manifest: Any) -> tuple[bool, list[str]]:
@@ -283,6 +332,12 @@ def validate_pipeline_manifest(manifest: Any) -> tuple[bool, list[str]]:
         step_ids.add(step_id)
         if step_type not in ALLOWED_STEP_TYPES:
             errors.append(f"steps[{index}].type is not allowed: {step_type}")
+        stages = _stage_values(step.get("stage"))
+        if not stages:
+            errors.append(f"steps[{index}].stage is required")
+        for stage in stages:
+            if stage not in ALLOWED_STAGES:
+                errors.append(f"steps[{index}].stage is not allowed: {stage}")
         if _step_calls_forbidden_legacy(step):
             errors.append(f"steps[{index}] must not call legacy generation paths")
         if step_type == "agent_turn":
@@ -301,6 +356,9 @@ def validate_pipeline_manifest(manifest: Any) -> tuple[bool, list[str]]:
     limits = manifest.get("limits", {})
     if limits is not None and not isinstance(limits, dict):
         errors.append("limits must be an object")
+    stage_ok, stage_errors = validate_required_stages(manifest)
+    if not stage_ok:
+        errors.extend(f"required stage missing or invalid: {item}" for item in stage_errors)
     return not errors, errors
 
 
@@ -341,6 +399,9 @@ def normalize_pipeline_manifest(manifest: Any, whiteboard: dict[str, Any] | None
             "type": step_type,
             "goal": str(step.get("goal", "")).strip()[:1000],
         }
+        stages = [stage for stage in _stage_values(step.get("stage")) if stage in ALLOWED_STAGES]
+        if stages:
+            clean_step["stage"] = stages[0] if len(stages) == 1 else stages
         if step_type == "agent_turn":
             role = _slug(step.get("role"), "")
             clean_step["role"] = role if role in role_ids else (next(iter(role_ids), "builder"))
@@ -349,7 +410,7 @@ def normalize_pipeline_manifest(manifest: Any, whiteboard: dict[str, Any] | None
                 for action in step.get("allowed_actions", [])
                 if str(action) in ALLOWED_ACTION_TYPES
             ][:12]
-        for key in ("action", "command", "skill", "name", "args", "patch"):
+        for key in ("action", "command", "skill", "name", "args", "patch", "startup_command", "known_limits"):
             if key in step:
                 clean_step[key] = step[key]
         normalized["steps"].append(clean_step)
@@ -359,10 +420,15 @@ def normalize_pipeline_manifest(manifest: Any, whiteboard: dict[str, Any] | None
     limits["max_total_steps"] = max(1, min(MAX_STEPS, int(limits.get("max_total_steps", MAX_STEPS) or MAX_STEPS)))
     limits["allow_dynamic_new_steps"] = False
 
-    ok, _ = validate_pipeline_manifest(normalized)
+    ok, errors = validate_pipeline_manifest(normalized)
     if ok:
         return normalized
-    return default_minimal_pipeline_manifest(board)
+    fallback = default_minimal_pipeline_manifest(board)
+    fallback["normalization_fallback_reason"] = "; ".join(errors)[:1000]
+    _, missing = validate_required_stages(normalized)
+    if missing:
+        fallback["missing_required_stages"] = missing
+    return fallback
 
 
 def write_pipeline_manifest(run_dir: str | pathlib.Path, manifest: dict[str, Any]) -> pathlib.Path:

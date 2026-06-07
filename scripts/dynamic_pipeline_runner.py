@@ -31,12 +31,53 @@ def _role_by_id(manifest: dict[str, Any], role_id: str) -> dict[str, Any]:
 
 def _role_operating_rules(role: dict[str, Any], step: dict[str, Any], manifest: dict[str, Any]) -> str:
     role_id = str(role.get("id", "")).strip()
+    stages = pipeline_manifest._stage_values(step.get("stage"))
     cfo_contract = manifest.get("cfo_contract", {}) if isinstance(manifest.get("cfo_contract"), dict) else {}
     support_artifacts = cfo_contract.get("support_artifacts", {}) if isinstance(cfo_contract.get("support_artifacts"), dict) else {}
     context_db = support_artifacts.get("context_db", "CFO_CONTEXT_DB.json")
     risk_register = support_artifacts.get("risk_register", "CFO_RISK_REGISTER.md")
+    global_rules = """Product Studio operating rules:
+- Do not rush to package.
+- Follow the Product Studio discipline: plan, technical plan, build, test, review, package.
+- Do not claim final delivery readiness unless you are in review stage.
+- Missing evidence must be written as a warning, not hidden."""
+    stage_rules: list[str] = []
+    if "product_plan" in stages or role_id in {"product", "cfo"}:
+        stage_rules.append("""Product plan rules:
+- You must write PRODUCT_PLAN.md and OUTPUT_CONTRACT.md during product_plan work.
+- Preserve unanswered questions as assumptions.
+- Define first version scope and acceptance criteria.
+- Do not implement before plan artifacts exist.""")
+    if "technical_plan" in stages or role_id in {"architect"}:
+        stage_rules.append("""Technical plan rules:
+- You must write TECHNICAL_PLAN.md and BUILD_PLAN.md during technical_plan work.
+- Include file structure, runtime plan, test plan, risks, and dependencies.""")
+    if "build" in stages or role_id in {"builder", "backend", "frontend"}:
+        stage_rules.append("""Build rules:
+- You must read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, and BUILD_PLAN.md when they exist.
+- You must write README.md.
+- You must create a runnable project entrypoint.
+- You must not package.""")
+    if "test" in stages or role_id == "qa":
+        stage_rules.append("""QA rules:
+- You must create TEST_REPORT.md.
+- You must run at least one relevant command when possible.
+- If no test command can run, write NO TEST EXECUTED and explain why.
+- TEST_REPORT.md must include: commands_run, results, failures, repairs, remaining_warnings.
+- Do not claim PASS without evidence.""")
+    if "review" in stages or role_id in {"delivery_reviewer"}:
+        stage_rules.append("""Review rules:
+- You must read TEST_REPORT.md.
+- You must write DELIVERY_NOTES.md.
+- DELIVERY_NOTES.md must include: delivery_status, tests_executed, evidence_found, evidence_missing, known_limits, revision_entry.
+- If TEST_REPORT.md is missing, delivery_status cannot be PASS.
+- If visual evidence is missing for GUI/visual projects, mention it as a limitation.""")
+
+    prefix = "\n".join([global_rules] + stage_rules)
     if role_id == "cfo":
-        return f"""CFO operating rules:
+        return f"""{prefix}
+
+CFO operating rules:
 - You are the main coordinating agent, not a worker pretending to finish everything alone.
 - Your first responsibility is to convert the whiteboard into a concrete module pipeline with owners, handoffs, acceptance criteria, evidence targets, risks, and fallback boundaries.
 - Identify critical capabilities before assigning workers. Use capability_strategy, capability_research_targets, critical_questions, and acceptance criteria when present.
@@ -48,20 +89,26 @@ def _role_operating_rules(role: dict[str, Any], step: dict[str, Any], manifest: 
 - Write or update {cfo_contract.get('review_artifact', 'DELIVERY_NOTES.md')} with pass/warning status, missing evidence, and any patched gaps.
 - Do not invent a new formal generation path; coordinate only through the manifest, project files, allowed actions, and handoff artifacts."""
     if role_id == "context_librarian":
-        return f"""CFO support operating rules:
+        return f"""{prefix}
+
+CFO support operating rules:
 - You are a support agent for the cfo, not a route owner.
 - Maintain {context_db} as a compact factual database of user intent, rules, constraints, acceptance criteria, delivery requirements, attachments, assumptions, module dependencies, and handoff references.
 - Include capability_strategy, capability_research_targets, critical_questions, and local capability discovery results as first-class facts when present.
 - Prefer structured JSON with source/evidence references where available.
 - Do not implement product features, do not decide delivery readiness, and do not create a new formal generation path."""
     if role_id == "risk_reviewer":
-        return f"""CFO support operating rules:
+        return f"""{prefix}
+
+CFO support operating rules:
 - You are a support agent for the cfo, not a route owner.
 - Maintain {risk_register} with risks, missing evidence, likely failure modes, user-visible quality concerns, checks to run, and repair priorities.
 - Treat a missing core capability, ignored advanced-method candidate, or fallback presented as success as a user-visible quality risk.
 - Ground every risk in the whiteboard, module plan, context database, handoffs, or project files.
 - Do not implement product features unless the current step explicitly allows a small artifact update, do not decide delivery readiness, and do not create a new formal generation path."""
-    return """Worker operating rules:
+    return f"""{prefix}
+
+Worker operating rules:
 - Treat the cfo as the owner of scope, module boundaries, handoff order, acceptance interpretation, and delivery readiness.
 - Read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoff files before changing project files when those artifacts exist.
 - Work only on the area assigned by the current step goal unless a small supporting file is required.
@@ -191,6 +238,167 @@ def _execute_manifest_action(
     return executor.execute(action)
 
 
+def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    checks = {
+        "readme": project / "README.md",
+        "test_report": project / "TEST_REPORT.md",
+        "delivery_notes": project / "DELIVERY_NOTES.md",
+        "product_plan": project / "PRODUCT_PLAN.md",
+        "output_contract": project / "OUTPUT_CONTRACT.md",
+        "technical_plan": project / "TECHNICAL_PLAN.md",
+        "build_plan": project / "BUILD_PLAN.md",
+    }
+    evidence = {
+        "readme_found": checks["readme"].exists(),
+        "test_report_found": checks["test_report"].exists(),
+        "delivery_notes_found": checks["delivery_notes"].exists(),
+        "product_plan_found": checks["product_plan"].exists(),
+        "output_contract_found": checks["output_contract"].exists(),
+        "technical_plan_found": checks["technical_plan"].exists(),
+        "build_plan_found": checks["build_plan"].exists(),
+        "preview_evidence_found": False,
+        "missing": [],
+    }
+    preview_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".html"}
+    if project.exists():
+        evidence["preview_evidence_found"] = any(path.is_file() and path.suffix.lower() in preview_suffixes for path in project.rglob("*"))
+    missing_keys = {
+        "readme_found": "readme",
+        "test_report_found": "test_report",
+        "delivery_notes_found": "delivery_notes",
+        "product_plan_found": "product_plan",
+        "output_contract_found": "output_contract",
+        "technical_plan_found": "technical_plan",
+        "build_plan_found": "build_plan",
+        "preview_evidence_found": "preview_evidence",
+    }
+    evidence["missing"] = [label for key, label in missing_keys.items() if not evidence.get(key)]
+    return evidence
+
+
+def _write_repair_test_report(project: pathlib.Path, missing: list[str]) -> None:
+    report = project / "TEST_REPORT.md"
+    if report.exists():
+        return
+    inspected = ["README.md", "PRODUCT_PLAN.md", "OUTPUT_CONTRACT.md", "TECHNICAL_PLAN.md", "BUILD_PLAN.md"]
+    existing = [item for item in inspected if (project / item).exists()]
+    report.write_text(
+        "\n".join(
+            [
+                "# Test Report",
+                "",
+                "NO TEST EXECUTED",
+                "",
+                "reason: TEST_REPORT.md was missing during pre-package audit, so the runner recorded an honest repair report before packaging.",
+                f"manual_files_checked: {', '.join(existing) if existing else 'none'}",
+                f"missing_evidence_before_repair: {', '.join(missing) if missing else 'none'}",
+                "",
+                "commands_run:",
+                "- none",
+                "",
+                "results:",
+                "- No automated test evidence was available before packaging.",
+                "",
+                "failures:",
+                "- Missing test evidence before pre-package audit repair.",
+                "",
+                "repairs:",
+                "- Wrote this TEST_REPORT.md during pre-package audit.",
+                "",
+                "remaining_warnings:",
+                "- Automated tests were not executed.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_repair_delivery_notes(project: pathlib.Path, evidence: dict[str, Any]) -> None:
+    notes = project / "DELIVERY_NOTES.md"
+    if notes.exists():
+        return
+    test_status = "found" if evidence.get("test_report_found") or (project / "TEST_REPORT.md").exists() else "missing"
+    delivery_status = "WARNING" if test_status == "found" else "PARTIAL"
+    notes.write_text(
+        "\n".join(
+            [
+                "# Delivery Notes",
+                "",
+                f"delivery_status: {delivery_status}",
+                f"tests_executed: {test_status}",
+                f"evidence_found: {json.dumps({k: v for k, v in evidence.items() if k.endswith('_found')}, ensure_ascii=False)}",
+                f"evidence_missing: {', '.join(evidence.get('missing', [])) or 'none'}",
+                "known_limits:",
+                "- DELIVERY_NOTES.md was missing during pre-package audit and was repaired by the runner.",
+                "revision_entry:",
+                "- Pre-package audit created this review note so packaging can proceed with warnings instead of hidden gaps.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def pre_package_audit(session_file: str | pathlib.Path, project_dir: str | pathlib.Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    del manifest
+    session = pathlib.Path(session_file).resolve()
+    project = pathlib.Path(project_dir).resolve()
+    project.mkdir(parents=True, exist_ok=True)
+    before = collect_quality_evidence(project)
+    original_missing = list(before.get("missing", []))
+    agent_conversation_loop.append_event(
+        session,
+        {
+            "kind": "pre_package_audit",
+            "role": "system",
+            "quality_evidence": before,
+            "missing": original_missing,
+        },
+    )
+
+    repairs: list[str] = []
+    known_limits: list[str] = []
+    if not before.get("test_report_found"):
+        agent_conversation_loop.append_event(
+            session,
+            {
+                "kind": "pre_package_repair_turn",
+                "role": "qa",
+                "goal": "Write TEST_REPORT.md. If tests cannot run, include NO TEST EXECUTED and the reason.",
+            },
+        )
+        _write_repair_test_report(project, original_missing)
+        repairs.append("test_report")
+        known_limits.append("打包前未找到 TEST_REPORT.md，已自动补齐 NO TEST EXECUTED 测试报告")
+    middle = collect_quality_evidence(project)
+    if not middle.get("delivery_notes_found"):
+        agent_conversation_loop.append_event(
+            session,
+            {
+                "kind": "pre_package_repair_turn",
+                "role": "delivery_reviewer",
+                "goal": "Write DELIVERY_NOTES.md with test status, evidence, limits, and delivery status.",
+            },
+        )
+        _write_repair_delivery_notes(project, middle)
+        repairs.append("delivery_notes")
+        known_limits.append("打包前未找到 DELIVERY_NOTES.md，已自动补齐 warning 交付复核说明")
+    after = collect_quality_evidence(project)
+    for item in after.get("missing", []):
+        if item in {"test_report", "delivery_notes"}:
+            known_limits.append(f"pre-package audit still missing {item}")
+    return {
+        "quality_evidence": after,
+        "initial_quality_evidence": before,
+        "missing": original_missing,
+        "remaining_missing": after.get("missing", []),
+        "repairs": repairs,
+        "known_limits": known_limits,
+    }
+
+
 def _nested_action(step: dict[str, Any]) -> dict[str, Any]:
     return step.get("action", {}) if isinstance(step.get("action"), dict) else {}
 
@@ -286,6 +494,12 @@ def _run_agent_turn(
             )
         package_result: dict[str, Any] | None = None
         for action in actions:
+            if str(action.get("type") or action.get("action") or "") == "package_project":
+                audit = pre_package_audit(session_file, executor.project_dir, manifest)
+                merged_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
+                merged_limits.extend(audit.get("known_limits", []))
+                action = dict(action)
+                action["known_limits"] = merged_limits
             agent_conversation_loop.append_event(session_file, {"kind": "action", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action})
             result = _execute_manifest_action(executor, action, allowed_actions)
             agent_conversation_loop.append_event(
@@ -386,6 +600,11 @@ def run_dynamic_pipeline(
                     raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('summary', '')}")
             elif step_type in {"use_skill", "run_command", "package_project"}:
                 action = _step_action(step)
+                if step_type == "package_project":
+                    audit = pre_package_audit(session_file, project, pipeline_manifest)
+                    known_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
+                    known_limits.extend(audit.get("known_limits", []))
+                    action["known_limits"] = known_limits
                 allowed = {action["type"]} if action.get("type") else set()
                 if action.get("type") == "run_command" and _forbidden_command(str(action.get("command", ""))):
                     result = {"ok": False, "type": "run_command", "error": "legacy generation command rejected"}

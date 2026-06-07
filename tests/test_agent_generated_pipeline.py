@@ -178,11 +178,12 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file", "read_file", "list_files"],
                 },
-                {"id": "package", "type": "package_project", "goal": "package"},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
 
             def fake_agent(events, model, timeout):
@@ -210,7 +211,10 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             session_path = root / "agent_session.jsonl"
             project_dir = root / "project"
             manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
-            manifest["steps"] = [manifest["steps"][0], {"id": "package", "type": "package_project", "goal": "package"}]
+            manifest["steps"] = [
+                {**manifest["steps"][0], "stage": ["product_plan", "technical_plan", "build", "test", "review"]},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
+            ]
             original_local_call = dynamic_runner.local_model_router.call_text_task
             original_provider = dynamic_runner._call_step_provider
             try:
@@ -247,11 +251,12 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file"],
                 },
-                {"id": "package", "type": "package_project", "goal": "package"},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
             calls = {"count": 0}
 
@@ -288,11 +293,12 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "backend",
                     "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
                     "role": "backend",
                     "goal": "write backend",
                     "allowed_actions": ["write_file"],
                 },
-                {"id": "package", "type": "package_project", "goal": "package"},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
             calls = {"count": 0}
 
@@ -335,11 +341,12 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "context_support",
                     "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
                     "role": "context_librarian",
                     "goal": "write context db",
                     "allowed_actions": ["write_file"],
                 },
-                {"id": "package", "type": "package_project", "goal": "package"},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
             calls = {"count": 0}
 
@@ -479,11 +486,12 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 {
                     "id": "build",
                     "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "review"],
                     "role": "foundation",
                     "goal": "write README",
                     "allowed_actions": ["write_file"],
                 },
-                {"id": "package", "type": "package_project", "goal": "package"},
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
             ]
 
             def fake_agent(events, model, timeout):

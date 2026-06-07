@@ -28,14 +28,36 @@ The pipeline must be customized around the current project.
 Always include a role with id "cfo". The cfo must have an early step that writes or updates the module pipeline/assignments, and a later review step before package_project.
 Use specialist roles for the actual work, such as foundation, backend, frontend, asset_pipeline, data, integration, qa, docs, or export, depending on the project.
 Do not let specialist agents invent a separate formal generation route; they execute the cfo module pipeline through allowed actions.
+You may freely design the roles and steps for this project, but the pipeline_manifest must cover these Product Studio stages:
+- product_plan
+- technical_plan
+- build
+- test
+- review
+- package
+Stage rules:
+- Do not skip product_plan.
+- Do not skip technical_plan.
+- Do not skip test.
+- Do not skip review.
+- Do not put package before test or review.
+- Simple projects may merge stages, but TEST_REPORT.md and DELIVERY_NOTES.md still must be generated.
+- Every step must declare stage. Use either a string stage or a list of stages for merged steps.
+- Every step must explain goal.
+- Every agent_turn step must use allowed_actions.
+- You only generate pipeline_manifest. You do not write project files and you do not announce final delivery completion.
 CFO design requirements:
 - The cfo owns module planning, handoff order, acceptance interpretation, evidence review, and delivery readiness.
 - The first cfo step should write or update MODULE_PIPELINE.md with module map, worker assignments, evidence targets, risk/default assumptions, and handoff order.
+- The product_plan stage must write PRODUCT_PLAN.md and OUTPUT_CONTRACT.md.
+- The technical_plan stage must write TECHNICAL_PLAN.md and BUILD_PLAN.md.
 - The cfo may use support agents before worker implementation. Prefer context_librarian for a factual CFO_CONTEXT_DB.json and risk_reviewer for CFO_RISK_REGISTER.md on non-trivial projects.
 - Support agents are advisory only: they maintain context/risk artifacts for cfo and workers, but they do not own scope, final routing, file generation strategy, or delivery readiness.
 - Worker steps should be scoped to assigned modules and should leave handoff artifacts.
 - Worker steps should read MODULE_PIPELINE.md plus any CFO support artifacts such as CFO_CONTEXT_DB.json and CFO_RISK_REGISTER.md.
+- QA/test steps must write TEST_REPORT.md, attempt at least one feasible check command when possible, and record NO TEST EXECUTED with reason when no check can run.
 - A later cfo review step must inspect support artifacts, worker handoffs, test evidence, preview evidence, and whiteboard acceptance criteria before package_project.
+- Review steps must read TEST_REPORT.md and write DELIVERY_NOTES.md. If TEST_REPORT.md is missing, review cannot mark PASS.
 - The manifest may include a cfo_contract object describing authority, planning artifact, review artifact, support artifacts, support agent rule, worker handoff rule, and evidence rule.
 Do not over-split normal projects, but preserve the cfo -> module agents -> cfo review -> package shape.
 Every step must operate through allowed_actions.
@@ -145,9 +167,12 @@ def plan_pipeline(
         doc = _extract_json_object(raw)
         manifest = pipeline_manifest.normalize_pipeline_manifest(doc or {}, whiteboard)
         ok, errors = pipeline_manifest.validate_pipeline_manifest(manifest)
-        if not ok:
+        stage_ok, missing_required_stages = pipeline_manifest.validate_required_stages(manifest)
+        if not ok or not stage_ok:
             fallback = pipeline_manifest.default_minimal_pipeline_manifest(whiteboard)
+            fallback["planner_fallback_reason"] = "planner manifest failed validation"
             fallback["planner_errors"] = errors
+            fallback["missing_required_stages"] = missing_required_stages
             return fallback
         return manifest
     except Exception as exc:

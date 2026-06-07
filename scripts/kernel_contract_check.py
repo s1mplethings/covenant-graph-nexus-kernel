@@ -156,6 +156,10 @@ def check_manifest(results: list[CheckResult]) -> None:
             "validate_pipeline_manifest",
             "normalize_pipeline_manifest",
             "default_minimal_pipeline_manifest",
+            "REQUIRED_STAGES",
+            "validate_required_stages",
+            "product_plan",
+            "technical_plan",
             "ALLOWED_STEP_TYPES",
             "MAX_ROLES",
             "MAX_STEPS",
@@ -195,7 +199,7 @@ def check_local_actions(results: list[CheckResult]) -> None:
 
 def check_packager(results: list[CheckResult]) -> None:
     text = read_rel("scripts/local_packager.py")
-    ok, missing = contains_all(text, ["package_project", "final_project_bundle.zip", "delivery_manifest.json"])
+    ok, missing = contains_all(text, ["package_project", "final_project_bundle.zip", "delivery_manifest.json", "quality_evidence", "TEST_REPORT.md", "DELIVERY_NOTES.md"])
     add(results, "local packager remains delivery exit", ok, ", ".join(missing))
 
 

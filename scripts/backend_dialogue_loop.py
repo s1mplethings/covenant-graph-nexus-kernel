@@ -140,10 +140,20 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         assumptions = ["先按本地可运行、可测试、可扩展的默认方案推进"]
 
     compact = re.sub(r"[\s，。,.!?！？]+", "", text)
-    if len(compact) <= 8:
-        questions = ["这个项目第一版最核心的使用场景是什么？", "需要偏向桌面工具、网页应用，还是 Telegram 内交互？"]
+    short_request = len(compact) <= 8
+    run_shape_unclear = not contains_any(text, ("本地", "网页", "app", "gui", "telegram", "桌面", "命令行", "cli", "小程序"))
+    output_shape_unclear = not contains_any(text, ("界面", "文件", "导出", "自动化", "流程", "api", "报表", "网页", "工具"))
+    needs_direction_confirmation = bool(short_request or run_shape_unclear or output_shape_unclear)
+    if short_request:
+        questions = ["这个项目第一版最核心的使用场景是什么？"]
+        if run_shape_unclear:
+            questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
+        if output_shape_unclear:
+            questions.append("交付重点是界面、文件导出、还是自动化流程？")
     elif not contains_any(text, ("本地", "网页", "app", "gui", "telegram", "桌面")):
-        questions.append("第一版运行形态我先按本地网页处理，可以吗？")
+        questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
+    if not short_request and output_shape_unclear:
+        questions.append("交付重点是界面、文件导出、还是自动化流程？")
     if contains_any(text, ("图片", "生成图片", "背景", "立绘")) and not contains_any(text, ("正经", "真实", "直接生成", "provider", "api")):
         questions.append("图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？")
 
@@ -154,7 +164,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         confidence = 0.72
 
     critical_questions = unique_strings(critical_questions, limit=3)
-    soft_questions = unique_strings(questions, limit=2)
+    soft_questions = unique_strings(questions, limit=3)
     frontend_plan = unique_strings(frontend_plan, limit=8)
     backend_plan = unique_strings(backend_plan, limit=8)
     data_model = unique_strings(data_model, limit=8)
@@ -167,13 +177,25 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     if soft_questions:
         question_text += "\n我先带着默认假设继续，不会卡住生成；需要你补的话只问这一点：" + "；".join(soft_questions)
 
-    user_visible_reply = (
-        f"我按项目需求开始拆：{summary}。\n"
-        f"第一版先做：{'；'.join(scope[:3])}。\n"
-        f"前端重点：{'；'.join(frontend_plan[:4])}。\n"
-        f"后端重点：{'；'.join(backend_plan[:4])}。"
-        f"{question_text}"
-    )
+    if needs_direction_confirmation:
+        suggested_confirmation_reply = "你可以补充，也可以说开始生成，我会按这些假设推进"
+        user_visible_reply = (
+            f"我现在的理解：{summary}。\n"
+            f"第一版默认假设：{'；'.join(assumptions[:3])}。\n"
+            f"第一版先做：{'；'.join(scope[:3])}。\n"
+            f"需要确认的问题：{'；'.join(soft_questions[:3]) if soft_questions else '暂无必须确认的问题'}。\n"
+            f"{suggested_confirmation_reply}。"
+            f"{question_text}"
+        )
+    else:
+        suggested_confirmation_reply = ""
+        user_visible_reply = (
+            f"我按项目需求开始拆：{summary}。\n"
+            f"第一版先做：{'；'.join(scope[:3])}。\n"
+            f"前端重点：{'；'.join(frontend_plan[:4])}。\n"
+            f"后端重点：{'；'.join(backend_plan[:4])}。"
+            f"{question_text}"
+        )
 
     return {
         "kind": "BackendDialogueAnalysis",
@@ -191,6 +213,8 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "capability_strategy": strategy,
         "local_image_model_discovery": local_image_discovery,
         "ready_to_generate": True,
+        "needs_direction_confirmation": needs_direction_confirmation,
+        "suggested_confirmation_reply": suggested_confirmation_reply,
         "confidence": confidence,
         "user_visible_reply": user_visible_reply[:1500],
         "source": "local_heuristic",
@@ -226,8 +250,8 @@ def backend_dialogue_prompt(latest_text: str, local: dict[str, Any]) -> str:
     return (
         "你是轻量后台需求分析器，不生成项目文件，不宣布完成。"
         "根据用户最新需求和本地初稿，输出 JSON，字段只能包括: "
-        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, user_visible_reply。"
-        "soft_questions 最多 2 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
+        "project_summary, frontend_plan, backend_plan, data_model, first_version_scope, assumptions, soft_questions, critical_questions, needs_direction_confirmation, suggested_confirmation_reply, user_visible_reply。"
+        "soft_questions 最多 3 个，必须是非阻塞问题。回复要自然，不能出现'我已记下'或'收到'。"
         "critical_questions 只用于本地模型、凭据、外部能力等关键配置缺口；不能作为生成硬门禁。"
         f"\n用户最新需求: {latest_text[:4000]}"
         f"\n本地初稿: {json.dumps(local, ensure_ascii=False)[:6000]}"
@@ -296,12 +320,16 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
             )
         if not merged.get("backend_memo"):
             merged["backend_memo"] = f"后台拆解: {merged.get('project_summary', '')}"
+        if "needs_direction_confirmation" in provider:
+            merged["needs_direction_confirmation"] = bool(provider.get("needs_direction_confirmation"))
+        if str(provider.get("suggested_confirmation_reply", "")).strip():
+            merged["suggested_confirmation_reply"] = str(provider.get("suggested_confirmation_reply", "")).strip()[:500]
         merged["source"] = provider_source
         merged["confidence"] = max(float(local.get("confidence") or 0), 0.86)
         if provider_source == "local_model":
             merged["local_model_provider"] = str(provider.get("_local_model_provider", ""))
             merged["local_model_name"] = str(provider.get("_local_model_name", ""))
-    merged["soft_questions"] = unique_strings(merged.get("soft_questions", []), limit=2)
+    merged["soft_questions"] = unique_strings(merged.get("soft_questions", []), limit=3)
     merged["critical_questions"] = unique_strings(merged.get("critical_questions", []), limit=3)
     merged["ready_to_generate"] = True
     merged["updated_at"] = now()
@@ -325,9 +353,9 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
         limit=20,
     )
     critical_questions = unique_strings(analysis.get("critical_questions", []), limit=3)
-    soft_questions = unique_strings(analysis.get("soft_questions", []), limit=2)
+    soft_questions = unique_strings(analysis.get("soft_questions", []), limit=3)
     whiteboard["open_questions"] = unique_strings(critical_questions + soft_questions, limit=4)
-    whiteboard["soft_questions"] = unique_strings(analysis.get("soft_questions", []), limit=2)
+    whiteboard["soft_questions"] = unique_strings(analysis.get("soft_questions", []), limit=3)
     whiteboard["critical_questions"] = critical_questions
     if analysis.get("local_image_model_discovery"):
         whiteboard["local_image_model_discovery"] = analysis.get("local_image_model_discovery")

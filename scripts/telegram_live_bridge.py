@@ -1580,13 +1580,28 @@ def send_delivery_from_manifest(
     readme = _evidence_path(str(manifest.get("readme_path", "")))
     startup_command = str(manifest.get("startup_command", "")).strip()
     known_limits = manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else []
-    lines = ["项目包已经生成，可以直接下载。"]
+    quality_evidence = manifest.get("quality_evidence", {}) if isinstance(manifest.get("quality_evidence"), dict) else {}
+    test_report_found = bool(quality_evidence.get("test_report_found"))
+    delivery_notes_found = bool(quality_evidence.get("delivery_notes_found"))
+    preview_evidence_found = bool(quality_evidence.get("preview_evidence_found"))
+    lines = [
+        "项目包：已生成",
+        f"测试报告：{'有' if test_report_found else '没有'}",
+        f"交付复核：{'有' if delivery_notes_found else '没有'}",
+        f"预览证据：{'有' if preview_evidence_found else '没有'}",
+    ]
     if startup_command:
         lines.append(f"启动方式：{startup_command}")
     if known_limits:
         visible_limits = [item for item in (user_visible_known_limit(item) for item in known_limits[:4]) if item]
         if visible_limits:
             lines.append("已记录的限制：" + "；".join(visible_limits))
+    else:
+        lines.append("已知限制：暂无")
+    if not test_report_found:
+        lines.append("这次没有完整测试报告，所以我不会把它标成完整测试通过。")
+    if not delivery_notes_found:
+        lines.append("这次没有交付复核说明，交付状态按 warning 处理。")
     send_customer_reply(
         client,
         chat_id,

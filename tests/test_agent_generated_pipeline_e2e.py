@@ -53,28 +53,47 @@ def simple_manifest() -> dict:
         "project_goal": "做一个本地 hello 工具",
         "source": "planner_agent",
         "roles": [
-            {"id": "planner", "name": "Planner", "purpose": "write the project plan"},
+            {"id": "cfo", "name": "CFO", "purpose": "write plans and review delivery evidence"},
             {"id": "builder", "name": "Builder", "purpose": "create the local hello tool"},
+            {"id": "qa", "name": "QA", "purpose": "record test evidence"},
         ],
         "shared_whiteboard_keys": ["project_summary", "acceptance_criteria", "default_assumptions"],
         "steps": [
             {
                 "id": "plan",
                 "type": "agent_turn",
-                "role": "planner",
-                "goal": "write PROJECT_PLAN.md",
+                "stage": ["product_plan", "technical_plan"],
+                "role": "cfo",
+                "goal": "write PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, and BUILD_PLAN.md",
                 "allowed_actions": ["write_file"],
             },
             {
                 "id": "build",
                 "type": "agent_turn",
+                "stage": "build",
                 "role": "builder",
                 "goal": "write README.md and app.py",
                 "allowed_actions": ["write_file"],
             },
-            {"id": "package", "type": "package_project", "goal": "package delivery"},
+            {
+                "id": "test",
+                "type": "agent_turn",
+                "stage": "test",
+                "role": "qa",
+                "goal": "write TEST_REPORT.md",
+                "allowed_actions": ["write_file"],
+            },
+            {
+                "id": "review",
+                "type": "agent_turn",
+                "stage": "review",
+                "role": "cfo",
+                "goal": "write DELIVERY_NOTES.md",
+                "allowed_actions": ["write_file"],
+            },
+            {"id": "package", "type": "package_project", "stage": "package", "goal": "package delivery"},
         ],
-        "limits": {"max_agent_turns_per_step": 2, "max_total_steps": 3, "allow_dynamic_new_steps": False},
+        "limits": {"max_agent_turns_per_step": 2, "max_total_steps": 5, "allow_dynamic_new_steps": False},
     }
 
 
@@ -92,8 +111,19 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             def fake_step_agent(events, model, timeout):
                 prompt = str(events[0].get("content", ""))
-                if "Current step goal: write PROJECT_PLAN.md" in prompt:
-                    return {"actions": [{"type": "write_file", "path": "PROJECT_PLAN.md", "content": "# Plan\n\nBuild a hello CLI.\n"}]}
+                if "Current step goal: write PRODUCT_PLAN.md" in prompt:
+                    return {
+                        "actions": [
+                            {"type": "write_file", "path": "PRODUCT_PLAN.md", "content": "# Product Plan\n\nBuild a hello CLI.\n"},
+                            {"type": "write_file", "path": "OUTPUT_CONTRACT.md", "content": "# Output Contract\n\nZip with runnable CLI.\n"},
+                            {"type": "write_file", "path": "TECHNICAL_PLAN.md", "content": "# Technical Plan\n\nUse Python.\n"},
+                            {"type": "write_file", "path": "BUILD_PLAN.md", "content": "# Build Plan\n\nCreate README and app.py.\n"},
+                        ]
+                    }
+                if "Current step goal: write TEST_REPORT.md" in prompt:
+                    return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Test Report\n\ncommands_run:\n- python app.py\n\nresults:\n- planned fixture\n\nfailures:\n- none\n\nrepairs:\n- none\n\nremaining_warnings:\n- not executed in fixture\n"}]}
+                if "Current step goal: write DELIVERY_NOTES.md" in prompt:
+                    return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Delivery Notes\n\ndelivery_status: WARNING\ntests_executed: fixture evidence\nevidence_found: README, app.py, TEST_REPORT.md\nevidence_missing: none\nknown_limits: fixture did not execute command\nrevision_entry: initial\n"}]}
                 return {
                     "actions": [
                         {"type": "write_file", "path": "README.md", "content": "# Hello Tool\n\nRun `python app.py`.\n"},
@@ -123,7 +153,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
             self.assertEqual("agent_generated_pipeline", session["generation"]["driver"])
-            self.assertTrue((project_dir / "PROJECT_PLAN.md").exists())
+            self.assertTrue((project_dir / "PRODUCT_PLAN.md").exists())
             self.assertTrue((project_dir / "README.md").exists())
             self.assertTrue((project_dir / "app.py").exists())
             self.assertTrue((project_dir / "generation_context_snapshot.json").exists())
