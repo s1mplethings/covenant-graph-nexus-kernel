@@ -15,6 +15,34 @@ import scripts.local_packager as local_packager
 import scripts.pipeline_manifest as pipeline_manifest
 
 
+def resume_test_manifest() -> dict:
+    return {
+        "kind": "AgentGeneratedPipelineManifest",
+        "version": 1,
+        "project_goal": "plain cli",
+        "roles": [
+            {"id": "cfo", "name": "CFO", "purpose": "plan and review"},
+            {"id": "builder", "name": "Builder", "purpose": "build"},
+            {"id": "qa", "name": "QA", "purpose": "test"},
+        ],
+        "steps": [
+            {"id": "product_plan", "type": "agent_turn", "stage": "product_plan", "role": "cfo", "goal": "run product_plan", "allowed_actions": ["write_file"]},
+            {"id": "technical_plan", "type": "agent_turn", "stage": "technical_plan", "role": "cfo", "goal": "run technical_plan", "allowed_actions": ["write_file"]},
+            {"id": "build", "type": "agent_turn", "stage": "build", "role": "builder", "goal": "run build", "allowed_actions": ["write_file"]},
+            {"id": "test", "type": "agent_turn", "stage": "test", "role": "qa", "goal": "run test", "allowed_actions": ["write_file"]},
+            {"id": "evidence_review", "type": "agent_turn", "stage": "evidence_review", "role": "qa", "goal": "run evidence_review", "allowed_actions": ["write_file"]},
+            {"id": "review", "type": "agent_turn", "stage": "review", "role": "cfo", "goal": "run review", "allowed_actions": ["write_file"]},
+            {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
+        ],
+        "limits": {"max_agent_turns_per_step": 1, "max_total_steps": 7},
+    }
+
+
+def current_goal(events: list[dict]) -> str:
+    prompt = str(events[0].get("content", ""))
+    return prompt.split("Current step goal:", 1)[-1].split("\n", 1)[0].strip().rstrip(".")
+
+
 def stage_index(manifest: dict, stage: str) -> int:
     for index, step in enumerate(manifest.get("steps", [])):
         raw = step.get("stage", [])
@@ -142,6 +170,84 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
         self.assertEqual("TEST_REPORT.md", result["evidence"]["test_report_path"])
         self.assertTrue(any(event.get("kind") == "user_evidence_checkpoint" for event in events))
         self.assertFalse((project_dir / "final_project_bundle.zip").exists())
+
+    def test_resume_after_evidence_review_starts_at_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            project_dir.mkdir()
+            (project_dir / "README.md").write_text("# Built\n", encoding="utf-8")
+            (project_dir / "TEST_REPORT.md").write_text("# Tests\ncommands_run:\n- python app.py\n", encoding="utf-8")
+            (project_dir / "EVIDENCE_REVIEW.md").write_text("# Evidence\n", encoding="utf-8")
+            executed: list[str] = []
+
+            def fake_agent(events, model, timeout):
+                goal = current_goal(events)
+                executed.append(goal.removeprefix("run "))
+                return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Notes\n"}]}
+
+            result = dynamic_pipeline_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=resume_test_manifest(),
+                model="gpt-test",
+                timeout=5,
+                max_turns=7,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+                skip_user_evidence_checkpoint=True,
+                start_stage="review",
+            )
+            events = [json.loads(line) for line in session_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            package_exists = pathlib.Path(result["package_path"]).exists()
+
+        self.assertEqual(["review"], executed)
+        self.assertTrue(package_exists)
+        skipped = [event for event in events if event.get("kind") == "pipeline_step_skipped"]
+        self.assertEqual(["product_plan", "technical_plan", "build", "test", "evidence_review"], [event.get("step_id") for event in skipped])
+        self.assertTrue(all(event.get("reason") == "resume_start_stage" for event in skipped))
+        self.assertTrue(all(event.get("start_stage") == "review" for event in skipped))
+        self.assertTrue(any(event.get("kind") == "pipeline_step_result" and event.get("step_id") == "review" for event in events))
+        self.assertTrue(any(event.get("kind") == "pipeline_step_result" and event.get("step_id") == "package" for event in events))
+
+    def test_normal_pipeline_still_starts_from_product_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            executed: list[str] = []
+
+            def fake_agent(events, model, timeout):
+                step = current_goal(events).removeprefix("run ")
+                executed.append(step)
+                actions = {
+                    "product_plan": [{"type": "write_file", "path": "PRODUCT_PLAN.md", "content": "# Product\n"}],
+                    "technical_plan": [{"type": "write_file", "path": "TECHNICAL_PLAN.md", "content": "# Tech\n"}],
+                    "build": [{"type": "write_file", "path": "README.md", "content": "# Built\n"}],
+                    "test": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Tests\ncommands_run:\n- python app.py\n"}],
+                    "evidence_review": [{"type": "write_file", "path": "EVIDENCE_REVIEW.md", "content": "# Evidence\n"}],
+                    "review": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Notes\n"}],
+                }
+                return {"actions": actions[step]}
+
+            result = dynamic_pipeline_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=resume_test_manifest(),
+                model="gpt-test",
+                timeout=5,
+                max_turns=7,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+                start_stage="",
+            )
+            events = [json.loads(line) for line in session_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            package_exists = pathlib.Path(result["package_path"]).exists()
+
+        self.assertEqual(["product_plan", "technical_plan", "build", "test", "evidence_review", "review"], executed)
+        self.assertTrue(package_exists)
+        self.assertFalse(any(event.get("kind") == "pipeline_step_skipped" for event in events))
 
 
 if __name__ == "__main__":

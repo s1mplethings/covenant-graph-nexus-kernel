@@ -395,6 +395,29 @@ def requires_user_evidence_judgement(manifest: dict[str, Any], whiteboard: dict[
     return any(token in text for token in USER_REVIEW_KEYWORDS)
 
 
+def _stage_order_index(stage: str) -> int:
+    try:
+        return pipeline_manifest_module.REQUIRED_STAGES.index(stage)
+    except ValueError:
+        return -1
+
+
+def _step_earliest_stage_index(step: dict[str, Any]) -> int:
+    indexes = [_stage_order_index(stage) for stage in pipeline_manifest_module._stage_values(step.get("stage"))]
+    valid = [index for index in indexes if index >= 0]
+    return min(valid) if valid else -1
+
+
+def _should_skip_for_start_stage(step: dict[str, Any], start_stage: str) -> bool:
+    if not start_stage:
+        return False
+    start_index = _stage_order_index(start_stage)
+    if start_index < 0:
+        return False
+    step_index = _step_earliest_stage_index(step)
+    return step_index >= 0 and step_index < start_index
+
+
 def _write_repair_test_report(project: pathlib.Path, missing: list[str]) -> None:
     report = project / "TEST_REPORT.md"
     if report.exists():
@@ -669,6 +692,7 @@ def run_dynamic_pipeline(
     fallback_to_agent_loop: bool = True,
     whiteboard: dict[str, Any] | None = None,
     skip_user_evidence_checkpoint: bool = False,
+    start_stage: str = "",
 ) -> dict[str, Any]:
     session_file = pathlib.Path(session_path).resolve()
     project = pathlib.Path(project_dir).resolve()
@@ -692,6 +716,17 @@ def run_dynamic_pipeline(
                 continue
             step_id = str(step.get("id", ""))
             step_type = str(step.get("type", ""))
+            if _should_skip_for_start_stage(step, start_stage):
+                agent_conversation_loop.append_event(
+                    session_file,
+                    {
+                        "kind": "pipeline_step_skipped",
+                        "step_id": step_id,
+                        "reason": "resume_start_stage",
+                        "start_stage": start_stage,
+                    },
+                )
+                continue
             if step_type == "agent_turn":
                 result = _run_agent_turn(
                     session_file=session_file,

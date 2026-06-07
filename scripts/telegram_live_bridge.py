@@ -3571,6 +3571,16 @@ def resume_after_evidence_review_job(
         direct_text="收到，我继续进入最终复核和打包。",
     )
     session_file = agent_session_path(session_dir, chat_id)
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "resume_after_evidence_review",
+            "role": "system",
+            "start_stage": "review",
+            "reason": "user_approved_evidence_checkpoint",
+        },
+    )
     try:
         result = dynamic_pipeline_runner.run_dynamic_pipeline(
             session_path=session_file,
@@ -3581,6 +3591,7 @@ def resume_after_evidence_review_job(
             max_turns=max_turns,
             whiteboard=whiteboard,
             skip_user_evidence_checkpoint=True,
+            start_stage="review",
         )
     except Exception as exc:
         session = load_session(session_dir, chat_id)
