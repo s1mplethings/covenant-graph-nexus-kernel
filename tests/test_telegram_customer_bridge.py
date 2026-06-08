@@ -476,8 +476,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             memo = "\n".join(item["text"] for item in session["backend_memos"])
             self.assertIn("模型测试回复", memo)
             self.assertNotIn("{", memo)
-            self.assertIn("周衡", client.messages[-1][1])
-            self.assertIn("团队先不急着开工", client.messages[-1][1])
+            self.assertIn("有几个点会直接影响实现质量", client.messages[-1][1])
+            self.assertIn("不会马上开工", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
@@ -644,8 +644,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertNotEqual("running", session["generation"]["status"])
             self.assertEqual({}, called)
             self.assertTrue(session["generation_start_waiting"])
-            self.assertIn("周衡", client.messages[-1][1])
-            self.assertIn("团队先不急着开工", client.messages[-1][1])
+            self.assertIn("有几个点会直接影响实现质量", client.messages[-1][1])
+            self.assertIn("不会马上开工", client.messages[-1][1])
             self.assertNotIn("我已记下", client.messages[-1][1])
             self.assertNotIn("收到，方向", client.messages[-1][1])
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
@@ -708,9 +708,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(1, len(session["attachments"]))
             self.assertEqual({}, called)
             self.assertTrue(session["generation_start_waiting"])
-            self.assertIn("周衡", client.messages[-1][1])
-            self.assertIn("许楠", client.messages[-1][1])
-            self.assertIn("做成空壳", client.messages[-1][1])
+            self.assertIn("现在缺少几个会影响质量的点", client.messages[-1][1])
+            self.assertIn("按默认假设开始", client.messages[-1][1])
 
     def test_delivery_ready_depends_only_on_truth_ledger_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -742,7 +741,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertTrue(state["sent_record"])
             self.assertEqual(1, len(client.photos))
             self.assertEqual(1, len(client.documents))
-            self.assertIn("乔安完成了交付复核", client.messages[-1][1])
+            self.assertIn("最终交付已经整理好", client.messages[-1][1])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_pending_decision_asks_one_question_and_pauses(self) -> None:

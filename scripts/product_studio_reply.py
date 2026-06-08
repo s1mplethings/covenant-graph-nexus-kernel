@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    import team_narration
+    import public_narration
 except ModuleNotFoundError:  # pragma: no cover - direct package import fallback
-    from scripts import team_narration
+    from scripts import public_narration
 
 
 class ProductStudioReplyComposer:
@@ -16,14 +16,14 @@ class ProductStudioReplyComposer:
         if not isinstance(missing, list):
             missing = []
         missing_text = "、".join(str(item) for item in missing[:8]) or "未记录"
-        retry = "你可以继续补充要求，林然会复用已记录的项目方向，许楠和陈序从同一上下文继续修复。"
+        retry = "你可以继续补充要求，我会复用已记录的项目方向，从同一上下文继续修复。"
         if reason == "project_type_mismatch":
-            lead = "乔安暂时阻止交付：项目方向出现偏差，当前产物和林然整理的目标不一致。"
+            lead = "暂时不能交付：项目方向出现偏差，当前产物和已整理的目标不一致。"
         elif "timeout" in reason:
-            lead = "乔安暂时暂停交付：这一轮等待时间已到，陈序还不能把未验证产物标成完成。"
+            lead = "暂时不能交付：这一轮等待时间已到，未验证产物不能标成完成。"
         else:
-            lead = "乔安暂时暂停交付：许楠这轮实现被阻断，当前不能进入交付。"
-        return team_narration.redact_internal_terms(
+            lead = "暂时不能交付：这轮实现被阻断，当前不能进入交付。"
+        return public_narration.redact_internal_terms(
             f"{lead}\n"
             f"阻断原因: {reason}\n"
             f"最后进展: {last_phase}\n"

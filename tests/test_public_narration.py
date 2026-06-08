@@ -10,7 +10,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.backend_dialogue_loop as dialogue
-import scripts.team_narration as team_narration
+import scripts.public_narration as public_narration
 import scripts.telegram_live_bridge as bridge
 
 
@@ -29,29 +29,48 @@ INTERNAL_TERMS = [
     "runner",
 ]
 
+PERSONA_NAMES = ["林然", "周衡", "许楠", "沈镜", "陈序", "乔安"]
 
-class TeamNarrationPublicReplyTests(unittest.TestCase):
+
+class PublicNarrationTests(unittest.TestCase):
     def assert_no_internal_terms(self, text: str) -> None:
         lowered = text.lower()
         for term in INTERNAL_TERMS:
             self.assertNotIn(term.lower(), lowered)
 
+    def assert_no_persona_names(self, text: str) -> None:
+        for name in PERSONA_NAMES:
+            self.assertNotIn(name, text)
+
     def test_redact_internal_terms(self) -> None:
-        text = team_narration.redact_internal_terms(
+        text = public_narration.redact_internal_terms(
             "pipeline_manifest 已生成，dynamic_pipeline_runner waiting_user_review，delivery_manifest ready"
         )
 
-        self.assertNotIn("pipeline_manifest", text)
-        self.assertNotIn("dynamic_pipeline_runner", text)
-        self.assertNotIn("delivery_manifest", text)
-        self.assertNotIn("runner", text)
-        self.assertNotIn("manifest", text)
+        self.assert_no_internal_terms(text)
         self.assertIn("项目执行计划", text)
         self.assertIn("后台执行流程", text)
         self.assertIn("交付清单", text)
 
-    def test_intake_reply_uses_team_names(self) -> None:
-        session = bridge.default_session("team-intake")
+    def test_no_persona_names_in_public_reply(self) -> None:
+        events = [
+            "intake_waiting",
+            "generation_started",
+            "evidence_checkpoint",
+            "delivery_ready",
+            "generation_warning",
+            "review_continue",
+            "review_revision",
+        ]
+
+        for event in events:
+            with self.subTest(event=event):
+                text = public_narration.public_event_text(event, {"questions": ["输入格式是什么？"]})
+                self.assert_no_persona_names(text)
+                self.assert_no_internal_terms(text)
+
+    def test_intake_reply_describes_actions_not_people(self) -> None:
+        session = bridge.default_session("public-intake")
         session["messages"].append(
             {
                 "role": "user",
@@ -62,7 +81,7 @@ class TeamNarrationPublicReplyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             result = dialogue.run_backend_dialogue_tick(
                 pathlib.Path(temp_dir),
-                "team-intake",
+                "public-intake",
                 session=session,
                 model="gpt-test",
                 timeout=30,
@@ -71,30 +90,31 @@ class TeamNarrationPublicReplyTests(unittest.TestCase):
             )
 
         reply = result["user_visible_reply"]
-        self.assertTrue("林然" in reply or "周衡" in reply)
-        self.assertTrue("陈序" in reply or "沈镜" in reply)
+        for phrase in ("第一版", "测试代码", "测试命令", "预览证据", "判断", "按默认假设开始"):
+            self.assertIn(phrase, reply)
         self.assert_no_internal_terms(reply)
+        self.assert_no_persona_names(reply)
 
-    def test_evidence_checkpoint_reply_uses_team_names(self) -> None:
+    def test_evidence_checkpoint_reply_action_based(self) -> None:
         reply = bridge.evidence_checkpoint_summary(
             {
                 "test_report_path": "TEST_REPORT.md",
                 "test_code_files": ["tests/test_demo.py"],
                 "test_commands": ["pytest"],
                 "screenshots": ["preview.png"],
-                "preview_files": [],
+                "preview_files": ["data.json"],
                 "videos": [],
-                "sample_inputs": [],
-                "missing": ["preview_files"],
+                "sample_inputs": ["sample.dem"],
+                "missing": ["videos"],
             }
         )
 
-        self.assertIn("陈序", reply)
-        self.assertIn("沈镜", reply)
-        self.assertIn("乔安", reply)
+        for phrase in ("测试报告", "测试代码", "测试命令", "样例输入", "截图", "视频", "继续/打包", "改哪里"):
+            self.assertIn(phrase, reply)
         self.assert_no_internal_terms(reply)
+        self.assert_no_persona_names(reply)
 
-    def test_delivery_reply_uses_team_names(self) -> None:
+    def test_delivery_reply_action_based(self) -> None:
         reply = bridge.build_delivery_summary_text(
             {
                 "status": "ready_with_warnings",
@@ -111,10 +131,10 @@ class TeamNarrationPublicReplyTests(unittest.TestCase):
             }
         )
 
-        self.assertIn("乔安", reply)
-        self.assertIn("陈序", reply)
-        self.assertIn("沈镜", reply)
+        for phrase in ("最终交付", "项目包", "测试报告", "测试执行", "预览证据", "真实输入验证", "已知限制"):
+            self.assertIn(phrase, reply)
         self.assert_no_internal_terms(reply)
+        self.assert_no_persona_names(reply)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ CGNK Kernel is fixed responsible for:
 14. Allowing configured local models only as a model-source optimization. By default, local models may write public frontdesk/status replies only; generation-affecting local tasks such as backend dialogue, planner, CFO planning, context support, risk support, foundation, or QA must be explicitly enabled and must remain inside the same manifest/runner/evidence boundary.
 15. Recording critical setup questions for any explicitly required external, local, hosted, data, model, automation, security, storage, or runtime capability. These questions are shared context and acceptance constraints, not a new gate or generation route.
 16. Recording a project-level capability strategy for core capabilities, advanced-method candidates, obvious route differences, and acceptance limits. This is universal planning context for the same manifest/runner flow, not a project-type-specific generator.
-17. Wrapping Telegram user-facing narration in the CGNK public team roles only as an expression layer. Lin Ran/Product, Zhou Heng/Architecture, Xu Nan/Engineering, Shen Jing/UX, Chen Xu/QA, and Qiao An/Delivery may describe visible progress, but this does not create a new formal generation path.
+17. Wrapping Telegram user-facing narration in an action-based public expression layer. Public replies may describe what will be built, why input is needed, how testing works, what evidence will be shown, and how the user can continue or revise; this does not create a new formal generation path.
 17. Requiring every formal `pipeline_manifest` to cover Product Studio evidence stages: `product_plan`, `technical_plan`, `build`, `test`, `review`, and `package`.
 18. Auditing quality evidence before `package_project`, including `TEST_REPORT.md` and `DELIVERY_NOTES.md`, and recording missing evidence as warnings instead of hiding it.
 19. Waiting for explicit user start confirmation when backend dialogue finds soft questions, critical questions, missing required inputs, or complex/high-uncertainty domains. These questions are not hard gates once the user explicitly starts; they become assumptions and delivery warnings.
@@ -89,7 +89,7 @@ Telegram intake uses `should_auto_start_generation` before starting formal gener
 
 Capability strategy fields such as `capability_strategy` and `capability_research_targets` guide CFO planning and support agents for every project. They must describe underlying capabilities and advanced-method candidates, not project-type-specific branches. They do not authorize legacy pipelines, arbitrary execution, or bypassing manifest validation.
 
-Public team narration is allowed only at Telegram reply boundaries. It may redact internal terms and present progress through the named CGNK team roles, but the underlying execution remains `pipeline_manifest -> dynamic_pipeline_runner -> local_packager -> delivery_manifest.json`.
+Public narration is allowed only at Telegram reply boundaries. It may redact internal terms and present progress through concrete actions and evidence, but the underlying execution remains `pipeline_manifest -> dynamic_pipeline_runner -> local_packager -> delivery_manifest.json`.
 
 Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.
 

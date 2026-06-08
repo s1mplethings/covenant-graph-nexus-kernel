@@ -235,13 +235,13 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("emit_public_delivery", send_manifest)
         self.assertIn("emit_public_delivery", send_checkpoint)
 
-    def test_public_team_narration_is_expression_layer_only(self) -> None:
+    def test_public_narration_is_expression_layer_only(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         bridge = read_source("scripts/telegram_live_bridge.py")
 
-        self.assertIn("Public team narration is allowed only at Telegram reply boundaries", doc)
+        self.assertIn("Public narration is allowed only at Telegram reply boundaries", doc)
         self.assertIn("does not create a new formal generation path", doc)
-        self.assertIn("team_narration", bridge)
+        self.assertIn("public_narration", bridge)
         self.assertIn("pipeline_manifest", doc)
         self.assertIn("dynamic_pipeline_runner", doc)
         self.assertIn("local_packager", doc)

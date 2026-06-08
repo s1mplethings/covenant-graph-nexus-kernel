@@ -343,7 +343,7 @@ domain analysis module
 ### PASS Gate
 
 ```text
-virtual team roles match project type
+work actions match project type
 artifact owners assigned
 target user defined
 main problem defined

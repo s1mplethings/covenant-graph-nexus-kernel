@@ -36,7 +36,7 @@ import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
-import team_narration
+import public_narration
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
 DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "telegram_live_logs"
@@ -1280,12 +1280,12 @@ def project_analysis_reply(session: dict[str, Any], facts: dict[str, Any] | None
     acceptance = whiteboard.get("acceptance_criteria", []) if isinstance(whiteboard.get("acceptance_criteria"), list) else []
     requirements = unique_strings([str(item) for item in delivery + acceptance if str(item).strip()], limit=3)
     requirement_text = "；".join(requirements) if requirements else "可运行项目、启动说明、测试结论和真实预览产物"
-    team_line = "许楠会先做可运行版本，陈序准备测试记录，沈镜整理预览证据。" if facts.get("backend_parallel_started", True) else "林然和周衡会继续把范围和技术路线整理清楚。"
+    progress_line = "接下来会做可运行版本、测试记录和预览证据。" if facts.get("backend_parallel_started", True) else "我会继续把范围和技术路线整理清楚。"
     return (
-        f"林然已经把需求整理成第一版方向：{summary}\n"
-        "周衡会按核心能力拆技术路线，许楠负责把第一版做成可运行项目。\n"
+        f"我已经把需求整理成第一版方向：{summary}\n"
+        "我会按核心能力拆技术路线，并把第一版做成可运行项目。\n"
         f"验收重点：{requirement_text}。\n"
-        f"{team_line}没看到真实产物前，乔安不会把它标成完成。"
+        f"{progress_line}没看到真实产物前，不会把它标成完成。"
     )
 
 
@@ -1296,17 +1296,17 @@ def backend_dialogue_status_text(session: dict[str, Any]) -> str:
     frontend = analysis.get("frontend_plan") if isinstance(analysis.get("frontend_plan"), list) else whiteboard.get("frontend_plan", [])
     backend = analysis.get("backend_plan") if isinstance(analysis.get("backend_plan"), list) else whiteboard.get("backend_plan", [])
     questions = analysis.get("soft_questions") if isinstance(analysis.get("soft_questions"), list) else whiteboard.get("soft_questions", [])
-    frontend_text = "；".join(str(item) for item in frontend[:3] if str(item).strip()) or "沈镜先按第一版体验拆界面和预览"
-    backend_text = "；".join(str(item) for item in backend[:3] if str(item).strip()) or "周衡先按本地运行方式拆核心流程"
+    frontend_text = "；".join(str(item) for item in frontend[:3] if str(item).strip()) or "先按第一版体验拆界面和预览"
+    backend_text = "；".join(str(item) for item in backend[:3] if str(item).strip()) or "先按本地运行方式拆核心流程"
     question_text = ""
     if questions:
-        question_text = "\n林然建议补充：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
+        question_text = "\n建议补充：" + "；".join(str(item) for item in questions[:2] if str(item).strip())
     return (
-        f"林然先按这个方向整理第一版范围：{summary[:500]}。\n"
-        f"沈镜关注：{frontend_text}。\n"
-        f"周衡建议：{backend_text}。"
+        f"我先按这个方向整理第一版范围：{summary[:500]}。\n"
+        f"界面和预览重点：{frontend_text}。\n"
+        f"技术路线重点：{backend_text}。"
         f"{question_text}\n"
-        "如果你说“开始生成”，我会让许楠按已记录假设先做可运行版本，陈序同步准备测试记录。"
+        "如果你说“开始生成”，我会按已记录假设先做可运行版本，并同步准备测试记录。"
     )
 
 
@@ -1323,22 +1323,22 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
     if event == "project_update":
         return project_analysis_reply(session, facts)
     if event == "simulator_started":
-        return team_narration.team_say("generation_started", facts)
+        return public_narration.public_event_text("generation_started", facts)
     if event == "blocked":
         reason = str(facts.get("reason", "当前证据不足或流程被阻断"))
         return f"这轮先停住：{reason}。我会把已确认的需求保留下来，下一次可以从这个方向继续。"
     if event == "delivery_ready":
-        return team_narration.team_say("delivery_ready", facts)
+        return public_narration.public_event_text("delivery_ready", facts)
     if event == "unsupported_attachment_received":
-        return "林然已把这份资料记为项目输入；图片、文档、视频、音频都会交给团队作为需求和验证材料。"
+        return "这份资料已记为项目输入；图片、文档、视频、音频都会作为需求和验证材料。"
     if event == "generation_failed":
-        return str(facts.get("user_visible_cause") or "许楠这轮实现过程被中断，乔安暂时不能交付；你继续补充项目输入后，团队会从同一上下文修复。")
-    return str(facts.get("message") or backend_memo or "林然已记录当前项目上下文，团队会按最新目标继续处理。")
+        return str(facts.get("user_visible_cause") or "这轮实现过程被中断，当前不能交付；你继续补充项目输入后，我会从同一上下文修复。")
+    return str(facts.get("message") or backend_memo or "当前项目上下文已记录，我会按最新目标继续处理。")
 
 
 def pre_send_guard(text: str) -> str:
     guarded = str(text or "").strip()
-    guarded = team_narration.redact_internal_terms(guarded)
+    guarded = public_narration.redact_internal_terms(guarded)
     guarded = re.sub(r"[A-Za-z]:\\[^\s，。；；]+", "本地工作区记录", guarded)
     guarded = re.sub(
         r"(?<![\w\u4e00-\u9fff])/(?:Users|home|tmp|var|mnt|workspace|app|src|data|generated|examples|root)(?:/[^\s，。；；]+)+",
@@ -1371,8 +1371,8 @@ def pre_send_guard(text: str) -> str:
     for old, new in replacements.items():
         guarded = guarded.replace(old, new)
     guarded = guarded.replace("JSON", "结构化记录")
-    guarded = team_narration.redact_internal_terms(guarded)
-    return guarded[:3900] or "林然已记录当前项目上下文，团队会按最新目标继续处理。"
+    guarded = public_narration.redact_internal_terms(guarded)
+    return guarded[:3900] or "当前项目上下文已记录，我会按最新目标继续处理。"
 
 
 def send_customer_reply(
@@ -1865,17 +1865,17 @@ def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
     commands = evidence.get("test_commands", []) if isinstance(evidence.get("test_commands"), list) else []
     missing = evidence.get("missing", []) if isinstance(evidence.get("missing"), list) else []
     lines = [
-        team_narration.team_say("evidence_checkpoint", evidence),
-        f"陈序的测试记录：{'已执行命令' if commands else '没有真实执行证据'}",
-        f"陈序整理的测试代码：{count('test_code_files')} 个",
-        f"陈序记录的测试命令：{len(commands)} 条",
+        public_narration.public_event_text("evidence_checkpoint", evidence),
+        f"测试报告：{'有' if evidence.get('test_report_path') else '没有'}",
+        f"测试代码：{count('test_code_files')} 个",
+        f"测试命令：{len(commands)} 条",
         f"样例输入：{count('sample_inputs')} 个",
-        f"界面截图：{count('screenshots')} 张",
-        f"生成图片：{count('generated_images')} 张",
-        f"演示视频：{count('videos')} 个",
+        f"截图：{count('screenshots')} 张",
+        f"视频：{count('videos')} 个",
+        f"预览/数据文件：{count('preview_files')} 个",
     ]
     if commands:
-        lines.append("陈序给出的可复查命令：" + "；".join(str(item) for item in commands[:4]))
+        lines.append("可复查命令：" + "；".join(str(item) for item in commands[:4]))
     if missing:
         labels = {
             "TEST_REPORT.md": "测试报告",
@@ -1889,8 +1889,9 @@ def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
             "videos": "演示视频",
             "preview_files": "预览文件",
         }
-        lines.append("还缺的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
-    return team_narration.redact_internal_terms("\n".join(lines))
+        lines.append("缺少的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
+    lines.append("回复“继续/打包”进入最终交付；如果要改，直接说要改哪里。")
+    return public_narration.redact_internal_terms("\n".join(lines))
 
 
 def send_evidence_checkpoint(
@@ -2068,7 +2069,7 @@ def user_visible_known_limit(raw: Any) -> str:
     text = text.replace("screenshot", "效果预览")
     text = text.replace("package", "可运行项目文件")
     text = text.replace("verify_report", "测试结论")
-    return pre_send_guard(team_narration.redact_internal_terms(text))
+    return pre_send_guard(public_narration.redact_internal_terms(text))
 
 
 def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
@@ -2101,13 +2102,12 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
     if not forced_missing:
         forced_missing = any("缺少真实 demo 或样例输入" in str(item) for item in known_limits)
     lines = [
-        team_narration.team_say("delivery_ready", manifest),
-        "乔安完成了交付复核：",
+        public_narration.public_event_text("delivery_ready", manifest),
         "项目包：已生成",
-        f"陈序的测试记录：{test_record_status}",
-        f"测试执行情况：{test_execution}",
-        f"乔安的交付说明：{'有' if delivery_notes_found else '没有'}",
-        f"沈镜的预览证据：{preview_status}",
+        f"测试报告：{'有' if test_report_found else '没有'}",
+        f"测试执行：{test_execution}",
+        f"交付说明：{'有' if delivery_notes_found else '没有'}",
+        f"预览证据：{preview_status}",
         f"真实输入验证：{'有' if sample_input_found else '没有'}",
         f"交付状态：{delivery_status}",
     ]
@@ -2120,11 +2120,11 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
     else:
         lines.append("已知限制：暂无")
     if not test_report_found:
-        lines.append("陈序提醒：这轮没有完整测试报告，所以不能标成完整测试通过。")
+        lines.append("这轮没有完整测试报告，所以不能标成完整测试通过。")
     if not delivery_notes_found:
-        lines.append("乔安提醒：这轮缺少完整交付复核说明，交付状态只能按 warning 处理。")
+        lines.append("这轮缺少完整交付复核说明，交付状态只能按 warning 处理。")
     if forced_missing or any("缺少真实 demo 或样例输入" in str(item) for item in known_limits):
-        lines.append(team_narration.team_say("generation_warning", {"warning": "陈序提醒：这轮缺少真实 demo 或样例输入，只能算框架版/样例级验证。"}))
+        lines.append(public_narration.public_event_text("generation_warning", {"warning": "这轮缺少真实 demo 或样例输入，只能算框架版/样例级验证。"}))
     return pre_send_guard("\n".join(lines))
 
 
@@ -2133,7 +2133,7 @@ def build_intake_waiting_text(analysis: dict[str, Any], fallback_reply: str = ""
     for key in ("critical_questions", "missing_required_inputs", "soft_questions"):
         values = analysis.get(key, []) if isinstance(analysis.get(key), list) else []
         questions.extend(str(item).strip() for item in values if str(item).strip())
-    text = team_narration.team_say("intake_waiting", {"questions": unique_strings(questions, limit=3)})
+    text = public_narration.public_event_text("intake_waiting", {"questions": unique_strings(questions, limit=3)})
     if fallback_reply and not questions:
         text += "\n\n" + str(fallback_reply).strip()[:500]
     return pre_send_guard(text)
@@ -2936,10 +2936,9 @@ def customer_service_reply(session: dict[str, Any], model: str, timeout: int) ->
 - 用户问你是谁或能做什么时，回答你是 CGNK 项目交付接口，可以帮助生成项目、测试、预览、保存长期记忆和清理/重启会话。
 
 对外表达：
-- 你对用户呈现的是一个拟人化 CGNK 后台项目团队，而不是程序管线。
-- 可以称呼内部角色为：林然，产品经理；周衡，架构师；许楠，工程师；沈镜，体验设计；陈序，测试工程师；乔安，交付负责人。
-- 如果需要描述内部状态，改成人类化说法：林然在整理范围、周衡在确认技术路线、许楠在实现、陈序在准备测试、沈镜在整理预览、乔安在复核交付。
-- 不要声称这些是真实人类员工；它们是 CGNK 后台项目团队角色。
+- 不要暴露内部程序结构，不要使用拟人名字，不要说某某员工正在做什么。
+- 用户只关心具体动作和结果：当前会做什么、为什么要问问题、缺少什么输入、开始后会生成什么、会怎么测试、会给用户看什么证据、用户怎么继续或修改。
+- 用这种表达：我会先整理第一版范围；我会确认缺少的关键输入；我会生成可运行版本；我会准备测试代码和测试命令；我会整理截图/视频/预览证据；我会先发给你判断；你确认后我再最终打包。
 - 禁止向用户暴露 pipeline_manifest、dynamic_pipeline_runner、agent_session、local_packager、delivery_manifest、backend_dialogue_loop、whiteboard、truth ledger、jsonl、scripts、internal module names。
 - 除非是用户需要下载的交付文件名，不要输出文件系统路径。
 
@@ -3131,8 +3130,7 @@ def local_public_reply_message(event: str, session: dict[str, Any], facts: dict[
 - 不生成项目文件，不改白板，不决定是否开始生成。
 - 不宣布完成；没有交付包、预览和测试结论时不能说已经完成。
 - 不暴露 provider、API、manifest、pipeline、truth ledger、package、内部路径或调试字段。
-- 对用户呈现为 CGNK 后台项目团队角色：林然整理范围，周衡确认技术路线，许楠实现，沈镜整理预览，陈序准备测试，乔安复核交付。
-- 不要说这些是真实人类员工；它们是后台团队角色。
+- 不要使用拟人名字，不要说某某员工正在做什么；只说明具体动作、当前状态、缺少输入、测试方式、预览证据和用户下一步。
 - 不使用固定问候模板；即使事实相同，也要根据 facts、whiteboard、generation 和 recent_dialogue 自然改写。
 - 只根据输入 facts 和当前状态说清楚当前发生了什么、用户补充是否已进入后台、下一步会怎样。
 - 如果 generation.status 是 idle、没有 active_run、也没有项目摘要，短问候只能表达“在线/空会话/没有后台任务/可以发新目标”，不要说正在补齐交付物。
@@ -3198,8 +3196,7 @@ def provider_user_message(
 
 规则：
 - 自我定位要稳定：你代表 CGNK 后台工作流推进需求、生成、测试、预览和交付，不是普通聊天机器人。
-- 对用户呈现为拟人化 CGNK 后台项目团队：林然负责需求范围，周衡负责技术路线，许楠负责实现，沈镜负责预览体验，陈序负责测试，乔安负责交付复核。
-- 不要声称这些是真实雇员；它们是 CGNK 后台团队角色。
+- 不要使用拟人名字，不要说某某员工正在做什么；只说明具体动作、结果、测试、预览证据和下一步。
 - 不要使用固定口令、模板腔、机器人流程话术。
 - 不要要求用户回复固定词，例如“开始生成”。
 - 不要暴露内部模块名。
@@ -3736,7 +3733,7 @@ def run_agent_generation_job(
             session_dir,
             session,
             event="generation_started",
-            direct_text=team_narration.team_say("generation_started", {}),
+            direct_text=public_narration.public_event_text("generation_started", {}),
         )
     project_dir = log_dir / "agent_projects" / safe_id(chat_id)
     project_dir.mkdir(parents=True, exist_ok=True)
@@ -3957,7 +3954,7 @@ def resume_after_evidence_review_job(
         session,
         event="user_evidence_review_approved",
         source="delivery_team_summary",
-        direct_text=team_narration.team_say("review_continue", {}),
+        direct_text=public_narration.public_event_text("review_continue", {}),
     )
     session_file = agent_session_path(session_dir, chat_id)
     append_agent_session_event(
@@ -4068,7 +4065,7 @@ def record_evidence_review_feedback(
         session,
         event="user_evidence_feedback_received",
         source="delivery_team_summary",
-        direct_text=team_narration.team_say("review_revision", {}),
+        direct_text=public_narration.public_event_text("review_revision", {}),
     )
     start_agent_generation(
         client,
@@ -4747,8 +4744,8 @@ def handle_text(
             session_dir,
             session,
             event="generation_started",
-            source="team_narration",
-            direct_text=team_narration.team_say("generation_started", {}),
+            source="public_narration",
+            direct_text=public_narration.public_event_text("generation_started", {}),
         )
         start_agent_generation(
             client,
