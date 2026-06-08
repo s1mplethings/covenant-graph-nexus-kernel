@@ -66,6 +66,19 @@ class IntakeStartPolicyTests(unittest.TestCase):
         self.assertNotIn("我将按这个方向启动第一版生成", reply)
         self.assertTrue("你可以补充" in reply or "按默认假设开始生成" in reply)
 
+    def test_direct_image_generation_requirement_is_not_start_command(self) -> None:
+        text = "帮我做一个本地可运行的 VN 项目助手，是正经直接生成图片的"
+        analysis = {
+            "needs_direction_confirmation": True,
+            "soft_questions": ["本地模型地址是什么？"],
+            "critical_questions": ["桌面界面形态是什么？"],
+            "missing_required_inputs": [],
+            "confidence": 0.9,
+        }
+
+        self.assertFalse(bridge.explicit_start_requested(text))
+        self.assertEqual((False, "needs_direction_confirmation"), bridge.should_auto_start_generation({}, analysis, text))
+
     def test_explicit_start_allows_generation_with_assumptions(self) -> None:
         text = "我想要一个项目可以通过csgo2的demo分析鼠标键盘动作和视觉信息，用来鉴挂"
         with tempfile.TemporaryDirectory() as temp_dir:

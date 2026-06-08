@@ -25,16 +25,19 @@ AgentCallable = Callable[[list[dict[str, Any]], str, int], str | dict[str, Any]]
 
 MEDIA_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm"}
 PREVIEW_SUFFIXES = MEDIA_SUFFIXES | {".html", ".csv", ".json"}
+PYTHON_ENTRYPOINTS = ("app.py", "main.py")
+PYTHON_DEPENDENCY_FILES = ("requirements.txt", "pyproject.toml")
+SOURCE_SUFFIXES = {".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".css"}
 USER_REVIEW_KEYWORDS = (
     "gui",
     "visual",
     "image",
     "video",
-    "demo",
     "csgo",
     "cs2",
     "csgo2",
     "鉴挂",
+    "视觉",
     "模型检测",
     "数据分析",
     "视觉信息",
@@ -63,6 +66,48 @@ def _looks_like_generated_image(path: pathlib.Path) -> bool:
             "角色",
         )
     )
+
+
+def _asset_label(path: pathlib.Path) -> str:
+    return str(path).replace("\\", "/").lower()
+
+
+def _looks_like_screenshot(path: pathlib.Path) -> bool:
+    label = _asset_label(path)
+    return any(token in label for token in ("screenshot", "screen", "ui_", "desktop", "preview", "界面", "截图"))
+
+
+def _looks_like_background(path: pathlib.Path) -> bool:
+    label = _asset_label(path)
+    return any(token in label for token in ("background", "bg_", "bg-", "/bg/", "scene", "背景"))
+
+
+def _looks_like_sprite(path: pathlib.Path) -> bool:
+    label = _asset_label(path)
+    return any(token in label for token in ("sprite", "character", "portrait", "standing", "立绘", "角色"))
+
+
+def _project_text_for_requirements(manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> str:
+    board = whiteboard if isinstance(whiteboard, dict) else {}
+    parts: list[str] = [str(manifest.get("project_goal", ""))]
+    for key in ("project_summary", "known_facts", "acceptance_criteria", "delivery_requirements", "change_requests", "user_rules"):
+        value = board.get(key)
+        if isinstance(value, str):
+            parts.append(value)
+        elif isinstance(value, list):
+            parts.extend(str(item) for item in value if str(item).strip())
+    return "\n".join(parts).lower()
+
+
+def _visual_requirements(manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> dict[str, bool]:
+    compact = re.sub(r"\s+", "", _project_text_for_requirements(manifest, whiteboard))
+    return {
+        "screenshot": any(token in compact for token in ("截图", "界面", "桌面界面", "gui", "desktop", "interface", "screenshot")),
+        "generated_image": any(token in compact for token in ("图片", "图像", "生成图", "image", "picture", "photo")),
+        "background": any(token in compact for token in ("背景", "背景图", "background", "sceneart")),
+        "sprite": any(token in compact for token in ("立绘", "角色图", "character", "sprite", "portrait")),
+        "video": any(token in compact for token in ("视频", "演示视频", "录屏", "video", "mp4", "webm")),
+    }
 
 
 def _role_by_id(manifest: dict[str, Any], role_id: str) -> dict[str, Any]:
@@ -99,13 +144,14 @@ def _role_operating_rules(role: dict[str, Any], step: dict[str, Any], manifest: 
         stage_rules.append("""Build rules:
 - You must read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, and BUILD_PLAN.md when they exist.
 - You must write README.md.
-- You must create a runnable project entrypoint.
+- You must create a real runnable project, not only README/planning/report files.
+- You must create app.py or main.py, requirements.txt or pyproject.toml, source code, tests, and requested visual artifacts such as UI screenshots, generated backgrounds, and generated sprites/立绘.
 - You must not package.""")
     if "test" in stages or role_id == "qa":
         stage_rules.append("""QA rules:
 - You must create TEST_REPORT.md.
-- You must run at least one relevant command when possible.
-- If no test command can run, write NO TEST EXECUTED and explain why.
+- You must run at least one relevant command against the generated project.
+- If TEST_REPORT.md contains NO TEST EXECUTED, this step is not complete and must be repaired before package.
 - TEST_REPORT.md must include: commands_run, results, failures, repairs, remaining_warnings.
 - Do not claim PASS without evidence.""")
     if "review" in stages or role_id in {"delivery_reviewer"}:
@@ -203,10 +249,10 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
     history = "\n".join(f"{event.get('kind', 'event')}: {json.dumps(event, ensure_ascii=False)}" for event in events[1:])[-60000:]
     messages = [{"role": "system", "content": system}, {"role": "user", "content": history}]
     if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = root + "/chat/completions"
+        endpoint = check_connectivity._chat_completions_endpoint(root)
         payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 7000}
     else:
-        endpoint = root + "/responses"
+        endpoint = check_connectivity._responses_endpoint(root)
         payload = {
             "model": model,
             "input": "\n".join(f"{item['role']}: {item['content']}" for item in messages),
@@ -221,8 +267,10 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
             if text:
                 return text
         last_error = error
+        if not check_connectivity._error_is_retryable(error):
+            break
         time.sleep(min(5.0, 1.2 * (attempt + 1)))
-    raise RuntimeError(last_error or "empty dynamic pipeline agent response")
+    raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "empty dynamic pipeline agent response")
 
 
 def _local_task_for_step(role: dict[str, Any], step: dict[str, Any]) -> str:
@@ -342,6 +390,72 @@ def _find_files(project: pathlib.Path, patterns: tuple[str, ...], *, limit: int 
     return out
 
 
+def _project_files(project: pathlib.Path) -> list[pathlib.Path]:
+    if not project.exists():
+        return []
+    return [path for path in project.rglob("*") if path.is_file()]
+
+
+def _has_python_entrypoint(project: pathlib.Path) -> bool:
+    return any((project / name).is_file() for name in PYTHON_ENTRYPOINTS)
+
+
+def _has_dependency_file(project: pathlib.Path) -> bool:
+    return any((project / name).is_file() for name in PYTHON_DEPENDENCY_FILES)
+
+
+def _has_source_file(project: pathlib.Path) -> bool:
+    for path in _project_files(project):
+        rel = _rel(project, path).lower()
+        if path.suffix.lower() in SOURCE_SUFFIXES and not rel.startswith("tests/") and not pathlib.Path(rel).name.startswith("test_"):
+            return True
+    return False
+
+
+def _has_test_file(project: pathlib.Path) -> bool:
+    return bool(_find_files(project, ("tests/**/*.py", "test_*.py", "*_test.py")))
+
+
+def _media_files(project: pathlib.Path) -> list[pathlib.Path]:
+    return [path for path in _project_files(project) if path.suffix.lower() in MEDIA_SUFFIXES]
+
+
+def _build_completion_audit(project_dir: str | pathlib.Path, manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    media = _media_files(project)
+    visual = _visual_requirements(manifest, whiteboard)
+    missing: list[str] = []
+    if not _has_python_entrypoint(project):
+        missing.append("app.py_or_main.py")
+    if not _has_dependency_file(project):
+        missing.append("requirements.txt_or_pyproject.toml")
+    if not _has_source_file(project):
+        missing.append("source_files")
+    if not _has_test_file(project):
+        missing.append("test_files")
+    if not media:
+        missing.append("image_or_preview_media")
+    if visual["screenshot"] and not any(_looks_like_screenshot(path) for path in media):
+        missing.append("ui_screenshot")
+    if visual["generated_image"] and not any(_looks_like_generated_image(path) for path in media):
+        missing.append("generated_images")
+    if visual["background"] and not any(_looks_like_background(path) for path in media):
+        missing.append("generated_background")
+    if visual["sprite"] and not any(_looks_like_sprite(path) for path in media):
+        missing.append("generated_sprite")
+    if visual["video"] and not any(path.suffix.lower() in {".mp4", ".webm", ".gif"} for path in media):
+        missing.append("demo_video")
+    return {
+        "ok": not missing,
+        "missing": missing,
+        "entrypoints": [name for name in PYTHON_ENTRYPOINTS if (project / name).is_file()],
+        "dependency_files": [name for name in PYTHON_DEPENDENCY_FILES if (project / name).is_file()],
+        "test_files": _find_files(project, ("tests/**/*.py", "test_*.py", "*_test.py")),
+        "media_files": [_rel(project, path) for path in media[:80]],
+        "visual_requirements": visual,
+    }
+
+
 def _extract_test_commands(test_report: pathlib.Path) -> list[str]:
     if not test_report.exists():
         return []
@@ -361,6 +475,33 @@ def _extract_test_commands(test_report: pathlib.Path) -> list[str]:
         if cleaned and cleaned.lower() not in {"none", "no test executed", "未执行"}:
             commands.append(cleaned[:500])
     return commands[:20]
+
+
+def _test_report_has_no_test_executed(test_report: pathlib.Path) -> bool:
+    if not test_report.exists():
+        return False
+    text = test_report.read_text(encoding="utf-8", errors="replace")
+    return bool(re.search(r"NO[\s_]+TEST[\s_]+EXECUTED", text.upper()))
+
+
+def _qa_completion_audit(project_dir: str | pathlib.Path) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    test_report = project / "TEST_REPORT.md"
+    commands = _extract_test_commands(test_report)
+    missing: list[str] = []
+    if not test_report.exists():
+        missing.append("TEST_REPORT.md")
+    if _test_report_has_no_test_executed(test_report):
+        missing.append("real_test_execution")
+    if not commands:
+        missing.append("test_commands")
+    return {
+        "ok": not missing,
+        "missing": missing,
+        "test_report_path": _rel(project, test_report) if test_report.exists() else "",
+        "test_commands": commands,
+        "no_test_executed": _test_report_has_no_test_executed(test_report),
+    }
 
 
 def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
@@ -408,6 +549,29 @@ def collect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
     }
 
 
+def _evidence_blockers(evidence: dict[str, Any], manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> list[str]:
+    visual = _visual_requirements(manifest, whiteboard)
+    blockers: list[str] = []
+    if not evidence.get("test_report_path"):
+        blockers.append("TEST_REPORT.md")
+    if not evidence.get("test_code_files"):
+        blockers.append("test_code_files")
+    if not evidence.get("test_commands"):
+        blockers.append("test_commands")
+    if visual["screenshot"] and not evidence.get("screenshots"):
+        blockers.append("screenshots")
+    if visual["generated_image"] and not evidence.get("generated_images"):
+        blockers.append("generated_images")
+    generated_images = evidence.get("generated_images", []) if isinstance(evidence.get("generated_images"), list) else []
+    if visual["background"] and not any(_looks_like_background(pathlib.Path(str(item))) for item in generated_images):
+        blockers.append("generated_background")
+    if visual["sprite"] and not any(_looks_like_sprite(pathlib.Path(str(item))) for item in generated_images):
+        blockers.append("generated_sprite")
+    if visual["video"] and not evidence.get("videos"):
+        blockers.append("videos")
+    return blockers
+
+
 def requires_user_evidence_judgement(manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> bool:
     board = whiteboard if isinstance(whiteboard, dict) else {}
     if board.get("requires_user_evidence_review") is True:
@@ -447,6 +611,63 @@ def _should_skip_for_start_stage(step: dict[str, Any], start_stage: str) -> bool
         return False
     step_index = _step_earliest_stage_index(step)
     return step_index >= 0 and step_index < start_index
+
+
+def _step_has_stage(step: dict[str, Any], stage: str) -> bool:
+    return stage in pipeline_manifest_module._stage_values(step.get("stage"))
+
+
+def _has_later_stage_step(steps: list[Any], current_index: int, stage: str) -> bool:
+    for step in steps[current_index + 1 :]:
+        if isinstance(step, dict) and _step_has_stage(step, stage):
+            return True
+    return False
+
+
+def _is_worker_build_step(step: dict[str, Any]) -> bool:
+    role = str(step.get("role", "")).strip().lower()
+    step_id = str(step.get("id", "")).strip().lower()
+    if role in {"cfo", "context_librarian", "risk_reviewer", "qa", "delivery_reviewer"}:
+        return False
+    if step_id in {"cfo_pipeline", "context_support", "risk_support", "qa", "test", "evidence_review", "cfo_review", "review"}:
+        return False
+    return _step_has_stage(step, "build")
+
+
+def _is_qa_completion_step(step: dict[str, Any]) -> bool:
+    role = str(step.get("role", "")).strip().lower()
+    step_id = str(step.get("id", "")).strip().lower()
+    return _step_has_stage(step, "test") and (role == "qa" or step_id in {"qa", "test"})
+
+
+def _pipeline_rework_blocked(
+    *,
+    session_file: pathlib.Path,
+    project: pathlib.Path,
+    pipeline_manifest: dict[str, Any],
+    step_id: str,
+    reason: str,
+    audit: dict[str, Any],
+) -> dict[str, Any]:
+    agent_conversation_loop.append_event(
+        session_file,
+        {
+            "kind": "pipeline_rework_blocked",
+            "role": "system",
+            "step_id": step_id,
+            "reason": reason,
+            "audit": audit,
+        },
+    )
+    return {
+        "status": "rework_blocked",
+        "session_path": str(session_file),
+        "project_dir": str(project),
+        "pipeline_manifest": pipeline_manifest,
+        "blocked_step_id": step_id,
+        "reason": reason,
+        "audit": audit,
+    }
 
 
 def _write_repair_test_report(project: pathlib.Path, missing: list[str]) -> None:
@@ -742,7 +963,8 @@ def run_dynamic_pipeline(
     package_result: dict[str, Any] | None = None
 
     try:
-        for step in pipeline_manifest.get("steps", [])[:max_steps]:
+        steps = pipeline_manifest.get("steps", [])[:max_steps]
+        for step_index, step in enumerate(steps):
             if not isinstance(step, dict):
                 continue
             step_id = str(step.get("id", ""))
@@ -769,6 +991,30 @@ def run_dynamic_pipeline(
                     max_turns=per_step_turns,
                     agent=agent,
                 )
+                if result.get("status") == "ok" and _is_worker_build_step(step) and not _has_later_stage_step(steps, step_index, "build"):
+                    audit = _build_completion_audit(project, pipeline_manifest, whiteboard)
+                    if not audit.get("ok"):
+                        result = {
+                            "status": "rework_blocked",
+                            "summary": "build output is incomplete: " + ", ".join(audit.get("missing", [])),
+                            "quality_audit": audit,
+                        }
+                        agent_conversation_loop.append_event(
+                            session_file,
+                            {"kind": "build_output_audit", "role": "system", "step_id": step_id, "status": "rework_blocked", "audit": audit},
+                        )
+                if result.get("status") == "ok" and _is_qa_completion_step(step) and not _has_later_stage_step(steps, step_index, "test"):
+                    audit = _qa_completion_audit(project)
+                    if not audit.get("ok"):
+                        result = {
+                            "status": "rework_blocked",
+                            "summary": "QA evidence is incomplete: " + ", ".join(audit.get("missing", [])),
+                            "quality_audit": audit,
+                        }
+                        agent_conversation_loop.append_event(
+                            session_file,
+                            {"kind": "qa_output_audit", "role": "system", "step_id": step_id, "status": "rework_blocked", "audit": audit},
+                        )
                 agent_conversation_loop.append_event(
                     session_file,
                     {
@@ -782,12 +1028,54 @@ def run_dynamic_pipeline(
                 if result.get("package_result"):
                     package_result = result["package_result"]
                     break
+                if result.get("status") == "rework_blocked":
+                    return _pipeline_rework_blocked(
+                        session_file=session_file,
+                        project=project,
+                        pipeline_manifest=pipeline_manifest,
+                        step_id=step_id,
+                        reason=str(result.get("summary", "")),
+                        audit=result.get("quality_audit", {}) if isinstance(result.get("quality_audit"), dict) else {},
+                    )
                 if result.get("status") != "ok":
                     raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('summary', '')}")
                 stages = pipeline_manifest_module._stage_values(step.get("stage"))
                 if "evidence_review" in stages:
                     evidence = collect_user_review_evidence(project)
                     requires_review = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
+                    missing_evidence = _evidence_blockers(evidence, pipeline_manifest, whiteboard)
+                    if requires_review and missing_evidence:
+                        audit = {"evidence": evidence, "missing": missing_evidence}
+                        agent_conversation_loop.append_event(
+                            session_file,
+                            {
+                                "kind": "user_evidence_checkpoint",
+                                "role": "system",
+                                "step_id": step_id,
+                                "status": "rework_blocked",
+                                "evidence": evidence,
+                                "requires_user_judgement": True,
+                                "message": "中间证据不完整，不能请求用户确认；需要先回到构建/测试补齐。",
+                            },
+                        )
+                        agent_conversation_loop.append_event(
+                            session_file,
+                            {
+                                "kind": "pipeline_step_result",
+                                "step_id": step_id,
+                                "role": step.get("role"),
+                                "status": "rework_blocked",
+                                "summary": "evidence review is incomplete: " + ", ".join(missing_evidence),
+                            },
+                        )
+                        return _pipeline_rework_blocked(
+                            session_file=session_file,
+                            project=project,
+                            pipeline_manifest=pipeline_manifest,
+                            step_id=step_id,
+                            reason="evidence review is incomplete: " + ", ".join(missing_evidence),
+                            audit=audit,
+                        )
                     agent_conversation_loop.append_event(
                         session_file,
                         {

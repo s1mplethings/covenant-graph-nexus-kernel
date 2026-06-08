@@ -151,7 +151,18 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
                     return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Tests\ncommands_run:\n- python app.py\n"}]}
                 if "DELIVERY_NOTES.md" in current_goal:
                     return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Notes\n"}]}
-                return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Notes\n"}]}
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "README.md", "content": "# Built\n"},
+                        {"type": "write_file", "path": "app.py", "content": "print('demo')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
+                        {"type": "write_file", "path": "generated/background_scene.png", "content": "png"},
+                        {"type": "write_file", "path": "generated/character_sprite.png", "content": "png"},
+                        {"type": "write_file", "path": "demo/clip.mp4", "content": "mp4"},
+                    ]
+                }
 
             result = dynamic_pipeline_runner.run_dynamic_pipeline(
                 session_path=session_path,
@@ -224,7 +235,13 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
                 actions = {
                     "product_plan": [{"type": "write_file", "path": "PRODUCT_PLAN.md", "content": "# Product\n"}],
                     "technical_plan": [{"type": "write_file", "path": "TECHNICAL_PLAN.md", "content": "# Tech\n"}],
-                    "build": [{"type": "write_file", "path": "README.md", "content": "# Built\n"}],
+                    "build": [
+                        {"type": "write_file", "path": "README.md", "content": "# Built\n"},
+                        {"type": "write_file", "path": "app.py", "content": "print('built')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
+                    ],
                     "test": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Tests\ncommands_run:\n- python app.py\n"}],
                     "evidence_review": [{"type": "write_file", "path": "EVIDENCE_REVIEW.md", "content": "# Evidence\n"}],
                     "review": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Notes\n"}],

@@ -168,10 +168,10 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
         {"role": "user", "content": _history_for_agent(events)},
     ]
     if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = root + "/chat/completions"
+        endpoint = check_connectivity._chat_completions_endpoint(root)
         payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000}
     else:
-        endpoint = root + "/responses"
+        endpoint = check_connectivity._responses_endpoint(root)
         prompt = "\n".join(f"{item['role']}: {item['content']}" for item in messages)
         payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 6000}
     last_error = ""
@@ -182,8 +182,10 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
             if text:
                 return text
         last_error = error
+        if not check_connectivity._error_is_retryable(error):
+            break
         time.sleep(min(8.0, 1.5 * (attempt + 1)))
-    raise RuntimeError(last_error or "empty agent response")
+    raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "empty agent response")
 
 
 def run_agent_loop(

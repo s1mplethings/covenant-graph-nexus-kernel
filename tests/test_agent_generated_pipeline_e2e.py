@@ -19,6 +19,7 @@ class FakeTelegramClient:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
+        self.photos: list[tuple[str, pathlib.Path, str]] = []
 
     def send_message(self, chat_id: int | str, text: str) -> bool:
         self.messages.append((str(chat_id), text))
@@ -29,6 +30,10 @@ class FakeTelegramClient:
 
     def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
+        return True
+
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(chat_id), pathlib.Path(path), caption))
         return True
 
 
@@ -114,6 +119,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
             original_income = bridge.start_generation_from_income
+            original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_step_agent = bridge.dynamic_pipeline_runner._call_step_provider
 
@@ -138,12 +144,16 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                     "actions": [
                         {"type": "write_file", "path": "README.md", "content": "# Hello Tool\n\nRun `python app.py`.\n"},
                         {"type": "write_file", "path": "app.py", "content": "print('hello from CGNK')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
                     ]
                 }
 
             try:
                 bridge.threading.Thread = InlineThread
                 bridge.start_generation_from_income = lambda *args, **kwargs: False
+                bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
                 bridge.dynamic_pipeline_runner._call_step_provider = fake_step_agent
 
@@ -152,6 +162,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             finally:
                 bridge.threading.Thread = original_thread
                 bridge.start_generation_from_income = original_income
+                bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
                 bridge.dynamic_pipeline_runner._call_step_provider = original_step_agent
 
@@ -177,6 +188,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
             original_income = bridge.start_generation_from_income
+            original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
             original_loop = bridge.agent_conversation_loop.run_agent_loop
@@ -194,6 +206,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             try:
                 bridge.threading.Thread = InlineThread
                 bridge.start_generation_from_income = lambda *args, **kwargs: False
+                bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
                 bridge.dynamic_pipeline_runner.run_dynamic_pipeline = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("runner failed"))
                 bridge.agent_conversation_loop.run_agent_loop = fake_loop
@@ -203,6 +216,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             finally:
                 bridge.threading.Thread = original_thread
                 bridge.start_generation_from_income = original_income
+                bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
                 bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
                 bridge.agent_conversation_loop.run_agent_loop = original_loop

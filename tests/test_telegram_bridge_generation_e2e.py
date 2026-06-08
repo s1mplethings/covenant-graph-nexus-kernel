@@ -99,18 +99,26 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
             (project_dir / "README.md").write_text("# Local task manager\n", encoding="utf-8")
             (project_dir / "app.py").write_text("print('ok')\n", encoding="utf-8")
             client = FakeTelegramClient()
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
+            original_start_policy = bridge.should_auto_start_generation
 
-            def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
-                target = pathlib.Path(project_dir)
+            def fake_provider_execute(args):
+                target = pathlib.Path(args.out_dir)
                 target.mkdir(parents=True, exist_ok=True)
                 (target / "README.md").write_text("# Local task manager\n", encoding="utf-8")
-                (target / "app.py").write_text("print('ok')\n", encoding="utf-8")
+                (target / "main.py").write_text("print('ok')\n", encoding="utf-8")
+                (target / "requirements.txt").write_text("pytest\n", encoding="utf-8")
                 (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
                 (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
-                manifest = local_packager.package_project(target, startup_command="python app.py")
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+                return {
+                    "status": "PASS",
+                    "generated_files": ["README.md", "main.py", "requirements.txt", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
+                    "provider_semantic_review": {"status": "pass"},
+                    "artifact_refs": {},
+                    "agent_usage": {"status": "pass", "events": [{"command": "python main.py"}]},
+                    "example_outputs": {},
+                }
 
             class InlineThread:
                 def __init__(self, target, args=(), kwargs=None, daemon=None):
@@ -121,14 +129,16 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 def start(self):
                     self.target(*self.args, **self.kwargs)
 
-            bridge.agent_conversation_loop.run_agent_loop = fake_run_agent_loop
+            bridge.provider_project_pipeline.execute = fake_provider_execute
             bridge.threading.Thread = InlineThread
+            bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
             try:
                 bridge.handle_text(client, "chat-e2e", "做一个本地任务管理器", session_dir, log_dir, "gpt-test", 60, "api")
                 bridge.handle_text(client, "chat-e2e", "开始生成", session_dir, log_dir, "gpt-test", 60, "api")
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
+                bridge.should_auto_start_generation = original_start_policy
 
             session = bridge.load_session(session_dir, "chat-e2e")
             self.assertIn(str(session["generation"]["status"]).lower(), {"ready", "ready_with_warnings"})

@@ -65,7 +65,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("PASS", result.stdout.splitlines()[0])
 
-    def test_generation_confirmation_does_not_use_legacy_pipeline(self) -> None:
+    def test_generation_confirmation_only_dispatches_generation_starter(self) -> None:
         branch = generation_confirmation_branch(read_source("scripts/telegram_live_bridge.py"))
 
         self.assertTrue(branch)
@@ -152,7 +152,26 @@ class KernelContractTests(unittest.TestCase):
             self.assertIn("capability_strategy", manifest["shared_whiteboard_keys"])
             self.assertIn("capability_research_targets", manifest["shared_whiteboard_keys"])
 
-    def test_pipeline_manifest_required_before_dynamic_runner(self) -> None:
+    def test_telegram_default_generation_uses_provider_route_with_gate(self) -> None:
+        source = read_source("scripts/telegram_live_bridge.py")
+        start = function_body(source, "start_agent_generation")
+        provider_job = function_body(source, "run_provider_generation_job") + function_body(source, "run_provider_execute_with_retries")
+
+        self.assertIn('"driver": "api_provider_project_generation"', start)
+        self.assertIn("target=run_provider_generation_job", start)
+        self.assertNotIn("target=run_agent_generation_job", start)
+        self.assertIn("provider_project_pipeline.execute", provider_job)
+        self.assertIn("api-provider-project-generated", provider_job)
+        self.assertIn("provider-output-validated", provider_job)
+        self.assertIn("provider-project-files-written", provider_job)
+        self.assertIn("runtime-artifacts-written", provider_job)
+        self.assertIn("local_packager.package_project", provider_job)
+        self.assertIn("evaluate_public_delivery_gate", provider_job)
+        self.assertIn("provider_success_artifact_audit", provider_job)
+        self.assertIn("mark_public_delivery_rework", provider_job)
+        self.assertIn("finish_agent_loop_delivery", provider_job)
+
+    def test_support_pipeline_manifest_required_before_dynamic_runner(self) -> None:
         body = function_body(read_source("scripts/telegram_live_bridge.py"), "run_agent_generation_job")
 
         planner_index = body.find("pipeline_planner_agent.plan_pipeline")
@@ -234,6 +253,21 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("evaluate_public_delivery_gate", send_checkpoint)
         self.assertIn("emit_public_delivery", send_manifest)
         self.assertIn("emit_public_delivery", send_checkpoint)
+
+    def test_build_qa_and_checkpoint_rework_are_part_of_kernel_contract(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        runner = read_source("scripts/dynamic_pipeline_runner.py")
+        bridge_source = read_source("scripts/telegram_live_bridge.py")
+
+        self.assertIn("app.py` or `main.py`", doc)
+        self.assertIn("requirements.txt", doc)
+        self.assertIn("pipeline_step_result.status=rework_blocked", doc)
+        self.assertIn("NO TEST EXECUTED", doc)
+        self.assertIn("not `waiting_user_review`", doc)
+        self.assertIn("_build_completion_audit", runner)
+        self.assertIn("_qa_completion_audit", runner)
+        self.assertIn('"status": "rework_blocked"', runner)
+        self.assertIn('"status": "rework_blocked"', bridge_source)
 
     def test_public_narration_is_expression_layer_only(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")

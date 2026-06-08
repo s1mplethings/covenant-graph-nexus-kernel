@@ -190,7 +190,15 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             ]
 
             def fake_agent(events, model, timeout):
-                return {"actions": [{"type": "write_file", "path": "README.md", "content": "# Built\n"}]}
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "README.md", "content": "# Built\n"},
+                        {"type": "write_file", "path": "app.py", "content": "print('built')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
+                    ]
+                }
 
             result = dynamic_runner.run_dynamic_pipeline(
                 session_path=session_path,
@@ -208,6 +216,83 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             events = read_jsonl(session_path)
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
+
+    def test_build_step_readme_only_is_rework_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "本地桌面 VN 助手，需要截图、背景和立绘"})
+            manifest["steps"] = [
+                {
+                    "id": "build",
+                    "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
+                    "role": "backend",
+                    "goal": "write only readme",
+                    "allowed_actions": ["write_file"],
+                },
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
+            ]
+
+            def fake_agent(events, model, timeout):
+                return {"actions": [{"type": "write_file", "path": "README.md", "content": "# Docs only\n"}]}
+
+            result = dynamic_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=manifest,
+                model="gpt-test",
+                timeout=5,
+                max_turns=2,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+                whiteboard={"project_summary": "本地桌面 VN 助手，需要截图、背景和立绘"},
+            )
+            events = read_jsonl(session_path)
+
+        self.assertEqual("rework_blocked", result["status"])
+        step_results = [event for event in events if event.get("kind") == "pipeline_step_result" and event.get("step_id") == "build"]
+        self.assertEqual("rework_blocked", step_results[-1]["status"])
+        self.assertFalse((project_dir / "final_project_bundle.zip").exists())
+
+    def test_qa_no_test_executed_is_rework_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_path = root / "agent_session.jsonl"
+            project_dir = root / "project"
+            manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            manifest["steps"] = [
+                {
+                    "id": "qa",
+                    "type": "agent_turn",
+                    "stage": ["product_plan", "technical_plan", "build", "test", "evidence_review", "review"],
+                    "role": "qa",
+                    "goal": "write no-test report",
+                    "allowed_actions": ["write_file"],
+                },
+                {"id": "package", "type": "package_project", "stage": "package", "goal": "package"},
+            ]
+
+            def fake_agent(events, model, timeout):
+                return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Tests\n\nNO TEST EXECUTED\n\ncommands_run:\n- none\n"}]}
+
+            result = dynamic_runner.run_dynamic_pipeline(
+                session_path=session_path,
+                project_dir=project_dir,
+                pipeline_manifest=manifest,
+                model="gpt-test",
+                timeout=5,
+                max_turns=2,
+                agent=fake_agent,
+                fallback_to_agent_loop=False,
+            )
+            events = read_jsonl(session_path)
+
+        self.assertEqual("rework_blocked", result["status"])
+        step_results = [event for event in events if event.get("kind") == "pipeline_step_result" and event.get("step_id") == "qa"]
+        self.assertEqual("rework_blocked", step_results[-1]["status"])
+        self.assertIn("real_test_execution", result["audit"]["missing"])
 
     def test_dynamic_pipeline_runner_uses_local_model_for_cfo_pipeline_task(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -269,7 +354,15 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 calls["count"] += 1
                 if calls["count"] == 1:
                     return '{"message":"bad","actions":[{"type":"write_file","path":"README.md"}'
-                return {"actions": [{"type": "write_file", "path": "README.md", "content": "# Recovered\n"}]}
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "README.md", "content": "# Recovered\n"},
+                        {"type": "write_file", "path": "app.py", "content": "print('recovered')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
+                    ]
+                }
 
             result = dynamic_runner.run_dynamic_pipeline(
                 session_path=session_path,
@@ -316,7 +409,15 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                         '{"type":"write_file","path":"backend/app.py","content":"print(\\"ok\\")\\n"},'
                         '{"type":"write_file","path":"HANDOFF_BACKEND.md","content":"# cut'
                     )
-                return {"actions": [{"type": "write_file", "path": "HANDOFF_BACKEND.md", "content": "# Backend\n"}]}
+                return {
+                    "actions": [
+                        {"type": "write_file", "path": "HANDOFF_BACKEND.md", "content": "# Backend\n"},
+                        {"type": "write_file", "path": "app.py", "content": "print('ok')\n"},
+                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
+                    ]
+                }
 
             result = dynamic_runner.run_dynamic_pipeline(
                 session_path=session_path,

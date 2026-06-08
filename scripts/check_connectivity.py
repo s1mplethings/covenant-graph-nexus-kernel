@@ -16,7 +16,7 @@ from typing import Any
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RESULT_PATH = ROOT / "examples" / "test_results" / "connectivity_check_result.json"
 DEFAULT_NOTES_PATH = ROOT / ".agent_private" / "NOTES.md"
-EMBEDDED_BASE_URL = "https://api.gptsapi.net"
+EMBEDDED_BASE_URL = "https://api.gptsapi.net/v1"
 
 
 def _write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -35,18 +35,77 @@ def _mask_secret(value: str) -> str:
 
 def _normalize_base_url(value: str) -> str:
     root = str(value or "").strip().rstrip("/")
-    if root.lower() in {"https://api.gptsapi.net/v1", "http://api.gptsapi.net/v1", "https://gptsapi.net/v1", "http://gptsapi.net/v1"}:
-        return root[:-3].rstrip("/")
     return root
 
 
 def _is_gptsapi_base_url(value: str) -> bool:
-    return _normalize_base_url(value).lower() in {
+    root = _normalize_base_url(value).lower()
+    if root.endswith("/v1"):
+        root = root[:-3].rstrip("/")
+    return root in {
         "https://api.gptsapi.net",
         "http://api.gptsapi.net",
         "https://gptsapi.net",
         "http://gptsapi.net",
     }
+
+
+def _join_endpoint(base_url: str, path: str) -> str:
+    root = _normalize_base_url(base_url)
+    suffix = "/" + str(path or "").lstrip("/")
+    root_lower = root.lower()
+    suffix_lower = suffix.lower()
+    if root_lower.endswith("/v1") and suffix_lower.startswith("/v1/"):
+        suffix = suffix[3:]
+    if _is_gptsapi_base_url(root) and not root_lower.endswith("/v1") and not suffix_lower.startswith("/v1/"):
+        suffix = "/v1" + suffix
+    return root.rstrip("/") + suffix
+
+
+def _chat_completions_endpoint(base_url: str) -> str:
+    return _join_endpoint(base_url, "/chat/completions")
+
+
+def _responses_endpoint(base_url: str) -> str:
+    return _join_endpoint(base_url, "/responses")
+
+
+def _tls_verify_enabled() -> bool:
+    raw = str(os.environ.get("CGKN_API_TLS_VERIFY", os.environ.get("OPENAI_TLS_VERIFY", "1"))).strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def _urlopen(req: urllib.request.Request, timeout_sec: int):
+    context = None if _tls_verify_enabled() else ssl._create_unverified_context()
+    return urllib.request.urlopen(req, timeout=timeout_sec, context=context)
+
+
+def _request_error_summary(exc: BaseException, endpoint: str) -> str:
+    kind = type(exc).__name__
+    reason = getattr(exc, "reason", None)
+    detail = str(reason or exc)
+    host_path = re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
+    retryable = isinstance(exc, (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError))
+    return f"{kind}: {detail} [endpoint={host_path}, tls_verify={_tls_verify_enabled()}, retryable={str(retryable).lower()}]"
+
+
+def _http_error_summary(exc: urllib.error.HTTPError, endpoint: str, detail: str) -> str:
+    host_path = re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
+    retryable = exc.code in {408, 409, 425, 429} or 500 <= int(exc.code) <= 599
+    return f"HTTP {exc.code}: {detail[:400]} [endpoint={host_path}, retryable={str(retryable).lower()}]"
+
+
+def _error_is_retryable(error: str) -> bool:
+    text = str(error or "")
+    if "retryable=true" in text:
+        return True
+    if "retryable=false" in text:
+        return False
+    match = re.search(r"HTTP\s+(\d+)", text)
+    if match:
+        code = int(match.group(1))
+        return code in {408, 409, 425, 429} or 500 <= code <= 599
+    return bool(text)
 
 
 def _load_local_notes_defaults() -> dict[str, str]:
@@ -153,15 +212,15 @@ def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: 
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+        with _urlopen(req, timeout_sec) as resp:
             body = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace").strip()
-        return None, f"HTTP {exc.code}: {detail[:400]}"
+        return None, _http_error_summary(exc, endpoint, detail)
     except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError) as exc:
-        return None, f"request failed: {exc}"
+        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
     except Exception as exc:
-        return None, f"request failed: {exc}"
+        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
     try:
         doc = json.loads(body)
     except Exception as exc:
@@ -217,10 +276,10 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         return result
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
     if endpoint_mode == "responses":
-        endpoint = root.rstrip("/") + "/responses"
+        endpoint = _responses_endpoint(root)
         payload = {"model": model, "input": "Reply with exactly: pong", "max_output_tokens": 8}
     else:
-        endpoint = root.rstrip("/") + "/chat/completions"
+        endpoint = _chat_completions_endpoint(root)
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": "Reply with exactly: pong"}],
@@ -228,6 +287,8 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         }
     doc, error = _post_json(endpoint, payload, token, timeout_sec)
     result["endpoint_mode"] = endpoint_mode
+    result["endpoint"] = endpoint
+    result["tls_verify"] = _tls_verify_enabled()
     if doc is None:
         result["error"] = error
         return result

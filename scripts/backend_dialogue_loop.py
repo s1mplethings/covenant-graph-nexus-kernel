@@ -82,7 +82,6 @@ COMPLEX_DOMAIN_KEYWORDS = (
     "反作弊",
     "鼠标",
     "键盘",
-    "视觉",
     "行为分析",
     "模型",
     "数据集",
@@ -125,7 +124,9 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     local_image_discovery: dict[str, Any] = {}
 
     text = latest_text or summary
-    complex_domain = contains_any(text, COMPLEX_DOMAIN_KEYWORDS)
+    is_vn_domain = contains_any(text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘"))
+    is_cs_domain = contains_any(text, ("csgo", "csgo2", "cs2", "鉴挂", "反作弊", "鼠标键盘", "视角异常", "命中事件"))
+    complex_domain = is_cs_domain or (contains_any(text, COMPLEX_DOMAIN_KEYWORDS) and not is_vn_domain)
     requires_user_evidence_review = contains_any(text, EVIDENCE_REVIEW_KEYWORDS)
     strategy = capability_strategy.build_capability_strategy(text, SCRIPTS_DIR.parent)
     if strategy.get("local_image_model_discovery"):
@@ -351,14 +352,14 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
     if not api_key or not root:
         return None, str(local_result.get("error") or "missing credentials")
     if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = root + "/chat/completions"
+        endpoint = check_connectivity._chat_completions_endpoint(root)
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.2,
         }
     else:
-        endpoint = root + "/responses"
+        endpoint = check_connectivity._responses_endpoint(root)
         payload = {
             "model": model,
             "input": prompt,

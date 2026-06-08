@@ -558,7 +558,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
             self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
             self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
-            self.assertIn(session["generation"]["status"].upper(), {"BLOCKED", "REWORK"})
+            self.assertEqual("REWORK_BLOCKED", session["generation"]["status"].upper())
 
     def test_startup_auto_starts_pending_intake(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -204,7 +204,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
                 "type": "agent_turn",
                 "stage": "build",
                 "role": "backend",
-                "goal": "read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, BUILD_PLAN.md, MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs when present; generate project files; must write README.md; must create a runnable entrypoint such as app.py, main.py, index.html, or package.json; do not package",
+                "goal": "read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, BUILD_PLAN.md, MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs when present; generate a real runnable project, not only documents; must write README.md, app.py or main.py, requirements.txt or pyproject.toml, source code, tests, and required visual evidence such as UI screenshot plus generated background/立绘 images when requested; do not package",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "use_skill", "search_skills"],
             },
             {
@@ -212,7 +212,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
                 "type": "agent_turn",
                 "stage": "test",
                 "role": "qa",
-                "goal": "must write TEST_REPORT.md; must attempt at least one feasible check command; if no test can run, TEST_REPORT.md must include NO TEST EXECUTED, the reason, manually inspected files, and missing evidence; TEST_REPORT.md must include commands_run, results, failures, repairs, and remaining_warnings",
+                "goal": "must write TEST_REPORT.md; must run at least one real feasible check command against the generated project; TEST_REPORT.md must include commands_run, results, failures, repairs, and remaining_warnings; if TEST_REPORT.md contains NO TEST EXECUTED the step is not complete and must be repaired before package",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "capture_screenshot", "use_skill", "search_skills"],
             },
             {

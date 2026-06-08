@@ -66,6 +66,18 @@ def make_manifest(project_dir: pathlib.Path) -> dict:
     return local_packager.package_project(project_dir, startup_command="python app.py")
 
 
+def make_provider_result(project_dir: pathlib.Path) -> dict:
+    make_manifest(project_dir)
+    return {
+        "status": "PASS",
+        "generated_files": ["README.md", "app.py", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
+        "provider_semantic_review": {"status": "pass"},
+        "artifact_refs": {},
+        "agent_usage": {"status": "pass", "events": [{"command": "python app.py"}]},
+        "example_outputs": {},
+    }
+
+
 class AgentConversationMainlineTests(unittest.TestCase):
     def test_customer_text_appends_to_agent_session(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -81,32 +93,30 @@ class AgentConversationMainlineTests(unittest.TestCase):
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-a"))
             self.assertTrue(any(event.get("role") == "user" and "本地任务管理器" in event.get("text", "") for event in events))
 
-    def test_generation_confirmation_starts_agent_loop_directly(self) -> None:
+    def test_generation_confirmation_runs_provider_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
             client = FakeTelegramClient()
             called: dict[str, object] = {}
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
 
-            def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
-                called["session_path"] = str(session_path)
-                called["project_dir"] = str(project_dir)
-                manifest = make_manifest(pathlib.Path(project_dir))
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+            def fake_execute(args):
+                called["project_dir"] = str(args.out_dir)
+                return make_provider_result(pathlib.Path(args.out_dir))
 
-            bridge.agent_conversation_loop.run_agent_loop = fake_loop
+            bridge.provider_project_pipeline.execute = fake_execute
             bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-b", "做一个本地待办事项应用", session_dir, log_dir, "gpt-test", 30)
                 bridge.handle_text(client, "chat-b", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
 
-            self.assertIn("agent_session.jsonl", str(called["session_path"]))
+            self.assertIn("chat-b", str(called["project_dir"]))
             self.assertNotEqual([], client.documents)
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 
@@ -116,16 +126,15 @@ class AgentConversationMainlineTests(unittest.TestCase):
             session_dir = root / "sessions"
             log_dir = root / "logs"
             client = FakeTelegramClient()
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             called = {"ran": False}
 
-            def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
+            def fake_execute(args):
                 called["ran"] = True
-                manifest = make_manifest(pathlib.Path(project_dir))
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+                return make_provider_result(pathlib.Path(args.out_dir))
 
-            bridge.agent_conversation_loop.run_agent_loop = fake_loop
+            bridge.provider_project_pipeline.execute = fake_execute
             bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-c", "做一个本地记账工具", session_dir, log_dir, "gpt-test", 30)
@@ -134,7 +143,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.save_session(session_dir, session)
                 bridge.handle_text(client, "chat-c", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
 
             self.assertTrue(called["ran"])
@@ -402,33 +411,32 @@ class AgentConversationMainlineTests(unittest.TestCase):
             session_dir = root / "sessions"
             log_dir = root / "logs"
             client = FakeTelegramClient()
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_subprocess = bridge.run_generation_subprocess
             original_thread = bridge.threading.Thread
-            called = {"loop": False}
+            called = {"provider": False}
 
-            def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
-                called["loop"] = True
-                manifest = make_manifest(pathlib.Path(project_dir))
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+            def fake_execute(args):
+                called["provider"] = True
+                return make_provider_result(pathlib.Path(args.out_dir))
 
             def forbidden_subprocess(*args, **kwargs):
                 raise AssertionError("Telegram mainline must not call old no-api subprocess path")
 
-            bridge.agent_conversation_loop.run_agent_loop = fake_loop
+            bridge.provider_project_pipeline.execute = fake_execute
             bridge.run_generation_subprocess = forbidden_subprocess
             bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-no-api", "做一个本地笔记应用", session_dir, log_dir, "gpt-test", 30, "simulator")
                 bridge.handle_text(client, "chat-no-api", "开始生成", session_dir, log_dir, "gpt-test", 30, "simulator")
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.run_generation_subprocess = original_subprocess
                 bridge.threading.Thread = original_thread
 
-            self.assertTrue(called["loop"])
+            self.assertTrue(called["provider"])
             session = bridge.load_session(session_dir, "chat-no-api")
-            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
+            self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
 
 

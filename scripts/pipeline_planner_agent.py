@@ -59,7 +59,8 @@ CFO design requirements:
 - Support agents are advisory only: they maintain context/risk artifacts for cfo and workers, but they do not own scope, final routing, file generation strategy, or delivery readiness.
 - Worker steps should be scoped to assigned modules and should leave handoff artifacts.
 - Worker steps should read MODULE_PIPELINE.md plus any CFO support artifacts such as CFO_CONTEXT_DB.json and CFO_RISK_REGISTER.md.
-- QA/test steps must write TEST_REPORT.md, attempt at least one feasible check command when possible, and record NO TEST EXECUTED with reason when no check can run.
+- Build worker steps must produce a real runnable project, not only README/planning/report files: app.py or main.py, requirements.txt or pyproject.toml, source code, tests, and requested visual evidence such as UI screenshots plus generated background/立绘 images.
+- QA/test steps must write TEST_REPORT.md and run at least one feasible command against the generated project. NO TEST EXECUTED is a rework signal, not a successful QA result.
 - The evidence_review stage must write EVIDENCE_REVIEW.md. It is not final delivery; it prepares test code, test commands, sample inputs, screenshots, videos, preview files, missing real evidence, what the user should check, and the next recommended action.
 - If the project involves GUI, visual output, video, demo files, image generation, data analysis, model effects, cheat detection, labels, preview, csgo/cs2/csgo2, 鉴挂, or user-visible screenshots/videos/tests, evidence_review must prepare evidence the user can judge before final package.
 - Do not allow a complete PASS without EVIDENCE_REVIEW.md.
@@ -138,10 +139,10 @@ def _call_provider(prompt: str, model: str, timeout: int) -> str:
         {"role": "user", "content": prompt},
     ]
     if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = root + "/chat/completions"
+        endpoint = check_connectivity._chat_completions_endpoint(root)
         payload = {"model": model, "messages": messages, "temperature": 0.1, "max_tokens": 2200}
     else:
-        endpoint = root + "/responses"
+        endpoint = check_connectivity._responses_endpoint(root)
         payload = {
             "model": model,
             "input": "\n".join(f"{item['role']}: {item['content']}" for item in messages),
@@ -156,8 +157,10 @@ def _call_provider(prompt: str, model: str, timeout: int) -> str:
             if text:
                 return text
         last_error = error
+        if not check_connectivity._error_is_retryable(error):
+            break
         time.sleep(min(5.0, 1.2 * (attempt + 1)))
-    raise RuntimeError(last_error or "empty planner response")
+    raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "empty planner response")
 
 
 def plan_pipeline(

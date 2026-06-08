@@ -10,11 +10,11 @@ CGNK Kernel is fixed responsible for:
 2. `agent_session.jsonl` persistence for user messages, backend dialogue events, planner events, runner actions, and tool results.
 3. `whiteboard` as the shared state surface for frontdesk, backend dialogue, planner agent, and generation agents.
 4. `backend_dialogue_loop` as lightweight analysis and whiteboard update only; it is not a gate.
-5. Generating a `pipeline_manifest` after the user confirms generation and before project generation runs.
-6. Producing `pipeline_manifest` through `pipeline_planner_agent` from the current `whiteboard` and `agent_session`.
-7. Using a CFO-controlled module plan inside `pipeline_manifest`: the `cfo` role owns module planning, handoff order, acceptance interpretation, evidence review, and delivery readiness.
-8. Allowing CFO support agents only inside the manifest as advisory context/risk maintainers, such as a context database and risk register. Support agents do not own scope, route, implementation authority, or final delivery readiness.
-9. Executing project work through `dynamic_pipeline_runner`, which only interprets the `pipeline_manifest`.
+5. Running Telegram default project generation through API/provider project generation: provider-generated project files, provider output validation, provider project file writes, runtime artifact writes, `local_packager`, then public delivery gate.
+6. Keeping `pipeline_manifest`, `pipeline_planner_agent`, and `dynamic_pipeline_runner` as a support/experimental planning lane, not the Telegram default final project generator.
+7. Using a CFO-controlled module plan inside `pipeline_manifest` when the support lane is explicitly used: the `cfo` role owns module planning, handoff order, acceptance interpretation, evidence review, and delivery readiness.
+8. Allowing CFO support agents only inside the manifest as advisory context/risk maintainers, such as a context database and risk register. Support agents do not own Telegram default project generation, final route, implementation authority, or final delivery readiness.
+9. Treating planning-only outputs such as `PRODUCT_PLAN.md`, `MODULE_PIPELINE.md`, `CFO_CONTEXT_DB.json`, `README.md`, or `TEST_REPORT.md` as planning/support artifacts unless provider project generation or an equivalent materializer produces a runnable project surface.
 10. Using `local_agent_actions` and `local_agent_skills` as the only tool execution boundary.
 11. Using `local_packager.package_project` as the only formal delivery exit.
 12. Treating `delivery_manifest.json` as the evidence that delivery packaging completed.
@@ -26,24 +26,26 @@ CGNK Kernel is fixed responsible for:
 17. Requiring every formal `pipeline_manifest` to cover Product Studio evidence stages: `product_plan`, `technical_plan`, `build`, `test`, `review`, and `package`.
 18. Auditing quality evidence before `package_project`, including `TEST_REPORT.md` and `DELIVERY_NOTES.md`, and recording missing evidence as warnings instead of hiding it.
 19. Waiting for explicit user start confirmation when backend dialogue finds soft questions, critical questions, missing required inputs, or complex/high-uncertainty domains. These questions are not hard gates once the user explicitly starts; they become assumptions and delivery warnings.
-20. Running a Telegram public delivery gate before any intermediate or final public delivery. README-only/docs-only output, missing runnable entrypoints, missing project zip, missing real test commands, `NO TEST EXECUTED`, or missing requested screenshots/images/videos must force rework instead of public delivery.
+20. Running a Telegram public delivery gate before any intermediate or final public delivery. README-only/docs-only output, missing runnable entrypoints, missing real test commands, `NO TEST EXECUTED`, or missing requested screenshots/images/videos must force rework instead of public delivery. Final delivery also requires a project zip.
 21. Sending only user-facing media/package artifacts by default in Telegram public delivery: `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.mp4`, `.webm`, and `.zip`. Internal `.md`, `.json`, `.txt`, `.log`, manifest, report, and ledger artifacts stay inside the evidence bundle unless explicitly requested.
+22. Auditing build completion before a build step can pass. A worker build step must not report `pipeline_step_result.status=ok` unless it produced a real runnable project surface, including `app.py` or `main.py`, dependency metadata such as `requirements.txt` or `pyproject.toml`, source files, tests, and required visual evidence.
+23. Auditing QA completion before a QA/test step can pass. If `TEST_REPORT.md` contains `NO TEST EXECUTED` or does not list real test commands, the step must be `rework_blocked`, not `ok`.
 
 ## Kernel Prohibitions
 
 CGNK Kernel must not:
 
 1. Reconnect the Telegram formal generation mainline to `generate_project.py`.
-2. Reconnect the Telegram formal generation mainline to `run_local_pipeline`.
+2. Reconnect the Telegram formal generation mainline to the raw `run_local_pipeline.py` CLI or any route that bypasses provider output validation, `local_packager`, or the public delivery gate.
 3. Restore `simulator` as the formal generation mainline.
 4. Turn `backend_controls` back into an execution queue.
 5. Treat `blocking_questions` or `soft_questions` as a hard gate for generation.
 6. Allow `pipeline_manifest` to execute arbitrary Python.
 7. Allow generation agents to modify CGNK kernel files.
 8. Bypass `local_packager` or forge delivery completion.
-9. Enter a fixed project generation flow without first recording a `pipeline_manifest`, except when an explicit `pipeline_fallback` event is recorded.
+9. Treat `agent_generated_pipeline` or CFO document outputs as Telegram default final project generation.
 10. Count any fallback preview, placeholder, stub, procedural substitute, simulated result, or basic implementation as satisfying an explicitly requested core capability that requires a mature method, configured model, external API, local service, data source, automation engine, or runtime evidence.
-11. Encode a project type, industry, object, or domain label as a special formal generation path. Domain labels may only help infer underlying capabilities; the manifest/runner route remains universal.
+11. Encode a project type, industry, object, or domain label as a special formal generation path. Domain labels may only help infer underlying capabilities; provider project generation remains universal.
 12. Automatically start complex or under-specified project generation merely because soft questions are non-blocking. Non-blocking means the user may explicitly start with assumptions, not that the system starts by itself.
 13. Treat internal reports, manifests, ledgers, or README-only folders as user-facing delivery results.
 
@@ -53,11 +55,10 @@ CGNK Kernel must not:
 Telegram
 -> agent_session.jsonl
 -> whiteboard / backend_dialogue_loop
--> pipeline_planner_agent
--> pipeline_manifest
--> Product Studio stages: product_plan / technical_plan / build / test / review / package
--> cfo module plan / support context database and risk register / specialist agent handoffs
--> dynamic_pipeline_runner
+-> API/provider project generation
+-> provider output validation
+-> provider project files written
+-> runtime artifacts written
 -> local_agent_actions / local_agent_skills
 -> local_packager
 -> delivery_manifest.json
@@ -67,15 +68,17 @@ The kernel is stable. The pipeline is agent-generated per project. The project i
 
 ## Consolidated Kernel Rule
 
-CGNK Kernel does not contain a fixed project generation pipeline. CGNK Kernel requires every formal generation run to first produce a `pipeline_manifest`.
+CGNK Telegram default generation uses API/provider project generation as the formal project-file generator. The provider route must write real project files, validate provider output, write runtime artifacts, package through `local_packager`, and pass Telegram public delivery gate before sending anything public.
 
-The `pipeline_manifest` is agent-generated from `whiteboard` and `agent_session`. `dynamic_pipeline_runner` interprets that manifest through `local_agent_actions` and `local_agent_skills`.
+The `pipeline_manifest` is retained as an agent-generated support/experimental lane from `whiteboard` and `agent_session`. `dynamic_pipeline_runner` may interpret that manifest through `local_agent_actions` and `local_agent_skills`, but Telegram default generation must not treat CFO documents alone as final project generation.
 
 The default manifest shape is CFO-controlled and Product Studio disciplined: `product_plan -> technical_plan -> build -> test -> review -> package_project`. A step may merge stages when appropriate, but the manifest must still cover `product_plan`, `technical_plan`, `build`, `test`, `review`, and `package`. The planning stages must produce `PRODUCT_PLAN.md`, `OUTPUT_CONTRACT.md`, `TECHNICAL_PLAN.md`, and `BUILD_PLAN.md`; QA must produce `TEST_REPORT.md`; review must produce `DELIVERY_NOTES.md`; and `package_project` remains the only delivery exit. Specialist agents may build modules, and support agents may maintain `CFO_CONTEXT_DB.json` or `CFO_RISK_REGISTER.md`, but they do not own the formal route or final delivery readiness.
 
+Build and QA steps are hard evidence boundaries inside `dynamic_pipeline_runner`. README-only/docs-only output cannot pass a worker build step. `TEST_REPORT.md` with `NO TEST EXECUTED`, `commands_run: none`, or missing real commands cannot pass a QA/test step. These failures must be recorded as `pipeline_step_result.status=rework_blocked`, not hidden as successful steps.
+
 Before packaging, `dynamic_pipeline_runner` must audit quality evidence. Missing `TEST_REPORT.md` or `DELIVERY_NOTES.md` may be repaired once with an honest warning artifact, but packaging cannot hide the gap. `local_packager` records `quality_evidence` in `delivery_manifest.json`, and Telegram delivery replies must summarize whether test report, review notes, and preview evidence exist.
 
-Telegram public delivery is stricter than packaging. Packaging may create an internal evidence bundle with warnings, but Telegram must not publicly deliver until `public_delivery_gate` says `delivery_allowed`. If the gate fails, the public reply must explain that backend generation did not pass and that internal reports will not be sent as the result; the run returns to rework/build repair. Public attachments must use explicit artifact types such as project package, interface screenshot, generated background, generated sprite, or demo video.
+Telegram public delivery is stricter than packaging. Packaging may create an internal evidence bundle with warnings, but Telegram must not publicly deliver until `public_delivery_gate` says `delivery_allowed`. If the gate fails, including at `user_evidence_checkpoint`, the public reply must explain that backend generation did not pass and that internal reports will not be sent as the result; the run status must be `rework_blocked`, not `waiting_user_review`. Public attachments must use explicit artifact types such as project package, interface screenshot, generated background, generated sprite, or demo video.
 
 When an agent reply is malformed or truncated, the runner may salvage fully closed actions and execute them, but it must keep the step in repair until strict JSON succeeds. This is parser resilience inside the current manifest step, not a separate generation path.
 
@@ -89,7 +92,7 @@ Telegram intake uses `should_auto_start_generation` before starting formal gener
 
 Capability strategy fields such as `capability_strategy` and `capability_research_targets` guide CFO planning and support agents for every project. They must describe underlying capabilities and advanced-method candidates, not project-type-specific branches. They do not authorize legacy pipelines, arbitrary execution, or bypassing manifest validation.
 
-Public narration is allowed only at Telegram reply boundaries. It may redact internal terms and present progress through concrete actions and evidence, but the underlying execution remains `pipeline_manifest -> dynamic_pipeline_runner -> local_packager -> delivery_manifest.json`.
+Public narration is allowed only at Telegram reply boundaries. It may redact internal terms and present progress through concrete actions and evidence, but the underlying Telegram default execution remains `api/provider project generation -> provider validation -> runtime artifacts -> local_packager -> public_delivery_gate -> delivery_manifest.json`.
 
 Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.
 
@@ -99,7 +102,7 @@ Legacy provider pipeline code must not live inside `telegram_live_bridge.py`.
 
 Legacy CLI may exist only under `legacy/` or as a thin wrapper.
 
-Telegram formal generation must never call legacy provider pipeline, `generate_project.py`, `run_local_pipeline`, or `simulator`.
+Telegram formal generation may call the reviewed API/provider project generation implementation restored from the old provider chain, but it must not bypass `local_packager` or public delivery gate. `generate_project.py` and `simulator` remain disallowed as Telegram mainline.
 
 Old `BLOCKED` and gate terminology must not be user-visible.
 

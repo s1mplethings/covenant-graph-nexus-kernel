@@ -59,20 +59,19 @@ def check_telegram(results: list[CheckResult]) -> None:
         item
         for item in [
             "generate_project.py",
-            "run_local_pipeline",
             "run_generation_subprocess(args",
             "subprocess.run(",
             "generation_subprocess_command",
         ]
         if item in text
     ]
-    add(results, "telegram bridge does not embed legacy provider pipeline", not bridge_forbidden, ", ".join(bridge_forbidden))
+    add(results, "telegram bridge does not embed naked legacy CLI pipeline", not bridge_forbidden, ", ".join(bridge_forbidden))
 
     ok, missing = contains_all(
         text,
         [
             "start_agent_generation",
-            "run_agent_generation_job",
+            "run_provider_generation_job",
             "backend_dialogue_loop",
             "apply_backend_dialogue_tick",
             "should_auto_start_generation",
@@ -114,6 +113,28 @@ def check_telegram(results: list[CheckResult]) -> None:
     gate = re.search(gate_pattern, generation_branch)
     add(results, "soft/blocking questions are not hard generation gates", bool(generation_branch) and gate is None, "return under question branch" if gate else "")
 
+    start = function_body(text, "start_agent_generation")
+    ok, missing = contains_all(start, ['driver": "api_provider_project_generation"', "target=run_provider_generation_job"])
+    add(results, "Telegram default generation dispatch uses provider project route", ok, ", ".join(missing))
+
+    provider_job = function_body(text, "run_provider_generation_job") + function_body(text, "run_provider_execute_with_retries")
+    ok, missing = contains_all(
+        provider_job,
+        [
+            "provider_project_pipeline.execute",
+            "api-provider-project-generated",
+            "provider-output-validated",
+            "provider-project-files-written",
+            "runtime-artifacts-written",
+            "local_packager.package_project",
+            "evaluate_public_delivery_gate",
+            "provider_success_artifact_audit",
+            "mark_public_delivery_rework",
+            "finish_agent_loop_delivery",
+        ],
+    )
+    add(results, "provider generation route is wrapped by packager and public gate", ok, ", ".join(missing))
+
     job = function_body(text, "run_agent_generation_job")
     planner_index = job.find("pipeline_planner_agent.plan_pipeline")
     runner_index = job.find("dynamic_pipeline_runner.run_dynamic_pipeline")
@@ -130,10 +151,10 @@ def check_telegram(results: list[CheckResult]) -> None:
             "finish_agent_loop_delivery",
         ],
     )
-    add(results, "run_agent_generation_job contains consolidated pipeline landmarks", ok, ", ".join(missing))
+    add(results, "support agent pipeline contains consolidated pipeline landmarks", ok, ", ".join(missing))
     add(
         results,
-        "run_agent_generation_job plans manifest before dynamic runner",
+        "support agent pipeline plans manifest before dynamic runner",
         planner_index >= 0 and runner_index > planner_index and manifest_index > planner_index and manifest_index < runner_index,
         "planner/write/runner order missing",
     )

@@ -218,10 +218,10 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int, *, m
         raise RuntimeError("missing OpenAI-compatible API key")
     root = str(creds.get("base_url", "")).rstrip("/")
     if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = root + "/chat/completions"
+        endpoint = check_connectivity._chat_completions_endpoint(root)
         payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 12000}
     else:
-        endpoint = root + "/responses"
+        endpoint = check_connectivity._responses_endpoint(root)
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
         payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 12000}
     last_error = ""
@@ -230,9 +230,13 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int, *, m
         if doc is not None:
             break
         last_error = error
+        if not check_connectivity._error_is_retryable(error):
+            break
         time.sleep(min(20.0, 2.0 * (attempt + 1)))
     else:
-        raise RuntimeError(last_error)
+        raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "provider_api_request_failed")
+    if doc is None:
+        raise RuntimeError(f"provider_api_request_failed: {last_error}")
     text = check_connectivity._extract_text(doc)
     if not text:
         raise RuntimeError("provider returned empty project payload")

@@ -13,13 +13,14 @@ def read(path: str) -> str:
 
 
 class LegacyCleanupContractTests(unittest.TestCase):
-    def test_telegram_bridge_does_not_embed_legacy_provider_pipeline(self) -> None:
+    def test_telegram_bridge_does_not_embed_naked_legacy_cli_pipeline(self) -> None:
         text = read("scripts/telegram_live_bridge.py")
 
         self.assertNotIn("generation_subprocess_command", text)
         self.assertNotIn("run_generation_subprocess(args", text)
         self.assertNotIn('str(SCRIPTS_DIR / "generate_project.py")', text)
-        self.assertNotIn("run_local_pipeline", text)
+        self.assertIn("provider_project_pipeline.execute", text)
+        self.assertIn("evaluate_public_delivery_gate", text)
 
     def test_generate_project_is_legacy_only_if_present(self) -> None:
         path = ROOT / "scripts" / "generate_project.py"
