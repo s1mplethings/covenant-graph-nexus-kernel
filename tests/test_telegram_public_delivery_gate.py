@@ -89,7 +89,9 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("REWORK_BLOCKED", saved["generation"]["status"].upper())
         self.assertEqual("REWORK_BLOCKED", saved["active_run"]["status"].upper())
         joined_replies = "\n".join(text for _, text in client.messages)
-        self.assertIn("后台生成未通过，不会把内部报告当成果发给你", joined_replies)
+        self.assertIn("生成没有通过交付检查", joined_replies)
+        self.assertIn("不会把内部记录当成果发给你", joined_replies)
+        self.assertNotIn("后台", joined_replies)
         self.assertNotIn("中间测试和预览证据已准备好", joined_replies)
 
     def test_runnable_visual_assets_and_zip_allow_public_delivery(self) -> None:

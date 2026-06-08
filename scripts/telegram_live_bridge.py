@@ -1099,9 +1099,11 @@ def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], text: str) -> dict[str, Any]:
-    session.update(reset_project_scoped_context_for_new_run(session, text))
     tickets = session.setdefault("intake_tickets", [])
     ticket_id = f"ticket-{safe_id(session.get('chat_id', 'chat'))}-{len(tickets) + 1}"
+    cleaned_session = reset_project_scoped_context_for_new_run(session, text, ticket_id)
+    session.clear()
+    session.update(cleaned_session)
     ticket = {
         "kind": "CustomerIntakeTicket",
         "id": ticket_id,
@@ -2214,7 +2216,7 @@ def unique_strings(values: list[Any], limit: int = 120) -> list[str]:
     return out[-limit:]
 
 
-CS_DOMAIN_TERMS = {
+PROJECT_SIGNAL_TERMS = {
     "csgo",
     "csgo2",
     "cs2",
@@ -2225,9 +2227,6 @@ CS_DOMAIN_TERMS = {
     "视角异常",
     "命中事件",
     "风险评分",
-}
-
-VN_DOMAIN_TERMS = {
     "vn",
     "视觉小说",
     "故事",
@@ -2239,31 +2238,51 @@ VN_DOMAIN_TERMS = {
     "导出",
     "本地模型",
     "桌面界面",
+    "桌面",
+    "界面",
+    "本地",
+    "可运行",
+    "项目助手",
+    "图片",
+    "图像",
+    "生成图片",
+    "文件导出",
+    "测试",
+    "截图",
+    "视频",
+    "预览",
+    "zip",
+    "api",
+    "数据库",
+    "知识库",
+    "剪辑",
+    "高光",
+    "ocr",
 }
 
 
-def _domain_terms(text: str, terms: set[str]) -> set[str]:
+def _project_signal_terms(text: str) -> set[str]:
     lowered = str(text or "").lower()
     compact = re.sub(r"\s+", "", lowered)
     matched: set[str] = set()
-    for term in terms:
+    for term in PROJECT_SIGNAL_TERMS:
         needle = term.lower()
         if needle in lowered or needle in compact:
-            matched.add(term)
+            matched.add(needle)
+    for token in re.findall(r"[a-z0-9][a-z0-9_+.-]{1,}", lowered):
+        if token not in {"this", "that", "with", "from", "into", "user", "task", "test"}:
+            matched.add(token)
     return matched
 
 
 def reply_matches_current_goal(reply: str, current_goal: str) -> bool:
-    goal_vn = _domain_terms(current_goal, VN_DOMAIN_TERMS)
-    goal_cs = _domain_terms(current_goal, CS_DOMAIN_TERMS)
-    reply_vn = _domain_terms(reply, VN_DOMAIN_TERMS)
-    reply_cs = _domain_terms(reply, CS_DOMAIN_TERMS)
-    if goal_vn and reply_cs:
-        return False
-    if goal_cs and reply_vn:
-        return False
-    goal_terms = goal_vn | goal_cs
-    if goal_terms and not ((reply_vn | reply_cs) & goal_terms):
+    goal_terms = _project_signal_terms(current_goal)
+    reply_terms = _project_signal_terms(reply)
+    if not goal_terms or not reply_terms:
+        return True
+    if goal_terms & reply_terms:
+        return True
+    if len(reply_terms) >= 2:
         return False
     return True
 
@@ -2281,20 +2300,29 @@ def grounded_current_goal_reply(session: dict[str, Any]) -> str:
     goal = current_goal_text(session)
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     summary = str(whiteboard.get("project_summary", "")).strip() or goal
-    if _domain_terms(goal + "\n" + summary, VN_DOMAIN_TERMS):
-        return (
-            "我先把这个需求整理成第一版方向：做一个本地可运行的 VN 项目助手，重点是故事时间线、"
-            "角色/场景资料、背景和立绘生成、文件导出。\n\n"
-            "现在有几个点会影响实现质量，所以不会马上开工：\n"
-            "1. 本地模型/本地图片模型使用哪一个，或者模型目录在哪里？\n"
-            "2. 背景和立绘希望先做真实模型接入，还是先做可插拔接口？\n"
-            "3. 导出格式优先 Ren'Py、JSON，还是 Markdown/HTML 预览？\n\n"
-            "你可以补充；也可以说“按默认假设开始”，我会先做框架版，并把缺少真实模型验证写进限制。"
-        )
+    if goal and summary and not reply_matches_current_goal(summary, goal):
+        summary = goal
+    context = goal + "\n" + summary
+    questions: list[str] = []
+    if any(token in context for token in ("本地模型", "图片", "图像", "背景", "立绘")):
+        questions.append("本地模型/本地图片后端使用哪一个，或者模型目录在哪里？")
+    if any(token in context for token in ("背景", "立绘", "图片", "图像")):
+        questions.append("图片产物需要真实模型直接生成；如果当前没有可用模型，我会把它记为交付限制，不能算通过。")
+    if any(token in context for token in ("导出", "文件导出", "export")):
+        questions.append("导出格式优先选择什么？可以先按项目数据、可读文档和压缩包交付来做。")
+    if any(token in context for token in ("桌面", "界面", "gui", "desktop")):
+        questions.append("桌面界面先按本地可运行的简单桌面应用实现，后续再细化交互。")
+    if not questions:
+        questions = [
+            "第一版按本地可运行项目实现，并补齐启动方式、测试命令和交付包。",
+            "缺少真实外部能力或运行证据时，我会写进限制，不能当成完整通过。",
+        ]
+    question_lines = "\n".join(f"{index}. {item}" for index, item in enumerate(questions[:4], 1))
     return (
         f"我先把这个需求整理成第一版方向：{summary[:260] or goal[:260]}。\n\n"
-        "现在有几个点会影响实现质量，所以不会马上开工。你可以补充关键配置；也可以说“按默认假设开始”，"
-        "我会先做可运行版本，并把缺少真实验证的部分写进限制。"
+        "现在有几个点会影响实现质量，所以不会马上开工：\n"
+        f"{question_lines}\n\n"
+        "你可以补充；也可以说“按默认假设开始”，我会先做可运行版本，并把缺少真实验证的部分写进限制。"
     )
 
 
@@ -2322,7 +2350,7 @@ def reject_off_topic_public_reply(
     return grounded, True
 
 
-def reset_project_scoped_context_for_new_run(session: dict[str, Any], raw_user_message: str) -> dict[str, Any]:
+def reset_project_scoped_context_for_new_run(session: dict[str, Any], raw_user_message: str, run_id: str) -> dict[str, Any]:
     cleaned = dict(session)
     for key in (
         "pending_start_assumptions",
@@ -2330,14 +2358,28 @@ def reset_project_scoped_context_for_new_run(session: dict[str, Any], raw_user_m
         "pending_critical_questions",
         "pending_required_inputs",
         "pending_evidence_checkpoint",
+        "pending_decision",
+        "forced_start_with_missing_inputs",
         "missing_required_inputs",
         "backend_dialogue_analysis",
+        "delivery_gate",
+        "public_delivery_gate",
     ):
         cleaned.pop(key, None)
     cleaned["forced_start_with_missing_inputs"] = False
     cleaned["generation_start_waiting"] = False
     cleaned["start_wait_reason"] = ""
     old_whiteboard = cleaned.get("whiteboard", {}) if isinstance(cleaned.get("whiteboard"), dict) else {}
+    preserved_keys = (
+        "user_rules",
+        "global_user_preferences",
+        "preferred_language",
+        "local_first_preference",
+        "testing_evidence_preference",
+        "no_fake_delivery_preference",
+        "no_internal_details_preference",
+    )
+    preserved = {key: old_whiteboard.get(key) for key in preserved_keys if key in old_whiteboard}
     cleaned["whiteboard"] = {
         "project_summary": raw_user_message,
         "known_facts": [f"用户提出的新项目需求: {raw_user_message}"],
@@ -2355,6 +2397,8 @@ def reset_project_scoped_context_for_new_run(session: dict[str, Any], raw_user_m
         "decision_log": [],
         "ready_to_generate": False,
     }
+    cleaned["whiteboard"].update({key: value for key, value in preserved.items() if key != "user_rules"})
+    cleaned["project_scoped_context_run_id"] = str(run_id)
     return cleaned
 
 
@@ -4382,19 +4426,32 @@ def run_agent_generation_job(
             result["driver"] = "agent_conversation_loop_fallback"
         except Exception as fallback_exc:
             session = load_session(session_dir, chat_id)
-            session["generation"] = {"status": "failed", "driver": "agent_generated_pipeline", "finished_at": now(), "error": str(fallback_exc)}
+            gate = evaluate_public_delivery_gate(project_dir, {}, session, phase="final")
+            session["generation"] = {
+                "status": "rework_blocked",
+                "driver": "agent_generated_pipeline",
+                "finished_at": now(),
+                "error": str(fallback_exc),
+                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+                "project_dir": str(project_dir),
+                "pipeline_manifest_path": str(manifest_path or ""),
+                "generation_context_snapshot_path": str(snapshot_path),
+                "delivery_allowed": False,
+                "delivery_gate": gate,
+            }
+            update_active_run_status(
+                session,
+                "rework_blocked",
+                driver="agent_generated_pipeline",
+                delivery_allowed=False,
+                delivery_gate=gate,
+                project_dir=str(project_dir),
+            )
             append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(fallback_exc)})
             append_memory_event(session, "agent_pipeline_failed", data={"error": str(fallback_exc), "pipeline_error": str(exc)})
             save_session(session_dir, session)
             log_bridge_error(log_dir, "agent_pipeline_failed", chat_id, fallback_exc, {"project_dir": str(project_dir)})
-            send_customer_reply(
-                client,
-                chat_id,
-                session_dir,
-                session,
-                event="generation_failed",
-                facts={"message": "生成过程这次中断了；我已经把失败结果写回会话记录，后续可以从同一会话继续修复。"},
-            )
+            mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
             return
     if isinstance(result, dict) and result.get("pipeline_manifest") and "driver" not in result:
         result["driver"] = "agent_generated_pipeline"
@@ -4499,18 +4556,29 @@ def finish_agent_loop_delivery(
         run["manifest_path"] = str(manifest.get("manifest_path", result.get("manifest_path", "")))
         session["active_run"] = run
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
-    save_session(session_dir, session)
     if manifest and str(manifest.get("package_path", "")).strip():
+        save_session(session_dir, session)
         send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
     else:
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="generation_completed_non_pass",
-            facts={"message": "本轮没有拿到交付包；下一条项目输入会重新触发后台。"},
+        gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+        session["generation"].update(
+            {
+                "status": "rework_blocked",
+                "delivery_allowed": False,
+                "delivery_gate": gate,
+            }
         )
+        update_active_run_status(
+            session,
+            "rework_blocked",
+            driver=driver,
+            delivery_allowed=False,
+            delivery_gate=gate,
+            project_dir=str(project_dir),
+        )
+        append_memory_event(session, "agent_loop_rework_blocked", data={"result": result, "delivery_gate": gate})
+        save_session(session_dir, session)
+        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
 
 
 def resume_after_evidence_review_job(
@@ -4715,17 +4783,17 @@ def start_agent_generation(
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    update_active_run_status(session, "running", driver="api_provider_project_generation")
+    update_active_run_status(session, "running", driver="agent_generated_pipeline")
     session["generation"] = {
         "status": "running",
-        "driver": "api_provider_project_generation",
+        "driver": "agent_generated_pipeline",
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
     save_session(session_dir, session)
     client.send_chat_action(chat_id, "typing")
     threading.Thread(
-        target=run_provider_generation_job,
+        target=run_agent_generation_job,
         args=(client, chat_id, session_dir, log_dir, model, timeout),
         kwargs={"announce_start": announce_start},
         daemon=True,

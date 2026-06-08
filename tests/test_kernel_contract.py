@@ -152,14 +152,18 @@ class KernelContractTests(unittest.TestCase):
             self.assertIn("capability_strategy", manifest["shared_whiteboard_keys"])
             self.assertIn("capability_research_targets", manifest["shared_whiteboard_keys"])
 
-    def test_telegram_default_generation_uses_provider_route_with_gate(self) -> None:
+    def test_telegram_default_generation_uses_agent_pipeline_route_with_gate(self) -> None:
         source = read_source("scripts/telegram_live_bridge.py")
         start = function_body(source, "start_agent_generation")
+        agent_job = function_body(source, "run_agent_generation_job")
         provider_job = function_body(source, "run_provider_generation_job") + function_body(source, "run_provider_execute_with_retries")
 
-        self.assertIn('"driver": "api_provider_project_generation"', start)
-        self.assertIn("target=run_provider_generation_job", start)
-        self.assertNotIn("target=run_agent_generation_job", start)
+        self.assertIn('"driver": "agent_generated_pipeline"', start)
+        self.assertIn("target=run_agent_generation_job", start)
+        self.assertNotIn("target=run_provider_generation_job", start)
+        self.assertIn("pipeline_planner_agent.plan_pipeline", agent_job)
+        self.assertIn("dynamic_pipeline_runner.run_dynamic_pipeline", agent_job)
+        self.assertIn("finish_agent_loop_delivery", agent_job)
         self.assertIn("provider_project_pipeline.execute", provider_job)
         self.assertIn("api-provider-project-generated", provider_job)
         self.assertIn("provider-output-validated", provider_job)

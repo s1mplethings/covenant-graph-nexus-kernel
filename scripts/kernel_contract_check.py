@@ -114,8 +114,14 @@ def check_telegram(results: list[CheckResult]) -> None:
     add(results, "soft/blocking questions are not hard generation gates", bool(generation_branch) and gate is None, "return under question branch" if gate else "")
 
     start = function_body(text, "start_agent_generation")
-    ok, missing = contains_all(start, ['driver": "api_provider_project_generation"', "target=run_provider_generation_job"])
-    add(results, "Telegram default generation dispatch uses provider project route", ok, ", ".join(missing))
+    ok, missing = contains_all(start, ['driver": "agent_generated_pipeline"', "target=run_agent_generation_job"])
+    provider_default_forbidden = [item for item in ['driver": "api_provider_project_generation"', "target=run_provider_generation_job"] if item in start]
+    add(
+        results,
+        "Telegram default generation dispatch uses agent-generated pipeline route",
+        ok and not provider_default_forbidden,
+        ", ".join(missing + provider_default_forbidden),
+    )
 
     provider_job = function_body(text, "run_provider_generation_job") + function_body(text, "run_provider_execute_with_retries")
     ok, missing = contains_all(
@@ -133,7 +139,7 @@ def check_telegram(results: list[CheckResult]) -> None:
             "finish_agent_loop_delivery",
         ],
     )
-    add(results, "provider generation route is wrapped by packager and public gate", ok, ", ".join(missing))
+    add(results, "provider support route is wrapped by packager and public gate", ok, ", ".join(missing))
 
     job = function_body(text, "run_agent_generation_job")
     planner_index = job.find("pipeline_planner_agent.plan_pipeline")
@@ -151,10 +157,10 @@ def check_telegram(results: list[CheckResult]) -> None:
             "finish_agent_loop_delivery",
         ],
     )
-    add(results, "support agent pipeline contains consolidated pipeline landmarks", ok, ", ".join(missing))
+    add(results, "formal agent pipeline contains consolidated pipeline landmarks", ok, ", ".join(missing))
     add(
         results,
-        "support agent pipeline plans manifest before dynamic runner",
+        "formal agent pipeline plans manifest before dynamic runner",
         planner_index >= 0 and runner_index > planner_index and manifest_index > planner_index and manifest_index < runner_index,
         "planner/write/runner order missing",
     )

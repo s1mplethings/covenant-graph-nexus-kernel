@@ -46,6 +46,7 @@ class PublicReplyGoalGroundingTests(unittest.TestCase):
         updated = bridge.reset_project_scoped_context_for_new_run(
             session,
             "帮我做一个本地可运行的 VN 项目助手，时间线，背景，立绘，本地模型，文件导出",
+            "run-vn",
         )
 
         self.assertIn("VN", updated["whiteboard"]["project_summary"])
