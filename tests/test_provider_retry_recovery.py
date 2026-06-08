@@ -93,7 +93,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 project.mkdir(parents=True, exist_ok=True)
                 (project / "README.md").write_text("# Tool\n", encoding="utf-8")
                 (project / "app.py").write_text("print('ok')\n", encoding="utf-8")
-                (project / "TEST_REPORT.md").write_text("commands_run:\n- python app.py\n", encoding="utf-8")
+                (project / "tests").mkdir(exist_ok=True)
+                (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
                 (project / "DELIVERY_NOTES.md").write_text("delivery_status: PASS\n", encoding="utf-8")
                 return {"status": "PASS", "generated_files": ["app.py"], "agent_usage": {"events": [{"command": "python app.py"}]}}
 
@@ -157,7 +158,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 self.assertIn("README.md", getattr(args, "provider_partial_artifacts", []))
                 self.assertEqual("# Existing README\n", (project / "README.md").read_text(encoding="utf-8"))
                 self.assertEqual("print('existing')\n", (project / "app.py").read_text(encoding="utf-8"))
-                (project / "TEST_REPORT.md").write_text("commands_run:\n- python app.py\n", encoding="utf-8")
+                (project / "tests").mkdir(exist_ok=True)
+                (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
                 (project / "DELIVERY_NOTES.md").write_text("delivery_status: PASS\n", encoding="utf-8")
                 return {"status": "PASS", "generated_files": ["TEST_REPORT.md"], "agent_usage": {"events": [{"command": "python app.py"}]}}
 

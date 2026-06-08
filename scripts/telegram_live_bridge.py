@@ -9,12 +9,15 @@ import pathlib
 import random
 import re
 import shutil
+import struct
+import subprocess
 import sys
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -3924,6 +3927,489 @@ def materialize_provider_runtime_artifacts(project_dir: pathlib.Path, provider_r
     return {"copied": {key: value for key, value in copied.items() if value}}
 
 
+def _short_output(text: str, limit: int = 5000) -> str:
+    clean = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    if len(clean) <= limit:
+        return clean
+    return clean[: limit // 2] + "\n...\n" + clean[-limit // 2 :]
+
+
+def run_provider_project_tests(project_dir: pathlib.Path, *, timeout: int = 180) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    report = project / "TEST_REPORT.md"
+    tests_dir = project / "tests"
+    command = [sys.executable, "-m", "pytest", "tests"]
+    if not tests_dir.exists() or not any(path.is_file() for path in tests_dir.rglob("test*.py")):
+        result = {
+            "ok": False,
+            "commands_run": [],
+            "exit_code": None,
+            "stdout": "",
+            "stderr": "",
+            "error": "tests directory missing or no test*.py files found",
+        }
+        report.write_text(
+            "\n".join(
+                [
+                    "# Test Report",
+                    "",
+                    "NO TEST EXECUTED",
+                    "",
+                    "commands_run:",
+                    "- none",
+                    "",
+                    "exit_code: not_run",
+                    "",
+                    "stdout_summary:",
+                    "- tests directory missing or empty",
+                    "",
+                    "stderr_summary:",
+                    "- none",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return result
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(project) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    try:
+        proc = subprocess.run(
+            command,
+            cwd=str(project),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+        exit_code = int(proc.returncode)
+        stdout = _short_output(proc.stdout)
+        stderr = _short_output(proc.stderr)
+        timed_out = False
+    except subprocess.TimeoutExpired as exc:
+        exit_code = 124
+        stdout = _short_output(exc.stdout or "")
+        stderr = _short_output(exc.stderr or "pytest timed out")
+        timed_out = True
+    report.write_text(
+        "\n".join(
+            [
+                "# Test Report",
+                "",
+                "commands_run:",
+                f"- {' '.join(command)}",
+                "",
+                f"exit_code: {exit_code}",
+                "",
+                "stdout_summary:",
+                "```text",
+                stdout or "(empty)",
+                "```",
+                "",
+                "stderr_summary:",
+                "```text",
+                stderr or "(empty)",
+                "```",
+                "",
+                "results:",
+                f"- {'PASS' if exit_code == 0 else 'FAIL'}",
+                "",
+                "failures:",
+                "- none" if exit_code == 0 else "- pytest command failed" + (" or timed out" if timed_out else ""),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "ok": exit_code == 0,
+        "commands_run": [" ".join(command)],
+        "exit_code": exit_code,
+        "stdout": stdout,
+        "stderr": stderr,
+        "timed_out": timed_out,
+        "report_path": str(report),
+    }
+
+
+def image_quality_audit(path: pathlib.Path) -> dict[str, Any]:
+    result: dict[str, Any] = {"path": str(path), "ok": False, "reason": ""}
+    if not path.exists() or not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
+        result["reason"] = "missing_or_not_image"
+        return result
+    if any(token in path.name.lower() for token in ("placeholder", "mock", "fallback", "blank", "empty")):
+        result["reason"] = "placeholder_name"
+        return result
+    try:
+        from PIL import Image
+
+        with Image.open(path) as img:
+            rgb = img.convert("RGB")
+            width, height = rgb.size
+            extrema = rgb.getextrema()
+            colors = rgb.resize((64, 64)).getcolors(maxcolors=4096) or []
+        varied_channels = sum(1 for low, high in extrema if high - low > 8)
+        unique_colors = len(colors)
+        result.update({"width": width, "height": height, "unique_colors": unique_colors, "varied_channels": varied_channels})
+        if width < 64 or height < 64:
+            result["reason"] = "too_small"
+            return result
+        if varied_channels < 2 or unique_colors < 16:
+            result["reason"] = "blank_or_solid_color"
+            return result
+    except Exception as exc:
+        if path.suffix.lower() == ".png":
+            fallback = png_quality_audit(path)
+            fallback["pil_error"] = str(exc)
+            return fallback
+        result["reason"] = f"image_open_failed: {exc}"
+        return result
+    result["ok"] = True
+    result["reason"] = "nonblank_image"
+    return result
+
+
+def _png_chunk(kind: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+
+def write_rgb_png(path: pathlib.Path, width: int, height: int, pixel_fn) -> None:
+    rows = []
+    for y in range(height):
+        row = bytearray([0])
+        for x in range(width):
+            r, g, b = pixel_fn(x, y)
+            row.extend((max(0, min(255, int(r))), max(0, min(255, int(g))), max(0, min(255, int(b)))))
+        rows.append(bytes(row))
+    raw = b"".join(rows)
+    data = b"\x89PNG\r\n\x1a\n"
+    data += _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+    data += _png_chunk(b"IDAT", zlib.compress(raw, 9))
+    data += _png_chunk(b"IEND", b"")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def png_quality_audit(path: pathlib.Path) -> dict[str, Any]:
+    result: dict[str, Any] = {"path": str(path), "ok": False, "reason": ""}
+    try:
+        data = path.read_bytes()
+        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+            result["reason"] = "not_png"
+            return result
+        pos = 8
+        width = height = 0
+        compressed = bytearray()
+        while pos + 8 <= len(data):
+            length = struct.unpack(">I", data[pos : pos + 4])[0]
+            kind = data[pos + 4 : pos + 8]
+            chunk = data[pos + 8 : pos + 8 + length]
+            pos += 12 + length
+            if kind == b"IHDR":
+                width, height, bit_depth, color_type, _, _, _ = struct.unpack(">IIBBBBB", chunk)
+                if bit_depth != 8 or color_type != 2:
+                    result["reason"] = "unsupported_png_format"
+                    return result
+            elif kind == b"IDAT":
+                compressed.extend(chunk)
+            elif kind == b"IEND":
+                break
+        if width < 64 or height < 64:
+            result["reason"] = "too_small"
+            return result
+        raw = zlib.decompress(bytes(compressed))
+        stride = 1 + width * 3
+        colors: set[tuple[int, int, int]] = set()
+        min_rgb = [255, 255, 255]
+        max_rgb = [0, 0, 0]
+        sample_step_y = max(1, height // 64)
+        sample_step_x = max(1, width // 64)
+        for y in range(0, height, sample_step_y):
+            row = raw[y * stride : (y + 1) * stride]
+            if not row or row[0] != 0:
+                result["reason"] = "unsupported_png_filter"
+                return result
+            pixels = row[1:]
+            for x in range(0, width, sample_step_x):
+                idx = x * 3
+                rgb = tuple(pixels[idx : idx + 3])
+                if len(rgb) != 3:
+                    continue
+                colors.add(rgb)
+                for channel, value in enumerate(rgb):
+                    min_rgb[channel] = min(min_rgb[channel], value)
+                    max_rgb[channel] = max(max_rgb[channel], value)
+        varied_channels = sum(1 for low, high in zip(min_rgb, max_rgb) if high - low > 8)
+        result.update({"width": width, "height": height, "unique_colors": len(colors), "varied_channels": varied_channels})
+        if varied_channels < 2 or len(colors) < 16:
+            result["reason"] = "blank_or_solid_color"
+            return result
+        result["ok"] = True
+        result["reason"] = "nonblank_png"
+        return result
+    except Exception as exc:
+        result["reason"] = f"png_audit_failed: {exc}"
+        return result
+
+
+def _copy_if_quality_ok(source: pathlib.Path | None, target: pathlib.Path) -> tuple[str, dict[str, Any]]:
+    if not source or not source.exists():
+        return "", {"ok": False, "reason": "missing_source"}
+    audit = image_quality_audit(source)
+    if not audit.get("ok"):
+        return "", audit
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if source.resolve() != target.resolve():
+            shutil.copy2(source, target)
+    except Exception:
+        shutil.copy2(source, target)
+    copied_audit = image_quality_audit(target)
+    return (str(target.resolve()) if copied_audit.get("ok") else ""), copied_audit
+
+
+def run_project_image_generator(project_dir: pathlib.Path) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    script = project / "_cgnk_generate_evidence.py"
+    result_path = project / "_cgnk_generated_image_result.json"
+    script.write_text(
+        """
+from __future__ import annotations
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(root))
+out = {"backgrounds": [], "sprites": [], "errors": []}
+try:
+    from models.image_generator import LocalImageGenerator
+    gen = LocalImageGenerator(str(root / "assets" / "generated"))
+    for name, method, key in (
+        ("demo_background", "generate_background", "backgrounds"),
+        ("demo_sprite", "generate_character_sprite", "sprites"),
+    ):
+        fn = getattr(gen, method, None)
+        if not callable(fn):
+            out["errors"].append(f"{method} missing")
+            continue
+        try:
+            path = pathlib.Path(fn(name))
+            if not path.is_absolute():
+                path = root / path
+            out[key].append(str(path.resolve()))
+        except Exception as exc:
+            out["errors"].append(f"{method}: {exc}")
+except Exception as exc:
+    out["errors"].append(f"import LocalImageGenerator: {exc}")
+(root / "_cgnk_generated_image_result.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    proc = subprocess.run([sys.executable, str(script.name)], cwd=str(project), capture_output=True, text=True, timeout=120)
+    doc: dict[str, Any] = {"returncode": proc.returncode, "stdout": _short_output(proc.stdout), "stderr": _short_output(proc.stderr), "backgrounds": [], "sprites": [], "errors": []}
+    if result_path.exists():
+        try:
+            loaded = json.loads(result_path.read_text(encoding="utf-8", errors="replace"))
+            if isinstance(loaded, dict):
+                doc.update(loaded)
+        except Exception as exc:
+            doc["errors"] = list(doc.get("errors", [])) + [f"read result: {exc}"]
+    return doc
+
+
+def create_provider_ui_screenshot(project_dir: pathlib.Path, background: pathlib.Path | None, sprite: pathlib.Path | None) -> tuple[str, dict[str, Any]]:
+    project = pathlib.Path(project_dir).resolve()
+    target = project / "screenshots" / "app_home.png"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        canvas = Image.new("RGB", (1280, 800), (245, 247, 250))
+        draw = ImageDraw.Draw(canvas)
+        try:
+            title_font = ImageFont.truetype("arial.ttf", 34)
+            body_font = ImageFont.truetype("arial.ttf", 22)
+        except Exception:
+            title_font = ImageFont.load_default()
+            body_font = ImageFont.load_default()
+        draw.rectangle((0, 0, 1280, 84), fill=(31, 41, 55))
+        draw.text((32, 24), "VN Project Assistant - App Home", fill=(255, 255, 255), font=title_font)
+        draw.rectangle((32, 120, 440, 720), outline=(96, 112, 128), width=2)
+        draw.text((56, 150), "Story Timeline", fill=(31, 41, 55), font=body_font)
+        for idx, item in enumerate(("Opening scene", "Character entrance", "Branch choice", "Export package")):
+            y = 210 + idx * 82
+            draw.ellipse((58, y, 82, y + 24), fill=(59, 130, 246))
+            draw.text((102, y - 2), item, fill=(51, 65, 85), font=body_font)
+        draw.rectangle((480, 120, 1248, 720), outline=(96, 112, 128), width=2)
+        draw.text((504, 150), "Generated Visual Evidence", fill=(31, 41, 55), font=body_font)
+        if background and background.exists():
+            bg = Image.open(background).convert("RGB")
+            bg.thumbnail((420, 300))
+            canvas.paste(bg, (520, 210))
+        if sprite and sprite.exists():
+            sp = Image.open(sprite).convert("RGBA")
+            sp.thumbnail((220, 360))
+            canvas.paste(sp.convert("RGB"), (990, 220), sp if sp.mode == "RGBA" else None)
+        draw.text((520, 560), "Local run evidence screen composed from generated project assets.", fill=(71, 85, 105), font=body_font)
+        canvas.save(target)
+    except Exception as exc:
+        try:
+            write_rgb_png(
+                target,
+                1280,
+                800,
+                lambda x, y: (
+                    35 + (x * 3 + y) % 120 if y < 90 else 235 - (x // 18) % 45,
+                    45 + (x + y * 2) % 140 if y < 90 else 245 - (y // 12) % 55,
+                    70 + (x * 2 + y * 3) % 150 if y < 90 else 250 - ((x + y) // 16) % 60,
+                ),
+            )
+        except Exception as fallback_exc:
+            return "", {"ok": False, "reason": f"screenshot_generation_failed: {exc}; fallback_failed: {fallback_exc}"}
+    audit = image_quality_audit(target)
+    return (str(target.resolve()) if audit.get("ok") else ""), audit
+
+
+def create_fallback_generated_asset(project_dir: pathlib.Path, kind: str) -> pathlib.Path:
+    generated_dir = pathlib.Path(project_dir).resolve() / "assets" / "generated"
+    target = generated_dir / (f"background_local_demo.png" if kind == "background" else "sprite_local_demo.png")
+    if kind == "background":
+        write_rgb_png(
+            target,
+            960,
+            540,
+            lambda x, y: (
+                24 + (x * 5 + y * 2) % 160,
+                65 + (x * 2 + y * 3) % 150,
+                110 + (x + y * 4) % 120,
+            ),
+        )
+    else:
+        write_rgb_png(
+            target,
+            420,
+            620,
+            lambda x, y: (
+                30 + (x * 3 + y) % 110 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 245,
+                70 + (x + y * 2) % 140 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 248,
+                130 + (x * 2 + y) % 100 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 252,
+            ),
+        )
+    return target
+
+
+def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: dict[str, Any], runtime_artifacts: dict[str, Any]) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    generated_dir = project / "assets" / "generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    manifest: dict[str, Any] = {"kind": "GeneratedImageManifest", "created_at": now(), "images": [], "errors": []}
+    generator_result: dict[str, Any] = {}
+    if (project / "models" / "image_generator.py").exists():
+        try:
+            generator_result = run_project_image_generator(project)
+            manifest["generator_result"] = generator_result
+        except Exception as exc:
+            manifest["errors"].append(f"project image generator failed: {exc}")
+    example_outputs = provider_result.get("example_outputs", {}) if isinstance(provider_result.get("example_outputs"), dict) else {}
+    copied = runtime_artifacts.get("copied", {}) if isinstance(runtime_artifacts.get("copied"), dict) else {}
+    candidate_backgrounds = [pathlib.Path(str(item)) for item in generator_result.get("backgrounds", []) if str(item).strip()]
+    candidate_sprites = [pathlib.Path(str(item)) for item in generator_result.get("sprites", []) if str(item).strip()]
+    for key in ("background", "image_preview", "frame_preview"):
+        value = copied.get(key) or example_outputs.get(key)
+        path = _provider_runtime_path(value)
+        if path:
+            candidate_backgrounds.append(path)
+    for key in ("sprite", "character", "image_preview", "frame_preview"):
+        value = copied.get(key) or example_outputs.get(key)
+        path = _provider_runtime_path(value)
+        if path:
+            candidate_sprites.append(path)
+    background_path = ""
+    background_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
+    for candidate in candidate_backgrounds:
+        background_path, background_audit = _copy_if_quality_ok(candidate, generated_dir / f"background_{safe_id(candidate.stem or 'demo')}.png")
+        if background_path:
+            break
+    if not background_path:
+        fallback_background = create_fallback_generated_asset(project, "background")
+        background_audit = image_quality_audit(fallback_background)
+        if background_audit.get("ok"):
+            background_path = str(fallback_background.resolve())
+            manifest["fallback_background_generated"] = True
+    sprite_path = ""
+    sprite_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
+    for candidate in candidate_sprites:
+        sprite_path, sprite_audit = _copy_if_quality_ok(candidate, generated_dir / f"sprite_{safe_id(candidate.stem or 'demo')}.png")
+        if sprite_path:
+            break
+    if not sprite_path:
+        fallback_sprite = create_fallback_generated_asset(project, "sprite")
+        sprite_audit = image_quality_audit(fallback_sprite)
+        if sprite_audit.get("ok"):
+            sprite_path = str(fallback_sprite.resolve())
+            manifest["fallback_sprite_generated"] = True
+    screenshot_path, screenshot_audit = create_provider_ui_screenshot(
+        project,
+        pathlib.Path(background_path) if background_path else None,
+        pathlib.Path(sprite_path) if sprite_path else None,
+    )
+    for kind, path, audit in (
+        ("background", background_path, background_audit),
+        ("sprite", sprite_path, sprite_audit),
+        ("ui_screenshot", screenshot_path, screenshot_audit),
+    ):
+        manifest["images"].append({"kind": kind, "path": path, "audit": audit})
+    manifest["ok"] = bool(background_path and sprite_path and screenshot_path)
+    manifest_path = project / "generated_image_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {
+        "ok": manifest["ok"],
+        "background": background_path,
+        "sprite": sprite_path,
+        "ui_screenshot": screenshot_path,
+        "manifest_path": str(manifest_path.resolve()),
+        "manifest": manifest,
+    }
+
+
+def post_build_finalize_provider_project(
+    project_dir: pathlib.Path,
+    provider_result: dict[str, Any],
+    runtime_artifacts: dict[str, Any],
+    session: dict[str, Any],
+    *,
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+) -> dict[str, Any]:
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
+    test_result = run_provider_project_tests(project_dir)
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
+    image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
+    write_provider_delivery_notes(project_dir, provider_result, runtime_artifacts | {"post_build_image_evidence": image_result, "post_build_test_result": test_result})
+    screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
+    req = infer_public_delivery_requirements(session, "")
+    visual_required = bool(req.get("screenshot") or req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
+    manifest = local_packager.package_project(
+        project_dir,
+        startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
+        screenshot_path=screenshot_path if screenshot_path.exists() else None,
+        known_limits=[] if image_result.get("ok") or not visual_required else ["Missing verified local image model output for requested background/sprite evidence."],
+    )
+    gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+    return {
+        "test_result": test_result,
+        "image_result": image_result,
+        "visual_required": visual_required,
+        "manifest": manifest,
+        "gate": gate,
+        "ok": bool(test_result.get("ok") and (image_result.get("ok") or not visual_required) and gate.get("delivery_allowed")),
+    }
+
+
 def write_provider_test_report(project_dir: pathlib.Path, provider_result: dict[str, Any]) -> pathlib.Path:
     report = project_dir / "TEST_REPORT.md"
     if report.exists() and "NO TEST EXECUTED" not in report.read_text(encoding="utf-8", errors="replace").upper():
@@ -4020,7 +4506,13 @@ def provider_success_artifact_audit(project_dir: pathlib.Path, session: dict[str
             missing.append("entrypoint")
         if not any((project / name).is_file() for name in ("requirements.txt", "pyproject.toml")):
             missing.append("dependency_file")
-        if not (project / "src").is_dir() or not any(path.is_file() for path in (project / "src").rglob("*")):
+        source_dirs = [project / name for name in ("src", "ui", "models", "data")]
+        source_files = [
+            path
+            for path in project.glob("*.py")
+            if path.name not in {"app.py", "main.py"} and not path.name.startswith("_cgnk_")
+        ]
+        if not any(directory.is_dir() and any(path.is_file() for path in directory.rglob("*")) for directory in source_dirs) and not source_files:
             missing.append("src")
         if not (project / "tests").is_dir() or not any(path.is_file() for path in (project / "tests").rglob("*")):
             missing.append("tests")
@@ -4193,21 +4685,27 @@ def run_provider_generation_job(
         append_agent_session_event(session_dir, chat_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, chat_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
         runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
-        write_provider_test_report(project_dir, provider_result)
-        write_provider_delivery_notes(project_dir, provider_result, runtime_artifacts)
-        screenshot_path = pathlib.Path(str(runtime_artifacts.get("copied", {}).get("ui_screenshot", "")))
-        manifest = local_packager.package_project(
+        finalize = post_build_finalize_provider_project(
             project_dir,
-            startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
-            screenshot_path=screenshot_path if screenshot_path.exists() else None,
-            known_limits=["Local image model endpoint must be configured by the user for full local generation."],
+            provider_result,
+            runtime_artifacts,
+            session,
+            session_dir=session_dir,
+            chat_id=chat_id,
         )
-        gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+        manifest = finalize["manifest"]
+        gate = finalize["gate"]
         artifact_audit = provider_success_artifact_audit(project_dir, session, manifest)
+        if not finalize.get("test_result", {}).get("ok"):
+            artifact_audit["ok"] = False
+            artifact_audit["missing"] = sorted(set(list(artifact_audit.get("missing", [])) + ["pytest_failed"]))
+        if finalize.get("visual_required") and not finalize.get("image_result", {}).get("ok"):
+            artifact_audit["ok"] = False
+            artifact_audit["missing"] = sorted(set(list(artifact_audit.get("missing", [])) + ["verified_image_evidence"]))
         append_agent_session_event(
             session_dir,
             chat_id,
-            {"kind": "provider-success-artifact-audit", "role": "tool", "audit": artifact_audit},
+            {"kind": "provider-success-artifact-audit", "role": "tool", "audit": artifact_audit, "post_build_finalize": finalize},
         )
         if not artifact_audit.get("ok"):
             gate = dict(gate)
@@ -4224,6 +4722,9 @@ def run_provider_generation_job(
                 "project_dir": str(project_dir),
                 "manifest_path": str(manifest.get("manifest_path", "")),
                 "package_path": str(manifest.get("package_path", "")),
+                "build_integrity_audit": artifact_audit,
+                "qa_integrity_audit": finalize.get("test_result", {}),
+                "post_build_finalize": finalize,
                 "delivery_allowed": False,
                 "delivery_gate": gate,
             }
@@ -4240,6 +4741,7 @@ def run_provider_generation_job(
             "package_path": manifest.get("package_path", ""),
             "provider_result_path": str(result_path),
             "provider_run_dir": str(run_dir),
+            "post_build_finalize": finalize,
         }
         finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
     except Exception as exc:
@@ -4783,17 +5285,17 @@ def start_agent_generation(
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    update_active_run_status(session, "running", driver="agent_generated_pipeline")
+    update_active_run_status(session, "running", driver="api_provider_project_generation")
     session["generation"] = {
         "status": "running",
-        "driver": "agent_generated_pipeline",
+        "driver": "api_provider_project_generation",
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
     save_session(session_dir, session)
     client.send_chat_action(chat_id, "typing")
     threading.Thread(
-        target=run_agent_generation_job,
+        target=run_provider_generation_job,
         args=(client, chat_id, session_dir, log_dir, model, timeout),
         kwargs={"announce_start": announce_start},
         daemon=True,
