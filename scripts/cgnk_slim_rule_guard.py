@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -55,6 +56,17 @@ def between(text: str, start: str, end: str) -> str:
     if second < 0:
         return text[first:]
     return text[first:second]
+
+
+def function_body(text: str, name: str) -> str:
+    """Return the source of a top-level def, from its header to the next top-level def."""
+    match = re.search(rf"^def\s+{re.escape(name)}\s*\(", text, flags=re.M)
+    if not match:
+        return ""
+    next_match = re.search(r"^def\s+\w+\s*\(", text[match.end():], flags=re.M)
+    if not next_match:
+        return text[match.start():]
+    return text[match.start(): match.end() + next_match.start()]
 
 
 def add(checks: list[dict[str, object]], name: str, ok: bool, detail: str = "") -> None:
@@ -109,12 +121,13 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "start_agent_generation driver is not api_provider_project_generation",
     )
 
-    missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in bridge]
+    provider_route_body = function_body(bridge, "run_provider_generation_job") + "\n" + function_body(bridge, "run_provider_execute_with_retries")
+    missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in provider_route_body]
     add(
         checks,
         "provider route is behind validation packager and gate",
-        not missing_provider_terms,
-        ", ".join(missing_provider_terms),
+        bool(provider_route_body.strip()) and not missing_provider_terms,
+        ", ".join(missing_provider_terms) or "provider route function bodies not found",
     )
 
     for name in DELIVERY_GATE_FUNCTIONS:
