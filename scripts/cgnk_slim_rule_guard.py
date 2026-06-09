@@ -19,11 +19,19 @@ PUBLIC_SUFFIXES = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".
 INTERNAL_SUFFIXES = [".md", ".json", ".jsonl", ".txt", ".log", ".yaml", ".yml", ".toml", ".ini"]
 FORBIDDEN_CONFIRMATION_TERMS = [
     "generate_project.py",
+    "run_local_pipeline",
     "run_generation_subprocess",
     "run_generation_job",
     "run_agent_generation_job",
     "simulator",
 ]
+DELIVERY_GATE_FUNCTIONS = ["send_delivery_from_manifest", "send_evidence_checkpoint"]
+DELIVERY_GATE_TERMS = ["evaluate_public_delivery_gate", "emit_public_delivery"]
+LEGACY_WRAPPER_FILES = [
+    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Telegram formal generation"]),
+    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Telegram generation"]),
+]
+LEGACY_BRIDGE_WRAPPERS = ["build_generation_args", "run_generation_subprocess", "run_generation_job"]
 PROVIDER_ROUTE_TERMS = [
     "provider_project_pipeline.execute",
     "provider-output-validated",
@@ -94,6 +102,12 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "run_provider_generation_job" in start_body and "run_agent_generation_job" not in start_body,
         "start_agent_generation route changed",
     )
+    add(
+        checks,
+        "default generation dispatch marks api_provider_project_generation driver",
+        "api_provider_project_generation" in start_body and "agent_generated_pipeline" not in start_body,
+        "start_agent_generation driver is not api_provider_project_generation",
+    )
 
     missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in bridge]
     add(
@@ -101,6 +115,43 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "provider route is behind validation packager and gate",
         not missing_provider_terms,
         ", ".join(missing_provider_terms),
+    )
+
+    for name in DELIVERY_GATE_FUNCTIONS:
+        body = between(bridge, f"def {name}", "\ndef ")
+        missing_gate = [term for term in DELIVERY_GATE_TERMS if term not in body]
+        add(
+            checks,
+            f"{name} delivers only through gate and emit",
+            bool(body) and not missing_gate,
+            ", ".join(missing_gate) or f"{name} not found",
+        )
+
+    for path, markers in LEGACY_WRAPPER_FILES:
+        if not (ROOT / path).exists():
+            continue
+        text = read_text(path)
+        missing_markers = [marker for marker in markers if marker not in text]
+        add(
+            checks,
+            f"{path} is marked legacy-only",
+            not missing_markers,
+            ", ".join(missing_markers),
+        )
+
+    unmarked_wrappers: list[str] = []
+    for name in LEGACY_BRIDGE_WRAPPERS:
+        marker = f"def {name}"
+        index = bridge.find(marker)
+        if index < 0:
+            continue
+        if "LEGACY ONLY" not in bridge[max(0, index - 240):index]:
+            unmarked_wrappers.append(name)
+    add(
+        checks,
+        "legacy wrapper functions in the bridge are marked LEGACY ONLY",
+        not unmarked_wrappers,
+        ", ".join(unmarked_wrappers),
     )
 
     line_count = bridge.count("\n") + 1
