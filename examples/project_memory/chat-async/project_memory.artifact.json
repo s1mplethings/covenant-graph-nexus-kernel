@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:23.490385+00:00",
+  "generated_at": "2026-06-08T16:18:24.564666+00:00",
   "chat_id": "chat-async",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-async\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -15,8 +15,10 @@
       "做一个本地看板应用"
     ],
     "default_assumptions": [
+      "先按本地可运行、可测试、可扩展的默认方案推进",
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -40,9 +42,10 @@
     "开始生成"
   ],
   "generation": {
-    "status": "idle",
+    "status": "waiting_confirmation",
     "driver": "not_started",
-    "generation_mode": "unstarted"
+    "generation_mode": "unstarted",
+    "start_wait_reason": "needs_direction_confirmation"
   },
   "module_mapping": [
     {
@@ -162,5 +165,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:22.319653+00:00",
+  "generated_at": "2026-06-08T16:18:23.244884+00:00",
   "chat_id": "chat-a",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-a\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -15,6 +15,7 @@
       "做一个本地任务管理器"
     ],
     "default_assumptions": [
+      "后端先采用本地数据存储，接口设计保持可替换",
       "本地可运行",
       "直接生成并测试"
     ],
@@ -39,9 +40,10 @@
     "做一个本地任务管理器"
   ],
   "generation": {
-    "status": "idle",
+    "status": "waiting_confirmation",
     "driver": "not_started",
-    "generation_mode": "unstarted"
+    "generation_mode": "unstarted",
+    "start_wait_reason": "needs_direction_confirmation"
   },
   "module_mapping": [
     {
@@ -161,5 +163,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

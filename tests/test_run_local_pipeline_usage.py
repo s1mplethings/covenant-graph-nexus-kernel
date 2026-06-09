@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import tempfile
@@ -105,6 +106,211 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         self.assertLessEqual(value, 6)
         self.assertGreaterEqual(value, 1)
+
+    def test_progress_deadline_extends_after_meaningful_work(self) -> None:
+        deadline = run_local_pipeline.ProgressDeadline(time.time() - 1, extension_seconds=60)
+
+        deadline.mark_progress("project_generation", "component returned files", ["app.py"])
+        value = run_local_pipeline.remaining_timeout(deadline, 120, floor=5, cap=90)
+
+        self.assertGreaterEqual(value, 5)
+        self.assertEqual("project_generation", deadline.progress_events[-1]["phase"])
+
+    def test_provider_component_progress_refreshes_deadline_between_components(self) -> None:
+        original = run_local_pipeline.provider_generate_project_component
+        calls: list[str] = []
+
+        def fake_provider_component(**kwargs):
+            component_id = kwargs["component"]["id"]
+            calls.append(component_id)
+            time.sleep(1.2)
+            return {
+                "component_id": component_id,
+                "summary": f"{component_id} done",
+                "files": [{"path": f"{component_id}.py", "content": "print('ok')\n"}],
+            }
+
+        run_local_pipeline.provider_generate_project_component = fake_provider_component
+        try:
+            deadline = run_local_pipeline.ProgressDeadline(time.time() + 6, extension_seconds=60)
+            result = run_local_pipeline.provider_generate_project_by_components(
+                "build a project",
+                {
+                    "components": [{"id": "app"}, {"id": "tests"}],
+                    "merge_policy": {"required_final_files": ["app.py", "tests.py"]},
+                },
+                {},
+                {},
+                {},
+                {},
+                [],
+                "unused",
+                30,
+                deadline=deadline,
+            )
+        finally:
+            run_local_pipeline.provider_generate_project_component = original
+
+        self.assertEqual(["app", "tests"], calls)
+        self.assertEqual(2, len(result["files"]))
+        self.assertTrue(deadline.progress_events)
+
+    def test_provider_component_checkpoint_resumes_completed_components(self) -> None:
+        original = run_local_pipeline.provider_generate_project_component
+        original_fast = os.environ.get("CGKN_PROVIDER_RETRY_FAST")
+        os.environ["CGKN_PROVIDER_RETRY_FAST"] = "1"
+        calls: list[str] = []
+
+        def first_run_component(**kwargs):
+            component_id = kwargs["component"]["id"]
+            calls.append(component_id)
+            if component_id == "backend":
+                raise RuntimeError("provider_api_request_failed: HTTP 520: upstream failed [retryable=true]")
+            return {
+                "component_id": component_id,
+                "summary": "foundation done",
+                "files": [{"path": "app.py", "content": "print('ok')\n"}],
+                "quality_gate": {"status": "pass"},
+                "self_test": {"status": "pass", "checks": ["validated"]},
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir) / "artifacts" / "provider_components"
+            pipeline = {
+                "components": [{"id": "foundation"}, {"id": "backend"}],
+                "merge_policy": {"required_final_files": ["app.py", "src/backend.py"]},
+            }
+            run_local_pipeline.provider_generate_project_component = first_run_component
+            try:
+                with self.assertRaises(RuntimeError):
+                    run_local_pipeline.provider_generate_project_by_components(
+                        "build a project",
+                        pipeline,
+                        {},
+                        {},
+                        {},
+                        {},
+                        [],
+                        "unused",
+                        30,
+                        checkpoint_dir=checkpoint_dir,
+                    )
+                self.assertEqual(["foundation", "backend", "backend", "backend"], calls)
+                self.assertTrue((checkpoint_dir / "foundation.json").exists())
+                calls.clear()
+
+                def second_run_component(**kwargs):
+                    component_id = kwargs["component"]["id"]
+                    calls.append(component_id)
+                    if component_id == "foundation":
+                        raise AssertionError("foundation should have been loaded from checkpoint")
+                    return {
+                        "component_id": component_id,
+                        "summary": "backend done",
+                        "files": [{"path": "src/backend.py", "content": "def ok():\n    return True\n"}],
+                        "quality_gate": {"status": "pass"},
+                        "self_test": {"status": "pass", "checks": ["validated"]},
+                    }
+
+                run_local_pipeline.provider_generate_project_component = second_run_component
+                result = run_local_pipeline.provider_generate_project_by_components(
+                    "build a project",
+                    pipeline,
+                    {},
+                    {},
+                    {},
+                    {},
+                    [],
+                    "unused",
+                    30,
+                    checkpoint_dir=checkpoint_dir,
+                )
+                self.assertTrue((checkpoint_dir / "component_checkpoint_summary.json").exists())
+            finally:
+                run_local_pipeline.provider_generate_project_component = original
+                if original_fast is None:
+                    os.environ.pop("CGKN_PROVIDER_RETRY_FAST", None)
+                else:
+                    os.environ["CGKN_PROVIDER_RETRY_FAST"] = original_fast
+
+        self.assertEqual(["backend"], calls)
+        self.assertEqual(["foundation"], result["component_checkpoint_summary"]["skipped_from_checkpoint"])
+        self.assertIn("foundation", result["component_checkpoint_summary"]["completed_components"])
+        self.assertIn("backend", result["component_checkpoint_summary"]["completed_components"])
+
+    def test_component_merge_generates_test_plan_from_real_tests(self) -> None:
+        original = run_local_pipeline.provider_generate_project_component
+
+        def fake_provider_component(**kwargs):
+            component_id = kwargs["component"]["id"]
+            if component_id == "docs":
+                return {
+                    "component_id": component_id,
+                    "summary": "docs",
+                    "files": [{"path": "README.md", "content": "# App\n"}],
+                    "quality_gate": {"status": "pass"},
+                    "self_test": {"status": "pass", "checks": ["validated"]},
+                }
+            return {
+                "component_id": component_id,
+                "summary": "tests",
+                "files": [{"path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"}],
+                "quality_gate": {"status": "pass"},
+                "self_test": {"status": "pass", "checks": ["validated"]},
+            }
+
+        run_local_pipeline.provider_generate_project_component = fake_provider_component
+        try:
+            result = run_local_pipeline.provider_generate_project_by_components(
+                "build a project",
+                {
+                    "components": [{"id": "docs"}, {"id": "tests"}],
+                    "merge_policy": {"required_final_files": ["README.md", "TEST_PLAN.md"]},
+                },
+                {},
+                {},
+                {},
+                {},
+                [],
+                "unused",
+                30,
+            )
+        finally:
+            run_local_pipeline.provider_generate_project_component = original
+
+        files = {item["path"]: item["content"] for item in result["files"]}
+        self.assertIn("TEST_PLAN.md", files)
+        self.assertIn("tests/test_app.py", files["TEST_PLAN.md"])
+
+    def test_component_merge_combines_document_conflicts_only(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "foundation", "files": [{"path": "README.md", "content": "# App\n"}]},
+                {"component_id": "docs", "files": [{"path": "README.md", "content": "# Usage\n"}]},
+            ]
+        )
+        readme = {item["path"]: item["content"] for item in files}["README.md"]
+        self.assertIn("# App", readme)
+        self.assertIn("# Usage", readme)
+
+        with self.assertRaises(RuntimeError):
+            run_local_pipeline.merge_component_files(
+                [
+                    {"component_id": "one", "files": [{"path": "src/app.py", "content": "print(1)\n"}]},
+                    {"component_id": "two", "files": [{"path": "src/app.py", "content": "print(2)\n"}]},
+                ]
+            )
+
+    def test_component_merge_allows_frontend_asset_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "foundation", "files": [{"path": "app/index.html", "content": "<h1>base</h1>\n"}]},
+                {"component_id": "frontend", "files": [{"path": "app/index.html", "content": "<h1>frontend</h1>\n"}]},
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("<h1>frontend</h1>\n", merged["app/index.html"])
 
 
 if __name__ == "__main__":

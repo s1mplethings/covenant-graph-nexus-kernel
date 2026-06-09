@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:27.104362+00:00",
+  "generated_at": "2026-06-08T16:19:45.767114+00:00",
   "chat_id": "chat-3",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-3\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -16,6 +16,8 @@
       "做一个本地图片批量重命名 GUI，要截图和测试报告"
     ],
     "default_assumptions": [
+      "图片生成先做可替换 provider 接口，生成结果落到本地素材库",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。",
       "本地可运行",
       "直接生成并测试"
     ],
@@ -48,8 +50,10 @@
     "做一个本地图片批量重命名 GUI，要截图和测试报告"
   ],
   "generation": {
-    "status": "running",
-    "driver": "agent_conversation_loop"
+    "status": "waiting_confirmation",
+    "driver": "not_started",
+    "generation_mode": "unstarted",
+    "start_wait_reason": "needs_direction_confirmation"
   },
   "module_mapping": [
     {
@@ -169,5 +173,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

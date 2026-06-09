@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T12:53:44.842939+00:00
-revision_count: 2
+generated_at: 2026-06-08T00:13:51.829682+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -23,13 +23,13 @@ revision_count: 2
 
 ## Current Project Summary
 
-通过csgo2的demo文件，对玩家的鼠标键盘动作及部分视觉信号进行分析和提取，用于鉴挂判别。
+本地可运行的 VN 项目助手，支持梳理故事逻辑时间线，生成背景和立绘，直接生成图片，强调真实生成能力。
 
 ## Known Facts
 
-- 用户提出的新项目需求: 我想要一个项目可以通过csgo2的demo基本分析出用户的鼠标键盘动作，还有一部分视觉信息，用来鉴挂
-- 用户需求为CSGO2 demo解析，提取鼠标、键盘动作和视觉信息
-- 目标用途为鉴挂判别
+- 用户提出的新项目需求: 帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
+- 识别出的核心能力：结构化流程/关系建模；内容生成能力；导入导出和格式互操作
+- 用户项目需求: 帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## User Rules
 
@@ -37,24 +37,28 @@ revision_count: 2
 
 ## Default Assumptions
 
-- demo文件为CSGO2标准格式
-- 初版以主要动作与视角分析为主，后续可扩展高级检测
-- 无demo样例时可用公开测试demo
+- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
+- 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
+- 先按本地可运行、可测试、带结果预览的第一版推进
 
 ## First Version Plan
 
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
-- 集成demo文件解析模块，支持CSGO2 demo格式
-- 提取并复原玩家鼠标、键盘操作（如移动、射击、换弹、跳跃等）
-- 分析主要视觉信号（如视角变化、准星移动、枪法轨迹）
-- 生成行为摘要和疑似异常点可视化展示
-- 输出摘要图和行为轨迹预览，满足可视化交付要求
+- 第一版先做本地可运行 VN 项目助手
+- 支持时间线整理、背景生成、立绘生成和预览
+- 核心能力：结构化流程/关系建模
+- 核心能力：内容生成能力
+- 核心能力：导入导出和格式互操作
+- 交付启动说明、测试结论和预览截图
+- 整理输入解析
+- 生成核心分析流程
+- 提供可视化摘要和测试结论
 
 ## Acceptance Criteria
 
-- 交付时必须提供可视化预览或摘要图兜底
-- 输出必须包含至少一份可视化摘要图或行为轨迹图
-- 疑似异常点需高亮展示或列表输出
+- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
+- 项目必须能运行，并输出测试结论和可视化/预览结果
 
 ## Change Requests
 
@@ -62,13 +66,14 @@ revision_count: 2
 
 ## Delivery Requirements
 
-- 交付时必须提供可视化预览或摘要图兜底
-- 交付时必须生成可视化图片、轨迹图或摘要图，缺少真实数据时用测试样例兜底
+- 交付时必须直接发送图片/照片预览 artifact，不只返回路径
+- 交付可运行项目文件、效果预览和测试结论
 
 ## Decision Log
 
 - 项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。
-- 核心能力是CSGO2 demo解析、玩家动作与视觉事件还原、异常行为可视化；方案优先使用成熟库和社区工具，输出可视化预览和疑点摘要
+- 先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。
+- 模型前台返回结构化内容解析失败，本地兜底保留用户需求并继续正式生成主线。
 
 ## Uploaded Project Inputs
 
@@ -76,9 +81,7 @@ revision_count: 2
 
 ## Open Questions
 
-- 后续是否需要自动化批量分析？
-- 是否需要支持多demo合并统计？
-- 可接受哪些可视化风格（轨迹图、热图、事件列表）？
+- 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？
 
 ## Blocking Questions
 
@@ -120,13 +123,13 @@ revision_count: 2
 ## Visible User Message Log
 
 1. 你好
-2. 我想要一个项目可以通过csgo2的demo基本分析出用户的鼠标键盘动作，还有一部分视觉信息，用来鉴挂
+2. 帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的
 
 ## Generation State
 
-- Status: `ready_with_warnings`
+- Status: `rework`
 - Started at: ``
-- Finished at: `2026-06-07T12:53:39.780998+00:00`
+- Finished at: ``
 - Result path: ``
 
 ## Update Rules

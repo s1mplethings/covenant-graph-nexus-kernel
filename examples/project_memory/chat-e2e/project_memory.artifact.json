@@ -1,0 +1,442 @@
+{
+  "kind": "ProjectMemoryMarkdown",
+  "artifact_ref": "artifact.project_memory_markdown@1",
+  "schema_version": "1",
+  "generated_at": "2026-06-08T16:19:17.584630+00:00",
+  "chat_id": "chat-e2e",
+  "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-e2e\\PROJECT_MEMORY.md",
+  "flow_ref": "flow.modular_project_generation@1",
+  "policy_ref": "policy.safe_modular_project_generation@1",
+  "contract_pack": "agent_context.modular_project_generation.contract_pack.json",
+  "customer_request": {
+    "project_summary": "做一个本地任务管理器",
+    "known_facts": [
+      "用户提出的新项目需求: 做一个本地任务管理器",
+      "做一个本地任务管理器"
+    ],
+    "default_assumptions": [
+      "后端先采用本地数据存储，接口设计保持可替换",
+      "本地可运行",
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？"
+    ],
+    "user_rules": [],
+    "acceptance_criteria": [
+      "可运行",
+      "有测试结论"
+    ],
+    "change_requests": [],
+    "delivery_requirements": [
+      "交付项目包和预览"
+    ],
+    "decision_log": [
+      "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
+      "项目输入到达即启动正式生成"
+    ],
+    "open_questions": [],
+    "blocking_questions": []
+  },
+  "uploaded_inputs": [],
+  "visible_user_messages": [
+    "做一个本地任务管理器",
+    "开始生成"
+  ],
+  "generation": {
+    "status": "rework_blocked",
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-08T16:19:17.552742+00:00",
+    "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e",
+    "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\delivery_manifest.json",
+    "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\final_project_bundle.zip",
+    "build_integrity_audit": {
+      "ok": false,
+      "strict_runtime": false,
+      "missing": [
+        "pytest_failed"
+      ],
+      "asset_counts": {
+        "packages": 1,
+        "screenshots": 1,
+        "generated_images": 3,
+        "generated_backgrounds": 1,
+        "generated_sprites": 1,
+        "videos": 0
+      }
+    },
+    "qa_integrity_audit": {
+      "ok": false,
+      "commands_run": [],
+      "exit_code": null,
+      "stdout": "",
+      "stderr": "",
+      "error": "tests directory missing or no test*.py files found"
+    },
+    "post_build_finalize": {
+      "test_result": {
+        "ok": false,
+        "commands_run": [],
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "",
+        "error": "tests directory missing or no test*.py files found"
+      },
+      "image_result": {
+        "ok": true,
+        "background": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
+        "sprite": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
+        "ui_screenshot": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
+        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\generated_image_manifest.json",
+        "manifest": {
+          "kind": "GeneratedImageManifest",
+          "created_at": "2026-06-08T16:19:12.931993+00:00",
+          "images": [
+            {
+              "kind": "background",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 960,
+                "height": 540,
+                "unique_colors": 2400,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            },
+            {
+              "kind": "sprite",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 420,
+                "height": 620,
+                "unique_colors": 1231,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            },
+            {
+              "kind": "ui_screenshot",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 1280,
+                "height": 800,
+                "unique_colors": 4177,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            }
+          ],
+          "errors": [],
+          "fallback_background_generated": true,
+          "fallback_sprite_generated": true,
+          "ok": true
+        }
+      },
+      "visual_required": false,
+      "manifest": {
+        "kind": "CGNKDeliveryManifest",
+        "created_at": "2026-06-08T16:19:17.497440+00:00",
+        "status": "ready_with_warnings",
+        "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e",
+        "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\final_project_bundle.zip",
+        "readme_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\README.md",
+        "startup_command": "python main.py",
+        "run_log_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\packager_run_log.txt",
+        "known_limits": [
+          "测试报告存在，但未执行真实测试命令"
+        ],
+        "quality_evidence": {
+          "readme_found": true,
+          "test_report_found": true,
+          "test_report_has_commands": true,
+          "test_report_has_no_test_executed": true,
+          "test_report_mentions_sample_input": false,
+          "delivery_notes_found": true,
+          "product_plan_found": false,
+          "output_contract_found": false,
+          "technical_plan_found": false,
+          "build_plan_found": false,
+          "preview_evidence_found": true,
+          "preview_placeholder_found": false,
+          "sample_input_found": true,
+          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
+          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
+        },
+        "user_review_evidence": {
+          "evidence_review_found": false,
+          "test_report_found": true,
+          "test_code_files": [],
+          "sample_inputs": [],
+          "screenshots": [
+            "screenshots/app_home.png",
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png"
+          ],
+          "generated_images": [
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png",
+            "screenshots/app_home.png"
+          ],
+          "videos": [],
+          "preview_files": [
+            "delivery_manifest.json",
+            "generated_image_manifest.json",
+            "generation_context_snapshot.json",
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png",
+            "screenshots/app_home.png"
+          ],
+          "user_review_required": false,
+          "user_review_completed": false
+        },
+        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\delivery_manifest.json"
+      },
+      "gate": {
+        "delivery_allowed": false,
+        "status": "REWORK",
+        "phase": "final",
+        "missing": [
+          "real_test_execution"
+        ],
+        "requirements": {
+          "screenshot": false,
+          "video": false,
+          "generated_image": false,
+          "background": false,
+          "sprite": false,
+          "demo_video": false
+        },
+        "asset_counts": {
+          "packages": 1,
+          "screenshots": 1,
+          "generated_images": 3,
+          "generated_backgrounds": 1,
+          "generated_sprites": 1,
+          "videos": 0
+        },
+        "quality_evidence": {
+          "readme_found": true,
+          "test_report_found": true,
+          "test_report_has_commands": true,
+          "test_report_has_no_test_executed": true,
+          "test_report_mentions_sample_input": false,
+          "delivery_notes_found": true,
+          "product_plan_found": false,
+          "output_contract_found": false,
+          "technical_plan_found": false,
+          "build_plan_found": false,
+          "preview_evidence_found": true,
+          "preview_placeholder_found": false,
+          "sample_input_found": true,
+          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
+          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
+        },
+        "public_suffixes": [
+          ".gif",
+          ".jpeg",
+          ".jpg",
+          ".mp4",
+          ".png",
+          ".webm",
+          ".webp",
+          ".zip"
+        ]
+      },
+      "ok": false
+    },
+    "delivery_allowed": false,
+    "delivery_gate": {
+      "delivery_allowed": false,
+      "status": "REWORK",
+      "phase": "final",
+      "missing": [
+        "provider:pytest_failed",
+        "real_test_execution"
+      ],
+      "requirements": {
+        "screenshot": false,
+        "video": false,
+        "generated_image": false,
+        "background": false,
+        "sprite": false,
+        "demo_video": false
+      },
+      "asset_counts": {
+        "packages": 1,
+        "screenshots": 1,
+        "generated_images": 3,
+        "generated_backgrounds": 1,
+        "generated_sprites": 1,
+        "videos": 0
+      },
+      "quality_evidence": {
+        "readme_found": true,
+        "test_report_found": true,
+        "test_report_has_commands": true,
+        "test_report_has_no_test_executed": true,
+        "test_report_mentions_sample_input": false,
+        "delivery_notes_found": true,
+        "product_plan_found": false,
+        "output_contract_found": false,
+        "technical_plan_found": false,
+        "build_plan_found": false,
+        "preview_evidence_found": true,
+        "preview_placeholder_found": false,
+        "sample_input_found": true,
+        "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
+        "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
+      },
+      "public_suffixes": [
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".mp4",
+        ".png",
+        ".webm",
+        ".webp",
+        ".zip"
+      ],
+      "provider_success_artifact_audit": {
+        "ok": false,
+        "strict_runtime": false,
+        "missing": [
+          "pytest_failed"
+        ],
+        "asset_counts": {
+          "packages": 1,
+          "screenshots": 1,
+          "generated_images": 3,
+          "generated_backgrounds": 1,
+          "generated_sprites": 1,
+          "videos": 0
+        }
+      }
+    }
+  },
+  "module_mapping": [
+    {
+      "node": "n_customer_service",
+      "module_ref": "module.customer.service@1",
+      "main_output": "customer_request",
+      "responsibility": "需求对话、用户纠正、验收标准、交付要求"
+    },
+    {
+      "node": "n_requirement_blueprint",
+      "module_ref": "module.requirement_blueprint.generator@1",
+      "main_output": "requirement_blueprint",
+      "responsibility": "需求蓝图、I/O、功能拆解、任务和 PRD"
+    },
+    {
+      "node": "n_local_librarian",
+      "module_ref": "module.local.librarian@1",
+      "main_output": "local_library_index",
+      "responsibility": "本地库、模块、脚本和可复用能力索引"
+    },
+    {
+      "node": "n_online_library_sources",
+      "module_ref": "module.online.library_sources@1",
+      "main_output": "online_sources",
+      "responsibility": "市场调研、在线库/API/模型发现"
+    },
+    {
+      "node": "n_feature_library_search",
+      "module_ref": "module.feature.library_search@1",
+      "main_output": "candidates",
+      "responsibility": "按功能寻找可用库、API、skill 或 agent"
+    },
+    {
+      "node": "n_local_agent",
+      "module_ref": "module.local_agent.plan@1",
+      "main_output": "agent_plan",
+      "responsibility": "agent 真实使用项目的输入到输出流程计划"
+    },
+    {
+      "node": "n_adversarial_generation",
+      "module_ref": "module.adversarial_generation@1",
+      "main_output": "adversarial_review",
+      "responsibility": "反向检查模板化、假通过、缺产物、未满足用户纠正"
+    },
+    {
+      "node": "n_project_generator",
+      "module_ref": "module.project.generator@1",
+      "main_output": "project_blueprint/generation_trace",
+      "responsibility": "真实项目代码、接口、依赖和生成轨迹"
+    },
+    {
+      "node": "n_test_graph_emit",
+      "module_ref": "module.test_graph.emit@1",
+      "main_output": "test_graph",
+      "responsibility": "项目类型自适应测试图和步骤"
+    },
+    {
+      "node": "n_effect_report_emit",
+      "module_ref": "module.effect_report.emit@1",
+      "main_output": "effect_report",
+      "responsibility": "效果报告、截图、视频、可见产物"
+    },
+    {
+      "node": "n_unified_control",
+      "module_ref": "module.unified_control@1",
+      "main_output": "project_blueprint/generation_trace/test_graph/effect_report",
+      "responsibility": "最终统一验收与交付裁决"
+    }
+  ],
+  "artifact_mapping": [
+    {
+      "artifact_ref": "artifact.goal@1",
+      "purpose": "用户原始目标和补充"
+    },
+    {
+      "artifact_ref": "artifact.customer_request@1",
+      "purpose": "规范化客户请求、约束、验收和纠正"
+    },
+    {
+      "artifact_ref": "artifact.requirement_blueprint@1",
+      "purpose": "结构化需求蓝图"
+    },
+    {
+      "artifact_ref": "artifact.local_library_index@1",
+      "purpose": "本地能力索引"
+    },
+    {
+      "artifact_ref": "artifact.online_library_sources@1",
+      "purpose": "在线资料、市场调研和 API/模型发现"
+    },
+    {
+      "artifact_ref": "artifact.feature_library_candidates@1",
+      "purpose": "按功能筛出的候选库/API/skill"
+    },
+    {
+      "artifact_ref": "artifact.local_agent_plan@1",
+      "purpose": "agent 实际使用计划"
+    },
+    {
+      "artifact_ref": "artifact.adversarial_review@1",
+      "purpose": "生成前/后的反向验收意见"
+    },
+    {
+      "artifact_ref": "artifact.project_blueprint@1",
+      "purpose": "项目文件、模块、接口和运行方式"
+    },
+    {
+      "artifact_ref": "artifact.generation_trace@1",
+      "purpose": "生成过程、决策和模块输出"
+    },
+    {
+      "artifact_ref": "artifact.test_graph@1",
+      "purpose": "测试图"
+    },
+    {
+      "artifact_ref": "artifact.effect_report@1",
+      "purpose": "效果报告和可见产物"
+    }
+  ],
+  "revision_count": 3
+}

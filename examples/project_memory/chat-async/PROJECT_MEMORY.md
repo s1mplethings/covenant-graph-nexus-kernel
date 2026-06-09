@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:23.482377+00:00
-revision_count: 2
+generated_at: 2026-06-08T16:18:24.563649+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -36,12 +36,15 @@ revision_count: 2
 
 ## Default Assumptions
 
+- 先按本地可运行、可测试、可扩展的默认方案推进
 - 本地可运行
 - 直接生成并测试
+- 未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？
 
 ## First Version Plan
 
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 交付启动说明、测试结论和预览截图
 - 前端交互
 - 后端处理
 - 测试与交付
@@ -116,7 +119,7 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `idle`
+- Status: `waiting_confirmation`
 - Started at: ``
 - Finished at: ``
 - Result path: ``

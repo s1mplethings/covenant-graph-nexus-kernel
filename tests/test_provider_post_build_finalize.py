@@ -12,6 +12,397 @@ import scripts.telegram_live_bridge as bridge
 
 
 class ProviderPostBuildFinalizeTests(unittest.TestCase):
+    def test_entrypoint_and_dependency_repairs_are_deterministic(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "project"
+            (project / "src").mkdir(parents=True)
+            (project / "src" / "main.py").write_text(
+                "from src.config import settings\n\n"
+                "def main():\n"
+                "    print(settings.app_name)\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "config.py").write_text(
+                "from pydantic import BaseSettings, Field\n\n"
+                "class Settings(BaseSettings):\n"
+                "    app_name: str = Field(default='VN')\n"
+                "settings = Settings()\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "main.py").write_text(
+                "from fastapi import FastAPI\n\napp = FastAPI()\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "image_use.py").write_text("from PIL import Image\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_ui.py").write_text(
+                "from flask import Flask\nfrom src.main import create_app\n",
+                encoding="utf-8",
+            )
+            (project / "requirements.txt").write_text("pydantic==1.10.7\nfastapi==0.95.2\n", encoding="utf-8")
+
+            launcher = bridge.ensure_provider_root_launcher(project)
+            repair = bridge.deterministic_post_build_repair(
+                project,
+                {"stdout": "No module named PIL._deprecate\nBaseSettings has been moved", "stderr": "", "exit_code": 2},
+            )
+
+            self.assertTrue(launcher["changed"])
+            self.assertTrue((project / "main.py").exists())
+            config_text = (project / "src" / "config.py").read_text(encoding="utf-8")
+            self.assertIn("from pydantic_settings import BaseSettings", config_text)
+            requirements = (project / "requirements.txt").read_text(encoding="utf-8").lower()
+            self.assertIn("pydantic-settings", requirements)
+            self.assertIn("pillow>=10,<12", requirements)
+            self.assertIn("fastapi>=0.115,<1", requirements)
+            self.assertIn("flask>=3,<4", requirements)
+            self.assertIn("def create_app", (project / "src" / "main.py").read_text(encoding="utf-8"))
+            self.assertEqual("dependency_environment_error", repair["failure_type"])
+
+    def test_provider_interface_repair_fixes_generated_test_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "project"
+            (project / "src" / "backend").mkdir(parents=True)
+            (project / "src" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "main.py").write_text(
+                "from fastapi import FastAPI\n\napp = FastAPI()\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "backend" / "image_generator.py").write_text(
+                "\n".join(
+                    [
+                        "import os, uuid",
+                        "from PIL import Image",
+                        "IMAGE_OUTPUT_DIR = 'media/generated_images'",
+                        "class ImageGenerator:",
+                        "    def generate_background(self, prompt, width=800, height=600):",
+                        "        os.makedirs(IMAGE_OUTPUT_DIR, exist_ok=True)",
+                        "        path = os.path.join(IMAGE_OUTPUT_DIR, f'background_{uuid.uuid4().hex}.png')",
+                        "        Image.new('RGB', (width, height), (20, 80, 120)).save(path)",
+                        "        return path",
+                        "    def generate_character_sprite(self, prompt, width=400, height=600):",
+                        "        os.makedirs(IMAGE_OUTPUT_DIR, exist_ok=True)",
+                        "        path = os.path.join(IMAGE_OUTPUT_DIR, f'sprite_{uuid.uuid4().hex}.png')",
+                        "        Image.new('RGB', (width, height), (120, 80, 20)).save(path)",
+                        "        return path",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "image_generation.py").write_text(
+                "\n".join(
+                    [
+                        "from PIL import Image",
+                        "class ImageGeneratorInterface:",
+                        "    def generate_background(self, prompt, width=800, height=600):",
+                        "        raise NotImplementedError",
+                        "class DummyImageGenerator(ImageGeneratorInterface):",
+                        "    def generate_background(self, prompt, width=800, height=600):",
+                        "        return Image.new('RGB', (width, height), (20, 80, 120))",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "timeline_manager.py").write_text(
+                "\n".join(
+                    [
+                        "import json",
+                        "class StoryNode:",
+                        "    def __init__(self, node_id='', title='', content=''):",
+                        "        self.node_id = node_id",
+                        "        self.title = title",
+                        "        self.content = content",
+                        "        self.next_nodes = []",
+                        "class TimelineManager:",
+                        "    def __init__(self):",
+                        "        self.nodes = {}",
+                        "        self.start_node_id = None",
+                        "    def add_node(self, title, content):",
+                        "        node = StoryNode(title=title, content=content)",
+                        "        self.nodes[id(node)] = node",
+                        "        return id(node)",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "timeline.py").write_text(
+                "\n".join(
+                    [
+                        "class StoryTimeline:",
+                        "    def __init__(self):",
+                        "        self.nodes = {}",
+                        "        self.start_node_id = None",
+                        "    def add_node(self, title, content):",
+                        "        node_id = str(len(self.nodes) + 1)",
+                        "        self.nodes[node_id] = {'title': title, 'content': content, 'next_nodes': []}",
+                        "        return node_id",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "project_structure.py").write_text(
+                "from pathlib import Path\nPROJECT_ROOT = Path(__file__).parent.parent.resolve()\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "cli.py").write_text(
+                "\n".join(
+                    [
+                        "import argparse",
+                        "import sys",
+                        "from backend.timeline_manager import TimelineManager",
+                        "def main():",
+                        "    parser = argparse.ArgumentParser(description=\"VN Project Assistant CLI\")",
+                        "    parser.add_argument('--export', metavar='PROJECT_NAME')",
+                        "    args = parser.parse_args()",
+                        "    if args.export:",
+                        "        print('exported')",
+                        "if __name__ == '__main__':",
+                        "    main()",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "app.py").write_text(
+                "from backend.timeline_manager import TimelineManager\n\napp = object()\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "project_data.py").write_text(
+                "class ProjectDataStore:\n    pass\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "project_api.py").write_text(
+                "from backend.timeline_manager import TimelineManager\n\napi = object()\n",
+                encoding="utf-8",
+            )
+            (project / "requirements.txt").write_text("pytest\npillow>=10,<12\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_generated_interfaces.py").write_text(
+                "\n".join(
+                    [
+                        "import os, subprocess, sys",
+                        "from src.backend.image_generator import ImageGenerator",
+                        "from src.backend.image_generation import BackgroundGenerator, CharacterSpriteGenerator",
+                        "from src.backend.timeline_manager import TimelineManager",
+                        "from src.backend.timeline import StoryTimeline, StoryNode",
+                        "from src.project_structure import StoryTimeline as ProjectStoryTimeline",
+                        "from src.backend.cli import VNProjectCLI",
+                        "from src.backend.project_data import ProjectData",
+                        "from src.backend.project_api import ProjectAPI",
+                        "from src.backend import main as backend_main",
+                        "from src.frontend import main as frontend_main",
+                        "",
+                        "def test_image_generator_compat(tmp_path):",
+                        "    gen = ImageGenerator()",
+                        "    assert os.path.isfile(gen.generate_background('forest', output_dir=str(tmp_path)))",
+                        "    assert os.path.isfile(gen.generate_sprite('hero', output_dir=str(tmp_path)))",
+                        "    assert os.path.isfile(gen.generate_background('forest', str(tmp_path)))",
+                        "    assert os.path.isfile(gen.generate_sprite('hero', str(tmp_path)))",
+                        "    assert os.path.exists(gen.generate_background('forest').file_path)",
+                        "    assert os.path.exists(gen.generate_sprite('hero').file_path)",
+                        "    assert os.path.isfile(BackgroundGenerator().generate('forest', output_dir=str(tmp_path)))",
+                        "    assert os.path.isfile(CharacterSpriteGenerator().generate('hero', output_dir=str(tmp_path)))",
+                        "",
+                        "def test_timeline_compat(tmp_path):",
+                        "    timeline = TimelineManager()",
+                        "    timeline.add_node('start', {'text': 'Start'})",
+                        "    timeline.add_edge('start', 'middle')",
+                        "    assert ('start', 'middle') in timeline.get_edges()",
+                        "    title_id = timeline.add_node('Start', description='Start of story')",
+                        "    assert timeline.get_node(title_id)['title'] == 'Start'",
+                        "    assert 'Start' in timeline.serialize()",
+                        "    story = StoryTimeline()",
+                        "    start_id = story.add_node('Start', description='The beginning')",
+                        "    branch_id = story.add_node('Branch')",
+                        "    story.add_branch(start_id, branch_id)",
+                        "    assert branch_id in story.nodes[start_id]['branches']",
+                        "    assert story.get_node(start_id)['title'] == 'Start'",
+                        "    assert branch_id in story.get_branches(start_id)",
+                        "    story.remove_node(branch_id)",
+                        "    assert branch_id not in story.nodes",
+                        "    timeline_json = tmp_path / 'story.json'",
+                        "    story.save_to_file(timeline_json)",
+                        "    loaded_story = StoryTimeline.load_from_file(timeline_json)",
+                        "    assert loaded_story.get_node(start_id)['title'] == 'Start'",
+                        "    assert 'Start' in [node['title'] for node in story.to_dict()['nodes']]",
+                        "    project_story = ProjectStoryTimeline()",
+                        "    project_story.add_event('start', description='Start')",
+                        "    project_story.add_event('conflict', description='Conflict')",
+                        "    project_story.add_event('resolution', description='Resolution')",
+                        "    project_story.add_dependency('start', 'conflict')",
+                        "    project_story.add_dependency('conflict', 'resolution')",
+                        "    assert project_story.get_ordered_events() == ['start', 'conflict', 'resolution']",
+                        "    project_story.add_dependency('resolution', 'start')",
+                        "    assert project_story.has_cycle()",
+                        "    node1 = StoryNode(id='node1', content='Start')",
+                        "    node2 = StoryNode(id='node2', content='Middle', parent_id='node1')",
+                        "    object_story = StoryTimeline()",
+                        "    object_story.add_node(node1)",
+                        "    object_story.add_node(node2)",
+                        "    assert [node.id for node in object_story.get_ordered_nodes()] == ['node1', 'node2']",
+                        "    assert [node.id for node in object_story.get_children('node1')] == ['node2']",
+                        "",
+                        "def test_cli_compat(tmp_path):",
+                        "    assert subprocess.run([sys.executable, 'src/backend/cli.py', '--help']).returncode == 0",
+                        "    result = subprocess.run([sys.executable, 'src/backend/cli.py', 'export', '--format', 'json'], capture_output=True, text=True)",
+                        "    assert result.returncode == 0",
+                        "    assert 'exported' in result.stdout.lower()",
+                        "    added = subprocess.run([sys.executable, 'src/backend/cli.py', 'add-node', 'TestNode', 'Description'], capture_output=True, text=True)",
+                        "    assert added.returncode == 0",
+                        "    assert 'Node added' in added.stdout",
+                        "    version = subprocess.run([sys.executable, 'src/backend/app.py', '--version'], capture_output=True, text=True)",
+                        "    assert version.returncode == 0",
+                        "    assert 'Version' in version.stdout",
+                        "    image = subprocess.run([sys.executable, 'src/backend/image_generator.py', '--test'], capture_output=True, text=True)",
+                        "    assert image.returncode == 0",
+                        "    assert 'Image generation test passed' in image.stdout",
+                        "    help_result = subprocess.run([sys.executable, 'src/main.py', '--help'], capture_output=True, text=True)",
+                        "    assert help_result.returncode == 0",
+                        "    assert 'usage' in help_result.stdout.lower()",
+                        "    cli_image = subprocess.run([sys.executable, 'src/main.py', '--generate-background', 'beach', '--output', str(tmp_path / 'output_test.png')], capture_output=True, text=True)",
+                        "    assert cli_image.returncode == 0",
+                        "    assert os.path.exists(tmp_path / 'output_test.png')",
+                        "    cli = VNProjectCLI()",
+                        "    background = cli.export_background('lake', output_dir=str(tmp_path))",
+                        "    assert os.path.isfile(background)",
+                        "    node_id = cli.timeline.add_node('Start')",
+                        "    assert node_id in cli.timeline.nodes",
+                        "    api = ProjectAPI()",
+                        "    project_id = api.create_project('Test VN Project')",
+                        "    assert isinstance(api.get_timeline(project_id), dict)",
+                        "    assert api.export_project(project_id).endswith('.json')",
+                        "    assert api.generate_background(project_id, 'forest')",
+                        "    assert api.generate_sprite(project_id, 'hero')",
+                        "",
+                        "def test_backend_frontend_compat():",
+                        "    assert backend_main.main(start_server=False)",
+                        "    assert frontend_main.main(run_ui=False)",
+                        "",
+                        "def test_project_data_export(tmp_path):",
+                        "    project = ProjectData()",
+                        "    project.timeline.add_node('Start')",
+                        "    timeline_path = tmp_path / 'timeline.json'",
+                        "    project.export_timeline_json(timeline_path)",
+                        "    assert 'nodes' in timeline_path.read_text()",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            first = bridge.run_provider_project_tests(project)
+            self.assertFalse(first["ok"])
+            repair = bridge.deterministic_post_build_repair(project, first)
+            dependency_setup = bridge.ensure_provider_test_environment(project)
+            second = bridge.run_provider_project_tests(
+                project,
+                python_executable=dependency_setup.get("python"),
+                repair_summary=repair,
+                dependency_setup=dependency_setup,
+            )
+
+            self.assertTrue(repair["provider_interfaces"]["changed"])
+            self.assertTrue((project / "src" / "backend" / "main.py").exists())
+            self.assertTrue((project / "src" / "frontend" / "main.py").exists())
+            self.assertTrue(dependency_setup["ok"], dependency_setup)
+            self.assertTrue(second["ok"], second)
+            self.assertIn("configfile: pytest.ini", second["stdout"])
+
+    def test_provider_runtime_repair_adds_fastapi_script_entrypoint(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "project"
+            (project / "src" / "backend").mkdir(parents=True)
+            (project / "src" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "backend" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "backend" / "app.py").write_text(
+                "from fastapi import FastAPI\n\napp = FastAPI()\n",
+                encoding="utf-8",
+            )
+            (project / "requirements.txt").write_text("fastapi==0.95.2\npytest==7.3.1\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_local_runtime.py").write_text(
+                "\n".join(
+                    [
+                        "import subprocess",
+                        "",
+                        "def test_startup():",
+                        "    proc = subprocess.Popen(['python', 'src/backend/app.py'])",
+                        "    proc.terminate()",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            repair = bridge.deterministic_post_build_repair(
+                project,
+                {"ok": False, "stdout": "AssertionError: 0 is not None", "stderr": "", "failure_type": "pytest_failed"},
+            )
+
+            app_source = (project / "src" / "backend" / "app.py").read_text(encoding="utf-8")
+            requirements = (project / "requirements.txt").read_text(encoding="utf-8").lower()
+            self.assertTrue(repair["provider_interfaces"]["changed"])
+            self.assertIn("uvicorn.run", app_source)
+            self.assertIn("uvicorn>=0.22,<1", requirements)
+
+    def test_provider_artifact_repair_materializes_export_and_image_fixtures(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "project"
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_artifacts.py").write_text(
+                "\n".join(
+                    [
+                        "from pathlib import Path",
+                        "BACKGROUND_DIR = Path('./assets/backgrounds')",
+                        "CHARACTER_DIR = Path('./assets/characters')",
+                        "STORY_TIMELINE_PATH = Path('./data/story_timeline.json')",
+                        "EXPORT_PATHS = [Path('./export/project.json'), Path('./export/backgrounds/background_list.json'), Path('./export/characters/character_list.json'), Path('./export/story_timeline.json')]",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = bridge.materialize_provider_test_artifacts(project)
+
+            self.assertTrue(result["changed"])
+            self.assertTrue((project / "data" / "story_timeline.json").exists())
+            self.assertTrue((project / "assets" / "backgrounds" / "background_demo.png").exists())
+            self.assertTrue((project / "assets" / "characters" / "sprite_demo.png").exists())
+            self.assertTrue((project / "export" / "project.json").exists())
+            self.assertTrue((project / "export" / "backgrounds" / "background_list.json").exists())
+            self.assertTrue((project / "export" / "characters" / "character_list.json").exists())
+            self.assertTrue((project / "export" / "story_timeline.json").exists())
+
+    def test_provider_pytest_env_supports_src_and_top_level_backend_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "project"
+            (project / "src" / "backend").mkdir(parents=True)
+            (project / "src" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "backend" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "backend" / "timeline_manager.py").write_text(
+                "class TimelineManager:\n    pass\n",
+                encoding="utf-8",
+            )
+            (project / "src" / "backend" / "project_api.py").write_text(
+                "from backend.timeline_manager import TimelineManager\n\nclass ProjectAPI:\n    manager = TimelineManager\n",
+                encoding="utf-8",
+            )
+            (project / "tests").mkdir()
+            (project / "tests" / "test_imports.py").write_text(
+                "from src.backend.project_api import ProjectAPI\n\ndef test_imports():\n    assert ProjectAPI.manager\n",
+                encoding="utf-8",
+            )
+
+            result = bridge.run_provider_project_tests(project)
+
+            self.assertTrue(result["ok"], result)
+
     def test_post_build_finalize_runs_tests_images_package_and_gate(self) -> None:
         try:
             import PIL  # noqa: F401

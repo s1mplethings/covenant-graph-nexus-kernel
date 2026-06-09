@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:23.358492+00:00",
+  "generated_at": "2026-06-08T16:18:24.455603+00:00",
   "chat_id": "chat-b",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-b\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -15,8 +15,10 @@
       "做一个本地待办事项应用"
     ],
     "default_assumptions": [
+      "先按本地可运行、可测试、可扩展的默认方案推进",
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -41,15 +43,15 @@
   ],
   "generation": {
     "status": "ready_with_warnings",
-    "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-07T06:26:23.315605+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\sessions\\chat-b\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpacavu4jr\\logs\\agent_projects\\chat-b\\pipeline_run_summary.json"
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-08T16:18:24.417511+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpikrltv4r\\sessions\\chat-b\\agent_session.jsonl",
+    "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b",
+    "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b\\delivery_manifest.json",
+    "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b\\final_project_bundle.zip",
+    "pipeline_manifest_path": "",
+    "generation_context_snapshot_path": "",
+    "pipeline_run_summary_path": ""
   },
   "module_mapping": [
     {
@@ -169,5 +171,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:24.599583+00:00",
+  "generated_at": "2026-06-08T16:18:25.818749+00:00",
   "chat_id": "chat-no-api",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-no-api\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -15,8 +15,10 @@
       "做一个本地笔记应用"
     ],
     "default_assumptions": [
+      "先按本地可运行、可测试、可扩展的默认方案推进",
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -41,15 +43,15 @@
   ],
   "generation": {
     "status": "ready_with_warnings",
-    "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-07T06:26:24.556859+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\sessions\\chat-no-api\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvqolwoj8\\logs\\agent_projects\\chat-no-api\\pipeline_run_summary.json"
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-08T16:18:25.767028+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpdst1ovnt\\sessions\\chat-no-api\\agent_session.jsonl",
+    "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api",
+    "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api\\delivery_manifest.json",
+    "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api\\final_project_bundle.zip",
+    "pipeline_manifest_path": "",
+    "generation_context_snapshot_path": "",
+    "pipeline_run_summary_path": ""
   },
   "module_mapping": [
     {
@@ -169,5 +171,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

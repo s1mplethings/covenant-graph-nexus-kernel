@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:23.629160+00:00",
+  "generated_at": "2026-06-08T16:18:24.680498+00:00",
   "chat_id": "chat-non-pass",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-non-pass\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -23,16 +23,71 @@
   "uploaded_inputs": [],
   "visible_user_messages": [],
   "generation": {
-    "status": "max_turns_reached",
+    "status": "rework_blocked",
     "driver": "agent_generated_pipeline",
-    "finished_at": "2026-06-07T06:26:23.618623+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmprmmy858s\\sessions\\chat-non-pass\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmprmmy858s\\project",
+    "finished_at": "2026-06-08T16:18:24.667955+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6qjv094f\\sessions\\chat-non-pass\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6qjv094f\\project",
     "manifest_path": "",
     "package_path": "",
     "pipeline_manifest_path": "",
     "generation_context_snapshot_path": "",
-    "pipeline_run_summary_path": ""
+    "pipeline_run_summary_path": "",
+    "delivery_allowed": false,
+    "delivery_gate": {
+      "delivery_allowed": false,
+      "status": "REWORK",
+      "phase": "final",
+      "missing": [
+        "runnable_project",
+        "project_package",
+        "test_report",
+        "test_commands"
+      ],
+      "requirements": {
+        "screenshot": false,
+        "video": false,
+        "generated_image": false,
+        "background": false,
+        "sprite": false,
+        "demo_video": false
+      },
+      "asset_counts": {
+        "packages": 0,
+        "screenshots": 0,
+        "generated_images": 0,
+        "generated_backgrounds": 0,
+        "generated_sprites": 0,
+        "videos": 0
+      },
+      "quality_evidence": {
+        "readme_found": false,
+        "test_report_found": false,
+        "test_report_has_commands": false,
+        "test_report_has_no_test_executed": false,
+        "test_report_mentions_sample_input": false,
+        "delivery_notes_found": false,
+        "product_plan_found": false,
+        "output_contract_found": false,
+        "technical_plan_found": false,
+        "build_plan_found": false,
+        "preview_evidence_found": false,
+        "preview_placeholder_found": false,
+        "sample_input_found": false,
+        "test_report_path": "",
+        "delivery_notes_path": ""
+      },
+      "public_suffixes": [
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".mp4",
+        ".png",
+        ".webm",
+        ".webp",
+        ".zip"
+      ]
+    }
   },
   "module_mapping": [
     {

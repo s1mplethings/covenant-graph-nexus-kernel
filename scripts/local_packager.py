@@ -253,6 +253,9 @@ def package_project(
         for path in sorted(project.rglob("*")):
             if not path.is_file():
                 continue
+            rel_parts = set(path.relative_to(project).parts)
+            if rel_parts & {".cgnk_test_env", "__pycache__", ".pytest_cache"}:
+                continue
             if path.resolve() in {package_path.resolve(), tmp_package.resolve()}:
                 continue
             if path.name == "delivery_manifest.json" and path.parent.resolve() == target_dir.resolve():

@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:27.616237+00:00
-revision_count: 2
+generated_at: 2026-06-08T16:19:57.241730+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -27,7 +27,7 @@ revision_count: 2
 
 ## Known Facts
 
-- 用户上传了文档资料作为项目输入: brief.txt (C:\Users\sunom\AppData\Local\Temp\tmplc1r3xex\uploads\chat-attachment\brief.txt); 说明: 作为项目需求
+- 用户上传了文档资料作为项目输入: brief.txt (C:\Users\sunom\AppData\Local\Temp\tmpeuiua_7y\uploads\chat-attachment\brief.txt); 说明: 作为项目需求
 - 用户补充: 用户上传了文档资料作为项目资料，并补充说明: 作为项目需求
 - 识别出的核心能力：导入导出和格式互操作
 - 用户上传了文档资料作为项目资料，并补充说明: 作为项目需求
@@ -40,12 +40,14 @@ revision_count: 2
 
 - 本地可运行
 - 直接生成并测试
+- 先按本地可运行、可测试、可扩展的默认方案推进
 
 ## First Version Plan
 
 - 前端交互
 - 后端处理
 - 测试与交付
+- 核心能力：导入导出和格式互操作
 
 ## Acceptance Criteria
 
@@ -69,11 +71,12 @@ revision_count: 2
 
 ## Uploaded Project Inputs
 
-- document: brief.txt; mime_type: text/plain; local_path: C:\Users\sunom\AppData\Local\Temp\tmplc1r3xex\uploads\chat-attachment\brief.txt; caption: 作为项目需求
+- document: brief.txt; mime_type: text/plain; local_path: C:\Users\sunom\AppData\Local\Temp\tmpeuiua_7y\uploads\chat-attachment\brief.txt; caption: 作为项目需求
 
 ## Open Questions
 
-- 未记录
+- 第一版我先按本地网页/本地工具处理，可以吗？
+- 交付重点是界面、文件导出、还是自动化流程？
 
 ## Blocking Questions
 
@@ -118,7 +121,7 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `running`
+- Status: `waiting_confirmation`
 - Started at: ``
 - Finished at: ``
 - Result path: ``

@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:24.958528+00:00
-revision_count: 2
+generated_at: 2026-06-08T16:19:17.865350+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -23,7 +23,7 @@ revision_count: 2
 
 ## Current Project Summary
 
-做一个本地 VN 助手
+做一个本地 VN 助手；补充：增加前端界面和图片预览
 
 ## Known Facts
 
@@ -39,12 +39,20 @@ revision_count: 2
 
 - 本地可运行
 - 直接生成并测试
+- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
+- 交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。
 
 ## First Version Plan
 
 - 前端交互
 - 后端处理
 - 测试与交付
+- 第一版先做本地可运行 VN 项目助手
+- 支持时间线整理、背景生成、立绘生成和预览
+- 核心能力：真实运行预览和证据
+- 核心能力：导入导出和格式互操作
+- 核心能力：产品界面和交互
+- 第一版交付可直接打开和操作的界面
 
 ## Acceptance Criteria
 
@@ -76,7 +84,8 @@ revision_count: 2
 
 ## Open Questions
 
-- 未记录
+- 第一版我先按本地网页/本地工具处理，可以吗？
+- 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？
 
 ## Blocking Questions
 
@@ -122,7 +131,7 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `running`
+- Status: `waiting_confirmation`
 - Started at: ``
 - Finished at: ``
 - Result path: ``

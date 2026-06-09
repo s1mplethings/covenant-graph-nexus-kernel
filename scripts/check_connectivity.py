@@ -108,6 +108,44 @@ def _error_is_retryable(error: str) -> bool:
     return bool(text)
 
 
+def _provider_error_type(error: str) -> str:
+    text = str(error or "")
+    lowered = text.lower()
+    if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
+        return "PROVIDER_KEY_USAGE_LIMIT"
+    if "http 403" in lowered:
+        return "PROVIDER_FORBIDDEN"
+    transport_markers = (
+        "sslv3_alert_bad_record_mac",
+        "sslerror",
+        "connection reset",
+        "connectionreseterror",
+        "connection aborted",
+        "unexpected_eof_while_reading",
+        "eof occurred in violation",
+        "[ssl:",
+        "urlerror",
+        "timeout",
+        "timed out",
+        "empty response",
+        "http 520",
+        "http 502",
+        "http 503",
+        "http 504",
+    )
+    if any(marker in lowered for marker in transport_markers):
+        return "PROVIDER_TRANSPORT_UNSTABLE"
+    match = re.search(r"HTTP\s+(\d+)", text, flags=re.IGNORECASE)
+    if match:
+        code = int(match.group(1))
+        if code in {408, 409, 425, 429} or 500 <= code <= 599:
+            return "PROVIDER_RETRYABLE_HTTP"
+        return "PROVIDER_NON_RETRYABLE_HTTP"
+    if "provider_api_request_failed" in lowered:
+        return "PROVIDER_API_REQUEST_FAILED"
+    return "PROVIDER_UNKNOWN_ERROR"
+
+
 def _load_local_notes_defaults() -> dict[str, str]:
     path_text = str(os.environ.get("CGKN_LOCAL_NOTES_PATH", "")).strip()
     path = pathlib.Path(path_text) if path_text else DEFAULT_NOTES_PATH
@@ -209,6 +247,7 @@ def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: 
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "CGNK-Connectivity/1",
+            "Connection": "close",
         },
     )
     try:

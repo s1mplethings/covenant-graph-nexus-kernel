@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:23.781606+00:00",
+  "generated_at": "2026-06-08T16:18:24.815800+00:00",
   "chat_id": "chat-old-control",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-old-control\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -15,6 +15,7 @@
       "做一个本地表格工具"
     ],
     "default_assumptions": [
+      "先按本地可运行、可测试、可扩展的默认方案推进",
       "本地可运行",
       "直接生成并测试"
     ],
@@ -162,5 +163,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

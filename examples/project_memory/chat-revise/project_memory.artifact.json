@@ -2,14 +2,14 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:44.677622+00:00",
+  "generated_at": "2026-06-08T16:20:36.352099+00:00",
   "chat_id": "chat-revise",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-revise\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
   "policy_ref": "policy.safe_modular_project_generation@1",
   "contract_pack": "agent_context.modular_project_generation.contract_pack.json",
   "customer_request": {
-    "project_summary": "做一个本地图片生成工具",
+    "project_summary": "做一个本地图片生成工具；补充：背景和立绘必须分开两个入口",
     "known_facts": [
       "用户提出的新项目需求: 做一个本地图片生成工具",
       "用户要求背景和立绘使用本地图片模型生成",
@@ -20,8 +20,15 @@
     ],
     "default_assumptions": [
       "本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过",
+      "图片生成先做可替换 provider 接口，生成结果落到本地素材库",
+      "背景和立绘必须使用已配置本地图片模型；未接上模型时只能标记为降级预览，不能算图片验收通过",
+      "生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。",
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？",
+      "未回答/缺失项按默认假设推进: 本地图片生成准备用哪个后端：ComfyUI、AUTOMATIC1111，还是直接给 SD_MODEL_DIR/模型目录？",
+      "未回答/缺失项按默认假设推进: 背景和立绘是否使用同一个本地模型？如果不同，请分别给服务地址或模型路径。",
+      "未回答/缺失项按默认假设推进: 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -46,7 +53,11 @@
       "项目输入到达即启动正式生成",
       "本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。"
     ],
-    "open_questions": [],
+    "open_questions": [
+      "第一版我先按本地网页/本地工具处理，可以吗？",
+      "交付重点是界面、文件导出、还是自动化流程？",
+      "图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？"
+    ],
     "blocking_questions": []
   },
   "uploaded_inputs": [],
@@ -56,16 +67,76 @@
     "背景和立绘必须分开两个入口"
   ],
   "generation": {
-    "status": "max_turns_reached",
-    "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-07T06:26:44.653504+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\sessions\\chat-revise\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise",
-    "manifest_path": "",
-    "package_path": "",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpbtjgkz_b\\logs\\agent_projects\\chat-revise\\pipeline_run_summary.json"
+    "status": "waiting_confirmation",
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-08T16:20:36.150757+00:00",
+    "error": "provider_api_request_failed: provider_api_request_failed: HTTP 403: {\"error\":\"Key usage limit exceeded\"} [endpoint=https://api.gptsapi.net, retryable=false]",
+    "provider_error_type": "PROVIDER_KEY_USAGE_LIMIT",
+    "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-revise",
+    "partial_artifacts": [
+      "generation_context_snapshot.json"
+    ],
+    "current_stage": "api_provider_project_generation",
+    "provider_recovery_needed": true,
+    "provider_recovery_mode": "stage_resume",
+    "delivery_allowed": false,
+    "delivery_gate": {
+      "delivery_allowed": false,
+      "status": "REWORK",
+      "phase": "final",
+      "missing": [
+        "runnable_project",
+        "test_report",
+        "test_commands",
+        "generated_images",
+        "generated_background",
+        "generated_sprite"
+      ],
+      "requirements": {
+        "screenshot": false,
+        "video": false,
+        "generated_image": true,
+        "background": true,
+        "sprite": true,
+        "demo_video": false
+      },
+      "asset_counts": {
+        "packages": 1,
+        "screenshots": 0,
+        "generated_images": 0,
+        "generated_backgrounds": 0,
+        "generated_sprites": 0,
+        "videos": 0
+      },
+      "quality_evidence": {
+        "readme_found": true,
+        "test_report_found": false,
+        "test_report_has_commands": false,
+        "test_report_has_no_test_executed": false,
+        "test_report_mentions_sample_input": false,
+        "delivery_notes_found": false,
+        "product_plan_found": false,
+        "output_contract_found": false,
+        "technical_plan_found": false,
+        "build_plan_found": false,
+        "preview_evidence_found": false,
+        "preview_placeholder_found": false,
+        "sample_input_found": false,
+        "test_report_path": "",
+        "delivery_notes_path": ""
+      },
+      "public_suffixes": [
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".mp4",
+        ".png",
+        ".webm",
+        ".webp",
+        ".zip"
+      ]
+    },
+    "start_wait_reason": "needs_direction_confirmation"
   },
   "module_mapping": [
     {
@@ -185,5 +256,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 4
+  "revision_count": 6
 }

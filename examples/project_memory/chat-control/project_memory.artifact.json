@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:25.973824+00:00",
+  "generated_at": "2026-06-08T16:19:30.320590+00:00",
   "chat_id": "chat-control",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-control\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -16,8 +16,12 @@
       "做一个本地 VN 助手，要时间线和图片预览"
     ],
     "default_assumptions": [
+      "图片生成先做可替换 provider 接口，生成结果落到本地素材库",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。",
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？",
+      "未回答/缺失项按默认假设推进: 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -47,16 +51,75 @@
     "开始生成"
   ],
   "generation": {
-    "status": "ready_with_warnings",
-    "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-07T06:26:25.926243+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\sessions\\chat-control\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmplfe2p_65\\logs\\agent_projects\\chat-control\\pipeline_run_summary.json"
+    "status": "rework_blocked",
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-08T16:19:30.292620+00:00",
+    "error": "provider_api_request_failed: provider_api_request_failed: HTTP 403: {\"error\":\"Key usage limit exceeded\"} [endpoint=https://api.gptsapi.net, retryable=false]",
+    "provider_error_type": "PROVIDER_KEY_USAGE_LIMIT",
+    "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-control",
+    "partial_artifacts": [
+      "generation_context_snapshot.json"
+    ],
+    "current_stage": "api_provider_project_generation",
+    "provider_recovery_needed": true,
+    "provider_recovery_mode": "stage_resume",
+    "delivery_allowed": false,
+    "delivery_gate": {
+      "delivery_allowed": false,
+      "status": "REWORK",
+      "phase": "final",
+      "missing": [
+        "runnable_project",
+        "test_report",
+        "test_commands",
+        "screenshots",
+        "videos",
+        "generated_images"
+      ],
+      "requirements": {
+        "screenshot": true,
+        "video": true,
+        "generated_image": true,
+        "background": false,
+        "sprite": false,
+        "demo_video": false
+      },
+      "asset_counts": {
+        "packages": 1,
+        "screenshots": 0,
+        "generated_images": 0,
+        "generated_backgrounds": 0,
+        "generated_sprites": 0,
+        "videos": 0
+      },
+      "quality_evidence": {
+        "readme_found": true,
+        "test_report_found": false,
+        "test_report_has_commands": false,
+        "test_report_has_no_test_executed": false,
+        "test_report_mentions_sample_input": false,
+        "delivery_notes_found": false,
+        "product_plan_found": false,
+        "output_contract_found": false,
+        "technical_plan_found": false,
+        "build_plan_found": false,
+        "preview_evidence_found": false,
+        "preview_placeholder_found": false,
+        "sample_input_found": false,
+        "test_report_path": "",
+        "delivery_notes_path": ""
+      },
+      "public_suffixes": [
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".mp4",
+        ".png",
+        ".webm",
+        ".webp",
+        ".zip"
+      ]
+    }
   },
   "module_mapping": [
     {
@@ -176,5 +239,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

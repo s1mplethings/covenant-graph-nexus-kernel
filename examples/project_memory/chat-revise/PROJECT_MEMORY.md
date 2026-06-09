@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:44.676608+00:00
-revision_count: 4
+generated_at: 2026-06-08T16:20:36.352099+00:00
+revision_count: 6
 ---
 
 # Project Memory
@@ -23,7 +23,7 @@ revision_count: 4
 
 ## Current Project Summary
 
-做一个本地图片生成工具
+做一个本地图片生成工具；补充：背景和立绘必须分开两个入口
 
 ## Known Facts
 
@@ -41,12 +41,24 @@ revision_count: 4
 ## Default Assumptions
 
 - 本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过
+- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
+- 背景和立绘必须使用已配置本地图片模型；未接上模型时只能标记为降级预览，不能算图片验收通过
+- 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
 - 本地可运行
 - 直接生成并测试
+- 未回答/缺失项按默认假设推进: 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？
+- 未回答/缺失项按默认假设推进: 本地图片生成准备用哪个后端：ComfyUI、AUTOMATIC1111，还是直接给 SD_MODEL_DIR/模型目录？
+- 未回答/缺失项按默认假设推进: 背景和立绘是否使用同一个本地模型？如果不同，请分别给服务地址或模型路径。
+- 未回答/缺失项按默认假设推进: 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？
 
 ## First Version Plan
 
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 第一版先做本地可运行 VN 项目助手
+- 支持时间线整理、背景生成、立绘生成和预览
+- 核心能力：内容生成能力
+- 核心能力：导入导出和格式互操作
+- 交付启动说明、测试结论和预览截图
 - 前端交互
 - 后端处理
 - 测试与交付
@@ -83,7 +95,9 @@ revision_count: 4
 
 ## Open Questions
 
-- 未记录
+- 第一版我先按本地网页/本地工具处理，可以吗？
+- 交付重点是界面、文件导出、还是自动化流程？
+- 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？
 
 ## Blocking Questions
 
@@ -130,9 +144,9 @@ revision_count: 4
 
 ## Generation State
 
-- Status: `max_turns_reached`
+- Status: `waiting_confirmation`
 - Started at: ``
-- Finished at: `2026-06-07T06:26:44.653504+00:00`
+- Finished at: `2026-06-08T16:20:36.150757+00:00`
 - Result path: ``
 
 ## Update Rules

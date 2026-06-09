@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:27.104362+00:00
-revision_count: 2
+generated_at: 2026-06-08T16:19:45.765116+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -37,12 +37,20 @@ revision_count: 2
 
 ## Default Assumptions
 
+- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
+- 交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。
 - 本地可运行
 - 直接生成并测试
 
 ## First Version Plan
 
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
+- 支持时间线整理、背景生成、立绘生成和预览
+- 核心能力：真实运行预览和证据
+- 核心能力：导入导出和格式互操作
+- 核心能力：产品界面和交互
+- 第一版交付可直接打开和操作的界面
+- 交付启动说明、测试结论和预览截图
 - 前端交互
 - 后端处理
 - 测试与交付
@@ -122,7 +130,7 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `running`
+- Status: `waiting_confirmation`
 - Started at: ``
 - Finished at: ``
 - Result path: ``

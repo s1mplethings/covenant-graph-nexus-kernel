@@ -2,14 +2,14 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-07T06:26:24.960545+00:00",
+  "generated_at": "2026-06-08T16:19:17.866350+00:00",
   "chat_id": "chat-restart",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-restart\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
   "policy_ref": "policy.safe_modular_project_generation@1",
   "contract_pack": "agent_context.modular_project_generation.contract_pack.json",
   "customer_request": {
-    "project_summary": "做一个本地 VN 助手",
+    "project_summary": "做一个本地 VN 助手；补充：增加前端界面和图片预览",
     "known_facts": [
       "用户补充: 增加前端界面和图片预览",
       "识别出的核心能力：真实运行预览和证据；导入导出和格式互操作；产品界面和交互",
@@ -17,7 +17,9 @@
     ],
     "default_assumptions": [
       "本地可运行",
-      "直接生成并测试"
+      "直接生成并测试",
+      "图片生成先做可替换 provider 接口，生成结果落到本地素材库",
+      "交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。"
     ],
     "user_rules": [],
     "acceptance_criteria": [
@@ -38,7 +40,10 @@
       "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
       "项目输入到达即启动正式生成"
     ],
-    "open_questions": [],
+    "open_questions": [
+      "第一版我先按本地网页/本地工具处理，可以吗？",
+      "图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？"
+    ],
     "blocking_questions": []
   },
   "uploaded_inputs": [],
@@ -47,8 +52,9 @@
     "增加前端界面和图片预览"
   ],
   "generation": {
-    "status": "running",
-    "driver": "agent_conversation_loop"
+    "status": "waiting_confirmation",
+    "driver": "agent_conversation_loop",
+    "start_wait_reason": "needs_direction_confirmation"
   },
   "module_mapping": [
     {
@@ -168,5 +174,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 2
+  "revision_count": 3
 }

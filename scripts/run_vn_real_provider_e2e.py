@@ -62,9 +62,20 @@ class InlineThread:
         self.target = target
         self.args = args
         self.kwargs = kwargs or {}
+        self._started = False
+        self._finished = False
 
     def start(self) -> None:
+        self._started = True
         self.target(*self.args, **self.kwargs)
+        self._finished = True
+
+    def join(self, timeout: float | None = None) -> None:
+        del timeout
+        return None
+
+    def is_alive(self) -> bool:
+        return self._started and not self._finished
 
 
 def read_jsonl(path: pathlib.Path) -> list[dict[str, Any]]:

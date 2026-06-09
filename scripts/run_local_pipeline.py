@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -150,8 +152,55 @@ def generation_deadline(args: argparse.Namespace) -> float:
     return time.time() + max(30, int(getattr(args, "timeout", 360)))
 
 
-def remaining_timeout(deadline: float, requested: int, *, floor: int = 1, cap: int | None = None) -> int:
-    remaining = int(deadline - time.time())
+class ProgressDeadline:
+    def __init__(
+        self,
+        deadline: float,
+        *,
+        extension_seconds: int,
+        phase_log_path: pathlib.Path | str | None = None,
+    ) -> None:
+        self.deadline = float(deadline)
+        self.extension_seconds = max(30, int(extension_seconds))
+        self.phase_log_path = phase_log_path
+        self.progress_events: list[dict[str, Any]] = []
+
+    def mark_progress(self, phase: str, message: str, artifacts_written: list[str] | None = None) -> None:
+        previous_deadline = self.deadline
+        self.deadline = max(self.deadline, time.time() + self.extension_seconds)
+        extended_by = round(self.deadline - previous_deadline, 3)
+        event = {
+            "phase": phase,
+            "message": message,
+            "deadline_extended_by_seconds": max(0.0, extended_by),
+            "new_deadline_epoch": round(self.deadline, 3),
+        }
+        if artifacts_written:
+            event["artifacts_written"] = artifacts_written[:20]
+        self.progress_events.append(event)
+        if extended_by > 0:
+            append_phase_log(
+                self.phase_log_path,
+                phase,
+                "progress_deadline_extended",
+                message,
+                artifacts_written,
+            )
+
+
+def deadline_timestamp(deadline: float | ProgressDeadline) -> float:
+    if isinstance(deadline, ProgressDeadline):
+        return deadline.deadline
+    return float(deadline)
+
+
+def mark_generation_progress(deadline: float | ProgressDeadline | None, phase: str, message: str, artifacts_written: list[str] | None = None) -> None:
+    if isinstance(deadline, ProgressDeadline):
+        deadline.mark_progress(phase, message, artifacts_written)
+
+
+def remaining_timeout(deadline: float | ProgressDeadline, requested: int, *, floor: int = 1, cap: int | None = None) -> int:
+    remaining = int(deadline_timestamp(deadline) - time.time())
     if remaining < floor:
         raise TimeoutError("generation deadline exhausted before starting next step")
     value = min(int(requested), remaining)
@@ -471,6 +520,140 @@ def validate_provider_files(doc: dict[str, Any]) -> list[dict[str, str]]:
     return cleaned
 
 
+def provider_component_checkpoint_id(component_id: str) -> str:
+    value = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(component_id or "").strip())
+    return value.strip("._") or "component"
+
+
+def provider_component_spec_hash(goal: str, component_pipeline: dict[str, Any], component: dict[str, Any]) -> str:
+    payload = {
+        "goal": goal,
+        "component": component,
+        "component_pipeline_contract": {
+            "merge_policy": component_pipeline.get("merge_policy", {}),
+            "component_ids": [str(row.get("id", "")).strip() for row in component_pipeline.get("components", []) if isinstance(row, dict)],
+        },
+    }
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def provider_component_semantic_review(result: dict[str, Any], files: list[dict[str, str]]) -> dict[str, Any]:
+    quality_gate = result.get("quality_gate", {}) if isinstance(result, dict) else {}
+    self_test = result.get("self_test", {}) if isinstance(result, dict) else {}
+    blockers: list[str] = []
+    for label, doc in (("quality_gate", quality_gate), ("self_test", self_test)):
+        if isinstance(doc, dict) and str(doc.get("status", "")).strip().lower() == "fail":
+            blockers.append(f"{label}_failed")
+    if not files:
+        blockers.append("no_valid_files")
+    return {
+        "status": "pass" if not blockers else "fail",
+        "reviewer": "local_component_semantic_contract",
+        "checks": ["valid_files", "component_quality_gate_not_failed", "component_self_test_not_failed"],
+        "blockers": blockers,
+    }
+
+
+def provider_component_error_is_retryable(error_type: str, error_text: str) -> bool:
+    if error_type in {"PROVIDER_TRANSPORT_UNSTABLE", "PROVIDER_RETRYABLE_HTTP"}:
+        return True
+    if "retryable=true" in str(error_text or "").lower():
+        return True
+    return False
+
+
+def provider_component_checkpoint_paths(checkpoint_dir: pathlib.Path, component_id: str) -> tuple[pathlib.Path, pathlib.Path]:
+    safe = provider_component_checkpoint_id(component_id)
+    return checkpoint_dir / f"{safe}.json", checkpoint_dir / f"{safe}_files.json"
+
+
+def write_provider_component_checkpoint(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    spec_hash: str,
+    status: str,
+    raw_output: str,
+    parsed_result: dict[str, Any],
+    files: list[dict[str, str]],
+    semantic_review: dict[str, Any],
+    error: str = "",
+    provider_error_type: str = "",
+) -> None:
+    if checkpoint_dir is None:
+        return
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_path, files_path = provider_component_checkpoint_paths(checkpoint_dir, component_id)
+    base_doc = {
+        "kind": "ProviderComponentCheckpoint",
+        "created_at": now(),
+        "component_id": component_id,
+        "project_spec_hash": spec_hash,
+        "status": status,
+        "semantic_review": semantic_review,
+        "provider_error_type": provider_error_type,
+        "error": error,
+        "raw_output": raw_output,
+        "parsed_result": parsed_result,
+        "file_count": len(files),
+        "usage": parsed_result.get("usage", {}) if isinstance(parsed_result, dict) else {},
+        "evidence": parsed_result.get("evidence", {}) if isinstance(parsed_result, dict) else {},
+    }
+    files_doc = {
+        "kind": "ProviderComponentFilesCheckpoint",
+        "created_at": base_doc["created_at"],
+        "component_id": component_id,
+        "project_spec_hash": spec_hash,
+        "status": status,
+        "semantic_review": semantic_review,
+        "files": files,
+    }
+    write_json(checkpoint_path, base_doc)
+    write_json(files_path, files_doc)
+
+
+def write_provider_component_checkpoint_summary(checkpoint_dir: pathlib.Path | None, summary: dict[str, Any]) -> None:
+    if checkpoint_dir is None:
+        return
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    doc = {"kind": "ProviderComponentCheckpointSummary", "updated_at": now(), **summary}
+    write_json(checkpoint_dir / "component_checkpoint_summary.json", doc)
+
+
+def load_provider_component_checkpoint(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    spec_hash: str,
+) -> tuple[dict[str, Any], list[dict[str, str]]] | None:
+    if checkpoint_dir is None:
+        return None
+    checkpoint_path, files_path = provider_component_checkpoint_paths(checkpoint_dir, component_id)
+    if not checkpoint_path.exists() or not files_path.exists():
+        return None
+    try:
+        checkpoint = load_json(checkpoint_path)
+        files_doc = load_json(files_path)
+    except Exception:
+        return None
+    semantic = checkpoint.get("semantic_review", {}) if isinstance(checkpoint, dict) else {}
+    if checkpoint.get("project_spec_hash") != spec_hash or files_doc.get("project_spec_hash") != spec_hash:
+        return None
+    if str(checkpoint.get("status", "")).lower() != "pass":
+        return None
+    if str(semantic.get("status", "")).lower() != "pass":
+        return None
+    parsed = checkpoint.get("parsed_result", {})
+    if not isinstance(parsed, dict):
+        return None
+    try:
+        files = validate_provider_files({"files": files_doc.get("files", [])})
+    except Exception:
+        return None
+    return parsed, files
+
+
 def component_pipeline_from_plan(goal: str, plan_doc: dict[str, Any]) -> dict[str, Any]:
     payload = plan_doc.get("pipeline_plan", {}).get("payload", {}) if isinstance(plan_doc, dict) else {}
     component_pipeline = payload.get("component_pipeline", {})
@@ -552,18 +735,36 @@ JSON shape:
     doc = parse_json_object(raw)
     if str(doc.get("component_id", "")).strip() != str(component.get("id", "")).strip():
         raise RuntimeError(f"provider returned wrong component_id for {component.get('id')}: {doc.get('component_id')}")
+    doc["_provider_raw_output"] = raw
     return doc
 
 
 def merge_component_files(component_results: list[dict[str, Any]]) -> list[dict[str, str]]:
     merged: dict[str, str] = {}
     owner: dict[str, str] = {}
+    mergeable_docs = {"README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"}
+    mergeable_web_suffixes = {".html", ".css", ".js", ".mjs", ".json"}
     for result in component_results:
         component_id = str(result.get("component_id", "<unknown>"))
         for item in validate_provider_files(result):
             rel = item["path"]
             content = item["content"]
             if rel in merged and merged[rel] != content:
+                if rel in mergeable_docs or rel.startswith("docs/"):
+                    merged[rel] = (
+                        merged[rel].rstrip()
+                        + "\n\n"
+                        + f"## Component Addendum: {component_id}\n\n"
+                        + content.strip()
+                        + "\n"
+                    )
+                    owner[rel] = f"{owner[rel]},{component_id}"
+                    continue
+                suffix = pathlib.PurePosixPath(rel).suffix.lower()
+                if rel.startswith(("app/", "static/", "frontend/")) and suffix in mergeable_web_suffixes:
+                    merged[rel] = content
+                    owner[rel] = component_id
+                    continue
                 raise RuntimeError(f"component file conflict: {rel} from {owner[rel]} and {component_id}")
             merged[rel] = content
             owner[rel] = component_id
@@ -582,7 +783,8 @@ def provider_generate_project_by_components(
     timeout: int,
     *,
     internal_context: str = "",
-    deadline: float | None = None,
+    deadline: float | ProgressDeadline | None = None,
+    checkpoint_dir: pathlib.Path | None = None,
 ) -> dict[str, Any]:
     components = [row for row in component_pipeline.get("components", []) if isinstance(row, dict)]
     if not components:
@@ -590,13 +792,54 @@ def provider_generate_project_by_components(
     component_results: list[dict[str, Any]] = []
     prior_manifest: list[str] = []
     component_errors: dict[str, list[str]] = {}
+    completed_components: list[str] = []
+    skipped_from_checkpoint: list[str] = []
+    retried_components: list[str] = []
+    failed_components: list[dict[str, str]] = []
+    provider_error_type = ""
+
+    def checkpoint_summary() -> dict[str, Any]:
+        return {
+            "completed_components": completed_components,
+            "skipped_from_checkpoint": skipped_from_checkpoint,
+            "retried_components": retried_components,
+            "failed_components": failed_components,
+            "provider_error_type": provider_error_type,
+            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else "",
+        }
+
     for component in components:
         component_id = str(component.get("id", "")).strip()
         if not component_id:
             raise RuntimeError("component missing id")
+        spec_hash = provider_component_spec_hash(goal, component_pipeline, component)
+        cached = load_provider_component_checkpoint(checkpoint_dir, component_id=component_id, spec_hash=spec_hash)
+        if cached is not None:
+            result, files = cached
+            prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
+            component_results.append(result)
+            completed_components.append(component_id)
+            skipped_from_checkpoint.append(component_id)
+            write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
+            append_phase_log(
+                checkpoint_dir.parent.parent / "provider_phase_log.jsonl" if checkpoint_dir else "",
+                "project_generation",
+                "component_checkpoint_skipped",
+                f"Provider component {component_id} reused from checkpoint.",
+                [item["path"] for item in files],
+            )
+            mark_generation_progress(
+                deadline,
+                "project_generation",
+                f"Provider component {component_id} reused from checkpoint.",
+                [item["path"] for item in files],
+            )
+            continue
         local_repairs = list(repair_errors) + component_errors.get(component_id, [])
         for attempt in range(3):
             try:
+                if attempt > 0 and component_id not in retried_components:
+                    retried_components.append(component_id)
                 call_timeout = remaining_timeout(deadline, timeout, floor=5, cap=120) if deadline else min(timeout, 120)
                 result = provider_generate_project_component(
                     goal=goal,
@@ -612,21 +855,114 @@ def provider_generate_project_by_components(
                     timeout=call_timeout,
                     internal_context=internal_context,
                 )
+                raw_output = str(result.get("_provider_raw_output", ""))
+                result = {key: value for key, value in result.items() if key != "_provider_raw_output"}
                 files = validate_provider_files(result)
+                semantic_review = provider_component_semantic_review(result, files)
+                if semantic_review.get("status") != "pass":
+                    write_provider_component_checkpoint(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        status="failed",
+                        raw_output=raw_output,
+                        parsed_result=result,
+                        files=files,
+                        semantic_review=semantic_review,
+                        error="component semantic review failed",
+                        provider_error_type="PROVIDER_COMPONENT_SEMANTIC_FAIL",
+                    )
+                    raise RuntimeError(f"component semantic review failed: {component_id}")
+                write_provider_component_checkpoint(
+                    checkpoint_dir,
+                    component_id=component_id,
+                    spec_hash=spec_hash,
+                    status="pass",
+                    raw_output=raw_output,
+                    parsed_result=result,
+                    files=files,
+                    semantic_review=semantic_review,
+                )
                 prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
                 component_results.append(result)
+                completed_components.append(component_id)
+                write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
+                mark_generation_progress(
+                    deadline,
+                    "project_generation",
+                    f"Provider component {component_id} returned validated files.",
+                    [item["path"] for item in files],
+                )
                 break
             except (RuntimeError, TimeoutError) as exc:
+                provider_error_type = check_connectivity._provider_error_type(str(exc))
                 message = f"{component_id} attempt {attempt + 1}: {exc}"
                 component_errors.setdefault(component_id, []).append(message)
                 local_repairs.append(message)
-                if attempt == 2:
+                retryable = provider_component_error_is_retryable(provider_error_type, str(exc))
+                write_provider_component_checkpoint(
+                    checkpoint_dir,
+                    component_id=component_id,
+                    spec_hash=spec_hash,
+                    status="failed",
+                    raw_output="",
+                    parsed_result={"component_id": component_id},
+                    files=[],
+                    semantic_review={"status": "fail", "reviewer": "local_component_semantic_contract", "blockers": ["provider_exception"]},
+                    error=str(exc),
+                    provider_error_type=provider_error_type,
+                )
+                if not retryable or attempt == 2:
+                    failed_components.append({"component_id": component_id, "provider_error_type": provider_error_type, "error": str(exc)})
+                    write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
                     raise
+                sleep_for = min(20.0, 2.0 * (2**attempt))
+                append_phase_log(
+                    checkpoint_dir.parent.parent / "provider_phase_log.jsonl" if checkpoint_dir else "",
+                    "project_generation",
+                    "component_retry",
+                    f"Retrying provider component {component_id} after {provider_error_type}.",
+                    [],
+                )
+                write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
+                if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
+                    time.sleep(sleep_for)
     files = merge_component_files(component_results)
+    paths = {item["path"] for item in files if isinstance(item, dict)}
+    if "TEST_PLAN.md" not in paths:
+        test_paths = sorted(path for path in paths if path.startswith("tests/") and path.endswith(".py"))
+        if test_paths:
+            files.append(
+                {
+                    "path": "TEST_PLAN.md",
+                    "content": "\n".join(
+                        [
+                            "# Test Plan",
+                            "",
+                            "commands_run:",
+                            "- python -m pytest tests",
+                            "",
+                            "test_files:",
+                            *[f"- {path}" for path in test_paths],
+                            "",
+                            "status:",
+                            "- planned; post-build finalize must execute these tests and write TEST_REPORT.md",
+                        ]
+                    )
+                    + "\n",
+                }
+            )
+            paths.add("TEST_PLAN.md")
     required = component_pipeline.get("merge_policy", {}).get("required_final_files", ["README.md", "TEST_PLAN.md"])
-    missing = [rel for rel in required if rel not in {item["path"] for item in files}]
+    missing = [rel for rel in required if rel not in paths]
     if missing:
         raise RuntimeError("merged component output missing required files: " + ", ".join(missing))
+    mark_generation_progress(
+        deadline,
+        "project_generation",
+        "Provider components merged into a project file set.",
+        [item["path"] for item in files],
+    )
     return {
         "project_type": "component_assembled_provider_project",
         "summary": "Project assembled from component-scoped provider generations.",
@@ -643,6 +979,7 @@ def provider_generate_project_by_components(
         ],
         "component_pipeline": component_pipeline,
         "component_errors": component_errors,
+        "component_checkpoint_summary": checkpoint_summary(),
         "manual_checks": [
             check
             for result in component_results
@@ -1061,7 +1398,7 @@ def run_project_usage_agent(
     *,
     allow_model_usage_planning: bool = False,
     phase_log_path: pathlib.Path | str | None = None,
-    deadline: float | None = None,
+    deadline: float | ProgressDeadline | None = None,
 ) -> dict[str, Any]:
     usage_dir = run_dir / "agent_usage"
     usage_dir.mkdir(parents=True, exist_ok=True)
@@ -1098,6 +1435,7 @@ def run_project_usage_agent(
     plan = normalize_usage_plan_placeholders(plan, project_dir, run_dir)
     write_json(usage_dir / "usage_plan.json", plan)
     append_phase_log(phase_log_path, "usage_planning", "artifact_written", "usage_plan.json written.", [str(usage_dir / "usage_plan.json")], started_at=usage_started)
+    mark_generation_progress(deadline, "usage_planning", "Usage planning artifacts written.", [str(usage_dir / "usage_plan.json")])
     runtime_check = local_usage_planner.create_runtime_check(project_dir, plan)
     visual_evidence_plan = local_usage_planner.create_visual_evidence_plan(project_dir, plan)
     write_json(usage_dir / "runtime_check.json", runtime_check)
@@ -1137,6 +1475,12 @@ def run_project_usage_agent(
         "completed",
         "Visual evidence plan written.",
         [str(usage_dir / "visual_evidence_plan.json")],
+    )
+    mark_generation_progress(
+        deadline,
+        "visual_evidence",
+        "Runtime and visual evidence plans written.",
+        [str(usage_dir / "runtime_check.json"), str(usage_dir / "visual_evidence_plan.json")],
     )
     result: dict[str, Any] = {
         "status": "planned",
@@ -1229,6 +1573,7 @@ def run_project_usage_agent(
                         shot = usage_dir / f"step_{idx:02d}_{action or 'step'}.png"
                         page.screenshot(path=str(shot), full_page=True)
                         result["screenshots"].append(str(shot))
+                        mark_generation_progress(deadline, "visual_evidence", "Browser evidence screenshot captured.", [str(shot)])
                         try:
                             body_text = page.locator("body").inner_text(timeout=1000)
                         except Exception:
@@ -1711,7 +2056,7 @@ def write_provider_long_context_artifacts(
 
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     require_api_generation(args)
-    exec_deadline = generation_deadline(args)
+    exec_deadline_value = generation_deadline(args)
     plan_path = pathlib.Path(args.plan) if args.plan else None
     if plan_path and plan_path.exists():
         plan_doc = load_json(plan_path)
@@ -1732,6 +2077,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = pathlib.Path(args.out_dir).resolve()
     run_dir = pathlib.Path(args.run_dir).resolve()
     result_path = pathlib.Path(args.result).resolve()
+    exec_deadline = ProgressDeadline(
+        exec_deadline_value,
+        extension_seconds=max(30, int(getattr(args, "timeout", 360))),
+        phase_log_path=getattr(args, "phase_log_path", ""),
+    )
     if not bool(getattr(args, "use_api", False)):
         artifacts_dir = run_dir / "artifacts"
         artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -1799,6 +2149,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 remaining_timeout(exec_deadline, int(args.timeout), floor=5, cap=120),
                 internal_context=internal_context,
                 deadline=exec_deadline,
+                checkpoint_dir=run_dir / "artifacts" / "provider_components",
             )
             files = validate_provider_files(generation)
             provider_review = provider_review_project(
@@ -1818,11 +2169,29 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 if not isinstance(issues, list):
                     issues = [str(issues)]
                 raise RuntimeError("provider semantic review failed: " + "; ".join(str(issue) for issue in issues[:8]))
+            mark_generation_progress(
+                exec_deadline,
+                "provider_review",
+                "Provider semantic review passed.",
+                [str(result_path)],
+            )
             generated_files = write_provider_files(out_dir, files)
+            mark_generation_progress(
+                exec_deadline,
+                "project_generation",
+                "Provider project files were written to disk.",
+                [str(out_dir / rel) for rel in generated_files],
+            )
             append_phase_log(getattr(args, "phase_log_path", ""), "project_generation", "completed", "Project files written.", [str(out_dir)], started_at=generation_started)
             example_outputs = make_example_outputs(run_dir, online_inputs)
             if example_outputs.get("status") != "pass":
                 raise RuntimeError(f"example-based output generation failed: {example_outputs}")
+            mark_generation_progress(
+                exec_deadline,
+                "example_outputs",
+                "Example output artifacts were generated.",
+                [str(path) for path in example_outputs.get("files", [])] if isinstance(example_outputs.get("files"), list) else [],
+            )
             expected_intent = intent
             conflict = local_intent_router.detect_project_type_conflict(expected_intent, out_dir)
             if conflict.get("conflict"):

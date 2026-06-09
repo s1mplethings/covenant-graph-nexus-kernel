@@ -172,6 +172,40 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             self.assertEqual("# Existing README\n", (project / "README.md").read_text(encoding="utf-8"))
             self.assertEqual("print('existing')\n", (project / "app.py").read_text(encoding="utf-8"))
 
+    def test_provider_exception_never_delivers_partial_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            log_dir = root / "logs"
+            chat_id = "chat-partial-no-deliver"
+            seed_session(session_dir, chat_id, "做一个本地任务工具")
+
+            def fake_execute(args):
+                project = pathlib.Path(args.out_dir)
+                project.mkdir(parents=True, exist_ok=True)
+                (project / "README.md").write_text("# Tool\n", encoding="utf-8")
+                (project / "main.py").write_text("print('ok')\n", encoding="utf-8")
+                (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+                (project / "TEST_REPORT.md").write_text("# Test Report\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n", encoding="utf-8")
+                (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+                (project / "tests").mkdir(exist_ok=True)
+                (project / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+                raise RuntimeError("merged component output missing required files: TEST_PLAN.md")
+
+            bridge.provider_project_pipeline.execute = fake_execute
+            client = FakeTelegramClient()
+            bridge.run_provider_generation_job(client, chat_id, session_dir, log_dir, "gpt-test", 30)
+
+            session = bridge.load_session(session_dir, chat_id)
+            self.assertEqual("rework_blocked", session["generation"]["status"])
+            self.assertFalse(session["generation"]["delivery_allowed"])
+            self.assertEqual("REWORK", session["generation"]["delivery_gate"]["status"])
+            self.assertFalse(session["generation"]["delivery_gate"]["delivery_allowed"])
+            self.assertIn("provider_generation_exception", session["generation"]["delivery_gate"]["missing"])
+            self.assertEqual([], client.photos)
+            self.assertEqual([], client.documents)
+            self.assertEqual([], client.videos)
+
 
 if __name__ == "__main__":
     unittest.main()

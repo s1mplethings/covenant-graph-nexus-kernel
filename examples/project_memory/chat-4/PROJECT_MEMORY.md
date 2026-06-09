@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-07T06:26:26.728040+00:00
-revision_count: 2
+generated_at: 2026-06-08T16:19:45.373436+00:00
+revision_count: 3
 ---
 
 # Project Memory
@@ -36,6 +36,7 @@ revision_count: 2
 ## Default Assumptions
 
 - 先按本地可运行、可测试、可扩展的默认方案推进
+- 未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？
 
 ## First Version Plan
 
@@ -64,7 +65,7 @@ revision_count: 2
 
 ## Open Questions
 
-- 未记录
+- 交付重点是界面、文件导出、还是自动化流程？
 
 ## Blocking Questions
 
@@ -110,9 +111,9 @@ revision_count: 2
 
 ## Generation State
 
-- Status: `ready_with_warnings`
+- Status: `rework_blocked`
 - Started at: ``
-- Finished at: `2026-06-07T06:26:26.682911+00:00`
+- Finished at: `2026-06-08T16:19:45.348614+00:00`
 - Result path: ``
 
 ## Update Rules

@@ -39,6 +39,24 @@ class ProviderApiTransportTests(unittest.TestCase):
         self.assertFalse(check_connectivity._error_is_retryable('HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'))
         self.assertTrue(check_connectivity._error_is_retryable("HTTP 429: rate limited [retryable=true]"))
 
+    def test_provider_error_type_classifies_transport_and_key_limit(self) -> None:
+        self.assertEqual(
+            "PROVIDER_TRANSPORT_UNSTABLE",
+            check_connectivity._provider_error_type("request failed: SSLError: SSLV3_ALERT_BAD_RECORD_MAC"),
+        )
+        self.assertEqual(
+            "PROVIDER_TRANSPORT_UNSTABLE",
+            check_connectivity._provider_error_type("HTTP 520: web server returned unknown error [retryable=true]"),
+        )
+        self.assertEqual(
+            "PROVIDER_TRANSPORT_UNSTABLE",
+            check_connectivity._provider_error_type("[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol"),
+        )
+        self.assertEqual(
+            "PROVIDER_KEY_USAGE_LIMIT",
+            check_connectivity._provider_error_type('HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
