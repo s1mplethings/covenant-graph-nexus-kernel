@@ -12,11 +12,17 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
+try:
+    from . import model_policy
+except ImportError:  # pragma: no cover - script execution path
+    import model_policy  # type: ignore
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RESULT_PATH = ROOT / "examples" / "test_results" / "connectivity_check_result.json"
 DEFAULT_NOTES_PATH = ROOT / ".agent_private" / "NOTES.md"
 EMBEDDED_BASE_URL = "https://api.gptsapi.net/v1"
+DEFAULT_TEST_MODEL = model_policy.select_model("connectivity")
 
 
 def _write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -355,7 +361,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Run live OpenAI-compatible API probe.")
     parser.add_argument("--live-api", action="store_true", help="Run live OpenAI-compatible API probe.")
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
+    parser.add_argument("--model", default=model_policy.select_model("connectivity"))
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

@@ -318,6 +318,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("partially recovered from malformed JSON", runner)
         self.assertIn("same manifest step must return strict JSON", runner)
 
+    def test_local_project_team_layer_is_state_only(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("Local Project Team Layer", doc)
+        self.assertIn("do not create a second formal generation path", doc)
+        self.assertIn("failed revision", doc)
+        self.assertIn("model_policy", doc)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,6 +42,13 @@ PROVIDER_ROUTE_TERMS = [
     "finish_agent_loop_delivery",
 ]
 BLOAT_HINTS = ["VNProjectCLI", "Flask create_app compatibility", "csgo", "鉴挂", "反作弊"]
+PROJECT_TEAM_FILES = [
+    "scripts/model_policy.py",
+    "scripts/local_conversation_manager.py",
+    "scripts/local_repo_manager.py",
+    "scripts/main_agent_manager.py",
+    "scripts/project_revision_lane.py",
+]
 
 
 def read_text(path: str) -> str:
@@ -80,10 +87,17 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     agents = read_text("AGENTS.md")
     kernel = read_text("docs/00_kernel_contract.md")
     bridge = read_text("scripts/telegram_live_bridge.py")
+    model_policy = read_text("scripts/model_policy.py") if (ROOT / "scripts/model_policy.py").exists() else ""
+    revision_lane = read_text("scripts/project_revision_lane.py") if (ROOT / "scripts/project_revision_lane.py").exists() else ""
+    local_studio = read_text("scripts/local_studio_cli.py") if (ROOT / "scripts/local_studio_cli.py").exists() else ""
+    connectivity = read_text("scripts/check_connectivity.py")
 
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
         missing = [term for term in ROUTE_TERMS if term not in text]
         add(checks, f"{path} names reviewed Telegram route", not missing, ", ".join(missing))
+
+    missing_team_files = [path for path in PROJECT_TEAM_FILES if not (ROOT / path).exists()]
+    add(checks, "project team manager modules exist", not missing_team_files, ", ".join(missing_team_files))
 
     suffix_block = between(bridge, "PUBLIC_DELIVERY_SUFFIXES", "}")
     bad_suffixes = [suffix for suffix in INTERNAL_SUFFIXES if suffix in suffix_block]
@@ -128,6 +142,67 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "provider route is behind validation packager and gate",
         bool(provider_route_body.strip()) and not missing_provider_terms,
         ", ".join(missing_provider_terms) or "provider route function bodies not found",
+    )
+
+    default_session_body = function_body(bridge, "default_session")
+    add(
+        checks,
+        "telegram default session carries active project state",
+        "active_project" in default_session_body and "revision_history" in default_session_body,
+        "default_session missing active_project or revision_history",
+    )
+    add(
+        checks,
+        "customer intents include project revision request",
+        '"project_revision_request"' in between(bridge, "CUSTOMER_MESSAGE_INTENTS", "}"),
+        "CUSTOMER_MESSAGE_INTENTS missing project_revision_request",
+    )
+    handle_body = function_body(bridge, "handle_text")
+    revision_branch = between(handle_body, 'if intent == "project_revision_request":', 'if intent == "new_project_request":')
+    add(
+        checks,
+        "telegram revision branch delegates out of bridge",
+        "MainAgentManager().start_project_revision" in revision_branch and "local_packager.package_project" not in revision_branch and "evaluate_public_delivery_gate" not in revision_branch,
+        "revision handling should delegate without packaging or gate logic inside bridge",
+    )
+    add(
+        checks,
+        "revision manifest records previous manifest",
+        "previous_manifest_ref" in revision_lane and "full_regenerate_reason" in revision_lane,
+        "project_revision_lane missing revision manifest context fields",
+    )
+    add(
+        checks,
+        "revision delivery contract names packager and public gate",
+        "local_packager" in revision_lane and "public_delivery_gate" in revision_lane and "delivery_manifest" in revision_lane,
+        "project_revision_lane missing delivery contract terms",
+    )
+    add(
+        checks,
+        "revision failure does not promote current",
+        "def mark_revision_failed" in revision_lane and "promote_revision_to_current" not in function_body(revision_lane, "mark_revision_failed"),
+        "mark_revision_failed must not promote current",
+    )
+    add(
+        checks,
+        "model defaults are centralized for bridge and connectivity",
+        "model_policy.select_model(\"provider_generation\")" in bridge and "model_policy.select_model(\"connectivity\")" in connectivity,
+        "bridge or connectivity still bypasses model_policy defaults",
+    )
+    add(
+        checks,
+        "local studio routes through MainAgentManager only",
+        "MainAgentManager" in local_studio
+        and "run_local_pipeline" not in local_studio
+        and "generate_project.py" not in local_studio
+        and "simulator" not in local_studio,
+        "local_studio_cli must not call legacy or support generation routes",
+    )
+    add(
+        checks,
+        "model policy exposes required task profiles",
+        all(term in model_policy for term in ("provider_generation", "connectivity", "repair", "review", "CGNK_MODEL_PROFILE")),
+        "model_policy missing required tasks or profile environment",
     )
 
     for name in DELIVERY_GATE_FUNCTIONS:

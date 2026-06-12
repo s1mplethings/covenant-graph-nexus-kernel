@@ -110,6 +110,14 @@ Legacy CLI may exist only under `legacy/` or as a thin wrapper.
 
 Telegram formal generation may call the reviewed API/provider project generation implementation restored from the old provider chain, but it must not bypass post-build finalization, `local_packager`, or public delivery gate. `generate_project.py` and `simulator` remain disallowed as Telegram mainline.
 
+## Local Project Team Layer
+
+CGNK may maintain local conversation, active project, managed project, and revision-history state through `local_conversation_manager`, `local_repo_manager`, `main_agent_manager`, and `project_revision_lane`. These modules are coordination and history layers only. They do not create a second formal generation path.
+
+Project revisions must preserve the previous active project until the new revision passes the reviewed provider route, post-build finalization, `local_packager`, `public_delivery_gate`, and `delivery_manifest.json`. A failed revision must record failure state and must not promote its workspace to `current`.
+
+Model defaults must be selected through `model_policy` for provider generation and connectivity checks so different entrypoints do not silently test or run different default models.
+
 Old `BLOCKED` and gate terminology must not be user-visible.
 
 `backend_controls` are compatibility logs only, never execution queues.
