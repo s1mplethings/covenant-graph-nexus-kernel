@@ -2140,6 +2140,16 @@ def build_intake_waiting_text(analysis: dict[str, Any], fallback_reply: str = ""
     for key in ("critical_questions", "missing_required_inputs", "soft_questions"):
         values = analysis.get(key, []) if isinstance(analysis.get(key), list) else []
         questions.extend(str(item).strip() for item in values if str(item).strip())
+    summary = str(analysis.get("project_summary") or analysis.get("summary") or "").strip()
+    signals = extract_project_intent_signals(summary, {}, analysis)
+    if signals["actionable_project_request"] and not signals["has_hard_blocker"]:
+        limits = unique_strings(questions, limit=3)
+        text = f"我先把需求整理成第一版方向：{summary[:260]}。"
+        if limits:
+            text += "\n这些点会写进假设或验收限制，不会把占位、降级预览或缺失配置当成完整通过：\n"
+            text += "\n".join(f"{index}. {item}" for index, item in enumerate(limits, 1))
+        text += "\n你可以继续补充细节；当前范围已经可以先按第一版可运行结构推进。"
+        return pre_send_guard(text)
     text = public_narration.public_event_text("intake_waiting", {"questions": unique_strings(questions, limit=3)})
     if fallback_reply and not questions:
         text += "\n\n" + str(fallback_reply).strip()[:500]
@@ -2321,6 +2331,14 @@ def grounded_current_goal_reply(session: dict[str, Any]) -> str:
             "缺少真实外部能力或运行证据时，我会写进限制，不能当成完整通过。",
         ]
     question_lines = "\n".join(f"{index}. {item}" for index, item in enumerate(questions[:4], 1))
+    signals = extract_project_intent_signals(context, session, {"project_summary": summary})
+    if signals["actionable_project_request"] and not signals["has_hard_blocker"]:
+        return (
+            f"我先把这个项目整理成第一版方向：{summary[:260] or goal[:260]}。\n\n"
+            "当前范围已经足够启动本地可运行版本；下面这些点会作为验收限制和实现假设记录：\n"
+            f"{question_lines}\n\n"
+            "缺少真实外部能力、配置或运行证据时，不会把占位结果当成完整通过。"
+        )
     return (
         f"我先把这个需求整理成第一版方向：{summary[:260] or goal[:260]}。\n\n"
         "现在有几个点会影响实现质量，所以不会马上开工：\n"
@@ -2694,26 +2712,10 @@ def is_human_start_confirmation(text: str, session: dict[str, Any]) -> bool:
     return compact in confirmations
 
 
-COMPLEX_AUTO_START_KEYWORDS = (
-    "demo",
-    "视觉",
-    "鉴挂",
-    "模型",
-    "识别",
-    "分析",
-    "反作弊",
-    "外部文件",
-    "数据集",
-    "训练",
-    "图像",
-    "视频",
-    "api",
-    "传感器",
-)
-
-
 def explicit_start_requested(user_text: str) -> bool:
     compact = re.sub(r"[\s,.!?。！？~～]+", "", str(user_text or "").lower())
+    if compact in {"做一个东西", "帮我搞一下", "帮我弄一下", "做个东西", "搞一下", "帮我做个东西"}:
+        return False
     if any(phrase in compact for phrase in ("直接生成图片", "直接生成图", "直接生成背景", "直接生成立绘", "directlygenerateimage")):
         return False
     if is_generate_command(user_text):
@@ -2740,6 +2742,82 @@ def _analysis_list(analysis: dict[str, Any], key: str) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def extract_project_intent_signals(text: str, session: dict[str, Any], analysis: dict[str, Any]) -> dict[str, Any]:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    context = "\n".join(
+        str(item)
+        for item in (
+            text,
+            analysis.get("project_summary", ""),
+            whiteboard.get("project_summary", ""),
+        )
+        if str(item or "").strip()
+    ).lower()
+    compact = re.sub(r"[\s，。,.!?！？]+", "", context)
+    vague_request = compact in {"做一个东西", "帮我搞一下", "帮我弄一下", "做个东西", "搞一下"} or len(compact) <= 6
+    goal_terms = ("工具", "系统", "项目", "助手", "平台", "后台", "应用", "app", "网站", "程序", "服务", "机器人")
+    intent_terms = ("做", "帮我", "想要", "需要", "开发", "实现", "搭建", "生成一个", "创建")
+    capability_terms = (
+        "管理",
+        "生成",
+        "分析",
+        "导出",
+        "自动化",
+        "预览",
+        "处理",
+        "识别",
+        "编辑",
+        "整理",
+        "导入",
+        "截取",
+        "报告",
+        "对接",
+        "接 api",
+        "api",
+        "转换",
+        "配置",
+        "测试",
+        "搜索",
+        "分类",
+        "训练",
+        "上传",
+        "下载",
+    )
+    runtime_terms = ("本地", "网页", "桌面", "cli", "命令行", "服务端", "telegram", "界面", "页面", "后台", "可运行")
+    output_terms = ("文件", "导出", "报告", "结果", "包", "zip", "截图", "预览", "列表", "看板")
+    has_goal = any(term in context for term in goal_terms) and any(term in context for term in intent_terms)
+    has_capability = any(term in context for term in capability_terms)
+    has_output_or_runtime = any(term in context for term in runtime_terms + output_terms)
+    can_default_runtime = has_goal and has_capability
+    start_allowed = bool(analysis.get("start_allowed_with_assumptions", True))
+    hard_blockers: list[str] = []
+    if vague_request or not has_goal or not has_capability:
+        hard_blockers.append("unclear_goal_or_capability")
+    if not start_allowed:
+        hard_blockers.append("defaults_disallowed")
+    missing_inputs = _analysis_list(analysis, "missing_required_inputs") or (
+        whiteboard.get("missing_required_inputs") if isinstance(whiteboard.get("missing_required_inputs"), list) else []
+    )
+    requires_unscaffoldable_file = bool(missing_inputs) and any(
+        phrase in context
+        for phrase in ("必须上传", "必须提供文件", "只能基于", "没有文件不能", "必须用这个文件", "依赖上传文件")
+    )
+    if requires_unscaffoldable_file:
+        hard_blockers.append("missing_required_file")
+    actionable = has_goal and has_capability and (has_output_or_runtime or can_default_runtime) and not hard_blockers
+    return {
+        "has_goal": has_goal,
+        "has_capability": has_capability,
+        "has_output_or_runtime": has_output_or_runtime,
+        "can_default_runtime": can_default_runtime,
+        "has_hard_blocker": bool(hard_blockers),
+        "hard_blockers": hard_blockers,
+        "start_allowed_with_assumptions": start_allowed,
+        "missing_required_inputs": missing_inputs,
+        "actionable_project_request": actionable,
+    }
+
+
 def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, Any], user_text: str) -> tuple[bool, str]:
     if explicit_start_requested(user_text):
         return True, "explicit_start_requested"
@@ -2747,25 +2825,37 @@ def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, An
     if session_analysis:
         analysis = {**analysis, **session_analysis}
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if bool(analysis.get("needs_direction_confirmation")):
-        return False, "needs_direction_confirmation"
-    if _analysis_list(analysis, "soft_questions") or (isinstance(whiteboard.get("soft_questions"), list) and bool(whiteboard.get("soft_questions"))):
-        return False, "soft_questions_pending"
-    if _analysis_list(analysis, "critical_questions") or (isinstance(whiteboard.get("critical_questions"), list) and bool(whiteboard.get("critical_questions"))):
+    context = "\n".join(
+        str(item)
+        for item in (
+            user_text,
+            analysis.get("project_summary", ""),
+            whiteboard.get("project_summary", ""),
+        )
+        if str(item or "").strip()
+    )
+    signals = extract_project_intent_signals(context, session, analysis)
+    start_allowed = bool(signals["start_allowed_with_assumptions"])
+    if signals["has_hard_blocker"]:
+        reason = str((signals.get("hard_blockers") or ["hard_blocker"])[0])
+        if reason == "defaults_disallowed":
+            return False, "defaults_disallowed"
+        if reason == "missing_required_file":
+            return False, "missing_required_inputs"
+        return False, "unclear_project_request"
+    critical_questions = _analysis_list(analysis, "critical_questions") or (
+        whiteboard.get("critical_questions") if isinstance(whiteboard.get("critical_questions"), list) else []
+    )
+    if critical_questions and not start_allowed:
         return False, "critical_questions_pending"
-    if _analysis_list(analysis, "missing_required_inputs") or (
-        isinstance(whiteboard.get("missing_required_inputs"), list) and bool(whiteboard.get("missing_required_inputs"))
-    ):
-        return False, "missing_required_inputs"
-    text = str(user_text or "").lower()
-    if any(keyword.lower() in text for keyword in COMPLEX_AUTO_START_KEYWORDS):
-        return False, "complex_domain_requires_confirmation"
+    if signals["actionable_project_request"]:
+        return True, "actionable_project_request"
     try:
         confidence = float(analysis.get("confidence") or 0)
     except Exception:
         confidence = 0.0
     if confidence < 0.8:
-        return False, "complex_domain_requires_confirmation"
+        return False, "unclear_project_request"
     return True, "simple_clear_request"
 
 
@@ -2877,13 +2967,11 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
         raise RuntimeError("missing OpenAI-compatible API key for Telegram customer service")
     root = str(creds.get("base_url", "")).rstrip("/")
     temperature = customer_reply_temperature()
-    if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = check_connectivity._chat_completions_endpoint(root)
-        payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 900}
-    else:
-        endpoint = check_connectivity._responses_endpoint(root)
-        prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-        payload = {"model": model, "input": prompt, "temperature": temperature, "max_output_tokens": 900}
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 900},
+    )
     last_error = ""
     for attempt in range(6):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)

@@ -19,7 +19,7 @@ CGNK Kernel is fixed responsible for:
 11. Using `local_packager.package_project` as the only formal delivery exit.
 12. Treating `delivery_manifest.json` as the evidence that delivery packaging completed.
 13. Allowing `dynamic_pipeline_runner` to recover complete actions from malformed or truncated agent JSON only inside the same manifest step, record the parse failure, and require a repair turn before that step can pass.
-14. Allowing configured local models only as a model-source optimization. By default, local models may write public frontdesk/status replies only; generation-affecting local tasks such as backend dialogue, planner, CFO planning, context support, risk support, foundation, or QA must be explicitly enabled and must remain inside the same manifest/runner/evidence boundary.
+14. Allowing configured local models only as a model-source optimization. By default, local models may write public frontdesk/status replies only; generation-affecting local tasks such as backend dialogue, planner, CFO planning, context support, risk support, foundation, or QA must be explicitly enabled and must remain inside the same manifest/runner/evidence boundary. When a local-model task is enabled, the router may auto-start the configured Ollama runtime (`CGNK_AUTO_START_OLLAMA`, enabled by default) before calling the model; this is runtime readiness only, not a generation route.
 15. Recording critical setup questions for any explicitly required external, local, hosted, data, model, automation, security, storage, or runtime capability. These questions are shared context and acceptance constraints, not a new gate or generation route.
 16. Recording a project-level capability strategy for core capabilities, advanced-method candidates, obvious route differences, and acceptance limits. This is universal planning context for the same manifest/runner flow, not a project-type-specific generator.
 17. Wrapping Telegram user-facing narration in an action-based public expression layer. Public replies may describe what will be built, why input is needed, how testing works, what evidence will be shown, and how the user can continue or revise; this does not create a new formal generation path.
@@ -87,6 +87,8 @@ Telegram public delivery is stricter than packaging. Packaging may create an int
 When an agent reply is malformed or truncated, the runner may salvage fully closed actions and execute them, but it must keep the step in repair until strict JSON succeeds. This is parser resilience inside the current manifest step, not a separate generation path.
 
 Local-model routing may reduce provider cost for low-risk tasks. Public reply tasks must not alter `whiteboard`, `pipeline_manifest`, generation actions, or delivery readiness. Generation-affecting local tasks must be opt-in and must stay inside the same `pipeline_manifest` and `dynamic_pipeline_runner` boundary. They must not bypass manifest validation, `local_agent_actions`, `local_packager`, or final delivery evidence.
+
+If an enabled local-model task uses Ollama, the router may find `ollama.exe`, run `ollama serve`, and wait for `OLLAMA_HOST` to respond before sending the request. `CGNK_OLLAMA_EXE` or `OLLAMA_EXE` may override the executable path, and `CGNK_AUTO_START_OLLAMA=0` disables this readiness helper. Auto-starting Ollama does not enable additional tasks by itself and does not change the Telegram default provider generation route.
 
 Configured local models do not create a new formal generation path.
 

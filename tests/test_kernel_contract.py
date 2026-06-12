@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import os
 import subprocess
 import sys
 import tempfile
@@ -101,7 +102,7 @@ class KernelContractTests(unittest.TestCase):
             self.assertEqual("chat-soft", called.get("chat_id"))
             self.assertFalse(called.get("announce_start"))
 
-    def test_soft_questions_prevent_auto_start_until_explicit_confirmation(self) -> None:
+    def test_soft_questions_do_not_prevent_auto_start(self) -> None:
         analysis = {
             "needs_direction_confirmation": False,
             "soft_questions": ["第一版按本地网页可以吗？"],
@@ -110,7 +111,8 @@ class KernelContractTests(unittest.TestCase):
             "confidence": 0.95,
         }
 
-        self.assertEqual((False, "soft_questions_pending"), bridge.should_auto_start_generation({}, analysis, "做一个系统"))
+        self.assertEqual((False, "unclear_project_request"), bridge.should_auto_start_generation({}, analysis, "做一个系统"))
+        self.assertEqual((True, "actionable_project_request"), bridge.should_auto_start_generation({}, analysis, "做一个本地工具，可以整理和导出报告"))
         self.assertEqual((True, "explicit_start_requested"), bridge.should_auto_start_generation({}, analysis, "按默认假设开始生成"))
 
     def test_critical_questions_are_not_gate_but_are_acceptance_context(self) -> None:
@@ -229,11 +231,15 @@ class KernelContractTests(unittest.TestCase):
 
     def test_local_model_routing_is_not_formal_generation_path(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
+        router_source = read_source("scripts/local_model_router.py")
 
         self.assertIn("local models do not create a new formal generation path", doc)
+        self.assertIn("CGNK_AUTO_START_OLLAMA", doc)
+        self.assertIn("Auto-starting Ollama does not enable additional tasks", doc)
         self.assertIn("pipeline_manifest", doc)
         self.assertIn("local_packager", doc)
         self.assertIn("Public reply tasks must not alter", doc)
+        self.assertIn("ensure_ollama_running", router_source)
         self.assertTrue(local_model_router.task_is_public_reply_only("customer_public_reply"))
         self.assertFalse(local_model_router.task_affects_generation("customer_public_reply"))
         self.assertTrue(local_model_router.task_affects_generation("context_support"))
@@ -241,6 +247,24 @@ class KernelContractTests(unittest.TestCase):
         self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
         self.assertGreater(local_model_router.local_model_temperature("customer_public_reply"), 0.5)
         self.assertEqual(0.1, local_model_router.local_model_temperature("cfo_pipeline"))
+
+    def test_ollama_auto_start_can_be_disabled_without_enabling_generation_tasks(self) -> None:
+        original_auto_start = os.environ.get("CGNK_AUTO_START_OLLAMA")
+        original_available = local_model_router.ollama_available
+        try:
+            os.environ["CGNK_AUTO_START_OLLAMA"] = "0"
+            local_model_router.ollama_available = lambda host: False
+            runtime = local_model_router.ensure_ollama_running("http://127.0.0.1:11434", wait_seconds=1)
+        finally:
+            local_model_router.ollama_available = original_available
+            if original_auto_start is None:
+                os.environ.pop("CGNK_AUTO_START_OLLAMA", None)
+            else:
+                os.environ["CGNK_AUTO_START_OLLAMA"] = original_auto_start
+
+        self.assertFalse(runtime["ok"])
+        self.assertEqual("disabled", runtime["status"])
+        self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
 
     def test_public_delivery_gate_is_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")

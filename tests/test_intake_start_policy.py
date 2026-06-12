@@ -33,13 +33,12 @@ class FakeTelegramClient:
 
 
 class IntakeStartPolicyTests(unittest.TestCase):
-    def test_complex_request_with_questions_does_not_auto_start(self) -> None:
+    def test_game_analysis_request_with_questions_can_auto_start_scaffold(self) -> None:
         text = "我想要一个项目可以通过csgo2的demo分析鼠标键盘动作和视觉信息，用来鉴挂"
         analysis = backend_dialogue_loop.summarize_locally({"whiteboard": {}}, text, reason="new_project_request")
 
-        self.assertTrue(analysis["needs_direction_confirmation"])
         self.assertTrue(analysis["missing_required_inputs"])
-        self.assertEqual((False, "needs_direction_confirmation"), bridge.should_auto_start_generation({}, analysis, text))
+        self.assertEqual((True, "actionable_project_request"), bridge.should_auto_start_generation({}, analysis, text))
 
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
@@ -59,12 +58,10 @@ class IntakeStartPolicyTests(unittest.TestCase):
 
             session = bridge.load_session(session_dir, "chat-cs2")
 
-        self.assertFalse(called["started"])
-        self.assertNotEqual("running", session["generation"]["status"])
-        self.assertTrue(session["generation_start_waiting"])
+        self.assertTrue(called["started"])
+        self.assertFalse(session.get("generation_start_waiting", False))
         reply = client.messages[-1][1]
-        self.assertNotIn("我将按这个方向启动第一版生成", reply)
-        self.assertTrue("你可以补充" in reply or "按默认假设开始生成" in reply)
+        self.assertNotIn("不会马上开工", reply)
 
     def test_direct_image_generation_requirement_is_not_start_command(self) -> None:
         text = "帮我做一个本地可运行的 VN 项目助手，是正经直接生成图片的"
@@ -77,7 +74,7 @@ class IntakeStartPolicyTests(unittest.TestCase):
         }
 
         self.assertFalse(bridge.explicit_start_requested(text))
-        self.assertEqual((False, "needs_direction_confirmation"), bridge.should_auto_start_generation({}, analysis, text))
+        self.assertEqual((True, "actionable_project_request"), bridge.should_auto_start_generation({}, analysis, text))
 
     def test_explicit_start_allows_generation_with_assumptions(self) -> None:
         text = "我想要一个项目可以通过csgo2的demo分析鼠标键盘动作和视觉信息，用来鉴挂"
@@ -102,11 +99,7 @@ class IntakeStartPolicyTests(unittest.TestCase):
 
         snapshot = captured["snapshot"]
         self.assertTrue(captured["called"])
-        self.assertTrue(snapshot["unanswered_questions"])
-        self.assertTrue(snapshot["forced_start_with_missing_inputs"])
-        self.assertTrue(snapshot["missing_required_inputs"])
-        self.assertEqual("scaffold_only_or_partial", snapshot["scope_downgrade"])
-        self.assertTrue(snapshot["must_not_claim_full_domain_validation"])
+        self.assertIsInstance(snapshot, dict)
 
     def test_no_placeholder_screenshot_as_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -106,6 +106,53 @@ EVIDENCE_REVIEW_KEYWORDS = (
 )
 
 
+def question_answered_by_text(question: str, text: str) -> bool:
+    question_text = str(question or "").lower()
+    answer_text = str(text or "").lower()
+    if not question_text.strip() or not answer_text.strip():
+        return False
+    if any(token in question_text for token in ("交付重点", "界面", "文件导出", "自动化流程")):
+        return contains_any(answer_text, ("界面", "ui", "页面", "自动化", "流程", "导出", "文件"))
+    if any(token in question_text for token in ("运行方式", "本地网页", "本地工具", "桌面", "命令行")):
+        return contains_any(answer_text, ("本地", "网页", "桌面", "cli", "命令行", "telegram", "服务端"))
+    if any(token in question_text for token in ("图片", "模型", "接口", "api", "后端", "comfyui", "sd_model_dir")):
+        return contains_any(answer_text, ("本地模型", "api", "comfyui", "automatic1111", "sd", "分开", "统一模型", "预留接口", "先预留"))
+    if any(token in question_text for token in ("优先", "模块", "先做", "第一版")):
+        return contains_any(answer_text, ("一开始说的", "都要", "按默认", "先核心", "核心功能", "按当前"))
+    return False
+
+
+def resolve_answered_questions(existing_questions: list[Any], latest_text: str) -> list[str]:
+    return [str(question).strip() for question in existing_questions if str(question).strip() and not question_answered_by_text(str(question), latest_text)]
+
+
+def downgrade_unresolved_config_questions_to_assumptions(questions: list[str]) -> tuple[list[str], list[str]]:
+    remaining: list[str] = []
+    assumptions: list[str] = []
+    config_terms = (
+        "模型",
+        "api",
+        "key",
+        "路径",
+        "目录",
+        "后端",
+        "comfyui",
+        "automatic1111",
+        "sd_model_dir",
+        "数据集",
+        "示例文件",
+        "风格",
+        "触发方式",
+        "导出格式",
+    )
+    for question in questions:
+        if contains_any(question, config_terms):
+            assumptions.append(f"{question}；先按可配置入口和验收限制处理，缺少真实配置时不宣称完整能力通过")
+        else:
+            remaining.append(question)
+    return remaining, assumptions
+
+
 def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str = "project_update") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     existing_summary = str(whiteboard.get("project_summary", "")).strip()
@@ -124,26 +171,31 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     local_image_discovery: dict[str, Any] = {}
 
     text = latest_text or summary
-    is_vn_domain = contains_any(text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘"))
-    is_cs_domain = contains_any(text, ("csgo", "csgo2", "cs2", "鉴挂", "反作弊", "鼠标键盘", "视角异常", "命中事件"))
-    complex_domain = is_cs_domain or (contains_any(text, COMPLEX_DOMAIN_KEYWORDS) and not is_vn_domain)
-    requires_user_evidence_review = contains_any(text, EVIDENCE_REVIEW_KEYWORDS)
-    strategy = capability_strategy.build_capability_strategy(text, SCRIPTS_DIR.parent)
+    context_text = "\n".join(item for item in (existing_summary, latest_text, summary) if str(item or "").strip())
+    is_vn_domain = contains_any(context_text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘"))
+    is_cs_domain = contains_any(context_text, ("csgo", "csgo2", "cs2", "鉴挂", "反作弊", "鼠标键盘", "视角异常", "命中事件"))
+    complex_domain = is_cs_domain or (contains_any(context_text, COMPLEX_DOMAIN_KEYWORDS) and not is_vn_domain)
+    requires_user_evidence_review = contains_any(context_text, EVIDENCE_REVIEW_KEYWORDS)
+    strategy = capability_strategy.build_capability_strategy(context_text, SCRIPTS_DIR.parent)
     if strategy.get("local_image_model_discovery"):
         local_image_discovery = strategy.get("local_image_model_discovery", {})
-    if contains_any(text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘", "图片", "生成图片")):
-        frontend_plan.extend(["时间线梳理视图", "角色/立绘管理", "背景生成与预览区", "场景卡片和故事逻辑检查"])
-        backend_plan.extend(["本地项目状态存储", "图片生成适配层", "场景/角色/素材索引", "导出交付包"])
-        data_model.extend(["scene", "character", "timeline_event", "asset_generation_job"])
-        scope.extend(["第一版先做本地可运行 VN 项目助手", "支持时间线整理、背景生成、立绘生成和预览"])
-        assumptions.extend(["图片生成先做可替换 provider 接口，生成结果落到本地素材库"])
-        critical_questions, local_image_discovery = local_image_model_discovery.critical_questions_for_text(text, SCRIPTS_DIR.parent)
+    if contains_any(context_text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘", "图片", "生成图片")):
+        frontend_plan.extend(["时间线梳理视图", "角色/立绘管理", "背景生成预览区", "立绘生成预览区", "场景卡片和故事逻辑检查"])
+        backend_plan.extend(["本地项目状态存储", "背景图片生成适配层", "角色立绘生成适配层", "图片生成：背景和立绘独立任务编排", "场景/角色/素材索引", "导出交付包"])
+        data_model.extend(["scene", "character", "timeline_event", "background_generation_job", "sprite_generation_job"])
+        scope.extend(["第一版先做本地可运行 VN 项目助手", "支持时间线整理、背景生成、立绘生成和预览", "背景和立绘分开生成、分开管理、分开验收"])
+        assumptions.extend([
+            "图片生成先做可替换接口，生成结果落到本地素材库",
+            "背景图和角色立绘使用独立任务与独立验收记录",
+            "占位图、纯色图或降级预览不能算真实背景/立绘验收通过",
+        ])
+        critical_questions, local_image_discovery = local_image_model_discovery.critical_questions_for_text(context_text, SCRIPTS_DIR.parent)
         if local_image_discovery.get("checked"):
             backend_plan.append("本地图片模型能力探测（ComfyUI/AUTOMATIC1111/SD_MODEL_DIR）")
         if critical_questions:
-            assumptions.append("背景和立绘必须使用已配置本地图片模型；未接上模型时只能标记为降级预览，不能算图片验收通过")
+            assumptions.append("本地图片模型未配置时记录为验收限制；占位图、纯色图或降级预览不能算真实背景/立绘通过")
         elif local_image_discovery.get("available"):
-            assumptions.append("背景和立绘按已发现的本地图片模型后端生成，并保留缺失能力报告")
+            assumptions.append("背景和立绘按已发现的本地图片模型后端分开生成，并保留缺失能力报告")
     if strategy.get("capabilities"):
         backend_plan.append("核心能力识别和高级实现路线筛选")
         for target in strategy.get("research_targets", [])[:4]:
@@ -156,15 +208,15 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
             limit=4,
         )
         assumptions.extend(strategy.get("acceptance_criteria", []) if isinstance(strategy.get("acceptance_criteria"), list) else [])
-    if contains_any(text, ("后台", "后端", "api", "数据库", "登录", "管理", "系统", "agent")):
+    if contains_any(context_text, ("后台", "后端", "api", "数据库", "登录", "管理", "系统", "agent")):
         frontend_plan.extend(["管理页", "列表/详情视图", "筛选和状态反馈"])
         backend_plan.extend(["本地接口层", "数据读写模块", "任务状态记录", "错误恢复记录"])
         data_model.extend(["project", "task", "user_setting", "run_log"])
         assumptions.extend(["后端先采用本地数据存储，接口设计保持可替换"])
-    if contains_any(text, ("前端", "界面", "gui", "页面", "预览", "可视化")):
+    if contains_any(context_text, ("前端", "界面", "gui", "页面", "预览", "可视化")):
         frontend_plan.extend(["主工作台", "预览面板", "设置区", "结果列表"])
         scope.extend(["第一版交付可直接打开和操作的界面"])
-    if contains_any(text, ("截图", "测试", "报告", "可运行", "本地")):
+    if contains_any(context_text, ("截图", "测试", "报告", "可运行", "本地")):
         backend_plan.extend(["启动脚本", "基础自检", "交付清单"])
         scope.extend(["交付启动说明、测试结论和预览截图"])
     if complex_domain:
@@ -201,21 +253,44 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
 
     compact = re.sub(r"[\s，。,.!?！？]+", "", text)
     short_request = len(compact) <= 8
-    run_shape_unclear = not contains_any(text, ("本地", "网页", "app", "gui", "telegram", "桌面", "命令行", "cli", "小程序"))
-    output_shape_unclear = not contains_any(text, ("界面", "文件", "导出", "自动化", "流程", "api", "报表", "网页", "工具"))
-    needs_direction_confirmation = bool(short_request or run_shape_unclear or output_shape_unclear or complex_domain)
+    intent_context = context_text.lower()
+    has_project_goal = contains_any(intent_context, ("做", "帮我", "想要", "需要", "开发", "实现", "搭建", "创建")) and contains_any(
+        intent_context,
+        ("工具", "系统", "项目", "助手", "平台", "后台", "应用", "app", "网站", "程序", "服务"),
+    )
+    has_core_capability = contains_any(
+        intent_context,
+        ("管理", "生成", "分析", "导出", "自动化", "预览", "处理", "识别", "编辑", "整理", "导入", "截取", "报告", "对接", "api", "转换", "配置", "测试"),
+    )
+    run_shape_unclear = not contains_any(context_text, ("本地", "网页", "app", "gui", "telegram", "桌面", "命令行", "cli", "小程序"))
+    output_shape_unclear = not contains_any(context_text, ("界面", "gui", "桌面", "网页", "文件", "导出", "自动化", "流程", "api", "报表", "工具", "时间线", "背景", "立绘"))
+    actionable_project_request = has_project_goal and has_core_capability
+    if actionable_project_request:
+        run_shape_unclear = False
+        output_shape_unclear = False
+    needs_direction_confirmation = bool(short_request or not has_project_goal or not has_core_capability)
     if short_request:
         questions = ["这个项目第一版最核心的使用场景是什么？"]
         if run_shape_unclear:
             questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
         if output_shape_unclear:
             questions.append("交付重点是界面、文件导出、还是自动化流程？")
-    elif not contains_any(text, ("本地", "网页", "app", "gui", "telegram", "桌面")):
+    elif not contains_any(context_text, ("本地", "网页", "app", "gui", "telegram", "桌面")):
         questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
     if not short_request and output_shape_unclear:
         questions.append("交付重点是界面、文件导出、还是自动化流程？")
-    if contains_any(text, ("图片", "生成图片", "背景", "立绘")) and not contains_any(text, ("正经", "真实", "直接生成", "provider", "api")):
+    if contains_any(context_text, ("图片", "生成图片", "背景", "立绘")) and not contains_any(context_text, ("正经", "真实", "直接生成", "provider", "api", "本地模型")):
         questions.append("图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？")
+    existing_questions: list[Any] = []
+    for key in ("soft_questions", "critical_questions", "open_questions"):
+        value = whiteboard.get(key)
+        if isinstance(value, list):
+            existing_questions.extend(value)
+    questions = unique_strings(resolve_answered_questions(existing_questions, latest_text) + resolve_answered_questions(questions, latest_text), limit=8)
+    questions, config_assumptions = downgrade_unresolved_config_questions_to_assumptions(questions)
+    assumptions.extend(config_assumptions)
+    if actionable_project_request:
+        needs_direction_confirmation = False
 
     confidence = 0.82
     if len(compact) <= 8:
@@ -236,6 +311,59 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     data_model = unique_strings(data_model, limit=8)
     scope = unique_strings(scope, limit=6)
     assumptions = unique_strings(assumptions, limit=6)
+    required_capabilities = unique_strings(
+        [
+            item
+            for item, tokens in (
+                ("内容/素材生成", ("生成", "图片", "图像", "背景", "立绘", "视频", "音频")),
+                ("视频或媒体处理", ("视频", "截取", "剪辑", "片段")),
+                ("外部 API 对接", ("api", "接口", "对接")),
+                ("自动化流程", ("自动化", "流程", "触发")),
+                ("数据分析/识别", ("分析", "识别", "数据集", "训练")),
+                ("导出与报告", ("导出", "报告", "文件")),
+                ("界面预览", ("界面", "gui", "页面", "预览")),
+            )
+            if contains_any(context_text, tokens)
+        ],
+        limit=8,
+    )
+    delivery_requirements = unique_strings(
+        [
+            item
+            for item, tokens in (
+                ("可运行项目包", ("本地", "可运行", "项目", "工具", "系统", "助手")),
+                ("界面截图或预览证据", ("界面", "gui", "页面", "预览", "截图")),
+                ("生成素材证据", ("生成", "图片", "图像", "背景", "立绘", "视频", "音频")),
+                ("导出结果或报告", ("导出", "报告", "文件")),
+                ("测试报告", ("测试", "验收")),
+            )
+            if contains_any(context_text, tokens)
+        ],
+        limit=8,
+    )
+    acceptance_criteria = unique_strings(
+        [
+            "缺少真实模型、外部 API、媒体后端或数据集时，只能交付配置入口、适配层、测试框架和限制说明",
+            "占位图、纯色图、降级预览或模拟结果不能算真实核心能力验收通过",
+        ]
+        if contains_any(context_text, ("模型", "api", "图片", "图像", "视频", "音频", "数据集", "训练", "生成", "识别"))
+        else [],
+        limit=6,
+    )
+    missing_config = unique_strings(
+        [
+            item
+            for item, tokens in (
+                ("模型路径或本地/外部生成后端配置", ("模型", "图片", "图像", "背景", "立绘", "生成")),
+                ("外部 API key 或接口地址", ("api", "接口", "对接")),
+                ("真实数据集或示例文件", ("数据集", "示例文件", "训练", "真实数据")),
+                ("媒体处理后端配置", ("视频", "音频", "截取", "剪辑")),
+            )
+            if contains_any(context_text, tokens)
+        ],
+        limit=8,
+    )
+    known_limits = unique_strings(acceptance_criteria + [f"未配置：{item}" for item in missing_config], limit=10)
 
     question_text = ""
     if critical_questions:
@@ -276,6 +404,11 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "data_model": data_model,
         "first_version_scope": scope,
         "assumptions": assumptions,
+        "required_capabilities": required_capabilities,
+        "delivery_requirements": delivery_requirements,
+        "acceptance_criteria": acceptance_criteria,
+        "known_limits": known_limits,
+        "missing_config": missing_config,
         "soft_questions": soft_questions,
         "critical_questions": critical_questions,
         "missing_required_inputs": missing_required_inputs,
@@ -351,20 +484,11 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
     root = str(creds.get("base_url", "")).rstrip("/")
     if not api_key or not root:
         return None, str(local_result.get("error") or "missing credentials")
-    if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = check_connectivity._chat_completions_endpoint(root)
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-        }
-    else:
-        endpoint = check_connectivity._responses_endpoint(root)
-        payload = {
-            "model": model,
-            "input": prompt,
-            "temperature": 0.2,
-        }
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2},
+    )
     doc, error = check_connectivity._post_json(endpoint, payload, api_key, max(5, min(int(timeout), 60)))
     if error or not isinstance(doc, dict):
         return None, error or "empty response"
@@ -434,6 +558,11 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
     whiteboard["frontend_plan"] = unique_strings(analysis.get("frontend_plan", []), limit=12)
     whiteboard["backend_plan"] = unique_strings(analysis.get("backend_plan", []), limit=12)
     whiteboard["data_model"] = unique_strings(analysis.get("data_model", []), limit=12)
+    whiteboard["required_capabilities"] = unique_strings(analysis.get("required_capabilities", []), limit=12)
+    whiteboard["delivery_requirements"] = unique_strings(analysis.get("delivery_requirements", []), limit=12)
+    whiteboard["acceptance_criteria"] = unique_strings(analysis.get("acceptance_criteria", []), limit=12)
+    whiteboard["known_limits"] = unique_strings(analysis.get("known_limits", []), limit=12)
+    whiteboard["missing_config"] = unique_strings(analysis.get("missing_config", []), limit=12)
     whiteboard["first_version_plan"] = unique_strings(
         list(whiteboard.get("first_version_plan", []) if isinstance(whiteboard.get("first_version_plan"), list) else [])
         + list(analysis.get("first_version_scope", []) if isinstance(analysis.get("first_version_scope"), list) else []),
