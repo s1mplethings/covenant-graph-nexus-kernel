@@ -4,6 +4,34 @@ The project revision lane lets CGNK continue work on an active project without t
 
 It is not a second public delivery route. A successful revision must still use the reviewed provider generation route, post-build finalization, `local_packager`, `public_delivery_gate`, and a `delivery_manifest`.
 
+## Phase 1 Scope
+
+Phase 1 only prepares revision state.
+
+This phase prepares revision state only.
+
+It creates:
+
+- revision request
+- revision plan
+- revision workspace
+- revision manifest
+- revision goal
+
+It does not yet execute provider-backed revision generation.
+
+The formal Phase 2 flow will be:
+
+```text
+project_revision_request
+-> run_provider_revision_job
+-> post_build_finalize
+-> local_packager
+-> public_delivery_gate
+-> mark_revision_success
+-> deliver revN
+```
+
 ## Active Project Rules
 
 Each conversation may bind one `active_project` with:

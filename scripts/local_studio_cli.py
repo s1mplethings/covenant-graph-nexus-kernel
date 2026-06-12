@@ -46,6 +46,18 @@ def list_projects() -> list[dict[str, Any]]:
     return out
 
 
+def rollback_project_payload(project_id: str, revision_index: int) -> dict[str, Any]:
+    metadata = local_repo_manager.rollback_to_revision(project_id, revision_index)
+    return {
+        "status": "rolled_back",
+        "project_id": project_id,
+        "revision_index": int(metadata.get("current_revision", revision_index)),
+        "current_worktree": str(metadata.get("current_worktree", "")),
+        "conversation_sync": "not_applied",
+        "note": "Use conversation-level rollback in Phase 2 to update active_project.",
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Local Studio control surface for CGNK conversations and managed projects.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -92,8 +104,7 @@ def main(argv: list[str] | None = None) -> int:
         metadata = local_repo_manager.load_project_metadata(args.project_id)
         print_json(metadata.get("revisions", []) if isinstance(metadata.get("revisions"), list) else [])
     elif args.command == "rollback":
-        metadata = local_repo_manager.rollback_to_revision(args.project_id, args.rev)
-        print_json(metadata)
+        print_json(rollback_project_payload(args.project_id, args.rev))
     elif args.command == "redeliver":
         conversation = local_conversation_manager.load_conversation(args.conversation_id)
         active = local_conversation_manager.get_active_project(conversation)

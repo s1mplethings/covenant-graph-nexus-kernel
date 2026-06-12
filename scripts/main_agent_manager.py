@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import re
 from typing import Any
 
 try:
@@ -16,9 +17,28 @@ except ImportError:  # pragma: no cover - script execution path
 
 
 NEW_PROJECT_TERMS = ("新项目", "重新做一个不同项目", "另做一个", "开新项目", "不要沿用上次", "从零开始")
-STATUS_TERMS = ("状态", "进度", "怎么样", "好了没", "还在做", "status")
 ROLLBACK_TERMS = ("回滚", "退回", "恢复到")
 REPAIR_TERMS = ("修复", "重试", "再试")
+
+
+def looks_like_status_query(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    exact = {
+        "状态",
+        "当前状态",
+        "现在状态",
+        "进度",
+        "进度怎么样",
+        "现在怎么样了",
+        "好了没",
+        "还在做吗",
+        "status",
+    }
+    if compact in exact:
+        return True
+    question_markers = ("吗", "怎么样", "怎样", "好了没", "到哪", "有没有结果")
+    status_markers = ("状态", "进度", "还在做", "还在跑", "结果")
+    return any(marker in compact for marker in status_markers) and any(marker in compact for marker in question_markers)
 
 
 class MainAgentManager:
@@ -44,18 +64,18 @@ class MainAgentManager:
         if any(term in stripped for term in NEW_PROJECT_TERMS):
             intent = "new_project_request"
             reason = "explicit_new_project"
-        elif any(term in stripped for term in STATUS_TERMS):
-            intent = "status_query"
-            reason = "status_terms"
         elif any(term in stripped for term in ROLLBACK_TERMS):
             intent = "rollback_request"
             reason = "rollback_terms"
-        elif any(term in stripped for term in REPAIR_TERMS) and project_revision_lane.has_active_project(conversation):
-            intent = "project_revision_request"
-            reason = "repair_on_active_project"
         elif project_revision_lane.is_revision_request(stripped, conversation):
             intent = "project_revision_request"
             reason = "active_project_revision_terms"
+        elif any(term in stripped for term in REPAIR_TERMS) and project_revision_lane.has_active_project(conversation):
+            intent = "project_revision_request"
+            reason = "repair_on_active_project"
+        elif looks_like_status_query(stripped):
+            intent = "status_query"
+            reason = "status_query"
         elif not conversation.get("messages") or len([m for m in conversation.get("messages", []) if isinstance(m, dict) and m.get("role") == "user"]) <= 1:
             intent = "new_project_request"
             reason = "first_substantive_turn"

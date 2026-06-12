@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+# Phase 1 only prepares revision context and manifests.
+# Provider-backed revision execution belongs to Phase 2.
+
 import json
 import pathlib
 import re
@@ -151,6 +154,13 @@ def write_revision_manifest(manifest: dict[str, Any]) -> pathlib.Path:
     return path
 
 
+def run_provider_revision_job(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    raise NotImplementedError(
+        "Phase 2: provider-backed revision execution is not implemented in this PR. "
+        "Phase 1 only prepares revision request, plan, workspace, and manifest."
+    )
+
+
 def create_revision_manifest(
     conversation: dict[str, Any],
     revision_request: dict[str, Any],
@@ -239,10 +249,14 @@ def bind_initial_project_delivery(
     local_repo_manager.ensure_project(project_id, conversation_id)
     source = pathlib.Path(str(project_dir))
     if source.exists():
-        current = local_repo_manager.current_worktree(project_id)
-        if current.exists():
-            shutil.rmtree(current)
-        shutil.copytree(source, current)
+        source_resolved = source.resolve()
+        current = local_repo_manager.current_worktree(project_id).resolve()
+        if source_resolved != current:
+            if current.exists():
+                shutil.rmtree(current)
+            shutil.copytree(source, current)
+        else:
+            current.mkdir(parents=True, exist_ok=True)
         rev0 = local_repo_manager.revision_dir(project_id, 0)
         if rev0.exists():
             shutil.rmtree(rev0)

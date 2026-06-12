@@ -90,6 +90,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     model_policy = read_text("scripts/model_policy.py") if (ROOT / "scripts/model_policy.py").exists() else ""
     revision_lane = read_text("scripts/project_revision_lane.py") if (ROOT / "scripts/project_revision_lane.py").exists() else ""
     local_studio = read_text("scripts/local_studio_cli.py") if (ROOT / "scripts/local_studio_cli.py").exists() else ""
+    revision_doc = read_text("docs/09_project_revision_lane.md") if (ROOT / "docs/09_project_revision_lane.md").exists() else ""
     connectivity = read_text("scripts/check_connectivity.py")
 
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
@@ -182,6 +183,25 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "revision failure does not promote current",
         "def mark_revision_failed" in revision_lane and "promote_revision_to_current" not in function_body(revision_lane, "mark_revision_failed"),
         "mark_revision_failed must not promote current",
+    )
+    provider_revision_body = function_body(revision_lane, "run_provider_revision_job")
+    add(
+        checks,
+        "revision provider job is phase 2 stub",
+        "def run_provider_revision_job" in revision_lane and "NotImplementedError" in provider_revision_body,
+        "project_revision_lane must expose a NotImplementedError stub for Phase 2 provider revision execution",
+    )
+    add(
+        checks,
+        "revision docs declare phase 1 prepare-only scope",
+        "Phase 1 only prepares revision state" in revision_doc and "does not yet execute provider-backed revision generation" in revision_doc,
+        "docs/09_project_revision_lane.md must clearly say revision execution is not implemented in Phase 1",
+    )
+    add(
+        checks,
+        "telegram bridge does not call provider revision job",
+        "run_provider_revision_job(" not in bridge,
+        "telegram_live_bridge.py must not directly call run_provider_revision_job",
     )
     add(
         checks,

@@ -6,6 +6,10 @@ import sys
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from scripts import local_repo_manager as repos
+from scripts import local_studio_cli
 
 
 def test_local_studio_does_not_add_second_generation_mainline() -> None:
@@ -35,3 +39,20 @@ def test_local_studio_docs_preserve_delivery_contract() -> None:
     assert "local_packager" in doc
     assert "public_delivery_gate" in doc
     assert "delivery_manifest" in doc
+
+
+def test_project_level_rollback_reports_conversation_sync_not_applied(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("CGNK_MANAGED_PROJECT_ROOT", str(tmp_path / "managed"))
+    project_id = repos.project_id_for_conversation("chat-rollback")
+    repos.ensure_project(project_id, "chat-rollback")
+    current = repos.current_worktree(project_id)
+    (current / "app.py").write_text("print('v0')\n", encoding="utf-8")
+    repos.copy_current_to_revision_workspace(project_id, 0)
+
+    payload = local_studio_cli.rollback_project_payload(project_id, 0)
+
+    assert payload["status"] == "rolled_back"
+    assert payload["project_id"] == project_id
+    assert payload["revision_index"] == 0
+    assert payload["conversation_sync"] == "not_applied"
+    assert "Phase 2" in payload["note"]

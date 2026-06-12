@@ -3,6 +3,8 @@ from __future__ import annotations
 import pathlib
 import sys
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -89,6 +91,25 @@ def test_revision_success_promotes_current_and_records_history(tmp_path, monkeyp
     assert active["status"] == "revision_ready"
     assert pathlib.Path(active["current_worktree"], "app.py").read_text(encoding="utf-8") == "print('v1')\n"
     assert conversation["revision_history"][-1]["status"] == "ready"
+
+
+def test_provider_revision_job_is_phase2_stub() -> None:
+    with pytest.raises(NotImplementedError):
+        revisions.run_provider_revision_job()
+
+
+def test_bind_initial_project_delivery_does_not_delete_current_when_source_is_current(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("CGNK_LOCAL_STUDIO_CONVERSATION_ROOT", str(tmp_path / "conversations"))
+    monkeypatch.setenv("CGNK_MANAGED_PROJECT_ROOT", str(tmp_path / "managed"))
+    conversation = conversations.default_conversation("chat-current", source="local_cli")
+    project_id = repos.project_id_for_conversation("chat-current")
+    repos.ensure_project(project_id, "chat-current")
+    current = repos.current_worktree(project_id)
+    (current / "app.py").write_text("print('current')\n", encoding="utf-8")
+
+    revisions.bind_initial_project_delivery(conversation, current, package_path="final_project_bundle.zip", delivery_manifest="delivery_manifest.json")
+
+    assert (current / "app.py").read_text(encoding="utf-8") == "print('current')\n"
 
 
 def test_public_delivery_rejects_internal_suffixes() -> None:

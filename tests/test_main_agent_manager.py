@@ -41,6 +41,20 @@ def test_active_project_change_routes_to_revision(tmp_path, monkeypatch) -> None
     assert pathlib.Path(result["revision_manifest"]).exists()
 
 
+def test_revision_terms_with_status_page_are_not_status_query(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("CGNK_LOCAL_STUDIO_CONVERSATION_ROOT", str(tmp_path / "conversations"))
+    monkeypatch.setenv("CGNK_MANAGED_PROJECT_ROOT", str(tmp_path / "managed"))
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "app.py").write_text("print('v0')\n", encoding="utf-8")
+    conversation = conversations.default_conversation("chat-status-page")
+    project_revision_lane.bind_initial_project_delivery(conversation, source, "final_project_bundle.zip", "delivery_manifest.json")
+
+    intent = MainAgentManager().classify_intent(conversation, "把上次项目的状态页改一下")
+
+    assert intent["intent"] == "project_revision_request"
+
+
 def test_explicit_new_project_is_not_revision(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("CGNK_LOCAL_STUDIO_CONVERSATION_ROOT", str(tmp_path / "conversations"))
     monkeypatch.setenv("CGNK_MANAGED_PROJECT_ROOT", str(tmp_path / "managed"))
