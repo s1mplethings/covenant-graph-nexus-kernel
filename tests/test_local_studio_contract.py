@@ -30,6 +30,7 @@ def test_local_studio_help_runs() -> None:
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "list-conversations" in result.stdout
+    assert "execute-revision" in result.stdout
 
 
 def test_local_studio_docs_preserve_delivery_contract() -> None:
@@ -56,3 +57,9 @@ def test_project_level_rollback_reports_conversation_sync_not_applied(tmp_path, 
     assert payload["revision_index"] == 0
     assert payload["conversation_sync"] == "not_applied"
     assert "Phase 2" in payload["note"]
+
+
+def test_execute_revision_command_requires_host_adapters() -> None:
+    payload = local_studio_cli.execute_revision_payload("chat", "revision.json")
+    assert payload["status"] == "blocked"
+    assert payload["reason"] == "execution_adapters_required"

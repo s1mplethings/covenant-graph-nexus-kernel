@@ -187,15 +187,23 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     provider_revision_body = function_body(revision_lane, "run_provider_revision_job")
     add(
         checks,
-        "revision provider job is phase 2 stub",
-        "def run_provider_revision_job" in revision_lane and "NotImplementedError" in provider_revision_body,
-        "project_revision_lane must expose a NotImplementedError stub for Phase 2 provider revision execution",
+        "revision provider job is implemented",
+        "def run_provider_revision_job" in revision_lane and "NotImplementedError" not in provider_revision_body,
+        "project_revision_lane must implement Phase 2 provider revision execution",
+    )
+    required_revision_terms = ["local_packager", "public_delivery_gate", "mark_revision_success", "mark_revision_failed", "compute_changed_files"]
+    missing_revision_terms = [term for term in required_revision_terms if term not in provider_revision_body]
+    add(
+        checks,
+        "revision execution keeps delivery contract",
+        not missing_revision_terms,
+        ", ".join(missing_revision_terms),
     )
     add(
         checks,
-        "revision docs declare phase 1 prepare-only scope",
-        "Phase 1 only prepares revision state" in revision_doc and "does not yet execute provider-backed revision generation" in revision_doc,
-        "docs/09_project_revision_lane.md must clearly say revision execution is not implemented in Phase 1",
+        "revision docs declare phase 2 execution contract",
+        "Phase 2 adds provider-backed revision execution" in revision_doc and "not a second public delivery route" in revision_doc,
+        "docs/09_project_revision_lane.md must describe Phase 2 execution without adding a second route",
     )
     add(
         checks,

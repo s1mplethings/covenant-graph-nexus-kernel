@@ -20,7 +20,13 @@ It creates:
 
 It does not yet execute provider-backed revision generation.
 
-The formal Phase 2 flow will be:
+## Phase 2 Execution Contract
+
+Phase 2 adds provider-backed revision execution.
+
+Revision execution is not a second public delivery route. It is a controlled revision entry into the same provider route and must still complete through `local_packager`, `public_delivery_gate`, and `delivery_manifest`.
+
+The formal Phase 2 flow is:
 
 ```text
 project_revision_request
@@ -31,6 +37,17 @@ project_revision_request
 -> mark_revision_success
 -> deliver revN
 ```
+
+Success requires:
+
+- provider execution writes the revision workspace
+- post-build finalization runs
+- package exists
+- delivery manifest exists
+- `public_delivery_gate.delivery_allowed` is true
+- `changed_files` is recorded or a warning explains why it could not be calculated
+
+Gate failure or provider failure must leave `current` unchanged.
 
 ## Active Project Rules
 

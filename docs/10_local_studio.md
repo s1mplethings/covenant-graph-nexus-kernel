@@ -20,8 +20,11 @@ Supported commands include:
 - `list-revisions <project_id>`
 - `rollback <project_id> --rev <n>`
 - `redeliver <conversation_id>`
+- `execute-revision <conversation_id> <revision_manifest_path>`
 
 All generation or revision requests go through `MainAgentManager`. The CLI does not call the legacy simulator, `generate_project.py`, or `run_local_pipeline.py` as a formal delivery route.
+
+`revise` prepares revision state. `execute-revision` is the explicit Phase 2 execution command and requires host-provided provider, finalization, package, and public gate adapters. If those adapters are not supplied, the CLI reports a blocked request instead of silently choosing a legacy route.
 
 ## Data
 
@@ -31,4 +34,4 @@ Managed project state lives under `generated/managed_projects/<project_id>/` wit
 
 ## Delivery
 
-Local Studio may show project status and references, but public delivery still depends on `local_packager`, `public_delivery_gate`, and `delivery_manifest`.
+Local Studio may show project status and references, but public delivery still depends on `local_packager`, `public_delivery_gate`, and `delivery_manifest`. A revision is promoted only after the public gate allows delivery.

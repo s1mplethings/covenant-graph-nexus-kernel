@@ -3,8 +3,6 @@ from __future__ import annotations
 import pathlib
 import sys
 
-import pytest
-
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -93,9 +91,11 @@ def test_revision_success_promotes_current_and_records_history(tmp_path, monkeyp
     assert conversation["revision_history"][-1]["status"] == "ready"
 
 
-def test_provider_revision_job_is_phase2_stub() -> None:
-    with pytest.raises(NotImplementedError):
-        revisions.run_provider_revision_job()
+def test_provider_revision_job_is_phase2_entrypoint() -> None:
+    assert callable(revisions.run_provider_revision_job)
+    source = (ROOT / "scripts" / "project_revision_lane.py").read_text(encoding="utf-8")
+    body = source[source.find("def run_provider_revision_job") : source.find("def create_revision_manifest")]
+    assert "NotImplementedError" not in body
 
 
 def test_bind_initial_project_delivery_does_not_delete_current_when_source_is_current(tmp_path, monkeypatch) -> None:
