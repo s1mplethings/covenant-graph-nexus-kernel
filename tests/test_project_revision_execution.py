@@ -180,6 +180,60 @@ def test_internal_package_suffix_blocks_public_delivery(tmp_path, monkeypatch) -
     assert not revisions.public_delivery_is_safe("leak.json")
 
 
+def test_missing_package_does_not_promote_current(tmp_path, monkeypatch) -> None:
+    conversation, manifest, current = _prepared_revision(tmp_path, monkeypatch)
+
+    def package_missing_zip(**kwargs):
+        project_dir = pathlib.Path(kwargs["project_dir"])
+        manifest_path = project_dir / "delivery_manifest.json"
+        manifest_path.write_text("{}", encoding="utf-8")
+        return {"package_path": str(project_dir / "final_project_bundle.zip"), "manifest_path": str(manifest_path)}
+
+    result = revisions.run_provider_revision_job(
+        conversation=conversation,
+        revision_manifest=manifest,
+        provider_execute=_provider_success,
+        post_build_finalize=_post_build_finalize,
+        package_project=package_missing_zip,
+        evaluate_public_delivery_gate=_gate_allowed,
+        model="gpt-test",
+    )
+
+    active = conversations.get_active_project(conversation)
+    failed_manifest = revisions._load_json_object(result["revision_manifest"])
+    assert result["status"] == "rework_blocked"
+    assert "final_project_bundle.zip" in failed_manifest["public_delivery_gate"]["missing"]
+    assert active["revision_index"] == 0
+    assert (current / "app.py").read_text(encoding="utf-8") == "print('v0')\n"
+
+
+def test_missing_delivery_manifest_does_not_promote_current(tmp_path, monkeypatch) -> None:
+    conversation, manifest, current = _prepared_revision(tmp_path, monkeypatch)
+
+    def package_missing_manifest(**kwargs):
+        project_dir = pathlib.Path(kwargs["project_dir"])
+        package_path = project_dir / "final_project_bundle.zip"
+        package_path.write_bytes(b"zip")
+        return {"package_path": str(package_path), "manifest_path": str(project_dir / "delivery_manifest.json")}
+
+    result = revisions.run_provider_revision_job(
+        conversation=conversation,
+        revision_manifest=manifest,
+        provider_execute=_provider_success,
+        post_build_finalize=_post_build_finalize,
+        package_project=package_missing_manifest,
+        evaluate_public_delivery_gate=_gate_allowed,
+        model="gpt-test",
+    )
+
+    active = conversations.get_active_project(conversation)
+    failed_manifest = revisions._load_json_object(result["revision_manifest"])
+    assert result["status"] == "rework_blocked"
+    assert "delivery_manifest" in failed_manifest["public_delivery_gate"]["missing"]
+    assert active["revision_index"] == 0
+    assert (current / "app.py").read_text(encoding="utf-8") == "print('v0')\n"
+
+
 def test_telegram_bridge_does_not_implement_revision_execution_details() -> None:
     bridge = (ROOT / "scripts" / "telegram_live_bridge.py").read_text(encoding="utf-8")
     branch = bridge[bridge.find('if intent == "project_revision_request":') : bridge.find('if intent == "new_project_request":')]

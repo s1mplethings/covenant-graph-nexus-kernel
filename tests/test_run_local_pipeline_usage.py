@@ -312,6 +312,91 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         merged = {item["path"]: item["content"] for item in files}
         self.assertEqual("<h1>frontend</h1>\n", merged["app/index.html"])
 
+    def test_component_merge_allows_template_asset_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "foundation", "files": [{"path": "templates/index.html", "content": "<h1>base</h1>\n"}]},
+                {"component_id": "execution", "files": [{"path": "templates/index.html", "content": "<h1>execution</h1>\n"}]},
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("<h1>execution</h1>\n", merged["templates/index.html"])
+
+    def test_component_merge_allows_top_level_entrypoint_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "generation", "files": [{"path": "app.py", "content": "print('base')\n"}]},
+                {"component_id": "execution", "files": [{"path": "app.py", "content": "print('runnable')\n"}]},
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("print('runnable')\n", merged["app.py"])
+
+    def test_component_merge_allows_src_file_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "init", "files": [{"path": "src/task_store.py", "content": "TASKS = []\n"}]},
+                {"component_id": "generate_project", "files": [{"path": "src/task_store.py", "content": "TASKS = ['ready']\n"}]},
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("TASKS = ['ready']\n", merged["src/task_store.py"])
+
+    def test_component_merge_allows_test_file_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {"component_id": "init", "files": [{"path": "tests/test_app.py", "content": "def test_placeholder(): pass\n"}]},
+                {"component_id": "generate_project", "files": [{"path": "tests/test_app.py", "content": "def test_home(): pass\n"}]},
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("def test_home(): pass\n", merged["tests/test_app.py"])
+
+    def test_component_merge_accepts_test_report_as_qa_evidence(self) -> None:
+        original = run_local_pipeline.provider_generate_project_component
+
+        def fake_component(**kwargs):
+            component_id = kwargs["component"]["id"]
+            if component_id == "docs":
+                return {"component_id": "docs", "files": [{"path": "README.md", "content": "# Demo\n"}]}
+            return {
+                "component_id": "execution",
+                "files": [
+                    {"path": "app.py", "content": "print('ok')\n"},
+                    {"path": "TEST_REPORT.md", "content": "commands_run: pytest\nexit_code: 0\n"},
+                ],
+            }
+
+        run_local_pipeline.provider_generate_project_component = fake_component
+        try:
+            result = run_local_pipeline.provider_generate_project_by_components(
+                goal="做一个小工具",
+                component_pipeline={
+                    "components": [
+                        {"id": "docs", "goal": "Write docs", "acceptance": []},
+                        {"id": "execution", "goal": "Write runnable app and test report", "acceptance": []},
+                    ],
+                    "merge_policy": {"required_final_files": ["README.md", "TEST_PLAN.md"]},
+                },
+                plan_doc={},
+                blueprint={},
+                online_inputs={},
+                market_research={},
+                repair_errors=[],
+                model="gpt-test",
+                timeout=5,
+            )
+        finally:
+            run_local_pipeline.provider_generate_project_component = original
+
+        files = {item["path"]: item["content"] for item in result["files"]}
+        assert "README.md" in files
+        assert "TEST_REPORT.md" in files
+
 
 if __name__ == "__main__":
     unittest.main()

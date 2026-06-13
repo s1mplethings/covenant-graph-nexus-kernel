@@ -176,6 +176,15 @@ def _result_path(value: Any, key: str) -> str:
     return ""
 
 
+def _artifact_missing(package_path: str, delivery_manifest: str) -> list[str]:
+    missing: list[str] = []
+    if not package_path or not pathlib.Path(package_path).exists():
+        missing.append("final_project_bundle.zip")
+    if not delivery_manifest or not pathlib.Path(delivery_manifest).exists():
+        missing.append("delivery_manifest")
+    return missing
+
+
 def _revision_result(manifest: dict[str, Any], status: str, error: str = "") -> dict[str, Any]:
     return {
         "kind": "ProjectRevisionExecutionResult",
@@ -271,6 +280,17 @@ def run_provider_revision_job(
         delivery_manifest = _result_path(package_manifest, "manifest_path")
         manifest["package_path"] = package_path
         manifest["delivery_manifest"] = delivery_manifest
+        artifact_missing = _artifact_missing(package_path, delivery_manifest)
+        if artifact_missing:
+            gate = {
+                "delivery_allowed": False,
+                "status": "REWORK",
+                "missing": artifact_missing,
+            }
+            manifest["public_delivery_gate"] = gate
+            manifest["current_promoted"] = False
+            failed = mark_revision_failed(conversation, manifest, "delivery_artifact_missing")
+            return _revision_result(failed, "rework_blocked", "delivery_artifact_missing")
 
         # The concrete adapter is expected to be public_delivery_gate evaluation.
         gate = _call_adapter(
