@@ -127,11 +127,14 @@ delivery package missing
 
 For GUI projects, screenshots are required for PASS.
 
+Screenshots SHOULD show an effective product state: a real user flow after input, changed data, filtered results, generated output, or the requested feature in use. A blank home page, placeholder image, generic summary, or empty shell SHOULD NOT count as sufficient visual evidence for PASS.
+
 The preferred screenshot priority is:
 
 ```text
+requested feature after interaction
+result screen with real or sample data
 final UI screen
-result screen
 app home screen
 error screen with explanation, only for BLOCKED/PARTIAL
 ```
