@@ -32,6 +32,14 @@ Conversations live under `examples/local_studio/conversations/<conversation_id>/
 
 Managed project state lives under `generated/managed_projects/<project_id>/` with `current`, `revisions`, `snapshots`, `manifests`, and `reports`.
 
+## Test Reset Rule
+
+Before starting a new project test, clear the previous test history so Telegram sessions, active project bindings, revision workspaces, uploads, provider run outputs, and managed project state do not leak into the next test.
+
+For Telegram/customer-service testing, reset the runtime history directories under `generated/telegram_sessions/`, `generated/telegram_bridge_runtime/`, `generated/telegram_uploads/`, `generated/telegram_provider_projects/`, and `generated/managed_projects/` before sending the next test request.
+
+Do not commit generated test history, project memory, uploads, or packaged project artifacts.
+
 ## Delivery
 
 Local Studio may show project status and references, but public delivery still depends on `local_packager`, `public_delivery_gate`, and `delivery_manifest`. A revision is promoted only after the public gate allows delivery.
