@@ -35,6 +35,9 @@ import dynamic_pipeline_runner
 import local_packager
 import local_image_model_discovery
 import local_model_router
+import main_agent_manager
+import model_policy
+import project_revision_lane
 import run_local_pipeline as provider_project_pipeline
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
@@ -435,6 +438,9 @@ class TelegramClient:
 def default_session(chat_id: int | str) -> dict[str, Any]:
     return {
         "kind": "TelegramOnlyCustomerSession",
+        "schema_version": "1",
+        "conversation_id": str(chat_id),
+        "source": "telegram",
         "chat_id": str(chat_id),
         "created_at": now(),
         "updated_at": now(),
@@ -458,6 +464,18 @@ def default_session(chat_id: int | str) -> dict[str, Any]:
         },
         "generation": {"status": "idle"},
         "active_run": None,
+        "active_project": {
+            "kind": "CGNKActiveProject",
+            "project_id": "",
+            "project_dir": "",
+            "current_worktree": "",
+            "latest_delivery_manifest": "",
+            "latest_project_package": "",
+            "revision_index": 0,
+            "latest_revision_manifest": "",
+            "status": "none",
+        },
+        "revision_history": [],
         "pending_decision": None,
         "intake_tickets": [],
         "backend_memos": [],
@@ -482,7 +500,15 @@ def append_agent_session_event(session_dir: pathlib.Path, chat_id: int | str, ev
 
 
 def load_session(session_dir: pathlib.Path, chat_id: int | str) -> dict[str, Any]:
-    return read_json(session_path(session_dir, chat_id), default_session(chat_id))
+    session = read_json(session_path(session_dir, chat_id), default_session(chat_id))
+    defaults = default_session(chat_id)
+    for key in ("schema_version", "conversation_id", "source", "active_project", "revision_history"):
+        session.setdefault(key, defaults[key])
+    if isinstance(session.get("active_project"), dict):
+        active = defaults["active_project"]
+        active.update(session["active_project"])
+        session["active_project"] = active
+    return session
 
 
 def save_session(session_dir: pathlib.Path, session: dict[str, Any]) -> None:
@@ -897,6 +923,7 @@ CUSTOMER_MESSAGE_INTENTS = {
     "escalation_request",
     "generation_confirmation",
     "new_project_request",
+    "project_revision_request",
     "project_update",
 }
 
@@ -990,6 +1017,9 @@ def classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, A
     elif is_generate_command(stripped) or is_human_start_confirmation(stripped, session):
         intent = "generation_confirmation"
         reason = "generation_confirmation"
+    elif project_revision_lane.is_revision_request(stripped, session) and generation_status not in {"queued", "running", "waiting_user_review"}:
+        intent = "project_revision_request"
+        reason = "active_project_revision_request"
     elif generation_status in {"queued", "running"}:
         intent = "project_update"
         reason = "active_generation_update"
@@ -6392,6 +6422,7 @@ def run_provider_generation_job(
     *,
     announce_start: bool = False,
 ) -> None:
+    model = model or model_policy.select_model("provider_generation")
     session = load_session(session_dir, chat_id)
     requirement = combined_requirement(session)
     if not requirement:
@@ -6817,6 +6848,17 @@ def finish_agent_loop_delivery(
         run["package_path"] = str(manifest.get("package_path", result.get("package_path", "")))
         run["manifest_path"] = str(manifest.get("manifest_path", result.get("manifest_path", "")))
         session["active_run"] = run
+    if manifest and str(manifest.get("package_path", "")).strip():
+        try:
+            active_project = project_revision_lane.bind_initial_project_delivery(
+                session,
+                project_dir,
+                package_path=str(manifest.get("package_path", result.get("package_path", ""))),
+                delivery_manifest=str(manifest.get("manifest_path", result.get("manifest_path", ""))),
+            )
+            append_memory_event(session, "active_project_bound", data={"active_project": active_project})
+        except Exception as exc:
+            append_memory_event(session, "active_project_bind_failed", data={"error": str(exc)})
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
     if manifest and str(manifest.get("package_path", "")).strip():
         save_session(session_dir, session)
@@ -7033,6 +7075,7 @@ def start_agent_generation(
     announce_start: bool,
     reason: str = "frontdesk_generation_confirmation",
 ) -> None:
+    model = model or model_policy.select_model("provider_generation")
     session = load_session(session_dir, chat_id)
     requirement = combined_requirement(session)
     if not requirement:
@@ -7592,6 +7635,34 @@ def handle_text(
             reason="project_input_must_not_pause_for_question",
         )
 
+    if intent == "project_revision_request":
+        try:
+            result = main_agent_manager.MainAgentManager().start_project_revision(session, text)
+            append_memory_event(session, "project_revision_prepared", data=result)
+            save_session(session_dir, session)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="project_revision_prepared",
+                source="main_agent_manager",
+                direct_text="我已把这条改动作为当前项目的下一版准备好。当前版本不会被覆盖；只有新版本通过检查并完成打包后，才会更新交付。",
+            )
+        except Exception as exc:
+            append_memory_event(session, "project_revision_prepare_failed", data={"error": str(exc)})
+            save_session(session_dir, session)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="project_revision_prepare_failed",
+                source="main_agent_manager",
+                direct_text="这条修改已记录，但当前项目版本信息不完整，暂时不能直接按上一版继续改。你可以先发 /status 查看当前项目状态。",
+            )
+        return
+
     if intent == "new_project_request":
         ticket = create_intake_ticket(session_dir, session, text)
         run = create_active_run(session, ticket, text)
@@ -8070,7 +8141,7 @@ def main() -> int:
     parser.add_argument("--session-dir", default=str(DEFAULT_SESSION_DIR))
     parser.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
     parser.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR))
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4.1"))
+    parser.add_argument("--model", default=model_policy.select_model("provider_generation"))
     parser.add_argument("--generation-timeout", type=int, default=420)
     parser.add_argument("--generation-mode", choices=["simulator", "api"], default=os.environ.get("CGNK_TELEGRAM_GENERATION_MODE", "api"))
     parser.add_argument("--http-timeout", type=int, default=35)

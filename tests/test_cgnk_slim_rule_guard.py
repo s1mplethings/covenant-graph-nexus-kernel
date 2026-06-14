@@ -106,6 +106,27 @@ def test_provider_route_check_is_scoped_to_function_bodies() -> None:
     assert checks[name]["ok"]
 
 
+def test_project_team_checks_present_and_ok() -> None:
+    checks = _checks_by_name()
+    for name in (
+        "project team manager modules exist",
+        "telegram default session carries active project state",
+        "customer intents include project revision request",
+        "telegram revision branch delegates out of bridge",
+        "revision manifest records previous manifest",
+        "revision delivery contract names packager and public gate",
+        "revision failure does not promote current",
+        "revision provider job is phase 2 stub",
+        "revision docs declare phase 1 prepare-only scope",
+        "telegram bridge does not call provider revision job",
+        "model defaults are centralized for bridge and connectivity",
+        "local studio routes through MainAgentManager only",
+        "model policy exposes required task profiles",
+    ):
+        assert name in checks, name
+        assert checks[name]["ok"], name
+
+
 def test_strict_mode_reports_existing_bloat_as_warning() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/cgnk_slim_rule_guard.py", "--strict"],
