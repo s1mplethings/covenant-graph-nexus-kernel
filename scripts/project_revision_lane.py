@@ -210,6 +210,56 @@ def _changed_files_for_revision(manifest: dict[str, Any], workspace: pathlib.Pat
         return [], str(exc)
 
 
+def _changed_file_path(item: str) -> str:
+    value = str(item or "").replace("\\", "/")
+    prefix, separator, path = value.partition(":")
+    if separator and prefix in {"added", "modified", "deleted"}:
+        return path.lstrip("/")
+    return value.lstrip("/")
+
+
+def _is_revision_changed_file_noise(item: str) -> bool:
+    rel = _changed_file_path(item)
+    parts = [part for part in rel.split("/") if part]
+    if not parts:
+        return True
+    noise_dirs = {
+        ".cgnk",
+        ".cgnk_test_env",
+        ".cgnk_tmp",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "__pycache__",
+        "build",
+        "coverage",
+        "dist",
+        "node_modules",
+    }
+    if any(part in noise_dirs for part in parts):
+        return True
+    if pathlib.PurePosixPath(rel).suffix.lower() in {".pyc", ".pyo"}:
+        return True
+    return parts[-1] in {
+        "delivery_manifest.json",
+        "final_project_bundle.zip",
+        "packager_run_log.txt",
+    }
+
+
+def _filter_revision_changed_files(changed_files: list[str]) -> tuple[list[str], int]:
+    filtered = [item for item in changed_files if not _is_revision_changed_file_noise(item)]
+    return filtered, len(changed_files) - len(filtered)
+
+
+def _merge_changed_files_warning(existing: str, extra: str) -> str:
+    if not existing:
+        return extra
+    if not extra:
+        return existing
+    return f"{existing}; {extra}"
+
+
 def run_provider_revision_job(
     *,
     conversation: dict[str, Any],
@@ -311,8 +361,13 @@ def run_provider_revision_job(
         manifest["public_delivery_gate"] = gate
 
         # _changed_files_for_revision wraps local_repo_manager.compute_changed_files.
-        changed_files, warning = _changed_files_for_revision(manifest, workspace)
+        raw_changed_files, warning = _changed_files_for_revision(manifest, workspace)
+        changed_files, excluded_count = _filter_revision_changed_files(raw_changed_files)
         manifest["changed_files"] = changed_files
+        if excluded_count:
+            manifest["changed_files_excluded_count"] = excluded_count
+        if raw_changed_files and not changed_files:
+            warning = _merge_changed_files_warning(warning, "all changed files were internal/generated artifacts")
         if warning:
             manifest["changed_files_warning"] = warning
 

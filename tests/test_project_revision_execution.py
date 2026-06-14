@@ -91,6 +91,57 @@ def test_revision_execution_success_promotes_current_and_updates_active_project(
     assert "public_delivery_gate" in loaded_manifest["delivery_contract"]
 
 
+def test_changed_files_filters_internal_artifacts(tmp_path, monkeypatch) -> None:
+    conversation, manifest, _current = _prepared_revision(tmp_path, monkeypatch)
+
+    def provider_with_noise(**kwargs):
+        out_dir = pathlib.Path(kwargs["out_dir"])
+        (out_dir / "app.py").write_text("print('v1')\n", encoding="utf-8")
+        for rel, content in {
+            "src/task_store.py": "TASKS = []\n",
+            "templates/index.html": "<main>tasks</main>\n",
+            "tests/test_app.py": "def test_home(): pass\n",
+            "README.md": "# Task Board\n",
+            ".cgnk_test_env/lib/site.py": "# internal env\n",
+            ".pytest_cache/v/cache/nodeids": "[]\n",
+            "__pycache__/app.cpython-311.pyc": "bytecode\n",
+            ".cgnk/state.json": "{}\n",
+            ".cgnk_tmp/work.json": "{}\n",
+            "packager_run_log.txt": "internal log\n",
+        }.items():
+            path = out_dir / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        return {"ok": True}
+
+    result = revisions.run_provider_revision_job(
+        conversation=conversation,
+        revision_manifest=manifest,
+        provider_execute=provider_with_noise,
+        post_build_finalize=_post_build_finalize,
+        package_project=_package_project,
+        evaluate_public_delivery_gate=_gate_allowed,
+        model="gpt-test",
+    )
+
+    loaded_manifest = revisions._load_json_object(result["revision_manifest"])
+    changed_files = loaded_manifest["changed_files"]
+    assert "modified:app.py" in changed_files
+    assert any("src/task_store.py" in item for item in changed_files)
+    assert any("templates/index.html" in item for item in changed_files)
+    assert any("tests/test_app.py" in item for item in changed_files)
+    assert any("README.md" in item for item in changed_files)
+    assert not any(".cgnk_test_env" in item for item in changed_files)
+    assert not any("__pycache__" in item for item in changed_files)
+    assert not any(".pytest_cache" in item for item in changed_files)
+    assert not any(".cgnk/" in item for item in changed_files)
+    assert not any(".cgnk_tmp" in item for item in changed_files)
+    assert not any("final_project_bundle.zip" in item for item in changed_files)
+    assert not any("delivery_manifest.json" in item for item in changed_files)
+    assert not any("packager_run_log.txt" in item for item in changed_files)
+    assert loaded_manifest["changed_files_excluded_count"] > 0
+
+
 def test_main_agent_manager_executes_revision_with_adapters(tmp_path, monkeypatch) -> None:
     conversation, manifest, _current = _prepared_revision(tmp_path, monkeypatch)
 

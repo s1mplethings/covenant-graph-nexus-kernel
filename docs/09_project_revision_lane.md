@@ -47,6 +47,8 @@ Success requires:
 - `public_delivery_gate.delivery_allowed` is true
 - `changed_files` is recorded or a warning explains why it could not be calculated
 
+Revision `changed_files` excludes internal test environments, caches, package bundles, and delivery manifests so revision history remains human-readable.
+
 Gate failure or provider failure must leave `current` unchanged.
 
 ## Active Project Rules
