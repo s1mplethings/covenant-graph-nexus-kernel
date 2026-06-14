@@ -2,70 +2,82 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T00:13:51.829682+00:00",
+  "generated_at": "2026-06-14T05:50:47.152475+00:00",
   "chat_id": "6092527664",
-  "markdown_path": "D:\\CGKN\\examples\\project_memory\\6092527664\\PROJECT_MEMORY.md",
+  "markdown_path": "D:\\CGKN\\.service_worktree\\main\\examples\\project_memory\\6092527664\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
   "policy_ref": "policy.safe_modular_project_generation@1",
   "contract_pack": "agent_context.modular_project_generation.contract_pack.json",
   "customer_request": {
-    "project_summary": "本地可运行的 VN 项目助手，支持梳理故事逻辑时间线，生成背景和立绘，直接生成图片，强调真实生成能力。",
+    "project_summary": "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
     "known_facts": [
       "用户提出的新项目需求: 帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
       "识别出的核心能力：结构化流程/关系建模；内容生成能力；导入导出和格式互操作",
-      "用户项目需求: 帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的"
+      "用户补充: 尽量本地模型",
+      "识别出的核心能力：本地模型后端"
     ],
     "default_assumptions": [
-      "图片生成先做可替换 provider 接口，生成结果落到本地素材库",
+      "图片生成先做可替换接口，生成结果落到本地素材库",
+      "背景图和角色立绘使用独立任务与独立验收记录",
+      "占位图、纯色图或降级预览不能算真实背景/立绘验收通过",
       "生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。",
-      "先按本地可运行、可测试、带结果预览的第一版推进"
+      "生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？；先按可配置入口和验收限制处理，缺少真实配置时不宣称完整能力通过"
     ],
     "user_rules": [],
     "acceptance_criteria": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
+      "缺少真实模型、外部 API、媒体后端或数据集时，只能交付配置入口、适配层、测试框架和限制说明",
+      "占位图、纯色图、降级预览或模拟结果不能算真实核心能力验收通过",
       "生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。",
-      "项目必须能运行，并输出测试结论和可视化/预览结果"
+      "用户要求本地模型时，外部模型只能作为备选说明，不能算满足本地模型验收。"
     ],
     "change_requests": [],
     "delivery_requirements": [
-      "交付时必须直接发送图片/照片预览 artifact，不只返回路径",
-      "交付可运行项目文件、效果预览和测试结论"
+      "可运行项目包",
+      "生成素材证据"
     ],
     "decision_log": [
       "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
       "先识别用户显式/隐式核心能力，再为核心能力寻找成熟模型、库、API 或本地后端；明显影响产品效果的路线差异必须向用户确认。",
-      "模型前台返回结构化内容解析失败，本地兜底保留用户需求并继续正式生成主线。"
+      "本轮由 Human Frontdesk 记录补充，agent loop 会读取同一个 agent_session 继续推进。"
     ],
     "open_questions": [
-      "生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？"
+      "生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？",
+      "如果指定的本地模型/服务暂时不可用，要不要允许外部高级 API/模型作为临时备选，还是严格只接受本地能力？"
     ],
     "blocking_questions": []
   },
   "uploaded_inputs": [],
   "visible_user_messages": [
     "你好",
-    "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的"
+    "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的",
+    "尽量本地模型"
   ],
   "generation": {
-    "status": "rework",
-    "driver": "agent_generated_pipeline",
-    "updated_at": "2026-06-08T00:13:50.819436+00:00",
-    "agent_session_path": "D:\\CGKN\\examples\\test_results\\telegram_live_sessions\\6092527664\\agent_session.jsonl",
-    "project_dir": "D:\\CGKN\\examples\\test_results\\telegram_live_logs\\agent_projects\\6092527664",
-    "pipeline_manifest_path": "D:\\CGKN\\examples\\test_results\\telegram_live_logs\\agent_projects\\6092527664\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "D:\\CGKN\\examples\\test_results\\telegram_live_logs\\agent_projects\\6092527664\\generation_context_snapshot.json",
+    "status": "rework_blocked",
+    "driver": "api_provider_project_generation",
+    "finished_at": "2026-06-14T05:50:06.227781+00:00",
+    "error": "provider_api_request_failed: merged component output missing required files: README.md, TEST_PLAN.md",
+    "provider_error_type": "PROVIDER_API_REQUEST_FAILED",
+    "project_dir": "D:\\CGKN\\.service_worktree\\main\\generated\\telegram_provider_projects\\6092527664",
+    "partial_artifacts": [
+      "generation_context_snapshot.json"
+    ],
+    "current_stage": "api_provider_project_generation",
+    "provider_recovery_needed": true,
+    "provider_recovery_mode": "stage_resume",
     "delivery_allowed": false,
     "delivery_gate": {
       "delivery_allowed": false,
       "status": "REWORK",
-      "phase": "checkpoint",
+      "phase": "final",
       "missing": [
-        "runnable_project",
-        "project_package",
-        "real_test_execution",
-        "generated_images",
         "generated_background",
-        "generated_sprite"
+        "generated_images",
+        "generated_sprite",
+        "provider_generation_exception",
+        "runnable_project",
+        "test_commands",
+        "test_report"
       ],
       "requirements": {
         "screenshot": false,
@@ -76,7 +88,7 @@
         "demo_video": false
       },
       "asset_counts": {
-        "packages": 0,
+        "packages": 1,
         "screenshots": 0,
         "generated_images": 0,
         "generated_backgrounds": 0,
@@ -85,19 +97,19 @@
       },
       "quality_evidence": {
         "readme_found": true,
-        "test_report_found": true,
-        "test_report_has_commands": true,
-        "test_report_has_no_test_executed": true,
+        "test_report_found": false,
+        "test_report_has_commands": false,
+        "test_report_has_no_test_executed": false,
         "test_report_mentions_sample_input": false,
         "delivery_notes_found": false,
-        "product_plan_found": true,
+        "product_plan_found": false,
         "output_contract_found": false,
         "technical_plan_found": false,
         "build_plan_found": false,
         "preview_evidence_found": false,
         "preview_placeholder_found": false,
         "sample_input_found": false,
-        "test_report_path": "D:\\CGKN\\examples\\test_results\\telegram_live_logs\\agent_projects\\6092527664\\TEST_REPORT.md",
+        "test_report_path": "",
         "delivery_notes_path": ""
       },
       "public_suffixes": [
@@ -230,5 +242,5 @@
       "purpose": "效果报告和可见产物"
     }
   ],
-  "revision_count": 3
+  "revision_count": 4
 }
