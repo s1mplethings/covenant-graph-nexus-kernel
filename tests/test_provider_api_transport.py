@@ -57,6 +57,29 @@ class ProviderApiTransportTests(unittest.TestCase):
             check_connectivity._provider_error_type('HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'),
         )
 
+    def test_openai_compatible_endpoint_and_payload_normalize_for_gptsapi(self) -> None:
+        root = "https://api.gptsapi.net/v1"
+        endpoint = check_connectivity._openai_compatible_endpoint(root)
+        self.assertEqual("https://api.gptsapi.net/v1/chat/completions", endpoint)
+        payload = check_connectivity._build_openai_compatible_payload(
+            root,
+            {"model": "gpt-5.4-nano", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 10},
+        )
+        self.assertEqual({"model": "gpt-5.4-nano", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 10,}, payload)
+
+    def test_openai_compatible_endpoint_and_payload_normalize_for_responses(self) -> None:
+        root = "https://api.example.com"
+        endpoint = check_connectivity._openai_compatible_endpoint(root)
+        self.assertEqual("https://api.example.com/responses", endpoint)
+        payload = check_connectivity._build_openai_compatible_payload(
+            root,
+            {"model": "gpt-5.4-nano", "messages": [{"role": "user", "content": "ping"}], "temperature": 0.2, "max_tokens": 10},
+        )
+        self.assertEqual(
+            {"model": "gpt-5.4-nano", "input": "user: ping", "temperature": 0.2, "max_output_tokens": 10},
+            payload,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

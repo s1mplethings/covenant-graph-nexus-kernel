@@ -221,7 +221,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "ok": success_ready,
         "status": "PASS" if success_ready else ("REWORK_VERIFIED_NON_PASS" if retryable_rework_verified else "FAIL"),
         "model": args.model,
-        "endpoint": check_connectivity._chat_completions_endpoint(str(creds.get("base_url", ""))),
+        "endpoint": check_connectivity._openai_compatible_endpoint(str(creds.get("base_url", ""))),
         "api_key_source": creds.get("api_key_source", ""),
         "smoke": smoke,
         "first_message": {

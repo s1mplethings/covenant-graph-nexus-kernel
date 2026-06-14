@@ -76,6 +76,31 @@ def _responses_endpoint(base_url: str) -> str:
     return _join_endpoint(base_url, "/responses")
 
 
+def _openai_compatible_endpoint(base_url: str) -> str:
+    return _chat_completions_endpoint(base_url) if _is_gptsapi_base_url(base_url) else _responses_endpoint(base_url)
+
+
+def _messages_to_input(messages: list[dict[str, Any]]) -> str:
+    return "\n".join(f"{item.get('role', 'user')}: {item.get('content', '')}" for item in messages)
+
+
+def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    request_payload = dict(payload)
+    if _is_gptsapi_base_url(base_url):
+        if "input" in request_payload and "messages" not in request_payload:
+            request_payload["messages"] = [{"role": "user", "content": str(request_payload.pop("input"))}]
+        if "max_output_tokens" in request_payload and "max_tokens" not in request_payload:
+            request_payload["max_tokens"] = request_payload.pop("max_output_tokens")
+        request_payload.pop("input", None)
+    else:
+        if "messages" in request_payload and "input" not in request_payload:
+            request_payload["input"] = _messages_to_input(request_payload.pop("messages"))
+        if "max_tokens" in request_payload and "max_output_tokens" not in request_payload:
+            request_payload["max_output_tokens"] = request_payload.pop("max_tokens")
+        request_payload.pop("messages", None)
+    return request_payload
+
+
 def _tls_verify_enabled() -> bool:
     raw = str(os.environ.get("CGKN_API_TLS_VERIFY", os.environ.get("OPENAI_TLS_VERIFY", "1"))).strip().lower()
     return raw not in {"0", "false", "no", "off"}
@@ -320,16 +345,8 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         result["status"] = "configured"
         return result
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
-    if endpoint_mode == "responses":
-        endpoint = _responses_endpoint(root)
-        payload = {"model": model, "input": "Reply with exactly: pong", "max_output_tokens": 8}
-    else:
-        endpoint = _chat_completions_endpoint(root)
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": "Reply with exactly: pong"}],
-            "max_tokens": 8,
-        }
+    endpoint = _openai_compatible_endpoint(root)
+    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8})
     doc, error = _post_json(endpoint, payload, token, timeout_sec)
     result["endpoint_mode"] = endpoint_mode
     result["endpoint"] = endpoint

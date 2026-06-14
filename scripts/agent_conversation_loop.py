@@ -167,13 +167,11 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": _history_for_agent(events)},
     ]
-    if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = check_connectivity._chat_completions_endpoint(root)
-        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000}
-    else:
-        endpoint = check_connectivity._responses_endpoint(root)
-        prompt = "\n".join(f"{item['role']}: {item['content']}" for item in messages)
-        payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 6000}
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000},
+    )
     last_error = ""
     for attempt in range(4):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)

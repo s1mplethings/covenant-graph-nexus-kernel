@@ -248,17 +248,11 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
     system = str(events[0].get("content", "")) if events else ""
     history = "\n".join(f"{event.get('kind', 'event')}: {json.dumps(event, ensure_ascii=False)}" for event in events[1:])[-60000:]
     messages = [{"role": "system", "content": system}, {"role": "user", "content": history}]
-    if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = check_connectivity._chat_completions_endpoint(root)
-        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 7000}
-    else:
-        endpoint = check_connectivity._responses_endpoint(root)
-        payload = {
-            "model": model,
-            "input": "\n".join(f"{item['role']}: {item['content']}" for item in messages),
-            "temperature": 0.2,
-            "max_output_tokens": 7000,
-        }
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 7000},
+    )
     last_error = ""
     for attempt in range(3):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
