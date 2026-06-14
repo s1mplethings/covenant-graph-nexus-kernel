@@ -18,6 +18,7 @@ import check_connectivity
 
 
 DEFAULT_RESULT = ROOT / "examples" / "test_results" / "provider_api_smoke_result.json"
+DEFAULT_SMOKE_MODEL = "gpt-5.4-nano"
 
 
 def _proxy_summary() -> dict[str, bool]:
@@ -54,7 +55,7 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
     token = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).strip()
     endpoint_mode = "chat" if check_connectivity._is_gptsapi_base_url(root) else "responses"
-    endpoint = check_connectivity._chat_completions_endpoint(root) if endpoint_mode == "chat" else check_connectivity._responses_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
     result: dict[str, Any] = {
         "kind": "ProviderApiSmokeResult",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -82,8 +83,9 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         result["error_summary"] = "No OpenAI-compatible base URL was resolved."
         return result
 
-    if endpoint_mode == "chat":
-        payload = {
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {
             "model": model,
             "messages": [
                 {"role": "system", "content": "Return only strict JSON. No markdown."},
@@ -91,14 +93,8 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
             ],
             "temperature": 0,
             "max_tokens": 40,
-        }
-    else:
-        payload = {
-            "model": model,
-            "input": "Return only strict JSON with no markdown: {\"smoke\":true}",
-            "temperature": 0,
-            "max_output_tokens": 40,
-        }
+        },
+    )
 
     last_error = ""
     for attempt in range(1, max(1, attempts) + 1):
@@ -134,7 +130,7 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Live OpenAI-compatible provider smoke test.")
-    parser.add_argument("--model", default="gpt-4.1-mini")
+    parser.add_argument("--model", default=DEFAULT_SMOKE_MODEL)
     parser.add_argument("--timeout", type=int, default=45)
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--result", default=str(DEFAULT_RESULT))

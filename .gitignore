@@ -12,6 +12,8 @@ dist/
 build/
 
 .playwright-mcp/
+.service_worktree/
+.vs/
 
 .DS_Store
 Thumbs.db

@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:38.033235+00:00",
+  "generated_at": "2026-06-12T12:58:35.012671+00:00",
   "chat_id": "chat-cs2",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-cs2\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -21,14 +21,15 @@
     ],
     "user_rules": [],
     "acceptance_criteria": [
-      "交付时必须提供可视化预览或摘要图兜底",
       "可运行",
-      "有测试结论"
+      "有测试结论",
+      "交付时必须提供可视化预览或摘要图兜底"
     ],
     "change_requests": [],
     "delivery_requirements": [
-      "交付时必须提供可视化预览或摘要图兜底",
-      "交付项目包和预览"
+      "可运行项目包",
+      "交付项目包和预览",
+      "交付时必须提供可视化预览或摘要图兜底"
     ],
     "decision_log": [
       "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。",
@@ -42,10 +43,9 @@
     "我想要一个项目可以通过csgo2的demo分析鼠标键盘动作和视觉信息，用来鉴挂"
   ],
   "generation": {
-    "status": "waiting_confirmation",
+    "status": "idle",
     "driver": "not_started",
-    "generation_mode": "unstarted",
-    "start_wait_reason": "needs_direction_confirmation"
+    "generation_mode": "unstarted"
   },
   "module_mapping": [
     {

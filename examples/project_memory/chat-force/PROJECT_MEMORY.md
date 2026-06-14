@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:18:38.276296+00:00
+generated_at: 2026-06-12T12:58:34.871541+00:00
 revision_count: 3
 ---
 
@@ -39,9 +39,9 @@ revision_count: 3
 - 缺少真实 demo 或样例输入时，只能交付框架版/示例版并在限制中标记未完成真实验证
 - 本地可运行
 - 直接生成并测试
+- 未回答/缺失项按默认假设推进: 鉴挂判别主要看动作规律、视角异常、命中事件，还是综合评分？
 - 未回答/缺失项按默认假设推进: 第一版输出要偏报告、时间线可视化，还是风险评分？
 - 未回答/缺失项按默认假设推进: 第一版我先按本地网页/本地工具处理，可以吗？
-- 未回答/缺失项按默认假设推进: 交付重点是界面、文件导出、还是自动化流程？
 - 未回答/缺失项按默认假设推进: 实际 demo 文件或公开 demo 示例
 - 未回答/缺失项按默认假设推进: 判别标准或疑似外挂行为定义
 - 未回答/缺失项按默认假设推进: 期望输出形式，例如报告、时间线、可视化或风险评分
@@ -56,9 +56,9 @@ revision_count: 3
 
 ## Acceptance Criteria
 
-- 交付时必须提供可视化预览或摘要图兜底
 - 可运行
 - 有测试结论
+- 交付时必须提供可视化预览或摘要图兜底
 
 ## Change Requests
 
@@ -66,8 +66,9 @@ revision_count: 3
 
 ## Delivery Requirements
 
-- 交付时必须提供可视化预览或摘要图兜底
+- 可运行项目包
 - 交付项目包和预览
+- 交付时必须提供可视化预览或摘要图兜底
 
 ## Decision Log
 
@@ -126,7 +127,7 @@ revision_count: 3
 
 ## Generation State
 
-- Status: `waiting_confirmation`
+- Status: `idle`
 - Started at: ``
 - Finished at: ``
 - Result path: ``

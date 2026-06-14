@@ -266,13 +266,11 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int, *, m
     if not token:
         raise RuntimeError("missing OpenAI-compatible API key")
     root = str(creds.get("base_url", "")).rstrip("/")
-    if check_connectivity._is_gptsapi_base_url(root):
-        endpoint = check_connectivity._chat_completions_endpoint(root)
-        payload = {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 12000}
-    else:
-        endpoint = check_connectivity._responses_endpoint(root)
-        prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-        payload = {"model": model, "input": prompt, "temperature": 0.2, "max_output_tokens": 12000}
+    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 12000},
+    )
     last_error = ""
     for attempt in range(max(1, max_attempts)):
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
