@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
+import pathlib
 import re
 from typing import Any
 
@@ -161,6 +163,52 @@ class MainAgentManager:
             "revision_manifest": str(manifest_path),
             "revision_goal": goal,
         }
+
+    def execute_project_revision(
+        self,
+        conversation: dict[str, Any],
+        revision_manifest_path: str,
+        execution_adapters: dict[str, Any],
+    ) -> dict[str, Any]:
+        manifest_path = pathlib.Path(str(revision_manifest_path))
+        if not manifest_path.exists():
+            return {"status": "blocked", "intent": "project_revision_execute", "reason": "revision_manifest_not_found"}
+        try:
+            revision_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            return {"status": "blocked", "intent": "project_revision_execute", "reason": f"revision_manifest_unreadable: {exc}"}
+        if not isinstance(revision_manifest, dict):
+            return {"status": "blocked", "intent": "project_revision_execute", "reason": "revision_manifest_not_object"}
+
+        conversation["generation"] = {
+            "status": "revision_generating",
+            "driver": "main_agent_manager",
+            "revision_manifest": str(manifest_path),
+            "provider_route_required": True,
+            "delivery_contract": ["provider_route", "local_packager", "public_delivery_gate", "delivery_manifest"],
+        }
+        result = project_revision_lane.run_provider_revision_job(
+            conversation=conversation,
+            revision_manifest=revision_manifest,
+            provider_execute=execution_adapters.get("provider_execute"),
+            post_build_finalize=execution_adapters.get("post_build_finalize"),
+            package_project=execution_adapters.get("package_project"),
+            evaluate_public_delivery_gate=execution_adapters.get("evaluate_public_delivery_gate"),
+            model=str(execution_adapters.get("model") or self.choose_model("revision")),
+            timeout=int(execution_adapters.get("timeout", 420)),
+        )
+        conversation["generation"].update(
+            {
+                "status": "revision_delivered" if result.get("status") == "ready" else "rework_blocked",
+                "revision_manifest": result.get("revision_manifest", str(manifest_path)),
+                "package_path": result.get("package_path", ""),
+                "delivery_manifest": result.get("delivery_manifest", ""),
+                "public_delivery_gate": result.get("public_delivery_gate", {}),
+                "error": result.get("error", ""),
+            }
+        )
+        local_conversation_manager.save_conversation(conversation)
+        return result
 
     def get_status(self, conversation: dict[str, Any]) -> dict[str, Any]:
         return {

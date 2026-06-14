@@ -744,6 +744,8 @@ def merge_component_files(component_results: list[dict[str, Any]]) -> list[dict[
     owner: dict[str, str] = {}
     mergeable_docs = {"README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"}
     mergeable_web_suffixes = {".html", ".css", ".js", ".mjs", ".json"}
+    mergeable_source_suffixes = {".py", ".json"}
+    mergeable_entrypoints = {"app.py", "main.py"}
     for result in component_results:
         component_id = str(result.get("component_id", "<unknown>"))
         for item in validate_provider_files(result):
@@ -761,7 +763,19 @@ def merge_component_files(component_results: list[dict[str, Any]]) -> list[dict[
                     owner[rel] = f"{owner[rel]},{component_id}"
                     continue
                 suffix = pathlib.PurePosixPath(rel).suffix.lower()
-                if rel.startswith(("app/", "static/", "frontend/")) and suffix in mergeable_web_suffixes:
+                if rel in mergeable_entrypoints:
+                    merged[rel] = content
+                    owner[rel] = component_id
+                    continue
+                if rel.startswith(("app/", "static/", "frontend/", "templates/")) and suffix in mergeable_web_suffixes:
+                    merged[rel] = content
+                    owner[rel] = component_id
+                    continue
+                if rel.startswith("src/") and suffix in mergeable_source_suffixes and pathlib.PurePosixPath(rel).name not in mergeable_entrypoints:
+                    merged[rel] = content
+                    owner[rel] = component_id
+                    continue
+                if rel.startswith("tests/") and suffix == ".py":
                     merged[rel] = content
                     owner[rel] = component_id
                     continue
@@ -954,7 +968,12 @@ def provider_generate_project_by_components(
             )
             paths.add("TEST_PLAN.md")
     required = component_pipeline.get("merge_policy", {}).get("required_final_files", ["README.md", "TEST_PLAN.md"])
-    missing = [rel for rel in required if rel not in paths]
+    missing = []
+    for rel in required:
+        if rel == "TEST_PLAN.md" and "TEST_REPORT.md" in paths:
+            continue
+        if rel not in paths:
+            missing.append(rel)
     if missing:
         raise RuntimeError("merged component output missing required files: " + ", ".join(missing))
     mark_generation_progress(

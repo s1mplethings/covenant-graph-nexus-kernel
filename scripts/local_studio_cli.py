@@ -58,6 +58,24 @@ def rollback_project_payload(project_id: str, revision_index: int) -> dict[str, 
     }
 
 
+def execute_revision_payload(
+    conversation_id: str,
+    revision_manifest_path: str,
+    execution_adapters: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if not execution_adapters:
+        return {
+            "status": "blocked",
+            "intent": "execute_revision",
+            "conversation_id": conversation_id,
+            "revision_manifest": revision_manifest_path,
+            "reason": "execution_adapters_required",
+            "note": "Local Studio CLI exposes the command, but production provider adapters must be supplied by the host runtime.",
+        }
+    conversation = local_conversation_manager.load_conversation(conversation_id)
+    return MainAgentManager().execute_project_revision(conversation, revision_manifest_path, execution_adapters)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Local Studio control surface for CGNK conversations and managed projects.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -80,6 +98,9 @@ def main(argv: list[str] | None = None) -> int:
     rollback = sub.add_parser("rollback")
     rollback.add_argument("project_id")
     rollback.add_argument("--rev", type=int, required=True)
+    execute_revision = sub.add_parser("execute-revision")
+    execute_revision.add_argument("conversation_id")
+    execute_revision.add_argument("revision_manifest_path")
     redeliver = sub.add_parser("redeliver")
     redeliver.add_argument("conversation_id")
 
@@ -105,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         print_json(metadata.get("revisions", []) if isinstance(metadata.get("revisions"), list) else [])
     elif args.command == "rollback":
         print_json(rollback_project_payload(args.project_id, args.rev))
+    elif args.command == "execute-revision":
+        print_json(execute_revision_payload(args.conversation_id, args.revision_manifest_path))
     elif args.command == "redeliver":
         conversation = local_conversation_manager.load_conversation(args.conversation_id)
         active = local_conversation_manager.get_active_project(conversation)

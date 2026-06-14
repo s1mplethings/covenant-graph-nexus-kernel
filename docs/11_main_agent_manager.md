@@ -10,6 +10,7 @@ It is not a replacement for the provider generation route.
 - Load and update the local conversation schema.
 - Classify new project, revision, status, review, repair, and rollback requests.
 - Prepare revision manifests and workspaces.
+- Execute prepared revisions through injected provider, finalization, packaging, and public gate adapters.
 - Select task models through `model_policy`.
 - Keep delivery requirements attached to the formal route.
 
@@ -32,3 +33,11 @@ The programming domain owns generation, repair, QA, packaging, and public gate e
 The history and change domain owns active project state, revision history, workspaces, snapshots, changed files, and rollback.
 
 `MainAgentManager` coordinates those domains without merging them into one large implementation.
+
+## Revision Execution
+
+`start_project_revision` prepares the revision request, plan, workspace, manifest, and revision goal.
+
+`execute_project_revision` loads the prepared manifest, marks generation as `revision_generating`, delegates to `project_revision_lane.run_provider_revision_job`, then records either `revision_delivered` or `rework_blocked` on the conversation.
+
+It does not implement provider generation itself. The actual execution dependencies are injected by the caller, and the revision lane enforces the package and public gate contract before promoting `current`.
