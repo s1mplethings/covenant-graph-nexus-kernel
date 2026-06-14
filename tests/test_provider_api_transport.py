@@ -35,6 +35,27 @@ class ProviderApiTransportTests(unittest.TestCase):
             check_connectivity._chat_completions_endpoint("https://api.gptsapi.net"),
         )
 
+    def test_openai_compatible_endpoint_uses_chat_for_gptsapi(self) -> None:
+        self.assertEqual(
+            "https://api.gptsapi.net/v1/chat/completions",
+            check_connectivity._openai_compatible_endpoint("https://api.gptsapi.net/v1"),
+        )
+
+    def test_openai_compatible_payload_converts_chat_to_responses_input(self) -> None:
+        payload = check_connectivity._build_openai_compatible_payload(
+            "https://api.openai.com/v1",
+            {
+                "model": "gpt-test",
+                "messages": [{"role": "user", "content": "hello"}],
+                "temperature": 0.1,
+                "max_tokens": 12,
+            },
+        )
+
+        self.assertEqual("gpt-test", payload["model"])
+        self.assertEqual("user: hello", payload["input"])
+        self.assertEqual(12, payload["max_output_tokens"])
+
     def test_retry_classifier_treats_key_limit_403_as_non_retryable(self) -> None:
         self.assertFalse(check_connectivity._error_is_retryable('HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'))
         self.assertTrue(check_connectivity._error_is_retryable("HTTP 429: rate limited [retryable=true]"))

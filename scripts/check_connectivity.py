@@ -76,6 +76,29 @@ def _responses_endpoint(base_url: str) -> str:
     return _join_endpoint(base_url, "/responses")
 
 
+def _openai_compatible_endpoint(base_url: str) -> str:
+    if _is_gptsapi_base_url(base_url):
+        return _chat_completions_endpoint(base_url)
+    return _responses_endpoint(base_url)
+
+
+def _build_openai_compatible_payload(base_url: str, chat_payload: dict[str, Any]) -> dict[str, Any]:
+    if _is_gptsapi_base_url(base_url):
+        return dict(chat_payload)
+    messages = chat_payload.get("messages", [])
+    prompt = "\n".join(
+        f"{item.get('role', 'user')}: {item.get('content', '')}"
+        for item in messages
+        if isinstance(item, dict)
+    )
+    return {
+        "model": chat_payload.get("model", DEFAULT_TEST_MODEL),
+        "input": prompt,
+        "temperature": chat_payload.get("temperature", 0.2),
+        "max_output_tokens": chat_payload.get("max_output_tokens", chat_payload.get("max_tokens", 1200)),
+    }
+
+
 def _tls_verify_enabled() -> bool:
     raw = str(os.environ.get("CGKN_API_TLS_VERIFY", os.environ.get("OPENAI_TLS_VERIFY", "1"))).strip().lower()
     return raw not in {"0", "false", "no", "off"}
