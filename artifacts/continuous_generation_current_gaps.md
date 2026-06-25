@@ -1,0 +1,46 @@
+# Continuous Generation Current Gaps
+
+- highest_priority_gap: `representative_real_asr_reliability_and_approved_human_review_evidence_missing`
+- latest_reference_trial_verdict: `PASS`
+- latest_reference_trial_score: `100`
+- commercial_readiness: `COMMERCIAL_BETA_PLUS`
+- user_media_input_status: `verified`
+- media_decode_status: `verified`
+- asr_status: `asr_contract_fixture_verified`
+- asr_evidence_tier: `contract_fixture`
+- asr_quality_status: `contract_only`
+- asr_quality_sample_count: `3`
+- commercial_promotion_decision: `COMMERCIAL_BETA_PLUS`
+- commercial_promotion_report: `production_asr_verification_report.json`
+- production_reliability_status: `not_ready`
+- commercial_ready_decision: `NOT_READY`
+- commercial_ready_report: `commercial_ready_report.json`
+- full_pytest_required: `yes`
+
+## Known Gaps
+- asr:contract_fixture_verified_not_production_asr
+- commercial_promotion:asr_evidence_tier_not_candidate:contract_fixture
+- commercial_promotion:asr_path_degraded
+- commercial_promotion:asr_quality_not_production_candidate:contract_only
+- commercial_promotion:character_error_rate_unavailable
+- commercial_promotion:fixture_or_non_real_asr_adapter
+- commercial_promotion:missing_reference_transcripts
+- commercial_promotion:token_error_rate_unavailable
+- commercial_readiness:user_media_contract_not_production_media_or_asr
+- commercial_ready:asr_multi_sample_quality_not_pass
+- commercial_ready:human_review_evidence_missing
+- commercial_ready:production_asr_not_verified_true
+- commercial_ready:promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS
+- commercial_ready:promotion_report_has_blockers
+- commercial_ready:ready_adapter_kind_not_real_local_asr
+- commercial_ready:ready_asr_path_degraded
+- commercial_ready:ready_character_error_rate_unavailable_or_high
+- commercial_ready:ready_evidence_tier_insufficient:contract_fixture
+- commercial_ready:ready_reference_transcript_coverage_below_threshold
+- commercial_ready:ready_token_error_rate_unavailable_or_high
+- commercial_ready:reliability_outputs_not_deterministic
+- commercial_ready:reliability_run_count_below_minimum
+- commercial_ready:repeat_reliability_not_pass
+- local_model_adapter:no_real_model_configured_for_reference_trial
+- media_decode:bounded_ffmpeg_extract_verified_not_production_pipeline
+- user_media_pipeline:real_input_contract_verified_not_production_media_pipeline

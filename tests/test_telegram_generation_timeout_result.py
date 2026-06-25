@@ -59,7 +59,7 @@ class TelegramGenerationTimeoutResultTests(unittest.TestCase):
             }
         )
         self.assertIn("虚拟项目组", reply)
-        self.assertIn("后台生成超过", reply)
+        self.assertIn("未验证产物不能标成完成", reply)
         self.assertIn("缺失 artifact", reply)
 
 

@@ -1,0 +1,696 @@
+{
+  "created_at": "2026-06-23T17:37:50.596128+00:00",
+  "mode": "no_live",
+  "use_local_transcription_fixture": false,
+  "use_user_media_fixture": true,
+  "use_media_decode_smoke": true,
+  "use_real_asr_contract_fixture": true,
+  "use_asr_quality_gate_fixture": true,
+  "use_real_asr_multi_sample_eval_fixture": true,
+  "use_real_asr_multi_sample_eval": false,
+  "use_commercial_promotion_gate_fixture": true,
+  "use_real_asr_commercial_candidate_eval": false,
+  "use_commercial_ready_gate_fixture": true,
+  "reference_profile": {
+    "profile_id": "reference_grade_project_trial_profile",
+    "created_at": "2026-06-23T17:37:46.410070+00:00",
+    "complexity_level": "production_scale",
+    "workflow_depth": "multi_stage",
+    "required_capabilities": [
+      "local_first",
+      "no_cloud_core_dependency",
+      "honest_degraded_mode",
+      "gui_or_local_visual_interface",
+      "cli",
+      "shared_gui_cli_core",
+      "unified_pipeline",
+      "orchestrator_or_stages",
+      "multi_stage_processing",
+      "stage_artifacts",
+      "artifact_schema",
+      "artifact_traceability",
+      "product_contract_docs",
+      "requirement_decision_artifacts",
+      "delivery_evidence",
+      "layered_acceptance"
+    ],
+    "required_product_docs": [
+      "product_brief.md",
+      "technical_plan.md",
+      "interaction_design.md",
+      "acceptance_matrix.md"
+    ],
+    "required_requirement_artifacts": [
+      "customer_goal_brief.md",
+      "need_interpretations.json",
+      "candidate_requirements.json",
+      "requirement_scorecard.json",
+      "selected_requirement.json",
+      "rejected_requirements.md",
+      "mvp_scope.md",
+      "non_goals.md",
+      "acceptance_contract.json",
+      "customer_decision_summary.md"
+    ],
+    "required_delivery_evidence": [
+      "README.md",
+      "TEST_REPORT.md",
+      "DELIVERY_NOTES.md",
+      "final_project_bundle.zip",
+      "delivery_manifest.json",
+      "screenshot",
+      "smoke log"
+    ],
+    "required_layered_statuses": [
+      "requirement_decision_status",
+      "product_contract_status",
+      "implementation_status",
+      "delivery_status",
+      "artifact_integrity_status",
+      "commercial_readiness_status",
+      "overall_status"
+    ],
+    "forbidden_reference_tokens": [],
+    "forbidden_reference_token_count": 0
+  },
+  "generated_project_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+  "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a",
+  "selected_requirement": {
+    "selected_requirement_id": "local_video_material_workbench_requirement",
+    "selected_requirement_name": "Local video material processing workbench",
+    "customer_goal": "I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag candidate content worth reviewing, choose outputs, export a project package, and generate a processing report. It cannot depend on cloud services and must not pretend to have real AI models. CGKN should decide the real requirement, MVP scope, non-goals, acceptance criteria, and generate a runnable local project.",
+    "interpreted_need": "A local-first workbench for ingesting video, extracting or simulating audio, chunking/transcribing, analyzing segments, selecting clips, and exporting reviewable artifacts.",
+    "target_user": "Creators or operators who need repeatable local media processing.",
+    "core_problem": "Raw media work becomes untraceable and hard to evaluate when it is reduced to a single preview.",
+    "selected_product_shape": "Desktop/web GUI plus CLI over a shared orchestration core.",
+    "why_this_requirement": [
+      "It turns the rough video-tool goal into a concrete local product with testable artifacts.",
+      "It has enough value, clarity, delivery feasibility, testability, MVP boundaries, and risk control for a first build."
+    ],
+    "why_not_other_requirements": [
+      "indie_team_operating_console_requirement: eligible_requirement_direction",
+      "local_research_workspace_requirement: eligible_requirement_direction",
+      "cloud_ai_autopilot_requirement: demo_degradation_risk_high, fake_pass_risk_high, high_implementation_risk_without_mvp_control",
+      "single_static_page_demo_requirement: customer_value_score_lt_50, clarity_score_lt_50, small_demo_for_complex_goal, demo_degradation_risk_high, fake_pass_risk_high"
+    ],
+    "mvp_scope": [
+      "Local media import",
+      "Pipeline run view",
+      "Segment review",
+      "Clip selection",
+      "Artifact export",
+      "Honest degraded mode"
+    ],
+    "non_goals": [
+      "Cloud rendering farm",
+      "Guaranteed real speech recognition without configured model",
+      "Public media publishing"
+    ],
+    "acceptance_summary": "A run creates stage artifacts, GUI/CLI share the same core, and missing models are reported as degraded instead of success.",
+    "known_assumptions": [
+      "The selected MVP can be revised if the customer rejects the chosen direction."
+    ],
+    "open_questions_not_blocking": [
+      "Confirm exact runtime platform and preferred UI style before final polish."
+    ],
+    "decision_confidence": "high"
+  },
+  "requirement_decision": {
+    "status": "PASS",
+    "paths": {
+      "customer_goal_brief": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_goal_brief.md",
+      "need_interpretations": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\need_interpretations.json",
+      "candidate_requirements": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\candidate_requirements.json",
+      "requirement_scorecard": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\requirement_scorecard.json",
+      "selected_requirement": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\selected_requirement.json",
+      "rejected_requirements": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\rejected_requirements.md",
+      "mvp_scope": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\mvp_scope.md",
+      "non_goals": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\non_goals.md",
+      "acceptance_contract": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\acceptance_contract.json",
+      "customer_decision_summary": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_decision_summary.md"
+    }
+  },
+  "discovery_selection": {
+    "status": "PASS",
+    "paths": {
+      "discovery_brief": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\discovery_brief.md",
+      "candidate_directions": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\candidate_directions.json",
+      "candidate_scorecard": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\candidate_scorecard.json",
+      "selected_project_direction": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\selected_project_direction.json",
+      "rejected_options": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\rejected_options.md",
+      "complexity_project_contract": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\complexity_project_contract.json"
+    }
+  },
+  "planning_materialization": {
+    "status": "PASS",
+    "mode": "deterministic_contract_planning",
+    "created_at": "2026-06-23T17:37:46.435820+00:00",
+    "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+    "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a",
+    "written": [
+      "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\product_brief.md",
+      "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\technical_plan.md",
+      "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\interaction_design.md",
+      "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\acceptance_matrix.md"
+    ],
+    "not_implementation_evidence": true,
+    "not_delivery_evidence": true
+  },
+  "implementation_materialization": {
+    "status": "PASS",
+    "mode": "deterministic_degraded_structure",
+    "created_at": "2026-06-23T17:37:46.466377+00:00",
+    "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+    "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a",
+    "core_files": [
+      "orchestrator.py",
+      "stages.py",
+      "cli.py",
+      "gui_app.py",
+      "local_media_adapter.py",
+      "local_model_adapter.py",
+      "local_transcription_fixture_adapter.py",
+      "production_media_decode_contract.py",
+      "real_asr_adapter_contract.py",
+      "asr_evidence_tier.py",
+      "asr_quality_gate.py",
+      "real_asr_multi_sample_eval.py",
+      "asr_reference_transcript_eval.py",
+      "commercial_promotion_gate.py",
+      "production_reliability_gate.py",
+      "commercial_ready_gate.py",
+      "user_media_pipeline_contract.py"
+    ],
+    "fixture_processing": {
+      "fixture": "fixtures/media_fixture.json",
+      "files": [
+        "fixtures/sample_video.txt",
+        "fixtures/sample_audio.txt",
+        "fixtures/asset_notes.txt",
+        "fixtures/sample_audio.wav"
+      ]
+    },
+    "stage_artifacts": [
+      "stage_plan.json",
+      "media_manifest.json",
+      "audio_chunk_manifest.json",
+      "transcript_merged.json",
+      "segment_analysis.json",
+      "selected_segments.json",
+      "clip_manifest.json",
+      "export_results.json"
+    ],
+    "not_delivery_evidence": true
+  },
+  "delivery": {
+    "status": "PASS",
+    "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+    "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a",
+    "readme": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\README.md",
+    "test_report": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\TEST_REPORT.md",
+    "delivery_notes": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\DELIVERY_NOTES.md",
+    "screenshot": {
+      "status": "PASS",
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png",
+      "blocked_path": ""
+    },
+    "final_project_bundle": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+    "delivery_manifest": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\delivery_manifest.json",
+    "smoke_command": {
+      "status": "PASS",
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "cli.py",
+        "--input",
+        "fixtures/sample_audio.wav",
+        "--output-dir",
+        "."
+      ],
+      "cwd": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+      "started_at": "2026-06-23T17:37:46.467376+00:00",
+      "ended_at": "2026-06-23T17:37:49.102289+00:00",
+      "duration_seconds": 2.635,
+      "returncode": 0,
+      "stdout": "{'status': 'degraded', 'mode': 'local_user_media_contract', 'capability_manifest': 'capability_manifest.json', 'media_manifest': 'media_manifest.json', 'user_media_contract': {'status': 'PASS', 'media_manifest': 'media_manifest.json', 'inspect_artifact': 'user_media_inspect.json', 'smoke_log': 'user_media_smoke_log.json', 'fixture_path': 'user_media_fixture.json', 'metadata_status': 'ffprobe_verified', 'adapter_status': 'ffprobe_verified', 'sha256': 'e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde', 'size': 4044, 'blockers': []}, 'selected_adapter': 'local_tool_verified', 'artifacts': ['stage_plan.json', 'media_manifest.json', 'audio_chunk_manifest.json', 'transcript_merged.json', 'segment_analysis.json', 'selected_segments.json', 'clip_manifest.json', 'export_results.json'], 'not_real_ai_model': True, 'not_delivery_evidence': True}\n",
+      "stderr": ""
+    }
+  },
+  "layered_status": {
+    "requirement_decision_status": "PASS",
+    "product_contract_status": "PASS",
+    "implementation_status": "PASS",
+    "delivery_status": "PASS",
+    "artifact_integrity_status": "PASS",
+    "commercial_readiness_status": "COMMERCIAL_BETA_PLUS",
+    "reference_profile_alignment_status": "PASS",
+    "overall_status": "PASS"
+  },
+  "product_acceptance": {
+    "status": "fail",
+    "product_score": 54,
+    "feature_coverage_score": 40,
+    "ux_score": 50,
+    "maintainability_score": 85,
+    "commercial_ready": false,
+    "missing_core_features": [
+      "want",
+      "local-first",
+      "workbench",
+      "individual",
+      "creators",
+      "small",
+      "teams.",
+      "can",
+      "import",
+      "organize",
+      "library",
+      "define"
+    ],
+    "weak_features": [
+      "low_ux_score"
+    ],
+    "customer_visible_limitations": [],
+    "recommendation": "NEEDS_REWORK",
+    "metadata": {
+      "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace",
+      "file_count": 74,
+      "video_present": false,
+      "has_delivery_notes": true
+    },
+    "requirement_decision_status": "PASS",
+    "product_contract_status": "PASS",
+    "implementation_status": "PASS",
+    "delivery_status": "PASS",
+    "overall_status": "PASS",
+    "layered_acceptance": {
+      "requirement_decision_status": "PASS",
+      "product_contract_status": "PASS",
+      "implementation_status": "PASS",
+      "delivery_status": "PASS",
+      "overall_status": "PASS",
+      "reason": "layered_acceptance_evaluated",
+      "evidence": [
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_goal_brief.md",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\need_interpretations.json",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\candidate_requirements.json",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\requirement_scorecard.json",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\selected_requirement.json",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\rejected_requirements.md",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\mvp_scope.md",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\non_goals.md",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\acceptance_contract.json",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_decision_summary.md"
+      ],
+      "known_gaps": [],
+      "checks": {
+        "requirement_decision": {
+          "status": "PASS",
+          "blockers": [],
+          "evidence": [
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_goal_brief.md",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\need_interpretations.json",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\candidate_requirements.json",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\requirement_scorecard.json",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\selected_requirement.json",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\rejected_requirements.md",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\mvp_scope.md",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\non_goals.md",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\acceptance_contract.json",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision\\customer_decision_summary.md"
+          ],
+          "metadata": {
+            "requirement_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\requirement_decision",
+            "selected_requirement_id": "local_video_material_workbench_requirement",
+            "candidate_count": 5
+          }
+        },
+        "planning_contract_gate": {
+          "status": "PASS",
+          "required": [
+            "product_brief.md",
+            "technical_plan.md",
+            "interaction_design.md",
+            "acceptance_matrix.md",
+            "complexity_project_contract.json"
+          ],
+          "present": {
+            "product_brief.md": [
+              "product_brief.md"
+            ],
+            "technical_plan.md": [
+              "technical_plan.md"
+            ],
+            "interaction_design.md": [
+              "interaction_design.md"
+            ],
+            "acceptance_matrix.md": [
+              "acceptance_matrix.md"
+            ]
+          },
+          "quality": {
+            "product_brief.md": [
+              {
+                "status": "PASS",
+                "blockers": [],
+                "length": 2683
+              }
+            ],
+            "technical_plan.md": [
+              {
+                "status": "PASS",
+                "blockers": [],
+                "length": 2529
+              }
+            ],
+            "interaction_design.md": [
+              {
+                "status": "PASS",
+                "blockers": [],
+                "length": 1699
+              }
+            ],
+            "acceptance_matrix.md": [
+              {
+                "status": "PASS",
+                "blockers": [],
+                "length": 2367
+              }
+            ]
+          },
+          "missing": [],
+          "evidence": [
+            "product_brief.md",
+            "technical_plan.md",
+            "interaction_design.md",
+            "acceptance_matrix.md",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\complexity_project_contract.json"
+          ],
+          "complexity_project_contract": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\discovery\\complexity_project_contract.json"
+        },
+        "product_contract_missing": [],
+        "implementation_missing": [],
+        "stage_artifact_schema": {
+          "status": "PASS",
+          "blockers": [],
+          "artifacts_checked": [
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\stage_plan.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\media_manifest.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\audio_chunk_manifest.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\transcript_merged.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\segment_analysis.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\selected_segments.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\clip_manifest.json",
+              "status": "PASS",
+              "missing": []
+            },
+            {
+              "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\export_results.json",
+              "status": "PASS",
+              "missing": []
+            }
+          ]
+        },
+        "delivery_missing": []
+      }
+    }
+  },
+  "artifact_integrity": {
+    "status": "PASS",
+    "stage_artifact_schema": {
+      "status": "PASS",
+      "blockers": [],
+      "artifacts_checked": [
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\stage_plan.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\media_manifest.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\audio_chunk_manifest.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\transcript_merged.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\segment_analysis.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\selected_segments.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\clip_manifest.json",
+          "status": "PASS",
+          "missing": []
+        },
+        {
+          "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\export_results.json",
+          "status": "PASS",
+          "missing": []
+        }
+      ]
+    },
+    "blockers": [],
+    "zip_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+    "zip_size": 76918,
+    "screenshot_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png",
+    "delivery_manifest_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\delivery_manifest.json"
+  },
+  "fixture_processing": {
+    "status": "PASS",
+    "fixture_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\fixtures\\media_fixture.json",
+    "segment_count": 1,
+    "export_count": 1,
+    "blockers": [],
+    "still_degraded": true,
+    "mode": "local_user_media_contract"
+  },
+  "capability_manifest": {
+    "status": "PASS",
+    "manifest_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\capability_manifest.json",
+    "selected_adapter": "local_tool_verified",
+    "python_wave_verified": true,
+    "transcription_status": "placeholder_transcription",
+    "transcription_output_artifact": "transcription_adapter_result.json",
+    "transcription_commercial_ready": false,
+    "asr_status": "asr_contract_fixture_verified",
+    "asr_adapter_kind": "contract_fixture",
+    "asr_evidence_tier": "contract_fixture",
+    "asr_output_artifact": "real_asr_transcript.json",
+    "asr_quality_report_path": "asr_multi_sample_report.json",
+    "asr_quality_status": "contract_only",
+    "asr_quality_sample_count": 3,
+    "asr_quality_successful_samples": 3,
+    "asr_quality_failed_samples": 0,
+    "asr_quality_timeout_samples": 0,
+    "asr_quality_invalid_output_samples": 0,
+    "asr_quality_success_rate": 1.0,
+    "asr_quality_non_empty_text_rate": 1.0,
+    "asr_quality_non_empty_segments_rate": 1.0,
+    "asr_production_candidate": false,
+    "asr_production_verified": false,
+    "asr_production_readiness_blockers": [
+      "contract_fixture_is_not_production_asr"
+    ],
+    "commercial_promotion_decision": "COMMERCIAL_BETA_PLUS",
+    "commercial_readiness_level": "COMMERCIAL_BETA_PLUS",
+    "commercial_promotion_report_path": "production_asr_verification_report.json",
+    "commercial_promotion_blockers": [
+      "fixture_or_non_real_asr_adapter",
+      "asr_evidence_tier_not_candidate:contract_fixture",
+      "asr_quality_not_production_candidate:contract_only",
+      "missing_reference_transcripts",
+      "token_error_rate_unavailable",
+      "character_error_rate_unavailable",
+      "asr_path_degraded"
+    ],
+    "production_reliability_status": "not_ready",
+    "production_reliability_run_count": 0,
+    "production_reliability_report_path": "production_reliability_report.json",
+    "commercial_ready_decision": "NOT_READY",
+    "commercial_ready_report_path": "commercial_ready_report.json",
+    "commercial_ready_blockers": [
+      "ready_adapter_kind_not_real_local_asr",
+      "ready_evidence_tier_insufficient:contract_fixture",
+      "promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS",
+      "promotion_report_has_blockers",
+      "production_asr_not_verified_true",
+      "ready_asr_path_degraded",
+      "asr_multi_sample_quality_not_pass",
+      "ready_reference_transcript_coverage_below_threshold",
+      "ready_token_error_rate_unavailable_or_high",
+      "ready_character_error_rate_unavailable_or_high",
+      "repeat_reliability_not_pass",
+      "reliability_run_count_below_minimum",
+      "reliability_outputs_not_deterministic",
+      "human_review_evidence_missing"
+    ],
+    "asr_schema_valid": true,
+    "asr_production_asr": false,
+    "asr_degraded": true,
+    "asr_returncode": 0,
+    "asr_timed_out": false,
+    "user_media_input_status": "verified",
+    "user_media_input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+    "user_media_input_size": 4044,
+    "user_media_input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+    "user_media_metadata_status": "ffprobe_verified",
+    "user_media_adapter_status": "ffprobe_verified",
+    "user_media_manifest": "media_manifest.json",
+    "media_decode_status": "verified",
+    "media_decode_tool": "ffmpeg",
+    "media_decode_artifact_path": "media_decode_artifact.json",
+    "media_decode_output_path": "media_decode_output.wav",
+    "media_decode_sha256": "d27bf387026c6fdbbc6b38959a718bb7d12e7264116a6722e9e029b3cc489938",
+    "media_decode_size": 3278,
+    "media_decode_returncode": 0,
+    "media_decode_timed_out": false,
+    "ffprobe_status": "local_tool_verified",
+    "ffmpeg_status": "local_tool_verified",
+    "commercial_ready": false,
+    "blockers": []
+  },
+  "commercial_readiness": {
+    "status": "COMMERCIAL_BETA_PLUS",
+    "commercial_ready": false,
+    "honesty_status": "PASS",
+    "promotion_blockers": [
+      "fixture_or_non_real_asr_adapter",
+      "asr_evidence_tier_not_candidate:contract_fixture",
+      "asr_quality_not_production_candidate:contract_only",
+      "missing_reference_transcripts",
+      "token_error_rate_unavailable",
+      "character_error_rate_unavailable",
+      "asr_path_degraded"
+    ],
+    "ready_decision": "NOT_READY",
+    "ready_blockers": [
+      "ready_adapter_kind_not_real_local_asr",
+      "ready_evidence_tier_insufficient:contract_fixture",
+      "promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS",
+      "promotion_report_has_blockers",
+      "production_asr_not_verified_true",
+      "ready_asr_path_degraded",
+      "asr_multi_sample_quality_not_pass",
+      "ready_reference_transcript_coverage_below_threshold",
+      "ready_token_error_rate_unavailable_or_high",
+      "ready_character_error_rate_unavailable_or_high",
+      "repeat_reliability_not_pass",
+      "reliability_run_count_below_minimum",
+      "reliability_outputs_not_deterministic",
+      "human_review_evidence_missing"
+    ],
+    "production_asr_verification_report": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\production_asr_verification_report.json",
+    "commercial_ready_report": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T173746405070Z-aee10094895a\\generated_project\\local_media_operations_workspace\\commercial_ready_report.json",
+    "reason": "COMMERCIAL_READY evidence is incomplete; candidate or delivery success alone is insufficient."
+  },
+  "reference_profile_alignment": {
+    "status": "PASS",
+    "score": 100,
+    "checks": {
+      "local_first": true,
+      "no_cloud_core_dependency": true,
+      "honest_degraded_mode": true,
+      "gui_or_local_visual_interface": true,
+      "cli": true,
+      "shared_gui_cli_core": true,
+      "unified_pipeline": true,
+      "orchestrator_or_stages": true,
+      "multi_stage_processing": true,
+      "stage_artifacts": true,
+      "artifact_schema": true,
+      "artifact_traceability": true,
+      "product_contract_docs": true,
+      "requirement_decision_artifacts": true,
+      "delivery_evidence": true,
+      "layered_acceptance": true
+    },
+    "missing": []
+  },
+  "name_leak_scan": {
+    "status": "PASS",
+    "scanned_file_count": 79,
+    "forbidden_reference_token_count": 0,
+    "findings": []
+  },
+  "score": {
+    "total": 100,
+    "verdict": "PASS",
+    "parts": {
+      "requirement_decision_quality": 15,
+      "selected_requirement_fit": 10,
+      "product_contract_completeness": 15,
+      "implementation_structure_completeness": 15,
+      "workflow_depth_and_artifact_traceability": 15,
+      "delivery_evidence_integrity": 15,
+      "reference_profile_alignment": 10,
+      "commercial_readiness_honesty": 5
+    }
+  },
+  "known_gaps": [
+    "asr:contract_fixture_verified_not_production_asr",
+    "commercial_promotion:asr_evidence_tier_not_candidate:contract_fixture",
+    "commercial_promotion:asr_path_degraded",
+    "commercial_promotion:asr_quality_not_production_candidate:contract_only",
+    "commercial_promotion:character_error_rate_unavailable",
+    "commercial_promotion:fixture_or_non_real_asr_adapter",
+    "commercial_promotion:missing_reference_transcripts",
+    "commercial_promotion:token_error_rate_unavailable",
+    "commercial_readiness:user_media_contract_not_production_media_or_asr",
+    "commercial_ready:asr_multi_sample_quality_not_pass",
+    "commercial_ready:human_review_evidence_missing",
+    "commercial_ready:production_asr_not_verified_true",
+    "commercial_ready:promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS",
+    "commercial_ready:promotion_report_has_blockers",
+    "commercial_ready:ready_adapter_kind_not_real_local_asr",
+    "commercial_ready:ready_asr_path_degraded",
+    "commercial_ready:ready_character_error_rate_unavailable_or_high",
+    "commercial_ready:ready_evidence_tier_insufficient:contract_fixture",
+    "commercial_ready:ready_reference_transcript_coverage_below_threshold",
+    "commercial_ready:ready_token_error_rate_unavailable_or_high",
+    "commercial_ready:reliability_outputs_not_deterministic",
+    "commercial_ready:reliability_run_count_below_minimum",
+    "commercial_ready:repeat_reliability_not_pass",
+    "local_model_adapter:no_real_model_configured_for_reference_trial",
+    "media_decode:bounded_ffmpeg_extract_verified_not_production_pipeline",
+    "user_media_pipeline:real_input_contract_verified_not_production_media_pipeline"
+  ],
+  "next_recommended_action": "Collect representative real-local-ASR repeat runs and approved human review evidence, then rerun the independent COMMERCIAL_READY gate."
+}

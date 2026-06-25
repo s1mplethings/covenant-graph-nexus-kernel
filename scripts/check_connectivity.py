@@ -120,10 +120,26 @@ def _request_error_summary(exc: BaseException, endpoint: str) -> str:
     return f"{kind}: {detail} [endpoint={host_path}, tls_verify={_tls_verify_enabled()}, retryable={str(retryable).lower()}]"
 
 
+def _safe_response_headers(headers: Any) -> dict[str, str]:
+    allowed = {"cf-ray", "x-trace-id", "x-request-id", "request-id", "date", "server"}
+    out: dict[str, str] = {}
+    try:
+        items = headers.items()
+    except Exception:
+        return out
+    for key, value in items:
+        name = str(key).strip().lower()
+        if name in allowed:
+            out[name] = str(value).strip()[:300]
+    return out
+
+
 def _http_error_summary(exc: urllib.error.HTTPError, endpoint: str, detail: str) -> str:
     host_path = re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
     retryable = exc.code in {408, 409, 425, 429} or 500 <= int(exc.code) <= 599
-    return f"HTTP {exc.code}: {detail[:400]} [endpoint={host_path}, retryable={str(retryable).lower()}]"
+    headers = _safe_response_headers(getattr(exc, "headers", {}))
+    header_text = f", provider_headers={json.dumps(headers, ensure_ascii=False, sort_keys=True)}" if headers else ""
+    return f"HTTP {exc.code}: {detail[:400]} [endpoint={host_path}, retryable={str(retryable).lower()}{header_text}]"
 
 
 def _error_is_retryable(error: str) -> bool:
@@ -143,11 +159,12 @@ def _provider_error_type(error: str) -> str:
     text = str(error or "")
     lowered = text.lower()
     if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
-        return "PROVIDER_KEY_USAGE_LIMIT"
+        return "PROVIDER_QUOTA_EXCEEDED"
     if "http 403" in lowered:
         return "PROVIDER_FORBIDDEN"
     transport_markers = (
         "sslv3_alert_bad_record_mac",
+        "tlsv1_alert_protocol_version",
         "sslerror",
         "connection reset",
         "connectionreseterror",

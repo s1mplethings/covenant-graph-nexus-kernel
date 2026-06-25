@@ -8,6 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.check_connectivity as check_connectivity
+import scripts.provider_generation as provider_generation
 
 
 class ProviderApiTransportTests(unittest.TestCase):
@@ -53,9 +54,21 @@ class ProviderApiTransportTests(unittest.TestCase):
             check_connectivity._provider_error_type("[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol"),
         )
         self.assertEqual(
-            "PROVIDER_KEY_USAGE_LIMIT",
+            "PROVIDER_QUOTA_EXCEEDED",
             check_connectivity._provider_error_type('HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'),
         )
+
+    def test_provider_403_key_usage_limit_classified_as_quota_exceeded(self) -> None:
+        error = 'HTTP 403: {"error":"Key usage limit exceeded"} [retryable=false]'
+
+        self.assertEqual("PROVIDER_QUOTA_EXCEEDED", check_connectivity._provider_error_type(error))
+        self.assertFalse(check_connectivity._error_is_retryable(error))
+        self.assertTrue(provider_generation.provider_quota_blocked(error))
+
+    def test_quota_exceeded_skips_repeated_live_generation(self) -> None:
+        self.assertTrue(provider_generation.should_skip_repeated_live_generation({"provider_error_type": "PROVIDER_QUOTA_EXCEEDED"}))
+        self.assertTrue(provider_generation.should_skip_repeated_live_generation({"provider_quota_blocked": True}))
+        self.assertFalse(provider_generation.should_skip_repeated_live_generation({"provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE"}))
 
     def test_openai_compatible_endpoint_and_payload_normalize_for_gptsapi(self) -> None:
         root = "https://api.gptsapi.net/v1"

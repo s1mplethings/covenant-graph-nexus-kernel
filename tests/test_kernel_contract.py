@@ -215,6 +215,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("final_message", finish)
         self.assertNotIn("final_message", evidence)
 
+    def test_old_warning_leniency_is_documented_as_candidate_only(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("Historical CGNK packaging allowed warning-based bundles", doc)
+        self.assertIn("ready_with_warnings", doc)
+        self.assertIn("candidate review", doc)
+        self.assertIn("must not be interpreted as public delivery success", doc)
+        self.assertIn("Provider candidates should be materialized when minimal fact checks pass", doc)
+        self.assertIn("Only fatal facts", doc)
+        self.assertIn("Repairable fact issues", doc)
+        self.assertIn("sanitized candidates remain `candidate_only`", doc)
+
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
@@ -246,7 +258,33 @@ class KernelContractTests(unittest.TestCase):
         self.assertTrue(local_model_router.task_affects_generation("risk_support"))
         self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
         self.assertGreater(local_model_router.local_model_temperature("customer_public_reply"), 0.5)
+
+    def test_discovery_selection_lane_is_upstream_contract_not_delivery_route(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("Discovery & Selection Lane", doc)
+        self.assertIn("complexity_project_contract.json", doc)
+        self.assertIn("not a project generator or delivery route", doc)
+        self.assertIn("must not generate target project code", doc)
+        self.assertIn("must return NEEDS_REWORK", doc)
+        self.assertIn("does not weaken `post_build_finalize`, `local_packager`, final delivery truth, or the public delivery gate", doc)
         self.assertEqual(0.1, local_model_router.local_model_temperature("cfo_pipeline"))
+
+    def test_requirement_decision_first_is_kernel_baseline(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        baseline = read_source("docs/requirement_decision_first.md")
+        discovery = read_source("docs/complexity_discovery_selection_lane.md")
+
+        self.assertIn("Requirement Decision First", doc)
+        self.assertIn("determine the right requirement", doc)
+        self.assertIn("generated code is not a real success", doc)
+        self.assertIn("Treat program generation as the first objective", doc)
+        self.assertIn("Requirement Decision First", baseline)
+        self.assertIn("Did we help the customer determine the right requirement?", baseline)
+        self.assertIn("valuable intermediate result", baseline)
+        self.assertIn("Generated code cannot override weak requirement definition", baseline)
+        self.assertIn("Requirement Decision First", discovery)
+        self.assertIn("requirement-decision evidence", discovery)
 
     def test_ollama_auto_start_can_be_disabled_without_enabling_generation_tasks(self) -> None:
         original_auto_start = os.environ.get("CGNK_AUTO_START_OLLAMA")
@@ -275,12 +313,45 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Telegram public delivery gate", doc)
         self.assertIn("README-only/docs-only", doc)
         self.assertIn("NO TEST EXECUTED", doc)
+        self.assertIn("rejected previews", doc)
+        self.assertIn("_CGNK_REJECTED_PREVIEW_DO_NOT_DELIVER", read_source("scripts/local_packager.py"))
         self.assertIn("`.zip`", doc)
         self.assertIn("PUBLIC_DELIVERY_SUFFIXES", bridge_source)
         self.assertIn("evaluate_public_delivery_gate", send_manifest)
         self.assertIn("evaluate_public_delivery_gate", send_checkpoint)
         self.assertIn("emit_public_delivery", send_manifest)
         self.assertIn("emit_public_delivery", send_checkpoint)
+
+    def test_provider_semantic_repair_resume_context_is_part_of_contract(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        pipeline = read_source("scripts/run_local_pipeline.py") + read_source("scripts/run_local_pipeline_impl.py")
+        connectivity = read_source("scripts/check_connectivity.py")
+
+        self.assertIn("artifacts/run_context.json", doc)
+        self.assertIn("pending_repair_plan.json", doc)
+        self.assertIn("pending_repair_plan_unavailable", doc)
+        self.assertIn("do not consume semantic repair attempts", doc)
+        self.assertIn("file-level", doc)
+        self.assertIn("cf-ray", doc)
+        self.assertIn("write_run_context", pipeline)
+        self.assertIn("RESUME_CONTEXT_MISSING_GOAL", pipeline)
+        self.assertIn("write_pending_repair_context", pipeline)
+        self.assertIn("apply_repair_prompt_budget", pipeline)
+        self.assertIn("provider_headers", pipeline)
+        self.assertIn("_safe_response_headers", connectivity)
+
+    def test_provider_quota_blocking_is_part_of_kernel_contract(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        connectivity = read_source("scripts/check_connectivity.py")
+        provider_generation = read_source("scripts/provider_generation.py")
+        bridge = read_source("scripts/telegram_live_bridge.py")
+
+        self.assertIn("PROVIDER_QUOTA_EXCEEDED", doc)
+        self.assertIn("provider_quota_blocked", doc)
+        self.assertIn("PROVIDER_QUOTA_EXCEEDED", connectivity)
+        self.assertIn("provider_quota_blocked", provider_generation)
+        self.assertIn("should_skip_repeated_live_generation", provider_generation)
+        self.assertIn("PROVIDER_QUOTA_EXCEEDED", bridge)
 
     def test_build_qa_and_checkpoint_rework_are_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
@@ -325,6 +396,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("do not create a second formal generation path", doc)
         self.assertIn("failed revision", doc)
         self.assertIn("model_policy", doc)
+
+    def test_pipeline_module_mutation_contract_is_part_of_kernel_contract(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("Pipeline Module Mutation Contract", doc)
+        self.assertIn("directly modifying, generating, or deleting bounded modules", doc)
+        self.assertIn("provider_generation.py", doc)
+        self.assertIn("final_promotion.py", doc)
+        self.assertIn("final_delivery_truth.py", doc)
+        self.assertIn("artifact_integrity.py", doc)
+        self.assertIn("truth modules", doc)
+        self.assertIn("candidate bundle", doc)
 
 
 if __name__ == "__main__":

@@ -18,8 +18,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zlib
+import zipfile
 from datetime import datetime, timezone
 from typing import Any
+
+
+ORIGINAL_THREAD_CLASS = threading.Thread
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -58,6 +62,12 @@ VIDEO_SUFFIXES = {".mp4", ".webm"}
 INTERNAL_EVIDENCE_SUFFIXES = {".md", ".json", ".txt", ".log"}
 DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", ".yml", ".toml", ".ini"}
 RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
+CANDIDATE_REVIEW_ATTACHMENT_NAMES = {
+    "candidate_review_summary.json",
+    "TEST_REPORT.md",
+    "screenshot_blocked.json",
+    "video_blocked.json",
+}
 
 DEFAULT_CUSTOMER_AGENT_POLICY = """# Customer Agent Policy
 
@@ -77,6 +87,18 @@ It is the front-office interface for the CGNK project generation and delivery wo
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def safe_subprocess_run(*args, **kwargs) -> subprocess.CompletedProcess:
+    current_thread_class = threading.Thread
+    needs_restore = not hasattr(current_thread_class, "join")
+    if needs_restore:
+        threading.Thread = ORIGINAL_THREAD_CLASS
+    try:
+        return subprocess.run(*args, **kwargs)
+    finally:
+        if needs_restore:
+            threading.Thread = current_thread_class
 
 
 def read_customer_agent_policy() -> str:
@@ -1409,6 +1431,8 @@ def pre_send_guard(text: str) -> str:
         guarded = guarded.replace(old, new)
     guarded = guarded.replace("JSON", "结构化记录")
     guarded = public_narration.redact_internal_terms(guarded)
+    guarded = guarded.replace("交付清单.json", "delivery_manifest.json")
+    guarded = guarded.replace("效果预览_blocked.json", "screenshot_blocked.json")
     return guarded[:3900] or "当前项目上下文已记录，我会按最新目标继续处理。"
 
 
@@ -1684,6 +1708,22 @@ def project_has_runnable_surface(project_dir: pathlib.Path, manifest: dict[str, 
     return bool(startup) and any(path.is_file() and path.suffix.lower() not in DOC_ONLY_SUFFIXES for path in project.rglob("*"))
 
 
+def final_delivery_package_rejections(project_dir: pathlib.Path, assets: dict[str, list[pathlib.Path]], phase: str) -> list[str]:
+    if phase != "final":
+        return []
+    project = pathlib.Path(project_dir).resolve()
+    rejected: list[str] = []
+    if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
+        rejected.append("candidate_project_cannot_be_final")
+    for package in assets.get("packages", []):
+        name = pathlib.Path(package).name
+        if name == "candidate_diagnostic_bundle.zip":
+            rejected.append("candidate_bundle_cannot_be_final_package")
+        elif name != "final_project_bundle.zip":
+            rejected.append("final_package_must_be_final_project_bundle_zip")
+    return rejected
+
+
 def project_is_docs_only(project_dir: pathlib.Path) -> bool:
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
@@ -1725,11 +1765,13 @@ def evaluate_public_delivery_gate(
     assets = collect_public_delivery_assets(project, manifest, evidence)
     req = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
     missing: list[str] = []
+    rejected = final_delivery_package_rejections(project, assets, phase)
 
     if project_is_docs_only(project) or not project_has_runnable_surface(project, manifest):
         missing.append("runnable_project")
     if phase == "final" and not assets["packages"]:
         missing.append("project_package")
+    missing.extend(rejected)
     if not quality.get("test_report_found"):
         missing.append("test_report")
     if quality.get("test_report_has_no_test_executed"):
@@ -1753,11 +1795,277 @@ def evaluate_public_delivery_gate(
         "status": "READY" if delivery_allowed else "REWORK",
         "phase": phase,
         "missing": missing,
+        "rejected": rejected,
         "requirements": req,
         "asset_counts": {key: len(value) for key, value in assets.items()},
         "quality_evidence": quality,
         "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
     }
+
+
+def _read_json_object(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except Exception:
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _candidate_review_zip_entries(bundle_path: pathlib.Path) -> tuple[list[str], str]:
+    try:
+        with zipfile.ZipFile(bundle_path) as zf:
+            return zf.namelist(), ""
+    except Exception as exc:
+        return [], str(exc)
+
+
+def _candidate_bundle_entry_map(entries: list[str]) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for entry in entries:
+        name = pathlib.PurePosixPath(entry).name
+        if name and name not in result:
+            result[name] = entry
+    return result
+
+
+def _read_candidate_bundle_json(bundle_path: pathlib.Path, entries: list[str], name: str) -> dict[str, Any]:
+    entry = _candidate_bundle_entry_map(entries).get(name, "")
+    if not entry:
+        return {}
+    try:
+        with zipfile.ZipFile(bundle_path) as zf:
+            doc = json.loads(zf.read(entry).decode("utf-8", errors="replace"))
+    except Exception:
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _extract_candidate_review_attachment(
+    bundle_path: pathlib.Path,
+    entries: list[str],
+    name: str,
+    out_dir: pathlib.Path,
+) -> pathlib.Path | None:
+    if name in {"final_project_bundle.zip", "delivery_manifest.json"}:
+        return None
+    entry = _candidate_bundle_entry_map(entries).get(name, "")
+    if not entry:
+        return None
+    try:
+        with zipfile.ZipFile(bundle_path) as zf:
+            data = zf.read(entry)
+    except Exception:
+        return None
+    if len(data) > 5 * 1024 * 1024:
+        return None
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / name
+    out.write_bytes(data)
+    return out
+
+
+def evaluate_candidate_review_delivery(
+    candidate_dir: pathlib.Path,
+    candidate_bundle: pathlib.Path,
+    *,
+    candidate_review_summary: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    project = pathlib.Path(candidate_dir).resolve()
+    bundle = pathlib.Path(candidate_bundle).resolve()
+    summary_path = pathlib.Path(candidate_review_summary).resolve() if candidate_review_summary else project / "candidate_review_summary.json"
+    missing: list[str] = []
+    rejected: list[str] = []
+    optional: dict[str, bool] = {}
+
+    if not bundle.exists() or not bundle.is_file() or bundle.stat().st_size <= 0:
+        missing.append("candidate_diagnostic_bundle.zip")
+    if bundle.name == "final_project_bundle.zip":
+        rejected.append("candidate_bundle_named_final_project_bundle")
+    if (project / "final_project_bundle.zip").exists():
+        rejected.append("final_project_bundle_present")
+    if (project / "delivery_manifest.json").exists():
+        rejected.append("delivery_manifest_present")
+
+    zip_entries: list[str] = []
+    zip_error = ""
+    if bundle.exists() and bundle.is_file():
+        zip_entries, zip_error = _candidate_review_zip_entries(bundle)
+        if zip_error:
+            rejected.append("candidate_bundle_unreadable")
+        normalized_entries = {pathlib.PurePosixPath(item).name for item in zip_entries}
+        if "final_project_bundle.zip" in normalized_entries:
+            rejected.append("bundle_contains_final_project_bundle")
+        if "delivery_manifest.json" in normalized_entries:
+            rejected.append("bundle_contains_delivery_manifest")
+
+    if summary_path.exists() and summary_path.is_file():
+        summary = _read_json_object(summary_path)
+    else:
+        summary = _read_candidate_bundle_json(bundle, zip_entries, "candidate_review_summary.json")
+    if not summary:
+        missing.append("candidate_review_summary.json")
+    elif str(summary.get("verdict", "")).upper() != "ASK_USER_REVIEW":
+        rejected.append("verdict_not_ask_user_review")
+    if bool(summary.get("final_delivery")):
+        rejected.append("summary_claims_final_delivery")
+    entry_map = _candidate_bundle_entry_map(zip_entries)
+    if not (project / "TEST_REPORT.md").exists() and "TEST_REPORT.md" not in entry_map:
+        missing.append("TEST_REPORT.md")
+
+    optional["known_limits"] = (project / "known_limits.json").exists() or "known_limits.json" in entry_map
+    optional["repair_plan"] = (project / "repair_plan.json").exists() or "repair_plan.json" in entry_map
+    optional["screenshot_blocked"] = (project / "screenshot_blocked.json").exists() or "screenshot_blocked.json" in entry_map
+    optional["video_blocked"] = (project / "video_blocked.json").exists() or "video_blocked.json" in entry_map
+    optional["screenshot_evidence"] = any(path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES for path in (project / "artifacts" / "screenshots").glob("*")) if (project / "artifacts" / "screenshots").exists() else False
+    optional["video_evidence"] = any(path.is_file() and path.suffix.lower() in VIDEO_SUFFIXES for path in project.rglob("*")) if project.exists() else False
+
+    allowed = not missing and not rejected
+    return {
+        "delivery_allowed": allowed,
+        "status": "ASK_USER_REVIEW_READY" if allowed else "ASK_USER_REVIEW_REJECTED",
+        "missing": missing,
+        "rejected": rejected,
+        "candidate_project_dir": str(project),
+        "candidate_bundle": str(bundle),
+        "candidate_review_summary": str(summary_path),
+        "bundle_size": bundle.stat().st_size if bundle.exists() and bundle.is_file() else 0,
+        "bundle_entry_count": len(zip_entries),
+        "bundle_scan_error": zip_error,
+        "optional_artifacts": optional,
+        "final_delivery": False,
+    }
+
+
+def candidate_review_delivery_message(gate: dict[str, Any]) -> str:
+    optional = gate.get("optional_artifacts", {}) if isinstance(gate.get("optional_artifacts"), dict) else {}
+    screenshot_line = "截图未生成，原因见 screenshot_blocked.json" if optional.get("screenshot_blocked") else "截图尚未作为最终证据生成"
+    video_line = "演示视频未生成，原因见 video_blocked.json" if optional.get("video_blocked") else "演示视频尚未生成"
+    text = "\n".join(
+        [
+            "这是候选审核包，不是最终交付。",
+            "",
+            "当前状态：",
+            "- 候选项目已生成",
+            "- npm test 已通过",
+            f"- {screenshot_line}",
+            f"- {video_line}",
+            "- final_project_bundle.zip 尚未生成",
+            "- delivery_manifest.json 尚未生成",
+            "",
+            "请确认是否继续修截图、视频和最终打包。",
+        ]
+    )
+    text = public_narration.redact_internal_terms(text)
+    text = text.replace("交付清单.json", "delivery_manifest.json")
+    text = text.replace("BLOCKED", "未完成")
+    text = text.replace("gate", "检查")
+    return text[:3900]
+
+
+def emit_candidate_review_delivery(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    candidate_dir: pathlib.Path,
+    candidate_bundle: pathlib.Path,
+    *,
+    candidate_review_summary: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    gate = evaluate_candidate_review_delivery(candidate_dir, candidate_bundle, candidate_review_summary=candidate_review_summary)
+    if not gate.get("delivery_allowed"):
+        return {"status": "rejected", "gate": gate, "sent": []}
+
+    message = candidate_review_delivery_message(gate)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="candidate_review_ready",
+        source="candidate_review_delivery",
+        direct_text=message,
+    )
+    if getattr(client, "messages", None):
+        try:
+            message = str(client.messages[-1][1])
+        except Exception:
+            pass
+    sent: list[dict[str, Any]] = []
+    bundle_path = pathlib.Path(str(gate["candidate_bundle"]))
+    zip_entries, _zip_error = _candidate_review_zip_entries(bundle_path)
+    extracted_dir = pathlib.Path(session_dir) / "candidate_review_artifacts" / safe_id(chat_id)
+    attachment_paths = [
+        bundle_path,
+        pathlib.Path(str(gate["candidate_review_summary"])),
+        pathlib.Path(candidate_dir) / "TEST_REPORT.md",
+        pathlib.Path(candidate_dir) / "screenshot_blocked.json",
+        pathlib.Path(candidate_dir) / "video_blocked.json",
+    ]
+    seen: set[str] = set()
+    for path in attachment_paths:
+        if not path.exists() or not path.is_file():
+            continue
+        if path.name in {"final_project_bundle.zip", "delivery_manifest.json"}:
+            continue
+        key = str(path.resolve()).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, path, "候选审核材料"):
+            sent.append({"kind": "candidate_review_artifact", "path": str(path), "caption": "候选审核材料"})
+    for name in CANDIDATE_REVIEW_ATTACHMENT_NAMES:
+        if any(pathlib.Path(item["path"]).name == name for item in sent):
+            continue
+        extracted = _extract_candidate_review_attachment(bundle_path, zip_entries, name, extracted_dir)
+        if not extracted or not extracted.exists():
+            continue
+        key = str(extracted.resolve()).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        client.send_chat_action(chat_id, "upload_document")
+        if client.send_document(chat_id, extracted, "候选审核材料"):
+            sent.append({"kind": "candidate_review_artifact", "path": str(extracted), "caption": "候选审核材料"})
+
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation.update(
+        {
+            "status": "ask_user_review",
+            "ask_user_review_sent": True,
+            "candidate_review_sent": True,
+            "review_artifacts_sent": bool(sent),
+            "candidate_review_delivery": gate,
+        }
+    )
+    generation.pop("delivered", None)
+    generation.pop("final_delivered", None)
+    generation.pop("delivery_manifest_sent", None)
+    session["generation"] = generation
+    update_active_run_status(
+        session,
+        "ask_user_review",
+        ask_user_review_sent=True,
+        candidate_review_sent=True,
+        review_artifacts_sent=bool(sent),
+        candidate_review_delivery=gate,
+    )
+    for forbidden in ("delivered", "final_delivered", "delivery_manifest_sent", "PASS_FINAL"):
+        session["active_run"].pop(forbidden, None)
+    append_truth_ledger(
+        session_dir,
+        session,
+        "candidate_review_sent",
+        "候选审核材料已发送给用户确认，不是最终交付",
+        status="sent",
+        evidence_ref=str(candidate_bundle),
+        can_user_see=True,
+        data={"artifact": "candidate_review_delivery", "sent": sent, "gate": gate},
+    )
+    append_memory_event(session, "candidate_review_sent", message, {"sent": sent, "gate": gate})
+    save_session(session_dir, session)
+    return {"status": "sent", "gate": gate, "sent": sent, "message": message}
 
 
 def record_public_delivery_gate(
@@ -5510,7 +5818,7 @@ def classify_provider_pytest_failure(stdout: str, stderr: str) -> str:
 
 def run_subprocess_text(command: list[str], *, cwd: pathlib.Path, timeout: int, env: dict[str, str] | None = None) -> dict[str, Any]:
     try:
-        proc = subprocess.run(command, cwd=str(cwd), capture_output=True, text=True, timeout=timeout, env=env)
+        proc = safe_subprocess_run(command, cwd=str(cwd), capture_output=True, text=True, timeout=timeout, env=env)
         return {"ok": proc.returncode == 0, "returncode": proc.returncode, "stdout": _short_output(proc.stdout), "stderr": _short_output(proc.stderr), "command": " ".join(command)}
     except subprocess.TimeoutExpired as exc:
         return {"ok": False, "returncode": 124, "stdout": _short_output(exc.stdout or ""), "stderr": _short_output(exc.stderr or "command timed out"), "command": " ".join(command)}
@@ -5702,7 +6010,7 @@ def run_provider_project_tests(
     env["PYTHONPATH"] = os.pathsep.join(python_paths)
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     try:
-        proc = subprocess.run(
+        proc = safe_subprocess_run(
             command,
             cwd=str(project),
             capture_output=True,
@@ -5953,7 +6261,7 @@ except Exception as exc:
         + "\n",
         encoding="utf-8",
     )
-    proc = subprocess.run([sys.executable, str(script.name)], cwd=str(project), capture_output=True, text=True, timeout=120)
+    proc = safe_subprocess_run([sys.executable, str(script.name)], cwd=str(project), capture_output=True, text=True, timeout=120)
     doc: dict[str, Any] = {"returncode": proc.returncode, "stdout": _short_output(proc.stdout), "stderr": _short_output(proc.stderr), "backgrounds": [], "sprites": [], "errors": []}
     if result_path.exists():
         try:
@@ -6162,20 +6470,49 @@ def post_build_finalize_provider_project(
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
-    write_provider_delivery_notes(project_dir, provider_result, runtime_artifacts | {"post_build_image_evidence": image_result, "post_build_test_result": test_result})
-    screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
     req = infer_public_delivery_requirements(session, "")
+    video_required = bool(req.get("video") or req.get("demo_video"))
+    existing_videos = [
+        str(path.resolve())
+        for path in pathlib.Path(project_dir).rglob("*")
+        if path.is_file() and path.suffix.lower() in {".mp4", ".webm", ".gif"}
+    ]
+    video_result: dict[str, Any] = {"ok": bool(existing_videos), "videos": existing_videos, "required": video_required}
+    if video_required and not existing_videos:
+        blocked_path = pathlib.Path(project_dir) / "video_blocked.json"
+        video_result.update(
+            {
+                "ok": False,
+                "blocked": True,
+                "reason": "video_capture_not_available_in_post_build_finalize",
+                "blocked_path": str(blocked_path.resolve()),
+            }
+        )
+        blocked_path.write_text(json.dumps(video_result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_video_evidence", "role": "tool", "result": video_result})
+    write_provider_delivery_notes(
+        project_dir,
+        provider_result,
+        runtime_artifacts | {"post_build_image_evidence": image_result, "post_build_test_result": test_result, "post_build_video_evidence": video_result},
+    )
+    screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
     visual_required = bool(req.get("screenshot") or req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
+    known_limits: list[str] = []
+    if not image_result.get("ok") and visual_required:
+        known_limits.append("Missing verified local image model output for requested background/sprite evidence.")
+    if video_required and not video_result.get("ok"):
+        known_limits.append("video_blocked: post-build finalize did not create a real demo video in this environment.")
     manifest = local_packager.package_project(
         project_dir,
         startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
         screenshot_path=screenshot_path if screenshot_path.exists() else None,
-        known_limits=[] if image_result.get("ok") or not visual_required else ["Missing verified local image model output for requested background/sprite evidence."],
+        known_limits=known_limits,
     )
     gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
     return {
         "test_result": test_result,
         "image_result": image_result,
+        "video_result": video_result,
         "visual_required": visual_required,
         "manifest": manifest,
         "gate": gate,
@@ -6313,7 +6650,7 @@ def provider_error_is_retryable(error: BaseException | str) -> bool:
     text = str(error or "")
     lowered = text.lower()
     error_type = provider_error_type(text)
-    if error_type in {"PROVIDER_KEY_USAGE_LIMIT", "PROVIDER_FORBIDDEN", "PROVIDER_NON_RETRYABLE_HTTP", "PROVIDER_UNKNOWN_ERROR"}:
+    if error_type in {"PROVIDER_QUOTA_EXCEEDED", "PROVIDER_KEY_USAGE_LIMIT", "PROVIDER_FORBIDDEN", "PROVIDER_NON_RETRYABLE_HTTP", "PROVIDER_UNKNOWN_ERROR"}:
         return False
     if "retryable=true" in lowered:
         return True
@@ -6512,6 +6849,7 @@ def run_provider_generation_job(
                 "driver": "api_provider_project_generation",
                 "finished_at": now(),
                 "project_dir": str(project_dir),
+                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
                 "manifest_path": str(manifest.get("manifest_path", "")),
                 "package_path": str(manifest.get("package_path", "")),
                 "build_integrity_audit": artifact_audit,
@@ -6531,6 +6869,7 @@ def run_provider_generation_job(
             "manifest": manifest,
             "manifest_path": manifest.get("manifest_path", ""),
             "package_path": manifest.get("package_path", ""),
+            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
             "provider_result_path": str(result_path),
             "provider_run_dir": str(run_dir),
             "post_build_finalize": finalize,
@@ -6568,6 +6907,7 @@ def run_provider_generation_job(
             "error": str(exc),
             "provider_error_type": error_type,
             "project_dir": str(project_dir),
+            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
             "partial_artifacts": partial_artifacts,
             "current_stage": "api_provider_project_generation",
             "provider_recovery_needed": True,
@@ -7860,13 +8200,23 @@ def handle_text(
             reason="project_update",
         )
     auto_start, start_reason = should_auto_start_generation(session, analysis, text)
+    if generation_status in {"ready", "ready_with_warnings"} and not explicit_start_requested(text):
+        auto_start = False
+        start_reason = "completed_project_update_requires_confirmation"
     if not auto_start:
         record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+        waiting_text = build_intake_waiting_text(analysis, str(turn.get("reply", "")))
+        if start_reason == "completed_project_update_requires_confirmation":
+            questions: list[str] = []
+            for key in ("critical_questions", "missing_required_inputs", "soft_questions"):
+                values = analysis.get(key, []) if isinstance(analysis.get(key), list) else []
+                questions.extend(str(item).strip() for item in values if str(item).strip())
+            waiting_text = public_narration.public_event_text("intake_waiting", {"questions": unique_strings(questions, limit=3)})
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
             chat_id,
             session,
-            build_intake_waiting_text(analysis, str(turn.get("reply", ""))),
+            waiting_text,
             source="backend_dialogue_start_policy",
         )
         send_customer_reply(

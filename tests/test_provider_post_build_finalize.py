@@ -298,7 +298,52 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             first = bridge.run_provider_project_tests(project)
             self.assertFalse(first["ok"])
             repair = bridge.deterministic_post_build_repair(project, first)
-            dependency_setup = bridge.ensure_provider_test_environment(project)
+            (project / "PIL").mkdir()
+            (project / "PIL" / "__init__.py").write_text("from . import Image, ImageDraw\n", encoding="utf-8")
+            (project / "PIL" / "Image.py").write_text(
+                "\n".join(
+                    [
+                        "class _Image:",
+                        "    def __init__(self, size=(1, 1), color=(0, 0, 0)):",
+                        "        self.size = size",
+                        "        self.color = color",
+                        "    def save(self, path):",
+                        "        with open(path, 'wb') as handle:",
+                        "            handle.write(b'fake-png')",
+                        "def new(mode, size, color):",
+                        "    return _Image(size=size, color=color)",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (project / "PIL" / "ImageDraw.py").write_text(
+                "\n".join(
+                    [
+                        "class _Draw:",
+                        "    def __init__(self, image):",
+                        "        self.image = image",
+                        "    def text(self, *args, **kwargs):",
+                        "        return None",
+                        "    def line(self, *args, **kwargs):",
+                        "        return None",
+                        "    def ellipse(self, *args, **kwargs):",
+                        "        return None",
+                        "    def rectangle(self, *args, **kwargs):",
+                        "        return None",
+                        "def Draw(image):",
+                        "    return _Draw(image)",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            dependency_setup = {
+                "ok": True,
+                "python": sys.executable,
+                "venv_dir": "",
+                "steps": [{"ok": True, "command": "reuse current test interpreter for deterministic no-live repair test"}],
+            }
             second = bridge.run_provider_project_tests(
                 project,
                 python_executable=dependency_setup.get("python"),
@@ -482,6 +527,41 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertTrue(list((project / "assets" / "generated").glob("sprite_*.png")))
             self.assertTrue((project / "generated_image_manifest.json").exists())
             self.assertTrue((project / "final_project_bundle.zip").exists())
+
+    def test_post_build_finalize_generates_or_blocks_video_honestly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            project.mkdir()
+            (project / "README.md").write_text("# Task Board\n\nRun `python app.py`.\n", encoding="utf-8")
+            (project / "app.py").write_text("print('task board')\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+            session_dir = root / "sessions"
+            session = bridge.default_session("chat-video-blocked")
+            session["messages"].append(
+                {
+                    "role": "user",
+                    "text": "做一个任务看板网页应用，必须包含界面截图和30秒以内演示视频",
+                    "created_at": bridge.now(),
+                }
+            )
+            session["whiteboard"]["delivery_requirements"] = ["界面截图", "演示视频"]
+
+            result = bridge.post_build_finalize_provider_project(
+                project,
+                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                {"copied": {}},
+                session,
+                session_dir=session_dir,
+                chat_id="chat-video-blocked",
+            )
+
+            self.assertTrue((project / "video_blocked.json").exists())
+            self.assertTrue(result["video_result"]["blocked"])
+            self.assertFalse(list(project.rglob("*.mp4")))
+            self.assertFalse(list(project.rglob("*.webm")))
+            self.assertTrue(any("video_blocked" in item for item in result["manifest"]["known_limits"]))
 
 
 if __name__ == "__main__":
