@@ -1,0 +1,22 @@
+# CGKN Customer-Agent Long Journey Trial
+
+- run_dir: `D:\CGKN\artifacts\reference_answer_project_trial_runs\20260626T011247301796Z-c378ee9b7470`
+- generated project path: `D:\CGKN\artifacts\reference_answer_project_trial_runs\20260626T011247301796Z-c378ee9b7470\generated_project\local_media_operations_workspace`
+- customer persona: `independent creator / small content team lead`
+- original vague goal: I want a local-first media production and review workbench. It should help me import video, audio, or assets, organize material, find review-worthy moments, generate reviewable results, and export reports and a package. I may connect local AI later, but do not use cloud services or pretend AI is already real.
+- selected_requirement: `Local video material processing workbench`
+- MVP scope: `['Local media import', 'Pipeline run view', 'Segment review', 'Clip selection', 'Artifact export', 'Honest degraded mode']`
+- non-goals: `['Cloud rendering farm', 'Guaranteed real speech recognition without configured model', 'Public media publishing']`
+- customer journey length: `29`
+- number of customer challenges: `3`
+- rework request: Please make the README and delivery notes clearer about degraded mode, the ASR evidence tier, what is inside the zip, and the exact command that was actually run.
+- rework result: `PASS`
+- final score: `100`
+- customer verdict: `CUSTOMER_ACCEPTED`
+- layered status: `PASS`
+- delivery evidence status: `PASS`
+- capability evidence status: `PASS`
+- commercial readiness status: `NEEDS_REWORK`
+- commercial_ready: `False`
+- why not commercial ready: COMMERCIAL_READY evidence is incomplete; candidate or delivery success alone is insufficient.
+- next recommended action: Collect representative production media/ASR runs, approved human review evidence, and reliability evidence before any COMMERCIAL_READY claim.

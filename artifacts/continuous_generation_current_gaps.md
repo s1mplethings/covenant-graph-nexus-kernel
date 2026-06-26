@@ -28,6 +28,7 @@
 - commercial_promotion:token_error_rate_unavailable
 - commercial_readiness:user_media_contract_not_production_media_or_asr
 - commercial_ready:asr_multi_sample_quality_not_pass
+- commercial_ready:commercial_ready_gate_not_requested
 - commercial_ready:human_review_evidence_missing
 - commercial_ready:production_asr_not_verified_true
 - commercial_ready:promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS

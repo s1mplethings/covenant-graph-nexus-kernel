@@ -15,10 +15,16 @@ REPORT_PATH = ROOT / "artifacts" / "cgkn_naming_consistency_report.md"
 LEGACY_COMPATIBILITY_TERMS = ["CGNK", "CTCP", "ACFV"]  # legacy compatibility tokens
 
 STRICT_PATTERNS = [
+    "README.md",
+    "AGENTS.md",
     "docs/requirement_decision_first.md",
     "docs/requirement_decision_lane.md",
     "docs/continuous_verified_generation_loop.md",
     "docs/agent_test_integrated_behavior.md",
+    "docs/customer_agent_long_journey_trial.md",
+    "docs/release_candidate_acceptance.md",
+    "artifacts/release_candidate_*.md",
+    "artifacts/release_candidate_*.json",
     "artifacts/continuous_generation_*.md",
     "artifacts/continuous_generation_iterations.jsonl",
     "artifacts/cgkn_naming_consistency_report.md",

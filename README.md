@@ -1,19 +1,22 @@
-# CovenantGraph Nexus Kernel Design Bundle
+# CGKN
 
-This repository is the CovenantGraph Nexus Kernel machine-first baseline for building an **Autonomous Project Studio Kernel**: a contract-governed project production system where coding agents plan, generate, test, evidence, and package modular projects safely.
+CGKN is a Requirement Decision First project generation system. It helps a customer turn a rough goal into a selected requirement, MVP scope, non-goals, acceptance criteria, generated local project structure, delivery evidence, and honest readiness status.
 
-CGNK is agent-led, contract-guarded, artifact-traced, module-composed, evidence-delivered, and user-revisable.
+CGKN is agent-led, contract-guarded, artifact-traced, module-composed, evidence-delivered, and user-revisable.
 
-The product goal is one-sentence project delivery: a user gives a goal, input expectation, output requirement, and constraints; CGNK creates a virtual team, builds a product story, freezes an output contract, composes a local pipeline, materializes a bounded generated project, produces test/visual evidence, and emits a delivery bundle.
+The product goal is evidence-based project delivery: a user gives a vague or structured goal, input expectations, output requirements, and constraints; CGKN helps decide the right requirement, freezes scope and acceptance, uses the reviewed provider generation route for formal project generation, produces test/visual evidence, packages through `local_packager`, and emits a delivery manifest.
 
 ## Name
 
 ```text
 Full name: CovenantGraph Nexus Kernel
-Short name: CGNK
+Current product name: CGKN
+Historical short name: CGNK (legacy compatibility only)
 Product line: Autonomous Project Studio Kernel
 Package/root name: covenant_graph_nexus_kernel_bundle
 ```
+
+Current customer-facing docs, reports, and release summaries should use `CGKN`. Existing script names, repository roots, and legacy compatibility references that contain older naming tokens are implementation details and must not be presented as the current formal product name.
 
 ## Source Layout
 
@@ -40,7 +43,7 @@ scripts/validate_bundle.py              Dependency-light semantic checker.
 scripts/requirement_blueprint.py        Generic requirement blueprint generator.
 scripts/context_prompt.py               Local context compression, key-point extraction, and prompt-pack generator.
 scripts/compose_local_pipeline.py       Local pipeline composer.
-scripts/run_local_pipeline.py           Generic local runtime executor.
+scripts/run_local_pipeline.py           Legacy/support local runtime executor; not the Telegram default generation mainline.
 scripts/compose_test_pipeline.py        Test pipeline composer.
 scripts/run_test_pipeline.py            Test pipeline executor.
 scripts/check_connectivity.py           OpenAI-compatible API connectivity checker.
@@ -64,7 +67,7 @@ Telegram
   -> delivery_manifest
 ```
 
-The Kernel is stable. The pipeline is agent-generated for each project from the current whiteboard and session history. The project is fully generated inside the bounded project workspace. Skills are controlled capability modules, and the whiteboard is the shared communication surface across intake, planning, generation, and delivery.
+The Kernel is stable. The reviewed Telegram default path remains API/provider project generation, provider output validation, post-build finalization, `local_packager`, public delivery gate, and `delivery_manifest.json`. The project is fully generated inside the bounded project workspace. Skills are controlled capability modules, and the whiteboard is the shared communication surface across intake, planning, generation, and delivery.
 
 ## Product Studio Direction
 
@@ -149,7 +152,9 @@ flow.project_refactor@1: OK errors=0
 
 ## Generation Workflow
 
-Use `scripts/generate_project.py` as the front door:
+Legacy/local inspection entrypoints remain available for compatibility and tests, but they are not the Telegram default public delivery route. Formal Telegram project generation must stay on the reviewed API/provider route described in the kernel contract.
+
+Provider-backed project generation entrypoints and compatibility helpers include:
 
 ```bash
 python scripts/generate_project.py --requirement "Build a local project that turns a requirement into blueprint artifacts"
@@ -186,7 +191,7 @@ python scripts/compose_local_pipeline.py --goal "Need customer intake, local lib
 For local execution:
 
 ```bash
-python scripts/run_local_pipeline.py --goal "Generate a generic CGNK project" --no-provider
+python scripts/run_local_pipeline.py --goal "Generate a generic CGKN project" --no-provider
 ```
 
 Local execution writes the standard runtime artifacts plus durable long-context artifacts under the run directory:
@@ -207,7 +212,7 @@ python scripts/check_product_studio_contract.py --run-file examples/product_stud
 
 ```bash
 python scripts/test_modular_modules.py
-python scripts/compose_test_pipeline.py --goal "test CGNK contracts" --profile contracts
+python scripts/compose_test_pipeline.py --goal "test CGKN contracts" --profile contracts
 python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json
 python scripts/check_connectivity.py
 ```

@@ -1,4 +1,6 @@
-# CGNK Kernel Contract - Do Not Break
+# CGKN Kernel Contract - Do Not Break
+
+`CGKN` is the current formal project name. `CGNK` may remain only in historical filenames, legacy compatibility notes, or internal compatibility markers.
 
 - You may modify generated project files.
 - You may modify tests when explicitly asked.
