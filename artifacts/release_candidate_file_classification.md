@@ -1,55 +1,40 @@
 # Release Candidate File Classification
 
-- dirty_count: `140`
+- dirty_count: `123`
 - policy: do not commit runtime/generated outputs in bulk; review unknown dirty files.
 
 ## A_core_code
 
-- `M scripts/check_cgkn_naming_consistency.py`
-- `A scripts/customer_agent_scorecard.py`
-- `A scripts/customer_agent_simulator.py`
-- `A scripts/release_candidate_gate.py`
-- `A scripts/run_customer_agent_long_journey_trial.py`
+- `M scripts/release_candidate_gate.py`
 
 ## B_test_code
 
-- `A tests/test_customer_agent_long_journey_trial.py`
-- `A tests/test_release_candidate_gate.py`
+- none
 
 ## C_docs
 
-- `M AGENTS.md`
-- `M README.md`
-- `A docs/customer_agent_long_journey_trial.md`
-- `A docs/release_candidate_acceptance.md`
+- none
 
 ## D_necessary_artifacts
 
-- `M artifacts/cgkn_naming_consistency_report.md`
 - `M artifacts/complexity_scale_acceptance.json`
 - `M artifacts/complexity_scale_acceptance_report.md`
 - `M artifacts/complexity_scale_gap_analysis.md`
 - `M artifacts/complexity_scale_run_summary.json`
 - `M artifacts/complexity_scale_run_summary.md`
-- `M artifacts/continuous_generation_current_gaps.md`
 - `M artifacts/continuous_generation_iterations.jsonl`
-- `A artifacts/customer_agent_dialogue.jsonl`
-- `A artifacts/customer_agent_gap_report.md`
-- `A artifacts/customer_agent_long_journey_summary.md`
-- `A artifacts/customer_agent_long_journey_trial.json`
-- `A artifacts/customer_agent_rework_report.md`
-- `A artifacts/customer_agent_scorecard.json`
-- `AM artifacts/full_pytest_result.json`
+- `M artifacts/full_pytest_result.json`
+- `A artifacts/pr_3_changed_files.txt`
+- `A artifacts/pr_3_scope_audit.json`
+- `A artifacts/pr_3_scope_audit.md`
 - `M artifacts/reference_answer_gap_analysis.md`
 - `M artifacts/reference_answer_repair_plan.md`
 - `M artifacts/reference_answer_trial.json`
 - `M artifacts/reference_answer_trial_summary.md`
-- `A artifacts/release_candidate_acceptance.json`
-- `A artifacts/release_candidate_commit_plan.md`
-- `A artifacts/release_candidate_file_classification.json`
-- `A artifacts/release_candidate_file_classification.md`
-- `A artifacts/release_candidate_known_gaps.md`
-- `A artifacts/release_candidate_summary.md`
+- `M artifacts/release_candidate_acceptance.json`
+- `M artifacts/release_candidate_commit_plan.md`
+- `M artifacts/release_candidate_file_classification.json`
+- `M artifacts/release_candidate_file_classification.md`
 
 ## E_runtime_generated_artifacts
 
@@ -170,32 +155,15 @@
 
 ## Recommended Commit Files
 
-- `AGENTS.md`
-- `README.md`
-- `artifacts/cgkn_naming_consistency_report.md`
-- `artifacts/continuous_generation_current_gaps.md`
-- `artifacts/customer_agent_dialogue.jsonl`
-- `artifacts/customer_agent_gap_report.md`
-- `artifacts/customer_agent_long_journey_summary.md`
-- `artifacts/customer_agent_long_journey_trial.json`
-- `artifacts/customer_agent_rework_report.md`
-- `artifacts/customer_agent_scorecard.json`
 - `artifacts/full_pytest_result.json`
+- `artifacts/pr_3_changed_files.txt`
+- `artifacts/pr_3_scope_audit.json`
+- `artifacts/pr_3_scope_audit.md`
 - `artifacts/release_candidate_acceptance.json`
 - `artifacts/release_candidate_commit_plan.md`
 - `artifacts/release_candidate_file_classification.json`
 - `artifacts/release_candidate_file_classification.md`
-- `artifacts/release_candidate_known_gaps.md`
-- `artifacts/release_candidate_summary.md`
-- `docs/customer_agent_long_journey_trial.md`
-- `docs/release_candidate_acceptance.md`
-- `scripts/check_cgkn_naming_consistency.py`
-- `scripts/customer_agent_scorecard.py`
-- `scripts/customer_agent_simulator.py`
 - `scripts/release_candidate_gate.py`
-- `scripts/run_customer_agent_long_journey_trial.py`
-- `tests/test_customer_agent_long_journey_trial.py`
-- `tests/test_release_candidate_gate.py`
 
 ## Recommended Exclude Files
 

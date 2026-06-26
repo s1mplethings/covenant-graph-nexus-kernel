@@ -10,32 +10,15 @@
 
 ## Suggested Commit Files
 
-- `AGENTS.md`
-- `README.md`
-- `artifacts/cgkn_naming_consistency_report.md`
-- `artifacts/continuous_generation_current_gaps.md`
-- `artifacts/customer_agent_dialogue.jsonl`
-- `artifacts/customer_agent_gap_report.md`
-- `artifacts/customer_agent_long_journey_summary.md`
-- `artifacts/customer_agent_long_journey_trial.json`
-- `artifacts/customer_agent_rework_report.md`
-- `artifacts/customer_agent_scorecard.json`
 - `artifacts/full_pytest_result.json`
+- `artifacts/pr_3_changed_files.txt`
+- `artifacts/pr_3_scope_audit.json`
+- `artifacts/pr_3_scope_audit.md`
 - `artifacts/release_candidate_acceptance.json`
 - `artifacts/release_candidate_commit_plan.md`
 - `artifacts/release_candidate_file_classification.json`
 - `artifacts/release_candidate_file_classification.md`
-- `artifacts/release_candidate_known_gaps.md`
-- `artifacts/release_candidate_summary.md`
-- `docs/customer_agent_long_journey_trial.md`
-- `docs/release_candidate_acceptance.md`
-- `scripts/check_cgkn_naming_consistency.py`
-- `scripts/customer_agent_scorecard.py`
-- `scripts/customer_agent_simulator.py`
 - `scripts/release_candidate_gate.py`
-- `scripts/run_customer_agent_long_journey_trial.py`
-- `tests/test_customer_agent_long_journey_trial.py`
-- `tests/test_release_candidate_gate.py`
 
 ## Suggested Exclude Files
 

@@ -50,6 +50,9 @@ RECOMMENDED_COMMIT_FILES = {
     "artifacts/release_candidate_file_classification.md",
     "artifacts/release_candidate_commit_plan.md",
     "artifacts/full_pytest_result.json",
+    "artifacts/pr_3_changed_files.txt",
+    "artifacts/pr_3_scope_audit.json",
+    "artifacts/pr_3_scope_audit.md",
     "artifacts/cgkn_naming_consistency_report.md",
     "artifacts/continuous_generation_current_gaps.md",
 }
@@ -114,6 +117,8 @@ def classify_path(path: str) -> str:
         return "E_runtime_generated_artifacts"
     if p.startswith("artifacts/customer_agent_long_journey_runs/"):
         return "E_runtime_generated_artifacts"
+    if p in {"artifacts/pr_3_changed_files.txt", "artifacts/pr_3_scope_audit.json", "artifacts/pr_3_scope_audit.md"}:
+        return "D_necessary_artifacts"
     if p.startswith("artifacts/customer_agent_") or p.startswith("artifacts/release_candidate_"):
         return "D_necessary_artifacts"
     if p == "artifacts/full_pytest_result.json":
