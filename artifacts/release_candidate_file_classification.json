@@ -1,13 +1,8 @@
 {
-  "created_at": "2026-06-26T03:39:11.748356+00:00",
-  "dirty_count": 123,
+  "created_at": "2026-06-26T03:42:15.714649+00:00",
+  "dirty_count": 117,
   "categories": {
-    "A_core_code": [
-      {
-        "status": "M",
-        "path": "scripts/release_candidate_gate.py"
-      }
-    ],
+    "A_core_code": [],
     "B_test_code": [],
     "C_docs": [],
     "D_necessary_artifacts": [
@@ -37,18 +32,14 @@
       },
       {
         "status": "M",
-        "path": "artifacts/full_pytest_result.json"
-      },
-      {
-        "status": "A",
         "path": "artifacts/pr_3_changed_files.txt"
       },
       {
-        "status": "A",
+        "status": "M",
         "path": "artifacts/pr_3_scope_audit.json"
       },
       {
-        "status": "A",
+        "status": "M",
         "path": "artifacts/pr_3_scope_audit.md"
       },
       {
@@ -66,22 +57,6 @@
       {
         "status": "M",
         "path": "artifacts/reference_answer_trial_summary.md"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/release_candidate_acceptance.json"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/release_candidate_commit_plan.md"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/release_candidate_file_classification.json"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/release_candidate_file_classification.md"
       }
     ],
     "E_runtime_generated_artifacts": [
@@ -509,15 +484,9 @@
     "review_required": []
   },
   "recommended_commit_files": [
-    "artifacts/full_pytest_result.json",
     "artifacts/pr_3_changed_files.txt",
     "artifacts/pr_3_scope_audit.json",
-    "artifacts/pr_3_scope_audit.md",
-    "artifacts/release_candidate_acceptance.json",
-    "artifacts/release_candidate_commit_plan.md",
-    "artifacts/release_candidate_file_classification.json",
-    "artifacts/release_candidate_file_classification.md",
-    "scripts/release_candidate_gate.py"
+    "artifacts/pr_3_scope_audit.md"
   ],
   "recommended_exclude_files": [
     "artifacts/complexity_scale_file_inventory.txt",

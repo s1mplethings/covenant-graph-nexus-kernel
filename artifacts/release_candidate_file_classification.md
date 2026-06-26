@@ -1,11 +1,11 @@
 # Release Candidate File Classification
 
-- dirty_count: `123`
+- dirty_count: `117`
 - policy: do not commit runtime/generated outputs in bulk; review unknown dirty files.
 
 ## A_core_code
 
-- `M scripts/release_candidate_gate.py`
+- none
 
 ## B_test_code
 
@@ -23,18 +23,13 @@
 - `M artifacts/complexity_scale_run_summary.json`
 - `M artifacts/complexity_scale_run_summary.md`
 - `M artifacts/continuous_generation_iterations.jsonl`
-- `M artifacts/full_pytest_result.json`
-- `A artifacts/pr_3_changed_files.txt`
-- `A artifacts/pr_3_scope_audit.json`
-- `A artifacts/pr_3_scope_audit.md`
+- `M artifacts/pr_3_changed_files.txt`
+- `M artifacts/pr_3_scope_audit.json`
+- `M artifacts/pr_3_scope_audit.md`
 - `M artifacts/reference_answer_gap_analysis.md`
 - `M artifacts/reference_answer_repair_plan.md`
 - `M artifacts/reference_answer_trial.json`
 - `M artifacts/reference_answer_trial_summary.md`
-- `M artifacts/release_candidate_acceptance.json`
-- `M artifacts/release_candidate_commit_plan.md`
-- `M artifacts/release_candidate_file_classification.json`
-- `M artifacts/release_candidate_file_classification.md`
 
 ## E_runtime_generated_artifacts
 
@@ -155,15 +150,9 @@
 
 ## Recommended Commit Files
 
-- `artifacts/full_pytest_result.json`
 - `artifacts/pr_3_changed_files.txt`
 - `artifacts/pr_3_scope_audit.json`
 - `artifacts/pr_3_scope_audit.md`
-- `artifacts/release_candidate_acceptance.json`
-- `artifacts/release_candidate_commit_plan.md`
-- `artifacts/release_candidate_file_classification.json`
-- `artifacts/release_candidate_file_classification.md`
-- `scripts/release_candidate_gate.py`
 
 ## Recommended Exclude Files
 

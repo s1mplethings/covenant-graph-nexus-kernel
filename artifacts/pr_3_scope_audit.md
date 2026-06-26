@@ -1,14 +1,20 @@
-# PR #3 Scope Audit
+# PR 3 Scope Audit
 
+- created_at: `2026-06-26T03:42:01.524802+00:00`
+- repository: `s1mplethings/covenant-graph-nexus-kernel`
+- pr: `#3`
+- base: `main`
+- head: `codex/project-revision-execution-phase2`
+- head_sha: `c90351fa141bcd966bf7b1f900c9552b44f15381`
 - verdict: `PR_SCOPE_CLEAN`
-- changed_file_count: `185`
-- cleanup_required: `False`
-- PR: https://github.com/s1mplethings/covenant-graph-nexus-kernel/pull/3
+- changed_file_count: `188`
+- cleanup_required: `false`
 
-## Counts
+## Classification Counts
+
 - expected_source: `67`
-- expected_tests: `55`
-- expected_docs: `20`
+- expected_tests: `56`
+- expected_docs: `22`
 - expected_review_artifacts: `42`
 - questionable_runtime_artifacts: `1`
 - generated_run_dirs: `0`
@@ -17,23 +23,97 @@
 - unrelated_or_should_remove: `0`
 
 ## Blocking Findings
+
 - none
 
-## Explicit Noise Checks
-- artifacts_runs_dirs_present: `False`
-- zip_files_present: `False`
-- temp_or_probe_files_present: `False`
-- example_memory_churn_present: `False`
-- local_studio_conversation_churn_present: `False`
-- stale_old_name_product_docs_detected: `False`
+## Files Removed From PR
+
+- none
+
+## Intentionally Left Out
+
+- Generated run directories and local runtime outputs.
+- Zip/package delivery artifacts.
+- Temporary or probe files.
+- `examples/project_memory/*` churn from local test execution.
+- Raw `artifacts/full_pytest_output.txt`; the committed JSON result keeps the concise validation evidence.
 
 ## Notes
-- PR includes a broad but coherent release-candidate hardening diff from previous commits plus the RC validation commit.
-- No generated run directories, zip files, temp/probe files, examples/project_memory churn, or examples/local_studio conversation churn are present in the PR changed-file list.
-- Local dirty/untracked runtime files remain excluded and are not part of PR #3.
 
-## expected_source
+- Audit is based on git diff --name-only origin/main...HEAD after the PR scope audit commits.
+- No generated run directories, zip files, temp/probe files, examples/project_memory churn, or examples/local_studio conversation churn are in the PR changed-file set.
+- Local dirty runtime and benchmark files remain intentionally excluded from staged commits and from the pushed PR scope.
+- artifacts/complexity_scale_command_log.txt is retained as non-blocking review evidence from the existing hardening scope.
+
+## Changed Files
+
+- `AGENTS.md`
+- `README.md`
+- `artifacts/cgkn_naming_consistency_report.md`
+- `artifacts/complexity_scale_acceptance.json`
+- `artifacts/complexity_scale_acceptance_report.md`
+- `artifacts/complexity_scale_benchmark_plan.md`
+- `artifacts/complexity_scale_command_log.txt`
+- `artifacts/complexity_scale_gap_analysis.md`
+- `artifacts/complexity_scale_pipeline_result.json`
+- `artifacts/complexity_scale_repair_plan.md`
+- `artifacts/complexity_scale_run_summary.json`
+- `artifacts/complexity_scale_run_summary.md`
+- `artifacts/continuous_generation_current_gaps.md`
+- `artifacts/continuous_generation_iterations.jsonl`
+- `artifacts/continuous_generation_repo_status.md`
+- `artifacts/customer_agent_dialogue.jsonl`
+- `artifacts/customer_agent_gap_report.md`
+- `artifacts/customer_agent_long_journey_summary.md`
+- `artifacts/customer_agent_long_journey_trial.json`
+- `artifacts/customer_agent_rework_report.md`
+- `artifacts/customer_agent_scorecard.json`
+- `artifacts/discovery_selection_entrypoints.md`
+- `artifacts/discovery_selection_repo_status.md`
+- `artifacts/full_pytest_result.json`
+- `artifacts/pr_3_changed_files.txt`
+- `artifacts/pr_3_scope_audit.json`
+- `artifacts/pr_3_scope_audit.md`
+- `artifacts/pytest_hang_diagnostics.json`
+- `artifacts/pytest_hang_diagnostics.md`
+- `artifacts/reference_answer_gap_analysis.md`
+- `artifacts/reference_answer_repair_plan.md`
+- `artifacts/reference_answer_trial.json`
+- `artifacts/reference_answer_trial_summary.md`
+- `artifacts/reference_name_leak_report.md`
+- `artifacts/release_candidate_acceptance.json`
+- `artifacts/release_candidate_commit_plan.md`
+- `artifacts/release_candidate_file_classification.json`
+- `artifacts/release_candidate_file_classification.md`
+- `artifacts/release_candidate_known_gaps.md`
+- `artifacts/release_candidate_summary.md`
+- `artifacts/requirement_decision_benchmark.json`
+- `artifacts/requirement_decision_benchmark_summary.md`
+- `artifacts/requirement_decision_entrypoints.md`
+- `artifacts/requirement_decision_repo_status.md`
+- `artifacts/stale_test_update_report.md`
+- `benchmarks/complexity_scale_pipeline_benchmark.json`
+- `detected_entrypoints.md`
+- `docs/00_kernel_contract.md`
+- `docs/09_openai_compatible_api_usage.md`
+- `docs/60_pipeline_module_agent_guide.md`
+- `docs/61_startup_and_visual_evidence_contract.md`
+- `docs/62_agent_failure_routing_cheatsheet.md`
+- `docs/70_commercial_hardening_plan.md`
+- `docs/71_commercial_readiness_gate.md`
+- `docs/72_provider_resilience.md`
+- `docs/73_sandbox_security.md`
+- `docs/74_product_acceptance.md`
+- `docs/75_customer_status_and_telegram_delivery.md`
+- `docs/agent_test_integrated_behavior.md`
+- `docs/complexity_discovery_selection_lane.md`
+- `docs/continuous_verified_generation_loop.md`
+- `docs/customer_agent_long_journey_trial.md`
+- `docs/release_candidate_acceptance.md`
+- `docs/requirement_decision_first.md`
+- `docs/requirement_decision_lane.md`
 - `pytest.ini`
+- `repo_status.md`
 - `scripts/artifact_integrity.py`
 - `scripts/asr_evidence_tier.py`
 - `scripts/asr_quality_gate.py`
@@ -100,8 +180,6 @@
 - `scripts/telegram_live_bridge.py`
 - `scripts/user_media_pipeline_contract.py`
 - `scripts/visual_evidence.py`
-
-## expected_tests
 - `tests/conftest.py`
 - `tests/test_agent_test_integrated_behavior.py`
 - `tests/test_artifact_integrity_check.py`
@@ -157,84 +235,3 @@
 - `tests/test_telegram_generation_timeout_result.py`
 - `tests/test_telegram_public_delivery_gate.py`
 - `tests/test_user_media_pipeline_contract.py`
-
-## expected_docs
-- `AGENTS.md`
-- `README.md`
-- `docs/00_kernel_contract.md`
-- `docs/09_openai_compatible_api_usage.md`
-- `docs/60_pipeline_module_agent_guide.md`
-- `docs/61_startup_and_visual_evidence_contract.md`
-- `docs/62_agent_failure_routing_cheatsheet.md`
-- `docs/70_commercial_hardening_plan.md`
-- `docs/71_commercial_readiness_gate.md`
-- `docs/72_provider_resilience.md`
-- `docs/73_sandbox_security.md`
-- `docs/74_product_acceptance.md`
-- `docs/75_customer_status_and_telegram_delivery.md`
-- `docs/agent_test_integrated_behavior.md`
-- `docs/complexity_discovery_selection_lane.md`
-- `docs/continuous_verified_generation_loop.md`
-- `docs/customer_agent_long_journey_trial.md`
-- `docs/release_candidate_acceptance.md`
-- `docs/requirement_decision_first.md`
-- `docs/requirement_decision_lane.md`
-
-## expected_review_artifacts
-- `artifacts/cgkn_naming_consistency_report.md`
-- `artifacts/complexity_scale_acceptance.json`
-- `artifacts/complexity_scale_acceptance_report.md`
-- `artifacts/complexity_scale_benchmark_plan.md`
-- `artifacts/complexity_scale_gap_analysis.md`
-- `artifacts/complexity_scale_pipeline_result.json`
-- `artifacts/complexity_scale_repair_plan.md`
-- `artifacts/complexity_scale_run_summary.json`
-- `artifacts/complexity_scale_run_summary.md`
-- `artifacts/continuous_generation_current_gaps.md`
-- `artifacts/continuous_generation_iterations.jsonl`
-- `artifacts/continuous_generation_repo_status.md`
-- `artifacts/customer_agent_dialogue.jsonl`
-- `artifacts/customer_agent_gap_report.md`
-- `artifacts/customer_agent_long_journey_summary.md`
-- `artifacts/customer_agent_long_journey_trial.json`
-- `artifacts/customer_agent_rework_report.md`
-- `artifacts/customer_agent_scorecard.json`
-- `artifacts/discovery_selection_entrypoints.md`
-- `artifacts/discovery_selection_repo_status.md`
-- `artifacts/full_pytest_result.json`
-- `artifacts/pytest_hang_diagnostics.json`
-- `artifacts/pytest_hang_diagnostics.md`
-- `artifacts/reference_answer_gap_analysis.md`
-- `artifacts/reference_answer_repair_plan.md`
-- `artifacts/reference_answer_trial.json`
-- `artifacts/reference_answer_trial_summary.md`
-- `artifacts/reference_name_leak_report.md`
-- `artifacts/release_candidate_acceptance.json`
-- `artifacts/release_candidate_commit_plan.md`
-- `artifacts/release_candidate_file_classification.json`
-- `artifacts/release_candidate_file_classification.md`
-- `artifacts/release_candidate_known_gaps.md`
-- `artifacts/release_candidate_summary.md`
-- `artifacts/requirement_decision_benchmark.json`
-- `artifacts/requirement_decision_benchmark_summary.md`
-- `artifacts/requirement_decision_entrypoints.md`
-- `artifacts/requirement_decision_repo_status.md`
-- `artifacts/stale_test_update_report.md`
-- `benchmarks/complexity_scale_pipeline_benchmark.json`
-- `detected_entrypoints.md`
-- `repo_status.md`
-
-## questionable_runtime_artifacts
-- `artifacts/complexity_scale_command_log.txt`
-
-## generated_run_dirs
-- none
-
-## temp_or_probe_files
-- none
-
-## example_memory_churn
-- none
-
-## unrelated_or_should_remove
-- none

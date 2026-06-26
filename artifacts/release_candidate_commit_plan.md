@@ -10,15 +10,9 @@
 
 ## Suggested Commit Files
 
-- `artifacts/full_pytest_result.json`
 - `artifacts/pr_3_changed_files.txt`
 - `artifacts/pr_3_scope_audit.json`
 - `artifacts/pr_3_scope_audit.md`
-- `artifacts/release_candidate_acceptance.json`
-- `artifacts/release_candidate_commit_plan.md`
-- `artifacts/release_candidate_file_classification.json`
-- `artifacts/release_candidate_file_classification.md`
-- `scripts/release_candidate_gate.py`
 
 ## Suggested Exclude Files
 
