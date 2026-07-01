@@ -28,8 +28,10 @@ import check_test_environment
 import compose_local_pipeline
 import discovery_selection_lane
 import final_delivery_truth
+import formal_model_contract
 import local_intent_router
 import local_usage_planner
+import local_model_router
 import long_context_state
 import market_research_agent
 import post_build_repair
@@ -162,6 +164,49 @@ def last_provider_request_event(path_value: Any) -> dict[str, Any]:
         if isinstance(event, dict) and event.get("event") == "provider_request":
             last = event
     return last
+
+
+def run_dir_from_phase_log(path_value: Any) -> pathlib.Path | None:
+    raw = str(path_value or "").strip()
+    if not raw:
+        return None
+    path = pathlib.Path(raw)
+    if path.name == "provider_phase_log.jsonl":
+        return path.parent
+    return path.parent
+
+
+def record_model_call_from_phase_log(
+    phase_log_path: pathlib.Path | str | None,
+    *,
+    stage: str,
+    provider: str,
+    model: str,
+    requested: bool,
+    executed: bool,
+    status: str,
+    input_value: Any = "",
+    output_value: Any = "",
+    error: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> pathlib.Path | None:
+    run_dir = run_dir_from_phase_log(phase_log_path)
+    if run_dir is None:
+        return None
+    return formal_model_contract.append_model_call(
+        run_dir,
+        stage=stage,
+        provider=provider,
+        model=model,
+        requested=requested,
+        executed=executed,
+        status=status,
+        used_in_formal_chain=formal_model_contract.normalize_stage(stage) in formal_model_contract.FORMAL_CHAIN_STAGES,
+        input_value=input_value,
+        output_value=output_value,
+        error=error,
+        metadata=metadata,
+    )
 
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
@@ -485,6 +530,7 @@ def provider_text(
     prompt_chars = sum(len(str(message.get("content", ""))) for message in messages if isinstance(message, dict))
     last_error_text = str(last_error or "")
     selected_model = str(model or "").strip()
+    final_status = "failed"
     for attempt in range(max(1, max_attempts)):
         route = choose_provider_model(stage, prompt_chars, model, routing_policy, last_error=last_error_text)
         selected_model = str(route.get("selected_model") or model)
@@ -522,18 +568,69 @@ def provider_text(
         )
         doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
         if doc is not None:
+            final_status = "ok"
             break
         last_error_text = error
+        final_status = "timeout" if check_connectivity._error_is_retryable(error) else "failed"
         if not check_connectivity._error_is_retryable(error):
             break
         time.sleep(min(20.0, 2.0 * (attempt + 1)))
     else:
+        record_model_call_from_phase_log(
+            phase_log_path,
+            stage=stage,
+            provider="api_agent",
+            model=selected_model,
+            requested=True,
+            executed=True,
+            status=final_status,
+            input_value=messages,
+            error=last_error_text or "provider_api_request_failed",
+            metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
+        )
         raise RuntimeError(f"provider_api_request_failed: {last_error_text}" if last_error_text else "provider_api_request_failed")
     if doc is None:
+        record_model_call_from_phase_log(
+            phase_log_path,
+            stage=stage,
+            provider="api_agent",
+            model=selected_model,
+            requested=True,
+            executed=True,
+            status=final_status,
+            input_value=messages,
+            error=last_error_text or "provider_api_request_failed",
+            metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
+        )
         raise RuntimeError(f"provider_api_request_failed: {last_error_text}")
     text = check_connectivity._extract_text(doc)
     if not text:
+        record_model_call_from_phase_log(
+            phase_log_path,
+            stage=stage,
+            provider="api_agent",
+            model=selected_model,
+            requested=True,
+            executed=True,
+            status="failed",
+            input_value=messages,
+            output_value=doc,
+            error="provider returned empty project payload",
+            metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
+        )
         raise RuntimeError("provider returned empty project payload")
+    record_model_call_from_phase_log(
+        phase_log_path,
+        stage=stage,
+        provider="api_agent",
+        model=selected_model,
+        requested=True,
+        executed=True,
+        status="ok",
+        input_value=messages,
+        output_value=text,
+        metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
+    )
     return text
 
 
@@ -4461,6 +4558,27 @@ def write_provider_transport_blocked_failure(
             "transport_attempts": transport_attempts,
             "created_at": now(),
         }
+    formal_model_contract.append_model_call(
+        run_dir,
+        stage="repair",
+        provider="api_agent",
+        model=str(effective_pending.get("selected_model") or effective_pending.get("model") or ""),
+        requested=True,
+        executed=True,
+        status="timeout" if "504" in str(error_text) or "timeout" in str(error_text).lower() else "failed",
+        used_in_formal_chain=True,
+        input_value=effective_pending,
+        output_value="",
+        error=error_text,
+        metadata={"failed_component": failed_component or str(info.get("failed_component", ""))},
+    )
+    fallback_evidence = attempt_formal_local_model_fallback(
+        run_dir=run_dir,
+        failed_stage="repair",
+        error_text=error_text,
+        failed_component=failed_component or str(info.get("failed_component", "")),
+        pending_repair_plan=effective_pending,
+    )
     diagnostics = {
         "status": "blocked",
         "stage": "provider_semantic_repair",
@@ -4473,6 +4591,7 @@ def write_provider_transport_blocked_failure(
         "pending_repair_plan_path": str(pending_path.resolve()) if pending_path.exists() else "",
         "transport_attempts": transport_attempts,
         "pending_repair_plan": effective_pending,
+        "provider_fallback_evidence": fallback_evidence,
         "attempted_repairs": attempted_repairs,
         "semantic_repair_attempts": len(attempted_repairs),
         "checkpoint_files": list_checkpoint_files(checkpoint_dir),
@@ -4482,8 +4601,81 @@ def write_provider_transport_blocked_failure(
     }
     artifacts = run_dir / "artifacts"
     write_json(artifacts / "provider_semantic_review_failure.json", diagnostics)
+    write_json(artifacts / "provider_fallback_evidence.json", fallback_evidence)
     write_pending_repair_context(artifacts / "pending_repair_plan.json", effective_pending)
     return diagnostics
+
+
+def attempt_formal_local_model_fallback(
+    *,
+    run_dir: pathlib.Path,
+    failed_stage: str,
+    error_text: str,
+    failed_component: str,
+    pending_repair_plan: dict[str, Any],
+) -> dict[str, Any]:
+    compact_plan = {
+        "root_causes": pending_repair_plan.get("root_causes", []),
+        "parsed_blockers": pending_repair_plan.get("parsed_blockers", [])[:5] if isinstance(pending_repair_plan.get("parsed_blockers", []), list) else [],
+        "affected_components": pending_repair_plan.get("affected_components", []),
+        "affected_files": pending_repair_plan.get("affected_files", []),
+        "must_disappear_blockers": pending_repair_plan.get("must_disappear_blockers", [])[:8] if isinstance(pending_repair_plan.get("must_disappear_blockers", []), list) else [],
+        "raw_user_goal": str(pending_repair_plan.get("raw_user_goal", ""))[:1200],
+    }
+    prompt = json.dumps(
+        {
+            "task": "formal_provider_transport_fallback",
+            "failed_stage": failed_stage,
+            "failed_component": failed_component,
+            "provider_error": str(error_text)[:2000],
+            "pending_repair_plan": compact_plan,
+            "required_output": "Return concise JSON repair or planning guidance for continuing the formal chain.",
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
+    requested_model = str(os.environ.get("CGNK_OLLAMA_MODEL", "") or "local_model_router").strip()
+    fallback_timeout = int(str(os.environ.get("CGNK_LOCAL_MODEL_FALLBACK_TIMEOUT", "180") or "180"))
+    try:
+        result = local_model_router.call_text_task(
+            "pipeline_planner",
+            "You are a formal CGKN fallback planner. Return concise JSON only.",
+            prompt,
+            timeout=fallback_timeout,
+        )
+    except Exception as exc:
+        result = {"ok": False, "provider": "local_model_router", "model": requested_model, "error": str(exc)}
+    ok = bool(result.get("ok"))
+    provider = str(result.get("provider") or "local_model_router")
+    model = str(result.get("model") or requested_model)
+    text = str(result.get("text") or "")
+    status = "ok" if ok else "failed"
+    formal_model_contract.append_model_call(
+        run_dir,
+        stage=failed_stage,
+        provider="local_model_router" if provider == "ollama" else provider,
+        model=model,
+        requested=True,
+        executed=True,
+        status=status,
+        used_in_formal_chain=True,
+        input_value=prompt,
+        output_value=text,
+        error=None if ok else str(result.get("error", "local_model_fallback_failed")),
+        metadata={"fallback_for": "api_agent", "failed_component": failed_component},
+    )
+    return {
+        "primary_provider": "api_agent",
+        "primary_status": "failed_504" if "504" in str(error_text) else "failed_transport",
+        "fallback_provider": "local_model_router",
+        "fallback_model": model,
+        "fallback_status": status,
+        "formal_chain_continued": ok,
+        "requires_reverify": True,
+        "delivery_pass_allowed_without_reverify": False,
+        "error": "" if ok else str(result.get("error", "local_model_fallback_failed")),
+        "output_preview": text[:500] if ok else "",
+    }
 
 
 def load_pending_repair_plan(run_dir: pathlib.Path | str) -> dict[str, Any]:
@@ -5613,6 +5805,10 @@ def run_project_usage_agent(
             )
             plan["planner"] = "model_with_local_fallback"
             plan["uses_model"] = True
+            plan["requires_model"] = True
+            plan["selected_provider"] = "api_agent"
+            plan["selected_model"] = model
+            plan["formal_chain_bound"] = True
             append_phase_log(phase_log_path, "usage_planning_model", "completed", "Model usage planning returned a plan.", started_at=usage_started)
         except Exception as exc:
             append_phase_log(phase_log_path, "usage_planning_model", "failed", f"Model usage planning failed; using local fallback: {exc}", started_at=usage_started)
@@ -5622,6 +5818,24 @@ def run_project_usage_agent(
         append_phase_log(phase_log_path, "usage_planning_local", "started", "Local deterministic usage planning started.", started_at=usage_started)
         plan = local_usage_planner.create_usage_plan(project_dir, project_type)
         append_phase_log(phase_log_path, "usage_planning_local", "completed", "Local deterministic usage planning completed.", started_at=usage_started)
+    plan.setdefault("requires_model", True)
+    plan.setdefault("formal_chain_bound", bool(plan.get("uses_model")))
+    formal_records = [
+        row
+        for row in formal_model_contract.read_ledger(run_dir)
+        if formal_model_contract.formal_record(row)
+    ]
+    if formal_records:
+        last_model_record = formal_records[-1]
+        plan["uses_model"] = True
+        plan["requires_model"] = True
+        plan["formal_chain_bound"] = True
+        plan.setdefault("model_evidence_source", "model_call_ledger")
+        plan.setdefault("selected_provider", str(last_model_record.get("provider", "")))
+        plan.setdefault("selected_model", str(last_model_record.get("model", "")))
+    if plan.get("uses_model") and not plan.get("selected_provider"):
+        plan["selected_provider"] = "api_agent"
+        plan["selected_model"] = model
     plan = normalize_usage_plan_placeholders(plan, project_dir, run_dir)
     write_json(usage_dir / "usage_plan.json", plan)
     append_phase_log(phase_log_path, "usage_planning", "artifact_written", "usage_plan.json written.", [str(usage_dir / "usage_plan.json")], started_at=usage_started)
@@ -5640,6 +5854,8 @@ def run_project_usage_agent(
             "project_type": project_type,
             "planner": plan.get("planner", ""),
             "uses_model": plan.get("uses_model", False),
+            "requires_model": plan.get("requires_model", True),
+            "formal_chain_bound": plan.get("formal_chain_bound", False),
             "run_mode": plan.get("run_mode", ""),
             "project_dir": str(project_dir),
         },
@@ -6254,6 +6470,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     require_api_generation(args)
     exec_deadline_value = generation_deadline(args)
     run_dir = pathlib.Path(args.run_dir).resolve()
+    (run_dir / "artifacts").mkdir(parents=True, exist_ok=True)
     out_dir = pathlib.Path(args.out_dir).resolve()
     result_path = pathlib.Path(args.result).resolve()
     plan_path = pathlib.Path(args.plan) if args.plan else None
@@ -6280,7 +6497,27 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             goal,
             allow_network=bool(getattr(args, "allow_network", False)),
             allow_provider=bool(getattr(args, "allow_provider", False)),
+            use_local_model=local_model_router.local_model_requested(),
         )
+        local_model_hint = (
+            plan_doc.get("project_understanding", {}).get("payload", {}).get("optional_local_model", {})
+            if isinstance(plan_doc, dict)
+            else {}
+        )
+        if isinstance(local_model_hint, dict) and local_model_hint.get("ok"):
+            formal_model_contract.append_model_call(
+                run_dir,
+                stage="planning",
+                provider="local_model_router",
+                model=str(local_model_hint.get("model", "")),
+                requested=True,
+                executed=True,
+                status="ok",
+                used_in_formal_chain=True,
+                input_value=goal,
+                output_value=local_model_hint.get("result", {}),
+                metadata={"source": "compose_local_pipeline"},
+            )
     intent = frozen_user_intent(plan_doc, goal)
     user_goal = str(intent.get("raw_user_message") or plan_doc.get("original_requirement") or goal).strip()
     internal_context = internal_context_from_plan(plan_doc)
@@ -6560,9 +6797,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 project_dir=candidate_dir,
                 manifest={},
                 session={"goal": user_goal},
+                evidence={
+                    "run_dir": str(run_dir),
+                    "usage_plan": (
+                        post_build.get("agent_usage", {}).get("plan", {})
+                        if isinstance(post_build.get("agent_usage", {}), dict)
+                        else {}
+                    ),
+                },
                 phase="final",
             )
             final_delivery_allowed = bool(final_truth.get("metadata", {}).get("delivery_allowed"))
+            model_participation = final_truth.get("metadata", {}).get("formal_model_gate", {})
             final_verdict = decide_adaptive_final_verdict(
                 candidate_materialized=True,
                 hard_fact_blockers=[],
@@ -6577,7 +6823,9 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             candidate_result = {
                 "kind": "RuntimeExecutionResult",
                 "status": final_verdict,
-                "reason": "semantic_review_needs_rework_candidate_materialized",
+                "reason": str(model_participation.get("reason") or "semantic_review_needs_rework_candidate_materialized")
+                if isinstance(model_participation, dict) and model_participation.get("status") == "fail"
+                else "semantic_review_needs_rework_candidate_materialized",
                 "generated_at": now(),
                 "goal": user_goal,
                 "generation_context_goal": goal,
@@ -6614,6 +6862,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "post_build_finalize_status": post_build.get("status", "unknown"),
                 "post_build_finalize": post_build,
                 "final_delivery_allowed": final_delivery_allowed,
+                "formal_model_participation": model_participation,
                 "final_verdict": final_verdict,
                 "final_project_bundle": "",
                 "delivery_manifest": "",
@@ -6756,6 +7005,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "example_outputs": example_outputs,
         "agent_usage": agent_usage,
         "provider_semantic_review": provider_review,
+        "formal_model_participation": formal_model_contract.evaluate_model_participation(
+            context="formal_live_generation",
+            run_dir=run_dir,
+            usage_plan=agent_usage.get("plan", {}) if isinstance(agent_usage, dict) else {},
+        ),
         "requirement_decision": requirement_decision_result,
         "selected_requirement": selected_requirement,
         "acceptance_contract": acceptance_contract,

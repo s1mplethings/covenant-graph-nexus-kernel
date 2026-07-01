@@ -17,6 +17,48 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_REPORT = ROOT / "examples" / "test_results" / "product_acceptance_report.json"
+INTERNAL_FEATURE_TERMS = {
+    "beta",
+    "commercial",
+    "commercial-ready",
+    "commercial_ready",
+    "commercial-readiness",
+    "commercial_readiness",
+    "delivery",
+    "fail",
+    "failed",
+    "gate",
+    "pass",
+    "passed",
+    "readiness",
+    "ready",
+    "status",
+}
+GOAL_STOP_TERMS = {
+    "a",
+    "an",
+    "and",
+    "app",
+    "application",
+    "build",
+    "can",
+    "for",
+    "include",
+    "not",
+    "project",
+    "should",
+    "that",
+    "the",
+    "this",
+    "use",
+    "with",
+    "一个",
+    "和",
+    "以及",
+    "支持",
+    "可以",
+    "本地",
+}
 
 
 def _read_text(path: pathlib.Path) -> str:
@@ -40,14 +82,199 @@ def _manifest_files(project_dir: pathlib.Path) -> list[str]:
     return [path.relative_to(project_dir).as_posix() for path in project_dir.rglob("*") if path.is_file()]
 
 
+def _clean_feature_term(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    text = text.replace("_", " ").replace("-", " ")
+    text = re.sub(r"[^a-z0-9\u4e00-\u9fff .]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _feature_key(value: Any) -> str:
+    return _clean_feature_term(value).replace(" ", "_")
+
+
+def _is_internal_feature_term(value: Any) -> bool:
+    clean = _clean_feature_term(value)
+    key = clean.replace(" ", "_")
+    return clean in INTERNAL_FEATURE_TERMS or key in INTERNAL_FEATURE_TERMS
+
+
 def _goal_terms(goal: str) -> list[str]:
-    stop = {"the", "and", "with", "for", "that", "this", "一个", "和", "以及", "支持", "可以", "本地"}
     terms: list[str] = []
-    for raw in str(goal or "").replace("/", " ").replace(",", " ").replace("，", " ").split():
-        term = raw.strip().lower()
-        if len(term) >= 3 and term not in stop:
+    for raw in re.split(r"[\s,/，.。;；:：()]+", str(goal or "")):
+        term = _clean_feature_term(raw)
+        if len(term) >= 3 and term not in GOAL_STOP_TERMS and not _is_internal_feature_term(term):
             terms.append(term)
-    return terms[:20]
+    return list(dict.fromkeys(terms))[:20]
+
+
+def _existing_screenshots(project: pathlib.Path) -> list[str]:
+    if not project.exists():
+        return []
+    images: list[str] = []
+    for path in project.rglob("*"):
+        if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+            rel = path.relative_to(project).as_posix().lower()
+            if "screenshot" in rel or "candidate_home" in rel or "preview" in rel:
+                images.append(path.relative_to(project).as_posix())
+    return images
+
+
+def _read_allowed_json(project: pathlib.Path, names: tuple[str, ...]) -> dict[str, dict[str, Any]]:
+    docs: dict[str, dict[str, Any]] = {}
+    for name in names:
+        path = project / name
+        if path.exists():
+            doc = _read_json(path)
+            if doc:
+                docs[name] = doc
+    return docs
+
+
+def _collect_strings(value: Any, *, keys: set[str] | None = None) -> list[str]:
+    strings: list[str] = []
+    if isinstance(value, str):
+        if value.strip():
+            strings.append(value)
+    elif isinstance(value, list):
+        for item in value:
+            strings.extend(_collect_strings(item, keys=keys))
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if keys is None or str(key) in keys:
+                strings.extend(_collect_strings(item, keys=None))
+            elif isinstance(item, (dict, list)):
+                strings.extend(_collect_strings(item, keys=keys))
+    return strings
+
+
+def _allowed_expected_features(project: pathlib.Path, goal: str, feature_list: list[str] | None) -> dict[str, Any]:
+    docs = _read_allowed_json(
+        project,
+        (
+            "project_spec.json",
+            "acceptance_matrix.json",
+            "feature_matrix.json",
+            "page_map.json",
+            "benchmark_expected_features.json",
+        ),
+    )
+    sources: dict[str, list[str]] = {}
+    if str(goal or "").strip():
+        sources["user_goal"] = _goal_terms(goal)
+    if feature_list:
+        sources["feature_list"] = [_feature_key(item) for item in feature_list if not _is_internal_feature_term(item)]
+    feature_keys = {
+        "acceptance",
+        "acceptance_criteria",
+        "core_features",
+        "expected_features",
+        "feature",
+        "features",
+        "flows",
+        "mvp_features",
+        "pages",
+        "required_features",
+        "user_needs",
+        "workflows",
+    }
+    for name, doc in docs.items():
+        extracted = [_feature_key(item) for item in _collect_strings(doc, keys=feature_keys)]
+        sources[name] = [item for item in extracted if item and not _is_internal_feature_term(item)]
+    ordered: list[str] = []
+    for items in sources.values():
+        for item in items:
+            if item and item not in ordered:
+                ordered.append(item)
+    return {"features": ordered[:40], "sources": sources, "allowed_source_files": sorted(docs.keys())}
+
+
+def _project_text_bundle(project: pathlib.Path, files: list[str], readme: str, test_report: str, delivery_notes: str) -> str:
+    parts = [readme, test_report, delivery_notes, " ".join(files)]
+    for name in ("index.html", "app.js", "app-core.js", "styles.css", "README.md", "TEST_PLAN.md"):
+        parts.append(_read_text(project / name))
+    return " ".join(parts).lower()
+
+
+def _feature_present(term: str, searchable: str) -> bool:
+    clean = _clean_feature_term(term)
+    key = clean.replace(" ", "_")
+    variants = {clean, key, key.replace("_", " ")}
+    if any(variant and variant in searchable for variant in variants):
+        return True
+    words = [word for word in clean.split() if len(word) >= 3 and word not in GOAL_STOP_TERMS]
+    return bool(words) and all(word in searchable for word in words)
+
+
+def _ux_score_inputs(
+    project: pathlib.Path,
+    *,
+    files: list[str],
+    readme: str,
+    test_report: str,
+    delivery_notes: str,
+    screenshot_metadata: dict[str, Any] | None,
+    ui_smoke_result: dict[str, Any] | None,
+    known_limits: list[str],
+) -> dict[str, Any]:
+    text = _project_text_bundle(project, files, readme, test_report, delivery_notes)
+    screenshots = _existing_screenshots(project)
+    has_screenshot = bool((screenshot_metadata or {}).get("valid") or (screenshot_metadata or {}).get("path") or screenshots)
+    page_map_doc = _read_json(project / "page_map.json")
+    has_page_map = bool(page_map_doc)
+    page_text = _read_text(project / "index.html").lower()
+    navigation_terms = ["header", "form", "button", "select", "todo", "doing", "done"]
+    navigation_found = [term for term in navigation_terms if term in page_text]
+    demo_terms = ["seedtasks", "seed data", "localstorage", "todo", "doing", "done"]
+    demo_found = [term for term in demo_terms if term in text]
+    core_flow_terms = ["add", "edit", "delete", "move", "save", "task", "status"]
+    core_flow_found = [term for term in core_flow_terms if term in text]
+    ui_status = str((ui_smoke_result or {}).get("status") or "").lower()
+    readme_found = bool(readme.strip())
+    score = 35
+    if has_screenshot:
+        score += 20
+    if has_page_map:
+        score += 10
+    if readme_found:
+        score += 10
+    if len(navigation_found) >= 4:
+        score += 10
+    if len(demo_found) >= 3:
+        score += 10
+    if len(core_flow_found) >= 5:
+        score += 15
+    if ui_status == "pass":
+        score += 10
+    if known_limits:
+        score -= min(30, len(known_limits) * 10)
+    score = max(0, min(100, score))
+    defects: list[str] = []
+    if not has_screenshot:
+        defects.append("screenshot_evidence_not_read")
+    if not readme_found:
+        defects.append("readme_missing")
+    if len(navigation_found) < 4:
+        defects.append("navigation_or_page_structure_weak")
+    if len(demo_found) < 3:
+        defects.append("demo_data_or_persistence_evidence_weak")
+    if len(core_flow_found) < 5:
+        defects.append("core_flow_evidence_weak")
+    if known_limits:
+        defects.append("known_limits_present")
+    return {
+        "score": score,
+        "screenshot_read": has_screenshot,
+        "screenshot_paths": screenshots,
+        "page_map_read": has_page_map,
+        "readme_read": readme_found,
+        "navigation_terms_found": navigation_found,
+        "demo_data_terms_found": demo_found,
+        "core_flow_terms_found": core_flow_found,
+        "ui_smoke_status": ui_status or "missing",
+        "known_limits_count": len(known_limits),
+        "ux_defects": defects,
+    }
 
 
 PIPELINE_STAGE_FIELDS = {
@@ -364,22 +591,25 @@ def evaluate_product_acceptance(
         report.update({key: layered_status.get(key) for key in ("requirement_decision_status", "product_contract_status", "implementation_status", "delivery_status", "overall_status")})
         report["layered_acceptance"] = layered_status
         return report
-    terms = _goal_terms(goal)
-    searchable = " ".join([readme.lower(), " ".join(files).lower(), " ".join(features)])
+    expected = _allowed_expected_features(project, goal, feature_list)
+    terms = [str(item) for item in expected.get("features", []) if str(item).strip()]
+    searchable = _project_text_bundle(project, files, readme, test_report, delivery_notes)
 
-    missing_core_features = [term for term in terms if term not in searchable]
+    missing_core_features = [term for term in terms if not _feature_present(term, searchable) and not _is_internal_feature_term(term)]
     feature_coverage_score = 100 if not terms else round(100 * (len(terms) - len(missing_core_features)) / len(terms))
     if features:
         feature_coverage_score = max(feature_coverage_score, min(100, 55 + len(features) * 8))
-    ux_score = 50
-    ui_status = str((ui_smoke_result or {}).get("status") or "").lower()
-    if ui_status == "pass":
-        ux_score += 30
-    if has_screenshot:
-        ux_score += 15
-    if known_limits:
-        ux_score -= min(30, len(known_limits) * 10)
-    ux_score = max(0, min(100, ux_score))
+    ux_inputs = _ux_score_inputs(
+        project,
+        files=files,
+        readme=readme,
+        test_report=test_report,
+        delivery_notes=delivery_notes,
+        screenshot_metadata=screenshot_metadata,
+        ui_smoke_result=ui_smoke_result,
+        known_limits=known_limits,
+    )
+    ux_score = int(ux_inputs["score"])
 
     maintainability_score = 45
     if any(path.endswith("README.md") for path in files) or readme:
@@ -396,7 +626,11 @@ def evaluate_product_acceptance(
     customer_visible_limitations = [str(item) for item in known_limits if str(item).strip()]
     weak_features: list[str] = []
     if ux_score < 60:
-        weak_features.append("low_ux_score")
+        defects = ux_inputs.get("ux_defects", []) if isinstance(ux_inputs.get("ux_defects", []), list) else []
+        if defects:
+            weak_features.extend(f"ux:{item}" for item in defects[:8])
+        else:
+            weak_features.append("ux:evidence_score_below_60")
     if maintainability_score < 60:
         weak_features.append("maintainability_evidence_weak")
 
@@ -430,6 +664,8 @@ def evaluate_product_acceptance(
             "file_count": len(files),
             "video_present": has_video,
             "has_delivery_notes": bool(delivery_notes.strip()),
+            "expected_feature_sources": expected,
+            "ux_score_inputs": ux_inputs,
         },
     }
     report.update({key: layered_status.get(key) for key in ("requirement_decision_status", "product_contract_status", "implementation_status", "delivery_status", "overall_status")})

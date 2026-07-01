@@ -409,6 +409,26 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("truth modules", doc)
         self.assertIn("candidate bundle", doc)
 
+    def test_agent_director_tooling_layer_is_agent_led_not_fixed_pipeline(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        registry = read_source("scripts/agent_tool_registry.py")
+        observer = read_source("scripts/agent_state_observer.py")
+        director = read_source("scripts/agent_director_loop.py")
+        ledger = read_source("scripts/agent_decision_ledger.py")
+
+        self.assertIn("Agent Director Loop", doc)
+        self.assertIn("agent_tool_registry", doc)
+        self.assertIn("agent_decision_ledger.jsonl", doc)
+        self.assertIn("formal live delivery closure remains available as a high-risk tool", doc)
+        self.assertIn("not the only controller that may call public delivery tools", doc)
+        self.assertIn("formal_live_delivery_closure", registry)
+        self.assertIn("commercial_readiness", registry)
+        self.assertIn("observe_run_state", observer)
+        self.assertIn("validate_decision", director)
+        self.assertIn("delivery_manifest_exists", director)
+        self.assertIn("final_bundle_exists", director)
+        self.assertIn("rejected_tools", ledger)
+
 
 if __name__ == "__main__":
     unittest.main()

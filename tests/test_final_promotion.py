@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import scripts.artifact_integrity as artifact_integrity
 import scripts.final_delivery_truth as final_delivery_truth
+import scripts.formal_model_contract as formal_model_contract
 import scripts.final_promotion as final_promotion
 import telegram_live_bridge as bridge
 
@@ -41,6 +42,23 @@ def make_candidate(root: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path, path
     run_dir = root / "run"
     candidate.mkdir()
     (run_dir / "artifacts").mkdir(parents=True)
+    (run_dir / "agent_usage").mkdir(parents=True)
+    formal_model_contract.append_model_call(
+        run_dir,
+        stage="planning",
+        provider="local_model_router",
+        model="qwen2.5:7b-instruct",
+        requested=True,
+        executed=True,
+        status="ok",
+        used_in_formal_chain=True,
+        input_value="plan",
+        output_value="ok",
+    )
+    (run_dir / "agent_usage" / "usage_plan.json").write_text(
+        json.dumps({"requires_model": True, "uses_model": True, "formal_chain_bound": True}),
+        encoding="utf-8",
+    )
     (candidate / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").write_text("{}", encoding="utf-8")
     (candidate / "README.md").write_text("# Candidate\n", encoding="utf-8")
     (candidate / "DELIVERY_NOTES.md").write_text("# DELIVERY_NOTES\n", encoding="utf-8")

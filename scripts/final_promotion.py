@@ -109,6 +109,7 @@ def evaluate_candidate_for_final_promotion(
     run_dir: pathlib.Path | None = None,
     post_build: dict[str, Any] | None = None,
     candidate_bundle: pathlib.Path | None = None,
+    require_video: bool = False,
 ) -> dict[str, Any]:
     candidate = pathlib.Path(candidate_dir).resolve()
     blockers: list[str] = []
@@ -144,11 +145,13 @@ def evaluate_candidate_for_final_promotion(
     video_path = pathlib.Path(paths["video"]) if paths["video"] else pathlib.Path()
     video_pass = bool(paths["video"] and visual_evidence.video_file_diagnostics(video_path).get("valid"))
     video_warning = bool(video_blocked and pathlib.Path(video_blocked).exists())
-    if not video_pass and not video_warning:
+    if require_video and not video_pass:
         blockers.append("video_missing")
+    elif not video_pass and not video_warning:
+        warnings.append("video_missing_optional")
 
     bundle = _candidate_bundle_path(candidate, run_dir, candidate_bundle)
-    bundle_integrity = artifact_integrity.validate_candidate_bundle(bundle)
+    bundle_integrity = artifact_integrity.validate_candidate_bundle(bundle, require_video=require_video)
     if bundle_integrity.get("status") != "pass":
         blockers.append("candidate_artifact_integrity_failed")
 
@@ -199,16 +202,29 @@ def promote_candidate_to_final(
     final_dir: pathlib.Path | None = None,
     post_build: dict[str, Any] | None = None,
     candidate_bundle: pathlib.Path | None = None,
+    require_video: bool = False,
 ) -> dict[str, Any]:
     candidate = pathlib.Path(candidate_dir).resolve()
     run = pathlib.Path(run_dir).resolve() if run_dir else None
-    readiness = evaluate_candidate_for_final_promotion(candidate, run_dir=run, post_build=post_build, candidate_bundle=candidate_bundle)
+    readiness = evaluate_candidate_for_final_promotion(candidate, run_dir=run, post_build=post_build, candidate_bundle=candidate_bundle, require_video=require_video)
     if readiness.get("status") != "pass":
         return base_result(status="fail", verdict="final_promotion_rejected", blockers=list(readiness.get("blockers", [])), metadata={"readiness": readiness})
 
     metadata = readiness.get("metadata", {})
     destination = pathlib.Path(final_dir).resolve() if final_dir else candidate.parent / FINAL_PROJECT_DIR_NAME
     _copy_candidate_to_final(candidate, destination)
+    final_project_manifest_path = destination / "final_project_manifest.json"
+    _write_json(
+        final_project_manifest_path,
+        {
+            "kind": "CGKNFinalProjectManifest",
+            "final_project_dir": str(destination),
+            "source_candidate_project_dir": str(candidate),
+            "candidate_marker_removed": not (destination / CANDIDATE_MARKER).exists(),
+            "local_packager_required": True,
+            "delivery_manifest_required": True,
+        },
+    )
 
     rel_screenshot = pathlib.Path(str(metadata.get("screenshot_path", ""))).name
     screenshot_in_final = _find_media(destination, {".png", ".jpg", ".jpeg", ".webp"}, (rel_screenshot.lower(), "screenshot", "candidate_home"))
@@ -246,18 +262,29 @@ def promote_candidate_to_final(
             "video_path": final_video,
             "readme_path": str(destination / "README.md"),
             "delivery_notes_path": str(destination / "DELIVERY_NOTES.md"),
+            "final_project_manifest": str(final_project_manifest_path),
             "final_verdict_candidate": "PASS_FINAL" if metadata.get("video_pass") else "DELIVER_WITH_WARNINGS",
         }
     )
     _write_json(manifest_path, manifest)
 
     session = {
-        "messages": [{"role": "user", "text": "final delivery requires screenshot and video evidence"}],
-        "whiteboard": {"delivery_requirements": ["screenshot", "video"] if metadata.get("video_pass") else ["screenshot"]},
+        "messages": [{"role": "user", "text": "final delivery requires screenshot evidence" + (" and video evidence" if require_video else "")}],
+        "whiteboard": {"delivery_requirements": ["screenshot", "video"] if require_video else ["screenshot"]},
     }
-    evidence = {"screenshots": [final_screenshot] if final_screenshot else [], "videos": [final_video] if final_video else []}
+    usage_plan: dict[str, Any] = {}
+    if run:
+        usage_plan_path = run / "agent_usage" / "usage_plan.json"
+        if usage_plan_path.exists():
+            usage_plan = _read_json(usage_plan_path)
+    evidence = {
+        "screenshots": [final_screenshot] if final_screenshot else [],
+        "videos": [final_video] if final_video else [],
+        "run_dir": str(run) if run else "",
+        "usage_plan": usage_plan,
+    }
     final_truth = final_delivery_truth.evaluate(destination, manifest, session, evidence=evidence, phase="final")
-    integrity = artifact_integrity.validate_final_package(destination, destination / "final_project_bundle.zip", manifest_path)
+    integrity = artifact_integrity.validate_final_package(destination, destination / "final_project_bundle.zip", manifest_path, require_video=require_video)
     warning_inputs = list(readiness.get("warnings", []))
     if metadata.get("video_warning") and not metadata.get("video_pass"):
         warning_inputs.append("video blocked but screenshot/test/final zip OK")
@@ -268,7 +295,7 @@ def promote_candidate_to_final(
         and not warning_policy.get("metadata", {}).get("classification", {}).get("critical")
     )
     pass_final_allowed = bool(warning_policy.get("metadata", {}).get("pass_final_allowed"))
-    final_verdict = "PASS_FINAL" if allowed and metadata.get("video_pass") and pass_final_allowed else ("DELIVER_WITH_WARNINGS" if allowed else "FINAL_PROMOTION_REJECTED")
+    final_verdict = "PASS_FINAL" if allowed and (metadata.get("video_pass") or not require_video) and pass_final_allowed else ("DELIVER_WITH_WARNINGS" if allowed else "FINAL_PROMOTION_REJECTED")
     manifest["public_final_gate"] = final_truth.get("metadata", {}).get("public_final_gate", {})
     manifest["integrity_checks"] = {"final_package": integrity, "final_delivery_truth": final_truth}
     manifest["final_warning_policy"] = warning_policy

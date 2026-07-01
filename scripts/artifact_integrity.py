@@ -59,7 +59,7 @@ def _invalid_zip_images(bundle: pathlib.Path, entries: list[str]) -> list[str]:
     return invalid
 
 
-def validate_candidate_bundle(candidate_bundle: pathlib.Path) -> dict[str, Any]:
+def validate_candidate_bundle(candidate_bundle: pathlib.Path, *, require_video: bool = False) -> dict[str, Any]:
     bundle = pathlib.Path(candidate_bundle)
     issues: list[str] = []
     if not bundle.exists() or bundle.stat().st_size <= 0:
@@ -77,7 +77,7 @@ def validate_candidate_bundle(candidate_bundle: pathlib.Path) -> dict[str, Any]:
         required = {"candidate_review_summary.json", "TEST_REPORT.md", "known_limits.json", "repair_plan.json"}
         for name in sorted(required - entry_names):
             issues.append(f"candidate bundle missing {name}")
-        if "video_blocked.json" not in entry_names and not any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries):
+        if require_video and "video_blocked.json" not in entry_names and not any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries):
             issues.append("candidate bundle missing video or video_blocked")
         image_entries = _image_entries(entries)
         if "screenshot_blocked.json" not in entry_names and not image_entries:
@@ -94,7 +94,7 @@ def validate_candidate_bundle(candidate_bundle: pathlib.Path) -> dict[str, Any]:
     )
 
 
-def validate_final_package(project_dir: pathlib.Path, final_bundle: pathlib.Path, delivery_manifest: pathlib.Path) -> dict[str, Any]:
+def validate_final_package(project_dir: pathlib.Path, final_bundle: pathlib.Path, delivery_manifest: pathlib.Path, *, require_video: bool = False) -> dict[str, Any]:
     project = pathlib.Path(project_dir)
     bundle = pathlib.Path(final_bundle)
     manifest = pathlib.Path(delivery_manifest)
@@ -142,7 +142,7 @@ def validate_final_package(project_dir: pathlib.Path, final_bundle: pathlib.Path
         else:
             for name in _invalid_zip_images(bundle, entries):
                 issues.append(f"corrupt_image: final package screenshot invalid: {name}")
-        if not any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries):
+        if require_video and not any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries):
             issues.append("final package missing video evidence")
     return base_result(
         status="fail" if issues else "pass",

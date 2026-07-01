@@ -34,6 +34,7 @@ CGNK Kernel is fixed responsible for:
 24. Keeping Commercial Hardening Lane as an assessment and reporting lane only. `scripts/run_commercial_readiness.py`, provider resilience, sandbox security, product acceptance, customer status rendering, and Telegram delivery split helpers may classify release readiness, but they do not create a second formal generation or delivery route.
 25. Running Discovery & Selection Lane before complex project provider generation. This lane writes `run_dir/discovery/discovery_brief.md`, `candidate_directions.json`, `candidate_scorecard.json`, `selected_project_direction.json`, `rejected_options.md`, and `complexity_project_contract.json`, then passes the selected direction and contract into the existing provider route. It is an upstream selection and contract-freezing lane, not a project generator or delivery route.
 26. Treating clear requirement definition, scope, priorities, constraints, acceptance criteria, rejected options, and next steps as valuable intermediate outcomes when final code delivery is not complete yet.
+27. Keeping the Agent Director Loop as the agent-led coordination surface: it observes run state, selects tools from `agent_tool_registry`, validates evidence gates, executes the selected tool, and writes `artifacts/agent_decision_ledger.jsonl`. It does not replace the reviewed Telegram provider route, `local_packager`, or the public delivery gate.
 
 ## Kernel Prohibitions
 
@@ -55,6 +56,7 @@ CGNK Kernel must not:
 13. Treat internal reports, manifests, ledgers, or README-only folders as user-facing delivery results.
 14. Treat generated code, a runnable demo, or a packaged bundle as success when it does not align with a clear customer requirement, frozen scope, and acceptance criteria.
 15. Treat Commercial Hardening reports as delivery artifacts or as proof that a candidate passed final delivery. Commercial readiness can recommend release labels, but final public delivery still requires the reviewed provider route, `local_packager`, `delivery_manifest.json`, and public final gate.
+16. Treat `run_formal_live_delivery_closure.py`, `final_promotion.py`, `run_commercial_readiness.py`, or `formal_delivery_evidence.py` as the only controller for every project. These scripts are callable tools or evidence gates under the Agent Director Loop; they must not turn CGKN back into a fixed pipeline where the agent only fills stage text.
 
 ## Stable Flow
 
@@ -137,6 +139,23 @@ Public narration is allowed only at Telegram reply boundaries. It may redact int
 Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.
 
 Commercial Hardening Lane is not a generation path. `provider_resilience.py` can block live generation when quota is exhausted or select an enabled backup provider. `sandbox_security.py` can block final promotion on unsafe generated-project commands. `commercial_warning_policy.py` can downgrade PASS_FINAL to warning delivery or rejection based on classified warnings. `product_acceptance.py` can mark a project unsuitable for commercial release. `customer_status.py` and `scripts/telegram_delivery/` translate state for users and split candidate review from final delivery. None of these modules may mint `final_project_bundle.zip`, `delivery_manifest.json`, `PASS_FINAL`, or `final_delivered` outside the existing `local_packager` and final public delivery gate.
+
+## Agent Director Tooling Layer
+
+The Agent Director Loop keeps CGKN agent-led:
+
+```text
+observe run state
+-> choose a registered tool
+-> validate evidence gates
+-> execute the selected tool
+-> write agent_decision_ledger.jsonl
+-> observe again
+```
+
+`agent_state_observer.py` reports facts only. It must not choose the next step. `agent_tool_registry.py` declares callable tools and their allowed conditions. `agent_director_loop.py` validates choices before execution. `agent_decision_ledger.py` records the selected tool, rejected tools, observed state hash, reason, expected outputs, status, and result references.
+
+The formal live delivery closure remains available as a high-risk tool for final closure work. It is not the only controller that may call public delivery tools, and it does not weaken the rule that final public delivery requires `local_packager`, `delivery_manifest.json`, `final_project_bundle.zip`, evidence integrity, and the public delivery gate.
 
 ## Legacy Code Policy
 
