@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:19:45.374443+00:00",
+  "generated_at": "2026-06-26T17:40:17.538523+00:00",
   "chat_id": "chat-4",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-4\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -20,7 +20,9 @@
     "user_rules": [],
     "acceptance_criteria": [],
     "change_requests": [],
-    "delivery_requirements": [],
+    "delivery_requirements": [
+      "可运行项目包"
+    ],
     "decision_log": [
       "项目输入进入后直接启动正式 agent 生成；客服回复由模型生成。"
     ],
@@ -35,72 +37,16 @@
     "开始生成"
   ],
   "generation": {
-    "status": "rework_blocked",
+    "status": "ready",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-08T16:19:45.348614+00:00",
-    "error": "provider_api_request_failed: provider_api_request_failed: HTTP 403: {\"error\":\"Key usage limit exceeded\"} [endpoint=https://api.gptsapi.net, retryable=false]",
-    "provider_error_type": "PROVIDER_KEY_USAGE_LIMIT",
+    "finished_at": "2026-06-26T17:40:06.622399+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpm4jq0z00\\sessions\\chat-4\\agent_session.jsonl",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-4",
-    "partial_artifacts": [
-      "generation_context_snapshot.json"
-    ],
-    "current_stage": "api_provider_project_generation",
-    "provider_recovery_needed": true,
-    "provider_recovery_mode": "stage_resume",
-    "delivery_allowed": false,
-    "delivery_gate": {
-      "delivery_allowed": false,
-      "status": "REWORK",
-      "phase": "final",
-      "missing": [
-        "runnable_project",
-        "test_report",
-        "test_commands"
-      ],
-      "requirements": {
-        "screenshot": false,
-        "video": false,
-        "generated_image": false,
-        "background": false,
-        "sprite": false,
-        "demo_video": false
-      },
-      "asset_counts": {
-        "packages": 1,
-        "screenshots": 0,
-        "generated_images": 0,
-        "generated_backgrounds": 0,
-        "generated_sprites": 0,
-        "videos": 0
-      },
-      "quality_evidence": {
-        "readme_found": true,
-        "test_report_found": false,
-        "test_report_has_commands": false,
-        "test_report_has_no_test_executed": false,
-        "test_report_mentions_sample_input": false,
-        "delivery_notes_found": false,
-        "product_plan_found": false,
-        "output_contract_found": false,
-        "technical_plan_found": false,
-        "build_plan_found": false,
-        "preview_evidence_found": false,
-        "preview_placeholder_found": false,
-        "sample_input_found": false,
-        "test_report_path": "",
-        "delivery_notes_path": ""
-      },
-      "public_suffixes": [
-        ".gif",
-        ".jpeg",
-        ".jpg",
-        ".mp4",
-        ".png",
-        ".webm",
-        ".webp",
-        ".zip"
-      ]
-    }
+    "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-4\\delivery_manifest.json",
+    "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-4\\final_project_bundle.zip",
+    "pipeline_manifest_path": "",
+    "generation_context_snapshot_path": "",
+    "pipeline_run_summary_path": ""
   },
   "module_mapping": [
     {

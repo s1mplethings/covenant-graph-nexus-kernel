@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-09T03:19:16.513076+00:00",
+  "generated_at": "2026-07-01T16:57:00.434573+00:00",
   "chat_id": "chat-block",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-block\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -42,6 +42,7 @@
         "generated_background",
         "generated_sprite"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": true,
         "video": false,
@@ -86,7 +87,7 @@
         ".zip"
       ]
     },
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpuwlvo688\\project"
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpw6z8tn_h\\project"
   },
   "module_mapping": [
     {

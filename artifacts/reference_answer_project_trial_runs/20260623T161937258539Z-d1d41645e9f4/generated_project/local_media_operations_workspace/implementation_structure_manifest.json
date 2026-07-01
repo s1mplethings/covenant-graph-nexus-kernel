@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "mode": "deterministic_degraded_structure",
+  "created_at": "2026-06-23T16:19:37.338145+00:00",
+  "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T161937258539Z-d1d41645e9f4\\generated_project\\local_media_operations_workspace",
+  "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T161937258539Z-d1d41645e9f4",
+  "core_files": [
+    "orchestrator.py",
+    "stages.py",
+    "cli.py",
+    "gui_app.py",
+    "local_media_adapter.py",
+    "local_model_adapter.py",
+    "local_transcription_fixture_adapter.py",
+    "production_media_decode_contract.py",
+    "real_asr_adapter_contract.py",
+    "asr_evidence_tier.py",
+    "asr_quality_gate.py",
+    "real_asr_multi_sample_eval.py",
+    "asr_reference_transcript_eval.py",
+    "commercial_promotion_gate.py",
+    "user_media_pipeline_contract.py"
+  ],
+  "fixture_processing": {
+    "fixture": "fixtures/media_fixture.json",
+    "files": [
+      "fixtures/sample_video.txt",
+      "fixtures/sample_audio.txt",
+      "fixtures/asset_notes.txt",
+      "fixtures/sample_audio.wav"
+    ]
+  },
+  "stage_artifacts": [
+    "stage_plan.json",
+    "media_manifest.json",
+    "audio_chunk_manifest.json",
+    "transcript_merged.json",
+    "segment_analysis.json",
+    "selected_segments.json",
+    "clip_manifest.json",
+    "export_results.json"
+  ],
+  "not_delivery_evidence": true
+}

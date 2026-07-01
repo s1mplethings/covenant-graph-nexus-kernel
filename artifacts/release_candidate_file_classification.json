@@ -1,11 +1,15 @@
 {
-  "created_at": "2026-06-26T03:42:15.714649+00:00",
-  "dirty_count": 117,
+  "created_at": "2026-06-26T04:44:58.072028+00:00",
+  "dirty_count": 119,
   "categories": {
     "A_core_code": [],
     "B_test_code": [],
     "C_docs": [],
     "D_necessary_artifacts": [
+      {
+        "status": "M",
+        "path": "artifacts/cgkn_naming_consistency_report.md"
+      },
       {
         "status": "M",
         "path": "artifacts/complexity_scale_acceptance.json"
@@ -32,18 +36,6 @@
       },
       {
         "status": "M",
-        "path": "artifacts/pr_3_changed_files.txt"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/pr_3_scope_audit.json"
-      },
-      {
-        "status": "M",
-        "path": "artifacts/pr_3_scope_audit.md"
-      },
-      {
-        "status": "M",
         "path": "artifacts/reference_answer_gap_analysis.md"
       },
       {
@@ -66,7 +58,19 @@
       },
       {
         "status": "??",
+        "path": "artifacts/full_pytest_current_output.txt"
+      },
+      {
+        "status": "??",
+        "path": "artifacts/full_pytest_current_result.json"
+      },
+      {
+        "status": "??",
         "path": "artifacts/full_pytest_output.txt"
+      },
+      {
+        "status": "??",
+        "path": "artifacts/pytest_collect_current.txt"
       },
       {
         "status": "??",
@@ -481,17 +485,23 @@
         "path": "artifacts/write_probe.txt"
       }
     ],
-    "review_required": []
+    "review_required": [
+      {
+        "status": "??",
+        "path": "examples/product_studio/runs/feasibility_current/"
+      }
+    ]
   },
   "recommended_commit_files": [
-    "artifacts/pr_3_changed_files.txt",
-    "artifacts/pr_3_scope_audit.json",
-    "artifacts/pr_3_scope_audit.md"
+    "artifacts/cgkn_naming_consistency_report.md"
   ],
   "recommended_exclude_files": [
     "artifacts/complexity_scale_file_inventory.txt",
     "artifacts/customer_agent_long_journey_runs/",
+    "artifacts/full_pytest_current_output.txt",
+    "artifacts/full_pytest_current_result.json",
     "artifacts/full_pytest_output.txt",
+    "artifacts/pytest_collect_current.txt",
     "artifacts/pytest_collect_full.txt",
     "artifacts/pytest_progress.jsonl",
     "artifacts/reference_answer_project_trial_runs/",
@@ -594,5 +604,7 @@
     "examples/project_memory/chat-status-package/project_memory.artifact.json",
     "examples/project_memory/task-board-review/"
   ],
-  "review_required_files": []
+  "review_required_files": [
+    "examples/product_studio/runs/feasibility_current/"
+  ]
 }

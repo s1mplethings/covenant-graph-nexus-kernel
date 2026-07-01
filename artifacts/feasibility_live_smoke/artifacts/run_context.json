@@ -1,0 +1,8 @@
+{
+  "raw_user_goal": "Build a tiny local notes CLI with README, tests, and delivery evidence",
+  "model": "gpt-4.1",
+  "base_url": "https://api.gptsapi.net/v1",
+  "generation_mode": "api",
+  "requested_project_dir": "D:\\CGKN\\generated\\feasibility-live-smoke",
+  "created_at": "2026-06-26T04:47:03.862808+00:00"
+}

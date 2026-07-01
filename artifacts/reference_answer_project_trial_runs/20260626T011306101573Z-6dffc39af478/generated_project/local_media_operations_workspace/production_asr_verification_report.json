@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-06-26T01:13:09.319173+00:00",
+  "adapter_kind": "none",
+  "evidence_tier": "none",
+  "asr_quality_status": "not_ready",
+  "production_candidate": false,
+  "production_verified": false,
+  "sample_count": 1,
+  "successful_samples": 0,
+  "failed_samples": 1,
+  "timeout_samples": 0,
+  "invalid_output_samples": 0,
+  "success_rate": 0.0,
+  "non_empty_text_rate": 0.0,
+  "non_empty_segments_rate": 0.0,
+  "reference_transcript_coverage": 0.0,
+  "quality_metrics": {
+    "normalized_text_match_rate": 0.0,
+    "token_error_rate": null,
+    "character_error_rate": null
+  },
+  "human_review_status": "not_reviewed",
+  "production_decode_status": "not_attempted",
+  "user_media_input_status": "not_configured",
+  "delivery_integrity_status": "PASS",
+  "promotion_decision": "COMMERCIAL_BETA",
+  "readiness_level": "COMMERCIAL_BETA",
+  "promotion_blockers": [
+    "commercial_promotion_gate_not_requested",
+    "missing_real_asr_command",
+    "fixture_or_non_real_asr_adapter",
+    "asr_evidence_tier_not_candidate:none",
+    "asr_quality_not_production_candidate:not_ready",
+    "sample_count_below_promotion_threshold",
+    "success_rate_below_promotion_threshold",
+    "transcript_schema_validation_failed",
+    "missing_reference_transcripts",
+    "token_error_rate_unavailable",
+    "character_error_rate_unavailable",
+    "user_media_input_not_verified",
+    "production_decode_evidence_missing",
+    "asr_path_degraded"
+  ],
+  "non_blocking_ready_gaps": [],
+  "thresholds": {
+    "min_samples": 3,
+    "min_success_rate": 0.95,
+    "min_reference_coverage": 1.0,
+    "max_token_error_rate": 0.25,
+    "max_character_error_rate": 0.2,
+    "max_timeout_count": 0,
+    "max_invalid_output_count": 0
+  },
+  "reference_transcript_evaluation": {
+    "generated_at": "2026-06-26T01:13:09.319123+00:00",
+    "status": "NOT_READY",
+    "manifest_path": "",
+    "sample_count": 1,
+    "reference_count": 0,
+    "verified_reference_count": 0,
+    "reference_transcript_coverage": 0.0,
+    "quality_metrics": {
+      "normalized_text_match_rate": 0.0,
+      "token_error_rate": null,
+      "character_error_rate": null
+    },
+    "sample_evaluations": [],
+    "blockers": [
+      "missing_reference_transcripts"
+    ]
+  },
+  "report_path": "production_asr_verification_report.json",
+  "commercial_ready": false,
+  "reason": "Promotion remains below COMMERCIAL_CANDIDATE because required production ASR evidence is incomplete."
+}

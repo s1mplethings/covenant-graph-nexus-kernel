@@ -1,0 +1,67 @@
+{
+  "kind": "ProviderComponentCheckpoint",
+  "created_at": "2026-06-26T13:26:23.528997+00:00",
+  "component_id": "customer_service",
+  "project_spec_hash": "e3381f958efe636dee92f9110657421a00bc869a61b5b4bbb97a375c91814053",
+  "status": "pass",
+  "semantic_review": {
+    "status": "pass",
+    "reviewer": "local_component_semantic_contract",
+    "checks": [
+      "valid_files",
+      "component_quality_gate_not_failed",
+      "component_self_test_not_failed"
+    ],
+    "blockers": []
+  },
+  "provider_error_type": "",
+  "error": "",
+  "raw_output": "{\n  \"component_id\": \"customer_service\",\n  \"summary\": \"Structures the user's request into a concrete project intake artifact for downstream discovery and generation components. This component only owns customer-service intake files and does not generate implementation, README, tests, or delivery evidence.\",\n  \"files\": [\n    {\n      \"path\": \"customer_service/project_request.json\",\n      \"content\": \"{\\n  \\\"kind\\\": \\\"ProjectRequest\\\",\\n  \\\"version\\\": 1,\\n  \\\"created_by_component\\\": \\\"customer_service\\\",\\n  \\\"raw_user_goal\\\": \\\"Build a tiny local notes CLI with README, tests, API evidence, and local model evidence\\\",\\n  \\\"normalized_goal\\\": \\\"Build a tiny local-first notes command-line application with documentation, automated tests, evidence of API usage, and evidence of local model capability or degraded-mode reporting.\\\",\\n  \\\"requested_product\\\": {\\n    \\\"primary_shape\\\": \\\"local CLI application\\\",\\n    \\\"domain\\\": \\\"personal notes\\\",\\n    \\\"user_value\\\": \\\"Create, list, search, and inspect notes locally with verifiable behavior and transparent evidence artifacts.\\\",\\n    \\\"target_user\\\": \\\"A local developer or operator who wants a small notes tool that can be tested and audited without cloud dependence.\\\"\\n  },\\n  \\\"explicit_user_requirements\\\": [\\n    \\\"Tiny local notes CLI\\\",\\n    \\\"README\\\",\\n    \\\"Tests\\\",\\n    \\\"API evidence\\\",\\n    \\\"Local model evidence\\\"\\n  ],\\n  \\\"interpreted_requirements\\\": [\\n    \\\"The notes data should be stored locally in a simple inspectable format.\\\",\\n    \\\"CLI commands should be runnable without a remote service.\\\",\\n    \\\"Tests should exercise the CLI or shared core behavior.\\\",\\n    \\\"API evidence should be represented by reproducible sample request/response artifacts or documented integration checks.\\\",\\n    \\\"Local model evidence should honestly report configured local model availability and must not claim success when the model is missing.\\\"\\n  ],\\n  \\\"constraints\\\": {\\n    \\\"local_first\\\": true,\\n    \\\"must_report_missing_local_model_honestly\\\": true,\\n    \\\"avoid_fake_pass\\\": true,\\n    \\\"avoid_cloud_requirement_for_core_notes_flow\\\": true,\\n    \\\"implementation_scope\\\": \\\"small but runnable\\\"\\n  },\\n  \\\"acceptance_signals\\\": [\\n    \\\"A user can add and list notes through the CLI.\\\",\\n    \\\"A user can search notes locally.\\\",\\n    \\\"README explains install and usage commands.\\\",\\n    \\\"Automated tests can be run locally and pass.\\\",\\n    \\\"API evidence is stored as a concrete artifact, not only claimed in prose.\\\",\\n    \\\"Local model evidence records success, configuration missing, or degraded mode explicitly.\\\"\\n  ],\\n  \\\"handoff\\\": {\\n    \\\"next_component\\\": \\\"project_generation\\\",\\n    \\\"handoff_notes\\\": [\\n      \\\"Generate the actual project files only in downstream implementation components.\\\",\\n      \\\"Keep the user's tiny notes CLI goal authoritative unless a later approved requirement explicitly changes it.\\\",\\n      \\\"Preserve honest degraded-mode behavior for local model evidence.\\\"\\n    ]\\n  }\\n}\\n\"\n    },\n    {\n      \"path\": \"customer_service/intake_summary.md\",\n      \"content\": \"# Customer Service Intake Summary\\n\\n## Raw goal\\nBuild a tiny local notes CLI with README, tests, API evidence, and local model evidence.\\n\\n## Structured request\\nThe user is asking for a small local-first notes command-line tool, not a broad cloud product. The expected project should include runnable CLI behavior, documentation, tests, and verifiable evidence artifacts.\\n\\n## Required downstream delivery signals\\n- Local notes CLI behavior is implemented.\\n- README documents setup and usage.\\n- Tests validate core or CLI behavior.\\n- API evidence is concrete and reviewable.\\n- Local model evidence is concrete and honestly reports missing configuration as degraded instead of successful.\\n\\n## Handoff\\nHand off this structured request to the project generation component for blueprinting and implementation planning.\\n\"\n    }\n  ],\n  \"public_contract\": {\n    \"exports\": [\n      \"customer_service/project_request.json: canonical structured intake artifact for downstream components\",\n      \"customer_service/intake_summary.md: human-readable intake summary and handoff notes\"\n    ]\n  },\n  \"manual_checks\": [\n    \"Confirm customer_service output paths are under customer_service/ only.\",\n    \"Confirm no README.md, tests, implementation code, or delivery evidence files are generated by this component.\",\n    \"Confirm project_request.json preserves the user's tiny local notes CLI goal.\",\n    \"Confirm local model evidence is framed as honest success/degraded reporting, not fake success.\"\n  ],\n  \"self_test\": {\n    \"status\": \"pass\",\n    \"checks\": [\n      \"Generated only two customer_service-owned intake files.\",\n      \"No duplicate prior_manifest paths were present.\",\n      \"The JSON intake artifact is syntactically valid JSON content.\",\n      \"The component exports a clear project_request contract for downstream handoff.\"\n    ]\n  },\n  \"quality_gate\": {\n    \"status\": \"pass\",\n    \"reasons\": [\n      \"Repair blocker removed by avoiding component/owned/README.md and all non-owned root files.\",\n      \"Component scope is limited to customer-service intake.\",\n      \"No placeholders, TODOs, empty files, binary assets, or whole-project files are emitted.\",\n      \"The user's actual request remains visible and structured for downstream components.\"\n    ]\n  }\n}",
+  "parsed_result": {
+    "component_id": "customer_service",
+    "summary": "Structures the user's request into a concrete project intake artifact for downstream discovery and generation components. This component only owns customer-service intake files and does not generate implementation, README, tests, or delivery evidence.",
+    "files": [
+      {
+        "path": "customer_service/project_request.json",
+        "content": "{\n  \"kind\": \"ProjectRequest\",\n  \"version\": 1,\n  \"created_by_component\": \"customer_service\",\n  \"raw_user_goal\": \"Build a tiny local notes CLI with README, tests, API evidence, and local model evidence\",\n  \"normalized_goal\": \"Build a tiny local-first notes command-line application with documentation, automated tests, evidence of API usage, and evidence of local model capability or degraded-mode reporting.\",\n  \"requested_product\": {\n    \"primary_shape\": \"local CLI application\",\n    \"domain\": \"personal notes\",\n    \"user_value\": \"Create, list, search, and inspect notes locally with verifiable behavior and transparent evidence artifacts.\",\n    \"target_user\": \"A local developer or operator who wants a small notes tool that can be tested and audited without cloud dependence.\"\n  },\n  \"explicit_user_requirements\": [\n    \"Tiny local notes CLI\",\n    \"README\",\n    \"Tests\",\n    \"API evidence\",\n    \"Local model evidence\"\n  ],\n  \"interpreted_requirements\": [\n    \"The notes data should be stored locally in a simple inspectable format.\",\n    \"CLI commands should be runnable without a remote service.\",\n    \"Tests should exercise the CLI or shared core behavior.\",\n    \"API evidence should be represented by reproducible sample request/response artifacts or documented integration checks.\",\n    \"Local model evidence should honestly report configured local model availability and must not claim success when the model is missing.\"\n  ],\n  \"constraints\": {\n    \"local_first\": true,\n    \"must_report_missing_local_model_honestly\": true,\n    \"avoid_fake_pass\": true,\n    \"avoid_cloud_requirement_for_core_notes_flow\": true,\n    \"implementation_scope\": \"small but runnable\"\n  },\n  \"acceptance_signals\": [\n    \"A user can add and list notes through the CLI.\",\n    \"A user can search notes locally.\",\n    \"README explains install and usage commands.\",\n    \"Automated tests can be run locally and pass.\",\n    \"API evidence is stored as a concrete artifact, not only claimed in prose.\",\n    \"Local model evidence records success, configuration missing, or degraded mode explicitly.\"\n  ],\n  \"handoff\": {\n    \"next_component\": \"project_generation\",\n    \"handoff_notes\": [\n      \"Generate the actual project files only in downstream implementation components.\",\n      \"Keep the user's tiny notes CLI goal authoritative unless a later approved requirement explicitly changes it.\",\n      \"Preserve honest degraded-mode behavior for local model evidence.\"\n    ]\n  }\n}\n"
+      },
+      {
+        "path": "customer_service/intake_summary.md",
+        "content": "# Customer Service Intake Summary\n\n## Raw goal\nBuild a tiny local notes CLI with README, tests, API evidence, and local model evidence.\n\n## Structured request\nThe user is asking for a small local-first notes command-line tool, not a broad cloud product. The expected project should include runnable CLI behavior, documentation, tests, and verifiable evidence artifacts.\n\n## Required downstream delivery signals\n- Local notes CLI behavior is implemented.\n- README documents setup and usage.\n- Tests validate core or CLI behavior.\n- API evidence is concrete and reviewable.\n- Local model evidence is concrete and honestly reports missing configuration as degraded instead of successful.\n\n## Handoff\nHand off this structured request to the project generation component for blueprinting and implementation planning.\n"
+      }
+    ],
+    "public_contract": {
+      "exports": [
+        "customer_service/project_request.json: canonical structured intake artifact for downstream components",
+        "customer_service/intake_summary.md: human-readable intake summary and handoff notes"
+      ]
+    },
+    "manual_checks": [
+      "Confirm customer_service output paths are under customer_service/ only.",
+      "Confirm no README.md, tests, implementation code, or delivery evidence files are generated by this component.",
+      "Confirm project_request.json preserves the user's tiny local notes CLI goal.",
+      "Confirm local model evidence is framed as honest success/degraded reporting, not fake success."
+    ],
+    "self_test": {
+      "status": "pass",
+      "checks": [
+        "Generated only two customer_service-owned intake files.",
+        "No duplicate prior_manifest paths were present.",
+        "The JSON intake artifact is syntactically valid JSON content.",
+        "The component exports a clear project_request contract for downstream handoff."
+      ]
+    },
+    "quality_gate": {
+      "status": "pass",
+      "reasons": [
+        "Repair blocker removed by avoiding component/owned/README.md and all non-owned root files.",
+        "Component scope is limited to customer-service intake.",
+        "No placeholders, TODOs, empty files, binary assets, or whole-project files are emitted.",
+        "The user's actual request remains visible and structured for downstream components."
+      ]
+    }
+  },
+  "file_count": 2,
+  "usage": {},
+  "evidence": {}
+}

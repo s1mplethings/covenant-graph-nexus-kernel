@@ -1,0 +1,27 @@
+{
+  "raw_goal": "我想要一个本地视频素材处理工具",
+  "interpreted_needs": [
+    {
+      "id": "media_workflow_need",
+      "need": "A local-first media workflow that turns raw files into traceable review/export artifacts.",
+      "customer_problem": "The customer likely needs repeatable processing and review, not just a video player or static demo.",
+      "target_user": "Editors, operators, or solo creators managing local media material.",
+      "evidence_from_goal": "我想要一个本地视频素材处理工具",
+      "assumptions": [
+        "Local operation matters unless the customer explicitly asks for cloud processing."
+      ],
+      "risk_if_wrong": "medium"
+    },
+    {
+      "id": "decision_clarity_need",
+      "need": "A product that first clarifies the customer problem, scope, and acceptance criteria before implementation.",
+      "customer_problem": "The raw goal may be underspecified and could otherwise collapse into a small demo.",
+      "target_user": "The customer or internal operator who needs a clear first version.",
+      "evidence_from_goal": "我想要一个本地视频素材处理工具",
+      "assumptions": [
+        "CGKN should choose a deliverable MVP and expose non-goals."
+      ],
+      "risk_if_wrong": "low"
+    }
+  ]
+}

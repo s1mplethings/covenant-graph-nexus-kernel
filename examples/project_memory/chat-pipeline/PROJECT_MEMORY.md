@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:18:30.841459+00:00
+generated_at: 2026-07-01T16:52:30.685708+00:00
 revision_count: 0
 ---
 
@@ -110,7 +110,7 @@ revision_count: 0
 
 - Status: `ready_with_warnings`
 - Started at: ``
-- Finished at: `2026-06-08T16:18:30.807913+00:00`
+- Finished at: `2026-07-01T16:52:30.620322+00:00`
 - Result path: ``
 
 ## Update Rules

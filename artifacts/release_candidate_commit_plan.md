@@ -10,15 +10,16 @@
 
 ## Suggested Commit Files
 
-- `artifacts/pr_3_changed_files.txt`
-- `artifacts/pr_3_scope_audit.json`
-- `artifacts/pr_3_scope_audit.md`
+- `artifacts/cgkn_naming_consistency_report.md`
 
 ## Suggested Exclude Files
 
 - `artifacts/complexity_scale_file_inventory.txt`
 - `artifacts/customer_agent_long_journey_runs/`
+- `artifacts/full_pytest_current_output.txt`
+- `artifacts/full_pytest_current_result.json`
 - `artifacts/full_pytest_output.txt`
+- `artifacts/pytest_collect_current.txt`
 - `artifacts/pytest_collect_full.txt`
 - `artifacts/pytest_progress.jsonl`
 - `artifacts/reference_answer_project_trial_runs/`
@@ -123,7 +124,7 @@
 
 ## Review Required Files
 
-- none
+- `examples/product_studio/runs/feasibility_current/`
 
 ## Suggested PR Description
 

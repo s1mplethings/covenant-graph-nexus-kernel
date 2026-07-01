@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-06-23T17:24:25.349017+00:00",
+  "ready_decision": "NOT_READY",
+  "commercial_ready": false,
+  "promotion_decision": "COMMERCIAL_BETA",
+  "adapter_kind": "none",
+  "evidence_tier": "none",
+  "production_asr": false,
+  "degraded": true,
+  "asr_quality_status": "not_ready",
+  "reference_transcript_coverage": 0.0,
+  "quality_metrics": {
+    "normalized_text_match_rate": 0.0,
+    "token_error_rate": null,
+    "character_error_rate": null
+  },
+  "reliability_status": "not_ready",
+  "human_review_status": "missing",
+  "artifact_integrity_status": "PASS",
+  "delivery_status": "PASS",
+  "critical_blockers": [
+    "commercial_ready_gate_not_requested",
+    "ready_adapter_kind_not_real_local_asr",
+    "ready_evidence_tier_insufficient:none",
+    "promotion_decision_not_candidate:COMMERCIAL_BETA",
+    "promotion_report_has_blockers",
+    "production_asr_not_verified_true",
+    "ready_asr_path_degraded",
+    "asr_multi_sample_quality_not_pass",
+    "ready_sample_count_below_minimum",
+    "ready_failed_samples_above_threshold",
+    "ready_reference_transcript_coverage_below_threshold",
+    "ready_token_error_rate_unavailable_or_high",
+    "ready_character_error_rate_unavailable_or_high",
+    "repeat_reliability_not_pass",
+    "reliability_run_count_below_minimum",
+    "reliability_outputs_not_deterministic",
+    "ready_production_decode_missing",
+    "ready_user_media_input_missing",
+    "human_review_evidence_missing"
+  ],
+  "non_blocking_gaps": [],
+  "evidence_references": {
+    "promotion_report": "production_asr_verification_report.json",
+    "reliability_report": "production_reliability_report.json",
+    "human_review_evidence": ""
+  },
+  "thresholds": {
+    "min_samples": 3,
+    "min_reference_coverage": 1.0,
+    "max_token_error_rate": 0.25,
+    "max_character_error_rate": 0.2,
+    "max_failed_samples": 0,
+    "max_timeout_samples": 0,
+    "max_invalid_output_samples": 0
+  },
+  "gate_test_only": false,
+  "report_path": "commercial_ready_report.json",
+  "reason": "COMMERCIAL_READY evidence is incomplete; candidate or delivery success alone is insufficient."
+}

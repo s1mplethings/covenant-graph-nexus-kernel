@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:19:57.054746+00:00
+generated_at: 2026-06-30T16:08:57.958488+00:00
 revision_count: 0
 ---
 
@@ -111,7 +111,7 @@ revision_count: 0
 
 - Status: `rework_blocked`
 - Started at: ``
-- Finished at: `2026-06-08T16:19:57.032241+00:00`
+- Finished at: `2026-06-30T16:08:57.947148+00:00`
 - Result path: ``
 
 ## Update Rules

@@ -22,57 +22,57 @@
     "requirement_decision_artifacts": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/customer_goal_brief.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/need_interpretations.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/candidate_requirements.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/requirement_scorecard.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/selected_requirement.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/rejected_requirements.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/mvp_scope.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/non_goals.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/acceptance_contract.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/customer_decision_summary.md"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/customer_goal_brief.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/need_interpretations.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/candidate_requirements.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/requirement_scorecard.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/selected_requirement.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/rejected_requirements.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/mvp_scope.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/non_goals.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/acceptance_contract.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/customer_decision_summary.md"
       ]
     },
     "discovery_artifacts": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/discovery_brief.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/candidate_directions.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/candidate_scorecard.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/selected_project_direction.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/rejected_options.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/complexity_project_contract.json"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/discovery_brief.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/candidate_directions.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/candidate_scorecard.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/selected_project_direction.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/rejected_options.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/complexity_project_contract.json"
       ]
     },
     "complexity_project_contract": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/complexity_project_contract.json"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/complexity_project_contract.json"
       ]
     },
     "product_brief": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/product_brief.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/product_brief.md"
       ]
     },
     "technical_plan": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/technical_plan.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/technical_plan.md"
       ]
     },
     "interaction_design": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/interaction_design.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/interaction_design.md"
       ]
     },
     "acceptance_matrix": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/acceptance_matrix.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/acceptance_matrix.md"
       ]
     },
     "planning_contract_gate": {
@@ -82,142 +82,142 @@
         "technical_plan.md",
         "interaction_design.md",
         "acceptance_matrix.md",
-        "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json"
+        "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json"
       ]
     },
     "single_orchestrator": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/orchestrator.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/stages.py"
+        "generated/complexity-scale-workbench-20260626T011336Z/orchestrator.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/stages.py"
       ]
     },
     "cli_entry": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/cli.py"
+        "generated/complexity-scale-workbench-20260626T011336Z/cli.py"
       ]
     },
     "gui_entry": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/gui_app.py"
+        "generated/complexity-scale-workbench-20260626T011336Z/gui_app.py"
       ]
     },
     "shared_gui_cli_core": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/cli.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/gui_app.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/orchestrator.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/stages.py"
+        "generated/complexity-scale-workbench-20260626T011336Z/cli.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/gui_app.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/orchestrator.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/stages.py"
       ]
     },
     "stage_artifacts": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/stage_plan.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/media_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/audio_chunk_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/transcript_merged.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/segment_analysis.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/selected_segments.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/clip_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/export_results.json"
+        "generated/complexity-scale-workbench-20260626T011336Z/stage_plan.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/media_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/audio_chunk_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/transcript_merged.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/segment_analysis.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/selected_segments.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/clip_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/export_results.json"
       ]
     },
     "artifact_traceability": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/media_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/audio_chunk_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/transcript_merged.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/segment_analysis.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/selected_segments.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/clip_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/export_results.json"
+        "generated/complexity-scale-workbench-20260626T011336Z/media_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/audio_chunk_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/transcript_merged.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/segment_analysis.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/selected_segments.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/clip_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/export_results.json"
       ]
     },
     "readme": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/README.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/README.md"
       ]
     },
     "test_report": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/TEST_REPORT.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/TEST_REPORT.md"
       ]
     },
     "delivery_notes": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/DELIVERY_NOTES.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/DELIVERY_NOTES.md"
       ]
     },
     "screenshot": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/screenshots/delivery_smoke_screenshot.png"
+        "generated/complexity-scale-workbench-20260626T011336Z/screenshots/delivery_smoke_screenshot.png"
       ]
     },
     "final_zip": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/final_project_bundle.zip"
+        "generated/complexity-scale-workbench-20260626T011336Z/final_project_bundle.zip"
       ]
     },
     "delivery_manifest": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/delivery_manifest.json"
+        "generated/complexity-scale-workbench-20260626T011336Z/delivery_manifest.json"
       ]
     },
     "smoke_command": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/delivery_evidence/delivery_smoke_command.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/run_logs/delivery_smoke_command.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/delivery_evidence/delivery_smoke_command.log",
-        "generated/complexity-scale-workbench-20260623T172738Z/run_logs/delivery_smoke_command.log"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/delivery_evidence/delivery_smoke_command.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/run_logs/delivery_smoke_command.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/delivery_evidence/delivery_smoke_command.log",
+        "generated/complexity-scale-workbench-20260626T011336Z/run_logs/delivery_smoke_command.log"
       ]
     },
     "honest_degraded_mode": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/delivery_evidence/delivery_smoke_command.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/candidate_directions.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/candidate_scorecard.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/complexity_project_contract.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/discovery_brief.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/rejected_options.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/discovery/selected_project_direction.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/acceptance_contract.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/candidate_requirements.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/customer_decision_summary.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/customer_goal_brief.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/mvp_scope.md",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/need_interpretations.json",
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z/requirement_decision/selected_requirement.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/asr_evidence_tier.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/audio_chunk_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/capability_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/clip_manifest.json",
-        "generated/complexity-scale-workbench-20260623T172738Z/commercial_promotion_gate.py",
-        "generated/complexity-scale-workbench-20260623T172738Z/commercial_ready_gate.py"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/delivery_evidence/delivery_smoke_command.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/candidate_directions.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/candidate_scorecard.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/complexity_project_contract.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/discovery_brief.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/rejected_options.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/discovery/selected_project_direction.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/acceptance_contract.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/candidate_requirements.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/customer_decision_summary.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/customer_goal_brief.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/mvp_scope.md",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/need_interpretations.json",
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z/requirement_decision/selected_requirement.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/asr_evidence_tier.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/audio_chunk_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/capability_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/clip_manifest.json",
+        "generated/complexity-scale-workbench-20260626T011336Z/commercial_promotion_gate.py",
+        "generated/complexity-scale-workbench-20260626T011336Z/commercial_ready_gate.py"
       ]
     },
     "real_test_results": {
       "status": "PASS",
       "evidence": [
-        "generated/complexity-scale-workbench-20260623T172738Z/TEST_REPORT.md"
+        "generated/complexity-scale-workbench-20260626T011336Z/TEST_REPORT.md"
       ]
     },
     "run_dir": {
       "status": "PASS",
       "evidence": [
-        "examples/runtime_runs/complexity-scale-workbench-20260623T172738Z"
+        "examples/runtime_runs/complexity-scale-workbench-20260626T011336Z"
       ]
     }
   },
@@ -238,9 +238,9 @@
     "recommendation": "PASS_FINAL",
     "blockers": [],
     "metadata": {
-      "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery",
+      "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery",
       "project_dir": "",
-      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
+      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
       "contract_id": "complexity_project_contract_v1",
       "selected_project_id": "local_video_workbench"
     }
@@ -254,16 +254,16 @@
     "overall_status": "PASS",
     "reason": "layered_acceptance_evaluated",
     "evidence": [
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_goal_brief.md",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\need_interpretations.json",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\candidate_requirements.json",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\requirement_scorecard.json",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\selected_requirement.json",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\rejected_requirements.md",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\mvp_scope.md",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\non_goals.md",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\acceptance_contract.json",
-      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_decision_summary.md"
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_goal_brief.md",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\need_interpretations.json",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\candidate_requirements.json",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\requirement_scorecard.json",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\selected_requirement.json",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\rejected_requirements.md",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\mvp_scope.md",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\non_goals.md",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\acceptance_contract.json",
+      "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_decision_summary.md"
     ],
     "known_gaps": [],
     "checks": {
@@ -271,19 +271,19 @@
         "status": "PASS",
         "blockers": [],
         "evidence": [
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_goal_brief.md",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\need_interpretations.json",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\candidate_requirements.json",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\requirement_scorecard.json",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\selected_requirement.json",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\rejected_requirements.md",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\mvp_scope.md",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\non_goals.md",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\acceptance_contract.json",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_decision_summary.md"
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_goal_brief.md",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\need_interpretations.json",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\candidate_requirements.json",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\requirement_scorecard.json",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\selected_requirement.json",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\rejected_requirements.md",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\mvp_scope.md",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\non_goals.md",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\acceptance_contract.json",
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_decision_summary.md"
         ],
         "metadata": {
-          "requirement_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision",
+          "requirement_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision",
           "selected_requirement_id": "local_video_material_workbench_requirement",
           "candidate_count": 5
         }
@@ -347,9 +347,9 @@
           "technical_plan.md",
           "interaction_design.md",
           "acceptance_matrix.md",
-          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json"
+          "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json"
         ],
-        "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json"
+        "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json"
       },
       "product_contract_missing": [],
       "implementation_missing": [],
@@ -358,42 +358,42 @@
         "blockers": [],
         "artifacts_checked": [
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\stage_plan.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\stage_plan.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\media_manifest.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\media_manifest.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\audio_chunk_manifest.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\audio_chunk_manifest.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\transcript_merged.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\transcript_merged.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\segment_analysis.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\segment_analysis.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\selected_segments.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\selected_segments.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\clip_manifest.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\clip_manifest.json",
             "status": "PASS",
             "missing": []
           },
           {
-            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\export_results.json",
+            "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\export_results.json",
             "status": "PASS",
             "missing": []
           }

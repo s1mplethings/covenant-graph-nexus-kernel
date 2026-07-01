@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-06-25T21:14:27.197766+00:00",
+  "run_count": 0,
+  "successful_runs": 0,
+  "failed_runs": 0,
+  "timeout_runs": 0,
+  "invalid_output_runs": 0,
+  "artifact_integrity_failures": 0,
+  "average_runtime_seconds": 0.0,
+  "max_runtime_seconds": 0.0,
+  "reproducibility_hashes": [],
+  "deterministic_outputs": false,
+  "reliability_status": "not_ready",
+  "thresholds": {
+    "min_run_count": 3,
+    "max_failed_runs": 0,
+    "max_timeout_runs": 0,
+    "max_invalid_output_runs": 0,
+    "max_artifact_integrity_failures": 0,
+    "require_deterministic_outputs": true
+  },
+  "blockers": [
+    "reliability_run_count_below_minimum",
+    "reliability_outputs_not_deterministic"
+  ],
+  "gate_test_only": false,
+  "reason": "Repeat reliability evidence is missing or below configured thresholds."
+}

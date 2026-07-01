@@ -1,0 +1,15 @@
+{
+  "kind": "LocalVisualEvidencePlan",
+  "created_at": "2026-06-26T13:33:44.051959+00:00",
+  "status": "PARTIAL",
+  "project_dir": "D:\\CGKN\\generated\\new-key-feasibility-live_candidate",
+  "run_mode": "static_html",
+  "screenshot_strategy": "static_svg_preview or browser_capture_if_available",
+  "artifacts_to_collect": [
+    "README excerpt",
+    "static HTML screenshot"
+  ],
+  "uses_model": false,
+  "uses_provider": false,
+  "uses_network": false
+}

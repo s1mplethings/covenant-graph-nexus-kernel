@@ -1,12 +1,12 @@
 {
   "benchmark": "complexity_scale_local_video_workbench",
-  "run_id": "complexity-scale-workbench-20260623T172738Z",
-  "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
-  "generated_project_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z",
+  "run_id": "complexity-scale-workbench-20260626T011336Z",
+  "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
+  "generated_project_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z",
   "artifacts_path": "D:\\CGKN\\artifacts",
   "reports_path": "D:\\CGKN\\artifacts",
-  "screenshots_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\screenshots",
-  "final_bundle_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\final_project_bundle.zip",
+  "screenshots_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\screenshots",
+  "final_bundle_path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\final_project_bundle.zip",
   "logs_path": "D:\\CGKN\\artifacts\\complexity_scale_command_log.txt",
   "command_returncode": null,
   "pipeline_result": {
@@ -112,12 +112,12 @@
         ]
       },
       "paths": {
-        "discovery_brief": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\discovery_brief.md",
-        "candidate_directions": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\candidate_directions.json",
-        "candidate_scorecard": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\candidate_scorecard.json",
-        "selected_project_direction": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\selected_project_direction.json",
-        "rejected_options": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\rejected_options.md",
-        "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json"
+        "discovery_brief": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\discovery_brief.md",
+        "candidate_directions": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\candidate_directions.json",
+        "candidate_scorecard": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\candidate_scorecard.json",
+        "selected_project_direction": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\selected_project_direction.json",
+        "rejected_options": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\rejected_options.md",
+        "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json"
       }
     },
     "requirement_decision": {
@@ -163,7 +163,7 @@
       },
       "candidate_requirements": {
         "customer_goal": "我要一个本地优先的视频素材处理工作台，用来导入视频，自动抽取音频，切分片段，生成转写，占位分析高价值片段，选择候选片段，渲染导出短片，并提供 GUI 和 CLI 两种使用方式。\n\n要求：\n1. 最多只能问我一轮澄清问题。\n2. 必须先完成 product_brief、technical_plan、interaction_design、acceptance_matrix，再进入实现。\n3. 必须有单一主流程 orchestrator，流程至少包括 ingest_video、extract_audio、chunk_audio、transcribe_audio、analyze_segments、select_segments、render_clips、export_results。\n4. GUI 和 CLI 必须共享同一套 stages.py / orchestrator.py，不能各写一套逻辑。\n5. 必须生成阶段 artifact，包括 stage_plan.json、media_manifest.json、audio_chunk_manifest.json、transcript_merged.json、segment_analysis.json、selected_segments.json、clip_manifest.json、export_results.json。\n6. 每个 artifact 必须包含 stage、count、input_path、output_path、status、created_at，并且下游 artifact 能回指上游 artifact。\n7. 必须支持无真实模型/无 ffmpeg 时的 honest degraded mode，不能假装真实处理成功。\n8. 最终必须输出 README、TEST_REPORT、DELIVERY_NOTES、至少一张运行截图、final_project_bundle.zip、run_dir。\n9. 最终回复必须说明 internal_acceptance、user_acceptance、known_gaps，以及哪些要求没有达成。\n10. 不允许生成单文件 demo，不允许只做静态页面，不允许只有 README 没有可运行代码。\n",
-        "generated_at": "2026-06-23T17:27:38.369301+00:00",
+        "generated_at": "2026-06-26T01:13:36.307781+00:00",
         "candidates": [
           {
             "id": "local_video_material_workbench_requirement",
@@ -670,16 +670,16 @@
         ]
       },
       "paths": {
-        "customer_goal_brief": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_goal_brief.md",
-        "need_interpretations": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\need_interpretations.json",
-        "candidate_requirements": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\candidate_requirements.json",
-        "requirement_scorecard": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\requirement_scorecard.json",
-        "selected_requirement": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\selected_requirement.json",
-        "rejected_requirements": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\rejected_requirements.md",
-        "mvp_scope": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\mvp_scope.md",
-        "non_goals": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\non_goals.md",
-        "acceptance_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\acceptance_contract.json",
-        "customer_decision_summary": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\requirement_decision\\customer_decision_summary.md"
+        "customer_goal_brief": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_goal_brief.md",
+        "need_interpretations": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\need_interpretations.json",
+        "candidate_requirements": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\candidate_requirements.json",
+        "requirement_scorecard": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\requirement_scorecard.json",
+        "selected_requirement": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\selected_requirement.json",
+        "rejected_requirements": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\rejected_requirements.md",
+        "mvp_scope": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\mvp_scope.md",
+        "non_goals": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\non_goals.md",
+        "acceptance_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\acceptance_contract.json",
+        "customer_decision_summary": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\requirement_decision\\customer_decision_summary.md"
       }
     },
     "selected_requirement": {
@@ -867,14 +867,14 @@
     "planning_materialization": {
       "status": "PASS",
       "mode": "deterministic_contract_planning",
-      "created_at": "2026-06-23T17:27:38.394349+00:00",
-      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z",
-      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
+      "created_at": "2026-06-26T01:13:36.361192+00:00",
+      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z",
+      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
       "written": [
-        "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\product_brief.md",
-        "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\technical_plan.md",
-        "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\interaction_design.md",
-        "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\acceptance_matrix.md"
+        "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\product_brief.md",
+        "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\technical_plan.md",
+        "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\interaction_design.md",
+        "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\acceptance_matrix.md"
       ],
       "not_implementation_evidence": true,
       "not_delivery_evidence": true
@@ -882,9 +882,9 @@
     "implementation_structure_materialization": {
       "status": "PASS",
       "mode": "deterministic_degraded_structure",
-      "created_at": "2026-06-23T17:27:38.435267+00:00",
-      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z",
-      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
+      "created_at": "2026-06-26T01:13:36.401429+00:00",
+      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z",
+      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
       "core_files": [
         "orchestrator.py",
         "stages.py",
@@ -927,48 +927,48 @@
     },
     "delivery_evidence": {
       "status": "PASS",
-      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z",
-      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
-      "readme": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\README.md",
-      "test_report": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\TEST_REPORT.md",
-      "delivery_notes": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\DELIVERY_NOTES.md",
+      "project_dir": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z",
+      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
+      "readme": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\README.md",
+      "test_report": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\TEST_REPORT.md",
+      "delivery_notes": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\DELIVERY_NOTES.md",
       "screenshot": {
         "status": "PASS",
-        "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\screenshots\\delivery_smoke_screenshot.png",
+        "path": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\screenshots\\delivery_smoke_screenshot.png",
         "blocked_path": ""
       },
-      "final_project_bundle": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\final_project_bundle.zip",
-      "delivery_manifest": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z\\delivery_manifest.json",
+      "final_project_bundle": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\final_project_bundle.zip",
+      "delivery_manifest": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z\\delivery_manifest.json",
       "smoke_command": {
         "status": "PASS",
         "argv": [
-          "D:\\anaconda\\python.exe",
+          "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
           "cli.py",
           "--input",
           "fixtures/media_fixture.json",
           "--output-dir",
           "."
         ],
-        "cwd": "D:\\CGKN\\generated\\complexity-scale-workbench-20260623T172738Z",
-        "started_at": "2026-06-23T17:27:38.437268+00:00",
-        "ended_at": "2026-06-23T17:27:39.252761+00:00",
-        "duration_seconds": 0.815,
+        "cwd": "D:\\CGKN\\generated\\complexity-scale-workbench-20260626T011336Z",
+        "started_at": "2026-06-26T01:13:36.402844+00:00",
+        "ended_at": "2026-06-26T01:13:38.225996+00:00",
+        "duration_seconds": 1.823,
         "returncode": 0,
         "stdout": "{'status': 'degraded', 'mode': 'local_fixture_processing', 'capability_manifest': 'capability_manifest.json', 'media_manifest': '', 'user_media_contract': {}, 'selected_adapter': 'local_tool_verified', 'artifacts': ['stage_plan.json', 'media_manifest.json', 'audio_chunk_manifest.json', 'transcript_merged.json', 'segment_analysis.json', 'selected_segments.json', 'clip_manifest.json', 'export_results.json'], 'not_real_ai_model': True, 'not_delivery_evidence': True}\n",
         "stderr": ""
       }
     }
   },
-  "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery",
-  "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json",
+  "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery",
+  "complexity_project_contract": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json",
   "discovery_contract_check": {
     "status": "pass",
     "recommendation": "PASS_FINAL",
     "blockers": [],
     "metadata": {
-      "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery",
+      "discovery_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery",
       "project_dir": "",
-      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z",
+      "run_dir": "D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z",
       "contract_id": "complexity_project_contract_v1",
       "selected_project_id": "local_video_workbench"
     }

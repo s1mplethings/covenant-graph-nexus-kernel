@@ -1,6 +1,6 @@
 # Release Candidate File Classification
 
-- dirty_count: `117`
+- dirty_count: `119`
 - policy: do not commit runtime/generated outputs in bulk; review unknown dirty files.
 
 ## A_core_code
@@ -17,15 +17,13 @@
 
 ## D_necessary_artifacts
 
+- `M artifacts/cgkn_naming_consistency_report.md`
 - `M artifacts/complexity_scale_acceptance.json`
 - `M artifacts/complexity_scale_acceptance_report.md`
 - `M artifacts/complexity_scale_gap_analysis.md`
 - `M artifacts/complexity_scale_run_summary.json`
 - `M artifacts/complexity_scale_run_summary.md`
 - `M artifacts/continuous_generation_iterations.jsonl`
-- `M artifacts/pr_3_changed_files.txt`
-- `M artifacts/pr_3_scope_audit.json`
-- `M artifacts/pr_3_scope_audit.md`
 - `M artifacts/reference_answer_gap_analysis.md`
 - `M artifacts/reference_answer_repair_plan.md`
 - `M artifacts/reference_answer_trial.json`
@@ -34,7 +32,10 @@
 ## E_runtime_generated_artifacts
 
 - `?? artifacts/customer_agent_long_journey_runs/`
+- `?? artifacts/full_pytest_current_output.txt`
+- `?? artifacts/full_pytest_current_result.json`
 - `?? artifacts/full_pytest_output.txt`
+- `?? artifacts/pytest_collect_current.txt`
 - `?? artifacts/reference_answer_project_trial_runs/`
 - `?? artifacts/requirement_decision_benchmark_runs/`
 - `?? examples/local_studio/conversations/chat-4/`
@@ -146,19 +147,20 @@
 
 ## review_required
 
-- none
+- `?? examples/product_studio/runs/feasibility_current/`
 
 ## Recommended Commit Files
 
-- `artifacts/pr_3_changed_files.txt`
-- `artifacts/pr_3_scope_audit.json`
-- `artifacts/pr_3_scope_audit.md`
+- `artifacts/cgkn_naming_consistency_report.md`
 
 ## Recommended Exclude Files
 
 - `artifacts/complexity_scale_file_inventory.txt`
 - `artifacts/customer_agent_long_journey_runs/`
+- `artifacts/full_pytest_current_output.txt`
+- `artifacts/full_pytest_current_result.json`
 - `artifacts/full_pytest_output.txt`
+- `artifacts/pytest_collect_current.txt`
 - `artifacts/pytest_collect_full.txt`
 - `artifacts/pytest_progress.jsonl`
 - `artifacts/reference_answer_project_trial_runs/`
@@ -263,4 +265,4 @@
 
 ## Review Required
 
-- none
+- `examples/product_studio/runs/feasibility_current/`

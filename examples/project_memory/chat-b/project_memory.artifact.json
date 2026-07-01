@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:24.455603+00:00",
+  "generated_at": "2026-07-01T16:52:22.512117+00:00",
   "chat_id": "chat-b",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-b\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,6 +27,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -42,10 +43,10 @@
     "开始生成"
   ],
   "generation": {
-    "status": "ready_with_warnings",
+    "status": "ready",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-08T16:18:24.417511+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpikrltv4r\\sessions\\chat-b\\agent_session.jsonl",
+    "finished_at": "2026-07-01T16:52:22.385505+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpguilos73\\sessions\\chat-b\\agent_session.jsonl",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b",
     "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b\\delivery_manifest.json",
     "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-b\\final_project_bundle.zip",

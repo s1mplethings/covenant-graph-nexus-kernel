@@ -1,0 +1,27 @@
+{
+  "formal_generation_command": [
+    "D:\\anaconda\\python.exe",
+    "scripts/run_local_pipeline.py",
+    "--goal",
+    "Build a runnable local browser task board app, not a media processing app. Use index.html, CSS, and JavaScript with localStorage. Include add/edit/delete task workflows, Todo/Doing/Done columns, seed data, and a real package.json test script that can run locally.",
+    "--run-dir",
+    "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\run",
+    "--out-dir",
+    "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\project",
+    "--result",
+    "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\formal_generation_result.json",
+    "--allow-network",
+    "--allow-provider",
+    "--use-api",
+    "--allow-model-usage-planning",
+    "--video",
+    "--model",
+    "gpt-5.4-nano",
+    "--timeout",
+    "1200",
+    "--json"
+  ],
+  "formal_generation_returncode": 1,
+  "formal_generation_stdout_tail": "",
+  "formal_generation_stderr_tail": "Traceback (most recent call last):\n  File \"D:\\CGKN\\scripts\\run_local_pipeline.py\", line 194, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"D:\\CGKN\\scripts\\run_local_pipeline.py\", line 183, in main\n    result = execute(args)\n             ^^^^^^^^^^^^^\n  File \"D:\\CGKN\\scripts\\run_local_pipeline.py\", line 152, in execute\n    return _impl.execute(args)\n           ^^^^^^^^^^^^^^^^^^^\n  File \"D:\\CGKN\\scripts\\run_local_pipeline_impl.py\", line 6732, in execute\n    materialized_candidate = candidate_materializer.run(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\CGKN\\scripts\\candidate_materializer.py\", line 30, in run\n    generated_files = legacy.write_provider_files(candidate_dir, files)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\CGKN\\scripts\\run_local_pipeline_impl.py\", line 2628, in write_provider_files\n    raise RuntimeError(f\"refusing to clean output directory outside generated root: {resolved_out}\")\nRuntimeError: refusing to clean output directory outside generated root: D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\project_candidate\n"
+}

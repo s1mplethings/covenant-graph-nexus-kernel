@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:31.899358+00:00",
+  "generated_at": "2026-07-01T16:52:31.834045+00:00",
   "chat_id": "chat-e2e-pipeline",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-e2e-pipeline\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -26,6 +26,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -43,14 +44,14 @@
   "generation": {
     "status": "ready_with_warnings",
     "driver": "agent_generated_pipeline",
-    "finished_at": "2026-06-08T16:18:31.854918+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\sessions\\chat-e2e-pipeline\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpvj76wj17\\logs\\agent_projects\\chat-e2e-pipeline\\pipeline_run_summary.json"
+    "finished_at": "2026-07-01T16:52:31.709543+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\sessions\\chat-e2e-pipeline\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline",
+    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\delivery_manifest.json",
+    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\final_project_bundle.zip",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {

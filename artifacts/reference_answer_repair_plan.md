@@ -14,6 +14,7 @@
 - Repair: commercial_promotion:token_error_rate_unavailable
 - Repair: commercial_readiness:user_media_contract_not_production_media_or_asr
 - Repair: commercial_ready:asr_multi_sample_quality_not_pass
+- Repair: commercial_ready:commercial_ready_gate_not_requested
 - Repair: commercial_ready:human_review_evidence_missing
 - Repair: commercial_ready:production_asr_not_verified_true
 - Repair: commercial_ready:promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS

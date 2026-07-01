@@ -1,0 +1,284 @@
+{
+  "user_goal": "I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag candidate content worth reviewing, choose outputs, export a project package, and generate a processing report. It cannot depend on cloud services and must not pretend to have real AI models. CGKN should decide the real requirement, MVP scope, non-goals, acceptance criteria, and generate a runnable local project.",
+  "generated_at": "2026-06-20T17:25:02.249238+00:00",
+  "candidates": [
+    {
+      "id": "local_video_workbench",
+      "name": "Local Video Material Workbench",
+      "summary": "Local-first workbench for importing media, extracting or simulating audio, segmenting transcripts, scoring clips, selecting outputs, and exporting evidence.",
+      "target_user": "Editors and operators who need a repeatable local media processing workflow.",
+      "core_workflow": [
+        "import local video",
+        "extract audio with honest degraded fallback",
+        "chunk and transcribe",
+        "analyze and score segments",
+        "select candidate clips",
+        "render/export reports and manifests"
+      ],
+      "likely_pages": [
+        "Import",
+        "Pipeline Run",
+        "Segments",
+        "Clip Review",
+        "Exports",
+        "Settings"
+      ],
+      "likely_modules": [
+        "orchestrator",
+        "stages",
+        "artifact_store",
+        "cli",
+        "gui",
+        "degraded_runtime",
+        "tests"
+      ],
+      "pipeline_stages": [
+        "ingest_video",
+        "extract_audio",
+        "chunk_audio",
+        "transcribe_audio",
+        "analyze_segments",
+        "select_segments",
+        "render_clips",
+        "export_results"
+      ],
+      "expected_artifacts": [
+        "stage_plan.json",
+        "media_manifest.json",
+        "audio_chunk_manifest.json",
+        "transcript_merged.json",
+        "segment_analysis.json",
+        "selected_segments.json",
+        "clip_manifest.json",
+        "export_results.json"
+      ],
+      "local_first_feasibility": 86,
+      "complexity_score": 88,
+      "pipeline_clarity": 92,
+      "artifact_potential": 94,
+      "gui_cli_suitability": 89,
+      "delivery_feasibility": 78,
+      "testability_score": 82,
+      "screenshot_feasibility": 84,
+      "external_dependency_risk": "medium",
+      "demo_degradation_risk": "low",
+      "fake_pass_risk": "low",
+      "honest_degraded_mode_available": true,
+      "user_goal_alignment_note": "Derived from rough goal: I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag ",
+      "total_score": 84
+    },
+    {
+      "id": "local_data_quality_studio",
+      "name": "Local Data Quality Studio",
+      "summary": "A local CSV/JSON intake, profiling, rule validation, repair suggestion, export, and audit-report product.",
+      "target_user": "Operations teams cleaning files before upload into business systems.",
+      "core_workflow": [
+        "import files",
+        "profile columns",
+        "infer rules",
+        "validate rows",
+        "review fixes",
+        "export clean data"
+      ],
+      "likely_pages": [
+        "Sources",
+        "Profile",
+        "Rules",
+        "Issues",
+        "Fix Review",
+        "Exports"
+      ],
+      "likely_modules": [
+        "orchestrator",
+        "stages",
+        "rules",
+        "artifact_store",
+        "cli",
+        "gui",
+        "tests"
+      ],
+      "pipeline_stages": [
+        "load_sources",
+        "profile_schema",
+        "infer_rules",
+        "validate_records",
+        "cluster_issues",
+        "suggest_repairs",
+        "export_clean_dataset",
+        "write_audit_report"
+      ],
+      "expected_artifacts": [
+        "source_manifest.json",
+        "schema_profile.json",
+        "rule_catalog.json",
+        "validation_report.json",
+        "issue_clusters.json",
+        "repair_suggestions.json",
+        "export_manifest.json",
+        "audit_report.json"
+      ],
+      "local_first_feasibility": 94,
+      "complexity_score": 80,
+      "pipeline_clarity": 86,
+      "artifact_potential": 88,
+      "gui_cli_suitability": 84,
+      "delivery_feasibility": 88,
+      "testability_score": 90,
+      "screenshot_feasibility": 82,
+      "external_dependency_risk": "low",
+      "demo_degradation_risk": "medium",
+      "fake_pass_risk": "low",
+      "honest_degraded_mode_available": true,
+      "user_goal_alignment_note": "Derived from rough goal: I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag ",
+      "total_score": 83
+    },
+    {
+      "id": "local_asset_pack_planner",
+      "name": "Local Asset Pack Planner",
+      "summary": "A structured asset intake, tagging, license check, dependency mapping, packaging, and release-note workbench.",
+      "target_user": "Small product teams assembling local deliverable asset packs.",
+      "core_workflow": [
+        "import assets",
+        "tag metadata",
+        "check licenses",
+        "map dependencies",
+        "build package",
+        "write release report"
+      ],
+      "likely_pages": [
+        "Library",
+        "Metadata",
+        "Dependency Map",
+        "Validation",
+        "Package",
+        "Release Notes"
+      ],
+      "likely_modules": [
+        "orchestrator",
+        "stages",
+        "metadata",
+        "packager",
+        "cli",
+        "gui",
+        "tests"
+      ],
+      "pipeline_stages": [
+        "discover_assets",
+        "classify_assets",
+        "extract_metadata",
+        "validate_license_notes",
+        "map_dependencies",
+        "build_release_manifest",
+        "package_assets",
+        "write_delivery_report"
+      ],
+      "expected_artifacts": [
+        "asset_manifest.json",
+        "classification_report.json",
+        "metadata_index.json",
+        "license_review.json",
+        "dependency_map.json",
+        "release_manifest.json",
+        "package_manifest.json",
+        "delivery_report.json"
+      ],
+      "local_first_feasibility": 90,
+      "complexity_score": 76,
+      "pipeline_clarity": 83,
+      "artifact_potential": 84,
+      "gui_cli_suitability": 80,
+      "delivery_feasibility": 86,
+      "testability_score": 84,
+      "screenshot_feasibility": 80,
+      "external_dependency_risk": "low",
+      "demo_degradation_risk": "medium",
+      "fake_pass_risk": "low",
+      "honest_degraded_mode_available": true,
+      "user_goal_alignment_note": "Derived from rough goal: I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag ",
+      "total_score": 79
+    },
+    {
+      "id": "cloud_ai_autopilot_suite",
+      "name": "Cloud AI Autopilot Suite",
+      "summary": "A fully automated cloud AI workflow requiring live model, storage, queue, and external media services.",
+      "target_user": "Teams with managed cloud AI infrastructure.",
+      "core_workflow": [
+        "connect cloud accounts",
+        "call remote models",
+        "store remote assets",
+        "publish automated outputs"
+      ],
+      "likely_pages": [
+        "Cloud Accounts",
+        "Jobs",
+        "Remote Assets",
+        "Model Runs"
+      ],
+      "likely_modules": [
+        "cloud_client",
+        "remote_jobs",
+        "billing_guard",
+        "gui"
+      ],
+      "pipeline_stages": [
+        "authenticate_cloud",
+        "submit_model_jobs",
+        "poll_remote_results"
+      ],
+      "expected_artifacts": [
+        "remote_job_log.json",
+        "cloud_result_manifest.json"
+      ],
+      "local_first_feasibility": 35,
+      "complexity_score": 82,
+      "pipeline_clarity": 55,
+      "artifact_potential": 50,
+      "gui_cli_suitability": 58,
+      "delivery_feasibility": 38,
+      "testability_score": 42,
+      "screenshot_feasibility": 64,
+      "external_dependency_risk": "high",
+      "demo_degradation_risk": "high",
+      "fake_pass_risk": "high",
+      "honest_degraded_mode_available": false,
+      "user_goal_alignment_note": "Derived from rough goal: I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag ",
+      "total_score": 24
+    },
+    {
+      "id": "single_page_status_demo",
+      "name": "Single Page Status Demo",
+      "summary": "A static page showing a mocked project status table.",
+      "target_user": "Viewer of a simple prototype.",
+      "core_workflow": [
+        "open page",
+        "view static cards"
+      ],
+      "likely_pages": [
+        "Home"
+      ],
+      "likely_modules": [
+        "static_page"
+      ],
+      "pipeline_stages": [
+        "render_static_preview"
+      ],
+      "expected_artifacts": [
+        "status.json"
+      ],
+      "local_first_feasibility": 96,
+      "complexity_score": 28,
+      "pipeline_clarity": 35,
+      "artifact_potential": 30,
+      "gui_cli_suitability": 20,
+      "delivery_feasibility": 96,
+      "testability_score": 30,
+      "screenshot_feasibility": 95,
+      "external_dependency_risk": "low",
+      "demo_degradation_risk": "high",
+      "fake_pass_risk": "high",
+      "honest_degraded_mode_available": true,
+      "user_goal_alignment_note": "Derived from rough goal: I want a local-first media production and review workbench for individual creators or small teams. It can import video, audio, and asset files, organize a material library, define a processing workflow, generate clip or item analysis, flag ",
+      "total_score": 31
+    }
+  ]
+}

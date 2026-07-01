@@ -6,7 +6,7 @@
    - no major gap recorded
 3. 是产品计划不足，还是实现主线不足？
    - 产品计划检查：product_brief=PASS, technical_plan=PASS, interaction_design=PASS, acceptance_matrix=PASS。实现主线检查：single_orchestrator=PASS。
-   - Planning Contract Gate: PASS；missing=none；evidence=['product_brief.md', 'technical_plan.md', 'interaction_design.md', 'acceptance_matrix.md', 'D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260623T172738Z\\discovery\\complexity_project_contract.json']。
+   - Planning Contract Gate: PASS；missing=none；evidence=['product_brief.md', 'technical_plan.md', 'interaction_design.md', 'acceptance_matrix.md', 'D:\\CGKN\\examples\\runtime_runs\\complexity-scale-workbench-20260626T011336Z\\discovery\\complexity_project_contract.json']。
 4. 是 artifact contract 不足，还是 delivery gate 不足？
    - artifact_contract: stage_artifacts=PASS, traceability=PASS; delivery: zip=PASS, screenshot=PASS, manifest=PASS, smoke=PASS。
 5. 是 prompt 约束不足，还是代码生成框架不足？

@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-06-23T16:18:51.087552+00:00",
+  "adapter_kind": "none",
+  "evidence_tier": "none",
+  "asr_quality_status": "not_ready",
+  "production_candidate": false,
+  "production_verified": false,
+  "commercial_ready": false,
+  "sample_count": 1,
+  "successful_samples": 0,
+  "failed_samples": 1,
+  "timeout_samples": 0,
+  "invalid_output_samples": 0,
+  "success_rate": 0.0,
+  "non_empty_text_rate": 0.0,
+  "non_empty_segments_rate": 0.0,
+  "non_empty_text_count": 0,
+  "non_empty_segments_count": 0,
+  "average_confidence": null,
+  "confidence_unavailable_reason": "No sample emitted confidence values.",
+  "thresholds": {
+    "min_samples": 2,
+    "min_success_rate": 1.0,
+    "min_non_empty_text_rate": 1.0,
+    "min_non_empty_segments_rate": 1.0,
+    "max_timeout_count": 0,
+    "max_invalid_output_count": 0,
+    "require_confidence_or_reason": true
+  },
+  "sample_results": [
+    {
+      "sample_index": 1,
+      "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T161850136734Z-3bb1f272cabd\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+      "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "input_size": 4044,
+      "command": null,
+      "returncode": null,
+      "timed_out": false,
+      "transcript_path": "",
+      "transcript_sha256": null,
+      "transcript_size": null,
+      "schema_valid": false,
+      "text_non_empty": false,
+      "segments_non_empty": false,
+      "confidence": null,
+      "confidence_unavailable_reason": "ASR command did not emit confidence or an unavailable reason.",
+      "duration_seconds": 0.0,
+      "status": "no_asr_configured",
+      "failure_reason": "CGKN_REAL_ASR_CMD is not configured.",
+      "evidence_tier": "none",
+      "output_path": "",
+      "output_sha256": null,
+      "output_size": null,
+      "text_length": 0,
+      "segment_count": 0,
+      "schema_blockers": []
+    }
+  ],
+  "transcript_artifacts": [],
+  "input_audio_hashes": [
+    "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde"
+  ],
+  "output_transcript_hashes": [],
+  "production_readiness_blockers": [
+    "no_real_asr_command_configured"
+  ],
+  "pass_fail_reasons": [
+    "no_real_asr_command_configured"
+  ],
+  "quality_report_path": "asr_quality_report.json",
+  "reason": "CGKN_REAL_ASR_CMD is not configured."
+}

@@ -1,0 +1,16 @@
+{
+  "stage": "select_segments",
+  "status": "degraded",
+  "count": 0,
+  "input_path": "segment_analysis.json",
+  "output_path": "selected_segments.json",
+  "created_at": "2026-06-20T07:04:39.742224+00:00",
+  "upstream_artifacts": [
+    "segment_analysis.json"
+  ],
+  "items": [],
+  "known_gaps": [
+    "deterministic structure only; no real media processing claimed"
+  ],
+  "not_delivery_evidence": true
+}

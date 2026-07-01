@@ -1,0 +1,36 @@
+{
+  "stage": "transcription",
+  "status": "verified",
+  "adapter": "local_transcription_fixture_adapter",
+  "input_path": "fixtures\\sample_audio.wav",
+  "output_path": "transcription_adapter_result.json",
+  "created_at": "2026-06-22T10:15:16.134829+00:00",
+  "segments": [
+    {
+      "id": "fixture_segment_001",
+      "start": 0,
+      "end": 0.25,
+      "text": "Local fixture transcript generated from sample_audio.wav. This is not production ASR.",
+      "not_production_asr": true
+    }
+  ],
+  "text": "Local fixture transcript generated from sample_audio.wav. This is not production ASR.",
+  "degraded": true,
+  "not_production_asr": true,
+  "evidence": [
+    {
+      "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "input_size": 4044
+    },
+    {
+      "wave_metadata": {
+        "frames": 2000,
+        "framerate": 8000,
+        "channels": 1,
+        "sample_width": 2,
+        "duration_seconds": 0.25
+      }
+    },
+    "command-backed local fixture adapter; no model or cloud service used"
+  ]
+}

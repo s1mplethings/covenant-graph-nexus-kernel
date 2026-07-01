@@ -1,0 +1,16 @@
+{
+  "stage": "extract_audio",
+  "status": "degraded",
+  "count": 0,
+  "input_path": "stage_plan.json",
+  "output_path": "media_manifest.json",
+  "created_at": "2026-06-20T07:04:39.740041+00:00",
+  "upstream_artifacts": [
+    "stage_plan.json"
+  ],
+  "items": [],
+  "known_gaps": [
+    "deterministic structure only; no real media processing claimed"
+  ],
+  "not_delivery_evidence": true
+}

@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:19:17.584630+00:00",
+  "generated_at": "2026-06-26T17:39:27.308614+00:00",
   "chat_id": "chat-e2e",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-e2e\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,6 +27,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -42,283 +43,16 @@
     "开始生成"
   ],
   "generation": {
-    "status": "rework_blocked",
+    "status": "ready",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-08T16:19:17.552742+00:00",
+    "finished_at": "2026-06-26T17:39:18.144074+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyu7hjc3a\\sessions\\chat-e2e\\agent_session.jsonl",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e",
     "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\delivery_manifest.json",
     "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\final_project_bundle.zip",
-    "build_integrity_audit": {
-      "ok": false,
-      "strict_runtime": false,
-      "missing": [
-        "pytest_failed"
-      ],
-      "asset_counts": {
-        "packages": 1,
-        "screenshots": 1,
-        "generated_images": 3,
-        "generated_backgrounds": 1,
-        "generated_sprites": 1,
-        "videos": 0
-      }
-    },
-    "qa_integrity_audit": {
-      "ok": false,
-      "commands_run": [],
-      "exit_code": null,
-      "stdout": "",
-      "stderr": "",
-      "error": "tests directory missing or no test*.py files found"
-    },
-    "post_build_finalize": {
-      "test_result": {
-        "ok": false,
-        "commands_run": [],
-        "exit_code": null,
-        "stdout": "",
-        "stderr": "",
-        "error": "tests directory missing or no test*.py files found"
-      },
-      "image_result": {
-        "ok": true,
-        "background": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
-        "sprite": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
-        "ui_screenshot": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
-        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\generated_image_manifest.json",
-        "manifest": {
-          "kind": "GeneratedImageManifest",
-          "created_at": "2026-06-08T16:19:12.931993+00:00",
-          "images": [
-            {
-              "kind": "background",
-              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
-              "audit": {
-                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\background_local_demo.png",
-                "ok": true,
-                "reason": "nonblank_png",
-                "width": 960,
-                "height": 540,
-                "unique_colors": 2400,
-                "varied_channels": 3,
-                "pil_error": "No module named 'PIL._deprecate'"
-              }
-            },
-            {
-              "kind": "sprite",
-              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
-              "audit": {
-                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\assets\\generated\\sprite_local_demo.png",
-                "ok": true,
-                "reason": "nonblank_png",
-                "width": 420,
-                "height": 620,
-                "unique_colors": 1231,
-                "varied_channels": 3,
-                "pil_error": "No module named 'PIL._deprecate'"
-              }
-            },
-            {
-              "kind": "ui_screenshot",
-              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
-              "audit": {
-                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\screenshots\\app_home.png",
-                "ok": true,
-                "reason": "nonblank_png",
-                "width": 1280,
-                "height": 800,
-                "unique_colors": 4177,
-                "varied_channels": 3,
-                "pil_error": "No module named 'PIL._deprecate'"
-              }
-            }
-          ],
-          "errors": [],
-          "fallback_background_generated": true,
-          "fallback_sprite_generated": true,
-          "ok": true
-        }
-      },
-      "visual_required": false,
-      "manifest": {
-        "kind": "CGNKDeliveryManifest",
-        "created_at": "2026-06-08T16:19:17.497440+00:00",
-        "status": "ready_with_warnings",
-        "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e",
-        "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\final_project_bundle.zip",
-        "readme_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\README.md",
-        "startup_command": "python main.py",
-        "run_log_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\packager_run_log.txt",
-        "known_limits": [
-          "测试报告存在，但未执行真实测试命令"
-        ],
-        "quality_evidence": {
-          "readme_found": true,
-          "test_report_found": true,
-          "test_report_has_commands": true,
-          "test_report_has_no_test_executed": true,
-          "test_report_mentions_sample_input": false,
-          "delivery_notes_found": true,
-          "product_plan_found": false,
-          "output_contract_found": false,
-          "technical_plan_found": false,
-          "build_plan_found": false,
-          "preview_evidence_found": true,
-          "preview_placeholder_found": false,
-          "sample_input_found": true,
-          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
-          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
-        },
-        "user_review_evidence": {
-          "evidence_review_found": false,
-          "test_report_found": true,
-          "test_code_files": [],
-          "sample_inputs": [],
-          "screenshots": [
-            "screenshots/app_home.png",
-            "assets/generated/background_local_demo.png",
-            "assets/generated/sprite_local_demo.png"
-          ],
-          "generated_images": [
-            "assets/generated/background_local_demo.png",
-            "assets/generated/sprite_local_demo.png",
-            "screenshots/app_home.png"
-          ],
-          "videos": [],
-          "preview_files": [
-            "delivery_manifest.json",
-            "generated_image_manifest.json",
-            "generation_context_snapshot.json",
-            "assets/generated/background_local_demo.png",
-            "assets/generated/sprite_local_demo.png",
-            "screenshots/app_home.png"
-          ],
-          "user_review_required": false,
-          "user_review_completed": false
-        },
-        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\delivery_manifest.json"
-      },
-      "gate": {
-        "delivery_allowed": false,
-        "status": "REWORK",
-        "phase": "final",
-        "missing": [
-          "real_test_execution"
-        ],
-        "requirements": {
-          "screenshot": false,
-          "video": false,
-          "generated_image": false,
-          "background": false,
-          "sprite": false,
-          "demo_video": false
-        },
-        "asset_counts": {
-          "packages": 1,
-          "screenshots": 1,
-          "generated_images": 3,
-          "generated_backgrounds": 1,
-          "generated_sprites": 1,
-          "videos": 0
-        },
-        "quality_evidence": {
-          "readme_found": true,
-          "test_report_found": true,
-          "test_report_has_commands": true,
-          "test_report_has_no_test_executed": true,
-          "test_report_mentions_sample_input": false,
-          "delivery_notes_found": true,
-          "product_plan_found": false,
-          "output_contract_found": false,
-          "technical_plan_found": false,
-          "build_plan_found": false,
-          "preview_evidence_found": true,
-          "preview_placeholder_found": false,
-          "sample_input_found": true,
-          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
-          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
-        },
-        "public_suffixes": [
-          ".gif",
-          ".jpeg",
-          ".jpg",
-          ".mp4",
-          ".png",
-          ".webm",
-          ".webp",
-          ".zip"
-        ]
-      },
-      "ok": false
-    },
-    "delivery_allowed": false,
-    "delivery_gate": {
-      "delivery_allowed": false,
-      "status": "REWORK",
-      "phase": "final",
-      "missing": [
-        "provider:pytest_failed",
-        "real_test_execution"
-      ],
-      "requirements": {
-        "screenshot": false,
-        "video": false,
-        "generated_image": false,
-        "background": false,
-        "sprite": false,
-        "demo_video": false
-      },
-      "asset_counts": {
-        "packages": 1,
-        "screenshots": 1,
-        "generated_images": 3,
-        "generated_backgrounds": 1,
-        "generated_sprites": 1,
-        "videos": 0
-      },
-      "quality_evidence": {
-        "readme_found": true,
-        "test_report_found": true,
-        "test_report_has_commands": true,
-        "test_report_has_no_test_executed": true,
-        "test_report_mentions_sample_input": false,
-        "delivery_notes_found": true,
-        "product_plan_found": false,
-        "output_contract_found": false,
-        "technical_plan_found": false,
-        "build_plan_found": false,
-        "preview_evidence_found": true,
-        "preview_placeholder_found": false,
-        "sample_input_found": true,
-        "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\TEST_REPORT.md",
-        "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-e2e\\DELIVERY_NOTES.md"
-      },
-      "public_suffixes": [
-        ".gif",
-        ".jpeg",
-        ".jpg",
-        ".mp4",
-        ".png",
-        ".webm",
-        ".webp",
-        ".zip"
-      ],
-      "provider_success_artifact_audit": {
-        "ok": false,
-        "strict_runtime": false,
-        "missing": [
-          "pytest_failed"
-        ],
-        "asset_counts": {
-          "packages": 1,
-          "screenshots": 1,
-          "generated_images": 3,
-          "generated_backgrounds": 1,
-          "generated_sprites": 1,
-          "videos": 0
-        }
-      }
-    }
+    "pipeline_manifest_path": "",
+    "generation_context_snapshot_path": "",
+    "pipeline_run_summary_path": ""
   },
   "module_mapping": [
     {

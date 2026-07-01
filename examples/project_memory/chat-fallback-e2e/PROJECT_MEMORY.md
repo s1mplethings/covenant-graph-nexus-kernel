@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:18:31.243981+00:00
+generated_at: 2026-07-01T16:52:31.094417+00:00
 revision_count: 3
 ---
 
@@ -59,6 +59,7 @@ revision_count: 3
 
 ## Delivery Requirements
 
+- 可运行项目包
 - 交付项目包和预览
 
 ## Decision Log
@@ -120,7 +121,7 @@ revision_count: 3
 
 - Status: `ready_with_warnings`
 - Started at: ``
-- Finished at: `2026-06-08T16:18:31.202330+00:00`
+- Finished at: `2026-07-01T16:52:31.011388+00:00`
 - Result path: ``
 
 ## Update Rules

@@ -1,0 +1,47 @@
+{
+  "stage": "render_clips",
+  "status": "degraded",
+  "mode": "local_user_media_contract",
+  "count": 1,
+  "input_path": "selected_segments.json",
+  "output_path": "clip_manifest.json",
+  "created_at": "2026-06-26T01:13:13.575185+00:00",
+  "upstream_artifacts": [
+    "selected_segments.json"
+  ],
+  "items": [
+    {
+      "id": "clip_1",
+      "source_segment_id": "user_media_seg_001",
+      "render_status": "degraded_fixture_clip",
+      "text": "User media input verified from sample_audio.wav"
+    }
+  ],
+  "evidence": [
+    {
+      "fixture_path": "user_media_fixture.json"
+    },
+    {
+      "user_media_contract": true
+    },
+    {
+      "upstream_artifacts": [
+        "selected_segments.json"
+      ]
+    }
+  ],
+  "known_gaps": [
+    "local fixture processing only; no real AI model or cloud processing claimed"
+  ],
+  "fixture_path": "user_media_fixture.json",
+  "not_real_ai_model": true,
+  "not_delivery_evidence": true,
+  "real_user_media_input": true,
+  "original_input_path": "fixtures\\sample_audio.wav",
+  "safe_input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306616228Z-ce4d26f69490\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+  "file_type": "wav",
+  "size": 4044,
+  "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+  "metadata_status": "ffprobe_verified",
+  "adapter_status": "ffprobe_verified"
+}

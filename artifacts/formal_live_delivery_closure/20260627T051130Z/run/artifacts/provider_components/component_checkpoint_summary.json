@@ -1,0 +1,252 @@
+{
+  "kind": "ProviderComponentCheckpointSummary",
+  "updated_at": "2026-06-27T05:14:51.226139+00:00",
+  "completed_components": [
+    "asset_discovery"
+  ],
+  "skipped_from_checkpoint": [],
+  "retried_components": [
+    "blueprint_creation"
+  ],
+  "failed_components": [
+    {
+      "component_id": "blueprint_creation",
+      "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
+      "error": "provider_api_request_failed: request failed: SSLError: TLSV1_ALERT_PROTOCOL_VERSION [endpoint=https://api.gptsapi.net, tls_verify=True, retryable=true]"
+    }
+  ],
+  "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
+  "checkpoint_dir": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\run\\artifacts\\provider_components",
+  "semantic_review_status": "provider_transport_blocked",
+  "semantic_review_attempts": 2,
+  "attempted_repairs": [],
+  "pending_repair_plan": {
+    "root_causes": [
+      "semantic_review_blocker"
+    ],
+    "parsed_blockers": [
+      {
+        "kind": "generic_semantic_blocker",
+        "raw": "provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery",
+        "components": [
+          "asset_discovery"
+        ],
+        "severity": "hard"
+      }
+    ],
+    "deterministic_actions": [],
+    "provider_actions": [
+      {
+        "component": "asset_discovery",
+        "path": "",
+        "instruction": "provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery",
+        "repair_prompt": "You are regenerating asset_discovery_files only.\nDo not modify files owned by other components.\nDo not add TODO, placeholder, or future-work claims.\nReturn only files belonging to this component.\nRepair prompt budget: {\"max_context_chars_per_repair\": 16000, \"max_files_per_repair\": 3, \"max_output_files_per_repair\": 2}\nOld blockers that must disappear: provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery\nValidation checks: "
+      }
+    ],
+    "validation_checks": [],
+    "affected_components": [
+      "asset_discovery"
+    ],
+    "affected_files": [],
+    "must_disappear_blockers": [
+      "provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery"
+    ],
+    "ownership_table": {
+      "foundation": {
+        "allowed": [
+          "package.json",
+          "package-lock.json",
+          "pyproject.toml",
+          "requirements.txt",
+          "vite.config.*",
+          "tsconfig.json",
+          ".gitignore"
+        ],
+        "forbidden": [
+          "src/app.js",
+          "src/main.js",
+          "src/App.*",
+          "app.py",
+          "main.py",
+          "server.py",
+          "routes/**",
+          "tests/**",
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md"
+        ]
+      },
+      "frontend": {
+        "allowed": [
+          "src/**",
+          "public/**",
+          "index.html",
+          "frontend/**",
+          "app/**"
+        ],
+        "owns": [
+          "src/app.js",
+          "src/main.js",
+          "src/App.*"
+        ]
+      },
+      "backend": {
+        "allowed": [
+          "app.py",
+          "main.py",
+          "server.py",
+          "backend/**",
+          "api/**",
+          "data/**"
+        ],
+        "owns": [
+          "backend/**",
+          "api/**",
+          "data/**",
+          "app.py",
+          "main.py",
+          "server.py"
+        ]
+      },
+      "tests": {
+        "allowed": [
+          "tests/**",
+          "test_*.py",
+          "*.spec.*",
+          "*.test.*"
+        ],
+        "owns": [
+          "tests/**",
+          "test_*.py",
+          "*.spec.*",
+          "*.test.*"
+        ]
+      },
+      "docs": {
+        "allowed": [
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md",
+          "DELIVERY_NOTES.md",
+          "docs/**"
+        ],
+        "owns": [
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md",
+          "DELIVERY_NOTES.md"
+        ]
+      },
+      "media": {
+        "allowed": [
+          "scripts/capture*",
+          "screenshots/**",
+          "media/**",
+          "demo/**",
+          "assets/demo/**",
+          "assets/screenshots/**"
+        ],
+        "owns": [
+          "scripts/capture*",
+          "screenshots/**",
+          "media/**",
+          "demo/**",
+          "assets/demo/**",
+          "assets/screenshots/**"
+        ]
+      }
+    },
+    "raw_user_goal": "Build a runnable local browser task board app, not a media processing app. Use index.html, CSS, and JavaScript with localStorage. Include add/edit/delete task workflows, Todo/Doing/Done columns, seed data, and a real package.json test script that can run locally.",
+    "component_pipeline": {
+      "kind": "ComponentPipelinePlan",
+      "strategy": "local_model_managed_component_routing",
+      "quality_goal": "Local model manages component boundaries, handoffs, gates, and repair scope before provider or execution stages.",
+      "components": [
+        {
+          "id": "asset_discovery",
+          "label": "Asset Discovery Phase",
+          "active_module": "module.local.librarian@1",
+          "depends_on": [],
+          "outputs": [
+            "local_assets"
+          ],
+          "path_hints": [
+            "css",
+            "js",
+            "html"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Discover and prepare necessary assets for the project.",
+          "acceptance_gate": [
+            "All required local assets are identified and ready for use."
+          ],
+          "handoff_notes": [
+            "Hand off discovered assets to the next phase."
+          ]
+        },
+        {
+          "id": "blueprint_creation",
+          "label": "Blueprint Creation Phase",
+          "active_module": "module.project.generator@1",
+          "depends_on": [
+            "asset_discovery"
+          ],
+          "outputs": [
+            "project_blueprint"
+          ],
+          "path_hints": [
+            "index.html",
+            "style.css",
+            "script.js"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Generate the project blueprint with task board functionalities.",
+          "acceptance_gate": [
+            "The project blueprint is generated and includes all necessary components for a functional task board app."
+          ],
+          "handoff_notes": [
+            "Hand off the project blueprint to the next phase."
+          ]
+        },
+        {
+          "id": "runtime_execution",
+          "label": "Runtime Execution Phase",
+          "active_module": "module.local.runtime_executor@1",
+          "depends_on": [
+            "blueprint_creation"
+          ],
+          "outputs": [
+            "app_files",
+            "runtime_artifacts"
+          ],
+          "path_hints": [
+            "dist/"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Materialize the project blueprint into runnable files and runtime artifacts.",
+          "acceptance_gate": [
+            "The app is fully functional with add/edit/delete task workflows, Todo/Doing/Done columns, and a test script that can run locally."
+          ],
+          "handoff_notes": [
+            "Hand off the final app files and runtime artifacts to complete the project."
+          ]
+        }
+      ],
+      "merge_policy": {
+        "duplicate_path": "fail_unless_identical",
+        "required_final_files": [
+          "README.md",
+          "TEST_PLAN.md"
+        ],
+        "retry_scope": "failed_component_only"
+      },
+      "execution_order": [
+        "asset_discovery",
+        "blueprint_creation",
+        "runtime_execution"
+      ],
+      "local_agent_management_source": "local_model"
+    }
+  },
+  "failure_diagnostics": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\run\\artifacts\\provider_semantic_review_failure.json"
+}

@@ -1,0 +1,1369 @@
+{
+  "kind": "LocalPipelineCompositionRun",
+  "created_at": "2026-06-26T13:24:26.507375+00:00",
+  "goal": "Build a tiny local notes CLI with README, tests, API evidence, and local model evidence",
+  "local_index": {
+    "kind": "LocalLibraryIndex",
+    "payload": {
+      "module_count": 29,
+      "artifact_count": 33,
+      "flow_count": 6,
+      "policy_count": 7,
+      "top_matches": [
+        {
+          "module_ref": "module.external.api_gateway@1",
+          "score": 11,
+          "purpose": "Generic API gateway contract for OpenAI-compatible provider calls.",
+          "network": true,
+          "provider_call": true,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "response"
+          ]
+        },
+        {
+          "module_ref": "module.local.pipeline_composer_agent@1",
+          "score": 7,
+          "purpose": "Local project-understanding librarian and pipeline composer agent.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "request"
+          ],
+          "outputs": [
+            "local_index",
+            "pipeline_plan",
+            "project_understanding"
+          ]
+        },
+        {
+          "module_ref": "module.customer.service@1",
+          "score": 4,
+          "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "goal"
+          ],
+          "outputs": [
+            "request"
+          ]
+        },
+        {
+          "module_ref": "module.local.runtime_executor@1",
+          "score": 4,
+          "purpose": "Local runtime executor that materializes a composed pipeline into project files and runtime artifacts.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "pipeline_plan"
+          ],
+          "outputs": [
+            "effect_report",
+            "generation_trace",
+            "project_blueprint",
+            "runtime_result",
+            "test_graph"
+          ]
+        },
+        {
+          "module_ref": "module.test.environment_selector@1",
+          "score": 4,
+          "purpose": "Select test environments independently from test methods so agents can build a matrix instead of a fixed test script.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "goal"
+          ],
+          "outputs": [
+            "environment_plan"
+          ]
+        },
+        {
+          "module_ref": "module.context_pack.build@1",
+          "score": 3,
+          "purpose": "Build a bounded context object from compressed conversation state and the latest generation checkpoint.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "agent_plan",
+            "checkpoint",
+            "state"
+          ],
+          "outputs": [
+            "context_pack"
+          ]
+        },
+        {
+          "module_ref": "module.effect_report.emit@1",
+          "score": 3,
+          "purpose": "Emit the final effect report as a separate verification artifact.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "generation_trace",
+            "project_blueprint",
+            "test_graph"
+          ],
+          "outputs": [
+            "effect_report"
+          ]
+        },
+        {
+          "module_ref": "module.feature.library_search@1",
+          "score": 3,
+          "purpose": "Find capability libraries without coupling the caller to local or online source mechanics.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "local_index",
+            "online_sources",
+            "request"
+          ],
+          "outputs": [
+            "candidates"
+          ]
+        },
+        {
+          "module_ref": "module.local.librarian@1",
+          "score": 3,
+          "purpose": "Local librarian module for discovering reusable assets already present in the CGNK workspace.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [],
+          "outputs": [
+            "local_index"
+          ]
+        },
+        {
+          "module_ref": "module.local_agent.plan@1",
+          "score": 3,
+          "purpose": "Local planning module for agent-side execution without directly controlling generation.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "candidates",
+            "request"
+          ],
+          "outputs": [
+            "agent_plan"
+          ]
+        },
+        {
+          "module_ref": "module.test.pipeline_executor@1",
+          "score": 3,
+          "purpose": "Execute the composed test pipeline with local deterministic checks. Live network/provider checks must be represented as separate opt-in modules or runtime flags.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "test_pipeline_plan"
+          ],
+          "outputs": [
+            "effect_report",
+            "test_execution_report",
+            "validation_report"
+          ]
+        },
+        {
+          "module_ref": "module.conversation.reduce@1",
+          "score": 2,
+          "purpose": "Reduce a long conversation into durable state so downstream modules consume bounded context instead of full history.",
+          "network": false,
+          "provider_call": false,
+          "inputs": [
+            "turns"
+          ],
+          "outputs": [
+            "decision_ledger",
+            "state"
+          ]
+        }
+      ]
+    }
+  },
+  "project_understanding": {
+    "kind": "ProjectUnderstandingIndex",
+    "payload": {
+      "retrieval_strategy": "structured_catalog_plus_lexical_rag",
+      "why_not_pure_vector_rag": "CGNK contracts are structured JSON; deterministic parsing preserves ports, effects, and policies before any semantic ranking.",
+      "optional_local_model": {
+        "enabled": true,
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "ok": true,
+        "result": {
+          "selected_modules": [
+            "module.local.librarian@1",
+            "module.project.generator@1",
+            "module.local.runtime_executor@1"
+          ],
+          "librarian_notes": "Selected local librarian to discover reusable assets and ensure the project request is well-formed.",
+          "route_notes": "Chose a direct route from customer service intake to project generation, then runtime execution.",
+          "phase_routing": [
+            {
+              "id": "customer_service",
+              "label": "Customer Service Intake",
+              "active_module": "module.customer.service@1",
+              "depends_on": [],
+              "outputs": [
+                "project_request"
+              ],
+              "path_hints": [
+                "user_goal",
+                "structured_request"
+              ],
+              "prompt_max_chars": 500,
+              "agent_focus": "Understanding and structuring the user's goal into a project request.",
+              "acceptance_gate": "Valid structured project request",
+              "handoff_notes": "Hand off to local librarian for asset discovery."
+            },
+            {
+              "id": "project_generation",
+              "label": "Project Generation",
+              "active_module": "module.project.generator@1",
+              "depends_on": [
+                "customer_service"
+              ],
+              "outputs": [
+                "blueprint",
+                "generation_trace"
+              ],
+              "path_hints": [
+                "requirement_blueprint_generator",
+                "project_build_graph"
+              ],
+              "prompt_max_chars": 300,
+              "agent_focus": "Generating the project blueprint and generation process.",
+              "acceptance_gate": "Validated project blueprint and generation trace",
+              "handoff_notes": "Hand off to local runtime executor for execution."
+            },
+            {
+              "id": "runtime_execution",
+              "label": "Runtime Execution",
+              "active_module": "module.local.runtime_executor@1",
+              "depends_on": [
+                "project_generation"
+              ],
+              "outputs": [
+                "project_files",
+                "runtime_artifacts"
+              ],
+              "path_hints": [
+                "local_pipeline_composer_agent",
+                "test_environment_selector"
+              ],
+              "prompt_max_chars": 200,
+              "agent_focus": "Materializing the composed pipeline into project files and runtime artifacts.",
+              "acceptance_gate": "Completed project files and runtime artifacts",
+              "handoff_notes": "End of phase, no further handoffs required."
+            }
+          ],
+          "delivery_gates": [
+            {
+              "id": "project_request_validated",
+              "label": "Valid Project Request",
+              "criteria": [
+                "customer_service.acceptance_gate"
+              ]
+            },
+            {
+              "id": "blueprint_and_trace_validated",
+              "label": "Validated Blueprint and Trace",
+              "criteria": [
+                "project_generation.acceptance_gate"
+              ]
+            },
+            {
+              "id": "runtime_execution_completed",
+              "label": "Completed Runtime Execution",
+              "criteria": [
+                "runtime_execution.acceptance_gate"
+              ]
+            }
+          ],
+          "evidence_requirements": [
+            {
+              "phase_id": "customer_service",
+              "type": "project_request",
+              "description": "Structured project request from customer service."
+            },
+            {
+              "phase_id": "project_generation",
+              "type": "blueprint",
+              "description": "Validated project blueprint and generation trace."
+            },
+            {
+              "phase_id": "runtime_execution",
+              "type": "project_files",
+              "description": "Completed project files and runtime artifacts."
+            }
+          ],
+          "retry_policy": {
+            "max_retries": 3,
+            "backoff_factor": 2,
+            "retry_on": [
+              "customer_service.acceptance_gate",
+              "project_generation.acceptance_gate",
+              "runtime_execution.acceptance_gate"
+            ]
+          },
+          "assumptions": [
+            "The customer service intake will provide a clear and structured project request.",
+            "The generated blueprint and trace will be validated before runtime execution."
+          ],
+          "risks": [
+            {
+              "phase_id": "customer_service",
+              "description": "Inadequate understanding of user's goal may lead to incorrect project request."
+            },
+            {
+              "phase_id": "project_generation",
+              "description": "Invalid blueprint or trace could result in failed runtime execution."
+            }
+          ]
+        }
+      },
+      "local_librarian": {
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "catalog_basis": "examples/modules + examples/artifacts + examples/flows + examples/policies",
+        "top_local_matches": [
+          {
+            "module_ref": "module.external.api_gateway@1",
+            "score": 11,
+            "purpose": "Generic API gateway contract for OpenAI-compatible provider calls.",
+            "network": true,
+            "provider_call": true,
+            "inputs": [
+              "request"
+            ],
+            "outputs": [
+              "response"
+            ]
+          },
+          {
+            "module_ref": "module.local.pipeline_composer_agent@1",
+            "score": 7,
+            "purpose": "Local project-understanding librarian and pipeline composer agent.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "request"
+            ],
+            "outputs": [
+              "local_index",
+              "pipeline_plan",
+              "project_understanding"
+            ]
+          },
+          {
+            "module_ref": "module.customer.service@1",
+            "score": 4,
+            "purpose": "Customer-service intake for turning a user goal into a structured project-generation request.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "goal"
+            ],
+            "outputs": [
+              "request"
+            ]
+          },
+          {
+            "module_ref": "module.local.runtime_executor@1",
+            "score": 4,
+            "purpose": "Local runtime executor that materializes a composed pipeline into project files and runtime artifacts.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "pipeline_plan"
+            ],
+            "outputs": [
+              "effect_report",
+              "generation_trace",
+              "project_blueprint",
+              "runtime_result",
+              "test_graph"
+            ]
+          },
+          {
+            "module_ref": "module.test.environment_selector@1",
+            "score": 4,
+            "purpose": "Select test environments independently from test methods so agents can build a matrix instead of a fixed test script.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "goal"
+            ],
+            "outputs": [
+              "environment_plan"
+            ]
+          },
+          {
+            "module_ref": "module.context_pack.build@1",
+            "score": 3,
+            "purpose": "Build a bounded context object from compressed conversation state and the latest generation checkpoint.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "agent_plan",
+              "checkpoint",
+              "state"
+            ],
+            "outputs": [
+              "context_pack"
+            ]
+          },
+          {
+            "module_ref": "module.effect_report.emit@1",
+            "score": 3,
+            "purpose": "Emit the final effect report as a separate verification artifact.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "generation_trace",
+              "project_blueprint",
+              "test_graph"
+            ],
+            "outputs": [
+              "effect_report"
+            ]
+          },
+          {
+            "module_ref": "module.feature.library_search@1",
+            "score": 3,
+            "purpose": "Find capability libraries without coupling the caller to local or online source mechanics.",
+            "network": false,
+            "provider_call": false,
+            "inputs": [
+              "local_index",
+              "online_sources",
+              "request"
+            ],
+            "outputs": [
+              "candidates"
+            ]
+          }
+        ],
+        "notes": "Selected local librarian to discover reusable assets and ensure the project request is well-formed."
+      },
+      "route_manager": {
+        "provider": "ollama",
+        "model": "qwen2.5:7b-instruct",
+        "selection_source": "ollama",
+        "local_model_scope": [
+          "local_librarian",
+          "route_manager",
+          "local_agent_manager",
+          "phase_router",
+          "delivery_gate_planner",
+          "repair_scope_manager"
+        ],
+        "provider_scope": [
+          "project_generation",
+          "project_repair",
+          "final_project_logic"
+        ],
+        "notes": "Chose a direct route from customer service intake to project generation, then runtime execution.",
+        "risks": [
+          {
+            "phase_id": "customer_service",
+            "description": "Inadequate understanding of user's goal may lead to incorrect project request."
+          },
+          {
+            "phase_id": "project_generation",
+            "description": "Invalid blueprint or trace could result in failed runtime execution."
+          }
+        ],
+        "support_modules": [
+          "module.local.pipeline_composer_agent@1"
+        ]
+      },
+      "local_agent_management": {
+        "source": "local_model",
+        "model_enabled": true,
+        "model_ok": true,
+        "phase_routing": [
+          {
+            "id": "customer_service",
+            "label": "Customer Service Intake",
+            "active_module": "module.customer.service@1",
+            "depends_on": [],
+            "outputs": [
+              "project_request"
+            ],
+            "path_hints": [
+              "user_goal",
+              "structured_request"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Understanding and structuring the user's goal into a project request.",
+            "acceptance_gate": [
+              "Valid structured project request"
+            ],
+            "handoff_notes": [
+              "Hand off to local librarian for asset discovery."
+            ]
+          },
+          {
+            "id": "project_generation",
+            "label": "Project Generation",
+            "active_module": "module.project.generator@1",
+            "depends_on": [
+              "customer_service"
+            ],
+            "outputs": [
+              "blueprint",
+              "generation_trace"
+            ],
+            "path_hints": [
+              "requirement_blueprint_generator",
+              "project_build_graph"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Generating the project blueprint and generation process.",
+            "acceptance_gate": [
+              "Validated project blueprint and generation trace"
+            ],
+            "handoff_notes": [
+              "Hand off to local runtime executor for execution."
+            ]
+          },
+          {
+            "id": "runtime_execution",
+            "label": "Runtime Execution",
+            "active_module": "module.local.runtime_executor@1",
+            "depends_on": [
+              "project_generation"
+            ],
+            "outputs": [
+              "project_files",
+              "runtime_artifacts"
+            ],
+            "path_hints": [
+              "local_pipeline_composer_agent",
+              "test_environment_selector"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Materializing the composed pipeline into project files and runtime artifacts.",
+            "acceptance_gate": [
+              "Completed project files and runtime artifacts"
+            ],
+            "handoff_notes": [
+              "End of phase, no further handoffs required."
+            ]
+          }
+        ],
+        "delivery_gates": [
+          "{'id': 'project_request_validated', 'label': 'Valid Project Request', 'criteria': ['customer_service.acceptance_gate']}",
+          "{'id': 'blueprint_and_trace_validated', 'label': 'Validated Blueprint and Trace', 'criteria': ['project_generation.acceptance_gate']}",
+          "{'id': 'runtime_execution_completed', 'label': 'Completed Runtime Execution', 'criteria': ['runtime_execution.acceptance_gate']}"
+        ],
+        "evidence_requirements": [
+          "{'phase_id': 'customer_service', 'type': 'project_request', 'description': 'Structured project request from customer service.'}",
+          "{'phase_id': 'project_generation', 'type': 'blueprint', 'description': 'Validated project blueprint and generation trace.'}",
+          "{'phase_id': 'runtime_execution', 'type': 'project_files', 'description': 'Completed project files and runtime artifacts.'}"
+        ],
+        "retry_policy": {
+          "retry_scope": "failed_component_only",
+          "max_repair_notes": 6,
+          "escalate_when": []
+        },
+        "handoff_order": [
+          "customer_service",
+          "project_generation",
+          "runtime_execution"
+        ],
+        "assumptions": [
+          "The customer service intake will provide a clear and structured project request.",
+          "The generated blueprint and trace will be validated before runtime execution."
+        ],
+        "risks": [
+          "{'phase_id': 'customer_service', 'description': \"Inadequate understanding of user's goal may lead to incorrect project request.\"}",
+          "{'phase_id': 'project_generation', 'description': 'Invalid blueprint or trace could result in failed runtime execution.'}"
+        ]
+      },
+      "known_flows": [
+        "flow.local_pipeline_composition@1",
+        "flow.local_pipeline_execution@1",
+        "flow.modular_project_generation@1",
+        "flow.modular_project_testing@1",
+        "flow.project_generation@1",
+        "flow.project_refactor@1"
+      ],
+      "capability_groups": {
+        "intake": [
+          "module.customer.service@1"
+        ],
+        "requirement_blueprint": [
+          "module.requirement_blueprint.generator@1"
+        ],
+        "local_understanding": [
+          "module.local.librarian@1",
+          "module.local.pipeline_composer_agent@1"
+        ],
+        "generation": [
+          "module.project.generator@1"
+        ],
+        "verification": [
+          "module.test_graph.emit@1",
+          "module.effect_report.emit@1"
+        ],
+        "delivery_or_external": [
+          "module.external.api_gateway@1"
+        ]
+      }
+    }
+  },
+  "pipeline_plan": {
+    "kind": "PipelineCompositionPlan",
+    "payload": {
+      "requirement": "Build a tiny local notes CLI with README, tests, API evidence, and local model evidence",
+      "selected_modules": [
+        "module.local.librarian@1",
+        "module.project.generator@1",
+        "module.local.runtime_executor@1",
+        "module.conversation.reduce@1",
+        "module.customer.service@1",
+        "module.requirement_blueprint.generator@1",
+        "module.online.library_sources@1",
+        "module.feature.library_search@1",
+        "module.local_agent.plan@1",
+        "module.adversarial_generation@1",
+        "module.test_graph.emit@1",
+        "module.effect_report.emit@1",
+        "module.generation_checkpoint.commit@1",
+        "module.context_pack.build@1",
+        "module.unified_control@1"
+      ],
+      "support_modules": [
+        "module.local.pipeline_composer_agent@1"
+      ],
+      "component_pipeline": {
+        "kind": "ComponentPipelinePlan",
+        "strategy": "local_model_managed_component_routing",
+        "quality_goal": "Local model manages component boundaries, handoffs, gates, and repair scope before provider or execution stages.",
+        "components": [
+          {
+            "id": "customer_service",
+            "label": "Customer Service Intake",
+            "active_module": "module.customer.service@1",
+            "depends_on": [],
+            "outputs": [
+              "project_request"
+            ],
+            "path_hints": [
+              "user_goal",
+              "structured_request"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Understanding and structuring the user's goal into a project request.",
+            "acceptance_gate": [
+              "Valid structured project request"
+            ],
+            "handoff_notes": [
+              "Hand off to local librarian for asset discovery."
+            ]
+          },
+          {
+            "id": "project_generation",
+            "label": "Project Generation",
+            "active_module": "module.project.generator@1",
+            "depends_on": [
+              "customer_service"
+            ],
+            "outputs": [
+              "blueprint",
+              "generation_trace"
+            ],
+            "path_hints": [
+              "requirement_blueprint_generator",
+              "project_build_graph"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Generating the project blueprint and generation process.",
+            "acceptance_gate": [
+              "Validated project blueprint and generation trace"
+            ],
+            "handoff_notes": [
+              "Hand off to local runtime executor for execution."
+            ]
+          },
+          {
+            "id": "runtime_execution",
+            "label": "Runtime Execution",
+            "active_module": "module.local.runtime_executor@1",
+            "depends_on": [
+              "project_generation"
+            ],
+            "outputs": [
+              "project_files",
+              "runtime_artifacts"
+            ],
+            "path_hints": [
+              "local_pipeline_composer_agent",
+              "test_environment_selector"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Materializing the composed pipeline into project files and runtime artifacts.",
+            "acceptance_gate": [
+              "Completed project files and runtime artifacts"
+            ],
+            "handoff_notes": [
+              "End of phase, no further handoffs required."
+            ]
+          }
+        ],
+        "merge_policy": {
+          "duplicate_path": "fail_unless_identical",
+          "required_final_files": [
+            "README.md",
+            "TEST_PLAN.md"
+          ],
+          "retry_scope": "failed_component_only"
+        },
+        "execution_order": [
+          "customer_service",
+          "project_generation",
+          "runtime_execution"
+        ],
+        "local_agent_management_source": "local_model"
+      },
+      "local_agent_management": {
+        "source": "local_model",
+        "model_enabled": true,
+        "model_ok": true,
+        "phase_routing": [
+          {
+            "id": "customer_service",
+            "label": "Customer Service Intake",
+            "active_module": "module.customer.service@1",
+            "depends_on": [],
+            "outputs": [
+              "project_request"
+            ],
+            "path_hints": [
+              "user_goal",
+              "structured_request"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Understanding and structuring the user's goal into a project request.",
+            "acceptance_gate": [
+              "Valid structured project request"
+            ],
+            "handoff_notes": [
+              "Hand off to local librarian for asset discovery."
+            ]
+          },
+          {
+            "id": "project_generation",
+            "label": "Project Generation",
+            "active_module": "module.project.generator@1",
+            "depends_on": [
+              "customer_service"
+            ],
+            "outputs": [
+              "blueprint",
+              "generation_trace"
+            ],
+            "path_hints": [
+              "requirement_blueprint_generator",
+              "project_build_graph"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Generating the project blueprint and generation process.",
+            "acceptance_gate": [
+              "Validated project blueprint and generation trace"
+            ],
+            "handoff_notes": [
+              "Hand off to local runtime executor for execution."
+            ]
+          },
+          {
+            "id": "runtime_execution",
+            "label": "Runtime Execution",
+            "active_module": "module.local.runtime_executor@1",
+            "depends_on": [
+              "project_generation"
+            ],
+            "outputs": [
+              "project_files",
+              "runtime_artifacts"
+            ],
+            "path_hints": [
+              "local_pipeline_composer_agent",
+              "test_environment_selector"
+            ],
+            "prompt_max_chars": 1200,
+            "agent_focus": "Materializing the composed pipeline into project files and runtime artifacts.",
+            "acceptance_gate": [
+              "Completed project files and runtime artifacts"
+            ],
+            "handoff_notes": [
+              "End of phase, no further handoffs required."
+            ]
+          }
+        ],
+        "delivery_gates": [
+          "{'id': 'project_request_validated', 'label': 'Valid Project Request', 'criteria': ['customer_service.acceptance_gate']}",
+          "{'id': 'blueprint_and_trace_validated', 'label': 'Validated Blueprint and Trace', 'criteria': ['project_generation.acceptance_gate']}",
+          "{'id': 'runtime_execution_completed', 'label': 'Completed Runtime Execution', 'criteria': ['runtime_execution.acceptance_gate']}"
+        ],
+        "evidence_requirements": [
+          "{'phase_id': 'customer_service', 'type': 'project_request', 'description': 'Structured project request from customer service.'}",
+          "{'phase_id': 'project_generation', 'type': 'blueprint', 'description': 'Validated project blueprint and generation trace.'}",
+          "{'phase_id': 'runtime_execution', 'type': 'project_files', 'description': 'Completed project files and runtime artifacts.'}"
+        ],
+        "retry_policy": {
+          "retry_scope": "failed_component_only",
+          "max_repair_notes": 6,
+          "escalate_when": []
+        },
+        "handoff_order": [
+          "customer_service",
+          "project_generation",
+          "runtime_execution"
+        ],
+        "assumptions": [
+          "The customer service intake will provide a clear and structured project request.",
+          "The generated blueprint and trace will be validated before runtime execution."
+        ],
+        "risks": [
+          "{'phase_id': 'customer_service', 'description': \"Inadequate understanding of user's goal may lead to incorrect project request.\"}",
+          "{'phase_id': 'project_generation', 'description': 'Invalid blueprint or trace could result in failed runtime execution.'}"
+        ]
+      },
+      "external_routes": [],
+      "edges": [
+        {
+          "from": {
+            "flow_input": "conversation_turn"
+          },
+          "to": {
+            "node": "n_conversation_reduce",
+            "port": "turns"
+          }
+        },
+        {
+          "from": {
+            "flow_input": "goal"
+          },
+          "to": {
+            "node": "n_customer_service",
+            "port": "goal"
+          }
+        },
+        {
+          "from": {
+            "flow_input": "goal"
+          },
+          "to": {
+            "node": "n_requirement_blueprint",
+            "port": "goal"
+          }
+        },
+        {
+          "from": {
+            "node": "n_requirement_blueprint",
+            "port": "requirement_blueprint"
+          },
+          "to": {
+            "flow_output": "requirement_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_customer_service",
+            "port": "request"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "request"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_librarian",
+            "port": "local_index"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "local_index"
+          }
+        },
+        {
+          "from": {
+            "node": "n_online_library_sources",
+            "port": "online_sources"
+          },
+          "to": {
+            "node": "n_feature_library_search",
+            "port": "online_sources"
+          }
+        },
+        {
+          "from": {
+            "node": "n_online_library_sources",
+            "port": "online_sources"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "online_sources"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_local_agent",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_feature_library_search",
+            "port": "candidates"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "candidates"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_adversarial_generation",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_adversarial_generation",
+            "port": "adversarial_review"
+          },
+          "to": {
+            "node": "n_project_generator",
+            "port": "adversarial_review"
+          }
+        },
+        {
+          "from": {
+            "node": "n_adversarial_generation",
+            "port": "adversarial_review"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "adversarial_review"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_test_graph_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_effect_report_emit",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_test_graph_emit",
+            "port": "test_graph"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_effect_report_emit",
+            "port": "effect_report"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "generation_trace"
+          },
+          "to": {
+            "node": "n_generation_checkpoint_commit",
+            "port": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_project_generator",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "node": "n_generation_checkpoint_commit",
+            "port": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_effect_report_emit",
+            "port": "effect_report"
+          },
+          "to": {
+            "node": "n_generation_checkpoint_commit",
+            "port": "effect_report"
+          }
+        },
+        {
+          "from": {
+            "node": "n_generation_checkpoint_commit",
+            "port": "checkpoint"
+          },
+          "to": {
+            "node": "n_context_pack_build",
+            "port": "checkpoint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_conversation_reduce",
+            "port": "state"
+          },
+          "to": {
+            "node": "n_context_pack_build",
+            "port": "state"
+          }
+        },
+        {
+          "from": {
+            "node": "n_local_agent",
+            "port": "agent_plan"
+          },
+          "to": {
+            "node": "n_context_pack_build",
+            "port": "agent_plan"
+          }
+        },
+        {
+          "from": {
+            "node": "n_conversation_reduce",
+            "port": "state"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "conversation_state"
+          }
+        },
+        {
+          "from": {
+            "node": "n_conversation_reduce",
+            "port": "decision_ledger"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "decision_ledger"
+          }
+        },
+        {
+          "from": {
+            "node": "n_generation_checkpoint_commit",
+            "port": "checkpoint"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "generation_checkpoint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_context_pack_build",
+            "port": "context_pack"
+          },
+          "to": {
+            "node": "n_unified_control",
+            "port": "context_pack"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "project_blueprint"
+          },
+          "to": {
+            "flow_output": "project_blueprint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "generation_trace"
+          },
+          "to": {
+            "flow_output": "generation_trace"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "test_graph"
+          },
+          "to": {
+            "flow_output": "test_graph"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "effect_report"
+          },
+          "to": {
+            "flow_output": "effect_report"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "conversation_state"
+          },
+          "to": {
+            "flow_output": "conversation_state"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "decision_ledger"
+          },
+          "to": {
+            "flow_output": "decision_ledger"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "generation_checkpoint"
+          },
+          "to": {
+            "flow_output": "generation_checkpoint"
+          }
+        },
+        {
+          "from": {
+            "node": "n_unified_control",
+            "port": "context_pack"
+          },
+          "to": {
+            "flow_output": "context_pack"
+          }
+        }
+      ],
+      "outputs": [
+        "requirement_blueprint",
+        "project_blueprint",
+        "generation_trace",
+        "test_graph",
+        "effect_report"
+      ],
+      "gaps": [
+        {
+          "module": "module.local.runtime_executor@1",
+          "reason": "selected module has no route edges"
+        }
+      ],
+      "route_quality_report": {
+        "selected_module_count": 15,
+        "connected_module_count": 14,
+        "edge_count": 49,
+        "orphan_modules": [
+          "module.local.runtime_executor@1"
+        ],
+        "modules_not_in_base_flow": [
+          "module.local.runtime_executor@1"
+        ],
+        "unbound_inputs": [],
+        "unbound_input_count": 0,
+        "policy_blocked_modules": [],
+        "blocked_external_routes": [],
+        "available_external_routes": [],
+        "bound_flow_outputs": [
+          "context_pack",
+          "conversation_state",
+          "decision_ledger",
+          "effect_report",
+          "generation_checkpoint",
+          "generation_trace",
+          "project_blueprint",
+          "requirement_blueprint",
+          "test_graph"
+        ],
+        "route_compile_status": "fail",
+        "route_score": 80
+      },
+      "executor": {
+        "flow": "flow.local_pipeline_execution@1",
+        "command": "python scripts/run_local_pipeline.py --plan examples/test_results/local_pipeline_composition_result.json",
+        "provider_route": "External API routes are reported separately and require explicit runtime approval flags."
+      },
+      "control": "route through module.unified_control@1 when executing a generated project pipeline"
+    }
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "kind": "MarketResearchManifest",
+  "created_at": "2026-06-27T05:12:34.809264+00:00",
+  "goal": "Build a runnable local browser task board app, not a media processing app. Use index.html, CSS, and JavaScript with localStorage. Include add/edit/delete task workflows, Todo/Doing/Done columns, seed data, and a real package.json test script that can run locally.",
+  "strategy": "feature-by-feature online market research using public source APIs and provider catalogs",
+  "features": [
+    {
+      "id": "market_local_ui",
+      "name": "Local runnable UI",
+      "query": "local web app UI gradio streamlit flask",
+      "kind": "ui",
+      "rationale": "The user wants to run and test the project locally."
+    },
+    {
+      "id": "market_task_board",
+      "name": "Task board and status workflow",
+      "query": "task board todo kanban local web app",
+      "kind": "workflow",
+      "rationale": "The request needs task creation and completion workflow."
+    }
+  ],
+  "feature_research": [
+    {
+      "feature": {
+        "id": "market_local_ui",
+        "name": "Local runnable UI",
+        "query": "local web app UI gradio streamlit flask",
+        "kind": "ui",
+        "rationale": "The user wants to run and test the project locally."
+      },
+      "query": "local web app UI gradio streamlit flask",
+      "attempts": [
+        {
+          "source": "ProviderCatalog",
+          "status": "pass",
+          "candidate_count": 3
+        },
+        {
+          "source": "GitHub",
+          "status": "pass",
+          "candidate_count": 0
+        },
+        {
+          "source": "npm",
+          "status": "pass",
+          "candidate_count": 5
+        },
+        {
+          "source": "HuggingFace",
+          "status": "pass",
+          "candidate_count": 0
+        }
+      ],
+      "candidates": [
+        {
+          "source": "ProviderCatalog",
+          "name": "Flask/FastAPI + HTML",
+          "url": "https://flask.palletsprojects.com/",
+          "requires": "Python web framework",
+          "fit": "More controllable local web app when custom UX and browser automation selectors matter.",
+          "score": 67.0
+        },
+        {
+          "source": "ProviderCatalog",
+          "name": "Streamlit",
+          "url": "https://streamlit.io/",
+          "requires": "Python package streamlit",
+          "fit": "Local data/app UI with quick controls and previews.",
+          "score": 59.0
+        },
+        {
+          "source": "ProviderCatalog",
+          "name": "Gradio",
+          "url": "https://www.gradio.app/",
+          "requires": "Python package gradio",
+          "fit": "Fast local UI for ML/image generation workflows with galleries and examples.",
+          "score": 51.0
+        },
+        {
+          "source": "npm",
+          "name": "@gradio/client",
+          "url": "https://www.npmjs.com/package/@gradio/client",
+          "version": "2.3.0",
+          "description": "Gradio API client",
+          "score": 28.0
+        },
+        {
+          "source": "npm",
+          "name": "@revenuecat/purchases-js",
+          "url": "https://www.npmjs.com/package/@revenuecat/purchases-js",
+          "version": "1.46.0",
+          "description": "Web subscriptions made easy. Powered by RevenueCat",
+          "score": 28.0
+        },
+        {
+          "source": "npm",
+          "name": "hermes-web-ui",
+          "url": "https://www.npmjs.com/package/hermes-web-ui",
+          "version": "0.6.21",
+          "description": "Self-hosted AI chat dashboard for Hermes Agent — multi-model web UI with multi-platform integration",
+          "score": 28.0
+        },
+        {
+          "source": "npm",
+          "name": "streamlit-component-lib",
+          "url": "https://www.npmjs.com/package/streamlit-component-lib",
+          "version": "2.0.0",
+          "description": "Support code for Streamlit Components",
+          "score": 28.0
+        }
+      ],
+      "recommended": {
+        "source": "ProviderCatalog",
+        "name": "Flask/FastAPI + HTML",
+        "url": "https://flask.palletsprojects.com/",
+        "requires": "Python web framework",
+        "fit": "More controllable local web app when custom UX and browser automation selectors matter.",
+        "score": 67.0
+      },
+      "decision": {
+        "selected_name": "Flask/FastAPI + HTML",
+        "selected_source": "ProviderCatalog",
+        "why": "Highest scored relevant candidate from market research evidence.",
+        "must_verify_at_runtime": false
+      }
+    },
+    {
+      "feature": {
+        "id": "market_task_board",
+        "name": "Task board and status workflow",
+        "query": "task board todo kanban local web app",
+        "kind": "workflow",
+        "rationale": "The request needs task creation and completion workflow."
+      },
+      "query": "task board todo kanban local web app",
+      "attempts": [
+        {
+          "source": "ProviderCatalog",
+          "status": "pass",
+          "candidate_count": 0
+        },
+        {
+          "source": "GitHub",
+          "status": "pass",
+          "candidate_count": 0
+        },
+        {
+          "source": "npm",
+          "status": "pass",
+          "candidate_count": 5
+        },
+        {
+          "source": "HuggingFace",
+          "status": "pass",
+          "candidate_count": 0
+        }
+      ],
+      "candidates": [
+        {
+          "source": "npm",
+          "name": "@syncfusion/ej2-angular-kanban",
+          "url": "https://www.npmjs.com/package/@syncfusion/ej2-angular-kanban",
+          "version": "33.2.3",
+          "description": "The Kanban board is an efficient way to visualize the workflow at each stage along its path to completion. The most important features available are Swim lane, filtering, and editing. for Angular",
+          "score": 33.33
+        },
+        {
+          "source": "npm",
+          "name": "@syncfusion/ej2-kanban",
+          "url": "https://www.npmjs.com/package/@syncfusion/ej2-kanban",
+          "version": "33.2.3",
+          "description": "The Kanban board is an efficient way to visualize the workflow at each stage along its path to completion. The most important features available are Swim lane, filtering, and editing.",
+          "score": 33.33
+        },
+        {
+          "source": "npm",
+          "name": "@syncfusion/ej2-react-kanban",
+          "url": "https://www.npmjs.com/package/@syncfusion/ej2-react-kanban",
+          "version": "33.2.3",
+          "description": "The Kanban board is an efficient way to visualize the workflow at each stage along its path to completion. The most important features available are Swim lane, filtering, and editing. for React",
+          "score": 33.33
+        },
+        {
+          "source": "npm",
+          "name": "backlog.md",
+          "url": "https://www.npmjs.com/package/backlog.md",
+          "version": "1.47.1",
+          "description": "<h1 align=\"center\">Backlog.md</h1> <p align=\"center\">Markdown‑native Task Manager &amp; Kanban visualizer for any Git repository</p>",
+          "score": 33.33
+        },
+        {
+          "source": "npm",
+          "name": "backlog.md-linux-x64",
+          "url": "https://www.npmjs.com/package/backlog.md-linux-x64",
+          "version": "1.47.1",
+          "description": "<h1 align=\"center\">Backlog.md</h1> <p align=\"center\">Markdown‑native Task Manager &amp; Kanban visualizer for any Git repository</p>",
+          "score": 33.33
+        }
+      ],
+      "recommended": {
+        "source": "npm",
+        "name": "@syncfusion/ej2-angular-kanban",
+        "url": "https://www.npmjs.com/package/@syncfusion/ej2-angular-kanban",
+        "version": "33.2.3",
+        "description": "The Kanban board is an efficient way to visualize the workflow at each stage along its path to completion. The most important features available are Swim lane, filtering, and editing. for Angular",
+        "score": 33.33
+      },
+      "decision": {
+        "selected_name": "@syncfusion/ej2-angular-kanban",
+        "selected_source": "npm",
+        "why": "Highest scored relevant candidate from market research evidence.",
+        "must_verify_at_runtime": false
+      }
+    }
+  ],
+  "online_input_context": {
+    "project_type": "local_application",
+    "image_generation_model_count": 0
+  },
+  "policy": "Generation should use these findings to choose libraries/models/APIs per feature, and explain deviations."
+}

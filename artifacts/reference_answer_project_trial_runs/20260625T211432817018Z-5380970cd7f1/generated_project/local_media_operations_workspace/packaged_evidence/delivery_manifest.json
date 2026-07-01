@@ -1,0 +1,146 @@
+{
+  "kind": "CGNKDeliveryManifest",
+  "created_at": "2026-06-25T21:14:37.477151+00:00",
+  "status": "ready_with_warnings",
+  "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace",
+  "package_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+  "readme_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\README.md",
+  "startup_command": "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe cli.py --input fixtures/sample_audio.wav --output-dir .",
+  "run_log_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\run_logs\\delivery_smoke_command.log",
+  "known_limits": [
+    "asr:contract_fixture_verified_not_production_asr",
+    "commercial_promotion:asr_evidence_tier_not_candidate:contract_fixture",
+    "commercial_promotion:asr_path_degraded",
+    "commercial_promotion:asr_quality_not_production_candidate:contract_only",
+    "commercial_promotion:character_error_rate_unavailable",
+    "commercial_promotion:fixture_or_non_real_asr_adapter",
+    "commercial_promotion:missing_reference_transcripts",
+    "commercial_promotion:token_error_rate_unavailable",
+    "commercial_readiness:user_media_contract_not_production_media_or_asr",
+    "commercial_ready:asr_multi_sample_quality_not_pass",
+    "commercial_ready:commercial_ready_gate_not_requested",
+    "commercial_ready:human_review_evidence_missing",
+    "commercial_ready:production_asr_not_verified_true",
+    "commercial_ready:promotion_decision_not_candidate:COMMERCIAL_BETA_PLUS",
+    "commercial_ready:promotion_report_has_blockers",
+    "commercial_ready:ready_adapter_kind_not_real_local_asr",
+    "commercial_ready:ready_asr_path_degraded",
+    "commercial_ready:ready_character_error_rate_unavailable_or_high",
+    "commercial_ready:ready_evidence_tier_insufficient:contract_fixture",
+    "commercial_ready:ready_reference_transcript_coverage_below_threshold",
+    "commercial_ready:ready_token_error_rate_unavailable_or_high",
+    "commercial_ready:reliability_outputs_not_deterministic",
+    "commercial_ready:reliability_run_count_below_minimum",
+    "commercial_ready:repeat_reliability_not_pass",
+    "local_model_adapter:no_real_model_configured_for_reference_trial",
+    "media_decode:bounded_ffmpeg_extract_verified_not_production_pipeline",
+    "user_media_pipeline:real_input_contract_verified_not_production_media_pipeline"
+  ],
+  "quality_evidence": {
+    "readme_found": true,
+    "test_report_found": true,
+    "test_report_has_commands": true,
+    "test_report_has_no_test_executed": false,
+    "test_report_mentions_sample_input": true,
+    "delivery_notes_found": true,
+    "product_plan_found": false,
+    "output_contract_found": false,
+    "technical_plan_found": true,
+    "build_plan_found": false,
+    "preview_evidence_found": true,
+    "preview_placeholder_found": false,
+    "sample_input_found": true,
+    "test_report_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\TEST_REPORT.md",
+    "delivery_notes_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\DELIVERY_NOTES.md"
+  },
+  "user_review_evidence": {
+    "evidence_review_found": false,
+    "test_report_found": true,
+    "test_code_files": [],
+    "sample_inputs": [],
+    "screenshots": [
+      "screenshots/delivery_smoke_screenshot.png"
+    ],
+    "generated_images": [
+      "screenshots/delivery_smoke_screenshot.png"
+    ],
+    "videos": [],
+    "preview_files": [
+      "delivery_status_page.html",
+      "asr_multi_sample_report.json",
+      "asr_quality_sample_1.json",
+      "asr_quality_sample_2.json",
+      "asr_quality_sample_3.json",
+      "audio_chunk_manifest.json",
+      "capability_manifest.json",
+      "clip_manifest.json",
+      "commercial_ready_report.json",
+      "delivery_manifest.json",
+      "export_results.json",
+      "fixtures/media_fixture.json",
+      "human_review_evidence.schema.json",
+      "implementation_structure_manifest.json",
+      "media_decode_artifact.json",
+      "media_manifest.json",
+      "planning_materialization_manifest.json",
+      "production_asr_verification_report.json",
+      "production_reliability_report.json",
+      "real_asr_transcript.json",
+      "run_logs/delivery_smoke_command.json",
+      "segment_analysis.json",
+      "selected_segments.json",
+      "stage_plan.json",
+      "transcript_merged.json",
+      "transcription_adapter_result.json",
+      "user_media_fixture.json",
+      "user_media_inspect.json",
+      "user_media_smoke_log.json",
+      "screenshots/delivery_smoke_screenshot.png"
+    ],
+    "user_review_required": false,
+    "user_review_completed": false
+  },
+  "manifest_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\delivery_manifest.json",
+  "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1",
+  "screenshot_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png",
+  "smoke_command": {
+    "status": "PASS",
+    "argv": [
+      "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "cli.py",
+      "--input",
+      "fixtures/sample_audio.wav",
+      "--output-dir",
+      "."
+    ],
+    "cwd": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace",
+    "started_at": "2026-06-25T21:14:32.879350+00:00",
+    "ended_at": "2026-06-25T21:14:36.350151+00:00",
+    "duration_seconds": 3.471,
+    "returncode": 0,
+    "stdout": "{'status': 'degraded', 'mode': 'local_user_media_contract', 'capability_manifest': 'capability_manifest.json', 'media_manifest': 'media_manifest.json', 'user_media_contract': {'status': 'PASS', 'media_manifest': 'media_manifest.json', 'inspect_artifact': 'user_media_inspect.json', 'smoke_log': 'user_media_smoke_log.json', 'fixture_path': 'user_media_fixture.json', 'metadata_status': 'ffprobe_verified', 'adapter_status': 'ffprobe_verified', 'sha256': 'e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde', 'size': 4044, 'blockers': []}, 'selected_adapter': 'local_tool_verified', 'artifacts': ['stage_plan.json', 'media_manifest.json', 'audio_chunk_manifest.json', 'transcript_merged.json', 'segment_analysis.json', 'selected_segments.json', 'clip_manifest.json', 'export_results.json'], 'not_real_ai_model': True, 'not_delivery_evidence': True}\n",
+    "stderr": ""
+  },
+  "evidence_status": {
+    "smoke_command": {
+      "status": "PASS",
+      "returncode": 0
+    },
+    "screenshot": {
+      "status": "PASS",
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260625T211432817018Z-5380970cd7f1\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png"
+    },
+    "final_project_bundle": {
+      "status": "PASS"
+    },
+    "readme": {
+      "status": "PASS"
+    },
+    "test_report": {
+      "status": "PASS"
+    },
+    "delivery_notes": {
+      "status": "PASS"
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:21.000326+00:00",
+  "generated_at": "2026-07-01T16:52:12.804257+00:00",
   "chat_id": "chat-fail-rework",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-fail-rework\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -25,12 +25,12 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "agent_generated_pipeline",
-    "finished_at": "2026-06-08T16:18:20.978761+00:00",
+    "finished_at": "2026-07-01T16:52:12.786680+00:00",
     "error": "provider TLS failed",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6vtz1n2w\\sessions\\chat-fail-rework\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6vtz1n2w\\logs\\agent_projects\\chat-fail-rework",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\sessions\\chat-fail-rework\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\logs\\agent_projects\\chat-fail-rework",
     "pipeline_manifest_path": "",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6vtz1n2w\\logs\\agent_projects\\chat-fail-rework\\generation_context_snapshot.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\logs\\agent_projects\\chat-fail-rework\\generation_context_snapshot.json",
     "delivery_allowed": false,
     "delivery_gate": {
       "delivery_allowed": false,
@@ -42,6 +42,7 @@
         "test_report",
         "test_commands"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": false,
         "video": false,

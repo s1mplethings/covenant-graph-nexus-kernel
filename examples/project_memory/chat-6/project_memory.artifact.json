@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:19:57.293079+00:00",
+  "generated_at": "2026-07-01T16:57:00.013240+00:00",
   "chat_id": "chat-6",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-6\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",

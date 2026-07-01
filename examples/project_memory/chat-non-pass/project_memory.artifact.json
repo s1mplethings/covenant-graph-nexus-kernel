@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:24.680498+00:00",
+  "generated_at": "2026-07-01T16:52:22.778302+00:00",
   "chat_id": "chat-non-pass",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-non-pass\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -25,9 +25,9 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "agent_generated_pipeline",
-    "finished_at": "2026-06-08T16:18:24.667955+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6qjv094f\\sessions\\chat-non-pass\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp6qjv094f\\project",
+    "finished_at": "2026-07-01T16:52:22.764883+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl4cixm0z\\sessions\\chat-non-pass\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl4cixm0z\\project",
     "manifest_path": "",
     "package_path": "",
     "pipeline_manifest_path": "",
@@ -44,6 +44,7 @@
         "test_report",
         "test_commands"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": false,
         "video": false,

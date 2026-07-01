@@ -1,0 +1,62 @@
+{
+  "profile_id": "reference_grade_project_trial_profile",
+  "created_at": "2026-06-23T17:24:39.028575+00:00",
+  "complexity_level": "production_scale",
+  "workflow_depth": "multi_stage",
+  "required_capabilities": [
+    "local_first",
+    "no_cloud_core_dependency",
+    "honest_degraded_mode",
+    "gui_or_local_visual_interface",
+    "cli",
+    "shared_gui_cli_core",
+    "unified_pipeline",
+    "orchestrator_or_stages",
+    "multi_stage_processing",
+    "stage_artifacts",
+    "artifact_schema",
+    "artifact_traceability",
+    "product_contract_docs",
+    "requirement_decision_artifacts",
+    "delivery_evidence",
+    "layered_acceptance"
+  ],
+  "required_product_docs": [
+    "product_brief.md",
+    "technical_plan.md",
+    "interaction_design.md",
+    "acceptance_matrix.md"
+  ],
+  "required_requirement_artifacts": [
+    "customer_goal_brief.md",
+    "need_interpretations.json",
+    "candidate_requirements.json",
+    "requirement_scorecard.json",
+    "selected_requirement.json",
+    "rejected_requirements.md",
+    "mvp_scope.md",
+    "non_goals.md",
+    "acceptance_contract.json",
+    "customer_decision_summary.md"
+  ],
+  "required_delivery_evidence": [
+    "README.md",
+    "TEST_REPORT.md",
+    "DELIVERY_NOTES.md",
+    "final_project_bundle.zip",
+    "delivery_manifest.json",
+    "screenshot",
+    "smoke log"
+  ],
+  "required_layered_statuses": [
+    "requirement_decision_status",
+    "product_contract_status",
+    "implementation_status",
+    "delivery_status",
+    "artifact_integrity_status",
+    "commercial_readiness_status",
+    "overall_status"
+  ],
+  "forbidden_reference_tokens": [],
+  "forbidden_reference_token_count": 0
+}

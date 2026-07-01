@@ -1,0 +1,73 @@
+{
+  "kind": "OnlineInputExamples",
+  "created_at": "2026-06-27T04:51:02.019436+00:00",
+  "goal": "Build a runnable browser task board app with persistent local state, add/edit/delete task workflows, status columns, seed data, a real test command, and visible UI suitable for screenshot and video verification.",
+  "agent": "online_input_router",
+  "project_type": "media_tool",
+  "input_spec": {
+    "project_type": "media_tool",
+    "required_modalities": [
+      "json",
+      "repository_metadata"
+    ],
+    "preferred_sources": [
+      "OpenLibrary",
+      "GitHub Search"
+    ],
+    "expected_artifacts": [
+      "sample_data",
+      "example_source_metadata"
+    ]
+  },
+  "routing": {
+    "strategy": "classify project type, build input spec, then route to a source-specific example agent",
+    "attempts": [
+      {
+        "agent": "PublicApiExampleAgent",
+        "source": "OpenLibrary/Open-Meteo",
+        "candidate_count": 1
+      },
+      {
+        "agent": "GitHubExampleAgent",
+        "source": "GitHub Search",
+        "query": "runnable browser task board persistent",
+        "candidate_count": 1
+      }
+    ],
+    "errors": []
+  },
+  "policy": "Use public online examples as realistic test input; preserve source and license metadata when available. For requested AI image generation, use model candidates as integration targets, not as copied output images.",
+  "examples": [
+    {
+      "title": "Public API sample response",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current=temperature_2m,wind_speed_10m",
+      "source": "Open-Meteo",
+      "modality": "json",
+      "mime": "application/json",
+      "local_path": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T045002Z\\run\\input_examples\\openmeteo_sample.json",
+      "downloaded_bytes": 477,
+      "sample_keys": [
+        "current",
+        "current_units",
+        "elevation",
+        "generationtime_ms",
+        "latitude",
+        "longitude",
+        "timezone",
+        "timezone_abbreviation",
+        "utc_offset_seconds"
+      ]
+    },
+    {
+      "title": "markdown-it/markdown-it",
+      "url": "https://github.com/markdown-it/markdown-it",
+      "source": "GitHub public repository",
+      "modality": "repository_metadata",
+      "description": "Markdown parser reference repository used when GitHub search returns no suitable result.",
+      "stars": null,
+      "language": "JavaScript",
+      "local_path": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T045002Z\\run\\input_examples\\github_repository_examples.json"
+    }
+  ],
+  "image_generation_models": []
+}
