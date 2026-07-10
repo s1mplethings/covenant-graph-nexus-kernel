@@ -16,6 +16,9 @@ def _required_markers(path: pathlib.Path, text: str) -> list[tuple[set[str], str
     stem = path.stem.lower()
     lowered = text.lower()
     requirements: list[tuple[set[str], str]] = []
+    if stem == "test_quick_large_sync_tree_benchmark":
+        requirements.append(({"quick"}, "quick mock benchmark should run in targeted/quick tests"))
+        return requirements
     if any(token in stem for token in ("benchmark", "long_run", "full_pytest", "timeout_diagnosis")):
         requirements.append(({"slow", "benchmark"}, "long-running/benchmark naming"))
     if ("telegram" in stem and "contract" not in stem) or any(token.lower() in lowered for token in ("sendphoto", "senddocument")):
