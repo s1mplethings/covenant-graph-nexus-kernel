@@ -173,38 +173,94 @@ def advanced_methods_for(capability: dict[str, Any], text: str, project_root: pa
     return [{"name": "specialist implementation research", "fit": "该能力需要在 CFO 计划中先找成熟库/模型/API，再决定实现。", "requirement_status": "candidate"}]
 
 
-def decision_points_for(text: str, capabilities: list[dict[str, Any]], local_image_questions: list[str], local_image_available: bool) -> list[str]:
+def content_generation_route_question(text: str) -> str:
+    raw = str(text or "")
+    if _contains_any(raw, ("生成代码", "项目生成", "生成项目", "代码生成", "生成系统")):
+        return "这个项目的生成核心，我先按本机可控能力做，还是允许接入外部高质量生成服务，或者把两条路线都做成配置项？"
+    if _contains_any(raw, ("生成图", "生成图片", "图片", "图像", "背景", "立绘")):
+        return "图片生成这块，你更看重本地模型可控，还是外部高质量服务效果，或者第一版直接做成可切换配置？"
+    if _contains_any(raw, ("视频", "短视频", "生成视频", "mp4")):
+        return "视频生成或处理这块，第一版要优先接本机工具链，还是允许配置外部高质量服务作为备选？"
+    if _contains_any(raw, ("报告", "文本", "文案", "生成报告")):
+        return "报告/文本生成这块，第一版要偏本地可控，还是允许接外部高质量模型服务，或者两边都预留？"
+    return "这类生成能力，第一版要偏本地可控，还是允许接外部高质量服务，或者直接做成可配置路线？"
+
+
+def decision_question_cards_for(text: str, capabilities: list[dict[str, Any]], local_image_questions: list[str], local_image_available: bool) -> list[dict[str, str]]:
     ids = {str(item.get("id", "")) for item in capabilities}
-    points: list[str] = []
+    cards: list[dict[str, str]] = []
+
+    def add(question: str, capability: str, reason: str, default: str, priority: str = "important") -> None:
+        cards.append(
+            {
+                "question": question,
+                "capability": capability,
+                "reason": reason,
+                "default_assumption": default,
+                "priority": priority,
+            }
+        )
+
     if "local_model_backend" in ids:
-        points.extend(local_image_questions)
+        for question in local_image_questions:
+            add(
+                question,
+                "本地模型后端",
+                "用户要求真实本地生成时，模型后端会直接决定能不能验收为真实生成。",
+                "先做可替换配置入口；未接通真实后端前，不把降级预览说成验收通过。",
+                "critical",
+            )
         if not local_image_available:
-            points.append("如果指定的本地模型/服务暂时不可用，要不要允许外部高级 API/模型作为临时备选，还是严格只接受本地能力？")
+            add(
+                "如果指定的本地模型/服务暂时不可用，要不要允许外部高质量模型服务作为临时备选，还是严格只接受本地能力？",
+                "本地模型后端",
+                "这会影响交付边界：允许外部服务可以提高可用性，但不能冒充本地能力通过。",
+                "默认先保留本地优先和外部备选的可配置入口，验收时分开说明。",
+                "critical",
+            )
     elif "content_generation" in ids:
-        points.append("生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？")
+        add(
+            content_generation_route_question(text),
+            "内容生成能力",
+            "生成质量、成本、隐私和可用性都会被这条路线选择影响，不能静默替用户决定。",
+            "默认做成可切换配置：本地可控路线优先，外部高质量服务只作为明确配置的备选，不把未配置能力说成已完成。",
+            "critical",
+        )
     if "structured_workflow_modeling" in ids and _contains_any(text, ("分支", "多结局", "选择支", "branch", "审批", "状态")):
-        points.append("结构化流程第一版做线性/表格关系，还是直接支持分支、状态机或图结构？")
+        add("结构化流程第一版做线性/表格关系，还是直接支持分支、状态机或图结构？", "结构化流程/关系建模", "流程模型会决定数据结构和后续扩展方式。", "默认先做表格关系和可扩展状态字段。")
     if "local_persistence" in ids and not _contains_any(text, ("sqlite", "数据库", "json")):
-        points.append("本地状态第一版用 SQLite 结构化保存，还是用简单 JSON 文件保存？")
+        add("本地状态第一版用 SQLite 结构化保存，还是用简单 JSON 文件保存？", "本地状态和数据持久化", "存储方式会影响历史记录、查询和恢复能力。", "默认用 SQLite 保存结构化状态。")
     if "data_extraction_understanding" in ids:
-        points.append("数据抽取/识别结果需要自动通过，还是必须带置信度和人工确认流程？")
+        add("数据抽取/识别结果需要自动通过，还是必须带置信度和人工确认流程？", "数据抽取和理解", "识别错误会直接影响业务结果，需要提前确定风险处理方式。", "默认带置信度和人工确认入口。")
     if "automation_execution" in ids:
-        points.append("自动化任务第一版需要定时后台运行，还是先做手动触发加运行日志？")
+        add("自动化任务第一版需要定时后台运行，还是先做手动触发加运行日志？", "自动化执行和调度", "自动执行会引入失败重试、权限和状态追踪成本。", "默认先做手动触发、运行日志和可扩展定时配置。")
     if "job_queue_reliability" in ids:
-        points.append("后台任务需要持久队列和失败重试，还是第一版只做单机同步处理？")
+        add("后台任务需要持久队列和失败重试，还是第一版只做单机同步处理？", "任务队列和可靠执行", "队列会影响任务丢失、重试和进度展示。", "默认保留任务状态和重跑入口，第一版可先单机执行。")
     if "realtime_streaming" in ids:
-        points.append("实时数据要用持续连接/流式接入，还是第一版允许轮询刷新并显示数据新鲜度？")
+        add("实时数据要用持续连接/流式接入，还是第一版允许轮询刷新并显示数据新鲜度？", "实时数据接入和流式状态", "实时接入方式会影响复杂度、稳定性和界面状态。", "默认先轮询刷新并显示数据新鲜度。")
     if "analytics_prediction_decisioning" in ids:
-        points.append("预测/建议第一版要可解释规则基线，还是直接接入模型评分并给置信度？")
+        add("预测/建议第一版要可解释规则基线，还是直接接入模型评分并给置信度？", "分析预测和决策建议", "预测类输出需要用户理解依据，否则很难验收。", "默认先做可解释规则基线，再预留模型评分接口。")
     if "audit_review_traceability" in ids:
-        points.append("高风险结果需要人工复核和证据链，还是允许系统自动通过并仅记录日志？")
+        add("高风险结果需要人工复核和证据链，还是允许系统自动通过并仅记录日志？", "审计、复核和证据链", "复核策略决定结果能不能直接进入业务流程。", "默认保留人工复核和证据链。")
     if "security_control" in ids:
-        points.append("涉及资料和凭据时，是否要求严格本地处理，还是允许配置外部服务？")
+        add("涉及资料和凭据时，是否要求严格本地处理，还是允许配置外部服务？", "安全、权限和数据边界", "数据边界会影响隐私、凭据和部署方式。", "默认本地优先，外部服务必须显式配置。", "critical")
     if "retrieval_search" in ids:
-        points.append("检索/问答优先用本地向量库，外部向量服务，还是两者可配置？")
+        add("检索/问答优先用本地向量库，外部向量服务，还是两者可配置？", "检索、搜索和知识库", "检索路线会影响隐私、成本和召回质量。", "默认本地向量库优先，外部向量服务可配置。")
     if "product_ui" in ids and _contains_any(text, ("桌面", "网页", "gui")) and not _contains_any(text, ("只要网页", "只要桌面")):
-        points.append("第一版运行形态要本地网页，还是桌面窗口？这会影响打包和测试方式。")
-    return _unique(points, limit=4)
+        add("第一版运行形态要本地网页，还是桌面窗口？这会影响打包和测试方式。", "产品界面和交互", "运行形态会影响启动、截图测试和最终交付包。", "默认先做本地网页，后续可包成桌面窗口。")
+    unique_cards: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for card in cards:
+        question = str(card.get("question", "")).strip()
+        if not question or question in seen:
+            continue
+        seen.add(question)
+        unique_cards.append(card)
+    return unique_cards[:4]
+
+
+def decision_points_for(text: str, capabilities: list[dict[str, Any]], local_image_questions: list[str], local_image_available: bool) -> list[str]:
+    return [card["question"] for card in decision_question_cards_for(text, capabilities, local_image_questions, local_image_available)]
 
 
 def build_capability_strategy(text: str, project_root: str | pathlib.Path | None = None) -> dict[str, Any]:
@@ -219,7 +275,8 @@ def build_capability_strategy(text: str, project_root: str | pathlib.Path | None
                 "advanced_methods": advanced_methods_for(capability, text, root),
             }
         )
-    decision_points = decision_points_for(text, capabilities, local_questions, bool(local_discovery.get("available")))
+    question_decisions = decision_question_cards_for(text, capabilities, local_questions, bool(local_discovery.get("available")))
+    decision_points = [card["question"] for card in question_decisions]
     acceptance: list[str] = []
     if any(item.get("id") in {"content_generation", "local_model_backend"} for item in capabilities):
         acceptance.append("生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。")
@@ -247,6 +304,7 @@ def build_capability_strategy(text: str, project_root: str | pathlib.Path | None
         "capabilities": capabilities,
         "research_targets": research_targets,
         "critical_questions": decision_points,
+        "question_decisions": question_decisions,
         "acceptance_criteria": _unique(acceptance, limit=8),
         "local_image_model_discovery": local_discovery,
         "decision_log": [

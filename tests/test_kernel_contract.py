@@ -371,10 +371,17 @@ class KernelContractTests(unittest.TestCase):
     def test_public_narration_is_expression_layer_only(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         bridge = read_source("scripts/telegram_live_bridge.py")
+        team_lead = read_source("scripts/frontdesk_team_lead_agent.py")
 
-        self.assertIn("Public narration is allowed only at Telegram reply boundaries", doc)
+        self.assertIn("Public narration is allowed only at Telegram and Local Studio reply boundaries", doc)
         self.assertIn("does not create a new formal generation path", doc)
+        self.assertIn("Team Lead Chat Agent", doc)
+        self.assertIn("reply_intent", doc)
+        self.assertIn("visible_status", doc)
+        self.assertIn("next_user_options", doc)
         self.assertIn("public_narration", bridge)
+        self.assertIn("frontdesk_team_lead_agent", bridge)
+        self.assertIn("def compose_reply", team_lead)
         self.assertIn("pipeline_manifest", doc)
         self.assertIn("dynamic_pipeline_runner", doc)
         self.assertIn("local_packager", doc)

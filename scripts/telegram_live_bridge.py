@@ -48,6 +48,12 @@ import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
 import public_narration
+import frontdesk_team_lead_agent
+import model_mode_semantics
+import generated_project_architecture_contract
+import real_test_execution
+import runnable_project_contract
+import runtime_visual_evidence
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
 DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "telegram_live_logs"
@@ -926,7 +932,7 @@ def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
             if key in artifact or key in stage:
                 required[key] = True
                 refs[key] = str(entry.get("evidence_ref", ""))
-        if stage == "delivery_attachment_sent" or artifact == "delivery_attachment_sent":
+        if stage in {"delivery_attachment_sent", "public_delivery_attachment_sent"} or artifact in {"delivery_attachment_sent", "public_delivery_attachment_sent"}:
             sent_record = True
     ready = all(required.values())
     return {
@@ -952,6 +958,8 @@ CUSTOMER_MESSAGE_INTENTS = {
 
 def looks_like_status_question(text: str) -> bool:
     compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    if looks_like_model_backend_semantics_question(text):
+        return True
     if compact in {
         "现在怎么样了",
         "怎么样了",
@@ -972,7 +980,18 @@ def looks_like_status_question(text: str) -> bool:
         return True
     status_words = ("进度", "状态", "做到哪", "做到哪里", "有动静", "跑到哪", "生成到哪", "结果了吗", "好了没", "还在做", "还在跑", "还在生成", "后台还在")
     question_words = ("吗", "没", "没有", "哪", "如何", "怎么样", "怎样")
+    evidence_words = ("截图", "测试", "测试报告", "交付包", "预览", "视频", "结果", "证据")
+    if any(word in compact for word in ("为什么还没有", "怎么还没有", "为何还没有", "为什么没有", "怎么没有")) and any(word in compact for word in evidence_words):
+        return True
     return any(word in compact for word in status_words) and (any(word in compact for word in question_words) or len(compact) <= 18)
+
+
+def looks_like_model_backend_semantics_question(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～+＋]+", "", str(text or "").lower())
+    has_model_word = "本地模型" in compact or "localmodel" in compact
+    has_generation_word = any(word in compact for word in ("生成", "做", "执行", "跑"))
+    has_backend_choice = "api" in compact or "接口" in compact or "后端" in compact
+    return has_model_word and has_backend_choice and has_generation_word and any(word in compact for word in ("还是", "还是用", "用api", "用接口", "本地模型生成"))
 
 
 def looks_like_escalation_request(text: str) -> bool:
@@ -980,6 +999,13 @@ def looks_like_escalation_request(text: str) -> bool:
     if compact in {"升级", "交给agent", "调用api", "用provider", "人工介入", "请求升级", "escalate"}:
         return True
     return any(word in compact for word in ("升级", "人工介入", "交给agent", "调用api", "用provider"))
+
+
+def looks_like_evidence_repair_request(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    return any(word in compact for word in ("补", "补齐", "先补", "修复")) and any(
+        word in compact for word in ("截图", "测试", "测试报告", "证据", "交付包", "预览")
+    )
 
 
 def model_classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, Any] | None:
@@ -1036,9 +1062,12 @@ def classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, A
     elif looks_like_escalation_request(stripped):
         intent = "escalation_request"
         reason = "escalation_request"
-    elif is_generate_command(stripped) or is_human_start_confirmation(stripped, session):
+    elif is_generate_command(stripped) or explicit_start_requested(stripped) or is_human_start_confirmation(stripped, session):
         intent = "generation_confirmation"
         reason = "generation_confirmation"
+    elif looks_like_evidence_repair_request(stripped) and (active_run(session) or str((session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}).get("project_summary", "")).strip()):
+        intent = "project_update"
+        reason = "evidence_repair_request"
     elif project_revision_lane.is_revision_request(stripped, session) and generation_status not in {"queued", "running", "waiting_user_review"}:
         intent = "project_revision_request"
         reason = "active_project_revision_request"
@@ -1144,6 +1173,188 @@ def assert_api_generation_ready(generation_mode: str) -> None:
     creds = check_connectivity._resolve_api_credentials()
     if not str(creds.get("api_key", "")).strip():
         raise RuntimeError("api_generation_mode requires configured OpenAI-compatible API key")
+
+
+def requested_generation_mode_from_text(text: str, session: dict[str, Any] | None = None) -> str:
+    semantics = model_mode_semantics.parse_model_mode_semantics(text, session)
+    constraint = semantics.get("cgkn_generation_backend_constraint", {}) if isinstance(semantics, dict) else {}
+    mode = str(constraint.get("mode") or "").strip().lower()
+    if mode in {"local", "api"}:
+        return mode
+    if isinstance(session, dict):
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        mode = str(generation.get("requested_generation_mode") or generation.get("effective_generation_mode") or "").strip().lower()
+        if mode in {"local", "api"}:
+            return mode
+    return ""
+
+
+def local_project_generation_available() -> bool:
+    return str(os.environ.get("CGNK_TEST_LOCAL_PROJECT_GENERATION_AVAILABLE", "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def looks_like_generation_mode_followup(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    return compact in {"那怎么办", "怎么办", "咋办", "那咋办", "接下来怎么办", "那要怎么办"}
+
+
+def record_generation_mode_choice(session: dict[str, Any], requested: str, effective: str, *, fallback_explicit: bool = False) -> None:
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation["requested_generation_mode"] = requested or generation.get("requested_generation_mode", "")
+    generation["effective_generation_mode"] = effective or generation.get("effective_generation_mode", "")
+    generation["local_to_api_fallback_explicit"] = bool(fallback_explicit)
+    session["generation"] = generation
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    if requested:
+        whiteboard["requested_generation_mode"] = requested
+    if effective:
+        whiteboard["effective_generation_mode"] = effective
+    execution = whiteboard.get("cgkn_execution", {}) if isinstance(whiteboard.get("cgkn_execution"), dict) else {}
+    if effective:
+        execution["generation_backend"] = effective
+    if requested == "local" and effective == "none":
+        execution["platform_generation_constraint"] = "local"
+        execution["platform_no_api"] = True
+    elif effective in {"api", "local"}:
+        execution["platform_generation_constraint"] = "none" if not fallback_explicit else effective
+    whiteboard["cgkn_execution"] = execution
+    whiteboard["local_to_api_fallback_explicit"] = bool(fallback_explicit)
+    known_facts = whiteboard.get("known_facts", []) if isinstance(whiteboard.get("known_facts"), list) else []
+    if requested == "local" and effective == "none":
+        known_facts.append("本地模型路线当前不可用，尚未切换到接口生成。")
+    if requested == "local" and effective == "api" and fallback_explicit:
+        known_facts.append("用户已明确允许从本地模型路线切到接口生成。")
+    if known_facts:
+        whiteboard["known_facts"] = unique_strings([str(item) for item in known_facts if str(item).strip()], limit=80)
+    session["whiteboard"] = whiteboard
+
+
+def block_local_model_generation(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+) -> None:
+    record_generation_mode_choice(session, "local", "none", fallback_explicit=False)
+    session["generation"] = {
+        **(session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}),
+        "status": "generation_blocked_by_local_model_config",
+        "driver": "not_started",
+        "requested_generation_mode": "local",
+        "effective_generation_mode": "none",
+        "local_model_available": False,
+        "delivery_allowed": False,
+        "user_visible_cause": "本地模型能力还没有确认可用，不能按本地模型路线启动。",
+        "updated_at": now(),
+    }
+    update_active_run_status(
+        session,
+        "generation_blocked_by_local_model_config",
+        driver="not_started",
+        delivery_allowed=False,
+        requested_generation_mode="local",
+        effective_generation_mode="none",
+        local_model_available=False,
+    )
+    append_memory_event(session, "local_model_generation_blocked", data={"requested_generation_mode": "local", "effective_generation_mode": "none"})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "local_model_generation_blocked",
+        "用户要求本地模型路线，但当前未确认本地项目生成能力可用，因此没有切换到接口生成。",
+        evidence_ref="local_model_config",
+        data={"artifact": "generation_mode_alignment", "requested_generation_mode": "local", "effective_generation_mode": "none"},
+    )
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="generation_failed",
+        source="generation_mode_alignment",
+        direct_text=(
+            "我不能直接按本地模型开工，因为当前本地模型能力还没有确认可用。"
+            "我会保留这个项目需求；下一步需要先补本地模型配置，或者你明确允许切换到可用生成方式后再继续。"
+        ),
+    )
+
+
+def record_evidence_repair_requested(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    text: str,
+) -> None:
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation["status"] = "evidence_repair_requested"
+    generation["repair_requested_at"] = now()
+    generation["repair_request"] = text
+    generation["delivery_allowed"] = False
+    session["generation"] = generation
+    run = update_active_run_status(
+        session,
+        "evidence_repair_requested",
+        driver=str(generation.get("driver") or "api_provider_project_generation"),
+        next_action="repair_evidence",
+        repair_requested_at=generation["repair_requested_at"],
+        delivery_allowed=False,
+    )
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    whiteboard["change_requests"] = unique_strings(
+        list(whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else []) + [text],
+        limit=120,
+    )
+    whiteboard["next_action"] = "repair_evidence"
+    session["whiteboard"] = whiteboard
+    append_memory_event(session, "evidence_repair_requested", text, {"run_id": run.get("id", ""), "next_action": "repair_evidence"})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "evidence_repair_requested",
+        "用户要求在同一项目上下文补齐截图和测试证据；当前未另开新项目。",
+        evidence_ref=str(run.get("id", "")),
+        data={"artifact": "evidence_repair_request", "next_action": "repair_evidence"},
+    )
+    save_session(session_dir, session)
+
+
+def start_local_model_generation(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    announce_start: bool,
+    reason: str = "frontdesk_generation_confirmation",
+) -> None:
+    del log_dir, model, timeout, announce_start, reason
+    session = load_session(session_dir, chat_id)
+    record_generation_mode_choice(session, "local", "local", fallback_explicit=False)
+    session["generation"] = {
+        **(session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}),
+        "status": "running",
+        "driver": "local_model_project_generation",
+        "requested_generation_mode": "local",
+        "effective_generation_mode": "local",
+        "local_model_available": True,
+        "started_at": now(),
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+    }
+    update_active_run_status(session, "running", driver="local_model_project_generation", requested_generation_mode="local", effective_generation_mode="local")
+    append_memory_event(session, "local_model_generation_started", data={"requested_generation_mode": "local", "effective_generation_mode": "local"})
+    append_truth_ledger(
+        session_dir,
+        session,
+        "local_model_generation_started",
+        "用户确认本地模型路线，本地项目生成后端已接管。",
+        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        data={"artifact": "local_model_generation", "requested_generation_mode": "local", "effective_generation_mode": "local"},
+    )
+    save_session(session_dir, session)
+    client.send_chat_action(chat_id, "typing")
 
 
 def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
@@ -1397,6 +1608,7 @@ def frontdesk_compose(event: str, session: dict[str, Any], facts: dict[str, Any]
 
 def pre_send_guard(text: str) -> str:
     guarded = str(text or "").strip()
+    guarded = frontdesk_team_lead_agent.sanitize_public_text(guarded)
     guarded = public_narration.redact_internal_terms(guarded)
     guarded = re.sub(r"[A-Za-z]:\\[^\s，。；；]+", "本地工作区记录", guarded)
     guarded = re.sub(
@@ -1414,7 +1626,6 @@ def pre_send_guard(text: str) -> str:
         "simulator": "制作流程",
         "agent/provider": "后续处理",
         "provider": "后续处理",
-        "API": "外部接口",
         "后台 memo:": "",
         "package": "可运行项目文件",
         "verify report": "测试结论",
@@ -1429,11 +1640,76 @@ def pre_send_guard(text: str) -> str:
     }
     for old, new in replacements.items():
         guarded = guarded.replace(old, new)
+    guarded = re.sub(r"(?m)^\s*(?:判断|原因|下一步)\s*[:：]\s*", "", guarded)
+    guarded = re.sub(r"(?m)([。！？\n])\s*(?:判断|原因|下一步)\s*[:：]\s*", r"\1", guarded)
+    guarded = guarded.replace("当前状态是", "现在这边是").replace("状态是", "这边是")
+    guarded = re.sub(r"外部\s*API", "外部接口", guarded, flags=re.I)
+    guarded = re.sub(r"(?<!外部)API", "外部接口", guarded)
+    guarded = guarded.replace("外部 外部接口", "外部接口").replace("外部外部接口", "外部接口")
+    guarded = re.sub(r"外部接口\s*/\s*(?:后续处理)?", "外部接口", guarded)
+    guarded = re.sub(r"外部生成接口\s*/\s*(?:后续处理)?", "外部生成接口", guarded)
     guarded = guarded.replace("JSON", "结构化记录")
     guarded = public_narration.redact_internal_terms(guarded)
-    guarded = guarded.replace("交付清单.json", "delivery_manifest.json")
-    guarded = guarded.replace("效果预览_blocked.json", "screenshot_blocked.json")
+    guarded = guarded.replace("交付清单.json", "交付清单")
+    guarded = guarded.replace("效果预览_blocked.json", "效果预览缺失记录")
     return guarded[:3900] or "当前项目上下文已记录，我会按最新目标继续处理。"
+
+
+def team_lead_visible_reply(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    *,
+    event: str,
+    draft_reply: str,
+    facts: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    facts = facts or {}
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    if isinstance(facts.get("generation"), dict):
+        generation = {**generation, **facts["generation"]}
+    evidence = facts.get("evidence_state") if isinstance(facts.get("evidence_state"), dict) else delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+    known_limits = frontdesk_team_lead_agent.known_limits_from_context(whiteboard, generation, evidence)
+    context = frontdesk_team_lead_agent.build_context(
+        latest_user_message=latest_user_text(session),
+        conversation_history_summary=frontdesk_team_lead_agent.conversation_history_summary(
+            session.get("messages", []) if isinstance(session.get("messages"), list) else []
+        ),
+        whiteboard=whiteboard,
+        active_run=active_run(session) or {},
+        generation_status=generation,
+        delivery_evidence=evidence,
+        known_limits=known_limits,
+        customer_agent_policy=read_customer_agent_policy(),
+        draft_reply=draft_reply,
+        event=event,
+    )
+    return frontdesk_team_lead_agent.compose_reply(context)
+
+
+def record_user_correction(session: dict[str, Any], text: str) -> None:
+    if not frontdesk_team_lead_agent.is_correction(text):
+        return
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    correction = str(text or "").strip()
+    whiteboard["change_requests"] = unique_strings(
+        list(whiteboard.get("change_requests", []) if isinstance(whiteboard.get("change_requests"), list) else [])
+        + [f"用户纠正: {correction}"],
+        limit=80,
+    )
+    whiteboard["known_facts"] = unique_strings(
+        list(whiteboard.get("known_facts", []) if isinstance(whiteboard.get("known_facts"), list) else [])
+        + [f"按用户纠正更新: {correction}"],
+        limit=120,
+    )
+    whiteboard["decision_log"] = unique_strings(
+        list(whiteboard.get("decision_log", []) if isinstance(whiteboard.get("decision_log"), list) else [])
+        + ["用户纠正优先于此前推断，后续回复先承认修正再推进。"],
+        limit=120,
+    )
+    session["whiteboard"] = whiteboard
+    append_memory_event(session, "user_correction_recorded", correction, {"change_request": correction})
 
 
 def send_customer_reply(
@@ -1448,7 +1724,23 @@ def send_customer_reply(
     source: str = "frontdesk_composer",
     direct_text: str = "",
 ) -> bool:
-    text = pre_send_guard(direct_text or frontdesk_compose(event, session, facts, backend_memo))
+    draft = pre_send_guard(direct_text or frontdesk_compose(event, session, facts, backend_memo))
+    structured_reply = team_lead_visible_reply(
+        session_dir,
+        chat_id,
+        session,
+        event=event,
+        draft_reply=draft,
+        facts=facts,
+    )
+    text = pre_send_guard(str(structured_reply.get("reply", draft)))
+    session["last_team_lead_reply"] = {
+        "reply_intent": structured_reply.get("reply_intent", ""),
+        "visible_status": structured_reply.get("visible_status", ""),
+        "next_user_options": structured_reply.get("next_user_options", []),
+        "event": event,
+        "created_at": now(),
+    }
     session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": source, "event": event})
     append_memory_event(session, "assistant_message", text, {"source": source, "event": event})
     append_truth_ledger(
@@ -1458,7 +1750,13 @@ def send_customer_reply(
         "用户可见回复已通过客服 composer 和发送前 guard",
         evidence_ref=event,
         can_user_see=True,
-        data={"artifact": "frontdesk_reply", "event": event},
+        data={
+            "artifact": "frontdesk_reply",
+            "event": event,
+            "reply_intent": structured_reply.get("reply_intent", ""),
+            "visible_status": structured_reply.get("visible_status", ""),
+            "next_user_options": structured_reply.get("next_user_options", []),
+        },
     )
     ok = client.send_message(chat_id, text)
     append_truth_ledger(
@@ -1766,8 +2064,18 @@ def evaluate_public_delivery_gate(
     req = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
     missing: list[str] = []
     rejected = final_delivery_package_rejections(project, assets, phase)
+    contract_target = assets["packages"][0] if assets["packages"] else project
+    runnable_contract = runnable_project_contract.evaluate_project(contract_target)
+    real_test_contract = real_test_execution.inspect_test_report(project)
+    visual_contract = runtime_visual_evidence.collect_visual_evidence(project)
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    target_architecture = whiteboard.get("target_project_architecture", {}) if isinstance(whiteboard.get("target_project_architecture"), dict) else {}
+    architecture_contract = generated_project_architecture_contract.evaluate_project(project, target_architecture)
+    invalid_screenshots = [path for path in assets["screenshots"] if not image_quality_audit(path).get("ok")]
+    if invalid_screenshots:
+        rejected.append("invalid_screenshot_evidence")
 
-    if project_is_docs_only(project) or not project_has_runnable_surface(project, manifest):
+    if project_is_docs_only(project) or not project_has_runnable_surface(project, manifest) or runnable_contract.get("verdict") != "PASS":
         missing.append("runnable_project")
     if phase == "final" and not assets["packages"]:
         missing.append("project_package")
@@ -1778,7 +2086,12 @@ def evaluate_public_delivery_gate(
         missing.append("real_test_execution")
     elif not quality.get("test_report_has_commands"):
         missing.append("test_commands")
-    if req["screenshot"] and not assets["screenshots"]:
+    if real_test_contract.get("verdict") != "PASS":
+        missing.append("real_test_execution_contract")
+    visual_required_by_contract = bool(req["screenshot"] or req["generated_image"] or req["background"] or req["sprite"] or req["video"] or req["demo_video"])
+    if phase == "final" and visual_required_by_contract and visual_contract.get("verdict") != "PASS":
+        missing.append("visual_evidence")
+    if req["screenshot"] and (not assets["screenshots"] or invalid_screenshots):
         missing.append("screenshots")
     if (req["video"] or req["demo_video"]) and not assets["videos"]:
         missing.append("videos")
@@ -1798,7 +2111,12 @@ def evaluate_public_delivery_gate(
         "rejected": rejected,
         "requirements": req,
         "asset_counts": {key: len(value) for key, value in assets.items()},
+        "invalid_screenshots": [str(path) for path in invalid_screenshots],
         "quality_evidence": quality,
+        "runnable_project_contract": runnable_contract,
+        "real_test_execution_contract": real_test_contract,
+        "visual_evidence_contract": visual_contract,
+        "generated_project_architecture_contract": architecture_contract,
         "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
     }
 
@@ -2088,8 +2406,8 @@ def record_public_delivery_gate(
 
 def public_delivery_gate_failed_reply() -> str:
     return public_narration.redact_internal_terms(
-        "这次生成没有通过交付检查，所以不会把内部记录当成果发给你。\n"
-        "我会回到补修阶段，先补齐可运行项目、真实测试，以及你要求的截图、图片或视频证据。"
+        "这轮还不能交付，我这边不会把没验过的结果当成完成品发给你。\n"
+        "我会先补三个最关键的缺口：项目能跑起来、测试结论站得住、你要求的截图/图片/视频证据能看见。"
     )
 
 
@@ -2448,11 +2766,11 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
         forced_missing = any("缺少真实 demo 或样例输入" in str(item) for item in known_limits)
     lines = [
         public_narration.public_event_text("delivery_ready", manifest),
-        "项目包：已生成",
+        "可运行项目交付包：已生成",
         f"测试报告：{'有' if test_report_found else '没有'}",
         f"测试执行：{test_execution}",
         f"交付说明：{'有' if delivery_notes_found else '没有'}",
-        f"预览证据：{preview_status}",
+        f"截图/效果预览：{preview_status}",
         f"真实输入验证：{'有' if sample_input_found else '没有'}",
         f"交付状态：{delivery_status}",
     ]
@@ -2515,17 +2833,6 @@ def send_delivery_from_manifest(
     if not gate.get("delivery_allowed"):
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
         return []
-    send_customer_reply(
-        client,
-        chat_id,
-        session_dir,
-        session,
-        event="delivery_manifest_ready",
-        facts={"manifest": manifest},
-        source="delivery_team_summary",
-        direct_text=build_delivery_summary_text(manifest),
-    )
-    session = load_session(session_dir, chat_id)
     record_public_delivery_gate(session_dir, session, gate, project_dir)
     assets = collect_public_delivery_assets(project_dir, manifest)
     items: list[tuple[pathlib.Path, str]] = []
@@ -2540,6 +2847,51 @@ def send_delivery_from_manifest(
             break
     items.extend((path, "video") for path in assets["videos"][:2])
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="delivery_manifest")
+    sent_kinds = {str(item.get("kind", "")) for item in sent}
+    missing_sent: list[str] = []
+    if assets["packages"] and "package" not in sent_kinds:
+        missing_sent.append("package")
+    if assets["screenshots"] and "screenshot" not in sent_kinds:
+        missing_sent.append("screenshot")
+    if missing_sent:
+        session = load_session(session_dir, chat_id)
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        generation.update({"status": "delivery_send_failed", "delivery_allowed": False, "missing_sent_attachments": missing_sent})
+        session["generation"] = generation
+        update_active_run_status(session, "delivery_send_failed", delivery_allowed=False, missing_sent_attachments=missing_sent)
+        append_truth_ledger(
+            session_dir,
+            session,
+            "public_delivery_attachment_send_failed",
+            "公开交付附件没有全部发送成功",
+            status="failed",
+            evidence_ref="delivery_manifest",
+            data={"artifact": "public_delivery_attachment_send_failed", "missing_sent_attachments": missing_sent, "sent": sent},
+        )
+        append_memory_event(session, "public_delivery_attachment_send_failed", data={"missing_sent_attachments": missing_sent, "sent": sent})
+        save_session(session_dir, session)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="delivery_send_failed",
+            source="delivery_manifest",
+            direct_text="项目包、截图和测试记录已经生成，但 Telegram 附件没有全部发送成功；这轮还不能算交付完成，我会保留结果并重试发送。",
+        )
+        return sent
+    session = load_session(session_dir, chat_id)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="delivery_manifest_ready",
+        facts={"manifest": manifest},
+        source="delivery_team_summary",
+        direct_text=build_delivery_summary_text(manifest),
+    )
+    session = load_session(session_dir, chat_id)
     if sent:
         append_memory_event(session, "delivery_manifest_sent", data={"sent": sent, "manifest": manifest})
     save_session(session_dir, session)
@@ -2749,6 +3101,7 @@ def reset_project_scoped_context_for_new_run(session: dict[str, Any], raw_user_m
         "critical_questions": [],
         "soft_questions": [],
         "capability_research_targets": [],
+        "question_decisions": [],
         "user_rules": list(old_whiteboard.get("user_rules", []) if isinstance(old_whiteboard.get("user_rules"), list) else []),
         "acceptance_criteria": [],
         "change_requests": [],
@@ -2785,13 +3138,43 @@ def merge_whiteboard(previous: dict[str, Any], next_whiteboard: dict[str, Any]) 
         elif key == "project_summary":
             text = str(value).strip()
             merged[key] = text or str(previous.get(key, "")).strip()
+        elif key == "question_decisions":
+            merged[key] = merge_question_decisions(previous.get(key, []), value)
         else:
             merged[key] = value
     for key in append_keys | replace_keys:
         merged.setdefault(key, [])
     merged.setdefault("project_summary", "")
+    merged.setdefault("question_decisions", [])
     merged.setdefault("ready_to_generate", False)
     return merged
+
+
+def merge_question_decisions(previous: Any, incoming: Any, limit: int = 12) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for values in (previous, incoming):
+        if not isinstance(values, list):
+            continue
+        for item in values:
+            if not isinstance(item, dict):
+                continue
+            question = str(item.get("question", "")).strip()
+            if not question or question in seen:
+                continue
+            seen.add(question)
+            out.append(
+                {
+                    "question": question[:260],
+                    "capability": str(item.get("capability", "")).strip()[:120],
+                    "reason": str(item.get("reason", "")).strip()[:320],
+                    "default_assumption": str(item.get("default_assumption", "")).strip()[:320],
+                    "priority": str(item.get("priority", "")).strip()[:40] or "important",
+                }
+            )
+            if len(out) >= limit:
+                return out
+    return out
 
 
 def read_project_memory_excerpt(session: dict[str, Any], limit: int = 6000) -> str:
@@ -2824,6 +3207,27 @@ def combined_requirement(session: dict[str, Any]) -> str:
         summary = str(whiteboard.get("project_summary", "")).strip()
         if summary:
             parts.append(summary)
+        target_architecture = whiteboard.get("target_project_architecture", {})
+        if isinstance(target_architecture, dict) and str(target_architecture.get("model_mode", "")).strip():
+            arch_lines = [
+                f"- model_mode: {target_architecture.get('model_mode')}",
+                f"- model_adapter_required: {bool(target_architecture.get('model_adapter_required'))}",
+                f"- model_config_needed: {bool(target_architecture.get('model_config_needed'))}",
+            ]
+            config_keys = target_architecture.get("model_config_keys", [])
+            if isinstance(config_keys, list) and config_keys:
+                arch_lines.append("- config_keys: " + ", ".join(str(item) for item in config_keys if str(item).strip()))
+            for item in target_architecture.get("acceptance_limits", []) if isinstance(target_architecture.get("acceptance_limits"), list) else []:
+                if str(item).strip():
+                    arch_lines.append(f"- acceptance_limit: {item}")
+            parts.append("目标项目模型架构要求:\n" + "\n".join(arch_lines))
+        cgkn_execution = whiteboard.get("cgkn_execution", {})
+        if isinstance(cgkn_execution, dict):
+            parts.append(
+                "CGKN平台执行配置:\n"
+                f"- generation_backend: {cgkn_execution.get('generation_backend', '')}\n"
+                f"- platform_generation_constraint: {cgkn_execution.get('platform_generation_constraint', 'none')}"
+            )
         attachment_lines = attachment_requirement_lines(session)
         if attachment_lines:
             parts.append("用户上传资料和本地输入:\n" + "\n".join(attachment_lines))
@@ -2985,7 +3389,7 @@ def is_smalltalk(text: str) -> bool:
 
 
 def is_generate_command(text: str) -> bool:
-    compact = re.sub(r"\s+", "", text.lower())
+    compact = re.sub(r"[\s,.!?。！？~～+＋]+", "", text.lower())
     if compact in {"/generate", "/build"}:
         return True
     control_phrases = {
@@ -2999,7 +3403,13 @@ def is_generate_command(text: str) -> bool:
         "可以开始",
         "生成项目",
         "生成吧",
+        "接口生成",
+        "用接口生成",
+        "先用接口生成",
+        "切到接口生成",
         "开始吧",
+        "开始做",
+        "开始做吧",
         "开工",
         "直接做",
         "做吧",
@@ -3007,6 +3417,8 @@ def is_generate_command(text: str) -> bool:
         "go",
     }
     if compact in control_phrases:
+        return True
+    if len(compact) <= 18 and any(phrase in compact for phrase in ("开始吧", "开始做", "开始生成", "可以开始", "直接做", "生成吧", "做吧", "用接口生成", "接口生成", "切到接口生成")):
         return True
     # Long requirement text can naturally contain words like "生成图片".
     # Treat generation triggers as commands only when the whole message is a short control phrase.
@@ -3051,7 +3463,7 @@ def is_human_start_confirmation(text: str, session: dict[str, Any]) -> bool:
 
 
 def explicit_start_requested(user_text: str) -> bool:
-    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(user_text or "").lower())
+    compact = re.sub(r"[\s,.!?。！？~～+＋]+", "", str(user_text or "").lower())
     if compact in {"做一个东西", "帮我搞一下", "帮我弄一下", "做个东西", "搞一下", "帮我做个东西"}:
         return False
     if any(phrase in compact for phrase in ("直接生成图片", "直接生成图", "直接生成背景", "直接生成立绘", "directlygenerateimage")):
@@ -3060,13 +3472,19 @@ def explicit_start_requested(user_text: str) -> bool:
         return True
     contains_phrases = (
         "开始生成",
+        "开始吧",
+        "开始做",
         "可以开始",
         "按默认假设开始",
         "按默认假设生成",
         "按默认假设开始生成",
         "按这个方向做",
         "直接做",
+        "做吧",
         "生成吧",
+        "用接口生成",
+        "接口生成",
+        "切到接口生成",
     )
     if any(phrase in compact for phrase in contains_phrases):
         return True
@@ -3184,6 +3602,9 @@ def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, An
     critical_questions = _analysis_list(analysis, "critical_questions") or (
         whiteboard.get("critical_questions") if isinstance(whiteboard.get("critical_questions"), list) else []
     )
+    question_decisions = analysis.get("question_decisions", []) if isinstance(analysis.get("question_decisions"), list) else []
+    if question_decisions and decision_questions_should_wait_for_confirmation(user_text, question_decisions):
+        return False, "decision_questions_pending"
     if critical_questions and not start_allowed:
         return False, "critical_questions_pending"
     if signals["actionable_project_request"]:
@@ -3195,6 +3616,20 @@ def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, An
     if confidence < 0.8:
         return False, "unclear_project_request"
     return True, "simple_clear_request"
+
+
+def decision_questions_should_wait_for_confirmation(user_text: str, question_decisions: list[Any]) -> bool:
+    text = str(user_text or "")
+    if not any(term in text for term in ("项目生成系统", "项目团队一样交付", "项目团队一样", "像项目团队")):
+        return False
+    for item in question_decisions:
+        if not isinstance(item, dict):
+            continue
+        question = str(item.get("question", ""))
+        capability = str(item.get("capability", ""))
+        if "生成核心" in question or ("内容生成能力" in capability and "项目" in question):
+            return True
+    return False
 
 
 def parse_json_object(text: str) -> dict[str, Any] | None:
@@ -3310,19 +3745,17 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
         root,
         {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 900},
     )
-    last_error = ""
-    for attempt in range(6):
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
-        if doc is not None:
-            break
-        last_error = error
-        if not check_connectivity._error_is_retryable(error):
-            break
-        time.sleep(min(20.0, 2.0 * (attempt + 1)))
-    else:
-        raise RuntimeError(last_error)
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout,
+        max_attempts=6,
+        base_delay_sec=2.0,
+    )
+    doc = transport.doc
     if doc is None:
-        raise RuntimeError(f"provider_api_request_failed: {last_error}")
+        raise RuntimeError(f"provider_api_request_failed: {transport.error}")
     text = check_connectivity._extract_text(doc)
     if not text:
         raise RuntimeError("empty customer-service response")
@@ -3400,6 +3833,29 @@ def grounded_customer_fallback(session: dict[str, Any], whiteboard: dict[str, An
     )[:1200]
 
 
+def public_question_decision_text(whiteboard: dict[str, Any]) -> str:
+    cards = whiteboard.get("question_decisions", []) if isinstance(whiteboard.get("question_decisions"), list) else []
+    for item in cards:
+        if not isinstance(item, dict):
+            continue
+        question = str(item.get("question", "")).strip()
+        if not question:
+            continue
+        reason = str(item.get("reason", "")).strip()
+        default = str(item.get("default_assumption", "")).strip()
+        parts = [f"这里我会先确认一个会影响交付质量的选择：{question.rstrip('。；;？?')}"]
+        if reason:
+            parts.append(f"我问这个，是因为{reason.rstrip('。；;？?')}")
+        if default:
+            parts.append(f"如果你暂时不选，我先按这个默认方案推进：{default.rstrip('。；;？?')}")
+        return "。".join(parts) + "。"
+    critical_questions = whiteboard.get("critical_questions", []) if isinstance(whiteboard.get("critical_questions"), list) else []
+    visible = [str(item).strip() for item in critical_questions if str(item).strip()]
+    if not visible:
+        return ""
+    return "这里我会先确认一个会影响交付质量的选择：" + "；".join(visible[:2]) + "。如果你暂时不选，我先按可配置入口推进，并把限制写清楚。"
+
+
 def visual_delivery_requirements_from_text(text: str) -> list[str]:
     compact = str(text or "").lower()
     requirements: list[str] = []
@@ -3466,6 +3922,7 @@ def capability_strategy_updates_from_text(text: str) -> dict[str, Any]:
         "capability_strategy": strategy,
         "capability_research_targets": research_lines,
         "critical_questions": strategy.get("critical_questions", []) if isinstance(strategy.get("critical_questions"), list) else [],
+        "question_decisions": strategy.get("question_decisions", []) if isinstance(strategy.get("question_decisions"), list) else [],
         "acceptance_criteria": strategy.get("acceptance_criteria", []) if isinstance(strategy.get("acceptance_criteria"), list) else [],
         "decision_log": strategy.get("decision_log", []) if isinstance(strategy.get("decision_log"), list) else [],
         "known_facts": [f"识别出的核心能力：{'；'.join(capability_labels[:6])}"] if capability_labels else [],
@@ -3523,6 +3980,10 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
             values = strategy_updates.get(key, [])
             existing = normalized.get(key, [])
             normalized[key] = unique_strings((existing if isinstance(existing, list) else []) + (values if isinstance(values, list) else []), limit=120)
+        normalized["question_decisions"] = merge_question_decisions(
+            normalized.get("question_decisions", []),
+            strategy_updates.get("question_decisions", []),
+        )
         normalized["open_questions"] = unique_strings(
             normalized.get("open_questions", []) + normalized.get("critical_questions", []),
             limit=40,
@@ -3534,9 +3995,14 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
             data={
                 "capabilities": strategy_updates.get("capability_strategy", {}).get("capabilities", []),
                 "critical_questions": normalized.get("critical_questions", []),
+                "question_decisions": normalized.get("question_decisions", []),
             },
         )
-    if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")):
+    evidence_repair_request = any(token in text for token in ("补", "补齐", "先补")) and any(
+        token in text for token in ("截图", "测试", "测试报告", "证据", "交付包", "预览")
+    )
+    expression_repair_request = any(token in text for token in ("机械", "模板", "客服", "流程播报", "不像负责人"))
+    if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")) or evidence_repair_request or expression_repair_request:
         changes = normalized.get("change_requests", [])
         normalized["change_requests"] = unique_strings((changes if isinstance(changes, list) else []) + [text], limit=120)
     return normalized
@@ -3613,6 +4079,7 @@ JSON 结构：
     "first_version_plan": ["第一版会做什么"],
     "blocking_questions": ["真正阻塞生成的问题；通常为空"],
     "critical_questions": ["关键配置缺口；不作为硬门禁，但必须在回复中问清"],
+    "question_decisions": [{"question": "要问用户的关键选择", "reason": "为什么这个选择影响交付", "default_assumption": "用户不回答时的默认推进方式"}],
     "capability_research_targets": ["核心能力和高级路线候选"],
     "open_questions": ["不阻塞生成、后续可调的问题"],
     "user_rules": ["用户明确要求长期遵守的行为规则"],
@@ -3691,7 +4158,9 @@ JSON 结构：
     next_whiteboard = enforce_backend_updates_from_user_text(session, next_whiteboard)
     critical_questions = next_whiteboard.get("critical_questions", []) if isinstance(next_whiteboard.get("critical_questions"), list) else []
     if critical_questions and not any(str(item).strip() and str(item).strip()[:18] in reply for item in critical_questions):
-        reply = (reply.rstrip() + "\n关键配置：" + "；".join(str(item).strip() for item in critical_questions[:2] if str(item).strip()))[:1200]
+        decision_text = public_question_decision_text(next_whiteboard)
+        if decision_text:
+            reply = (reply.rstrip() + "\n" + decision_text)[:1200]
     if next_whiteboard.get("blocking_questions"):
         action = "continue_chat"
     return reply, next_whiteboard, action
@@ -7428,10 +7897,24 @@ def start_agent_generation(
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    update_active_run_status(session, "running", driver="api_provider_project_generation")
+    existing_generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    requested_mode = str(existing_generation.get("requested_generation_mode") or "api")
+    effective_mode = str(existing_generation.get("effective_generation_mode") or "api")
+    update_active_run_status(
+        session,
+        "running",
+        driver="api_provider_project_generation",
+        requested_generation_mode=requested_mode,
+        effective_generation_mode=effective_mode,
+        local_to_api_fallback_explicit=bool(existing_generation.get("local_to_api_fallback_explicit")),
+    )
     session["generation"] = {
+        **existing_generation,
         "status": "running",
         "driver": "api_provider_project_generation",
+        "requested_generation_mode": requested_mode,
+        "effective_generation_mode": effective_mode,
+        "local_to_api_fallback_explicit": bool(existing_generation.get("local_to_api_fallback_explicit")),
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
     }
@@ -7446,6 +7929,8 @@ def start_agent_generation(
 
 
 ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_user_review"}
+COMPLETED_GENERATION_STATUSES = {"ready", "ready_with_warnings", "delivered", "final_delivered", "revision_delivered"}
+REVISION_WAITING_STATUSES = {"revision_requested", "next_revision_waiting_confirmation"}
 
 
 def apply_backend_dialogue_tick(
@@ -7596,6 +8081,50 @@ def record_generation_start_waiting(
     append_memory_event(
         session,
         "generation_start_waiting",
+        data={
+            "reason": reason,
+            "pending_soft_questions": session["pending_soft_questions"],
+            "pending_critical_questions": session["pending_critical_questions"],
+            "pending_required_inputs": session["pending_required_inputs"],
+        },
+    )
+    save_session(session_dir, session)
+
+
+def record_completed_revision_waiting(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    analysis: dict[str, Any],
+    reason: str,
+) -> None:
+    session["generation_start_waiting"] = True
+    session["start_wait_reason"] = reason
+    session["pending_start_assumptions"] = _analysis_list(analysis, "assumptions")
+    session["pending_soft_questions"] = _analysis_list(analysis, "soft_questions")
+    session["pending_critical_questions"] = _analysis_list(analysis, "critical_questions")
+    session["pending_required_inputs"] = _analysis_list(analysis, "missing_required_inputs")
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation["status"] = "next_revision_waiting_confirmation"
+    generation["start_wait_reason"] = reason
+    session["generation"] = generation
+    update_active_run_status(session, "next_revision_waiting_confirmation", driver=str(generation.get("driver", "frontdesk_revision")))
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "next_revision_waiting_confirmation",
+            "role": "system",
+            "reason": reason,
+            "pending_soft_questions": session["pending_soft_questions"],
+            "pending_critical_questions": session["pending_critical_questions"],
+            "pending_required_inputs": session["pending_required_inputs"],
+            "soft_questions_are_blocking": False,
+        },
+    )
+    append_memory_event(
+        session,
+        "next_revision_waiting_confirmation",
         data={
             "reason": reason,
             "pending_soft_questions": session["pending_soft_questions"],
@@ -7777,6 +8306,18 @@ def continue_customer_turn(
         append_memory_event(session, "whiteboard_revision", data={"source": "local_frontdesk", "latest_user_text": latest[:1200]})
         generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
         action = "revise_generation_scope" if generation_status in {"queued", "running"} else "update_project_context"
+        if looks_like_evidence_repair_request(latest):
+            run = session.get("active_run", {}) if isinstance(session.get("active_run"), dict) else {}
+            if run:
+                run["next_action"] = "repair_evidence"
+                run["repair_requested_at"] = now()
+                session["active_run"] = run
+            append_memory_event(
+                session,
+                "evidence_repair_requested",
+                latest,
+                {"run_id": str(run.get("id", "")) if isinstance(run, dict) else "", "same_context": True},
+            )
         append_backend_control(
             session_dir,
             session,
@@ -7881,10 +8422,37 @@ def handle_text(
         return
 
     session.setdefault("messages", []).append({"role": "user", "text": text, "created_at": now(), "classification": classification})
+    record_user_correction(session, text)
+    semantics = model_mode_semantics.apply_model_mode_semantics(
+        session,
+        text,
+        configured_backend_mode=generation_mode,
+        configured_model=model,
+    )
+    append_memory_event(session, "model_mode_semantics", text, {"semantics": semantics})
     append_memory_event(session, "user_message", text, {"classification": classification})
     save_session(session_dir, session)
 
     intent = str(classification.get("intent", ""))
+    generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
+    if (
+        generation_status == "generation_blocked_by_local_model_config"
+        and looks_like_generation_mode_followup(text)
+        and not explicit_start_requested(text)
+    ):
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="status_requested",
+            source="generation_mode_alignment",
+            direct_text=(
+                "现在本地模型路线还不能直接开工。如果你愿意改用接口生成，需要明确说“可以，切到接口生成”；"
+                "在你确认前，我不会替你切换执行方式，也不会新开一轮生成。"
+            ),
+        )
+        return
     if intent == "greeting":
         evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
         if send_provider_message(
@@ -7937,7 +8505,6 @@ def handle_text(
         )
         return
 
-    generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     if generation_status == "waiting_user_review" and intent not in {"admin_command", "greeting", "status_query"}:
         if is_user_review_continue(text):
             append_agent_session_event(
@@ -8097,6 +8664,50 @@ def handle_text(
     if intent == "generation_confirmation":
         record_forced_start_context(session_dir, chat_id, session)
         session = load_session(session_dir, chat_id)
+        semantics = model_mode_semantics.apply_model_mode_semantics(
+            session,
+            text,
+            configured_backend_mode=generation_mode,
+            configured_model=model,
+        )
+        requested_mode = requested_generation_mode_from_text(text, session)
+        previous_generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        previous_requested_mode = str(previous_generation.get("requested_generation_mode") or "").lower()
+        local_to_api_explicit = previous_requested_mode == "local" and requested_mode == "api"
+        if requested_mode == "local":
+            if not local_project_generation_available():
+                block_local_model_generation(client, chat_id, session_dir, session)
+                return
+            record_generation_mode_choice(session, "local", "local", fallback_explicit=False)
+            save_session(session_dir, session)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="generation_started",
+                source="generation_mode_alignment",
+                direct_text=(
+                    "明白，这一版按本地模型路线推进。我会先用本地模型生成第一版项目；"
+                    "交付前仍要补齐可运行结果、截图和测试记录，缺一项都不能算完成。"
+                ),
+            )
+            start_local_model_generation(
+                client,
+                chat_id,
+                session_dir,
+                log_dir,
+                model,
+                timeout,
+                announce_start=False,
+            )
+            return
+        if requested_mode == "api":
+            record_generation_mode_choice(session, previous_requested_mode or "api", "api", fallback_explicit=local_to_api_explicit)
+            save_session(session_dir, session)
+        else:
+            record_generation_mode_choice(session, str(generation_mode or "api").lower(), str(generation_mode or "api").lower(), fallback_explicit=False)
+            save_session(session_dir, session)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         soft_questions = whiteboard.get("soft_questions", []) if isinstance(whiteboard.get("soft_questions"), list) else []
         if soft_questions:
@@ -8113,6 +8724,13 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
+        target_mode = str(semantics.get("target_project_model", {}).get("mode", "") if isinstance(semantics, dict) else "")
+        start_text = public_narration.public_event_text("generation_started", {})
+        if target_mode == "local_model":
+            start_text = (
+                "明白，这一版生成出来的项目按本地模型路线设计。我会把模型路径配置、适配层和缺模型时的限制说明写进技术方案；"
+                "CGKN 这边会按当前可用的生成后端继续推进。交付前仍要看可运行项目、截图和测试记录。"
+            )
         send_customer_reply(
             client,
             chat_id,
@@ -8120,7 +8738,7 @@ def handle_text(
             session,
             event="generation_started",
             source="public_narration",
-            direct_text=public_narration.public_event_text("generation_started", {}),
+            direct_text=start_text,
         )
         start_agent_generation(
             client,
@@ -8200,18 +8818,50 @@ def handle_text(
             reason="project_update",
         )
     auto_start, start_reason = should_auto_start_generation(session, analysis, text)
-    if generation_status in {"ready", "ready_with_warnings"} and not explicit_start_requested(text):
+    if not explicit_start_requested(text):
+        auto_start = False
+        start_reason = "project_update_requires_explicit_start"
+    if generation_status in COMPLETED_GENERATION_STATUSES and not explicit_start_requested(text):
         auto_start = False
         start_reason = "completed_project_update_requires_confirmation"
+    if generation_status in REVISION_WAITING_STATUSES and not explicit_start_requested(text):
+        auto_start = False
+        start_reason = "revision_update_requires_confirmation"
+    if generation_status in {"rework_blocked", "failed", "error", "max_turns_reached", "generation_blocked_by_local_model_config", "evidence_repair_requested", "needs_repair", "repair_queued"} and not explicit_start_requested(text):
+        auto_start = False
+        start_reason = "repair_update_requires_confirmation"
     if not auto_start:
-        record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
         waiting_text = build_intake_waiting_text(analysis, str(turn.get("reply", "")))
         if start_reason == "completed_project_update_requires_confirmation":
+            record_completed_revision_waiting(session_dir, chat_id, session, analysis, start_reason)
             questions: list[str] = []
             for key in ("critical_questions", "missing_required_inputs", "soft_questions"):
                 values = analysis.get(key, []) if isinstance(analysis.get(key), list) else []
                 questions.extend(str(item).strip() for item in values if str(item).strip())
             waiting_text = public_narration.public_event_text("intake_waiting", {"questions": unique_strings(questions, limit=3)})
+        elif start_reason == "revision_update_requires_confirmation":
+            record_completed_revision_waiting(session_dir, chat_id, session, analysis, start_reason)
+            waiting_text = str(turn.get("reply", "") or "").strip() or "这条会作为同一项目的下一版修改要求处理；确认继续前，我不会新开一轮生成。"
+        elif start_reason == "repair_update_requires_confirmation":
+            if generation_status == "generation_blocked_by_local_model_config" and not looks_like_evidence_repair_request(text):
+                waiting_text = (
+                    "现在本地模型路线还不能直接开工。如果你愿意改用接口生成，需要明确说“可以，切到接口生成”；"
+                    "在你确认前，我不会替你切换执行方式，也不会新开一轮生成。"
+                )
+            elif looks_like_evidence_repair_request(text):
+                record_evidence_repair_requested(session_dir, chat_id, session, text)
+                session = load_session(session_dir, chat_id)
+                waiting_text = str(turn.get("reply", "") or "").strip() or (
+                    "这条修复要求已经接到当前项目里。上一轮还没到交付点，主要要先补可运行结果、截图和测试结论；"
+                    "如果你要现在重新推进生成，可以明确说“继续生成”。"
+                )
+            else:
+                waiting_text = str(turn.get("reply", "") or "").strip() or (
+                    "这条修复要求已经接到当前项目里。上一轮还没到交付点，主要要先补可运行结果、截图和测试结论；"
+                    "如果你要现在重新推进生成，可以明确说“继续生成”。"
+                )
+        else:
+            record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
             chat_id,

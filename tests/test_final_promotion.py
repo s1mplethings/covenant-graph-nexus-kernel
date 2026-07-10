@@ -32,7 +32,7 @@ def nonblank_png() -> bytes:
     for y in range(height):
         row = bytearray()
         for x in range(width):
-            row.extend((20, 20, 20) if x < 220 and y < 140 else (255, 255, 255))
+            row.extend(((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
         rows.append(b"\x00" + bytes(row))
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b"")
 
@@ -60,9 +60,12 @@ def make_candidate(root: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path, path
         encoding="utf-8",
     )
     (candidate / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").write_text("{}", encoding="utf-8")
-    (candidate / "README.md").write_text("# Candidate\n", encoding="utf-8")
+    (candidate / "README.md").write_text("# Candidate\n\nRun with `npm test` or open `index.html`.\n", encoding="utf-8")
     (candidate / "DELIVERY_NOTES.md").write_text("# DELIVERY_NOTES\n", encoding="utf-8")
-    (candidate / "TEST_REPORT.md").write_text("# TEST_REPORT\n\ncommands_run:\n- [\"npm\", \"test\"]\n", encoding="utf-8")
+    (candidate / "TEST_REPORT.md").write_text(
+        "# TEST_REPORT\n\ncommands_run:\n- npm test\n\nexit_code: 0\n\nstdout_summary:\n- ok\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+        encoding="utf-8",
+    )
     (candidate / "known_limits.json").write_text("{}", encoding="utf-8")
     (candidate / "repair_plan.json").write_text("{}", encoding="utf-8")
     (candidate / "index.html").write_text("<!doctype html><title>Task Board</title><body>Task Bug Todo Doing Done Open Fixed Add Dashboard</body>", encoding="utf-8")

@@ -53,13 +53,15 @@ class BackendDialogueLoopTests(unittest.TestCase):
         self.assertEqual([], session["whiteboard"]["blocking_questions"])
         self.assertTrue(session["whiteboard"]["ready_to_generate"])
         self.assertIn("第一版", result["user_visible_reply"])
-        self.assertIn("关键配置", result["user_visible_reply"])
+        self.assertIn("会影响第一版质量的选择", result["user_visible_reply"])
         self.assertNotIn("我已记下", result["user_visible_reply"])
         strategy = session["whiteboard"]["capability_strategy"]
         labels = "；".join(item["label"] for item in strategy["capabilities"])
         self.assertIn("内容生成能力", labels)
         self.assertIn("结构化流程/关系建模", labels)
         self.assertTrue(strategy["research_targets"])
+        self.assertTrue(result["question_decisions"])
+        self.assertEqual(result["question_decisions"], session["whiteboard"]["question_decisions"])
 
     def test_local_image_backend_found_does_not_ask_missing_backend_question(self) -> None:
         session = {
@@ -108,6 +110,24 @@ class BackendDialogueLoopTests(unittest.TestCase):
         self.assertIn("按默认假设开始", result["user_visible_reply"])
         self.assertTrue(result["needs_direction_confirmation"])
         self.assertIn("开始生成", result["user_visible_reply"])
+
+    def test_capability_questions_include_reason_and_default(self) -> None:
+        result = dialogue.summarize_locally(
+            {"whiteboard": {}},
+            "做一个本地任务自动化系统，要流程状态、自动生成报告、保存历史，最好有可运行界面",
+        )
+
+        self.assertTrue(result["critical_questions"])
+        self.assertTrue(result["question_decisions"])
+        first = result["question_decisions"][0]
+        self.assertIn("question", first)
+        self.assertIn("reason", first)
+        self.assertIn("default_assumption", first)
+        card_questions = {item["question"] for item in result["question_decisions"]}
+        self.assertTrue(set(result["critical_questions"]).issubset(card_questions))
+        self.assertIn("会影响第一版质量的选择", result["user_visible_reply"])
+        self.assertIn("如果你暂时不选", result["user_visible_reply"])
+        self.assertNotIn("生成能力优先走本地模型、外部高级 API", "\n".join(result["critical_questions"]))
 
     def test_provider_failure_degrades_to_local_result(self) -> None:
         session = {

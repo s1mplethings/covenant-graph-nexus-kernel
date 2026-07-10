@@ -17,10 +17,16 @@ except ImportError:  # pragma: no cover - script execution path
     import model_policy  # type: ignore
     import project_revision_lane  # type: ignore
 
+try:
+    from . import frontdesk_team_lead_agent
+except ImportError:  # pragma: no cover - script execution path
+    import frontdesk_team_lead_agent  # type: ignore
+
 
 NEW_PROJECT_TERMS = ("新项目", "重新做一个不同项目", "另做一个", "开新项目", "不要沿用上次", "从零开始")
 ROLLBACK_TERMS = ("回滚", "退回", "恢复到")
 REPAIR_TERMS = ("修复", "重试", "再试")
+POLICY_PATH = pathlib.Path(__file__).resolve().parents[1] / "config" / "customer_agent_policy.md"
 
 
 def looks_like_status_query(text: str) -> bool:
@@ -54,11 +60,84 @@ class MainAgentManager:
         conversation = local_conversation_manager.load_conversation(conversation_id)
         conversation["source"] = source
         local_conversation_manager.append_user_message(conversation, text, source, attachments)
+        self.record_correction_if_needed(conversation, text)
         intent = self.classify_intent(conversation, text)
         result = self.route_intent(conversation, intent)
+        self.attach_team_lead_reply(conversation, result, text)
         local_conversation_manager.save_conversation(conversation)
         result["conversation"] = local_conversation_manager.conversation_summary(conversation)
         return result
+
+    def record_correction_if_needed(self, conversation: dict[str, Any], text: str) -> None:
+        if not frontdesk_team_lead_agent.is_correction(text):
+            return
+        local_conversation_manager.update_whiteboard(
+            conversation,
+            {
+                "change_requests": [f"用户纠正: {text}"],
+                "known_facts": [f"按用户纠正更新: {text}"],
+                "decision_log": ["用户纠正优先于此前推断，后续回复先承认修正再推进。"],
+            },
+            "user_correction",
+        )
+
+    def attach_team_lead_reply(self, conversation: dict[str, Any], result: dict[str, Any], latest_text: str) -> None:
+        whiteboard = conversation.get("whiteboard", {}) if isinstance(conversation.get("whiteboard"), dict) else {}
+        generation = conversation.get("generation", {}) if isinstance(conversation.get("generation"), dict) else {}
+        active = local_conversation_manager.get_active_project(conversation)
+        evidence = self.delivery_evidence_for_local(active, generation)
+        known_limits = frontdesk_team_lead_agent.known_limits_from_context(whiteboard, generation, evidence)
+        context = frontdesk_team_lead_agent.build_context(
+            latest_user_message=latest_text,
+            conversation_history_summary=frontdesk_team_lead_agent.conversation_history_summary(
+                conversation.get("messages", []) if isinstance(conversation.get("messages"), list) else []
+            ),
+            whiteboard=whiteboard,
+            active_run=conversation.get("active_run", {}) if isinstance(conversation.get("active_run"), dict) else {},
+            generation_status=generation,
+            delivery_evidence=evidence,
+            known_limits=known_limits,
+            customer_agent_policy=self.read_customer_agent_policy(),
+            draft_reply=str(result.get("message") or result.get("status") or ""),
+            event=str(result.get("intent") or ""),
+        )
+        structured = frontdesk_team_lead_agent.compose_reply(context)
+        result["user_visible_reply"] = structured["reply"]
+        result["reply_intent"] = structured["reply_intent"]
+        result["visible_status"] = structured["visible_status"]
+        result["next_user_options"] = structured["next_user_options"]
+        local_conversation_manager.append_assistant_message(
+            conversation,
+            structured["reply"],
+            event=str(result.get("intent") or "team_lead_reply"),
+            source="frontdesk_team_lead_agent",
+        )
+
+    def delivery_evidence_for_local(self, active: dict[str, Any], generation: dict[str, Any]) -> dict[str, Any]:
+        refs: dict[str, str] = {}
+        for key in ("latest_project_package", "package_path"):
+            value = str(active.get(key) or generation.get(key) or "").strip()
+            if value:
+                refs["package"] = value
+        for key in ("latest_delivery_manifest", "delivery_manifest"):
+            value = str(active.get(key) or generation.get(key) or "").strip()
+            if value:
+                refs["delivery_manifest"] = value
+        delivery_ready = bool(refs.get("package") and refs.get("delivery_manifest"))
+        missing: list[str] = []
+        if str(generation.get("status", "")).lower() in {"ready", "ready_with_warnings", "delivered"}:
+            if "package" not in refs:
+                missing.append("package")
+            if "delivery_manifest" not in refs:
+                missing.append("delivery_manifest")
+        return {"delivery_ready": delivery_ready, "refs": refs, "missing": missing}
+
+    def read_customer_agent_policy(self) -> str:
+        try:
+            text = POLICY_PATH.read_text(encoding="utf-8", errors="replace").strip()
+        except Exception:
+            return ""
+        return text[:12000]
 
     def classify_intent(self, conversation: dict[str, Any], text: str) -> dict[str, Any]:
         stripped = str(text or "").strip()

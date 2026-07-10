@@ -59,17 +59,21 @@ def read_jsonl(path: pathlib.Path) -> list[dict]:
 
 def make_manifest(project_dir: pathlib.Path) -> dict:
     project_dir.mkdir(parents=True, exist_ok=True)
-    (project_dir / "README.md").write_text("# Demo\n", encoding="utf-8")
+    (project_dir / "README.md").write_text("# Demo\n\nRun with `python app.py`.\n", encoding="utf-8")
     (project_dir / "app.py").write_text("print('ok')\n", encoding="utf-8")
-    (project_dir / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+    (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    (project_dir / "tests").mkdir(exist_ok=True)
+    (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    (project_dir / "TEST_REPORT.md").write_text(
+        "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+        encoding="utf-8",
+    )
     (project_dir / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
     return local_packager.package_project(project_dir, startup_command="python app.py")
 
 
 def make_provider_result(project_dir: pathlib.Path) -> dict:
     make_manifest(project_dir)
-    (project_dir / "tests").mkdir(exist_ok=True)
-    (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     return {
         "status": "PASS",
         "generated_files": ["README.md", "app.py", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
@@ -408,7 +412,9 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertFalse(client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("生成没有通过交付检查", joined)
+            self.assertIn("这轮还不能交付", joined)
+            self.assertIn("主要缺口", joined)
+            self.assertIn("补齐", joined)
 
     def test_agent_pipeline_failure_becomes_rework_without_internal_public_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -437,7 +443,9 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertEqual([], client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("生成没有通过交付检查", joined)
+            self.assertIn("这轮还不能交付", joined)
+            self.assertIn("主要缺口", joined)
+            self.assertIn("补齐", joined)
             for forbidden in ("TLS", "provider", "backend", "后台", "pipeline", "manifest"):
                 self.assertNotIn(forbidden, joined)
 

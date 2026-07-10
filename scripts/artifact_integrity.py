@@ -62,6 +62,7 @@ def _invalid_zip_images(bundle: pathlib.Path, entries: list[str]) -> list[str]:
 def validate_candidate_bundle(candidate_bundle: pathlib.Path, *, require_video: bool = False) -> dict[str, Any]:
     bundle = pathlib.Path(candidate_bundle)
     issues: list[str] = []
+    warnings: list[str] = []
     if not bundle.exists() or bundle.stat().st_size <= 0:
         issues.append("candidate bundle missing or empty")
         entries: list[str] = []
@@ -77,8 +78,12 @@ def validate_candidate_bundle(candidate_bundle: pathlib.Path, *, require_video: 
         required = {"candidate_review_summary.json", "TEST_REPORT.md", "known_limits.json", "repair_plan.json"}
         for name in sorted(required - entry_names):
             issues.append(f"candidate bundle missing {name}")
-        if require_video and "video_blocked.json" not in entry_names and not any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries):
+        has_video_blocked = "video_blocked.json" in entry_names
+        has_video = any(pathlib.PurePosixPath(item).suffix.lower() in {".mp4", ".webm"} for item in entries)
+        if require_video and not has_video_blocked and not has_video:
             issues.append("candidate bundle missing video or video_blocked")
+        if require_video and has_video_blocked and not has_video:
+            warnings.append("candidate bundle video blocked")
         image_entries = _image_entries(entries)
         if "screenshot_blocked.json" not in entry_names and not image_entries:
             issues.append("candidate bundle missing screenshot or screenshot_blocked")
@@ -86,9 +91,10 @@ def validate_candidate_bundle(candidate_bundle: pathlib.Path, *, require_video: 
             for name in _invalid_zip_images(bundle, entries):
                 issues.append(f"corrupt_image: candidate bundle screenshot invalid: {name}")
     return base_result(
-        status="fail" if issues else "pass",
+        status="fail" if issues else "warning" if warnings else "pass",
         verdict="candidate_bundle_integrity",
         artifacts=[str(bundle)] if bundle.exists() else [],
+        warnings=warnings,
         blockers=issues,
         metadata={"bundle_entry_count": len(entries), "zip_error": zip_error if bundle.exists() else ""},
     )

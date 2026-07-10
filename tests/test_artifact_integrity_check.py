@@ -48,3 +48,65 @@ def test_candidate_bundle_cannot_contain_final_delivery_artifacts(tmp_path: path
 
     assert result["status"] == "fail"
     assert any("final_project_bundle.zip" in blocker for blocker in result["blockers"])
+
+
+def test_candidate_bundle_requires_video_when_requested(tmp_path: pathlib.Path) -> None:
+    bundle = tmp_path / "candidate_diagnostic_bundle.zip"
+    with zipfile.ZipFile(bundle, "w") as zf:
+        zf.writestr("candidate_review_summary.json", "{}")
+        zf.writestr("TEST_REPORT.md", "commands_run: pytest")
+        zf.writestr("known_limits.json", "[]")
+        zf.writestr("repair_plan.json", "{}")
+        zf.writestr("screenshot_blocked.json", "{}")
+
+    result = artifact_integrity.validate_candidate_bundle(bundle, require_video=True)
+
+    assert result["status"] == "fail"
+    assert "candidate bundle missing video or video_blocked" in result["blockers"]
+
+
+def test_candidate_bundle_with_requested_video_blocked_is_warning_not_full_pass(tmp_path: pathlib.Path) -> None:
+    bundle = tmp_path / "candidate_diagnostic_bundle.zip"
+    with zipfile.ZipFile(bundle, "w") as zf:
+        zf.writestr("candidate_review_summary.json", "{}")
+        zf.writestr("TEST_REPORT.md", "commands_run: pytest")
+        zf.writestr("known_limits.json", "[]")
+        zf.writestr("repair_plan.json", "{}")
+        zf.writestr("screenshot_blocked.json", "{}")
+        zf.writestr("video_blocked.json", "{}")
+
+    result = artifact_integrity.validate_candidate_bundle(bundle, require_video=True)
+
+    assert result["status"] == "warning"
+    assert "candidate bundle video blocked" in result["warnings"]
+    assert not result["blockers"]
+
+
+def test_candidate_bundle_does_not_require_video_unless_requested(tmp_path: pathlib.Path) -> None:
+    bundle = tmp_path / "candidate_diagnostic_bundle.zip"
+    with zipfile.ZipFile(bundle, "w") as zf:
+        zf.writestr("candidate_review_summary.json", "{}")
+        zf.writestr("TEST_REPORT.md", "commands_run: pytest")
+        zf.writestr("known_limits.json", "[]")
+        zf.writestr("repair_plan.json", "{}")
+        zf.writestr("screenshot_blocked.json", "{}")
+
+    result = artifact_integrity.validate_candidate_bundle(bundle)
+
+    assert result["status"] == "pass"
+    assert "candidate bundle missing video or video_blocked" not in result["blockers"]
+
+
+def test_candidate_bundle_still_requires_non_video_evidence(tmp_path: pathlib.Path) -> None:
+    bundle = tmp_path / "candidate_diagnostic_bundle.zip"
+    with zipfile.ZipFile(bundle, "w") as zf:
+        zf.writestr("candidate_review_summary.json", "{}")
+        zf.writestr("known_limits.json", "[]")
+        zf.writestr("repair_plan.json", "{}")
+
+    result = artifact_integrity.validate_candidate_bundle(bundle)
+
+    assert result["status"] == "fail"
+    assert "candidate bundle missing TEST_REPORT.md" in result["blockers"]
+    assert "candidate bundle missing screenshot or screenshot_blocked" in result["blockers"]
+    assert "candidate bundle missing video or video_blocked" not in result["blockers"]
