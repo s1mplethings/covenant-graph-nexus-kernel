@@ -8,14 +8,14 @@ import pathlib
 import re
 import ssl
 import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
 try:
-    from . import model_policy
+    from . import model_policy, provider_transport
 except ImportError:  # pragma: no cover - script execution path
     import model_policy  # type: ignore
+    import provider_transport  # type: ignore
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -102,13 +102,11 @@ def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any]) -> 
 
 
 def _tls_verify_enabled() -> bool:
-    raw = str(os.environ.get("CGKN_API_TLS_VERIFY", os.environ.get("OPENAI_TLS_VERIFY", "1"))).strip().lower()
-    return raw not in {"0", "false", "no", "off"}
+    return provider_transport.tls_verify_enabled()
 
 
-def _urlopen(req: urllib.request.Request, timeout_sec: int):
-    context = None if _tls_verify_enabled() else ssl._create_unverified_context()
-    return urllib.request.urlopen(req, timeout=timeout_sec, context=context)
+def _urlopen(req: Any, timeout_sec: int):
+    return provider_transport._urlopen(req, timeout_sec)
 
 
 def _request_error_summary(exc: BaseException, endpoint: str) -> str:
@@ -143,55 +141,16 @@ def _http_error_summary(exc: urllib.error.HTTPError, endpoint: str, detail: str)
 
 
 def _error_is_retryable(error: str) -> bool:
-    text = str(error or "")
-    if "retryable=true" in text:
-        return True
-    if "retryable=false" in text:
-        return False
-    match = re.search(r"HTTP\s+(\d+)", text)
-    if match:
-        code = int(match.group(1))
-        return code in {408, 409, 425, 429} or 500 <= code <= 599
-    return bool(text)
+    return provider_transport.is_retryable_error(error)
 
 
 def _provider_error_type(error: str) -> str:
-    text = str(error or "")
-    lowered = text.lower()
-    if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
+    classification = provider_transport.classify_provider_error(error)
+    if classification == "PROVIDER_KEY_USAGE_LIMIT":
         return "PROVIDER_QUOTA_EXCEEDED"
-    if "http 403" in lowered:
-        return "PROVIDER_FORBIDDEN"
-    transport_markers = (
-        "sslv3_alert_bad_record_mac",
-        "tlsv1_alert_protocol_version",
-        "sslerror",
-        "connection reset",
-        "connectionreseterror",
-        "connection aborted",
-        "unexpected_eof_while_reading",
-        "eof occurred in violation",
-        "[ssl:",
-        "urlerror",
-        "timeout",
-        "timed out",
-        "empty response",
-        "http 520",
-        "http 502",
-        "http 503",
-        "http 504",
-    )
-    if any(marker in lowered for marker in transport_markers):
-        return "PROVIDER_TRANSPORT_UNSTABLE"
-    match = re.search(r"HTTP\s+(\d+)", text, flags=re.IGNORECASE)
-    if match:
-        code = int(match.group(1))
-        if code in {408, 409, 425, 429} or 500 <= code <= 599:
-            return "PROVIDER_RETRYABLE_HTTP"
-        return "PROVIDER_NON_RETRYABLE_HTTP"
-    if "provider_api_request_failed" in lowered:
+    if classification == "PROVIDER_UNKNOWN_ERROR" and "provider_api_request_failed" in str(error or "").lower():
         return "PROVIDER_API_REQUEST_FAILED"
-    return "PROVIDER_UNKNOWN_ERROR"
+    return classification
 
 
 def _load_local_notes_defaults() -> dict[str, str]:
@@ -285,36 +244,27 @@ def _resolve_api_credentials() -> dict[str, str]:
 
 
 def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: int) -> tuple[dict[str, Any] | None, str]:
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(
+    return provider_transport.post_json_once(endpoint, payload, token, timeout_sec)
+
+
+def _post_json_with_retry(
+    endpoint: str,
+    payload: dict[str, Any],
+    token: str,
+    timeout_sec: int,
+    *,
+    max_attempts: int = 3,
+    base_delay_sec: float = 1.2,
+) -> provider_transport.ProviderTransportResult:
+    return provider_transport.post_json_with_retry(
         endpoint,
-        data=data,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "CGNK-Connectivity/1",
-            "Connection": "close",
-        },
+        payload,
+        token,
+        timeout_sec,
+        max_attempts=max_attempts,
+        base_delay_sec=base_delay_sec,
+        post_once_fn=_post_json,
     )
-    try:
-        with _urlopen(req, timeout_sec) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        return None, _http_error_summary(exc, endpoint, detail)
-    except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError) as exc:
-        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
-    except Exception as exc:
-        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
-    try:
-        doc = json.loads(body)
-    except Exception as exc:
-        return None, f"non-json response: {exc}"
-    if not isinstance(doc, dict):
-        return None, "response is not object"
-    return doc, ""
 
 
 def _extract_text(doc: dict[str, Any]) -> str:
@@ -364,10 +314,13 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
     endpoint = _openai_compatible_endpoint(root)
     payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8})
-    doc, error = _post_json(endpoint, payload, token, timeout_sec)
+    transport = _post_json_with_retry(endpoint, payload, token, timeout_sec)
+    doc, error = transport.doc, transport.error
     result["endpoint_mode"] = endpoint_mode
     result["endpoint"] = endpoint
     result["tls_verify"] = _tls_verify_enabled()
+    result["transport_attempts"] = len(transport.attempts)
+    result["transport_recovered"] = transport.recovered
     if doc is None:
         result["error"] = error
         return result

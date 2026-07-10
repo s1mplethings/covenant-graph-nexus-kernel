@@ -3,10 +3,14 @@ from __future__ import annotations
 import pathlib
 import sys
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.telegram_delivery import telegram_candidate_review_sender, telegram_final_delivery_sender, telegram_retry_recovery, telegram_status_renderer
+
+pytestmark = [pytest.mark.telegram]
 
 
 def test_candidate_sender_cannot_mark_final_delivered() -> None:

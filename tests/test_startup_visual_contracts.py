@@ -7,6 +7,8 @@ import tempfile
 
 import pytest
 
+pytestmark = pytest.mark.slow
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -294,7 +296,7 @@ def test_candidate_bundle_includes_video_or_video_blocked() -> None:
         with zipfile.ZipFile(bundle, "w") as zf:
             for name in ("candidate_review_summary.json", "TEST_REPORT.md", "known_limits.json", "repair_plan.json", "screenshot_blocked.json"):
                 zf.writestr(name, "{}")
-        result = artifact_integrity.validate_candidate_bundle(bundle)
+        result = artifact_integrity.validate_candidate_bundle(bundle, require_video=True)
 
     assert result["status"] == "fail"
     assert "candidate bundle missing video or video_blocked" in result["blockers"]

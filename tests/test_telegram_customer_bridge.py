@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -14,6 +16,8 @@ import scripts.telegram_live_bridge as bridge
 import scripts.legacy_provider_pipeline as legacy_provider_pipeline
 import scripts.project_memory_md as project_memory_md
 import scripts.local_packager as local_packager
+
+pytestmark = [pytest.mark.telegram]
 
 
 class FakeTelegramClient:
@@ -158,8 +162,31 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("内容生成能力", targets)
         self.assertIn("Hosted provider/API backend", targets)
         self.assertIn("SQLite", targets)
-        self.assertIn("生成能力优先走本地模型、外部高级 API", "\n".join(updated["critical_questions"]))
+        self.assertNotIn("生成能力优先走本地模型、外部高级 API", "\n".join(updated["critical_questions"]))
+        self.assertTrue(any("外部高质量" in item or "本机可控" in item for item in updated["critical_questions"]))
+        self.assertTrue(updated["question_decisions"])
+        self.assertIn("default_assumption", updated["question_decisions"][0])
         self.assertIn("核心能力", "\n".join(updated["known_facts"]))
+
+    def test_public_question_decision_text_explains_why_it_asks(self) -> None:
+        whiteboard = {
+            "critical_questions": ["这个项目的生成核心，我先按本机可控能力做，还是允许接入外部高质量生成服务，或者把两条路线都做成配置项？"],
+            "question_decisions": [
+                {
+                    "question": "这个项目的生成核心，我先按本机可控能力做，还是允许接入外部高质量生成服务，或者把两条路线都做成配置项？",
+                    "reason": "生成质量、成本、隐私和可用性都会被这条路线选择影响，不能静默替用户决定。",
+                    "default_assumption": "默认做成可切换配置：本地可控路线优先，外部高质量服务只作为明确配置的备选。",
+                }
+            ],
+        }
+
+        text = bridge.public_question_decision_text(whiteboard)
+
+        self.assertIn("会影响交付质量的选择", text)
+        self.assertIn("我问这个", text)
+        self.assertIn("如果你暂时不选", text)
+        self.assertNotIn("关键配置：", text)
+        self.assertNotIn("生成能力优先走本地模型、外部高级 API", text)
 
     def test_blocking_questions_are_limited_and_rest_become_open_questions(self) -> None:
         whiteboard = {
@@ -208,6 +235,47 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
 
         self.assertIn("视角/鼠标/键盘动作", text)
         self.assertNotIn("本地工作区记录", text)
+
+    def test_pre_send_guard_does_not_duplicate_external_api_wording(self) -> None:
+        text = bridge.pre_send_guard("允许外部 API 作为备选，但不要暴露 API/provider。判断：先按可配置入口推进。")
+
+        self.assertIn("外部接口", text)
+        self.assertNotIn("外部 外部接口", text)
+        self.assertNotIn("API/provider", text)
+        self.assertNotIn("判断：", text)
+
+    def test_local_model_start_phrase_is_explicit_start_request(self) -> None:
+        analysis = {"confidence": 0.2, "critical_questions": ["本地模型配置怎么走？"], "start_allowed_with_assumptions": False}
+
+        self.assertTrue(bridge.is_generate_command("走本地模型 + 开始做吧"))
+        self.assertEqual(
+            (True, "explicit_start_requested"),
+            bridge.should_auto_start_generation({}, analysis, "走本地模型 + 开始做吧"),
+        )
+
+    def test_question_decisions_wait_for_user_choice_before_auto_start(self) -> None:
+        analysis = {
+            "confidence": 0.95,
+            "critical_questions": ["这个项目的生成核心，本地模型、外部接口还是两者可配置？"],
+            "question_decisions": [
+                {
+                    "question": "这个项目的生成核心，本地模型、外部接口还是两者可配置？",
+                    "capability": "内容生成能力",
+                    "reason": "影响交付质量和成本。",
+                    "default_assumption": "默认两者可配置。",
+                }
+            ],
+            "start_allowed_with_assumptions": True,
+        }
+
+        self.assertEqual(
+            (False, "decision_questions_pending"),
+            bridge.should_auto_start_generation({}, analysis, "我想做一个本地项目生成系统，能自动生成项目和保存历史"),
+        )
+        self.assertEqual(
+            (True, "explicit_start_requested"),
+            bridge.should_auto_start_generation({}, analysis, "走本地模型 + 开始做吧"),
+        )
 
     def test_default_policy_identifies_project_delivery_interface(self) -> None:
         self.assertIn("project generation and delivery workflow", bridge.DEFAULT_CUSTOMER_AGENT_POLICY)
@@ -439,7 +507,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-2")
             self.assertEqual("idle", session["generation"]["status"])
             self.assertFalse(session.get("intake_tickets"))
-            self.assertIn("模型状态回复", client.messages[-1][1])
+            self.assertNotIn("模型状态回复", client.messages[-1][1])
+            self.assertIn("目前没有正在跑", client.messages[-1][1])
             self.assertIn("可运行项目文件", client.messages[-1][1])
             self.assertEqual("provider_user_message", session["messages"][-1]["source"])
             self.assert_public_reply_style(client.messages[-1][1])
@@ -504,20 +573,16 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 target.mkdir(parents=True, exist_ok=True)
                 screenshot = target / "screenshots" / "app_home.png"
                 screenshot.parent.mkdir(parents=True, exist_ok=True)
-                screenshot.write_bytes(
-                    base64.b64decode(
-                        "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAoUlEQVR4nO3YwQnAIAxF0Vbd/5Z2EJeiYsGENgZMUHzoQx9ZD5BSkl6+"
-                        "FsAteQLFBUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGw"
-                        "MAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuD8Op+AVtVBNHZsUuwAAAAAElF"
-                        "TkSuQmCC"
-                    )
-                )
+                bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
                 (target / "tests").mkdir(parents=True, exist_ok=True)
-                (target / "README.md").write_text("# Todo\n", encoding="utf-8")
+                (target / "README.md").write_text("# Todo\n\nRun with `python app.py`.\n", encoding="utf-8")
                 (target / "app.py").write_text("print('todo')\n", encoding="utf-8")
                 (target / "requirements.txt").write_text("pytest\n", encoding="utf-8")
                 (target / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
-                (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (target / "TEST_REPORT.md").write_text(
+                    "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+                    encoding="utf-8",
+                )
                 (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
                 return {
                     "status": "PASS",
@@ -559,9 +624,18 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             def fake_provider_execute(args):
                 target = pathlib.Path(args.out_dir)
                 target.mkdir(parents=True, exist_ok=True)
-                (target / "README.md").write_text("# VN\n", encoding="utf-8")
+                (target / "screenshots").mkdir(parents=True, exist_ok=True)
+                screenshot = target / "screenshots" / "app_home.png"
+                bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
+                (target / "tests").mkdir(parents=True, exist_ok=True)
+                (target / "README.md").write_text("# VN\n\nRun with `python app.py`.\n", encoding="utf-8")
                 (target / "app.py").write_text("print('vn')\n", encoding="utf-8")
-                (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (target / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+                (target / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+                (target / "TEST_REPORT.md").write_text(
+                    "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+                    encoding="utf-8",
+                )
                 (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
                 return {
                     "status": "PASS",
@@ -860,6 +934,72 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertEqual("status_question", classification["reason"])
         self.assertEqual(0, bridge.substantive_user_turn_count({"messages": [{"role": "user", "text": "还在做吗"}]}))
 
+    def test_evidence_question_during_generation_is_status_not_update(self) -> None:
+        session = bridge.default_session("chat-status-evidence")
+        session["generation"] = {"status": "running"}
+        session["whiteboard"]["project_summary"] = "做一个本地项目生成系统"
+
+        classification = bridge.classify_customer_message("为什么还没有截图", session)
+
+        self.assertEqual("status_query", classification["intent"])
+        self.assertEqual("status_question", classification["reason"])
+
+    def test_running_evidence_and_expression_feedback_updates_change_requests(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-running-change")
+            session["whiteboard"]["project_summary"] = "做一个本地项目生成系统"
+            session["generation"] = {"status": "running", "driver": "api_provider_project_generation"}
+            bridge.save_session(session_dir, session)
+
+            original_provider_user_message = bridge.provider_user_message
+            bridge.provider_user_message = lambda *args, **kwargs: "我会沿用当前项目继续处理；没补齐截图和测试前不能算完成。"
+            try:
+                bridge.handle_text(client, "chat-running-change", "那先补截图和测试", session_dir, log_dir, "gpt-test", 60)
+                bridge.handle_text(client, "chat-running-change", "这块说话还是太机械", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.provider_user_message = original_provider_user_message
+
+            saved = bridge.load_session(session_dir, "chat-running-change")
+            changes = "\n".join(saved["whiteboard"].get("change_requests", []))
+            self.assertIn("那先补截图和测试", changes)
+            self.assertIn("这块说话还是太机械", changes)
+            self.assertEqual("做一个本地项目生成系统", saved["whiteboard"]["project_summary"])
+            self.assertEqual("running", saved["generation"]["status"])
+            self.assert_public_reply_style(client.messages[-1][1])
+
+    def test_rework_evidence_feedback_does_not_auto_start_without_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            session_dir = pathlib.Path(temp_dir) / "sessions"
+            log_dir = pathlib.Path(temp_dir) / "logs"
+            client = FakeTelegramClient()
+            session = bridge.default_session("chat-rework-change")
+            session["whiteboard"]["project_summary"] = "做一个本地项目生成系统"
+            session["generation"] = {"status": "rework_blocked", "driver": "api_provider_project_generation"}
+            session["active_run"] = {"id": "run-rework", "status": "rework_blocked"}
+            bridge.save_session(session_dir, session)
+
+            original_start = bridge.start_agent_generation
+            original_provider_user_message = bridge.provider_user_message
+            bridge.start_agent_generation = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("repair feedback must not auto-start generation"))
+            bridge.provider_user_message = lambda *args, **kwargs: "这条修复要求已接到当前项目，补齐截图和测试前不能算完成。"
+            try:
+                bridge.handle_text(client, "chat-rework-change", "那先补截图和测试", session_dir, log_dir, "gpt-test", 60)
+            finally:
+                bridge.start_agent_generation = original_start
+                bridge.provider_user_message = original_provider_user_message
+
+            saved = bridge.load_session(session_dir, "chat-rework-change")
+            self.assertEqual("evidence_repair_requested", saved["generation"]["status"])
+            self.assertEqual("evidence_repair_requested", saved["active_run"]["status"])
+            self.assertEqual("repair_evidence", saved["active_run"]["next_action"])
+            self.assertFalse(saved.get("generation_start_waiting", False))
+            self.assertIn("那先补截图和测试", "\n".join(saved["whiteboard"].get("change_requests", [])))
+            self.assertTrue("不能算完成" in client.messages[-1][1] or "还不能交付" in client.messages[-1][1])
+            self.assert_public_reply_style(client.messages[-1][1])
+
     def test_status_query_does_not_update_project_or_restart_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
@@ -889,7 +1029,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             saved = bridge.load_session(session_dir, "chat-status-no-restart")
             self.assertEqual("max_turns_reached", saved["generation"]["status"])
             self.assertNotIn("还在做吗", str(saved["whiteboard"].get("known_facts", [])))
-            self.assertIn("模型状态回复", client.messages[-1][1])
+            self.assertNotIn("模型状态回复", client.messages[-1][1])
+            self.assertIn("目前还没到交付点", client.messages[-1][1])
             self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
             self.assertEqual("status_requested", saved["messages"][-1]["event"])
 
@@ -923,7 +1064,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
 
             saved = bridge.load_session(session_dir, "chat-status-package")
             self.assertEqual(["customer_status"], called)
-            self.assertIn("可运行项目文件已经生成", client.messages[-1][1])
+            self.assertNotIn("模型状态回复", client.messages[-1][1])
+            self.assertIn("交付内容已经整理好", client.messages[-1][1])
             self.assertNotIn("没有可运行结果", client.messages[-1][1])
             self.assertEqual("provider_user_message", saved["messages"][-1]["source"])
 

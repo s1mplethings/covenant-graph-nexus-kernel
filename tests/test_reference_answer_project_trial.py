@@ -5,11 +5,15 @@ import pathlib
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import run_reference_answer_project_trial as trial
+
+pytestmark = [pytest.mark.slow, pytest.mark.e2e]
 
 
 REFERENCE_TEXT = """

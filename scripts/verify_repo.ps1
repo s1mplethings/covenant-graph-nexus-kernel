@@ -9,6 +9,7 @@ param(
   [string]$WorkRoot = "",
   [string]$Report = "",
   [string]$ResumeRunDir = "",
+  [string]$Profile = "",
   [ValidateSet("agent-led", "closure")]
   [string]$Mode = "agent-led"
 )
@@ -16,6 +17,16 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $RepoRoot
+
+if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+  $allowedProfiles = @("quick", "regression", "longrun", "provider", "e2e", "all")
+  if ($allowedProfiles -notcontains $Profile) {
+    throw "Unknown test profile: $Profile"
+  }
+  $profileTimeout = if ($Timeout -eq 900) { 300 } else { $Timeout }
+  python scripts/run_test_profile.py --profile $Profile --timeout $profileTimeout
+  exit $LASTEXITCODE
+}
 
 if ([string]::IsNullOrWhiteSpace($env:CGNK_USE_LOCAL_MODEL)) {
   $env:CGNK_USE_LOCAL_MODEL = "1"

@@ -6,11 +6,15 @@ import pathlib
 import sys
 import tempfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts import run_local_pipeline
 from scripts import run_local_pipeline_impl
+
+pytestmark = [pytest.mark.slow, pytest.mark.e2e]
 
 
 def test_provider_component_payload_contains_requirement_decision_context() -> None:

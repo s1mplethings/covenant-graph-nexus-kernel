@@ -6,6 +6,10 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.e2e
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -121,11 +125,11 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             original_income = bridge.start_generation_from_income
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_step_agent = bridge.dynamic_pipeline_runner._call_step_provider
+            original_step_agent = bridge.dynamic_pipeline_runner._call_step_agent
 
-            def fake_step_agent(events, model, timeout):
-                prompt = str(events[0].get("content", ""))
-                if "Current step goal: write PRODUCT_PLAN.md" in prompt:
+            def fake_step_agent(events, model, timeout, *, role, step):
+                current_goal = str(step.get("goal", "")).strip()
+                if current_goal == "write PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, and BUILD_PLAN.md":
                     return {
                         "actions": [
                             {"type": "write_file", "path": "PRODUCT_PLAN.md", "content": "# Product Plan\n\nBuild a hello CLI.\n"},
@@ -134,28 +138,30 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                             {"type": "write_file", "path": "BUILD_PLAN.md", "content": "# Build Plan\n\nCreate README and app.py.\n"},
                         ]
                     }
-                if "Current step goal: write TEST_REPORT.md" in prompt:
-                    return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Test Report\n\ncommands_run:\n- python app.py\n\nresults:\n- planned fixture\n\nfailures:\n- none\n\nrepairs:\n- none\n\nremaining_warnings:\n- not executed in fixture\n"}]}
-                if "Current step goal: write EVIDENCE_REVIEW.md" in prompt:
+                if current_goal == "write README.md and app.py":
+                    return {
+                        "actions": [
+                            {"type": "write_file", "path": "README.md", "content": "# Hello Tool\n\nRun `python app.py`.\n"},
+                            {"type": "write_file", "path": "app.py", "content": "print('hello from CGKN')\n"},
+                            {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
+                            {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
+                            {"type": "write_file", "path": "assets/media_asset.png", "content": "fixture media marker\n"},
+                        ]
+                    }
+                if current_goal == "write TEST_REPORT.md":
+                    return {"actions": [{"type": "write_file", "path": "TEST_REPORT.md", "content": "# Test Report\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n\nfailures:\n- none\n\nrepairs:\n- none\n\nremaining_warnings:\n- fixture command evidence\n"}]}
+                if current_goal == "write EVIDENCE_REVIEW.md":
                     return {"actions": [{"type": "write_file", "path": "EVIDENCE_REVIEW.md", "content": "# Evidence Review\n\ntest_code_files: none\ntest_commands: python app.py\nsample_inputs: none\nscreenshots: none\nvideos: none\npreview_files: none\nwhat_user_should_check: CLI output\nmissing_real_evidence: no visual media required\nnext_recommended_action: package\n"}]}
-                if "Current step goal: write DELIVERY_NOTES.md" in prompt:
+                if current_goal == "write DELIVERY_NOTES.md":
                     return {"actions": [{"type": "write_file", "path": "DELIVERY_NOTES.md", "content": "# Delivery Notes\n\ndelivery_status: WARNING\ntests_executed: fixture evidence\nevidence_found: README, app.py, TEST_REPORT.md\nevidence_missing: none\nknown_limits: fixture did not execute command\nrevision_entry: initial\n"}]}
-                return {
-                    "actions": [
-                        {"type": "write_file", "path": "README.md", "content": "# Hello Tool\n\nRun `python app.py`.\n"},
-                        {"type": "write_file", "path": "app.py", "content": "print('hello from CGNK')\n"},
-                        {"type": "write_file", "path": "requirements.txt", "content": "pytest\n"},
-                        {"type": "write_file", "path": "tests/test_app.py", "content": "def test_ok():\n    assert True\n"},
-                        {"type": "write_file", "path": "screenshots/ui_screenshot.png", "content": "png"},
-                    ]
-                }
+                return {"actions": []}
 
             try:
                 bridge.threading.Thread = InlineThread
                 bridge.start_generation_from_income = lambda *args, **kwargs: False
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
-                bridge.dynamic_pipeline_runner._call_step_provider = fake_step_agent
+                bridge.dynamic_pipeline_runner._call_step_agent = fake_step_agent
 
                 bridge.handle_text(client, "chat-e2e-pipeline", "做一个本地 hello 工具", session_dir, log_dir, "gpt-test", 5)
                 bridge.handle_text(client, "chat-e2e-pipeline", "开始生成", session_dir, log_dir, "gpt-test", 5)
@@ -164,7 +170,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.start_generation_from_income = original_income
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner._call_step_provider = original_step_agent
+                bridge.dynamic_pipeline_runner._call_step_agent = original_step_agent
 
             project_dir = log_dir / "agent_projects" / "chat-e2e-pipeline"
             session = bridge.load_session(session_dir, "chat-e2e-pipeline")
@@ -196,9 +202,12 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
                 project = pathlib.Path(project_dir)
                 project.mkdir(parents=True, exist_ok=True)
-                (project / "README.md").write_text("# Fallback\n", encoding="utf-8")
+                (project / "README.md").write_text("# Fallback\n\nRun with `python app.py`.\n", encoding="utf-8")
                 (project / "app.py").write_text("print('fallback')\n", encoding="utf-8")
-                (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+                (project / "tests").mkdir(exist_ok=True)
+                (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+                (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n", encoding="utf-8")
                 (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
                 manifest = local_packager.package_project(project, startup_command="python app.py")
                 return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}

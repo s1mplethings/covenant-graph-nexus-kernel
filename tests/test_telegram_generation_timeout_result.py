@@ -7,11 +7,15 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import product_studio_reply
 import telegram_live_bridge as bridge
+
+pytestmark = [pytest.mark.telegram]
 
 
 class TelegramGenerationTimeoutResultTests(unittest.TestCase):
@@ -58,9 +62,10 @@ class TelegramGenerationTimeoutResultTests(unittest.TestCase):
                 "missing_artifacts": ["generation_result.json", "visual_evidence_plan.json"],
             }
         )
-        self.assertIn("虚拟项目组", reply)
-        self.assertIn("未验证产物不能标成完成", reply)
-        self.assertIn("缺失 artifact", reply)
+        self.assertNotIn("虚拟项目组", reply)
+        self.assertIn("未验证", reply)
+        self.assertIn("缺少", reply)
+        self.assertNotIn("artifact", reply)
 
 
 if __name__ == "__main__":

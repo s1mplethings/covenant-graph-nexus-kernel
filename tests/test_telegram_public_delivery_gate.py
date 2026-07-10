@@ -7,11 +7,15 @@ import unittest
 import json
 import zipfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
 import scripts.telegram_live_bridge as bridge
+
+pytestmark = [pytest.mark.telegram]
 
 
 class FakeTelegramClient:
@@ -123,8 +127,10 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("REWORK_BLOCKED", saved["generation"]["status"].upper())
         self.assertEqual("REWORK_BLOCKED", saved["active_run"]["status"].upper())
         joined_replies = "\n".join(text for _, text in client.messages)
-        self.assertIn("生成没有通过交付检查", joined_replies)
-        self.assertIn("不会把内部记录当成果发给你", joined_replies)
+        self.assertIn("这轮还不能交付", joined_replies)
+        self.assertIn("主要缺口", joined_replies)
+        self.assertIn("缺少可运行项目文件、效果预览、测试结论", joined_replies)
+        self.assertIn("再判断能不能交给你验收", joined_replies)
         self.assertNotIn("后台", joined_replies)
         self.assertNotIn("中间测试和预览证据已准备好", joined_replies)
 
@@ -135,17 +141,22 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             project = root / "project"
             (project / "screenshots").mkdir(parents=True)
             (project / "generated").mkdir(parents=True)
-            (project / "README.md").write_text("# VN helper\n", encoding="utf-8")
+            (project / "README.md").write_text("# VN helper\n\nRun with `python main.py`.\n", encoding="utf-8")
             (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
             (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
-            (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python main.py\n", encoding="utf-8")
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+            (project / "TEST_REPORT.md").write_text(
+                "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+                encoding="utf-8",
+            )
             (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
             screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
             background = project / "generated" / "background_scene.png"
             sprite = project / "generated" / "character_sprite.png"
-            screenshot.write_bytes(b"png")
-            background.write_bytes(b"png")
-            sprite.write_bytes(b"png")
+            bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
+            bridge.write_rgb_png(background, 160, 100, lambda x, y: (((x + 30) * 2) % 255, (y * 4) % 255, ((x + y + 10) * 3) % 255))
+            bridge.write_rgb_png(sprite, 160, 100, lambda x, y: ((x * 7) % 255, ((y + 40) * 2) % 255, ((x * 2 + y) * 2) % 255))
             manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
             session = vn_session("chat-pass")
             bridge.save_session(session_dir, session)
@@ -161,6 +172,29 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertTrue(any(caption == "生成立绘" for _, _, caption in client.photos))
         self.assertEqual([".zip"], sorted({path.suffix.lower() for _, path, _ in client.documents}))
         self.assertFalse(any(path.suffix.lower() in {".md", ".json", ".txt", ".log"} for _, path, _ in client.documents))
+
+    def test_public_final_gate_rejects_solid_color_screenshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            (project / "screenshots").mkdir(parents=True)
+            (project / "README.md").write_text("# GUI\n\nRun with `python main.py`.\n", encoding="utf-8")
+            (project / "main.py").write_text("print('gui ready')\n", encoding="utf-8")
+            (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+            (project / "TEST_REPORT.md").write_text("commands_run:\n- python -m pytest tests\n\nexit_code: 0\n", encoding="utf-8")
+            (project / "DELIVERY_NOTES.md").write_text("delivery_status: PASS\n", encoding="utf-8")
+            screenshot = project / "screenshots" / "ui_screenshot.png"
+            bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: (250, 250, 250))
+            manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+            session = vn_session("solid-screenshot")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("screenshots", gate["missing"])
+        self.assertIn("invalid_screenshot_evidence", gate["rejected"])
 
     def test_candidate_review_delivery_allows_candidate_bundle_without_final_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -282,10 +316,12 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertIn("候选审核包", message)
         self.assertIn("不是最终交付", message)
         self.assertIn("npm test 已通过", message)
-        self.assertIn("screenshot_blocked.json", message)
-        self.assertIn("video_blocked.json", message)
+        self.assertIn("缺失记录", message)
+        self.assertNotIn("screenshot_blocked.json", message)
+        self.assertNotIn("video_blocked.json", message)
         self.assertIn("final_project_bundle.zip 尚未生成", message)
-        self.assertIn("delivery_manifest.json 尚未生成", message)
+        self.assertIn("交付清单", message)
+        self.assertNotIn("delivery_manifest", message)
         self.assertNotIn("PASS_FINAL", message)
         self.assertNotIn("final delivered", message.lower())
         self.assertNotIn("已最终交付", message)

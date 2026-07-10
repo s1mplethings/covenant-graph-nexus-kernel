@@ -143,18 +143,23 @@ def _call_provider(prompt: str, model: str, timeout: int) -> str:
         root,
         {"model": model, "messages": messages, "temperature": 0.1, "max_tokens": 2200},
     )
-    last_error = ""
-    for attempt in range(3):
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
-        if doc is not None:
-            text = check_connectivity._extract_text(doc)
-            if text:
-                return text
-        last_error = error
-        if not check_connectivity._error_is_retryable(error):
-            break
-        time.sleep(min(5.0, 1.2 * (attempt + 1)))
-    raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "empty planner response")
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout,
+        max_attempts=3,
+        base_delay_sec=1.2,
+    )
+    if transport.doc is not None:
+        text = check_connectivity._extract_text(transport.doc)
+        if text:
+            return text
+    raise RuntimeError(
+        f"provider_api_request_failed: {transport.error}"
+        if transport.error
+        else "empty planner response"
+    )
 
 
 def plan_pipeline(

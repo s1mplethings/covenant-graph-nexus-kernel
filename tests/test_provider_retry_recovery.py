@@ -9,6 +9,10 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.slow
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -91,8 +95,9 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                     raise ssl.SSLError("SSLV3_ALERT_BAD_RECORD_MAC")
                 project = pathlib.Path(args.out_dir)
                 project.mkdir(parents=True, exist_ok=True)
-                (project / "README.md").write_text("# Tool\n", encoding="utf-8")
+                (project / "README.md").write_text("# Tool\n\nRun with `python app.py`.\n", encoding="utf-8")
                 (project / "app.py").write_text("print('ok')\n", encoding="utf-8")
+                (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
                 (project / "tests").mkdir(exist_ok=True)
                 (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
                 (project / "DELIVERY_NOTES.md").write_text("delivery_status: PASS\n", encoding="utf-8")
@@ -135,7 +140,9 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             public_text = "\n".join(text for _, text in client.messages)
             for forbidden in ("TLS", "SSLError", "provider", "后台"):
                 self.assertNotIn(forbidden, public_text)
-            self.assertIn("生成没有通过交付检查", public_text)
+            self.assertIn("这轮还不能交付", public_text)
+            self.assertIn("主要缺口", public_text)
+            self.assertIn("补齐", public_text)
 
     def test_stage_resume_after_provider_transport_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

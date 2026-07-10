@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import base64
 import pathlib
 import tempfile
 import unittest
+
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 import sys
@@ -12,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.telegram_live_bridge as bridge
 import scripts.local_packager as local_packager
+
+pytestmark = [pytest.mark.telegram, pytest.mark.e2e]
 
 
 class FakeTelegramClient:
@@ -109,20 +112,16 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 target.mkdir(parents=True, exist_ok=True)
                 screenshot = target / "screenshots" / "app_home.png"
                 screenshot.parent.mkdir(parents=True, exist_ok=True)
-                screenshot.write_bytes(
-                    base64.b64decode(
-                        "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAIAAAAuKetIAAAAoUlEQVR4nO3YwQnAIAxF0Vbd/5Z2EJeiYsGENgZMUHzoQx9ZD5BSkl6+"
-                        "FsAteQLFBUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGw"
-                        "MAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuDYGEQLAyChUGwMAgWBsHCIFgYBAuD8Op+AVtVBNHZsUuwAAAAAElF"
-                        "TkSuQmCC"
-                    )
-                )
+                bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
                 (target / "tests").mkdir(parents=True, exist_ok=True)
-                (target / "README.md").write_text("# Local task manager\n", encoding="utf-8")
+                (target / "README.md").write_text("# Local task manager\n\nRun with `python main.py`.\n", encoding="utf-8")
                 (target / "main.py").write_text("print('ok')\n", encoding="utf-8")
                 (target / "requirements.txt").write_text("pytest\n", encoding="utf-8")
                 (target / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
-                (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+                (target / "TEST_REPORT.md").write_text(
+                    "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+                    encoding="utf-8",
+                )
                 (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
                 return {
                     "status": "PASS",

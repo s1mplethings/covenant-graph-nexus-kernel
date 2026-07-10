@@ -172,18 +172,23 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
         root,
         {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000},
     )
-    last_error = ""
-    for attempt in range(4):
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
-        if doc is not None:
-            text = check_connectivity._extract_text(doc)
-            if text:
-                return text
-        last_error = error
-        if not check_connectivity._error_is_retryable(error):
-            break
-        time.sleep(min(8.0, 1.5 * (attempt + 1)))
-    raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "empty agent response")
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout,
+        max_attempts=4,
+        base_delay_sec=1.5,
+    )
+    if transport.doc is not None:
+        text = check_connectivity._extract_text(transport.doc)
+        if text:
+            return text
+    raise RuntimeError(
+        f"provider_api_request_failed: {transport.error}"
+        if transport.error
+        else "empty agent response"
+    )
 
 
 def run_agent_loop(

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import multiprocessing as mp
+import os
 import pathlib
 import sys
 import zipfile
+
+import pytest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -13,6 +17,16 @@ import customer_agent_scorecard
 import customer_agent_simulator
 import run_customer_agent_long_journey_trial as journey
 
+pytestmark = [pytest.mark.longrun, pytest.mark.long_journey, pytest.mark.slow, pytest.mark.e2e]
+
+
+def _trial_worker(queue: mp.Queue, kwargs: dict) -> None:
+    try:
+        result = journey.run_trial(**kwargs)
+        queue.put({"ok": True, "result": result})
+    except BaseException as exc:  # pragma: no cover - worker diagnostics
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
 
 def run_tmp_trial(
     tmp_path: pathlib.Path,
@@ -21,13 +35,36 @@ def run_tmp_trial(
     enable_rework: bool = True,
     use_reference: bool = True,
 ) -> dict:
-    return journey.run_trial(
-        root=tmp_path,
-        no_live=True,
-        use_reference_answer_trial=use_reference,
-        enable_rework=enable_rework,
-        capture_screenshot=capture_screenshot,
-    )
+    timeout = int(os.environ.get("CGKN_LONG_JOURNEY_TEST_TIMEOUT", "90"))
+    kwargs = {
+        "root": tmp_path,
+        "no_live": True,
+        "use_reference_answer_trial": use_reference,
+        "enable_rework": enable_rework,
+        "capture_screenshot": capture_screenshot,
+    }
+    queue: mp.Queue = mp.Queue()
+    proc = mp.Process(target=_trial_worker, args=(queue, kwargs))
+    proc.start()
+    proc.join(timeout)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join(10)
+        diagnosis = {
+            "status": "timeout",
+            "timeout_seconds": timeout,
+            "capture_screenshot": capture_screenshot,
+            "enable_rework": enable_rework,
+            "use_reference": use_reference,
+        }
+        (tmp_path / "long_journey_timeout_diagnosis.json").write_text(json.dumps(diagnosis, ensure_ascii=False, indent=2), encoding="utf-8")
+        pytest.fail(f"long journey trial exceeded {timeout}s; diagnosis written to {tmp_path / 'long_journey_timeout_diagnosis.json'}")
+    if queue.empty():
+        pytest.fail("long journey trial ended without returning a result")
+    payload = queue.get()
+    if not payload.get("ok"):
+        pytest.fail(str(payload.get("error", "long journey worker failed")))
+    return payload["result"]
 
 
 def test_trial_contains_required_long_journey_events(tmp_path: pathlib.Path) -> None:

@@ -10,6 +10,10 @@ import tempfile
 import time
 import types
 import unittest
+
+import pytest
+
+pytestmark = pytest.mark.slow
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

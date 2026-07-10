@@ -96,24 +96,31 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         },
     )
 
-    last_error = ""
-    for attempt in range(1, max(1, attempts) + 1):
-        started = time.time()
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
-        attempt_doc = {"attempt": attempt, "elapsed_seconds": round(time.time() - started, 3), "ok": doc is not None}
-        if error:
-            attempt_doc["error"] = error
-        result["attempts"].append(attempt_doc)
-        if doc is None:
-            last_error = error
-            if not check_connectivity._error_is_retryable(error):
-                break
-            time.sleep(min(8.0, 1.5 * attempt))
-            continue
-        text = check_connectivity._extract_text(doc)
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout,
+        max_attempts=max(1, attempts),
+        base_delay_sec=1.5,
+    )
+    result["attempts"] = [
+        {
+            "attempt": item.attempt,
+            "elapsed_seconds": round(item.elapsed_ms / 1000, 3),
+            "ok": item.ok,
+            "error": item.error,
+            "error_type": item.error_type,
+            "retryable": item.retryable,
+        }
+        for item in transport.attempts
+    ]
+    result["transport_recovered"] = transport.recovered
+    if transport.doc is not None:
+        text = check_connectivity._extract_text(transport.doc)
         parsed = _extract_json(text)
         result["response_preview"] = text[:200]
-        result["request_id"] = str(doc.get("id", "")).strip()
+        result["request_id"] = str(transport.doc.get("id", "")).strip()
         result["parsed_json"] = parsed or {}
         result["ok"] = bool(parsed and parsed.get("smoke") is True)
         if result["ok"]:
@@ -124,7 +131,8 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         return result
 
     result["error_code"] = "provider_request_failed"
-    result["error_summary"] = last_error or "Provider request failed without a detailed error."
+    result["error_summary"] = transport.error or "Provider request failed without a detailed error."
+    result["provider_error_type"] = transport.error_type
     return result
 
 

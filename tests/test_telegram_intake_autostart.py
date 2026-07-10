@@ -4,11 +4,15 @@ import pathlib
 import sys
 import tempfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.backend_dialogue_loop as dialogue
 import scripts.telegram_live_bridge as bridge
+
+pytestmark = [pytest.mark.telegram]
 
 
 def _analysis_for(text: str, session: dict | None = None) -> tuple[dict, dict]:

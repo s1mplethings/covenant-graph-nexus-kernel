@@ -4,10 +4,14 @@ import pathlib
 import sys
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.compose_local_pipeline as compose_local_pipeline
+
+pytestmark = [pytest.mark.slow, pytest.mark.e2e]
 
 
 class ComposeLocalPipelineTests(unittest.TestCase):
