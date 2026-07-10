@@ -3740,7 +3740,7 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
         raise RuntimeError("missing OpenAI-compatible API key for Telegram customer service")
     root = str(creds.get("base_url", "")).rstrip("/")
     temperature = customer_reply_temperature()
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 900},

@@ -22,11 +22,11 @@ def test_default_profile_is_balanced(monkeypatch) -> None:
 
 def test_balanced_defaults(monkeypatch) -> None:
     _clear_env(monkeypatch)
-    assert model_policy.select_model("frontdesk") == "gpt-4.1-mini"
-    assert model_policy.select_model("provider_generation") == "gpt-4.1-mini"
-    assert model_policy.select_model("connectivity") == "gpt-4.1-mini"
-    assert model_policy.select_model("repair") == "gpt-4.1"
-    assert model_policy.select_model("review") == "gpt-4.1"
+    assert model_policy.select_model("frontdesk") == "gpt-5.4-nano"
+    assert model_policy.select_model("provider_generation") == "gpt-5.4-nano"
+    assert model_policy.select_model("connectivity") == "gpt-5.4-nano"
+    assert model_policy.select_model("repair") == "gpt-5.4-nano"
+    assert model_policy.select_model("review") == "gpt-5.4-nano"
 
 
 def test_task_specific_env_override_wins(monkeypatch) -> None:
@@ -45,12 +45,12 @@ def test_openai_model_fallback_for_unknown_task(monkeypatch) -> None:
 def test_quality_profile_provider_is_stronger(monkeypatch) -> None:
     _clear_env(monkeypatch)
     monkeypatch.setenv("CGNK_MODEL_PROFILE", "quality")
-    assert model_policy.select_model("planning") == "gpt-4.1"
-    assert model_policy.select_model("provider_generation") == "gpt-4.1"
+    assert model_policy.select_model("planning") == "gpt-5.4-nano"
+    assert model_policy.select_model("provider_generation") == "gpt-5.4-nano"
 
 
 def test_explain_model_choice_reports_source(monkeypatch) -> None:
     _clear_env(monkeypatch)
     info = model_policy.explain_model_choice("connectivity")
-    assert info["model"] == "gpt-4.1-mini"
+    assert info["model"] == "gpt-5.4-nano"
     assert info["source"] == "profile:balanced"

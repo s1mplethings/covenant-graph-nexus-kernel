@@ -8,6 +8,7 @@ import pathlib
 import re
 import ssl
 import urllib.error
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Any
 
@@ -76,26 +77,96 @@ def _responses_endpoint(base_url: str) -> str:
     return _join_endpoint(base_url, "/responses")
 
 
-def _openai_compatible_endpoint(base_url: str) -> str:
-    return _chat_completions_endpoint(base_url) if _is_gptsapi_base_url(base_url) else _responses_endpoint(base_url)
+def _provider_api_method_override() -> str:
+    return str(os.environ.get("CGKN_PROVIDER_API_METHOD", os.environ.get("OPENAI_API_METHOD", ""))).strip()
+
+
+def _selected_provider_api_method(base_url: str, model: str = "", requested_method: str | None = None) -> str:
+    requested = requested_method if requested_method is not None else _provider_api_method_override()
+    return provider_transport.select_provider_api_method(base_url, model or DEFAULT_TEST_MODEL, requested)
+
+
+def _endpoint_mode_from_method(method: str) -> str:
+    return "chat" if method == provider_transport.PROVIDER_API_CHAT_COMPLETIONS else "responses"
+
+
+def _base_url_domain(base_url: str) -> str:
+    parsed = urlparse(_normalize_base_url(base_url))
+    return parsed.netloc.lower()
+
+
+def _openai_compatible_endpoint(base_url: str, model: str = "", requested_method: str | None = None) -> str:
+    method = _selected_provider_api_method(base_url, model, requested_method)
+    if method == provider_transport.PROVIDER_API_CHAT_COMPLETIONS:
+        return _chat_completions_endpoint(base_url)
+    return _responses_endpoint(base_url)
 
 
 def _messages_to_input(messages: list[dict[str, Any]]) -> str:
     return "\n".join(f"{item.get('role', 'user')}: {item.get('content', '')}" for item in messages)
 
 
-def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _message_content_to_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                text = item.get("text") or item.get("input_text")
+                if isinstance(text, str):
+                    parts.append(text)
+            elif isinstance(item, str):
+                parts.append(item)
+        return "\n".join(parts)
+    return str(content or "")
+
+
+def _input_to_messages(input_value: Any) -> list[dict[str, str]]:
+    if isinstance(input_value, list):
+        messages: list[dict[str, str]] = []
+        for item in input_value:
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role", "user") or "user")
+            messages.append({"role": role, "content": _message_content_to_text(item.get("content", ""))})
+        return messages or [{"role": "user", "content": str(input_value)}]
+    return [{"role": "user", "content": str(input_value)}]
+
+
+def _messages_to_responses_input(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for message in messages:
+        role = str(message.get("role", "user") or "user")
+        content = _message_content_to_text(message.get("content", ""))
+        items.append({"role": role, "content": [{"type": "input_text", "text": content}]})
+    return items
+
+
+def _build_openai_compatible_payload(
+    base_url: str,
+    payload: dict[str, Any],
+    model: str = "",
+    requested_method: str | None = None,
+) -> dict[str, Any]:
     request_payload = dict(payload)
-    if _is_gptsapi_base_url(base_url):
+    request_payload.pop("base_url_present", None)
+    method = _selected_provider_api_method(base_url, model or str(request_payload.get("model", "")), requested_method)
+    if method == provider_transport.PROVIDER_API_CHAT_COMPLETIONS:
         if "input" in request_payload and "messages" not in request_payload:
-            request_payload["messages"] = [{"role": "user", "content": str(request_payload.pop("input"))}]
+            request_payload["messages"] = _input_to_messages(request_payload.pop("input"))
         if "max_output_tokens" in request_payload and "max_tokens" not in request_payload:
             request_payload["max_tokens"] = request_payload.pop("max_output_tokens")
         request_payload.pop("input", None)
     else:
         if "messages" in request_payload and "input" not in request_payload:
-            request_payload["input"] = _messages_to_input(request_payload.pop("messages"))
-        if "max_tokens" in request_payload and "max_output_tokens" not in request_payload:
+            messages = request_payload.pop("messages")
+            request_payload["input"] = (
+                _messages_to_responses_input(messages)
+                if _is_gptsapi_base_url(base_url)
+                else _messages_to_input(messages)
+            )
+        if not _is_gptsapi_base_url(base_url) and "max_tokens" in request_payload and "max_output_tokens" not in request_payload:
             request_payload["max_output_tokens"] = request_payload.pop("max_tokens")
         request_payload.pop("messages", None)
     return request_payload
@@ -311,12 +382,15 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         result["ok"] = True
         result["status"] = "configured"
         return result
-    endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
-    endpoint = _openai_compatible_endpoint(root)
-    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8})
+    selected_method = _selected_provider_api_method(root, model)
+    endpoint_mode = _endpoint_mode_from_method(selected_method)
+    endpoint = _openai_compatible_endpoint(root, model=model)
+    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8}, model=model)
     transport = _post_json_with_retry(endpoint, payload, token, timeout_sec)
     doc, error = transport.doc, transport.error
     result["endpoint_mode"] = endpoint_mode
+    result["selected_method"] = selected_method
+    result["base_url_domain"] = _base_url_domain(root)
     result["endpoint"] = endpoint
     result["tls_verify"] = _tls_verify_enabled()
     result["transport_attempts"] = len(transport.attempts)

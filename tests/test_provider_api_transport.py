@@ -72,13 +72,31 @@ class ProviderApiTransportTests(unittest.TestCase):
 
     def test_openai_compatible_endpoint_and_payload_normalize_for_gptsapi(self) -> None:
         root = "https://api.gptsapi.net/v1"
-        endpoint = check_connectivity._openai_compatible_endpoint(root)
-        self.assertEqual("https://api.gptsapi.net/v1/chat/completions", endpoint)
+        endpoint = check_connectivity._openai_compatible_endpoint(root, model="gpt-5.4-nano")
+        self.assertEqual("https://api.gptsapi.net/v1/responses", endpoint)
         payload = check_connectivity._build_openai_compatible_payload(
             root,
             {"model": "gpt-5.4-nano", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 10},
+            model="gpt-5.4-nano",
         )
-        self.assertEqual({"model": "gpt-5.4-nano", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 10,}, payload)
+        self.assertEqual(
+            {"model": "gpt-5.4-nano", "input": [{"role": "user", "content": [{"type": "input_text", "text": "ping"}]}], "max_tokens": 10},
+            payload,
+        )
+
+    def test_non_gpt5_gptsapi_model_can_select_chat_completions(self) -> None:
+        root = "https://api.gptsapi.net/v1"
+        endpoint = check_connectivity._openai_compatible_endpoint(root, model="legacy-provider-model")
+        self.assertEqual("https://api.gptsapi.net/v1/chat/completions", endpoint)
+        payload = check_connectivity._build_openai_compatible_payload(
+            root,
+            {"model": "legacy-provider-model", "input": "ping", "max_output_tokens": 10},
+            model="legacy-provider-model",
+        )
+        self.assertEqual(
+            {"model": "legacy-provider-model", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 10},
+            payload,
+        )
 
     def test_openai_compatible_endpoint_and_payload_normalize_for_responses(self) -> None:
         root = "https://api.example.com"
@@ -92,6 +110,10 @@ class ProviderApiTransportTests(unittest.TestCase):
             {"model": "gpt-5.4-nano", "input": "user: ping", "temperature": 0.2, "max_output_tokens": 10},
             payload,
         )
+
+    def test_provider_method_unsupported_is_classified(self) -> None:
+        error = 'HTTP 400: {"error":"model legacy-provider-model does not support this API (call_methods must include responses)"} [retryable=false]'
+        self.assertEqual("PROVIDER_METHOD_UNSUPPORTED", check_connectivity._provider_error_type(error))
 
 
 if __name__ == "__main__":

@@ -54,8 +54,9 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).strip()
-    endpoint_mode = "chat" if check_connectivity._is_gptsapi_base_url(root) else "responses"
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    selected_method = check_connectivity._selected_provider_api_method(root, model)
+    endpoint_mode = check_connectivity._endpoint_mode_from_method(selected_method)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     result: dict[str, Any] = {
         "kind": "ProviderApiSmokeResult",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -67,6 +68,8 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         "base_url": root,
         "base_url_source": creds.get("base_url_source", ""),
         "endpoint_mode": endpoint_mode,
+        "selected_method": selected_method,
+        "base_url_domain": check_connectivity._base_url_domain(root),
         "endpoint": endpoint,
         "timeout_seconds": timeout,
         "max_attempts": attempts,
@@ -94,6 +97,7 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
             "temperature": 0,
             "max_tokens": 40,
         },
+        model=model,
     )
 
     transport = check_connectivity._post_json_with_retry(
@@ -133,6 +137,8 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
     result["error_code"] = "provider_request_failed"
     result["error_summary"] = transport.error or "Provider request failed without a detailed error."
     result["provider_error_type"] = transport.error_type
+    if transport.error_type == "PROVIDER_METHOD_UNSUPPORTED":
+        result["error_code"] = "provider_method_unsupported"
     return result
 
 

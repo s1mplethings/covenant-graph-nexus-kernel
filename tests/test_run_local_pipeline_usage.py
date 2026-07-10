@@ -1253,7 +1253,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         route = run_local_pipeline.choose_provider_model(
             "component_generation",
             12000,
-            "gpt-4.1",
+            "gpt-5.4-nano",
             run_local_pipeline.ProviderModelRoutingPolicy(),
         )
 

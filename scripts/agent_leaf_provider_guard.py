@@ -44,7 +44,11 @@ def redact_secret(text: str) -> str:
 def classify_provider_error(error: str) -> dict[str, Any]:
     safe_error = redact_secret(error)
     lowered = safe_error.lower()
-    if any(pattern in lowered for pattern in PROVIDER_MODEL_UNSUPPORTED_PATTERNS):
+    provider_error_type = check_connectivity._provider_error_type(safe_error)
+    if provider_error_type == "PROVIDER_METHOD_UNSUPPORTED":
+        failure_type = "provider_method_unsupported"
+        reason = "Provider/model API method is unsupported by the configured endpoint."
+    elif any(pattern in lowered for pattern in PROVIDER_MODEL_UNSUPPORTED_PATTERNS):
         failure_type = "provider_model_unsupported"
         reason = "Provider/model invocation is unsupported in the current Codex Responses Lite environment."
     else:
@@ -56,6 +60,7 @@ def classify_provider_error(error: str) -> dict[str, Any]:
         "verdict": "BLOCKED",
         "not_proven": True,
         "fake_success": False,
+        "provider_error_type": provider_error_type,
         "public_safe_error": safe_error,
         "reason": reason,
     }
@@ -70,9 +75,12 @@ def call_responses_provider(
     max_attempts: int = 3,
     retry_delay: float = 0.5,
 ) -> tuple[dict[str, Any] | None, str, int]:
+    model = str(payload.get("model", "")).strip()
+    endpoint = check_connectivity._openai_compatible_endpoint(base_url, model=model)
+    request_payload = check_connectivity._build_openai_compatible_payload(base_url, payload, model=model)
     transport = check_connectivity._post_json_with_retry(
-        check_connectivity._responses_endpoint(base_url),
-        payload,
+        endpoint,
+        request_payload,
         token,
         timeout,
         max_attempts=max_attempts,
@@ -95,6 +103,10 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
         "smoke_attempted": False,
         "smoke_status": "not_attempted",
         "public_safe_error": "",
+        "selected_method": "",
+        "endpoint_mode": "",
+        "base_url_domain": check_connectivity._base_url_domain(base_url) if base_url else "",
+        "provider_error_type": "",
         "raw_error_redacted": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -104,23 +116,18 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
     elif smoke:
         result["smoke_attempted"] = True
         try:
-            payload = {
-                "model": model,
-                "input": [{"role": "user", "content": [{"type": "input_text", "text": "Return exactly: {\"smoke\":true}"}]}],
-                "max_tokens": 80,
-            }
-            doc, error, attempts = call_responses_provider(
-                base_url=base_url,
-                token=token,
-                payload=payload,
-                timeout=timeout,
-            )
-            text = check_connectivity._extract_text(doc or {}) if doc else ""
+            smoke_result = provider_api_smoke.run_smoke(model=model, timeout=timeout, attempts=3)
+            text = str(smoke_result.get("response_preview", ""))
+            result["selected_method"] = str(smoke_result.get("selected_method", ""))
+            result["endpoint_mode"] = str(smoke_result.get("endpoint_mode", ""))
+            result["base_url_domain"] = str(smoke_result.get("base_url_domain", result["base_url_domain"]))
+            result["provider_error_type"] = str(smoke_result.get("provider_error_type", ""))
             smoke_result = {
-                "ok": bool(doc and "\"smoke\":true" in text.replace(" ", "")),
-                "error_summary": error,
+                "ok": bool(smoke_result.get("ok")),
+                "error_summary": smoke_result.get("error_summary", ""),
+                "error_code": smoke_result.get("error_code", ""),
                 "response_preview": text[:120],
-                "attempts": attempts,
+                "attempts": len(smoke_result.get("attempts", []) or []),
             }
         except Exception as exc:
             smoke_result = {"ok": False, "error_summary": redact_secret(str(exc))}
@@ -128,9 +135,13 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
         result["provider_ready"] = bool(smoke_result.get("ok"))
         result["smoke_attempts"] = int(smoke_result.get("attempts") or 1)
         result["public_safe_error"] = "" if result["provider_ready"] else redact_secret(str(smoke_result.get("error_summary") or smoke_result.get("error_code") or "provider smoke failed"))
+        if not result["provider_error_type"] and result["public_safe_error"]:
+            result["provider_error_type"] = check_connectivity._provider_error_type(result["public_safe_error"])
     else:
         result["smoke_status"] = "skipped"
         result["public_safe_error"] = "smoke disabled"
+        result["selected_method"] = check_connectivity._selected_provider_api_method(base_url, model) if base_url else ""
+        result["endpoint_mode"] = check_connectivity._endpoint_mode_from_method(result["selected_method"]) if result["selected_method"] else ""
 
     write_json(out / "provider_readiness.json", result)
     md = [
@@ -143,6 +154,9 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
         f"- base_url_present: {result['base_url_present']}",
         f"- smoke_attempted: {result['smoke_attempted']}",
         f"- smoke_status: {result['smoke_status']}",
+        f"- selected_method: {result['selected_method']}",
+        f"- base_url_domain: {result['base_url_domain']}",
+        f"- provider_error_type: {result['provider_error_type']}",
         f"- public_safe_error: {result['public_safe_error']}",
     ]
     (out / "provider_readiness.md").write_text("\n".join(md) + "\n", encoding="utf-8")
@@ -150,13 +164,19 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
 
 
 def build_leaf_provider_prompt(*, agent_id: str, allowed_files: list[str], forbidden_files: list[str], user_goal: str) -> str:
+    frontend_html_rule = (
+        "The HTML file must be concise: target under 3500 characters, use minimal inline CSS, no long design system, "
+        "no large scripts, and finish the complete document with <body> content and closing </html>. "
+        "If space is tight, prefer plain complete semantic HTML over styling.\n"
+    )
     leaf_contracts = {
         "document_import_leaf": (
             "For document_import_leaf, expose a top-level function `import_document(title, content)` returning a dict with title, content, and status/id fields. "
             "Include a pytest file that imports and tests it.\n"
         ),
         "search_service_leaf": (
-            "For search_service_leaf, expose a top-level function `search_documents(documents, query)` and include a pytest file that imports and tests it.\n"
+            "For search_service_leaf, expose a top-level function `search_documents(documents, query)` and include a pytest file that imports and tests it. "
+            "For dict records, the search text must include both field names and field values, so queries like `version 13`, `status open`, or `release checklist` can match local operational records.\n"
         ),
         "model_adapter_leaf": (
             "For model_adapter_leaf, expose a top-level function `adapter_status(config=None)` returning a dict. "
@@ -171,28 +191,34 @@ def build_leaf_provider_prompt(*, agent_id: str, allowed_files: list[str], forbi
             "Include a pytest file that imports and tests it.\n"
         ),
         "dashboard_page_leaf": (
-            "For dashboard_page_leaf, generate a complete HTML dashboard template for Local AI Knowledge Studio. "
-            "It must include dashboard, documents, search, tasks, reports, and settings navigation text.\n"
+            "For dashboard_page_leaf, generate a complete HTML dashboard template for the requested local application. "
+            "It must include dashboard, search, tasks, reports, settings, and goal-specific overview navigation text. "
+            + frontend_html_rule
         ),
         "documents_page_leaf": (
-            "For documents_page_leaf, generate a complete HTML documents template focused on document import and knowledge base items. "
-            "It must include documents, import, knowledge, search, tasks, reports, and settings navigation text.\n"
+            "For documents_page_leaf, generate a complete HTML documents template focused on the requested local application records and imports. "
+            "It must include import, search, tasks, reports, and settings navigation text. "
+            + frontend_html_rule
         ),
         "search_page_leaf": (
-            "For search_page_leaf, generate a complete HTML search template focused on querying the local knowledge base. "
-            "It must include search, query, results, documents, tasks, reports, and settings navigation text.\n"
+            "For search_page_leaf, generate a complete HTML search template focused on querying the requested local records. "
+            "It must include search, query, results, records, tasks, reports, and settings navigation text. "
+            + frontend_html_rule
         ),
         "tasks_page_leaf": (
             "For tasks_page_leaf, generate a complete HTML tasks template focused on follow-up task tracking. "
-            "It must include tasks, status, documents, search, reports, and settings navigation text.\n"
+            "It must include tasks, status, documents, search, reports, and settings navigation text. "
+            + frontend_html_rule
         ),
         "reports_page_leaf": (
             "For reports_page_leaf, generate a complete HTML reports template focused on generated reports and summaries. "
-            "It must include reports, summary, documents, search, tasks, and settings navigation text.\n"
+            "It must include reports, summary, documents, search, tasks, and settings navigation text. "
+            + frontend_html_rule
         ),
         "settings_page_leaf": (
             "For settings_page_leaf, generate a complete HTML settings template focused on local model configuration. "
-            "It must include settings, local model, documents, search, tasks, and reports navigation text.\n"
+            "It must include settings, local model, documents, search, tasks, and reports navigation text. "
+            + frontend_html_rule
         ),
         "smoke_test_leaf": (
             "For smoke_test_leaf, generate a pytest smoke test file only. "
@@ -238,7 +264,7 @@ def build_provider_request(*, model: str, prompt: str, base_url: str = "") -> di
             }
         ],
         "temperature": 0,
-        "max_tokens": 5000,
+        "max_tokens": 9000,
         "base_url_present": bool(base_url),
     }
 

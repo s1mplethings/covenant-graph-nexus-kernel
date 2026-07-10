@@ -532,7 +532,7 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
     root = str(creds.get("base_url", "")).rstrip("/")
     if not api_key or not root:
         return None, str(local_result.get("error") or "missing credentials")
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2},

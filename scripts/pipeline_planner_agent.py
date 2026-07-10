@@ -138,7 +138,7 @@ def _call_provider(prompt: str, model: str, timeout: int) -> str:
         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
         {"role": "user", "content": prompt},
     ]
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": messages, "temperature": 0.1, "max_tokens": 2200},

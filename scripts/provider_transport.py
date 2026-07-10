@@ -11,6 +11,10 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable
 
+PROVIDER_API_CHAT_COMPLETIONS = "chat_completions"
+PROVIDER_API_RESPONSES = "responses"
+PROVIDER_API_METHODS = {PROVIDER_API_CHAT_COMPLETIONS, PROVIDER_API_RESPONSES}
+
 
 @dataclass(frozen=True)
 class ProviderTransportAttempt:
@@ -39,6 +43,46 @@ def _redact(text: str, token: str = "") -> str:
     safe = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "<redacted>", safe)
     safe = re.sub(r"(Bearer\s+)[A-Za-z0-9_.-]+", r"\1<redacted>", safe, flags=re.IGNORECASE)
     return safe
+
+
+def _is_gptsapi_base_url(value: str) -> bool:
+    root = str(value or "").strip().rstrip("/").lower()
+    if root.endswith("/v1"):
+        root = root[:-3].rstrip("/")
+    return root in {
+        "https://api.gptsapi.net",
+        "http://api.gptsapi.net",
+        "https://gptsapi.net",
+        "http://gptsapi.net",
+    }
+
+
+def normalize_provider_api_method(value: str | None) -> str:
+    text = str(value or "").strip().lower().replace("-", "_")
+    aliases = {
+        "": "",
+        "chat": PROVIDER_API_CHAT_COMPLETIONS,
+        "chat_completion": PROVIDER_API_CHAT_COMPLETIONS,
+        "chat_completions": PROVIDER_API_CHAT_COMPLETIONS,
+        "responses": PROVIDER_API_RESPONSES,
+        "response": PROVIDER_API_RESPONSES,
+    }
+    normalized = aliases.get(text, text)
+    if normalized and normalized not in PROVIDER_API_METHODS:
+        raise ValueError(f"unsupported provider api method: {value}")
+    return normalized
+
+
+def select_provider_api_method(base_url: str, model: str, requested_method: str | None = None) -> str:
+    requested = normalize_provider_api_method(requested_method)
+    if requested:
+        return requested
+    model_name = str(model or "").strip().lower()
+    if _is_gptsapi_base_url(base_url):
+        if model_name.startswith("gpt-5"):
+            return PROVIDER_API_RESPONSES
+        return PROVIDER_API_CHAT_COMPLETIONS
+    return PROVIDER_API_RESPONSES
 
 
 def tls_verify_enabled() -> bool:
@@ -95,6 +139,16 @@ def classify_provider_error(error: str) -> str:
     lowered = str(error or "").lower()
     if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
         return "PROVIDER_KEY_USAGE_LIMIT"
+    method_markers = (
+        "does not support this api",
+        "call_methods must include",
+        "unsupported api",
+        "unsupported method",
+        "method unsupported",
+        "not support this api",
+    )
+    if any(marker in lowered for marker in method_markers):
+        return "PROVIDER_METHOD_UNSUPPORTED"
     if re.search(r"http\s+403\b", lowered):
         return "PROVIDER_FORBIDDEN"
     transport_markers = (

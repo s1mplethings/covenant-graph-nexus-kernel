@@ -19,15 +19,16 @@ def test_provider_guard_prompt_limits_leaf_scope_and_redacts_request(tmp_path: p
         user_goal="Local AI Knowledge Studio",
     )
     request = build_provider_request(model="gpt-5.4-nano", prompt=prompt)
-    assert request["max_tokens"] == 5000
-    request["api_key"] = "sk-secret123456789"
+    assert request["max_tokens"] == 9000
+    fake_secret = "sk-" + "s" * 16
+    request["api_key"] = fake_secret
     save_redacted_provider_request(out_dir=tmp_path, request_doc=request, prompt=prompt)
 
     assert "You cannot generate the whole project" in prompt
     assert "allowed_files" in prompt
     saved = json.loads((tmp_path / "provider_request_redacted.json").read_text(encoding="utf-8"))
-    assert "sk-secret" not in json.dumps(saved)
-    assert "<redacted>" in redact_secret("Bearer sk-secret123456789")
+    assert fake_secret not in json.dumps(saved)
+    assert "<redacted>" in redact_secret("Bearer " + fake_secret)
 
 
 def test_provider_guard_prompt_defines_backend_leaf_interfaces() -> None:
@@ -47,6 +48,18 @@ def test_provider_guard_prompt_defines_backend_leaf_interfaces() -> None:
         )
         assert signature in prompt
         assert "You cannot generate the whole project" in prompt
+
+
+def test_search_leaf_prompt_requires_field_names_and_values() -> None:
+    prompt = build_leaf_provider_prompt(
+        agent_id="search_service_leaf",
+        allowed_files=["app/services/search_service.py", "tests/test_search_service.py"],
+        forbidden_files=["README.md"],
+        user_goal="Local Studio Operations Hub",
+    )
+
+    assert "field names and field values" in prompt
+    assert "version 13" in prompt
 
 
 def test_provider_guard_prompt_defines_frontend_leaf_interfaces() -> None:
@@ -128,6 +141,17 @@ def test_responses_provider_does_not_retry_non_retryable_error(monkeypatch) -> N
     assert "HTTP 403" in error
     assert attempts == 1
     assert calls == ["https://api.gptsapi.net/v1/responses"]
+
+
+def test_provider_guard_classifies_method_unsupported_as_blocked_not_proven() -> None:
+    result = classify_provider_error('HTTP 400: {"error":"model does not support this API"} [retryable=false]')
+
+    assert result["classification"] == "provider_unavailable"
+    assert result["failure_type"] == "provider_method_unsupported"
+    assert result["provider_error_type"] == "PROVIDER_METHOD_UNSUPPORTED"
+    assert result["verdict"] == "BLOCKED"
+    assert result["not_proven"] is True
+    assert result["fake_success"] is False
 
 
 def test_ui_test_leaf_receives_read_only_integration_context(tmp_path: pathlib.Path) -> None:

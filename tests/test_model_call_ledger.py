@@ -16,7 +16,7 @@ def test_ledger_only_external_smoke_is_not_formal_evidence(tmp_path: pathlib.Pat
         tmp_path,
         stage="external_smoke",
         provider="api_agent",
-        model="gpt-4.1-mini",
+        model="gpt-5.4-nano",
         requested=True,
         executed=True,
         status="ok",

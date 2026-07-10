@@ -30,7 +30,7 @@ try:
     from agent_tree_registry import add_agent, children_of, initial_registry, save_registry
     from agent_tree_shared_context import create_shared_context, save_shared_context
     from run_mixed_backend_branch_phase import BACKEND_LEAF_ORDER, LEAF_SPECS as BACKEND_SPECS
-    from run_real_provider_frontend_branch_phase import FRONTEND_LEAF_ORDER, FRONTEND_SPECS, FRONTEND_TEST_TERMS, controlled_frontend_output
+    from run_real_provider_frontend_branch_phase import FRONTEND_LEAF_ORDER, FRONTEND_SPECS, FRONTEND_TEST_TERMS, controlled_frontend_output, frontend_static_missing_terms
 except ModuleNotFoundError:  # pragma: no cover
     from scripts import artifact_integrity, local_packager, runtime_visual_evidence
     from scripts.agent_growth_budget import default_growth_budget, save_growth_budget
@@ -43,7 +43,7 @@ except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_registry import add_agent, children_of, initial_registry, save_registry
     from scripts.agent_tree_shared_context import create_shared_context, save_shared_context
     from scripts.run_mixed_backend_branch_phase import BACKEND_LEAF_ORDER, LEAF_SPECS as BACKEND_SPECS
-    from scripts.run_real_provider_frontend_branch_phase import FRONTEND_LEAF_ORDER, FRONTEND_SPECS, FRONTEND_TEST_TERMS, controlled_frontend_output
+    from scripts.run_real_provider_frontend_branch_phase import FRONTEND_LEAF_ORDER, FRONTEND_SPECS, FRONTEND_TEST_TERMS, controlled_frontend_output, frontend_static_missing_terms
 
 
 DEFAULT_OUT_ROOT = ROOT / "generated" / "full_dynamic_real_project_eval"
@@ -194,11 +194,18 @@ def _spawn(registry: dict[str, Any], budget: dict[str, int], out: pathlib.Path, 
     add_agent(registry, action)
 
 
+def _alignment_plan(shared: dict[str, Any]) -> str:
+    contract = shared.get("goal_specific_acceptance_contract")
+    if isinstance(contract, dict) and contract.get("domain") == "local_studio_operations_hub":
+        return "dashboard production tasks asset library bugs issues releases team roles search import export tests screenshots bundle"
+    return "document import knowledge base search reports tasks local model adapter dashboard settings pytest visual package"
+
+
 def init_dynamic_tree(out: pathlib.Path, project_name: str, goal: str) -> dict[str, Any]:
     shared = create_shared_context(project_name, goal)
     shared["model_semantics"] = MODEL_SEMANTICS
     save_shared_context(shared, out)
-    plan = "document import knowledge base search reports tasks local model adapter dashboard settings pytest visual package"
+    plan = _alignment_plan(shared)
     write_json(out / "goal_alignment.json", evaluate_goal_alignment(shared, plan))
     budget = default_growth_budget()
     budget["max_agents"] = max(int(budget.get("max_agents", 0)), 32)
@@ -268,12 +275,11 @@ def _expected_files(leaf: str) -> list[str]:
 
 
 def _leaf_static_missing(project: pathlib.Path, leaf: str) -> list[str]:
-    if leaf not in FRONTEND_TEST_TERMS:
+    if leaf not in FRONTEND_SPECS:
         return []
     rel = FRONTEND_SPECS[leaf][2][0]
     text = (project / rel).read_text(encoding="utf-8", errors="replace") if (project / rel).exists() else ""
-    lowered = text.lower()
-    return ["/".join(group) for group in FRONTEND_TEST_TERMS[leaf] if not any(term.lower() in lowered for term in group)]
+    return frontend_static_missing_terms(leaf, text)
 
 
 def run_provider_leaf_for_full_project(out: pathlib.Path, leaf: str, *, goal: str, model: str, readiness: dict[str, Any], provider_output_override: str | None = None) -> dict[str, Any]:
@@ -335,7 +341,49 @@ def any_leaf_provider_unavailable(out: pathlib.Path) -> bool:
     return any(read_json(path, {}).get("classification") == "provider_unavailable" for path in checkpoints)
 
 
-def _integration_files() -> dict[str, str]:
+def _integration_files(shared_context: dict[str, Any] | None = None) -> dict[str, str]:
+    context = shared_context or {}
+    project_name = str(context.get("project_name") or "Local Studio Operations Hub")
+    contract = context.get("goal_specific_acceptance_contract")
+    studio_ops = isinstance(contract, dict) and contract.get("domain") == "local_studio_operations_hub"
+    readme = (
+        f"# {project_name}\n\n"
+        "A local-first studio operations hub for project overview, production tasks, assets, bugs, releases, docs, release checklists, team roles, search, import, and export.\n\n"
+        "## Run\n\n```bash\npython app/main.py --port 8765\n```\n"
+        if studio_ops
+        else "# Local AI Knowledge Studio\n\nA local-first AI knowledge workspace for importing documents, searching a local knowledge base, tracking tasks, generating reports, and configuring a local model adapter.\n\n## Run\n\n```bash\npython app/main.py --port 8765\n```\n"
+    )
+    store = (
+        """from __future__ import annotations
+
+ASSETS = [{"name": "Storyboard v1", "status": "review"}]
+BUGS = [{"title": "Export checklist mismatch", "severity": "medium", "status": "open"}]
+RELEASES = [{"version": "0.1.0", "status": "candidate"}]
+TASKS = [{"title": "Prepare release checklist", "status": "open", "owner": "producer"}]
+
+
+def seed_demo_data() -> dict:
+    return {
+        "assets": list(ASSETS),
+        "bugs": list(BUGS),
+        "releases": list(RELEASES),
+        "tasks": list(TASKS),
+    }
+"""
+        if studio_ops
+        else """from __future__ import annotations
+
+DOCUMENTS = []
+TASKS = []
+
+
+def seed_demo_data() -> dict:
+    return {
+        "documents": [{"title": "Local Knowledge Guide", "content": "local model adapter and knowledge search"}],
+        "tasks": [{"title": "Review imported notes", "status": "open"}],
+    }
+"""
+    )
     return {
         "app/__init__.py": "",
         "app/routes.py": """from __future__ import annotations
@@ -356,7 +404,8 @@ PAGES = {
 def render_page(page: str) -> str:
     name = PAGES.get(page, "dashboard.html")
     path = TEMPLATE_DIR / name
-    return path.read_text(encoding="utf-8")
+    body = path.read_text(encoding="utf-8")
+    return body + f"\\n<!-- route-marker:{page} -->\\n"
 
 
 def route_path(path: str) -> str:
@@ -364,18 +413,7 @@ def route_path(path: str) -> str:
     clean = clean_path.strip("/").split("/")[0] or "dashboard"
     return clean if clean in PAGES else "dashboard"
 """,
-        "app/store.py": """from __future__ import annotations
-
-DOCUMENTS = []
-TASKS = []
-
-
-def seed_demo_data() -> dict:
-    return {
-        "documents": [{"title": "Local Knowledge Guide", "content": "local model adapter and knowledge search"}],
-        "tasks": [{"title": "Review imported notes", "status": "open"}],
-    }
-""",
+        "app/store.py": store,
         "app/static/style.css": "body{font-family:Arial,sans-serif;margin:0;background:#f7f8fb;color:#172033}nav{display:flex;gap:16px;padding:16px;background:#10233f;color:white}main{padding:24px;max-width:1120px;margin:auto}.panel,section{border:1px solid #d8deea;border-radius:8px;padding:16px;margin:12px 0;background:white}\n",
         "app/main.py": """from __future__ import annotations
 import argparse
@@ -409,7 +447,27 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def create_app():
-    return Handler
+    return app
+
+
+class TestResponse:
+    def __init__(self, body: str, status_code: int = 200):
+        self.status_code = status_code
+        self.data = body.encode('utf-8')
+
+
+class TestClient:
+    def get(self, path: str):
+        page = route_path(path)
+        return TestResponse(render_page(page))
+
+
+class LocalApp:
+    def test_client(self):
+        return TestClient()
+
+
+app = LocalApp()
 
 
 def main():
@@ -418,7 +476,7 @@ def main():
     parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', '8765')))
     args = parser.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f'Local AI Knowledge Studio running on http://{args.host}:{args.port}', flush=True)
+    print(f'""" + project_name.replace("'", "\\'") + """ running on http://{args.host}:{args.port}', flush=True)
     server.serve_forever()
 
 
@@ -427,7 +485,7 @@ if __name__ == '__main__':
 """,
         "requirements.txt": "pytest\n",
         "pytest.ini": "[pytest]\ntestpaths = tests\npythonpath = .\n",
-        "README.md": "# Local AI Knowledge Studio\n\nA local-first AI knowledge workspace for importing documents, searching a local knowledge base, tracking tasks, generating reports, and configuring a local model adapter.\n\n## Run\n\n```bash\npython app/main.py --port 8765\n```\n",
+        "README.md": readme,
     }
 
 
@@ -439,7 +497,8 @@ def run_integration(out: pathlib.Path, branch_merges: dict[str, dict[str, Any]])
     contract = read_json(out / "scope_contracts" / "integration_agent.json", {})
     from agent_leaf_scope_enforcer import enforce_leaf_scope
 
-    enforcement = enforce_leaf_scope(contract=contract, candidate_files=_integration_files(), project_dir=out / "generated_project", out_dir=out / "integration", write_allowed=True)
+    shared_context = read_json(out / "shared_context.json", {})
+    enforcement = enforce_leaf_scope(contract=contract, candidate_files=_integration_files(shared_context), project_dir=out / "generated_project", out_dir=out / "integration", write_allowed=True)
     result = {
         "agent": "integration_agent",
         "verdict": "PASS" if enforcement.get("ok") else "FAIL",

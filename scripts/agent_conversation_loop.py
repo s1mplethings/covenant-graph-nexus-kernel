@@ -167,7 +167,7 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": _history_for_agent(events)},
     ]
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000},
@@ -195,7 +195,7 @@ def run_agent_loop(
     *,
     session_path: str | pathlib.Path,
     project_dir: str | pathlib.Path,
-    model: str = "gpt-4.1",
+    model: str = "gpt-5.4-nano",
     timeout: int = 120,
     max_turns: int = 12,
     agent: AgentCallable | None = None,
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the CGNK local agent conversation loop.")
     parser.add_argument("--session-path", required=True)
     parser.add_argument("--project-dir", required=True)
-    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-4.1"))
+    parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-5.4-nano"))
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--max-turns", type=int, default=12)
     args = parser.parse_args()

@@ -5,7 +5,7 @@ import os
 from typing import Any
 
 
-DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_MODEL = "gpt-5.4-nano"
 DEFAULT_PROFILE = "balanced"
 
 TASK_ENV_VARS = {
@@ -21,34 +21,34 @@ TASK_ENV_VARS = {
 
 MODEL_PROFILES: dict[str, dict[str, str]] = {
     "cheap": {
-        "frontdesk": "gpt-4.1-mini",
-        "classification": "gpt-4.1-mini",
-        "planning": "gpt-4.1-mini",
-        "provider_generation": "gpt-4.1-mini",
-        "revision": "gpt-4.1-mini",
-        "repair": "gpt-4.1-mini",
-        "review": "gpt-4.1-mini",
-        "connectivity": "gpt-4.1-mini",
+        "frontdesk": "gpt-5.4-nano",
+        "classification": "gpt-5.4-nano",
+        "planning": "gpt-5.4-nano",
+        "provider_generation": "gpt-5.4-nano",
+        "revision": "gpt-5.4-nano",
+        "repair": "gpt-5.4-nano",
+        "review": "gpt-5.4-nano",
+        "connectivity": "gpt-5.4-nano",
     },
     "balanced": {
-        "frontdesk": "gpt-4.1-mini",
-        "classification": "gpt-4.1-mini",
-        "planning": "gpt-4.1-mini",
-        "provider_generation": "gpt-4.1-mini",
-        "revision": "gpt-4.1-mini",
-        "repair": "gpt-4.1",
-        "review": "gpt-4.1",
-        "connectivity": "gpt-4.1-mini",
+        "frontdesk": "gpt-5.4-nano",
+        "classification": "gpt-5.4-nano",
+        "planning": "gpt-5.4-nano",
+        "provider_generation": "gpt-5.4-nano",
+        "revision": "gpt-5.4-nano",
+        "repair": "gpt-5.4-nano",
+        "review": "gpt-5.4-nano",
+        "connectivity": "gpt-5.4-nano",
     },
     "quality": {
-        "frontdesk": "gpt-4.1-mini",
-        "classification": "gpt-4.1-mini",
-        "planning": "gpt-4.1",
-        "provider_generation": "gpt-4.1",
-        "revision": "gpt-4.1",
-        "repair": "gpt-4.1",
-        "review": "gpt-4.1",
-        "connectivity": "gpt-4.1-mini",
+        "frontdesk": "gpt-5.4-nano",
+        "classification": "gpt-5.4-nano",
+        "planning": "gpt-5.4-nano",
+        "provider_generation": "gpt-5.4-nano",
+        "revision": "gpt-5.4-nano",
+        "repair": "gpt-5.4-nano",
+        "review": "gpt-5.4-nano",
+        "connectivity": "gpt-5.4-nano",
     },
 }
 

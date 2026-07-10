@@ -29,3 +29,19 @@ def test_goal_alignment_accepts_knowledge_studio_plan() -> None:
 
     assert result["verdict"] == "PASS"
     assert result["can_continue"]
+
+
+def test_goal_alignment_uses_studio_operations_terms_for_studio_goal() -> None:
+    context = create_shared_context(
+        "Local Studio Operations Hub",
+        "dashboard production tasks asset library bugs releases team roles search import export",
+    )
+
+    result = evaluate_goal_alignment(
+        context,
+        "dashboard production tasks asset library bugs releases team roles search import export tests screenshots bundle",
+    )
+
+    assert result["verdict"] == "PASS"
+    assert result["can_continue"]
+    assert "knowledge base" not in result["required_terms"]

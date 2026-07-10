@@ -51,8 +51,8 @@ FRONTEND_SPECS: dict[str, tuple[str, str, list[str]]] = {
     "settings_page_leaf": ("SettingsPageLeafAgent", "settings", ["app/templates/settings.html"]),
 }
 FRONTEND_TEST_TERMS = {
-    "dashboard_page_leaf": (("dashboard", "控制台", "仪表盘"), ("knowledge", "知识", "studio", "工作台")),
-    "documents_page_leaf": (("documents", "文档"), ("knowledge", "知识")),
+    "dashboard_page_leaf": (("dashboard", "overview", "progress", "hub", "控制台", "仪表盘"), ("studio", "operations", "project", "工作台")),
+    "documents_page_leaf": (("documents", "records", "assets", "import", "文档"), ("studio", "operations", "local", "知识")),
     "search_page_leaf": (("search", "搜索", "检索"),),
     "tasks_page_leaf": (("tasks", "任务"),),
     "reports_page_leaf": (("reports", "报告"),),
@@ -75,6 +75,16 @@ FRONTEND_FORBIDDEN = [
     "final_project_bundle.zip",
     "delivery_manifest.json",
 ]
+
+
+def frontend_static_missing_terms(leaf: str, text: str) -> list[str]:
+    lowered = str(text or "").lower()
+    missing = ["/".join(group) for group in FRONTEND_TEST_TERMS[leaf] if not any(term.lower() in lowered for term in group)]
+    if "<body" not in lowered:
+        missing.append("html_body")
+    if "</html>" not in lowered:
+        missing.append("html_complete")
+    return missing
 
 
 def controlled_frontend_output(leaf: str) -> str:
@@ -161,7 +171,7 @@ def validate_frontend_project(project: pathlib.Path) -> dict[str, Any]:
         path = project / rel
         text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
         lowered = text.lower()
-        missing_terms = ["/".join(group) for group in FRONTEND_TEST_TERMS[leaf] if not any(term.lower() in lowered for term in group)]
+        missing_terms = frontend_static_missing_terms(leaf, text)
         ok = path.exists() and len(text.strip()) >= 120 and "<" in text and ">" in text and not missing_terms
         results.append({"leaf": leaf, "path": rel, "exists": path.exists(), "length": len(text), "missing_terms": missing_terms, "ok": ok})
     result = {
@@ -179,8 +189,7 @@ def _leaf_checkpoint(out: pathlib.Path, leaf: str, provider_result: dict[str, An
     missing = [rel for rel in expected if not (project / rel).exists()]
     blocked = list(provider_result.get("forbidden_write_attempts", []))
     text = (project / expected[0]).read_text(encoding="utf-8", errors="replace") if present else ""
-    lowered = text.lower()
-    missing_terms = ["/".join(group) for group in FRONTEND_TEST_TERMS[leaf] if not any(term.lower() in lowered for term in group)]
+    missing_terms = frontend_static_missing_terms(leaf, text)
     verdict = "PASS" if provider_result.get("classification") == "real_provider_leaf_pass" and not missing and not blocked and not missing_terms else "FAIL"
     checkpoint = {
         "leaf": leaf,

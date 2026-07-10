@@ -248,7 +248,7 @@ def _call_step_provider(events: list[dict[str, Any]], model: str, timeout: int) 
     system = str(events[0].get("content", "")) if events else ""
     history = "\n".join(f"{event.get('kind', 'event')}: {json.dumps(event, ensure_ascii=False)}" for event in events[1:])[-60000:]
     messages = [{"role": "system", "content": system}, {"role": "user", "content": history}]
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 7000},
@@ -936,7 +936,7 @@ def run_dynamic_pipeline(
     session_path: str | pathlib.Path,
     project_dir: str | pathlib.Path,
     pipeline_manifest: dict[str, Any],
-    model: str = "gpt-4.1",
+    model: str = "gpt-5.4-nano",
     timeout: int = 120,
     max_turns: int = 12,
     agent: AgentCallable | None = None,

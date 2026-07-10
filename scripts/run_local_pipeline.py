@@ -167,7 +167,7 @@ def main() -> int:
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false")
     parser.add_argument("--use-api", dest="use_api", action="store_true")
     parser.add_argument("--no-api", dest="use_api", action="store_false")
-    parser.add_argument("--model", default="gpt-4.1")
+    parser.add_argument("--model", default="gpt-5.4-nano")
     parser.add_argument("--small-model", default="")
     parser.add_argument("--large-model", default="")
     parser.add_argument("--disable-model-routing", action="store_true")
