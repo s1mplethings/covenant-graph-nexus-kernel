@@ -14,8 +14,11 @@ if str(ROOT / "scripts") not in sys.path:
 
 try:
     from agent_tree_contracts import append_jsonl, now, read_jsonl, write_json
+    import check_connectivity
+    import provider_transport
 except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_contracts import append_jsonl, now, read_jsonl, write_json
+    from scripts import check_connectivity, provider_transport
 
 
 BRANCHES = [
@@ -43,6 +46,7 @@ CAPABILITIES = [
 ]
 
 ENVIRONMENTS = ["dev", "test", "demo", "prod-like local"]
+READINESS_DEFAULT_MODEL = "gpt-4.1-mini"
 
 
 def _timestamp() -> str:
@@ -53,6 +57,166 @@ def _write_text(path: pathlib.Path, text: str) -> pathlib.Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
+
+
+def _canonical_provider_domain(base_url: str) -> str:
+    domain = check_connectivity._base_url_domain(base_url)
+    return "gptsapi.net" if domain.endswith("gptsapi.net") else domain
+
+
+def _readiness_classification(error_type: str) -> str:
+    if not error_type:
+        return "PROVIDER_READY"
+    if error_type == "PROVIDER_KEY_USAGE_LIMIT":
+        return "PROVIDER_QUOTA_EXCEEDED"
+    if error_type in {
+        "PROVIDER_METHOD_UNSUPPORTED",
+        "PROVIDER_QUOTA_EXCEEDED",
+        "PROVIDER_TRANSPORT_UNSTABLE",
+        "PROVIDER_RETRYABLE_HTTP",
+        "PROVIDER_NON_RETRYABLE_HTTP",
+        "PROVIDER_FORBIDDEN",
+    }:
+        return error_type
+    return "PROVIDER_UNAVAILABLE"
+
+
+def _readiness_status(classification: str, *, configured: bool) -> str:
+    if not configured:
+        return "skipped"
+    return "pass" if classification == "PROVIDER_READY" else "blocked"
+
+
+def run_provider_readiness_only(
+    *,
+    goal: str,
+    mode: str,
+    model: str,
+    output_root: str | pathlib.Path,
+    timeout: int = 20,
+    post_json_with_retry_fn: Any | None = None,
+) -> dict[str, Any]:
+    started_at = now()
+    output = pathlib.Path(output_root)
+    run_dir = output / _timestamp()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    write_json(run_dir / "goal.json", {"kind": "QuickLargeProviderReadinessGoal", "goal": goal, "created_at": started_at})
+
+    creds = check_connectivity._resolve_api_credentials()
+    token = str(creds.get("api_key", "")).strip()
+    base_url = str(creds.get("base_url", "")).strip()
+    selected_method = check_connectivity._selected_provider_api_method(base_url, model) if base_url else ""
+    endpoint = check_connectivity._openai_compatible_endpoint(base_url, model=model) if base_url else ""
+    payload = (
+        check_connectivity._build_openai_compatible_payload(
+            base_url,
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": "Reply with exactly: ok"}],
+                "max_tokens": 4,
+            },
+            model=model,
+        )
+        if base_url
+        else {}
+    )
+    configured = bool(token and base_url)
+    attempt_count = 0
+    error_type = ""
+    safe_error = ""
+    if configured:
+        transport = (post_json_with_retry_fn or check_connectivity._post_json_with_retry)(
+            endpoint,
+            payload,
+            token,
+            timeout,
+            max_attempts=1,
+            base_delay_sec=0,
+        )
+        attempt_count = len(getattr(transport, "attempts", []) or []) or 1
+        if getattr(transport, "doc", None) is None:
+            safe_error = provider_transport._redact(str(getattr(transport, "error", "") or ""), token)
+            error_type = str(getattr(transport, "error_type", "") or check_connectivity._provider_error_type(safe_error))
+    else:
+        safe_error = "provider credentials are not fully configured"
+    classification = "PROVIDER_UNAVAILABLE" if not configured else _readiness_classification(error_type)
+    status = _readiness_status(classification, configured=configured)
+    readiness = {
+        "kind": "QuickLargeProviderReadiness",
+        "mode": mode,
+        "readiness_only": True,
+        "provider": "api_agent",
+        "model": model,
+        "base_url_domain": _canonical_provider_domain(base_url),
+        "selected_method": selected_method,
+        "status": status,
+        "classification": classification,
+        "attempt_count": attempt_count,
+        "leaf_generation_started": False,
+        "project_generation_started": False,
+        "secrets_printed": False,
+        "credential_present": bool(token),
+        "base_url_present": bool(base_url),
+        "public_safe_error": safe_error,
+        "created_at": now(),
+    }
+    write_json(run_dir / "provider_readiness.json", readiness)
+    verdict = {
+        "pass": "PROVIDER_READY",
+        "blocked": "BLOCKED_PROVIDER",
+        "skipped": "SKIPPED_PROVIDER",
+    }[status]
+    summary = {
+        "kind": "QuickLargeProviderReadinessSummary",
+        "verdict": verdict,
+        "run_dir": str(run_dir),
+        "mode": mode,
+        "goal": goal,
+        "provider_readiness": "provider_readiness.json",
+        "selected_method": selected_method,
+        "status": status,
+        "classification": classification,
+        "attempt_count": attempt_count,
+        "leaf_generation_started": False,
+        "project_generation_started": False,
+        "started_at": started_at,
+        "finished_at": now(),
+    }
+    write_json(run_dir / "run_summary.json", summary)
+    _write_provider_readiness_report(run_dir, summary=summary, readiness=readiness)
+    return summary
+
+
+def _write_provider_readiness_report(run_dir: pathlib.Path, *, summary: dict[str, Any], readiness: dict[str, Any]) -> pathlib.Path:
+    lines = [
+        "# CGKN Provider Readiness Probe Report",
+        "",
+        "## Verdict",
+        f"- {summary['verdict']}",
+        "",
+        "This is provider readiness only.",
+        "No leaf generation was started.",
+        "No product generation was started.",
+        "This is not a product PASS.",
+        "",
+        "## Readiness",
+        f"- provider: {readiness['provider']}",
+        f"- model: {readiness['model']}",
+        f"- base_url_domain: {readiness['base_url_domain']}",
+        f"- selected_method: {readiness['selected_method']}",
+        f"- status: {readiness['status']}",
+        f"- classification: {readiness['classification']}",
+        f"- attempt_count: {readiness['attempt_count']}",
+        f"- leaf_generation_started: {readiness['leaf_generation_started']}",
+        f"- project_generation_started: {readiness['project_generation_started']}",
+        f"- secrets_printed: {readiness['secrets_printed']}",
+        "",
+        "## Meaning",
+        "- PROVIDER_READY means only provider/model/method connectivity is available.",
+        "- BLOCKED_PROVIDER means real generation should not start until provider configuration or quota is fixed.",
+        "- SKIPPED_PROVIDER means credentials or base URL are not configured.",
+    ]
+    return _write_text(run_dir / "acceptance_report.md", "\n".join(lines) + "\n")
 
 
 def build_multi_environment_acceptance_contract(goal: str) -> dict[str, Any]:
@@ -536,7 +700,11 @@ def run_benchmark(
     require_multi_env: bool,
     require_sync_growth: bool,
     output_root: str | pathlib.Path,
+    model: str = READINESS_DEFAULT_MODEL,
+    provider_readiness_only: bool = False,
 ) -> dict[str, Any]:
+    if provider_readiness_only:
+        return run_provider_readiness_only(goal=goal, mode=mode, model=model, output_root=output_root)
     started_at = now()
     output = pathlib.Path(output_root)
     run_dir = output / _timestamp()
@@ -610,6 +778,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run a bounded quick large synchronous Dynamic Agent Tree benchmark.")
     parser.add_argument("--goal", required=True)
     parser.add_argument("--mode", choices=["mock", "guarded_provider"], default="mock")
+    parser.add_argument("--model", default=READINESS_DEFAULT_MODEL)
+    parser.add_argument("--provider-readiness-only", action="store_true")
     parser.add_argument("--max-rounds", type=int, default=4)
     parser.add_argument("--max-branches", type=int, default=7)
     parser.add_argument("--max-leaves", type=int, default=28)
@@ -620,6 +790,8 @@ def main() -> int:
     summary = run_benchmark(
         goal=args.goal,
         mode=args.mode,
+        model=args.model,
+        provider_readiness_only=bool(args.provider_readiness_only),
         max_rounds=max(1, args.max_rounds),
         max_branches=max(1, args.max_branches),
         max_leaves=max(0, args.max_leaves),
@@ -628,6 +800,8 @@ def main() -> int:
         output_root=args.output_root,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if args.provider_readiness_only:
+        return 0
     return 0 if summary.get("benchmark_verdict") == "FLOW_PASS_MOCK" else 1
 
 
