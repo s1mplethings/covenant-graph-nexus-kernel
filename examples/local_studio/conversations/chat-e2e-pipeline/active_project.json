@@ -1,0 +1,11 @@
+{
+  "kind": "CGNKActiveProject",
+  "project_id": "project-chat-e2e-pipeline",
+  "project_dir": "D:\\CGKN\\generated\\managed_projects\\project-chat-e2e-pipeline",
+  "current_worktree": "D:\\CGKN\\generated\\managed_projects\\project-chat-e2e-pipeline\\current",
+  "latest_delivery_manifest": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\delivery_manifest.json",
+  "latest_project_package": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpyfoqvfp5\\logs\\agent_projects\\chat-e2e-pipeline\\final_project_bundle.zip",
+  "revision_index": 0,
+  "latest_revision_manifest": "",
+  "status": "delivered"
+}

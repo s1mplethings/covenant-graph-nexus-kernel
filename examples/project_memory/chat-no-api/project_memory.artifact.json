@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:25.818749+00:00",
+  "generated_at": "2026-07-11T04:13:14.996426+00:00",
   "chat_id": "chat-no-api",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-no-api\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,6 +27,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -42,10 +43,10 @@
     "开始生成"
   ],
   "generation": {
-    "status": "ready_with_warnings",
+    "status": "ready",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-08T16:18:25.767028+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpdst1ovnt\\sessions\\chat-no-api\\agent_session.jsonl",
+    "finished_at": "2026-07-11T04:13:14.593104+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp7tsulvyf\\sessions\\chat-no-api\\agent_session.jsonl",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api",
     "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api\\delivery_manifest.json",
     "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-no-api\\final_project_bundle.zip",

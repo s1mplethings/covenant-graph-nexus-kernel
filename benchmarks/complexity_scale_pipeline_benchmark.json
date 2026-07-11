@@ -1,0 +1,190 @@
+{
+  "id": "complexity_scale_pipeline_benchmark",
+  "name": "complexity-scale Pipeline Project Benchmark",
+  "goal": "Generate a locally runnable Local Media Evidence Pipeline, not a single-page CRUD demo.",
+  "project_brief": "Build a local 8-12 stage media evidence pipeline that imports local examples/input media, builds an asset manifest, extracts metadata with fallback behavior, plans segments, scores evidence, selects candidates, packages exports, writes run reports and stage artifact contracts, supports a CLI full run, sample input to sample output, cold replay, verify script, and README walkthrough.",
+  "required_project_files": [
+    "src/",
+    "tests/",
+    "examples/input/",
+    "examples/output/",
+    "artifacts/",
+    "README.md",
+    "TEST_REPORT.md",
+    "DELIVERY_NOTES.md",
+    "verify.ps1_or_verify.py",
+    "pipeline_manifest.json",
+    "acceptance_matrix.json"
+  ],
+  "canonical_stages": [
+    {
+      "stage_name": "01_input_discovery",
+      "input_schema": "examples/input directory with local media files",
+      "output_schema": "discovered input asset list",
+      "artifact_path": "artifacts/stages/01_input_discovery.json",
+      "validation_rule": "at least one sample input is discovered and every entry has a stable id and path",
+      "failure_mode": "fail with no_sample_input_found",
+      "unit_test": "test_input_discovery_finds_sample_media"
+    },
+    {
+      "stage_name": "02_asset_manifest",
+      "input_schema": "discovered input asset list",
+      "output_schema": "asset manifest with checksums, sizes, and media classes",
+      "artifact_path": "artifacts/stages/02_asset_manifest.json",
+      "validation_rule": "every discovered asset is represented with checksum and size",
+      "failure_mode": "fail with manifest_asset_mismatch",
+      "unit_test": "test_asset_manifest_contains_all_discovered_assets"
+    },
+    {
+      "stage_name": "03_metadata_probe",
+      "input_schema": "asset manifest",
+      "output_schema": "metadata probe records with fallback fields",
+      "artifact_path": "artifacts/stages/03_metadata_probe.json",
+      "validation_rule": "metadata extraction produces deterministic fallback metadata when native probing is unavailable",
+      "failure_mode": "warn with metadata_probe_fallback_used",
+      "unit_test": "test_metadata_probe_uses_fallback_when_probe_unavailable"
+    },
+    {
+      "stage_name": "04_segment_index",
+      "input_schema": "metadata probe records",
+      "output_schema": "segment index with stage-level artifact contracts",
+      "artifact_path": "artifacts/stages/04_segment_index.json",
+      "validation_rule": "segment index contains ordered non-overlapping segments for each asset",
+      "failure_mode": "fail with invalid_segment_bounds",
+      "unit_test": "test_segment_index_has_ordered_non_overlapping_segments"
+    },
+    {
+      "stage_name": "05_evidence_scoring",
+      "input_schema": "segment index",
+      "output_schema": "evidence score records with rule provenance",
+      "artifact_path": "artifacts/stages/05_evidence_scoring.json",
+      "validation_rule": "each segment receives a bounded score and rule trace",
+      "failure_mode": "fail with missing_score_trace",
+      "unit_test": "test_evidence_scores_are_bounded_and_traced"
+    },
+    {
+      "stage_name": "06_candidate_selection",
+      "input_schema": "evidence score records",
+      "output_schema": "selected candidate records",
+      "artifact_path": "artifacts/stages/06_candidate_selection.json",
+      "validation_rule": "candidate selection is deterministic and references scored segments",
+      "failure_mode": "fail with no_candidates_selected",
+      "unit_test": "test_candidate_selection_is_deterministic"
+    },
+    {
+      "stage_name": "07_export_planning",
+      "input_schema": "selected candidate records",
+      "output_schema": "export plan manifest",
+      "artifact_path": "artifacts/stages/07_export_planning.json",
+      "validation_rule": "export plan lists all files and reports to be produced",
+      "failure_mode": "fail with incomplete_export_plan",
+      "unit_test": "test_export_plan_lists_required_outputs"
+    },
+    {
+      "stage_name": "08_package_export",
+      "input_schema": "export plan manifest",
+      "output_schema": "packaged export manifest",
+      "artifact_path": "artifacts/stages/08_package_export.json",
+      "validation_rule": "export package contains selected candidates and manifest entries",
+      "failure_mode": "fail with export_package_integrity_failed",
+      "unit_test": "test_package_export_manifest_matches_outputs"
+    },
+    {
+      "stage_name": "09_report_generation",
+      "input_schema": "stage artifacts and packaged export manifest",
+      "output_schema": "run report",
+      "artifact_path": "artifacts/run_report.json",
+      "validation_rule": "run report summarizes every stage, duration, status, and artifact path",
+      "failure_mode": "fail with run_report_incomplete",
+      "unit_test": "test_run_report_covers_all_stages"
+    },
+    {
+      "stage_name": "10_cold_replay",
+      "input_schema": "previous run report and stage artifacts",
+      "output_schema": "cold replay report",
+      "artifact_path": "artifacts/cold_replay_report.json",
+      "validation_rule": "cold replay validates artifact determinism without re-importing inputs",
+      "failure_mode": "fail with cold_replay_mismatch",
+      "unit_test": "test_cold_replay_matches_previous_artifacts"
+    }
+  ],
+  "stage_contract_required_fields": [
+    "stage_name",
+    "input_schema",
+    "output_schema",
+    "artifact_path",
+    "validation_rule",
+    "failure_mode",
+    "unit_test"
+  ],
+  "required_artifacts": [
+    "artifacts/stages/01_input_discovery.json",
+    "artifacts/stages/02_asset_manifest.json",
+    "artifacts/stages/03_metadata_probe.json",
+    "artifacts/stages/04_segment_index.json",
+    "artifacts/stages/05_evidence_scoring.json",
+    "artifacts/stages/06_candidate_selection.json",
+    "artifacts/stages/07_export_planning.json",
+    "artifacts/stages/08_package_export.json",
+    "artifacts/run_report.json",
+    "artifacts/cold_replay_report.json"
+  ],
+  "minimum_tests": {
+    "unit_tests": 30,
+    "contract_tests": 15,
+    "integration_tests": 5,
+    "total_tests": 50
+  },
+  "ideal_tests": {
+    "total_tests": 80
+  },
+  "required_test_coverage": [
+    "stage contract validation",
+    "sample input discovery",
+    "manifest generation",
+    "metadata extraction fallback",
+    "segment index generation",
+    "scoring rules",
+    "candidate selection",
+    "export manifest",
+    "run report",
+    "cold replay",
+    "failure handling",
+    "artifact integrity"
+  ],
+  "verify_requirements": {
+    "preferred_windows_entry": "powershell ./verify.ps1",
+    "fallback_entry": "python verify.py",
+    "must_run": [
+      "install/check runtime",
+      "run unit tests",
+      "run contract tests",
+      "run integration sample",
+      "run full pipeline on examples/input",
+      "validate artifacts",
+      "validate cold replay",
+      "write TEST_REPORT.md"
+    ],
+    "pass_final_requires_verify": true
+  },
+  "acceptance_thresholds": {
+    "pipeline_stage_count": 8,
+    "artifact_contract_count": 6,
+    "total_tests": 50,
+    "sample_run_passed": true,
+    "verify_script_passed": true,
+    "cold_replay_passed": true,
+    "feature_coverage_score": 80,
+    "product_score": 75,
+    "missing_core_features": []
+  },
+  "final_gate_requirements": [
+    "final_project_bundle.zip must be generated by local_packager",
+    "delivery_manifest.json must exist",
+    "candidate bundle cannot be final",
+    "provider final zip rejected",
+    "fake screenshot/video rejected",
+    "manifest spoof rejected"
+  ],
+  "report_path": "examples/test_results/complexity_scale_benchmark_report.json"
+}

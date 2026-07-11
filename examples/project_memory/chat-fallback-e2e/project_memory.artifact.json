@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:31.244980+00:00",
+  "generated_at": "2026-07-01T16:52:31.094417+00:00",
   "chat_id": "chat-fallback-e2e",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-fallback-e2e\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -26,6 +26,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -43,14 +44,14 @@
   "generation": {
     "status": "ready_with_warnings",
     "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-08T16:18:31.202330+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\sessions\\chat-fallback-e2e\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpwuqdtk35\\logs\\agent_projects\\chat-fallback-e2e\\pipeline_run_summary.json"
+    "finished_at": "2026-07-01T16:52:31.011388+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\sessions\\chat-fallback-e2e\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e",
+    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e\\delivery_manifest.json",
+    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e\\final_project_bundle.zip",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpgtm4cqt9\\logs\\agent_projects\\chat-fallback-e2e\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {

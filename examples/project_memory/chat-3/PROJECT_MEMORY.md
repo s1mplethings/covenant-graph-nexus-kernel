@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:19:45.765116+00:00
+generated_at: 2026-06-26T17:40:17.980393+00:00
 revision_count: 3
 ---
 
@@ -37,7 +37,9 @@ revision_count: 3
 
 ## Default Assumptions
 
-- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
+- 图片生成先做可替换接口，生成结果落到本地素材库
+- 背景图和角色立绘使用独立任务与独立验收记录
+- 占位图、纯色图或降级预览不能算真实背景/立绘验收通过
 - 交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。
 - 本地可运行
 - 直接生成并测试
@@ -45,7 +47,7 @@ revision_count: 3
 ## First Version Plan
 
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
-- 支持时间线整理、背景生成、立绘生成和预览
+- 背景和立绘分开生成、分开管理、分开验收
 - 核心能力：真实运行预览和证据
 - 核心能力：导入导出和格式互操作
 - 核心能力：产品界面和交互
@@ -57,11 +59,13 @@ revision_count: 3
 
 ## Acceptance Criteria
 
+- 缺少真实模型、外部 API、媒体后端或数据集时，只能交付配置入口、适配层、测试框架和限制说明
+- 占位图、纯色图、降级预览或模拟结果不能算真实核心能力验收通过
+- 可运行
+- 有测试结论
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 交付时必须直接发送截图或关键帧预览
 - 交付必须包含真实运行证据：截图、生成图片、视频或测试报告中至少按用户要求提供。
-- 可运行
-- 有测试结论
 
 ## Change Requests
 
@@ -69,9 +73,14 @@ revision_count: 3
 
 ## Delivery Requirements
 
+- 可运行项目包
+- 界面截图或预览证据
+- 生成素材证据
+- 导出结果或报告
+- 测试报告
+- 交付项目包和预览
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 交付时必须直接发送截图或关键帧预览
-- 交付项目包和预览
 
 ## Decision Log
 

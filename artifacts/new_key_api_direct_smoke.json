@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "endpoint": "https://api.gptsapi.net/v1/chat/completions",
+  "key_source": "user_provided_runtime_key",
+  "key_mask": "sk-W...mAbq",
+  "model": "gpt-4.1-mini",
+  "http_status": 200,
+  "content_preview": "new-key-api-smoke-ok",
+  "elapsed_ms": 1715
+}

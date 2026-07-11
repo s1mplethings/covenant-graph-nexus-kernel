@@ -54,8 +54,9 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).strip()
-    endpoint_mode = "chat" if check_connectivity._is_gptsapi_base_url(root) else "responses"
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    selected_method = check_connectivity._selected_provider_api_method(root, model)
+    endpoint_mode = check_connectivity._endpoint_mode_from_method(selected_method)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     result: dict[str, Any] = {
         "kind": "ProviderApiSmokeResult",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -67,6 +68,8 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         "base_url": root,
         "base_url_source": creds.get("base_url_source", ""),
         "endpoint_mode": endpoint_mode,
+        "selected_method": selected_method,
+        "base_url_domain": check_connectivity._base_url_domain(root),
         "endpoint": endpoint,
         "timeout_seconds": timeout,
         "max_attempts": attempts,
@@ -94,26 +97,34 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
             "temperature": 0,
             "max_tokens": 40,
         },
+        model=model,
     )
 
-    last_error = ""
-    for attempt in range(1, max(1, attempts) + 1):
-        started = time.time()
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
-        attempt_doc = {"attempt": attempt, "elapsed_seconds": round(time.time() - started, 3), "ok": doc is not None}
-        if error:
-            attempt_doc["error"] = error
-        result["attempts"].append(attempt_doc)
-        if doc is None:
-            last_error = error
-            if not check_connectivity._error_is_retryable(error):
-                break
-            time.sleep(min(8.0, 1.5 * attempt))
-            continue
-        text = check_connectivity._extract_text(doc)
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout,
+        max_attempts=max(1, attempts),
+        base_delay_sec=1.5,
+    )
+    result["attempts"] = [
+        {
+            "attempt": item.attempt,
+            "elapsed_seconds": round(item.elapsed_ms / 1000, 3),
+            "ok": item.ok,
+            "error": item.error,
+            "error_type": item.error_type,
+            "retryable": item.retryable,
+        }
+        for item in transport.attempts
+    ]
+    result["transport_recovered"] = transport.recovered
+    if transport.doc is not None:
+        text = check_connectivity._extract_text(transport.doc)
         parsed = _extract_json(text)
         result["response_preview"] = text[:200]
-        result["request_id"] = str(doc.get("id", "")).strip()
+        result["request_id"] = str(transport.doc.get("id", "")).strip()
         result["parsed_json"] = parsed or {}
         result["ok"] = bool(parsed and parsed.get("smoke") is True)
         if result["ok"]:
@@ -124,7 +135,10 @@ def run_smoke(model: str, timeout: int, attempts: int) -> dict[str, Any]:
         return result
 
     result["error_code"] = "provider_request_failed"
-    result["error_summary"] = last_error or "Provider request failed without a detailed error."
+    result["error_summary"] = transport.error or "Provider request failed without a detailed error."
+    result["provider_error_type"] = transport.error_type
+    if transport.error_type == "PROVIDER_METHOD_UNSUPPORTED":
+        result["error_code"] = "provider_method_unsupported"
     return result
 
 

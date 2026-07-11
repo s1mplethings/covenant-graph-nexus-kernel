@@ -1,0 +1,69 @@
+{
+  "kind": "CGKNLocalMediaFixture",
+  "description": "Small local fake-media fixture for deterministic pipeline smoke runs.",
+  "files": [
+    {
+      "path": "sample_video.txt",
+      "kind": "video",
+      "label": "sample video",
+      "duration_seconds": 18,
+      "size": 119,
+      "sha256": "0d986a52e0b277297bd0ceb7cd09029acb4901b4dbe47107f97428f32d88b21e"
+    },
+    {
+      "path": "sample_audio.txt",
+      "kind": "audio",
+      "label": "sample audio",
+      "duration_seconds": 12,
+      "size": 67,
+      "sha256": "684b20a39cfad1f2a3463c839955f77be800396269dfc7da0adc044771888d83"
+    },
+    {
+      "path": "asset_notes.txt",
+      "kind": "asset",
+      "label": "asset notes",
+      "duration_seconds": 0,
+      "size": 73,
+      "sha256": "76db4d17e3bd181ca73e6afb4893b04458a22b6e2aa8e044d6cfa0dacea2c4ae"
+    },
+    {
+      "path": "sample_audio.wav",
+      "kind": "audio",
+      "label": "sample audio wav",
+      "duration_seconds": 0.25,
+      "framerate": 8000,
+      "channels": 1,
+      "sample_width": 2,
+      "size": 4044,
+      "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "real_media_fixture": true
+    }
+  ],
+  "candidate_keywords": [
+    "candidate",
+    "highlight",
+    "export",
+    "review"
+  ],
+  "segments": [
+    {
+      "id": "seg_001",
+      "start": 0,
+      "end": 6,
+      "text": "intro project overview"
+    },
+    {
+      "id": "seg_002",
+      "start": 6,
+      "end": 14,
+      "text": "candidate highlight about local review workflow"
+    },
+    {
+      "id": "seg_003",
+      "start": 14,
+      "end": 18,
+      "text": "export reminder for selected outputs"
+    }
+  ],
+  "not_real_ai_model": true
+}

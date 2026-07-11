@@ -1,0 +1,16 @@
+{
+  "raw_goal": "Build a tiny local notes CLI with README, tests, API evidence, and local model evidence",
+  "interpreted_needs": [
+    {
+      "id": "decision_clarity_need",
+      "need": "A product that first clarifies the customer problem, scope, and acceptance criteria before implementation.",
+      "customer_problem": "The raw goal may be underspecified and could otherwise collapse into a small demo.",
+      "target_user": "The customer or internal operator who needs a clear first version.",
+      "evidence_from_goal": "Build a tiny local notes CLI with README, tests, API evidence, and local model evidence",
+      "assumptions": [
+        "CGKN should choose a deliverable MVP and expose non-goals."
+      ],
+      "risk_if_wrong": "low"
+    }
+  ]
+}

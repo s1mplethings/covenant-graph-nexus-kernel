@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-09T03:19:04.095921+00:00",
+  "generated_at": "2026-07-01T16:56:06.818858+00:00",
   "chat_id": "chat-retry-fail",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-retry-fail\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,10 +27,11 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-09T03:19:04.071978+00:00",
+    "finished_at": "2026-07-01T16:56:06.806409+00:00",
     "error": "provider_api_request_failed: ('SSLV3_ALERT_BAD_RECORD_MAC',)",
     "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-retry-fail",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpurzih9mf\\sessions\\chat-retry-fail\\agent_session.jsonl",
     "partial_artifacts": [
       "generation_context_snapshot.json"
     ],
@@ -51,6 +52,7 @@
         "test_commands",
         "test_report"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": true,
         "video": false,

@@ -128,7 +128,7 @@ error_type = check._provider_error_type(error_text)
 ```
 
 错误类型：
-- `PROVIDER_KEY_USAGE_LIMIT`：API key 超额/限流（不可重试）
+- `PROVIDER_QUOTA_EXCEEDED`：API key 超额/限流（不可重试）
 - `PROVIDER_TRANSPORT_UNSTABLE`：网络/TLS 问题（可重试）
 - `PROVIDER_RETRYABLE_HTTP`：HTTP 429/5xx（可重试）
 - `PROVIDER_FORBIDDEN`：HTTP 403 其他原因（不可重试）

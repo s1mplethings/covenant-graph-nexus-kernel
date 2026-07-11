@@ -1,0 +1,4 @@
+Start with README.md.
+Actual smoke command:
+C:\Users\sunom\AppData\Local\Programs\Python\Python313\python.exe cli.py --input fixtures/sample_audio.wav --output-dir .
+Formal delivery_manifest.json is also written at the project root after packaging.

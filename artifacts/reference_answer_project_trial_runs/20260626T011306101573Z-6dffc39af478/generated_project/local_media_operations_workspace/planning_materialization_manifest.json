@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "mode": "deterministic_contract_planning",
+  "created_at": "2026-06-26T01:13:06.131390+00:00",
+  "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478\\generated_project\\local_media_operations_workspace",
+  "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478",
+  "written": [
+    "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478\\generated_project\\local_media_operations_workspace\\product_brief.md",
+    "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478\\generated_project\\local_media_operations_workspace\\technical_plan.md",
+    "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478\\generated_project\\local_media_operations_workspace\\interaction_design.md",
+    "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260626T011306101573Z-6dffc39af478\\generated_project\\local_media_operations_workspace\\acceptance_matrix.md"
+  ],
+  "not_implementation_evidence": true,
+  "not_delivery_evidence": true
+}

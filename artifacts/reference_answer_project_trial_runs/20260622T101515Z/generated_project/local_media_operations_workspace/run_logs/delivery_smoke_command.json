@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "cli.py",
+    "--input",
+    "fixtures/media_fixture.json",
+    "--output-dir",
+    "."
+  ],
+  "cwd": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260622T101515Z\\generated_project\\local_media_operations_workspace",
+  "started_at": "2026-06-22T10:15:15.467587+00:00",
+  "ended_at": "2026-06-22T10:15:16.365894+00:00",
+  "duration_seconds": 0.898,
+  "returncode": 0,
+  "stdout": "{'status': 'degraded', 'mode': 'local_fixture_processing', 'capability_manifest': 'capability_manifest.json', 'media_manifest': '', 'user_media_contract': {}, 'selected_adapter': 'local_tool_verified', 'artifacts': ['stage_plan.json', 'media_manifest.json', 'audio_chunk_manifest.json', 'transcript_merged.json', 'segment_analysis.json', 'selected_segments.json', 'clip_manifest.json', 'export_results.json'], 'not_real_ai_model': True, 'not_delivery_evidence': True}\n",
+  "stderr": ""
+}

@@ -6,7 +6,7 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:19:57.241730+00:00
+generated_at: 2026-06-26T17:40:33.170112+00:00
 revision_count: 3
 ---
 
@@ -27,7 +27,7 @@ revision_count: 3
 
 ## Known Facts
 
-- 用户上传了文档资料作为项目输入: brief.txt (C:\Users\sunom\AppData\Local\Temp\tmpeuiua_7y\uploads\chat-attachment\brief.txt); 说明: 作为项目需求
+- 用户上传了文档资料作为项目输入: brief.txt (C:\Users\sunom\AppData\Local\Temp\tmp4d_e0o7j\uploads\chat-attachment\brief.txt); 说明: 作为项目需求
 - 用户补充: 用户上传了文档资料作为项目资料，并补充说明: 作为项目需求
 - 识别出的核心能力：导入导出和格式互操作
 - 用户上传了文档资料作为项目资料，并补充说明: 作为项目需求
@@ -51,8 +51,7 @@ revision_count: 3
 
 ## Acceptance Criteria
 
-- 可运行
-- 有测试结论
+- 未记录
 
 ## Change Requests
 
@@ -60,7 +59,7 @@ revision_count: 3
 
 ## Delivery Requirements
 
-- 交付项目包和预览
+- 可运行项目包
 
 ## Decision Log
 
@@ -71,7 +70,7 @@ revision_count: 3
 
 ## Uploaded Project Inputs
 
-- document: brief.txt; mime_type: text/plain; local_path: C:\Users\sunom\AppData\Local\Temp\tmpeuiua_7y\uploads\chat-attachment\brief.txt; caption: 作为项目需求
+- document: brief.txt; mime_type: text/plain; local_path: C:\Users\sunom\AppData\Local\Temp\tmp4d_e0o7j\uploads\chat-attachment\brief.txt; caption: 作为项目需求
 
 ## Open Questions
 

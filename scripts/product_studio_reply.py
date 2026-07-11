@@ -4,8 +4,10 @@ from typing import Any
 
 try:
     import public_narration
+    import frontdesk_team_lead_agent
 except ModuleNotFoundError:  # pragma: no cover - direct package import fallback
     from scripts import public_narration
+    from scripts import frontdesk_team_lead_agent
 
 
 class ProductStudioReplyComposer:
@@ -15,21 +17,21 @@ class ProductStudioReplyComposer:
         missing = failure_result.get("missing_artifacts", [])
         if not isinstance(missing, list):
             missing = []
-        missing_text = "、".join(str(item) for item in missing[:8]) or "未记录"
-        retry = "你可以继续补充要求，我会复用已记录的项目方向，从同一上下文继续修复。"
-        if reason == "project_type_mismatch":
-            lead = "暂时不能交付：项目方向出现偏差，当前产物和已整理的目标不一致。"
-        elif "timeout" in reason:
-            lead = "暂时不能交付：这一轮等待时间已到，未验证产物不能标成完成。"
-        else:
-            lead = "暂时不能交付：这轮实现被阻断，当前不能进入交付。"
-        return public_narration.redact_internal_terms(
-            f"{lead}\n"
-            f"阻断原因: {reason}\n"
-            f"最后进展: {last_phase}\n"
-            f"缺失材料: {missing_text}\n"
-            f"{retry}"
+        visible_reason = "这一轮等待时间已到，未验证的结果不能标成完成。" if "timeout" in reason else "当前结果和目标或证据要求还没有对齐。"
+        context = frontdesk_team_lead_agent.build_context(
+            latest_user_message="",
+            conversation_history_summary="",
+            whiteboard={"known_limits": [visible_reason, f"最近停在：{last_phase}"]},
+            active_run={},
+            generation_status={"status": "rework_blocked", "user_visible_cause": visible_reason},
+            delivery_evidence={"delivery_ready": False, "missing": missing, "refs": {}},
+            known_limits=[visible_reason, f"最近停在：{last_phase}"],
+            customer_agent_policy="",
+            draft_reply=visible_reason,
+            event="generation_failed",
         )
+        reply = frontdesk_team_lead_agent.compose_reply(context)["reply"]
+        return public_narration.redact_internal_terms(reply)
 
 
 def compose_timeout_or_blocked_reply(failure_result: dict[str, Any]) -> str:

@@ -1,0 +1,16 @@
+{
+  "query": "runnable browser task board persistent",
+  "items": [
+    {
+      "title": "markdown-it/markdown-it",
+      "url": "https://github.com/markdown-it/markdown-it",
+      "source": "GitHub public repository",
+      "modality": "repository_metadata",
+      "description": "Markdown parser reference repository used when GitHub search returns no suitable result.",
+      "stars": null,
+      "language": "JavaScript",
+      "local_path": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T045002Z\\run\\input_examples\\github_repository_examples.json"
+    }
+  ],
+  "fallback": true
+}

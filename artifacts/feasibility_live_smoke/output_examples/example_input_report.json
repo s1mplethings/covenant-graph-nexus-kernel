@@ -1,0 +1,20 @@
+{
+  "status": "pass",
+  "modality": "json",
+  "input": "D:\\CGKN\\artifacts\\feasibility_live_smoke\\input_examples\\openmeteo_sample.json",
+  "bytes": 477,
+  "source": "Open-Meteo",
+  "url": "https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current=temperature_2m,wind_speed_10m",
+  "title": "Public API sample response",
+  "top_level_keys": [
+    "current",
+    "current_units",
+    "elevation",
+    "generationtime_ms",
+    "latitude",
+    "longitude",
+    "timezone",
+    "timezone_abbreviation",
+    "utc_offset_seconds"
+  ]
+}

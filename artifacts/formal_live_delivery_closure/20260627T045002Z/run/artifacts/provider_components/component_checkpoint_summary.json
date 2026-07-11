@@ -1,0 +1,25 @@
+{
+  "kind": "ProviderComponentCheckpointSummary",
+  "updated_at": "2026-06-27T04:51:15.943693+00:00",
+  "completed_components": [],
+  "skipped_from_checkpoint": [],
+  "retried_components": [
+    "init"
+  ],
+  "failed_components": [
+    {
+      "component_id": "init",
+      "provider_error_type": "PROVIDER_NON_RETRYABLE_HTTP",
+      "error": "provider_api_request_failed: HTTP 401: {\"error\":\"Token is invalid\"} [endpoint=https://api.gptsapi.net, retryable=false, provider_headers={\"cf-ray\": \"a121d6195cf5fd02-SIN\", \"date\": \"Sat, 27 Jun 2026 04:51:24 GMT\", \"server\": \"cloudflare\", \"x-trace-id\": \"0fd0a5be-d478-4cae-a3fd-8b8de7f8fa02\"}]"
+    }
+  ],
+  "provider_error_type": "PROVIDER_NON_RETRYABLE_HTTP",
+  "checkpoint_dir": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T045002Z\\run\\artifacts\\provider_components",
+  "semantic_review_status": "blocked",
+  "semantic_review_attempts": 3,
+  "attempted_repairs": [],
+  "remaining_blockers": [
+    "provider_api_request_failed: HTTP 401: {\"error\":\"Token is invalid\"} [endpoint=https://api.gptsapi.net, retryable=false, provider_headers={\"cf-ray\": \"a121d6195cf5fd02-SIN\", \"date\": \"Sat, 27 Jun 2026 04:51:24 GMT\", \"server\": \"cloudflare\", \"x-trace-id\": \"0fd0a5be-d478-4cae-a3fd-8b8de7f8fa02\"}]"
+  ],
+  "failure_diagnostics": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T045002Z\\run\\artifacts\\provider_semantic_review_failure.json"
+}

@@ -1,0 +1,82 @@
+{
+  "benchmark": "requirement_decision_benchmark",
+  "score": 100,
+  "verdict": "PASS",
+  "cases": [
+    {
+      "goal": "我想要一个本地视频素材处理工具",
+      "run_dir": "D:\\CGKN\\artifacts\\requirement_decision_benchmark_runs\\case_1",
+      "score": 100,
+      "verdict": "PASS",
+      "checks": {
+        "goal_understanding": true,
+        "multi_direction": true,
+        "selection_reason": true,
+        "rejected_requirements": true,
+        "mvp_scope": true,
+        "non_goals": true,
+        "acceptance_contract": true,
+        "customer_summary": true,
+        "avoids_direct_code": true,
+        "layered_status": true
+      },
+      "status_layers": {
+        "requirement_decision_status": "PASS",
+        "product_contract_status": "FAIL",
+        "implementation_status": "FAIL",
+        "delivery_status": "NEEDS_REWORK",
+        "overall_status": "NEEDS_REWORK"
+      }
+    },
+    {
+      "goal": "我想做一个独立游戏团队管理工具",
+      "run_dir": "D:\\CGKN\\artifacts\\requirement_decision_benchmark_runs\\case_2",
+      "score": 100,
+      "verdict": "PASS",
+      "checks": {
+        "goal_understanding": true,
+        "multi_direction": true,
+        "selection_reason": true,
+        "rejected_requirements": true,
+        "mvp_scope": true,
+        "non_goals": true,
+        "acceptance_contract": true,
+        "customer_summary": true,
+        "avoids_direct_code": true,
+        "layered_status": true
+      },
+      "status_layers": {
+        "requirement_decision_status": "PASS",
+        "product_contract_status": "FAIL",
+        "implementation_status": "FAIL",
+        "delivery_status": "NEEDS_REWORK",
+        "overall_status": "NEEDS_REWORK"
+      }
+    },
+    {
+      "goal": "我想做一个本地资料整理和研究工作台",
+      "run_dir": "D:\\CGKN\\artifacts\\requirement_decision_benchmark_runs\\case_3",
+      "score": 100,
+      "verdict": "PASS",
+      "checks": {
+        "goal_understanding": true,
+        "multi_direction": true,
+        "selection_reason": true,
+        "rejected_requirements": true,
+        "mvp_scope": true,
+        "non_goals": true,
+        "acceptance_contract": true,
+        "customer_summary": true,
+        "avoids_direct_code": true,
+        "layered_status": true
+      },
+      "status_layers": {
+        "requirement_decision_status": "PASS",
+        "product_contract_status": "FAIL",
+        "implementation_status": "FAIL",
+        "delivery_status": "NEEDS_REWORK",
+        "overall_status": "NEEDS_REWORK"
+      }
+    }
+  ]
+}

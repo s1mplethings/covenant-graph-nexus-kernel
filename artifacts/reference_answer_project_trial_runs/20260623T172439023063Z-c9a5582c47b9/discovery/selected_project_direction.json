@@ -1,0 +1,20 @@
+{
+  "selected_id": "local_video_workbench",
+  "selected_name": "Local Video Material Workbench",
+  "selection_reason": "Best weighted fit across complexity, local-first feasibility, pipeline clarity, artifact potential, GUI/CLI suitability, delivery feasibility, and testability.",
+  "why_not_too_small": "Requires 8 pipeline stages, 8 stage artifacts, planning docs, shared core, CLI, GUI, runtime evidence, screenshot, and final bundle.",
+  "why_not_too_dependency_heavy": "External integrations are optional or degradable; the project can run locally with honest degraded mode.",
+  "why_deliverable": "The selected shape has deterministic artifacts, local fixtures, shared core modules, and verifiable delivery evidence.",
+  "required_complexity_floor": {
+    "min_pages": 6,
+    "min_modules": 7,
+    "min_pipeline_stages": 8,
+    "min_stage_artifacts": 8,
+    "requires_gui": true,
+    "requires_cli": true,
+    "requires_shared_core": true,
+    "requires_runtime_evidence": true,
+    "requires_final_bundle": true,
+    "requires_screenshot": true
+  }
+}

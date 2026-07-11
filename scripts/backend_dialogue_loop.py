@@ -153,6 +153,52 @@ def downgrade_unresolved_config_questions_to_assumptions(questions: list[str]) -
     return remaining, assumptions
 
 
+def decision_question_cards_from_strategy(strategy: dict[str, Any]) -> list[dict[str, str]]:
+    raw_cards = strategy.get("question_decisions", []) if isinstance(strategy, dict) else []
+    if not isinstance(raw_cards, list):
+        return []
+    cards: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in raw_cards:
+        if not isinstance(item, dict):
+            continue
+        question = str(item.get("question", "")).strip()
+        if not question or question in seen:
+            continue
+        seen.add(question)
+        cards.append(
+            {
+                "question": question,
+                "capability": str(item.get("capability", "")).strip(),
+                "reason": str(item.get("reason", "")).strip(),
+                "default_assumption": str(item.get("default_assumption", "")).strip(),
+                "priority": str(item.get("priority", "")).strip() or "important",
+            }
+        )
+    return cards[:4]
+
+
+def decision_question_text(cards: list[dict[str, str]], critical_questions: list[str]) -> str:
+    if cards:
+        primary = cards[0]
+        question = primary["question"]
+        reason = primary.get("reason", "")
+        default = primary.get("default_assumption", "")
+        parts = [f"\n这里我会主动确认一个会影响第一版质量的选择：{question.rstrip('。；;？?')}"]
+        if reason:
+            parts.append(f"我问这个不是走表单，而是因为{reason.rstrip('。；;？?')}")
+        if default:
+            parts.append(f"如果你暂时不选，我先按这个默认方案推进：{default.rstrip('。；;？?')}")
+        if len(cards) > 1:
+            extras = [card["question"].rstrip("。；;？?") for card in cards[1:3] if card.get("question")]
+            if extras:
+                parts.append("另外两个可后续微调的选择是：" + "；".join(extras))
+        return "。".join(parts) + "。"
+    if critical_questions:
+        return "\n这里我会主动确认一个会影响第一版质量的选择：" + "；".join(critical_questions[:2]) + "。如果你暂时不选，我会先按可配置入口推进，并把限制写清楚。"
+    return ""
+
+
 def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str = "project_update") -> dict[str, Any]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     existing_summary = str(whiteboard.get("project_summary", "")).strip()
@@ -177,6 +223,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
     complex_domain = is_cs_domain or (contains_any(context_text, COMPLEX_DOMAIN_KEYWORDS) and not is_vn_domain)
     requires_user_evidence_review = contains_any(context_text, EVIDENCE_REVIEW_KEYWORDS)
     strategy = capability_strategy.build_capability_strategy(context_text, SCRIPTS_DIR.parent)
+    question_decisions = decision_question_cards_from_strategy(strategy)
     if strategy.get("local_image_model_discovery"):
         local_image_discovery = strategy.get("local_image_model_discovery", {})
     if contains_any(context_text, ("vn", "视觉小说", "故事", "剧情", "时间线", "背景", "立绘", "图片", "生成图片")):
@@ -367,7 +414,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
 
     question_text = ""
     if critical_questions:
-        question_text = "\n这里有一个关键配置要确认：" + "；".join(critical_questions)
+        question_text = decision_question_text(question_decisions, critical_questions)
     if soft_questions:
         question_text += "\n需要你确认或补充：" + "；".join(soft_questions)
 
@@ -411,6 +458,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         "missing_config": missing_config,
         "soft_questions": soft_questions,
         "critical_questions": critical_questions,
+        "question_decisions": question_decisions,
         "missing_required_inputs": missing_required_inputs,
         "domain_risk_level": domain_risk_level,
         "recommended_next_action": recommended_next_action,
@@ -484,12 +532,18 @@ def call_provider(session: dict[str, Any], latest_text: str, local: dict[str, An
     root = str(creds.get("base_url", "")).rstrip("/")
     if not api_key or not root:
         return None, str(local_result.get("error") or "missing credentials")
-    endpoint = check_connectivity._openai_compatible_endpoint(root)
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
         {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2},
     )
-    doc, error = check_connectivity._post_json(endpoint, payload, api_key, max(5, min(int(timeout), 60)))
+    transport = check_connectivity._post_json_with_retry(
+        endpoint,
+        payload,
+        api_key,
+        max(5, min(int(timeout), 60)),
+    )
+    doc, error = transport.doc, transport.error
     if error or not isinstance(doc, dict):
         return None, error or "empty response"
     parsed = extract_json_object(check_connectivity._extract_text(doc))
@@ -542,6 +596,8 @@ def merge_analysis(local: dict[str, Any], provider: dict[str, Any] | None) -> di
             merged["local_model_name"] = str(provider.get("_local_model_name", ""))
     merged["soft_questions"] = unique_strings(merged.get("soft_questions", []), limit=3)
     merged["critical_questions"] = unique_strings(merged.get("critical_questions", []), limit=3)
+    if isinstance(local.get("question_decisions"), list):
+        merged["question_decisions"] = local.get("question_decisions", [])[:4]
     merged["missing_required_inputs"] = unique_strings(merged.get("missing_required_inputs", []), limit=6)
     merged["ready_to_generate"] = True
     merged.setdefault("domain_risk_level", "low")
@@ -579,6 +635,7 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
     whiteboard["open_questions"] = unique_strings(critical_questions + soft_questions + missing_required_inputs, limit=8)
     whiteboard["soft_questions"] = unique_strings(analysis.get("soft_questions", []), limit=3)
     whiteboard["critical_questions"] = critical_questions
+    whiteboard["question_decisions"] = analysis.get("question_decisions", []) if isinstance(analysis.get("question_decisions"), list) else []
     whiteboard["missing_required_inputs"] = missing_required_inputs
     whiteboard["domain_risk_level"] = str(analysis.get("domain_risk_level", "low"))
     whiteboard["recommended_next_action"] = str(analysis.get("recommended_next_action", "can_start"))

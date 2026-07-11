@@ -1,0 +1,23 @@
+{
+  "stage": "transcription",
+  "status": "placeholder",
+  "adapter": "deterministic_placeholder",
+  "input_path": "fixtures\\sample_audio.wav",
+  "output_path": "transcription_adapter_result.json",
+  "created_at": "2026-06-23T09:55:06.450446+00:00",
+  "segments": [
+    {
+      "id": "placeholder_001",
+      "start": 0,
+      "end": 0,
+      "text": "Placeholder transcript generated from fixture metadata.",
+      "degraded": true
+    }
+  ],
+  "text": "Placeholder transcript generated from fixture metadata. This is not model output.",
+  "degraded": true,
+  "evidence": [
+    "placeholder_transcription",
+    "no local model command configured or used"
+  ]
+}

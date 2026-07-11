@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-09T03:19:03.870187+00:00",
+  "generated_at": "2026-07-01T16:56:06.634118+00:00",
   "chat_id": "chat-partial-no-deliver",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-partial-no-deliver\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,10 +27,11 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-09T03:19:03.844963+00:00",
+    "finished_at": "2026-07-01T16:56:06.621404+00:00",
     "error": "provider_api_request_failed: merged component output missing required files: TEST_PLAN.md",
     "provider_error_type": "PROVIDER_API_REQUEST_FAILED",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-partial-no-deliver",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpx_glex40\\sessions\\chat-partial-no-deliver\\agent_session.jsonl",
     "partial_artifacts": [
       "DELIVERY_NOTES.md",
       "generation_context_snapshot.json",
@@ -51,6 +52,7 @@
       "missing": [
         "provider_generation_exception"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": false,
         "video": false,

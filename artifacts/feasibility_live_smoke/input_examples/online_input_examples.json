@@ -1,0 +1,73 @@
+{
+  "kind": "OnlineInputExamples",
+  "created_at": "2026-06-26T04:47:08.319384+00:00",
+  "goal": "Build a tiny local notes CLI with README, tests, and delivery evidence",
+  "agent": "online_input_router",
+  "project_type": "local_application",
+  "input_spec": {
+    "project_type": "local_application",
+    "required_modalities": [
+      "json",
+      "repository_metadata"
+    ],
+    "preferred_sources": [
+      "OpenLibrary",
+      "GitHub Search"
+    ],
+    "expected_artifacts": [
+      "sample_data",
+      "example_source_metadata"
+    ]
+  },
+  "routing": {
+    "strategy": "classify project type, build input spec, then route to a source-specific example agent",
+    "attempts": [
+      {
+        "agent": "PublicApiExampleAgent",
+        "source": "OpenLibrary/Open-Meteo",
+        "candidate_count": 1
+      },
+      {
+        "agent": "GitHubExampleAgent",
+        "source": "GitHub Search",
+        "query": "tiny local notes cli readme",
+        "candidate_count": 1
+      }
+    ],
+    "errors": []
+  },
+  "policy": "Use public online examples as realistic test input; preserve source and license metadata when available. For requested AI image generation, use model candidates as integration targets, not as copied output images.",
+  "examples": [
+    {
+      "title": "Public API sample response",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current=temperature_2m,wind_speed_10m",
+      "source": "Open-Meteo",
+      "modality": "json",
+      "mime": "application/json",
+      "local_path": "D:\\CGKN\\artifacts\\feasibility_live_smoke\\input_examples\\openmeteo_sample.json",
+      "downloaded_bytes": 477,
+      "sample_keys": [
+        "current",
+        "current_units",
+        "elevation",
+        "generationtime_ms",
+        "latitude",
+        "longitude",
+        "timezone",
+        "timezone_abbreviation",
+        "utc_offset_seconds"
+      ]
+    },
+    {
+      "title": "markdown-it/markdown-it",
+      "url": "https://github.com/markdown-it/markdown-it",
+      "source": "GitHub public repository",
+      "modality": "repository_metadata",
+      "description": "Markdown parser reference repository used when GitHub search returns no suitable result.",
+      "stars": null,
+      "language": "JavaScript",
+      "local_path": "D:\\CGKN\\artifacts\\feasibility_live_smoke\\input_examples\\github_repository_examples.json"
+    }
+  ],
+  "image_generation_models": []
+}

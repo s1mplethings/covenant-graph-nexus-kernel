@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:19:57.244071+00:00",
+  "generated_at": "2026-06-26T17:40:33.170112+00:00",
   "chat_id": "chat-attachment",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-attachment\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -11,7 +11,7 @@
   "customer_request": {
     "project_summary": "用户上传了文档资料作为项目资料，并补充说明: 作为项目需求",
     "known_facts": [
-      "用户上传了文档资料作为项目输入: brief.txt (C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpeuiua_7y\\uploads\\chat-attachment\\brief.txt); 说明: 作为项目需求",
+      "用户上传了文档资料作为项目输入: brief.txt (C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp4d_e0o7j\\uploads\\chat-attachment\\brief.txt); 说明: 作为项目需求",
       "用户补充: 用户上传了文档资料作为项目资料，并补充说明: 作为项目需求",
       "识别出的核心能力：导入导出和格式互操作",
       "用户上传了文档资料作为项目资料，并补充说明: 作为项目需求"
@@ -22,13 +22,10 @@
       "先按本地可运行、可测试、可扩展的默认方案推进"
     ],
     "user_rules": [],
-    "acceptance_criteria": [
-      "可运行",
-      "有测试结论"
-    ],
+    "acceptance_criteria": [],
     "change_requests": [],
     "delivery_requirements": [
-      "交付项目包和预览"
+      "可运行项目包"
     ],
     "decision_log": [
       "已将用户上传文件保存为后端项目输入，后续方案、生成和修改应优先参考这些资料。",
@@ -49,8 +46,8 @@
       "mime_type": "text/plain",
       "file_size": 16,
       "caption": "作为项目需求",
-      "local_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpeuiua_7y\\uploads\\chat-attachment\\brief.txt",
-      "created_at": "2026-06-08T16:19:57.132326+00:00"
+      "local_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp4d_e0o7j\\uploads\\chat-attachment\\brief.txt",
+      "created_at": "2026-06-26T17:40:33.044941+00:00"
     }
   ],
   "visible_user_messages": [
@@ -58,7 +55,7 @@
   ],
   "generation": {
     "status": "waiting_confirmation",
-    "start_wait_reason": "needs_direction_confirmation"
+    "start_wait_reason": "unclear_project_request"
   },
   "module_mapping": [
     {

@@ -21,9 +21,12 @@ Thumbs.db
 *.tmp
 
 generated/
+artifacts/
+.pytest_cache/
 examples/runtime_runs/
-examples/test_results/
-examples/test_results/*.jsonl
+examples/test_results/*
+!examples/test_results/fixtures/
+!examples/test_results/fixtures/**
 *.zip
 
 examples/product_studio/runs/direct_*/

@@ -1,0 +1,248 @@
+{
+  "kind": "ProviderComponentCheckpointSummary",
+  "updated_at": "2026-06-26T04:51:05.600899+00:00",
+  "completed_components": [
+    "librarian_initialization"
+  ],
+  "skipped_from_checkpoint": [],
+  "retried_components": [
+    "project_generation"
+  ],
+  "failed_components": [
+    {
+      "component_id": "project_generation",
+      "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
+      "error": "provider_api_request_failed: HTTP 504: {\"type\":\"https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-504/\",\"title\":\"Error 504: Gateway time-out\",\"status\":504,\"detail\":\"The origin web server did not respond to Cloudflare within the allowed time. This typically means the origin is overloaded or a backend process is taking too long.\",\"instance\":\"a11996bd9d701fb6\",\"error_code\":504,\"error_n [endpoint=https://api.gptsapi.net, retryable=true, provider_headers={\"cf-ray\": \"a11996bd9d701fb6-HKG\", \"date\": \"Fri, 26 Jun 2026 04:51:03 GMT\", \"server\": \"cloudflare\"}]"
+    }
+  ],
+  "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
+  "checkpoint_dir": "D:\\CGKN\\artifacts\\feasibility_live_smoke\\artifacts\\provider_components",
+  "semantic_review_status": "provider_transport_blocked",
+  "semantic_review_attempts": 2,
+  "attempted_repairs": [],
+  "pending_repair_plan": {
+    "root_causes": [
+      "semantic_review_blocker"
+    ],
+    "parsed_blockers": [
+      {
+        "kind": "generic_semantic_blocker",
+        "raw": "provider manifest path ownership violation: README.md belongs to docs, not librarian_initialization",
+        "components": [
+          "librarian_initialization"
+        ],
+        "severity": "hard"
+      }
+    ],
+    "deterministic_actions": [],
+    "provider_actions": [
+      {
+        "component": "librarian_initialization",
+        "path": "",
+        "instruction": "provider manifest path ownership violation: README.md belongs to docs, not librarian_initialization",
+        "repair_prompt": "You are regenerating librarian_initialization_files only.\nDo not modify files owned by other components.\nDo not add TODO, placeholder, or future-work claims.\nReturn only files belonging to this component.\nRepair prompt budget: {\"max_context_chars_per_repair\": 16000, \"max_files_per_repair\": 3, \"max_output_files_per_repair\": 2}\nOld blockers that must disappear: provider manifest path ownership violation: README.md belongs to docs, not librarian_initialization\nValidation checks: "
+      }
+    ],
+    "validation_checks": [],
+    "affected_components": [
+      "librarian_initialization"
+    ],
+    "affected_files": [],
+    "must_disappear_blockers": [
+      "provider manifest path ownership violation: README.md belongs to docs, not librarian_initialization"
+    ],
+    "ownership_table": {
+      "foundation": {
+        "allowed": [
+          "package.json",
+          "package-lock.json",
+          "pyproject.toml",
+          "requirements.txt",
+          "vite.config.*",
+          "tsconfig.json",
+          ".gitignore"
+        ],
+        "forbidden": [
+          "src/app.js",
+          "src/main.js",
+          "src/App.*",
+          "app.py",
+          "main.py",
+          "server.py",
+          "routes/**",
+          "tests/**",
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md"
+        ]
+      },
+      "frontend": {
+        "allowed": [
+          "src/**",
+          "public/**",
+          "index.html",
+          "frontend/**",
+          "app/**"
+        ],
+        "owns": [
+          "src/app.js",
+          "src/main.js",
+          "src/App.*"
+        ]
+      },
+      "backend": {
+        "allowed": [
+          "app.py",
+          "main.py",
+          "server.py",
+          "backend/**",
+          "api/**",
+          "data/**"
+        ],
+        "owns": [
+          "backend/**",
+          "api/**",
+          "data/**",
+          "app.py",
+          "main.py",
+          "server.py"
+        ]
+      },
+      "tests": {
+        "allowed": [
+          "tests/**",
+          "test_*.py",
+          "*.spec.*",
+          "*.test.*"
+        ],
+        "owns": [
+          "tests/**",
+          "test_*.py",
+          "*.spec.*",
+          "*.test.*"
+        ]
+      },
+      "docs": {
+        "allowed": [
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md",
+          "DELIVERY_NOTES.md",
+          "docs/**"
+        ],
+        "owns": [
+          "README.md",
+          "TEST_PLAN.md",
+          "TEST_REPORT.md",
+          "DELIVERY_NOTES.md"
+        ]
+      },
+      "media": {
+        "allowed": [
+          "scripts/capture*",
+          "screenshots/**",
+          "media/**",
+          "demo/**",
+          "assets/demo/**",
+          "assets/screenshots/**"
+        ],
+        "owns": [
+          "scripts/capture*",
+          "screenshots/**",
+          "media/**",
+          "demo/**",
+          "assets/demo/**",
+          "assets/screenshots/**"
+        ]
+      }
+    },
+    "raw_user_goal": "Build a tiny local notes CLI with README, tests, and delivery evidence",
+    "component_pipeline": {
+      "kind": "ComponentPipelinePlan",
+      "strategy": "local_model_managed_component_routing",
+      "quality_goal": "Local model manages component boundaries, handoffs, gates, and repair scope before provider or execution stages.",
+      "components": [
+        {
+          "id": "librarian_initialization",
+          "label": "Initialize Local Librarian",
+          "active_module": "module.local.librarian@1",
+          "depends_on": [],
+          "outputs": [
+            "context_pack"
+          ],
+          "path_hints": [
+            "local_assets"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Discover and utilize existing assets in the CGNK workspace.",
+          "acceptance_gate": [
+            "Ensure that context packs are correctly built from available resources."
+          ],
+          "handoff_notes": [
+            "Hand off context packs to the project generator."
+          ]
+        },
+        {
+          "id": "project_generation",
+          "label": "Generate Project Blueprint",
+          "active_module": "module.project.generator@1",
+          "depends_on": [
+            "librarian_initialization"
+          ],
+          "outputs": [
+            "blueprint",
+            "generation_trace"
+          ],
+          "path_hints": [
+            "generated_projects"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Create a project blueprint and generation trace based on the context pack.",
+          "acceptance_gate": [
+            "Blueprint must be valid and trace must include all necessary steps for execution."
+          ],
+          "handoff_notes": [
+            "Hand off blueprint and trace to the runtime executor."
+          ]
+        },
+        {
+          "id": "project_execution",
+          "label": "Execute Generated Project",
+          "active_module": "module.local.runtime_executor@1",
+          "depends_on": [
+            "project_generation"
+          ],
+          "outputs": [
+            "runtime_artifacts"
+          ],
+          "path_hints": [
+            "executed_projects"
+          ],
+          "prompt_max_chars": 1200,
+          "agent_focus": "Materialize the project blueprint into runtime artifacts.",
+          "acceptance_gate": [
+            "All runtime artifacts must be correctly generated and ready for use."
+          ],
+          "handoff_notes": [
+            "Hand off runtime artifacts to the unified control module."
+          ]
+        }
+      ],
+      "merge_policy": {
+        "duplicate_path": "fail_unless_identical",
+        "required_final_files": [
+          "README.md",
+          "TEST_PLAN.md"
+        ],
+        "retry_scope": "failed_component_only"
+      },
+      "execution_order": [
+        "librarian_initialization",
+        "project_generation",
+        "project_execution"
+      ],
+      "local_agent_management_source": "local_model"
+    }
+  },
+  "failure_diagnostics": "D:\\CGKN\\artifacts\\feasibility_live_smoke\\artifacts\\provider_semantic_review_failure.json"
+}

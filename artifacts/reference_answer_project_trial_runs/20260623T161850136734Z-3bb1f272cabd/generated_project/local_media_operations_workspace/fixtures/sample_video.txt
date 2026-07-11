@@ -1,0 +1,3 @@
+00:00 intro: project overview
+00:06 candidate moment: useful quote about local editing
+00:14 outro: export reminder

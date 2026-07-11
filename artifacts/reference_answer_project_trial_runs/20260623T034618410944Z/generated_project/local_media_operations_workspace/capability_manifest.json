@@ -1,0 +1,363 @@
+{
+  "generated_at": "2026-06-23T03:46:20.633302+00:00",
+  "selected_adapter": "local_tool_verified",
+  "adapter_statuses": [
+    "fixture_degraded",
+    "python_wave_verified",
+    "local_tool_verified",
+    "local_model_unavailable",
+    "placeholder_transcription",
+    "placeholder_transcription",
+    "real_user_media_input",
+    "ffprobe_verified",
+    "ffprobe_verified",
+    "media_decode_verified"
+  ],
+  "commercial_ready": false,
+  "capabilities": {
+    "media_fixture": {
+      "path": "fixtures\\sample_audio.wav",
+      "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "size": 4044,
+      "status": "verified",
+      "type": "wav"
+    },
+    "media_metadata": {
+      "status": "ffprobe_verified",
+      "tool": "ffprobe",
+      "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+      "command": [
+        "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,codec_name,sample_rate,channels,duration",
+        "-of",
+        "json",
+        "fixtures\\sample_audio.wav"
+      ],
+      "returncode": 0,
+      "evidence": [
+        {
+          "python_wave": {
+            "frames": 2000,
+            "framerate": 8000,
+            "channels": 1,
+            "sample_width": 2,
+            "duration_seconds": 0.25
+          }
+        },
+        {
+          "ffprobe": [
+            "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+          ]
+        }
+      ]
+    },
+    "audio_extract": {
+      "status": "verified",
+      "tool": "ffmpeg",
+      "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+      "command": [
+        "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+        "-version"
+      ],
+      "returncode": 0,
+      "evidence": [
+        "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+        "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+        "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+      ]
+    },
+    "media_decode": {
+      "status": "verified",
+      "tool": "ffmpeg",
+      "version": "",
+      "command": [
+        "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+        "-t",
+        "0.20",
+        "-ac",
+        "1",
+        "-ar",
+        "8000",
+        "media_decode_output.wav"
+      ],
+      "returncode": 0,
+      "timed_out": false,
+      "artifact_path": "media_decode_artifact.json",
+      "output_path": "media_decode_output.wav",
+      "sha256": "d27bf387026c6fdbbc6b38959a718bb7d12e7264116a6722e9e029b3cc489938",
+      "size": 3278,
+      "duration_seconds": 0.2,
+      "evidence": [
+        {
+          "status": "local_tool_verified",
+          "tool": "ffmpeg",
+          "path": "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+          "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+          "command": [
+            "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+            "-version"
+          ],
+          "returncode": 0,
+          "evidence": [
+            "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+            "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+            "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+          ],
+          "timed_out": false
+        },
+        {
+          "command": [
+            "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+            "-t",
+            "0.20",
+            "-ac",
+            "1",
+            "-ar",
+            "8000",
+            "media_decode_output.wav"
+          ],
+          "returncode": 0,
+          "duration_seconds": 0.088,
+          "stdout": "",
+          "stderr": "",
+          "timed_out": false
+        }
+      ],
+      "commercial_ready": false,
+      "reason": "Bounded local media decode evidence is not ASR and does not imply production readiness."
+    },
+    "asr": {
+      "status": "placeholder_transcription",
+      "adapter_kind": "none",
+      "engine": null,
+      "model_name": null,
+      "model_path": null,
+      "command": null,
+      "returncode": null,
+      "timed_out": false,
+      "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+      "output_path": null,
+      "sha256": null,
+      "size": null,
+      "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "input_size": 4044,
+      "production_asr": false,
+      "evidence_tier": "placeholder",
+      "quality_report_path": "asr_quality_report.json",
+      "degraded": true,
+      "schema_valid": false,
+      "schema_blockers": [],
+      "commercial_ready": false,
+      "reason": "Only deterministic placeholder transcription exists; no real ASR command is configured.",
+      "evidence": [
+        {
+          "status": "placeholder_transcription",
+          "tool": "none",
+          "model": null,
+          "adapter": "deterministic_placeholder",
+          "command": null,
+          "returncode": null,
+          "input_artifact": "fixtures\\sample_audio.wav",
+          "output_artifact": "transcription_adapter_result.json",
+          "artifact": {
+            "path": "transcription_adapter_result.json",
+            "sha256": "17a00dbad239aaf160461a3a2bcf2a930705a20760ea914ad43c292f80f79ae1",
+            "size": 686
+          },
+          "evidence": [
+            "placeholder_transcription",
+            "no local model command configured or used"
+          ],
+          "commercial_ready": false,
+          "reason": "Only deterministic placeholder transcription is available; no local model is configured.",
+          "model_status": "local_model_unavailable"
+        }
+      ]
+    },
+    "asr_quality": {
+      "generated_at": "2026-06-23T03:46:19.705356+00:00",
+      "asr_quality_status": "not_ready",
+      "evidence_tier": "none",
+      "sample_count": 1,
+      "successful_samples": 0,
+      "failed_samples": 0,
+      "timeout_samples": 0,
+      "invalid_output_samples": 0,
+      "non_empty_text_count": 0,
+      "non_empty_segments_count": 0,
+      "average_confidence": null,
+      "confidence_unavailable_reason": "no confidence values emitted by ASR command",
+      "transcript_artifacts": [
+        "."
+      ],
+      "input_audio_hashes": [
+        "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde"
+      ],
+      "output_transcript_hashes": [],
+      "sample_results": [
+        {
+          "sample_index": 1,
+          "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+          "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+          "input_size": 4044,
+          "status": "no_asr_configured",
+          "evidence_tier": "none",
+          "returncode": null,
+          "timed_out": false,
+          "schema_valid": false,
+          "schema_blockers": [],
+          "output_path": ".",
+          "output_sha256": null,
+          "output_size": null,
+          "text_length": 0,
+          "segment_count": 0,
+          "confidence": null
+        }
+      ],
+      "pass_fail_reasons": [
+        "no_real_asr_command_configured"
+      ],
+      "production_readiness_blockers": [
+        "no_real_asr_command_configured"
+      ],
+      "commercial_ready": false,
+      "reason": "ASR quality gate evidence is not sufficient to promote commercial readiness."
+    },
+    "transcription": {
+      "status": "placeholder_transcription",
+      "tool": "none",
+      "model": null,
+      "adapter": "deterministic_placeholder",
+      "command": null,
+      "returncode": null,
+      "input_artifact": "fixtures\\sample_audio.wav",
+      "output_artifact": "transcription_adapter_result.json",
+      "artifact": {
+        "path": "transcription_adapter_result.json",
+        "sha256": "17a00dbad239aaf160461a3a2bcf2a930705a20760ea914ad43c292f80f79ae1",
+        "size": 686
+      },
+      "not_production_asr": false,
+      "evidence": [
+        "placeholder_transcription",
+        "no local model command configured or used"
+      ],
+      "commercial_ready": false,
+      "reason": "Only deterministic placeholder transcription is available; no local model is configured."
+    },
+    "analysis": {
+      "status": "deterministic",
+      "evidence": [
+        "Segment candidates are deterministic fixture analysis, not AI transcription."
+      ]
+    },
+    "user_media_input": {
+      "status": "verified",
+      "source": "real_user_media_input",
+      "path": "fixtures\\sample_audio.wav",
+      "safe_input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+      "file_type": "wav",
+      "size": 4044,
+      "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "metadata_status": "ffprobe_verified",
+      "adapter_status": "ffprobe_verified",
+      "media_manifest": "media_manifest.json",
+      "inspect_artifact": "user_media_inspect.json",
+      "smoke_log": "user_media_smoke_log.json",
+      "evidence": [
+        {
+          "python_wave": {
+            "frames": 2000,
+            "framerate": 8000,
+            "channels": 1,
+            "sample_width": 2,
+            "duration_seconds": 0.25
+          }
+        },
+        {
+          "ffprobe": {
+            "status": "local_tool_verified",
+            "tool": "ffprobe",
+            "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+            "command": [
+              "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+              "-v",
+              "error",
+              "-show_entries",
+              "stream=codec_type,codec_name,sample_rate,channels,duration",
+              "-of",
+              "json",
+              "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034618410944Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav"
+            ],
+            "returncode": 0,
+            "evidence": [
+              "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+            ],
+            "timed_out": false
+          }
+        }
+      ],
+      "commercial_ready": false
+    }
+  },
+  "tool_detection": {
+    "ffprobe": {
+      "status": "local_tool_verified",
+      "tool": "ffprobe",
+      "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+      "command": [
+        "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,codec_name,sample_rate,channels,duration",
+        "-of",
+        "json",
+        "fixtures\\sample_audio.wav"
+      ],
+      "returncode": 0,
+      "evidence": [
+        "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+      ],
+      "timed_out": false
+    },
+    "ffmpeg": {
+      "status": "local_tool_verified",
+      "tool": "ffmpeg",
+      "path": "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+      "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+      "command": [
+        "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+        "-version"
+      ],
+      "returncode": 0,
+      "evidence": [
+        "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+        "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+        "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+      ],
+      "timed_out": false
+    }
+  },
+  "known_gaps": [
+    "fixture_degraded: tiny local WAV fixture only",
+    "placeholder_transcription: no production transcription model is claimed",
+    "real_user_media_input: local input contract verified but not production media pipeline",
+    "media_decode: bounded ffmpeg extract verified but not production media pipeline",
+    "asr: placeholder transcription is not real ASR"
+  ],
+  "commercial_readiness_reason": "Bounded local media, decode, and ASR evidence is useful contract evidence, but it is not production media processing or commercial ASR readiness."
+}

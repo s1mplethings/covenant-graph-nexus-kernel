@@ -1,0 +1,47 @@
+{
+  "contract_id": "requirement_acceptance_contract_v1",
+  "selected_requirement_id": "local_video_material_workbench_requirement",
+  "success_definition": "A run creates stage artifacts, GUI/CLI share the same core, and missing models are reported as degraded instead of success.",
+  "required_planning_docs": [
+    "product_brief.md",
+    "technical_plan.md",
+    "interaction_design.md",
+    "acceptance_matrix.md"
+  ],
+  "required_requirement_artifacts": [
+    "customer_goal_brief.md",
+    "need_interpretations.json",
+    "candidate_requirements.json",
+    "requirement_scorecard.json",
+    "selected_requirement.json",
+    "rejected_requirements.md",
+    "mvp_scope.md",
+    "non_goals.md",
+    "customer_decision_summary.md"
+  ],
+  "required_product_outputs": [],
+  "required_delivery_evidence": [
+    "README.md",
+    "TEST_REPORT.md",
+    "DELIVERY_NOTES.md",
+    "run_dir"
+  ],
+  "implementation_delivery_evidence": [
+    "final_project_bundle.zip",
+    "screenshot"
+  ],
+  "status_layers": [
+    "requirement_decision_status",
+    "product_contract_status",
+    "implementation_status",
+    "delivery_status"
+  ],
+  "forbidden_shortcuts": [
+    "direct_code_without_requirement_decision",
+    "single_direction_without_comparison",
+    "no_mvp_scope",
+    "no_non_goals",
+    "fake_pass",
+    "delivery_pass_without_zip_or_screenshot"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "status": "pass",
+  "created_at": "2026-06-26T13:33:44.011661+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": {
+    "path": "D:\\anaconda\\python.exe",
+    "version": "3.12.3"
+  },
+  "node": {
+    "path": "C:\\Program Files\\nodejs\\node.EXE",
+    "version": "v24.11.0",
+    "available": true
+  },
+  "npm": {
+    "path": "C:\\Program Files\\nodejs\\npm.CMD",
+    "version": "11.6.3",
+    "available": true
+  },
+  "npx": {
+    "path": "C:\\Program Files\\nodejs\\npx.CMD",
+    "version": "11.6.3",
+    "available": true
+  },
+  "git": {
+    "path": "D:\\Git\\bin\\git.EXE",
+    "version": "git version 2.46.0.windows.1",
+    "available": true
+  },
+  "browser": {
+    "playwright_available": true,
+    "chromium_available": true,
+    "chromium_executable": "C:\\Users\\sunom\\AppData\\Local\\ms-playwright\\chromium-1200\\chrome-win64\\chrome.exe",
+    "chrome_path": "",
+    "msedge_path": "",
+    "error": ""
+  },
+  "ffmpeg": {
+    "path": "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+    "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+    "available": true
+  },
+  "network": {
+    "localhost_http_server_ok": true,
+    "free_port_ok": true,
+    "free_port": 16241
+  },
+  "filesystem": {
+    "repo_writable": true,
+    "temp_writable": true,
+    "candidate_dir_writable": true
+  },
+  "warnings": [],
+  "failures": []
+}

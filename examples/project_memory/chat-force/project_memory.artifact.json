@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-12T12:58:34.872678+00:00",
+  "generated_at": "2026-07-11T04:15:06.126119+00:00",
   "chat_id": "chat-force",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-force\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -52,7 +52,10 @@
   "generation": {
     "status": "idle",
     "driver": "not_started",
-    "generation_mode": "unstarted"
+    "generation_mode": "unstarted",
+    "requested_generation_mode": "api",
+    "effective_generation_mode": "api",
+    "local_to_api_fallback_explicit": false
   },
   "module_mapping": [
     {

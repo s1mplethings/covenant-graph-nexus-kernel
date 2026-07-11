@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CGKN Human Review Evidence",
+  "type": "object",
+  "required": [
+    "approved",
+    "blocking_findings",
+    "notes",
+    "review_scope",
+    "reviewed_at",
+    "reviewer",
+    "sample_count_reviewed"
+  ],
+  "properties": {
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_count_reviewed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "approved": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "blocking_findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "review_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

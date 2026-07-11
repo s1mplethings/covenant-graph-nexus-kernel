@@ -221,7 +221,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "ok": success_ready,
         "status": "PASS" if success_ready else ("REWORK_VERIFIED_NON_PASS" if retryable_rework_verified else "FAIL"),
         "model": args.model,
-        "endpoint": check_connectivity._openai_compatible_endpoint(str(creds.get("base_url", ""))),
+        "endpoint": check_connectivity._openai_compatible_endpoint(str(creds.get("base_url", "")), model=args.model),
         "api_key_source": creds.get("api_key_source", ""),
         "smoke": smoke,
         "first_message": {
@@ -261,7 +261,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Real Telegram VN e2e through configured OpenAI-compatible provider.")
-    parser.add_argument("--model", default="gpt-4.1-mini")
+    parser.add_argument("--model", default="gpt-5.4-nano")
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--smoke-attempts", type=int, default=3)
     parser.add_argument("--chat-id", default="vn-real-provider-e2e")

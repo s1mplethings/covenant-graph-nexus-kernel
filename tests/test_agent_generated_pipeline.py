@@ -51,9 +51,15 @@ def make_session(session_dir: pathlib.Path, chat_id: str, summary: str = "做一
 
 def package_result(project_dir: pathlib.Path) -> dict:
     project_dir.mkdir(parents=True, exist_ok=True)
-    (project_dir / "README.md").write_text("# Demo\n", encoding="utf-8")
+    (project_dir / "README.md").write_text("# Demo\n\nRun with `python app.py`.\n", encoding="utf-8")
     (project_dir / "app.py").write_text("print('demo')\n", encoding="utf-8")
-    (project_dir / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
+    (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    (project_dir / "tests").mkdir(exist_ok=True)
+    (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    (project_dir / "TEST_REPORT.md").write_text(
+        "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+        encoding="utf-8",
+    )
     (project_dir / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
     manifest = local_packager.package_project(project_dir, startup_command="python app.py")
     return {

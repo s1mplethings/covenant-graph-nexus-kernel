@@ -1,0 +1,75 @@
+{
+  "contract_id": "complexity_project_contract_v1",
+  "selected_project_id": "local_video_workbench",
+  "selected_project_name": "Local Video Material Workbench",
+  "selected_project_summary": "Local-first workbench for importing media, extracting or simulating audio, segmenting transcripts, scoring clips, selecting outputs, and exporting evidence.",
+  "required_planning_docs": [
+    "product_brief.md",
+    "technical_plan.md",
+    "interaction_design.md",
+    "acceptance_matrix.md"
+  ],
+  "required_core_files": [
+    "orchestrator.py",
+    "stages.py"
+  ],
+  "required_interfaces": [
+    "cli",
+    "gui"
+  ],
+  "requires_shared_gui_cli_core": true,
+  "required_pipeline_stages": [
+    "ingest_video",
+    "extract_audio",
+    "chunk_audio",
+    "transcribe_audio",
+    "analyze_segments",
+    "select_segments",
+    "render_clips",
+    "export_results"
+  ],
+  "required_stage_artifacts": [
+    "stage_plan.json",
+    "media_manifest.json",
+    "audio_chunk_manifest.json",
+    "transcript_merged.json",
+    "segment_analysis.json",
+    "selected_segments.json",
+    "clip_manifest.json",
+    "export_results.json"
+  ],
+  "required_artifact_fields": [
+    "stage",
+    "status",
+    "count",
+    "input_path",
+    "output_path",
+    "created_at",
+    "upstream_artifacts",
+    "items"
+  ],
+  "required_delivery_evidence": [
+    "README.md",
+    "TEST_REPORT.md",
+    "DELIVERY_NOTES.md",
+    "final_project_bundle.zip",
+    "screenshot",
+    "run_dir"
+  ],
+  "honest_degraded_mode_required": true,
+  "forbidden_shortcuts": [
+    "single_file_demo",
+    "static_preview_only",
+    "readme_only_delivery",
+    "fake_pass",
+    "gui_logic_separate_from_cli_logic",
+    "artifact_name_only_without_schema"
+  ],
+  "downstream_requirements": [
+    "product_brief.md must cite complexity_project_contract.json",
+    "technical_plan.md must cite complexity_project_contract.json",
+    "interaction_design.md must cite complexity_project_contract.json",
+    "acceptance_matrix.md must cite complexity_project_contract.json",
+    "provider generation must implement the selected direction, not a generic version of the raw prompt"
+  ]
+}

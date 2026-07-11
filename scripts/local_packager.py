@@ -224,6 +224,10 @@ def package_project(
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
         raise RuntimeError(f"project_dir does not exist: {project}")
+    if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
+        raise RuntimeError(f"refusing to package candidate-only project: {project}")
+    if (project / "_CGNK_REJECTED_PREVIEW_DO_NOT_DELIVER.json").exists():
+        raise RuntimeError(f"refusing to package rejected provider preview: {project}")
     target_dir = pathlib.Path(output_dir).resolve() if output_dir else project
     target_dir.mkdir(parents=True, exist_ok=True)
     warnings: list[str] = []

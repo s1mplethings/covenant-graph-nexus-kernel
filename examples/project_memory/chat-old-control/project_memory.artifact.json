@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:24.815800+00:00",
+  "generated_at": "2026-07-11T04:13:07.485980+00:00",
   "chat_id": "chat-old-control",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-old-control\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -26,6 +26,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -41,9 +42,13 @@
     "开始生成"
   ],
   "generation": {
-    "status": "idle",
+    "status": "waiting_confirmation",
     "driver": "not_started",
-    "generation_mode": "unstarted"
+    "generation_mode": "unstarted",
+    "start_wait_reason": "unclear_project_request",
+    "requested_generation_mode": "api",
+    "effective_generation_mode": "api",
+    "local_to_api_fallback_explicit": false
   },
   "module_mapping": [
     {

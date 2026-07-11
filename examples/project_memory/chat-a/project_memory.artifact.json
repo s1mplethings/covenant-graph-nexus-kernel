@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:23.244884+00:00",
+  "generated_at": "2026-07-11T04:12:59.183869+00:00",
   "chat_id": "chat-a",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-a\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -26,6 +26,7 @@
     ],
     "change_requests": [],
     "delivery_requirements": [
+      "可运行项目包",
       "交付项目包和预览"
     ],
     "decision_log": [
@@ -43,7 +44,7 @@
     "status": "waiting_confirmation",
     "driver": "not_started",
     "generation_mode": "unstarted",
-    "start_wait_reason": "needs_direction_confirmation"
+    "start_wait_reason": "unclear_project_request"
   },
   "module_mapping": [
     {

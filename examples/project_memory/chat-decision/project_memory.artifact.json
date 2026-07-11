@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:19:57.055745+00:00",
+  "generated_at": "2026-06-30T16:08:57.959487+00:00",
   "chat_id": "chat-decision",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-decision\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -30,26 +30,250 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "api_provider_project_generation",
-    "finished_at": "2026-06-08T16:19:57.032241+00:00",
-    "error": "provider_api_request_failed: provider_api_request_failed: HTTP 403: {\"error\":\"Key usage limit exceeded\"} [endpoint=https://api.gptsapi.net, retryable=false]",
-    "provider_error_type": "PROVIDER_KEY_USAGE_LIMIT",
+    "finished_at": "2026-06-30T16:08:57.947148+00:00",
     "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision",
-    "partial_artifacts": [
-      "generation_context_snapshot.json"
-    ],
-    "current_stage": "api_provider_project_generation",
-    "provider_recovery_needed": true,
-    "provider_recovery_mode": "stage_resume",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpga4mammc\\sessions\\chat-decision\\agent_session.jsonl",
+    "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\delivery_manifest.json",
+    "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\final_project_bundle.zip",
+    "build_integrity_audit": {
+      "ok": false,
+      "strict_runtime": false,
+      "missing": [
+        "pytest_failed"
+      ],
+      "asset_counts": {
+        "packages": 1,
+        "screenshots": 1,
+        "generated_images": 3,
+        "generated_backgrounds": 1,
+        "generated_sprites": 1,
+        "videos": 0
+      }
+    },
+    "qa_integrity_audit": {
+      "ok": false,
+      "commands_run": [],
+      "exit_code": null,
+      "stdout": "",
+      "stderr": "",
+      "error": "tests directory missing or no test*.py files found",
+      "failure_type": "no_tests",
+      "first_attempt": {
+        "ok": false,
+        "commands_run": [],
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "",
+        "error": "tests directory missing or no test*.py files found",
+        "failure_type": "no_tests"
+      }
+    },
+    "post_build_finalize": {
+      "test_result": {
+        "ok": false,
+        "commands_run": [],
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "",
+        "error": "tests directory missing or no test*.py files found",
+        "failure_type": "no_tests",
+        "first_attempt": {
+          "ok": false,
+          "commands_run": [],
+          "exit_code": null,
+          "stdout": "",
+          "stderr": "",
+          "error": "tests directory missing or no test*.py files found",
+          "failure_type": "no_tests"
+        }
+      },
+      "image_result": {
+        "ok": true,
+        "background": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\background_local_demo.png",
+        "sprite": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\sprite_local_demo.png",
+        "ui_screenshot": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\screenshots\\app_home.png",
+        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\generated_image_manifest.json",
+        "manifest": {
+          "kind": "GeneratedImageManifest",
+          "created_at": "2026-06-30T16:08:53.025354+00:00",
+          "images": [
+            {
+              "kind": "background",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\background_local_demo.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\background_local_demo.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 960,
+                "height": 540,
+                "unique_colors": 2400,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            },
+            {
+              "kind": "sprite",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\sprite_local_demo.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\assets\\generated\\sprite_local_demo.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 420,
+                "height": 620,
+                "unique_colors": 1231,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            },
+            {
+              "kind": "ui_screenshot",
+              "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\screenshots\\app_home.png",
+              "audit": {
+                "path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\screenshots\\app_home.png",
+                "ok": true,
+                "reason": "nonblank_png",
+                "width": 1280,
+                "height": 800,
+                "unique_colors": 4177,
+                "varied_channels": 3,
+                "pil_error": "No module named 'PIL._deprecate'"
+              }
+            }
+          ],
+          "errors": [],
+          "fallback_background_generated": true,
+          "fallback_sprite_generated": true,
+          "ok": true
+        }
+      },
+      "video_result": {
+        "ok": false,
+        "videos": [],
+        "required": false
+      },
+      "visual_required": false,
+      "manifest": {
+        "kind": "CGNKDeliveryManifest",
+        "created_at": "2026-06-30T16:08:57.598738+00:00",
+        "status": "ready_with_warnings",
+        "project_dir": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision",
+        "package_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\final_project_bundle.zip",
+        "readme_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\README.md",
+        "startup_command": "python app.py",
+        "run_log_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\packager_run_log.txt",
+        "known_limits": [
+          "测试报告存在，但未执行真实测试命令"
+        ],
+        "quality_evidence": {
+          "readme_found": true,
+          "test_report_found": true,
+          "test_report_has_commands": true,
+          "test_report_has_no_test_executed": true,
+          "test_report_mentions_sample_input": false,
+          "delivery_notes_found": true,
+          "product_plan_found": false,
+          "output_contract_found": false,
+          "technical_plan_found": false,
+          "build_plan_found": false,
+          "preview_evidence_found": true,
+          "preview_placeholder_found": false,
+          "sample_input_found": true,
+          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\TEST_REPORT.md",
+          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\DELIVERY_NOTES.md"
+        },
+        "user_review_evidence": {
+          "evidence_review_found": false,
+          "test_report_found": true,
+          "test_code_files": [],
+          "sample_inputs": [],
+          "screenshots": [
+            "screenshots/app_home.png",
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png"
+          ],
+          "generated_images": [
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png",
+            "screenshots/app_home.png"
+          ],
+          "videos": [],
+          "preview_files": [
+            "delivery_manifest.json",
+            "generated_image_manifest.json",
+            "generation_context_snapshot.json",
+            "assets/generated/background_local_demo.png",
+            "assets/generated/sprite_local_demo.png",
+            "screenshots/app_home.png"
+          ],
+          "user_review_required": false,
+          "user_review_completed": false
+        },
+        "manifest_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\delivery_manifest.json"
+      },
+      "gate": {
+        "delivery_allowed": false,
+        "status": "REWORK",
+        "phase": "final",
+        "missing": [
+          "real_test_execution"
+        ],
+        "rejected": [],
+        "requirements": {
+          "screenshot": false,
+          "video": false,
+          "generated_image": false,
+          "background": false,
+          "sprite": false,
+          "demo_video": false
+        },
+        "asset_counts": {
+          "packages": 1,
+          "screenshots": 1,
+          "generated_images": 3,
+          "generated_backgrounds": 1,
+          "generated_sprites": 1,
+          "videos": 0
+        },
+        "quality_evidence": {
+          "readme_found": true,
+          "test_report_found": true,
+          "test_report_has_commands": true,
+          "test_report_has_no_test_executed": true,
+          "test_report_mentions_sample_input": false,
+          "delivery_notes_found": true,
+          "product_plan_found": false,
+          "output_contract_found": false,
+          "technical_plan_found": false,
+          "build_plan_found": false,
+          "preview_evidence_found": true,
+          "preview_placeholder_found": false,
+          "sample_input_found": true,
+          "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\TEST_REPORT.md",
+          "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\DELIVERY_NOTES.md"
+        },
+        "public_suffixes": [
+          ".gif",
+          ".jpeg",
+          ".jpg",
+          ".mp4",
+          ".png",
+          ".webm",
+          ".webp",
+          ".zip"
+        ]
+      },
+      "ok": false
+    },
     "delivery_allowed": false,
     "delivery_gate": {
       "delivery_allowed": false,
       "status": "REWORK",
       "phase": "final",
       "missing": [
-        "runnable_project",
-        "test_report",
-        "test_commands"
+        "provider:pytest_failed",
+        "real_test_execution"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": false,
         "video": false,
@@ -60,28 +284,28 @@
       },
       "asset_counts": {
         "packages": 1,
-        "screenshots": 0,
-        "generated_images": 0,
-        "generated_backgrounds": 0,
-        "generated_sprites": 0,
+        "screenshots": 1,
+        "generated_images": 3,
+        "generated_backgrounds": 1,
+        "generated_sprites": 1,
         "videos": 0
       },
       "quality_evidence": {
         "readme_found": true,
-        "test_report_found": false,
-        "test_report_has_commands": false,
-        "test_report_has_no_test_executed": false,
+        "test_report_found": true,
+        "test_report_has_commands": true,
+        "test_report_has_no_test_executed": true,
         "test_report_mentions_sample_input": false,
-        "delivery_notes_found": false,
+        "delivery_notes_found": true,
         "product_plan_found": false,
         "output_contract_found": false,
         "technical_plan_found": false,
         "build_plan_found": false,
-        "preview_evidence_found": false,
+        "preview_evidence_found": true,
         "preview_placeholder_found": false,
-        "sample_input_found": false,
-        "test_report_path": "",
-        "delivery_notes_path": ""
+        "sample_input_found": true,
+        "test_report_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\TEST_REPORT.md",
+        "delivery_notes_path": "D:\\CGKN\\generated\\telegram_provider_projects\\chat-decision\\DELIVERY_NOTES.md"
       },
       "public_suffixes": [
         ".gif",
@@ -92,7 +316,22 @@
         ".webm",
         ".webp",
         ".zip"
-      ]
+      ],
+      "provider_success_artifact_audit": {
+        "ok": false,
+        "strict_runtime": false,
+        "missing": [
+          "pytest_failed"
+        ],
+        "asset_counts": {
+          "packages": 1,
+          "screenshots": 1,
+          "generated_images": 3,
+          "generated_backgrounds": 1,
+          "generated_sprites": 1,
+          "videos": 0
+        }
+      }
     }
   },
   "module_mapping": [

@@ -1,0 +1,706 @@
+{
+  "kind": "CGKNDeliveryManifest",
+  "created_at": "2026-06-23T09:54:15.486833+00:00",
+  "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace",
+  "run_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561",
+  "package_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+  "readme_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\README.md",
+  "test_report_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\TEST_REPORT.md",
+  "delivery_notes_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\DELIVERY_NOTES.md",
+  "capability_manifest_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\capability_manifest.json",
+  "capability_manifest": {
+    "generated_at": "2026-06-23T09:54:14.614765+00:00",
+    "selected_adapter": "local_tool_verified",
+    "adapter_statuses": [
+      "fixture_degraded",
+      "python_wave_verified",
+      "local_tool_verified",
+      "local_model_unavailable",
+      "placeholder_transcription",
+      "placeholder_transcription",
+      "real_user_media_input",
+      "ffprobe_verified",
+      "ffprobe_verified",
+      "media_decode_verified"
+    ],
+    "commercial_ready": false,
+    "capabilities": {
+      "media_fixture": {
+        "path": "fixtures\\sample_audio.wav",
+        "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+        "size": 4044,
+        "status": "verified",
+        "type": "wav"
+      },
+      "media_metadata": {
+        "status": "ffprobe_verified",
+        "tool": "ffprobe",
+        "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+        "command": [
+          "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+          "-v",
+          "error",
+          "-show_entries",
+          "stream=codec_type,codec_name,sample_rate,channels,duration",
+          "-of",
+          "json",
+          "fixtures\\sample_audio.wav"
+        ],
+        "returncode": 0,
+        "evidence": [
+          {
+            "python_wave": {
+              "frames": 2000,
+              "framerate": 8000,
+              "channels": 1,
+              "sample_width": 2,
+              "duration_seconds": 0.25
+            }
+          },
+          {
+            "ffprobe": [
+              "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+            ]
+          }
+        ]
+      },
+      "audio_extract": {
+        "status": "verified",
+        "tool": "ffmpeg",
+        "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+        "command": [
+          "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+          "-version"
+        ],
+        "returncode": 0,
+        "evidence": [
+          "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+          "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+          "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+        ]
+      },
+      "media_decode": {
+        "status": "verified",
+        "tool": "ffmpeg",
+        "version": "",
+        "command": [
+          "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+          "-y",
+          "-v",
+          "error",
+          "-i",
+          "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+          "-t",
+          "0.20",
+          "-ac",
+          "1",
+          "-ar",
+          "8000",
+          "media_decode_output.wav"
+        ],
+        "returncode": 0,
+        "timed_out": false,
+        "artifact_path": "media_decode_artifact.json",
+        "output_path": "media_decode_output.wav",
+        "sha256": "d27bf387026c6fdbbc6b38959a718bb7d12e7264116a6722e9e029b3cc489938",
+        "size": 3278,
+        "duration_seconds": 0.2,
+        "evidence": [
+          {
+            "status": "local_tool_verified",
+            "tool": "ffmpeg",
+            "path": "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+            "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+            "command": [
+              "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+              "-version"
+            ],
+            "returncode": 0,
+            "evidence": [
+              "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+              "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+              "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+            ],
+            "timed_out": false
+          },
+          {
+            "command": [
+              "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+              "-y",
+              "-v",
+              "error",
+              "-i",
+              "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+              "-t",
+              "0.20",
+              "-ac",
+              "1",
+              "-ar",
+              "8000",
+              "media_decode_output.wav"
+            ],
+            "returncode": 0,
+            "duration_seconds": 0.121,
+            "stdout": "",
+            "stderr": "",
+            "timed_out": false
+          }
+        ],
+        "commercial_ready": false,
+        "reason": "Bounded local media decode evidence is not ASR and does not imply production readiness."
+      },
+      "asr": {
+        "status": "placeholder_transcription",
+        "adapter_kind": "none",
+        "engine": null,
+        "model_name": null,
+        "model_path": null,
+        "command": null,
+        "returncode": null,
+        "timed_out": false,
+        "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+        "output_path": null,
+        "sha256": null,
+        "size": null,
+        "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+        "input_size": 4044,
+        "production_asr": false,
+        "evidence_tier": "placeholder",
+        "quality_report_path": "asr_quality_report.json",
+        "degraded": true,
+        "schema_valid": false,
+        "schema_blockers": [],
+        "commercial_ready": false,
+        "reason": "Only deterministic placeholder transcription exists; no real ASR command is configured.",
+        "evidence": [
+          {
+            "status": "placeholder_transcription",
+            "tool": "none",
+            "model": null,
+            "adapter": "deterministic_placeholder",
+            "command": null,
+            "returncode": null,
+            "input_artifact": "fixtures\\sample_audio.wav",
+            "output_artifact": "transcription_adapter_result.json",
+            "artifact": {
+              "path": "transcription_adapter_result.json",
+              "sha256": "534388751e40832bac22e2f3112fbacba58679c00515b7f12a6bd2f97b8dd1cf",
+              "size": 686
+            },
+            "evidence": [
+              "placeholder_transcription",
+              "no local model command configured or used"
+            ],
+            "commercial_ready": false,
+            "reason": "Only deterministic placeholder transcription is available; no local model is configured.",
+            "model_status": "local_model_unavailable"
+          }
+        ],
+        "multi_sample_report_path": ""
+      },
+      "asr_quality": {
+        "generated_at": "2026-06-23T09:54:14.179760+00:00",
+        "adapter_kind": "none",
+        "evidence_tier": "none",
+        "asr_quality_status": "not_ready",
+        "production_candidate": false,
+        "production_verified": false,
+        "commercial_ready": false,
+        "sample_count": 1,
+        "successful_samples": 0,
+        "failed_samples": 1,
+        "timeout_samples": 0,
+        "invalid_output_samples": 0,
+        "success_rate": 0.0,
+        "non_empty_text_rate": 0.0,
+        "non_empty_segments_rate": 0.0,
+        "non_empty_text_count": 0,
+        "non_empty_segments_count": 0,
+        "average_confidence": null,
+        "confidence_unavailable_reason": "No sample emitted confidence values.",
+        "thresholds": {
+          "min_samples": 2,
+          "min_success_rate": 1.0,
+          "min_non_empty_text_rate": 1.0,
+          "min_non_empty_segments_rate": 1.0,
+          "max_timeout_count": 0,
+          "max_invalid_output_count": 0,
+          "require_confidence_or_reason": true
+        },
+        "sample_results": [
+          {
+            "sample_index": 1,
+            "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+            "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+            "input_size": 4044,
+            "command": null,
+            "returncode": null,
+            "timed_out": false,
+            "transcript_path": "",
+            "transcript_sha256": null,
+            "transcript_size": null,
+            "schema_valid": false,
+            "text_non_empty": false,
+            "segments_non_empty": false,
+            "confidence": null,
+            "confidence_unavailable_reason": "ASR command did not emit confidence or an unavailable reason.",
+            "duration_seconds": 0.0,
+            "status": "no_asr_configured",
+            "failure_reason": "CGKN_REAL_ASR_CMD is not configured.",
+            "evidence_tier": "none",
+            "output_path": "",
+            "output_sha256": null,
+            "output_size": null,
+            "text_length": 0,
+            "segment_count": 0,
+            "schema_blockers": []
+          }
+        ],
+        "transcript_artifacts": [],
+        "input_audio_hashes": [
+          "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde"
+        ],
+        "output_transcript_hashes": [],
+        "production_readiness_blockers": [
+          "no_real_asr_command_configured"
+        ],
+        "pass_fail_reasons": [
+          "no_real_asr_command_configured"
+        ],
+        "quality_report_path": "asr_quality_report.json",
+        "reason": "CGKN_REAL_ASR_CMD is not configured."
+      },
+      "transcription": {
+        "status": "placeholder_transcription",
+        "tool": "none",
+        "model": null,
+        "adapter": "deterministic_placeholder",
+        "command": null,
+        "returncode": null,
+        "input_artifact": "fixtures\\sample_audio.wav",
+        "output_artifact": "transcription_adapter_result.json",
+        "artifact": {
+          "path": "transcription_adapter_result.json",
+          "sha256": "534388751e40832bac22e2f3112fbacba58679c00515b7f12a6bd2f97b8dd1cf",
+          "size": 686
+        },
+        "not_production_asr": false,
+        "evidence": [
+          "placeholder_transcription",
+          "no local model command configured or used"
+        ],
+        "commercial_ready": false,
+        "reason": "Only deterministic placeholder transcription is available; no local model is configured."
+      },
+      "analysis": {
+        "status": "deterministic",
+        "evidence": [
+          "Segment candidates are deterministic fixture analysis, not AI transcription."
+        ]
+      },
+      "user_media_input": {
+        "status": "verified",
+        "source": "real_user_media_input",
+        "path": "fixtures\\sample_audio.wav",
+        "safe_input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+        "file_type": "wav",
+        "size": 4044,
+        "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+        "metadata_status": "ffprobe_verified",
+        "adapter_status": "ffprobe_verified",
+        "media_manifest": "media_manifest.json",
+        "inspect_artifact": "user_media_inspect.json",
+        "smoke_log": "user_media_smoke_log.json",
+        "evidence": [
+          {
+            "python_wave": {
+              "frames": 2000,
+              "framerate": 8000,
+              "channels": 1,
+              "sample_width": 2,
+              "duration_seconds": 0.25
+            }
+          },
+          {
+            "ffprobe": {
+              "status": "local_tool_verified",
+              "tool": "ffprobe",
+              "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+              "command": [
+                "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+                "-v",
+                "error",
+                "-show_entries",
+                "stream=codec_type,codec_name,sample_rate,channels,duration",
+                "-of",
+                "json",
+                "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav"
+              ],
+              "returncode": 0,
+              "evidence": [
+                "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+              ],
+              "timed_out": false
+            }
+          }
+        ],
+        "commercial_ready": false
+      }
+    },
+    "tool_detection": {
+      "ffprobe": {
+        "status": "local_tool_verified",
+        "tool": "ffprobe",
+        "version": "ffprobe version N-116931-g8517ff2082-20240908 Copyright (c) 2007-2024 the FFmpeg developers",
+        "command": [
+          "C:\\Program Files\\ffmpeg\\bin\\ffprobe.EXE",
+          "-v",
+          "error",
+          "-show_entries",
+          "stream=codec_type,codec_name,sample_rate,channels,duration",
+          "-of",
+          "json",
+          "fixtures\\sample_audio.wav"
+        ],
+        "returncode": 0,
+        "evidence": [
+          "{\n    \"programs\": [\n\n    ],\n    \"stream_groups\": [\n\n    ],\n    \"streams\": [\n        {\n            \"codec_name\": \"pcm_s16le\",\n            \"codec_type\": \"audio\",\n            \"sample_rate\": \"8000\",\n            \"channels\": 1,\n            \"duration\": \"0.250000\"\n        }\n    ]\n}\n"
+        ],
+        "timed_out": false
+      },
+      "ffmpeg": {
+        "status": "local_tool_verified",
+        "tool": "ffmpeg",
+        "path": "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+        "version": "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+        "command": [
+          "C:\\Program Files\\ffmpeg\\bin\\ffmpeg.EXE",
+          "-version"
+        ],
+        "returncode": 0,
+        "evidence": [
+          "ffmpeg version N-116931-g8517ff2082-20240908 Copyright (c) 2000-2024 the FFmpeg developers",
+          "built with gcc 14.2.0 (crosstool-NG 1.26.0.106_ed12fa6)",
+          "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libfreetype --enable-libfribidi --enable-gmp --enable-libxml2 --enable-lzma --enable-fontconfig --enable-libharfbuzz --enable-libvorbis --enable-opencl --disable-libpulse --enable-libvmaf --disable-libxcb --disable-xlib --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-vulkan --enable-libshaderc --enable-libplacebo --enable-libvvenc --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20240908"
+        ],
+        "timed_out": false
+      }
+    },
+    "known_gaps": [
+      "fixture_degraded: tiny local WAV fixture only",
+      "placeholder_transcription: no production transcription model is claimed",
+      "real_user_media_input: local input contract verified but not production media pipeline",
+      "media_decode: bounded ffmpeg extract verified but not production media pipeline",
+      "asr: placeholder transcription is not real ASR"
+    ],
+    "commercial_readiness_reason": "Bounded local media, decode, and ASR evidence is useful contract evidence, but it is not production media processing or commercial ASR readiness."
+  },
+  "screenshot_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png",
+  "screenshot_blocked_path": "",
+  "smoke_command": {
+    "status": "PASS",
+    "argv": [
+      "D:\\anaconda\\python.exe",
+      "cli.py",
+      "--input",
+      "fixtures/sample_audio.wav",
+      "--output-dir",
+      "."
+    ],
+    "cwd": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace",
+    "started_at": "2026-06-23T09:54:13.274537+00:00",
+    "ended_at": "2026-06-23T09:54:14.788028+00:00",
+    "duration_seconds": 1.513,
+    "returncode": 0,
+    "stdout": "{'status': 'degraded', 'mode': 'local_user_media_contract', 'capability_manifest': 'capability_manifest.json', 'media_manifest': 'media_manifest.json', 'user_media_contract': {'status': 'PASS', 'media_manifest': 'media_manifest.json', 'inspect_artifact': 'user_media_inspect.json', 'smoke_log': 'user_media_smoke_log.json', 'fixture_path': 'user_media_fixture.json', 'metadata_status': 'ffprobe_verified', 'adapter_status': 'ffprobe_verified', 'sha256': 'e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde', 'size': 4044, 'blockers': []}, 'selected_adapter': 'local_tool_verified', 'artifacts': ['stage_plan.json', 'media_manifest.json', 'audio_chunk_manifest.json', 'transcript_merged.json', 'segment_analysis.json', 'selected_segments.json', 'clip_manifest.json', 'export_results.json'], 'not_real_ai_model': True, 'not_delivery_evidence': True}\n",
+    "stderr": ""
+  },
+  "evidence_status": {
+    "smoke_command": {
+      "status": "PASS",
+      "returncode": 0
+    },
+    "readme": {
+      "status": "PASS"
+    },
+    "test_report": {
+      "status": "PASS"
+    },
+    "delivery_notes": {
+      "status": "PASS"
+    },
+    "capability_manifest": {
+      "status": "PASS",
+      "selected_adapter": "local_tool_verified"
+    },
+    "screenshot": {
+      "status": "PASS",
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png"
+    },
+    "final_project_bundle": {
+      "status": "PASS"
+    }
+  },
+  "files": {
+    "README.md": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\README.md",
+      "relative_path": "README.md",
+      "size": 1844,
+      "sha256": "a890c3eb52e686d6a1708a2e88cbe4298d58055d712fa7a90dc54ca557b19c19",
+      "generated_at": "2026-06-23T09:54:15.431356+00:00"
+    },
+    "TEST_REPORT.md": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\TEST_REPORT.md",
+      "relative_path": "TEST_REPORT.md",
+      "size": 4068,
+      "sha256": "bdc9d1e06d2fec70f5baa997c966194dbfc344579cebde84f95cbc4a87776588",
+      "generated_at": "2026-06-23T09:54:15.432363+00:00"
+    },
+    "DELIVERY_NOTES.md": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\DELIVERY_NOTES.md",
+      "relative_path": "DELIVERY_NOTES.md",
+      "size": 5057,
+      "sha256": "16295fffc02b1d5dee65270fdbe4678c8bee8dd131ca6944c1c9c49eff106b09",
+      "generated_at": "2026-06-23T09:54:15.433380+00:00"
+    },
+    "delivery_status_page.html": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\delivery_status_page.html",
+      "relative_path": "delivery_status_page.html",
+      "size": 373,
+      "sha256": "875413641088be53f61ecd400c5264ea653f6fe408623b8ecfbec8a29a6fe67a",
+      "generated_at": "2026-06-23T09:54:15.434380+00:00"
+    },
+    "final_project_bundle.zip": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+      "relative_path": "final_project_bundle.zip",
+      "size": 57548,
+      "sha256": "e860c88cc7dab5448a8b361832ea016ec673e73156363b9ffa3dfc9191c20df3",
+      "generated_at": "2026-06-23T09:54:15.452467+00:00"
+    },
+    "delivery_manifest.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\delivery_manifest.json",
+      "relative_path": "delivery_manifest.json",
+      "size": 3429,
+      "sha256": "1203ebc063e59b49e24077fca0e25e87e31d6baae157349ea6d39bebc191b661",
+      "generated_at": "2026-06-23T09:54:15.467542+00:00"
+    },
+    "run_logs/delivery_smoke_command.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\run_logs\\delivery_smoke_command.json",
+      "relative_path": "run_logs/delivery_smoke_command.json",
+      "size": 1384,
+      "sha256": "c9311483fcc29af902c3547f35641c045018ddc5d4fe51702c63ecaad917b554",
+      "generated_at": "2026-06-23T09:54:15.468545+00:00"
+    },
+    "run_logs/delivery_smoke_command.log": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\run_logs\\delivery_smoke_command.log",
+      "relative_path": "run_logs/delivery_smoke_command.log",
+      "size": 1151,
+      "sha256": "b4a3e2cf115086bf707d5d05cc57045b9115da544c1290a7e2e5f7ab63d1568d",
+      "generated_at": "2026-06-23T09:54:15.469546+00:00"
+    },
+    "capability_manifest.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\capability_manifest.json",
+      "relative_path": "capability_manifest.json",
+      "size": 20578,
+      "sha256": "6e0be0369c28fe7e248977b1b900e78fb933d09e55fb8be83a414cccd9cf1475",
+      "generated_at": "2026-06-23T09:54:15.469546+00:00"
+    },
+    "transcription_adapter_result.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\transcription_adapter_result.json",
+      "relative_path": "transcription_adapter_result.json",
+      "size": 686,
+      "sha256": "534388751e40832bac22e2f3112fbacba58679c00515b7f12a6bd2f97b8dd1cf",
+      "generated_at": "2026-06-23T09:54:15.471090+00:00"
+    },
+    "asr_quality_report.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\asr_quality_report.json",
+      "relative_path": "asr_quality_report.json",
+      "size": 2456,
+      "sha256": "529a0afeb5dbc761020492c89f694af38e8343b9e20e39b39c6a4db4c679ae5c",
+      "generated_at": "2026-06-23T09:54:15.472095+00:00"
+    },
+    "media_manifest.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\media_manifest.json",
+      "relative_path": "media_manifest.json",
+      "size": 1386,
+      "sha256": "326bff4786eb42937cc78452e081e14e4344c138fc62f226847429bdbd89a89f",
+      "generated_at": "2026-06-23T09:54:15.473097+00:00"
+    },
+    "user_media_inspect.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\user_media_inspect.json",
+      "relative_path": "user_media_inspect.json",
+      "size": 2062,
+      "sha256": "88bf7686be29c9f6f92addd5907c8de7eb7bc06a92c140290e058cd2bacfad1c",
+      "generated_at": "2026-06-23T09:54:15.474096+00:00"
+    },
+    "user_media_smoke_log.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\user_media_smoke_log.json",
+      "relative_path": "user_media_smoke_log.json",
+      "size": 850,
+      "sha256": "91046bb066c3cfb74d8cc0c6820baeeb8723f175c0f0ffe9751820d19a9a0a20",
+      "generated_at": "2026-06-23T09:54:15.475096+00:00"
+    },
+    "media_decode_artifact.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\media_decode_artifact.json",
+      "relative_path": "media_decode_artifact.json",
+      "size": 4500,
+      "sha256": "ddf7507cc32c45a2587490203aa595809c6573b015540153a87905106834f025",
+      "generated_at": "2026-06-23T09:54:15.476114+00:00"
+    },
+    "media_decode_output.wav": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\media_decode_output.wav",
+      "relative_path": "media_decode_output.wav",
+      "size": 3278,
+      "sha256": "d27bf387026c6fdbbc6b38959a718bb7d12e7264116a6722e9e029b3cc489938",
+      "generated_at": "2026-06-23T09:54:15.477304+00:00"
+    },
+    "screenshots/delivery_smoke_screenshot.png": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\screenshots\\delivery_smoke_screenshot.png",
+      "relative_path": "screenshots/delivery_smoke_screenshot.png",
+      "size": 3027,
+      "sha256": "0d95981aad8c0c5301291c2915b22a8b8c393cfffcbbcb95d319fd104ecf8621",
+      "generated_at": "2026-06-23T09:54:15.478326+00:00"
+    },
+    "stage_plan.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\stage_plan.json",
+      "relative_path": "stage_plan.json",
+      "size": 1625,
+      "sha256": "89983be730a6b364d0e771faed425bfae21bf59909b4ac5e47cb7e746adfc530",
+      "generated_at": "2026-06-23T09:54:15.479311+00:00"
+    },
+    "audio_chunk_manifest.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\audio_chunk_manifest.json",
+      "relative_path": "audio_chunk_manifest.json",
+      "size": 1419,
+      "sha256": "9a44166d3453e4fbd1e46fa99d8cb8afdfb7e410dbc851cd934b4b8f3df2e6ec",
+      "generated_at": "2026-06-23T09:54:15.480310+00:00"
+    },
+    "transcript_merged.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\transcript_merged.json",
+      "relative_path": "transcript_merged.json",
+      "size": 1464,
+      "sha256": "6e5cad5fbe3fc5a4c17cc3b76dc6f645cf2c55b55d3d97bf8e59e1602f354cbe",
+      "generated_at": "2026-06-23T09:54:15.481311+00:00"
+    },
+    "segment_analysis.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\segment_analysis.json",
+      "relative_path": "segment_analysis.json",
+      "size": 1499,
+      "sha256": "74ea516ad21d1cf9170b4c5e98335a187e3d8f5751887acfebf0fa031e89fb94",
+      "generated_at": "2026-06-23T09:54:15.481818+00:00"
+    },
+    "selected_segments.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\selected_segments.json",
+      "relative_path": "selected_segments.json",
+      "size": 1496,
+      "sha256": "eaba5d9c96304c25987454d19828b2bd44750f7e7ea1b978e162f575a6da1c7e",
+      "generated_at": "2026-06-23T09:54:15.482825+00:00"
+    },
+    "clip_manifest.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\clip_manifest.json",
+      "relative_path": "clip_manifest.json",
+      "size": 1470,
+      "sha256": "74254fb63fff570a73317ae1045c598429326d84f53ee9e696aa1902fd6b7d49",
+      "generated_at": "2026-06-23T09:54:15.483832+00:00"
+    },
+    "export_results.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\export_results.json",
+      "relative_path": "export_results.json",
+      "size": 1408,
+      "sha256": "8d4337df6cb9de5f483c781bd5b200daa63de3e702d4e0d4fce6c5702d6f1087",
+      "generated_at": "2026-06-23T09:54:15.484832+00:00"
+    },
+    "fixtures/media_fixture.json": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\media_fixture.json",
+      "relative_path": "fixtures/media_fixture.json",
+      "size": 1763,
+      "sha256": "6d189d19c5f81cd9e7896573a4745509ce2fac51b0220f89b0c9c080b1863baf",
+      "generated_at": "2026-06-23T09:54:15.485834+00:00"
+    },
+    "fixtures/sample_audio.wav": {
+      "path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+      "relative_path": "fixtures/sample_audio.wav",
+      "size": 4044,
+      "sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "generated_at": "2026-06-23T09:54:15.486833+00:00"
+    }
+  },
+  "local_packager_manifest": {
+    "kind": "CGNKDeliveryManifest",
+    "created_at": "2026-06-23T09:54:15.428850+00:00",
+    "status": "ready_with_warnings",
+    "project_dir": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace",
+    "package_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\final_project_bundle.zip",
+    "readme_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\README.md",
+    "startup_command": "D:\\anaconda\\python.exe cli.py --input fixtures/sample_audio.wav --output-dir .",
+    "run_log_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\run_logs\\delivery_smoke_command.log",
+    "known_limits": [
+      "degraded scaffold: no real external media/model processing claimed"
+    ],
+    "quality_evidence": {
+      "readme_found": true,
+      "test_report_found": true,
+      "test_report_has_commands": true,
+      "test_report_has_no_test_executed": false,
+      "test_report_mentions_sample_input": true,
+      "delivery_notes_found": true,
+      "product_plan_found": false,
+      "output_contract_found": false,
+      "technical_plan_found": true,
+      "build_plan_found": false,
+      "preview_evidence_found": true,
+      "preview_placeholder_found": false,
+      "sample_input_found": true,
+      "test_report_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\TEST_REPORT.md",
+      "delivery_notes_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\DELIVERY_NOTES.md"
+    },
+    "user_review_evidence": {
+      "evidence_review_found": false,
+      "test_report_found": true,
+      "test_code_files": [],
+      "sample_inputs": [],
+      "screenshots": [
+        "screenshots/delivery_smoke_screenshot.png"
+      ],
+      "generated_images": [
+        "screenshots/delivery_smoke_screenshot.png"
+      ],
+      "videos": [],
+      "preview_files": [
+        "delivery_status_page.html",
+        "asr_quality_report.json",
+        "audio_chunk_manifest.json",
+        "capability_manifest.json",
+        "clip_manifest.json",
+        "delivery_manifest.json",
+        "export_results.json",
+        "fixtures/media_fixture.json",
+        "implementation_structure_manifest.json",
+        "media_decode_artifact.json",
+        "media_manifest.json",
+        "planning_materialization_manifest.json",
+        "run_logs/delivery_smoke_command.json",
+        "segment_analysis.json",
+        "selected_segments.json",
+        "stage_plan.json",
+        "transcript_merged.json",
+        "transcription_adapter_result.json",
+        "user_media_fixture.json",
+        "user_media_inspect.json",
+        "user_media_smoke_log.json",
+        "screenshots/delivery_smoke_screenshot.png"
+      ],
+      "user_review_required": false,
+      "user_review_completed": false
+    },
+    "manifest_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T095413211467Z-c34ad6da5561\\generated_project\\local_media_operations_workspace\\delivery_manifest.json"
+  },
+  "known_gaps": [
+    "degraded fixture: bounded local WAV metadata verification is not production media processing",
+    "user media pipeline: bounded local input contract is not production media processing",
+    "media decode: bounded ffmpeg extract evidence is not ASR or full production media processing",
+    "asr: contract fixture or single-sample ASR evidence is not enough for commercial readiness by itself",
+    "asr quality: production readiness requires multi-sample quality evidence and explicit production gates",
+    "local_model_unavailable: no real transcription model is bundled or claimed"
+  ]
+}

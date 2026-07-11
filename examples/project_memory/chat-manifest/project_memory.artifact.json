@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-06-08T16:18:30.346478+00:00",
+  "generated_at": "2026-07-11T04:13:20.672913+00:00",
   "chat_id": "chat-manifest",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-manifest\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,14 +27,14 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-06-08T16:18:30.318783+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpq6ivt19q\\sessions\\chat-manifest\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpq6ivt19q\\logs\\agent_projects\\chat-manifest",
+    "finished_at": "2026-07-11T04:13:20.613793+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb8l6w9e5\\sessions\\chat-manifest\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb8l6w9e5\\logs\\agent_projects\\chat-manifest",
     "manifest_path": "",
     "package_path": "",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpq6ivt19q\\logs\\agent_projects\\chat-manifest\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpq6ivt19q\\logs\\agent_projects\\chat-manifest\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpq6ivt19q\\logs\\agent_projects\\chat-manifest\\pipeline_run_summary.json",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb8l6w9e5\\logs\\agent_projects\\chat-manifest\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb8l6w9e5\\logs\\agent_projects\\chat-manifest\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpb8l6w9e5\\logs\\agent_projects\\chat-manifest\\pipeline_run_summary.json",
     "delivery_allowed": false,
     "delivery_gate": {
       "delivery_allowed": false,
@@ -44,8 +44,10 @@
         "runnable_project",
         "project_package",
         "test_report",
-        "test_commands"
+        "test_commands",
+        "real_test_execution_contract"
       ],
+      "rejected": [],
       "requirements": {
         "screenshot": false,
         "video": false,
@@ -62,6 +64,7 @@
         "generated_sprites": 0,
         "videos": 0
       },
+      "invalid_screenshots": [],
       "quality_evidence": {
         "readme_found": false,
         "test_report_found": false,
@@ -78,6 +81,69 @@
         "sample_input_found": false,
         "test_report_path": "",
         "delivery_notes_path": ""
+      },
+      "runnable_project_contract": {
+        "runnable_project": false,
+        "entrypoints": [],
+        "startup_commands": [],
+        "dependency_files": [],
+        "test_commands": [],
+        "missing": [
+          "README.md",
+          "dependency_file",
+          "entrypoint",
+          "test_or_smoke_entry",
+          "not_docs_only"
+        ],
+        "verdict": "FAIL"
+      },
+      "real_test_execution_contract": {
+        "verdict": "FAIL",
+        "source": "",
+        "missing": [
+          "TEST_REPORT.md"
+        ]
+      },
+      "visual_evidence_contract": {
+        "verdict": "FAIL",
+        "screenshots": [],
+        "all_screenshots": [],
+        "timestamp": "2026-07-11T04:13:20.624903+00:00",
+        "screenshot_blocked_reason": "没有找到来自真实预览的有效截图"
+      },
+      "generated_project_architecture_contract": {
+        "frontend": {
+          "exists": false,
+          "entrypoint": "",
+          "api_client_or_adapter": false
+        },
+        "backend": {
+          "exists": false,
+          "entrypoint": "",
+          "storage_layer": false,
+          "model_adapter": false
+        },
+        "shared_contract": {
+          "api_schema_exists": false,
+          "config_schema_exists": false,
+          "data_model_documented": false
+        },
+        "target_project_model": {
+          "mode": "unspecified",
+          "adapter_exists": false,
+          "config_documented": false,
+          "missing_model_limit_documented": false
+        },
+        "verdict": "NEEDS_REWORK",
+        "missing": [
+          "frontend_entrypoint",
+          "backend_entrypoint",
+          "api_client_or_adapter",
+          "storage_layer",
+          "api_schema",
+          "config_schema"
+        ],
+        "leaked_files": []
       },
       "public_suffixes": [
         ".gif",

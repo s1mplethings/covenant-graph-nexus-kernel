@@ -1,0 +1,23 @@
+{
+  "kind": "ProviderComponentCheckpoint",
+  "created_at": "2026-06-26T13:31:47.818252+00:00",
+  "component_id": "runtime_execution",
+  "project_spec_hash": "b30af22d5bf7cbf6b882b8287fd2fd59e2c29fe29ed5bd357625363ed4089e0f",
+  "status": "failed",
+  "semantic_review": {
+    "status": "fail",
+    "reviewer": "local_component_semantic_contract",
+    "blockers": [
+      "provider_exception"
+    ]
+  },
+  "provider_error_type": "PROVIDER_TRANSPORT_UNSTABLE",
+  "error": "provider_api_request_failed: HTTP 504: {\"type\":\"https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-504/\",\"title\":\"Error 504: Gateway time-out\",\"status\":504,\"detail\":\"The origin web server did not respond to Cloudflare within the allowed time. This typically means the origin is overloaded or a backend process is taking too long.\",\"instance\":\"a11c917c78a80eeb\",\"error_code\":504,\"error_n [endpoint=https://api.gptsapi.net, retryable=true, provider_headers={\"cf-ray\": \"a11c917c78a80eeb-HKG\", \"date\": \"Fri, 26 Jun 2026 13:31:45 GMT\", \"server\": \"cloudflare\"}]",
+  "raw_output": "",
+  "parsed_result": {
+    "component_id": "runtime_execution"
+  },
+  "file_count": 0,
+  "usage": {},
+  "evidence": {}
+}

@@ -1,0 +1,971 @@
+{
+  "created_at": "2026-06-26T03:42:01.524802+00:00",
+  "repository": "s1mplethings/covenant-graph-nexus-kernel",
+  "pr_number": 3,
+  "head_branch": "codex/project-revision-execution-phase2",
+  "base_branch": "main",
+  "head_sha": "c90351fa141bcd966bf7b1f900c9552b44f15381",
+  "verdict": "PR_SCOPE_CLEAN",
+  "changed_file_count": 188,
+  "cleanup_required": false,
+  "counts": {
+    "expected_source": 67,
+    "expected_tests": 56,
+    "expected_docs": 22,
+    "expected_review_artifacts": 42,
+    "questionable_runtime_artifacts": 1,
+    "generated_run_dirs": 0,
+    "temp_or_probe_files": 0,
+    "example_memory_churn": 0,
+    "unrelated_or_should_remove": 0
+  },
+  "blocking_findings": [],
+  "notes": [
+    "Audit is based on git diff --name-only origin/main...HEAD after the PR scope audit commits.",
+    "No generated run directories, zip files, temp/probe files, examples/project_memory churn, or examples/local_studio conversation churn are in the PR changed-file set.",
+    "Local dirty runtime and benchmark files remain intentionally excluded from staged commits and from the pushed PR scope.",
+    "artifacts/complexity_scale_command_log.txt is retained as non-blocking review evidence from the existing hardening scope."
+  ],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "README.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "artifacts/cgkn_naming_consistency_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_acceptance.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_acceptance_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_benchmark_plan.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_command_log.txt",
+      "category": "questionable_runtime_artifacts",
+      "reason": "command log artifact retained as review evidence; non-blocking but called out"
+    },
+    {
+      "path": "artifacts/complexity_scale_gap_analysis.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_pipeline_result.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_repair_plan.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_run_summary.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/complexity_scale_run_summary.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/continuous_generation_current_gaps.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/continuous_generation_iterations.jsonl",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/continuous_generation_repo_status.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_dialogue.jsonl",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_gap_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_long_journey_summary.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_long_journey_trial.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_rework_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/customer_agent_scorecard.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/discovery_selection_entrypoints.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/discovery_selection_repo_status.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/full_pytest_result.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/pr_3_changed_files.txt",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/pr_3_scope_audit.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/pr_3_scope_audit.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/pytest_hang_diagnostics.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/pytest_hang_diagnostics.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/reference_answer_gap_analysis.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/reference_answer_repair_plan.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/reference_answer_trial.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/reference_answer_trial_summary.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/reference_name_leak_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_acceptance.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_commit_plan.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_file_classification.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_file_classification.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_known_gaps.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/release_candidate_summary.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/requirement_decision_benchmark.json",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/requirement_decision_benchmark_summary.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/requirement_decision_entrypoints.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/requirement_decision_repo_status.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "artifacts/stale_test_update_report.md",
+      "category": "expected_review_artifacts",
+      "reason": "review, validation, audit, or acceptance artifact in PR scope"
+    },
+    {
+      "path": "benchmarks/complexity_scale_pipeline_benchmark.json",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "detected_entrypoints.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/00_kernel_contract.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/09_openai_compatible_api_usage.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/60_pipeline_module_agent_guide.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/61_startup_and_visual_evidence_contract.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/62_agent_failure_routing_cheatsheet.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/70_commercial_hardening_plan.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/71_commercial_readiness_gate.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/72_provider_resilience.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/73_sandbox_security.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/74_product_acceptance.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/75_customer_status_and_telegram_delivery.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/agent_test_integrated_behavior.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/complexity_discovery_selection_lane.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/continuous_verified_generation_loop.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/customer_agent_long_journey_trial.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/release_candidate_acceptance.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/requirement_decision_first.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "docs/requirement_decision_lane.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "pytest.ini",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "repo_status.md",
+      "category": "expected_docs",
+      "reason": "documentation or repo-status evidence in hardening/RC scope"
+    },
+    {
+      "path": "scripts/artifact_integrity.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/asr_evidence_tier.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/asr_quality_gate.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/asr_reference_transcript_eval.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/candidate_materializer.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/candidate_review_delivery.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/candidate_sanitizer.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/capability_manifest_check.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/check_cgkn_naming_consistency.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/check_connectivity.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/check_test_environment.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/commercial_promotion_gate.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/commercial_ready_gate.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/commercial_warning_policy.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/complexity_project_contract_check.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/continuous_generation_ledger.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/customer_agent_scorecard.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/customer_agent_simulator.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/customer_status.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/delivery_evidence_builder.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/discovery_selection_lane.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/final_delivery_truth.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/final_promotion.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/implementation_structure_materializer.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/local_media_adapter.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/local_model_adapter.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/local_packager.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/local_transcription_fixture_adapter.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/pipeline_contracts.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/planning_docs_materializer.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/post_build_finalize.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/post_build_repair.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/product_acceptance.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/product_studio_reply.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/production_media_decode_contract.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/production_reliability_gate.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/provider_generation.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/provider_resilience.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/pytest_hang_diagnostics.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/real_asr_adapter_contract.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/real_asr_multi_sample_eval.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/release_candidate_gate.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/requirement_acceptance_check.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/requirement_decision_lane.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_candidate_smoke_benchmark.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_commercial_readiness.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_complexity_scale_benchmark.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_complexity_scale_workbench_benchmark.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_continuous_verified_generation.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_customer_agent_long_journey_trial.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_live_project_regression.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_local_pipeline.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_local_pipeline_impl.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_reference_answer_project_trial.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/run_requirement_decision_benchmark.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/sandbox_security.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/shared_gui_cli_core_checker.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/stage_artifact_schema_checker.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_delivery/__init__.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_delivery/telegram_candidate_review_sender.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_delivery/telegram_final_delivery_sender.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_delivery/telegram_retry_recovery.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_delivery/telegram_status_renderer.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/telegram_live_bridge.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/user_media_pipeline_contract.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "scripts/visual_evidence.py",
+      "category": "expected_source",
+      "reason": "source/tooling change in hardening/RC scope"
+    },
+    {
+      "path": "tests/conftest.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_agent_test_integrated_behavior.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_artifact_integrity_check.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_asr_evidence_tier.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_asr_quality_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_asr_reference_transcript_eval.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_capability_manifest_check.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_cgkn_naming_consistency.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_commercial_promotion_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_commercial_readiness.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_commercial_ready_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_commercial_warning_policy.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_complexity_discovery_selection.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_complexity_project_contract.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_complexity_scale_benchmark.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_continuous_verified_generation.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_contract_driven_materialization.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_customer_agent_long_journey_trial.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_customer_status.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_delivery_evidence_builder.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_final_promotion.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_fixture_media_project_enhancer.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_full_suite_stability.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_implementation_structure_materializer.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_kernel_contract.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_local_media_adapter.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_local_model_adapter.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_local_transcription_fixture_adapter.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_pipeline_module_contracts.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_planning_docs_materializer.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_product_acceptance.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_product_acceptance_pipeline_mode.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_production_media_decode_contract.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_production_reliability_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_provider_api_transport.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_provider_post_build_finalize.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_provider_resilience.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_real_asr_adapter_contract.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_real_asr_multi_sample_eval.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_reference_answer_project_trial.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_release_candidate_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_requirement_acceptance_layers.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_requirement_decision_lane.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_requirement_decision_pipeline_integration.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_run_local_pipeline_usage.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_sandbox_security.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_shared_gui_cli_core_checker.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_stage_artifact_schema_checker.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_startup_visual_contracts.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_telegram_bridge_generation_e2e.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_telegram_customer_bridge.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_telegram_delivery_split.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_telegram_generation_timeout_result.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_telegram_public_delivery_gate.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    },
+    {
+      "path": "tests/test_user_media_pipeline_contract.py",
+      "category": "expected_tests",
+      "reason": "test or pytest configuration change in release-candidate validation scope"
+    }
+  ]
+}

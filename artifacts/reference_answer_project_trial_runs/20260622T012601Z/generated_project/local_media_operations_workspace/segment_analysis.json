@@ -1,0 +1,47 @@
+{
+  "stage": "analyze_segments",
+  "status": "degraded",
+  "mode": "local_fixture_processing",
+  "count": 3,
+  "input_path": "transcript_merged.json",
+  "output_path": "segment_analysis.json",
+  "created_at": "2026-06-22T01:26:01.877862+00:00",
+  "upstream_artifacts": [
+    "transcript_merged.json"
+  ],
+  "items": [
+    {
+      "id": "seg_001",
+      "text": "intro project overview",
+      "score": 0,
+      "candidate": false,
+      "reasons": []
+    },
+    {
+      "id": "seg_002",
+      "text": "candidate highlight about local review workflow",
+      "score": 3,
+      "candidate": true,
+      "reasons": [
+        "candidate",
+        "highlight",
+        "review"
+      ]
+    },
+    {
+      "id": "seg_003",
+      "text": "export reminder for selected outputs",
+      "score": 1,
+      "candidate": true,
+      "reasons": [
+        "export"
+      ]
+    }
+  ],
+  "known_gaps": [
+    "local fixture processing only; no real AI model or cloud processing claimed"
+  ],
+  "fixture_path": "fixtures\\media_fixture.json",
+  "not_real_ai_model": true,
+  "not_delivery_evidence": true
+}

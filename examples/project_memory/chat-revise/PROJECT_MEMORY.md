@@ -6,8 +6,8 @@ flow_ref: flow.modular_project_generation@1
 policy_ref: policy.safe_modular_project_generation@1
 contract_pack: agent_context.modular_project_generation.contract_pack.json
 artifact_ref: artifact.project_memory_markdown@1
-generated_at: 2026-06-08T16:20:36.352099+00:00
-revision_count: 6
+generated_at: 2026-06-26T17:40:49.917141+00:00
+revision_count: 4
 ---
 
 # Project Memory
@@ -23,7 +23,7 @@ revision_count: 6
 
 ## Current Project Summary
 
-做一个本地图片生成工具；补充：背景和立绘必须分开两个入口
+做一个本地图片生成工具
 
 ## Known Facts
 
@@ -41,14 +41,14 @@ revision_count: 6
 ## Default Assumptions
 
 - 本地图片模型能力按 ComfyUI、AUTOMATIC1111 或 SD_MODEL_DIR/模型目录探测；未发现时先生成接口和降级预览，但不把降级预览标记为通过
-- 图片生成先做可替换 provider 接口，生成结果落到本地素材库
-- 背景和立绘必须使用已配置本地图片模型；未接上模型时只能标记为降级预览，不能算图片验收通过
+- 图片生成先做可替换接口，生成结果落到本地素材库
+- 背景图和角色立绘使用独立任务与独立验收记录
+- 占位图、纯色图或降级预览不能算真实背景/立绘验收通过
 - 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
+- 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？；先按可配置入口和验收限制处理，缺少真实配置时不宣称完整能力通过
 - 本地可运行
 - 直接生成并测试
 - 未回答/缺失项按默认假设推进: 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？
-- 未回答/缺失项按默认假设推进: 本地图片生成准备用哪个后端：ComfyUI、AUTOMATIC1111，还是直接给 SD_MODEL_DIR/模型目录？
-- 未回答/缺失项按默认假设推进: 背景和立绘是否使用同一个本地模型？如果不同，请分别给服务地址或模型路径。
 - 未回答/缺失项按默认假设推进: 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？
 
 ## First Version Plan
@@ -56,6 +56,7 @@ revision_count: 6
 - 先建立项目记录；模型客服整理需求后直接启动正式 agent 生成。
 - 第一版先做本地可运行 VN 项目助手
 - 支持时间线整理、背景生成、立绘生成和预览
+- 背景和立绘分开生成、分开管理、分开验收
 - 核心能力：内容生成能力
 - 核心能力：导入导出和格式互操作
 - 交付启动说明、测试结论和预览截图
@@ -65,12 +66,14 @@ revision_count: 6
 
 ## Acceptance Criteria
 
+- 缺少真实模型、外部 API、媒体后端或数据集时，只能交付配置入口、适配层、测试框架和限制说明
+- 占位图、纯色图、降级预览或模拟结果不能算真实核心能力验收通过
+- 可运行
+- 有测试结论
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 背景和立绘必须由已配置的本地图片模型生成；程序化占位图或降级预览不算图片验收通过
 - 交付时必须明确本地图片模型是否实际可用，并给出背景/立绘生成证据
 - 生成类核心能力必须有明确模型/API/本地后端/专用引擎能力检查；占位或降级预览不能冒充真实生成。
-- 可运行
-- 有测试结论
 
 ## Change Requests
 
@@ -78,9 +81,11 @@ revision_count: 6
 
 ## Delivery Requirements
 
+- 可运行项目包
+- 生成素材证据
+- 交付项目包和预览
 - 交付时必须直接发送图片/照片预览 artifact，不只返回路径
 - 背景图和立绘图必须作为可预览的本地图片 artifact 交付
-- 交付项目包和预览
 
 ## Decision Log
 
@@ -95,9 +100,7 @@ revision_count: 6
 
 ## Open Questions
 
-- 第一版我先按本地网页/本地工具处理，可以吗？
-- 交付重点是界面、文件导出、还是自动化流程？
-- 图片生成我先按真实图片生成接口预留，本地保存结果，可以吗？
+- 生成能力优先走本地模型、外部高级 API，还是两者都做成可配置？
 
 ## Blocking Questions
 
@@ -144,9 +147,9 @@ revision_count: 6
 
 ## Generation State
 
-- Status: `waiting_confirmation`
-- Started at: ``
-- Finished at: `2026-06-08T16:20:36.150757+00:00`
+- Status: `running`
+- Started at: `2026-06-26T17:40:33.447049+00:00`
+- Finished at: ``
 - Result path: ``
 
 ## Update Rules

@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-06-23T03:46:05.090020+00:00",
+  "asr_quality_status": "not_ready",
+  "evidence_tier": "none",
+  "sample_count": 1,
+  "successful_samples": 0,
+  "failed_samples": 0,
+  "timeout_samples": 0,
+  "invalid_output_samples": 0,
+  "non_empty_text_count": 0,
+  "non_empty_segments_count": 0,
+  "average_confidence": null,
+  "confidence_unavailable_reason": "no confidence values emitted by ASR command",
+  "transcript_artifacts": [
+    "."
+  ],
+  "input_audio_hashes": [
+    "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde"
+  ],
+  "output_transcript_hashes": [],
+  "sample_results": [
+    {
+      "sample_index": 1,
+      "input_path": "D:\\CGKN\\artifacts\\reference_answer_project_trial_runs\\20260623T034604364235Z\\generated_project\\local_media_operations_workspace\\fixtures\\sample_audio.wav",
+      "input_sha256": "e14028da8a23188880c3539c39acdd26054ff7d5510647a8a6c286dd92884bde",
+      "input_size": 4044,
+      "status": "no_asr_configured",
+      "evidence_tier": "none",
+      "returncode": null,
+      "timed_out": false,
+      "schema_valid": false,
+      "schema_blockers": [],
+      "output_path": ".",
+      "output_sha256": null,
+      "output_size": null,
+      "text_length": 0,
+      "segment_count": 0,
+      "confidence": null
+    }
+  ],
+  "pass_fail_reasons": [
+    "no_real_asr_command_configured"
+  ],
+  "production_readiness_blockers": [
+    "no_real_asr_command_configured"
+  ],
+  "commercial_ready": false,
+  "reason": "ASR quality gate evidence is not sufficient to promote commercial readiness."
+}
