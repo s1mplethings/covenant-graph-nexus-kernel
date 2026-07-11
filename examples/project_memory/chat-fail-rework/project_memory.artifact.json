@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-07-01T16:52:12.804257+00:00",
+  "generated_at": "2026-07-11T04:12:51.733984+00:00",
   "chat_id": "chat-fail-rework",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-fail-rework\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -25,12 +25,12 @@
   "generation": {
     "status": "rework_blocked",
     "driver": "agent_generated_pipeline",
-    "finished_at": "2026-07-01T16:52:12.786680+00:00",
+    "finished_at": "2026-07-11T04:12:51.700349+00:00",
     "error": "provider TLS failed",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\sessions\\chat-fail-rework\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\logs\\agent_projects\\chat-fail-rework",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp56ffcpe3\\sessions\\chat-fail-rework\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp56ffcpe3\\logs\\agent_projects\\chat-fail-rework",
     "pipeline_manifest_path": "",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpqkui2ayo\\logs\\agent_projects\\chat-fail-rework\\generation_context_snapshot.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp56ffcpe3\\logs\\agent_projects\\chat-fail-rework\\generation_context_snapshot.json",
     "delivery_allowed": false,
     "delivery_gate": {
       "delivery_allowed": false,
@@ -40,7 +40,8 @@
         "runnable_project",
         "project_package",
         "test_report",
-        "test_commands"
+        "test_commands",
+        "real_test_execution_contract"
       ],
       "rejected": [],
       "requirements": {
@@ -59,6 +60,7 @@
         "generated_sprites": 0,
         "videos": 0
       },
+      "invalid_screenshots": [],
       "quality_evidence": {
         "readme_found": false,
         "test_report_found": false,
@@ -75,6 +77,69 @@
         "sample_input_found": false,
         "test_report_path": "",
         "delivery_notes_path": ""
+      },
+      "runnable_project_contract": {
+        "runnable_project": false,
+        "entrypoints": [],
+        "startup_commands": [],
+        "dependency_files": [],
+        "test_commands": [],
+        "missing": [
+          "README.md",
+          "dependency_file",
+          "entrypoint",
+          "test_or_smoke_entry",
+          "not_docs_only"
+        ],
+        "verdict": "FAIL"
+      },
+      "real_test_execution_contract": {
+        "verdict": "FAIL",
+        "source": "",
+        "missing": [
+          "TEST_REPORT.md"
+        ]
+      },
+      "visual_evidence_contract": {
+        "verdict": "FAIL",
+        "screenshots": [],
+        "all_screenshots": [],
+        "timestamp": "2026-07-11T04:12:51.698349+00:00",
+        "screenshot_blocked_reason": "没有找到来自真实预览的有效截图"
+      },
+      "generated_project_architecture_contract": {
+        "frontend": {
+          "exists": false,
+          "entrypoint": "",
+          "api_client_or_adapter": false
+        },
+        "backend": {
+          "exists": false,
+          "entrypoint": "",
+          "storage_layer": false,
+          "model_adapter": false
+        },
+        "shared_contract": {
+          "api_schema_exists": false,
+          "config_schema_exists": false,
+          "data_model_documented": false
+        },
+        "target_project_model": {
+          "mode": "unspecified",
+          "adapter_exists": false,
+          "config_documented": false,
+          "missing_model_limit_documented": false
+        },
+        "verdict": "NEEDS_REWORK",
+        "missing": [
+          "frontend_entrypoint",
+          "backend_entrypoint",
+          "api_client_or_adapter",
+          "storage_layer",
+          "api_schema",
+          "config_schema"
+        ],
+        "leaked_files": []
       },
       "public_suffixes": [
         ".gif",

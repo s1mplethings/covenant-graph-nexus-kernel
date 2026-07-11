@@ -2,7 +2,7 @@
   "kind": "ProjectMemoryMarkdown",
   "artifact_ref": "artifact.project_memory_markdown@1",
   "schema_version": "1",
-  "generated_at": "2026-07-01T16:52:30.384115+00:00",
+  "generated_at": "2026-07-11T04:13:21.244227+00:00",
   "chat_id": "chat-fallback",
   "markdown_path": "D:\\CGKN\\examples\\project_memory\\chat-fallback\\PROJECT_MEMORY.md",
   "flow_ref": "flow.modular_project_generation@1",
@@ -27,14 +27,14 @@
   "generation": {
     "status": "ready_with_warnings",
     "driver": "agent_conversation_loop_fallback",
-    "finished_at": "2026-07-01T16:52:30.309711+00:00",
-    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\sessions\\chat-fallback\\agent_session.jsonl",
-    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback",
-    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback\\delivery_manifest.json",
-    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback\\final_project_bundle.zip",
-    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback\\pipeline_manifest.json",
-    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback\\generation_context_snapshot.json",
-    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmp5zvmwc16\\logs\\agent_projects\\chat-fallback\\pipeline_run_summary.json"
+    "finished_at": "2026-07-11T04:13:20.996437+00:00",
+    "agent_session_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\sessions\\chat-fallback\\agent_session.jsonl",
+    "project_dir": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback",
+    "manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback\\delivery_manifest.json",
+    "package_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback\\final_project_bundle.zip",
+    "pipeline_manifest_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback\\pipeline_manifest.json",
+    "generation_context_snapshot_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback\\generation_context_snapshot.json",
+    "pipeline_run_summary_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\tmpl_ubq36z\\logs\\agent_projects\\chat-fallback\\pipeline_run_summary.json"
   },
   "module_mapping": [
     {
