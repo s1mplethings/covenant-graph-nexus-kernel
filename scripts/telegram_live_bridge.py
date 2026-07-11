@@ -28,6 +28,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import check_connectivity
+import adaptive_delivery
 import agent_conversation_loop
 import backend_dialogue_loop
 import capability_strategy
@@ -1583,14 +1584,7 @@ def _add_asset(bucket: list[pathlib.Path], path: pathlib.Path | None) -> None:
         bucket.append(resolved)
 
 
-def collect_public_delivery_assets(
-    project_dir: pathlib.Path,
-    manifest: dict[str, Any] | None = None,
-    evidence: dict[str, Any] | None = None,
-) -> dict[str, list[pathlib.Path]]:
-    project = pathlib.Path(project_dir).resolve()
-    manifest = manifest if isinstance(manifest, dict) else {}
-    evidence = evidence if isinstance(evidence, dict) else {}
+def _assets_from_safe_artifacts(safe_artifacts: list[dict[str, Any]]) -> dict[str, list[pathlib.Path]]:
     assets: dict[str, list[pathlib.Path]] = {
         "packages": [],
         "screenshots": [],
@@ -1599,41 +1593,41 @@ def collect_public_delivery_assets(
         "generated_sprites": [],
         "videos": [],
     }
-
-    package = _evidence_path(str(manifest.get("package_path", "")))
-    _add_asset(assets["packages"], package)
-    if project.exists():
-        for path in sorted(project.rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in PUBLIC_DELIVERY_SUFFIXES:
-                continue
-            suffix = path.suffix.lower()
-            if suffix == ".zip":
-                _add_asset(assets["packages"], path)
-            elif suffix in VIDEO_SUFFIXES or suffix == ".gif":
-                _add_asset(assets["videos"], path)
-            elif suffix in IMAGE_SUFFIXES:
-                if _looks_like_screenshot_asset(path):
-                    _add_asset(assets["screenshots"], path)
-                if _looks_like_generated_image_asset(path):
-                    _add_asset(assets["generated_images"], path)
-                if _looks_like_background_asset(path):
-                    _add_asset(assets["generated_backgrounds"], path)
-                if _looks_like_sprite_asset(path):
-                    _add_asset(assets["generated_sprites"], path)
-
-    for raw in _path_list(evidence.get("screenshots", [])):
-        _add_asset(assets["screenshots"], _project_evidence_path(project, raw))
-    for raw in _path_list(evidence.get("videos", [])):
-        _add_asset(assets["videos"], _project_evidence_path(project, raw))
-    for key in ("generated_images", "backgrounds", "characters", "sprites"):
-        for raw in _path_list(evidence.get(key, [])):
-            path = _project_evidence_path(project, raw)
+    for item in safe_artifacts:
+        if not isinstance(item, dict):
+            continue
+        path = _evidence_path(str(item.get("path", "")))
+        if not path:
+            continue
+        kind = str(item.get("kind", "")).strip()
+        if kind == "package":
+            _add_asset(assets["packages"], path)
+        elif kind == "screenshot":
+            _add_asset(assets["screenshots"], path)
+        elif kind == "background":
+            _add_asset(assets["generated_backgrounds"], path)
             _add_asset(assets["generated_images"], path)
-            if path and (key == "backgrounds" or _looks_like_background_asset(path)):
-                _add_asset(assets["generated_backgrounds"], path)
-            if path and (key in {"characters", "sprites"} or _looks_like_sprite_asset(path)):
-                _add_asset(assets["generated_sprites"], path)
+        elif kind == "sprite":
+            _add_asset(assets["generated_sprites"], path)
+            _add_asset(assets["generated_images"], path)
+        elif kind == "video":
+            _add_asset(assets["videos"], path)
+        elif kind == "generated_image":
+            _add_asset(assets["generated_images"], path)
     return assets
+
+
+def collect_public_delivery_assets(
+    project_dir: pathlib.Path,
+    manifest: dict[str, Any] | None = None,
+    evidence: dict[str, Any] | None = None,
+) -> dict[str, list[pathlib.Path]]:
+    project = pathlib.Path(project_dir).resolve()
+    manifest = manifest if isinstance(manifest, dict) else {}
+    evidence = evidence if isinstance(evidence, dict) else {}
+    facts = delivery_fact_check(project, manifest, evidence=evidence, phase="checkpoint")
+    safe_artifacts = facts.get("safe_artifacts", []) if isinstance(facts.get("safe_artifacts"), list) else []
+    return _assets_from_safe_artifacts(safe_artifacts)
 
 
 def _requirement_text(session: dict[str, Any], fallback: str = "") -> str:
@@ -1711,53 +1705,133 @@ def _quality_evidence_for_gate(project_dir: pathlib.Path, manifest: dict[str, An
         return {}
 
 
-def evaluate_public_delivery_gate(
+def delivery_fact_check(
     project_dir: pathlib.Path,
     manifest: dict[str, Any] | None,
-    session: dict[str, Any],
     *,
     evidence: dict[str, Any] | None = None,
     phase: str = "final",
+    provider_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     manifest = manifest if isinstance(manifest, dict) else {}
+    return adaptive_delivery.delivery_fact_check(
+        project,
+        manifest,
+        evidence=evidence,
+        provider_result=provider_result,
+        phase=phase,
+        public_suffixes=PUBLIC_DELIVERY_SUFFIXES,
+        entrypoints=RUNNABLE_ENTRYPOINTS,
+    )
+
+
+def agent_delivery_judgment(
+    *,
+    raw_user_goal: str,
+    project_summary: str,
+    delivery_fact_check: dict[str, Any],
+    quality_evidence: dict[str, Any] | None = None,
+    known_limits: list[str] | None = None,
+    test_report: Any = None,
+    preview_evidence: Any = None,
+    provider_result: dict[str, Any] | None = None,
+    phase: str = "final",
+    agent: Any = None,
+) -> dict[str, Any]:
+    return adaptive_delivery.agent_delivery_judgment(
+        raw_user_goal=raw_user_goal,
+        project_summary=project_summary,
+        delivery_fact_check=delivery_fact_check,
+        quality_evidence=quality_evidence,
+        known_limits=known_limits,
+        test_report=test_report,
+        preview_evidence=preview_evidence,
+        provider_result=provider_result,
+        phase=phase,
+        agent=agent,
+    )
+
+
+def evaluate_public_delivery_gate(
+    project_dir: pathlib.Path,
+    manifest: dict[str, Any] | None,
+    session: dict[str, Any] | None = None,
+    *,
+    conversation: dict[str, Any] | None = None,
+    evidence: dict[str, Any] | None = None,
+    phase: str = "final",
+    provider_result: dict[str, Any] | None = None,
+    agent: Any = None,
+) -> dict[str, Any]:
+    session = session if isinstance(session, dict) else (conversation if isinstance(conversation, dict) else {})
+    project = pathlib.Path(project_dir).resolve()
+    manifest = manifest if isinstance(manifest, dict) else {}
+    if provider_result is None and isinstance(manifest.get("provider_result"), dict):
+        provider_result = manifest.get("provider_result")
+    if agent is None and os.environ.get("CGNK_ADAPTIVE_DELIVERY_AGENT", "local").strip().lower() == "provider":
+        review_model = model_policy.select_model("review")
+        agent = lambda messages: provider_text(messages, review_model, 60)
     quality = _quality_evidence_for_gate(project, manifest)
-    assets = collect_public_delivery_assets(project, manifest, evidence)
-    req = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
-    missing: list[str] = []
-
-    if project_is_docs_only(project) or not project_has_runnable_surface(project, manifest):
-        missing.append("runnable_project")
-    if phase == "final" and not assets["packages"]:
-        missing.append("project_package")
-    if not quality.get("test_report_found"):
-        missing.append("test_report")
-    if quality.get("test_report_has_no_test_executed"):
-        missing.append("real_test_execution")
-    elif not quality.get("test_report_has_commands"):
-        missing.append("test_commands")
-    if req["screenshot"] and not assets["screenshots"]:
-        missing.append("screenshots")
-    if (req["video"] or req["demo_video"]) and not assets["videos"]:
-        missing.append("videos")
-    if req["generated_image"] and not assets["generated_images"]:
-        missing.append("generated_images")
-    if req["background"] and not assets["generated_backgrounds"]:
-        missing.append("generated_background")
-    if req["sprite"] and not assets["generated_sprites"]:
-        missing.append("generated_sprite")
-
-    delivery_allowed = not missing
-    return {
-        "delivery_allowed": delivery_allowed,
-        "status": "READY" if delivery_allowed else "REWORK",
-        "phase": phase,
-        "missing": missing,
-        "requirements": req,
-        "asset_counts": {key: len(value) for key, value in assets.items()},
-        "quality_evidence": quality,
-        "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
-    }
+    facts = delivery_fact_check(
+        project,
+        manifest,
+        evidence=evidence,
+        phase=phase,
+        provider_result=provider_result,
+    )
+    safe_artifacts = facts.get("safe_artifacts", []) if isinstance(facts.get("safe_artifacts"), list) else []
+    assets = _assets_from_safe_artifacts(safe_artifacts)
+    requirements = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
+    requested_missing: list[str] = []
+    if requirements["screenshot"] and not assets["screenshots"]:
+        requested_missing.append("screenshots")
+    if (requirements["video"] or requirements["demo_video"]) and not assets["videos"]:
+        requested_missing.append("videos")
+    if requirements["generated_image"] and not assets["generated_images"]:
+        requested_missing.append("generated_images")
+    if requirements["background"] and not assets["generated_backgrounds"]:
+        requested_missing.append("generated_background")
+    if requirements["sprite"] and not assets["generated_sprites"]:
+        requested_missing.append("generated_sprite")
+    if requested_missing:
+        facts = dict(facts)
+        facts["missing"] = sorted(set(list(facts.get("missing", [])) + requested_missing))
+        facts["warnings"] = sorted(
+            set(list(facts.get("warnings", [])) + [f"Requested real delivery evidence is missing: {item}" for item in requested_missing])
+        )
+        facts["facts"] = dict(facts.get("facts", {}))
+        facts["facts"]["requested_artifacts_present"] = False
+    else:
+        facts["facts"]["requested_artifacts_present"] = True
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    test_report_path = project / "TEST_REPORT.md"
+    test_report = test_report_path.read_text(encoding="utf-8", errors="replace") if test_report_path.is_file() else ""
+    judgment = agent_delivery_judgment(
+        raw_user_goal=_requirement_text(session, ""),
+        project_summary=str(whiteboard.get("project_summary", "")).strip(),
+        delivery_fact_check=facts,
+        quality_evidence=quality,
+        known_limits=manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else [],
+        test_report=test_report,
+        preview_evidence=evidence or manifest.get("user_review_evidence", {}),
+        provider_result=provider_result,
+        phase=phase,
+        agent=agent,
+    )
+    judgment.update(
+        {
+            "status": judgment["verdict"],
+            "phase": phase,
+            "missing": facts.get("missing", []),
+            "warnings": facts.get("warnings", []),
+            "requirements": requirements,
+            "asset_counts": {key: len(value) for key, value in assets.items()},
+            "quality_evidence": quality,
+            "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
+        }
+    )
+    return judgment
 
 
 def record_public_delivery_gate(
@@ -1778,10 +1852,21 @@ def record_public_delivery_gate(
     append_memory_event(session, "public_delivery_gate", data=gate)
 
 
-def public_delivery_gate_failed_reply() -> str:
+def public_delivery_gate_failed_reply(gate: dict[str, Any] | None = None) -> str:
+    gate = gate if isinstance(gate, dict) else {}
+    verdict = str(gate.get("verdict", "")).upper()
+    if verdict == "FACT_BLOCKED":
+        text = (
+            "这次交付存在事实级问题，例如项目或附件不存在、路径不安全，或没有真实生成结果，因此现在不能发送。\n"
+            "我不会把缺失文件、占位内容或内部记录当成成果。"
+        )
+    else:
+        text = (
+            "当前版本需要继续修复，暂时不作为最终成果发送。\n"
+            "已有事实记录会保留，完成必要修复后再重新判断是否可以交付。"
+        )
     return public_narration.redact_internal_terms(
-        "这次生成没有通过交付检查，所以不会把内部记录当成果发给你。\n"
-        "我会回到补修阶段，先补齐可运行项目、真实测试，以及你要求的截图、图片或视频证据。"
+        text
     )
 
 
@@ -1807,7 +1892,7 @@ def mark_public_delivery_rework(
         event="public_delivery_gate_failed",
         facts={"delivery_gate": gate},
         source="public_delivery_gate",
-        direct_text=public_delivery_gate_failed_reply(),
+        direct_text=public_delivery_gate_failed_reply(gate),
     )
 
 
@@ -1872,6 +1957,20 @@ def emit_public_delivery(
         )
         append_memory_event(session, "public_delivery_attachment_sent", data={"sent": sent, "source": source})
     return sent
+
+
+def filter_delivery_items_by_judgment(
+    items: list[tuple[pathlib.Path, str]],
+    judgment: dict[str, Any],
+) -> list[tuple[pathlib.Path, str]]:
+    allowed = {
+        str(pathlib.Path(str(item)).resolve()).lower()
+        for item in judgment.get("can_send_artifacts", [])
+        if str(item).strip()
+    }
+    if not allowed:
+        return []
+    return [(path, kind) for path, kind in items if str(path.resolve()).lower() in allowed]
 
 
 def is_user_review_continue(text: str) -> bool:
@@ -1966,6 +2065,7 @@ def send_evidence_checkpoint(
         if len(items) >= 8:
             break
     items.extend((path, "video") for path in assets["videos"][:2])
+    items = filter_delivery_items_by_judgment(items, gate)
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
     if sent:
         append_truth_ledger(
@@ -2120,8 +2220,10 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
     test_no_executed = bool(quality_evidence.get("test_report_has_no_test_executed"))
     sample_input_found = bool(quality_evidence.get("sample_input_found") or quality_evidence.get("test_report_mentions_sample_input"))
     preview_placeholder_found = bool(quality_evidence.get("preview_placeholder_found"))
+    judgment = manifest.get("agent_delivery_judgment", {}) if isinstance(manifest.get("agent_delivery_judgment"), dict) else {}
+    verdict = str(judgment.get("verdict", "")).strip().upper()
     status_raw = str(manifest.get("status", "")).strip().lower()
-    delivery_status = "PASS" if status_raw == "ready" else ("WARNING" if status_raw == "ready_with_warnings" else "PARTIAL")
+    delivery_status = verdict or ("PASS" if status_raw == "ready" else ("WARNING" if status_raw == "ready_with_warnings" else "PARTIAL"))
     if not test_report_found:
         test_execution = "没有"
         test_record_status = "没有"
@@ -2156,6 +2258,10 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
             lines.append("已知限制：" + "；".join(visible_limits))
     else:
         lines.append("已知限制：暂无")
+    judgment_warnings = judgment.get("user_visible_warnings", []) if isinstance(judgment.get("user_visible_warnings"), list) else []
+    visible_judgment_warnings = [item for item in (user_visible_known_limit(raw) for raw in judgment_warnings[:6]) if item]
+    if visible_judgment_warnings:
+        lines.append("本次带限制交付：" + "；".join(visible_judgment_warnings))
     if not test_report_found:
         lines.append("这轮没有完整测试报告，所以不能标成完整测试通过。")
     if not delivery_notes_found:
@@ -2186,6 +2292,34 @@ def build_intake_waiting_text(analysis: dict[str, Any], fallback_reply: str = ""
     return pre_send_guard(text)
 
 
+def delivery_send_diagnostic(
+    gate: dict[str, Any],
+    items: list[tuple[pathlib.Path, str]],
+    sent: list[dict[str, Any]],
+) -> dict[str, Any]:
+    intended = [str(pathlib.Path(str(item)).resolve()) for item in gate.get("can_send_artifacts", []) if str(item).strip()]
+    valid = [{"path": str(path.resolve()), "kind": kind} for path, kind in items if path.exists() and path.is_file()]
+    sent_paths = {str(pathlib.Path(str(item.get("path", ""))).resolve()).lower() for item in sent if str(item.get("path", "")).strip()}
+    failed = [item for item in valid if item["path"].lower() not in sent_paths]
+    package_required = str(gate.get("verdict", "")).upper() in {"PASS_FINAL", "DELIVER_WITH_WARNINGS"}
+    package_sent = any(item.get("kind") == "package" for item in sent)
+    if package_required and not package_sent:
+        reason = "final_package_send_failed"
+    elif not sent:
+        reason = "no_public_artifacts_sent"
+    else:
+        reason = ""
+    return {
+        "intended_artifacts": intended,
+        "valid_artifacts": valid,
+        "sent_artifacts": sent,
+        "failed_artifacts": failed,
+        "package_required": package_required,
+        "package_sent": package_sent,
+        "reason": reason,
+    }
+
+
 def send_delivery_from_manifest(
     client: TelegramClient,
     chat_id: int | str,
@@ -2198,6 +2332,22 @@ def send_delivery_from_manifest(
     gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
     manifest["delivery_allowed"] = bool(gate.get("delivery_allowed"))
     manifest["delivery_gate"] = gate
+    manifest["delivery_fact_check"] = gate.get("delivery_fact_check", {})
+    manifest["agent_delivery_judgment"] = {
+        key: gate.get(key)
+        for key in (
+            "verdict",
+            "delivery_allowed",
+            "is_final",
+            "confidence",
+            "reasons",
+            "user_visible_warnings",
+            "required_repairs",
+            "can_send_artifacts",
+            "must_not_claim",
+            "judgment_source",
+        )
+    }
     manifest_path = _evidence_path(str(manifest.get("manifest_path", "")))
     if manifest_path:
         try:
@@ -2207,18 +2357,7 @@ def send_delivery_from_manifest(
     if not gate.get("delivery_allowed"):
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
         return []
-    send_customer_reply(
-        client,
-        chat_id,
-        session_dir,
-        session,
-        event="delivery_manifest_ready",
-        facts={"manifest": manifest},
-        source="delivery_team_summary",
-        direct_text=build_delivery_summary_text(manifest),
-    )
     session = load_session(session_dir, chat_id)
-    record_public_delivery_gate(session_dir, session, gate, project_dir)
     assets = collect_public_delivery_assets(project_dir, manifest)
     items: list[tuple[pathlib.Path, str]] = []
     items.extend((path, "package") for path in assets["packages"][:1])
@@ -2231,7 +2370,59 @@ def send_delivery_from_manifest(
         if len(items) >= 8:
             break
     items.extend((path, "video") for path in assets["videos"][:2])
+    items = filter_delivery_items_by_judgment(items, gate)
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="delivery_manifest")
+    diagnostic = delivery_send_diagnostic(gate, items, sent)
+    if diagnostic["reason"]:
+        failed_gate = dict(gate)
+        failed_gate.update(
+            {
+                "delivery_allowed": False,
+                "is_final": False,
+                "status": "delivery_send_failed",
+                "delivery_send_diagnostic": diagnostic,
+            }
+        )
+        manifest["delivery_allowed"] = False
+        manifest["delivery_gate"] = failed_gate
+        manifest["delivery_send_diagnostic"] = diagnostic
+        if manifest_path:
+            try:
+                write_json(manifest_path, manifest)
+            except Exception:
+                pass
+        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
+        return sent
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="delivery_manifest_ready",
+        facts={"manifest": manifest},
+        source="delivery_team_summary",
+        direct_text=build_delivery_summary_text(manifest),
+    )
+    session = load_session(session_dir, chat_id)
+    gate["delivery_send_diagnostic"] = diagnostic
+    record_public_delivery_gate(session_dir, session, gate, project_dir)
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    generation.update(
+        {
+            "status": "delivered_with_warnings" if gate.get("verdict") == "DELIVER_WITH_WARNINGS" else "delivered",
+            "delivery_allowed": True,
+            "delivery_gate": gate,
+            "project_dir": str(project_dir),
+        }
+    )
+    session["generation"] = generation
+    update_active_run_status(
+        session,
+        "delivered_with_warnings" if gate.get("verdict") == "DELIVER_WITH_WARNINGS" else "delivered",
+        delivery_allowed=True,
+        delivery_gate=gate,
+        project_dir=str(project_dir),
+    )
     if sent:
         append_memory_event(session, "delivery_manifest_sent", data={"sent": sent, "manifest": manifest})
     save_session(session_dir, session)
@@ -4032,14 +4223,20 @@ def materialize_provider_runtime_artifacts(project_dir: pathlib.Path, provider_r
     agent_usage = provider_result.get("agent_usage", {}) if isinstance(provider_result.get("agent_usage"), dict) else {}
     screenshots = agent_usage.get("screenshots", []) if isinstance(agent_usage.get("screenshots"), list) else []
     screenshot_source = _provider_runtime_path(screenshots[0] if screenshots else "")
-    image_source = _provider_runtime_path(example_outputs.get("image_preview"))
-    if not image_source:
-        image_source = _provider_runtime_path(example_outputs.get("frame_preview"))
-    if not image_source:
-        image_source = screenshot_source
-    copied["ui_screenshot"] = _copy_provider_runtime_asset(screenshot_source or image_source, project / "screenshots" / "provider_ui_screenshot.png")
-    copied["background"] = _copy_provider_runtime_asset(image_source, project / "generated" / "background_scene.png")
-    copied["sprite"] = _copy_provider_runtime_asset(image_source, project / "generated" / "character_sprite.png")
+    background_source = _provider_runtime_path(example_outputs.get("generated_background") or example_outputs.get("background"))
+    sprite_source = _provider_runtime_path(example_outputs.get("generated_sprite") or example_outputs.get("sprite") or example_outputs.get("character"))
+    generated_images = agent_usage.get("generated_images", []) if isinstance(agent_usage.get("generated_images"), list) else []
+    for raw in generated_images:
+        candidate = _provider_runtime_path(raw)
+        if not candidate:
+            continue
+        if not background_source and _looks_like_background_asset(candidate):
+            background_source = candidate
+        if not sprite_source and _looks_like_sprite_asset(candidate):
+            sprite_source = candidate
+    copied["ui_screenshot"] = _copy_provider_runtime_asset(screenshot_source, project / "screenshots" / "provider_ui_screenshot.png")
+    copied["background"] = _copy_provider_runtime_asset(background_source, project / "generated" / "background_scene.png")
+    copied["sprite"] = _copy_provider_runtime_asset(sprite_source, project / "generated" / "character_sprite.png")
     video_source = _provider_runtime_path(agent_usage.get("workflow_video")) or _provider_runtime_path(example_outputs.get("video_preview"))
     copied["video"] = _copy_provider_runtime_asset(video_source, project / "artifacts" / "workflow_demo.mp4")
     return {"copied": {key: value for key, value in copied.items() if value}}
@@ -5965,87 +6162,6 @@ except Exception as exc:
     return doc
 
 
-def create_provider_ui_screenshot(project_dir: pathlib.Path, background: pathlib.Path | None, sprite: pathlib.Path | None) -> tuple[str, dict[str, Any]]:
-    project = pathlib.Path(project_dir).resolve()
-    target = project / "screenshots" / "app_home.png"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-
-        canvas = Image.new("RGB", (1280, 800), (245, 247, 250))
-        draw = ImageDraw.Draw(canvas)
-        try:
-            title_font = ImageFont.truetype("arial.ttf", 34)
-            body_font = ImageFont.truetype("arial.ttf", 22)
-        except Exception:
-            title_font = ImageFont.load_default()
-            body_font = ImageFont.load_default()
-        draw.rectangle((0, 0, 1280, 84), fill=(31, 41, 55))
-        draw.text((32, 24), "VN Project Assistant - App Home", fill=(255, 255, 255), font=title_font)
-        draw.rectangle((32, 120, 440, 720), outline=(96, 112, 128), width=2)
-        draw.text((56, 150), "Story Timeline", fill=(31, 41, 55), font=body_font)
-        for idx, item in enumerate(("Opening scene", "Character entrance", "Branch choice", "Export package")):
-            y = 210 + idx * 82
-            draw.ellipse((58, y, 82, y + 24), fill=(59, 130, 246))
-            draw.text((102, y - 2), item, fill=(51, 65, 85), font=body_font)
-        draw.rectangle((480, 120, 1248, 720), outline=(96, 112, 128), width=2)
-        draw.text((504, 150), "Generated Visual Evidence", fill=(31, 41, 55), font=body_font)
-        if background and background.exists():
-            bg = Image.open(background).convert("RGB")
-            bg.thumbnail((420, 300))
-            canvas.paste(bg, (520, 210))
-        if sprite and sprite.exists():
-            sp = Image.open(sprite).convert("RGBA")
-            sp.thumbnail((220, 360))
-            canvas.paste(sp.convert("RGB"), (990, 220), sp if sp.mode == "RGBA" else None)
-        draw.text((520, 560), "Local run evidence screen composed from generated project assets.", fill=(71, 85, 105), font=body_font)
-        canvas.save(target)
-    except Exception as exc:
-        try:
-            write_rgb_png(
-                target,
-                1280,
-                800,
-                lambda x, y: (
-                    35 + (x * 3 + y) % 120 if y < 90 else 235 - (x // 18) % 45,
-                    45 + (x + y * 2) % 140 if y < 90 else 245 - (y // 12) % 55,
-                    70 + (x * 2 + y * 3) % 150 if y < 90 else 250 - ((x + y) // 16) % 60,
-                ),
-            )
-        except Exception as fallback_exc:
-            return "", {"ok": False, "reason": f"screenshot_generation_failed: {exc}; fallback_failed: {fallback_exc}"}
-    audit = image_quality_audit(target)
-    return (str(target.resolve()) if audit.get("ok") else ""), audit
-
-
-def create_fallback_generated_asset(project_dir: pathlib.Path, kind: str) -> pathlib.Path:
-    generated_dir = pathlib.Path(project_dir).resolve() / "assets" / "generated"
-    target = generated_dir / (f"background_local_demo.png" if kind == "background" else "sprite_local_demo.png")
-    if kind == "background":
-        write_rgb_png(
-            target,
-            960,
-            540,
-            lambda x, y: (
-                24 + (x * 5 + y * 2) % 160,
-                65 + (x * 2 + y * 3) % 150,
-                110 + (x + y * 4) % 120,
-            ),
-        )
-    else:
-        write_rgb_png(
-            target,
-            420,
-            620,
-            lambda x, y: (
-                30 + (x * 3 + y) % 110 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 245,
-                70 + (x + y * 2) % 140 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 248,
-                130 + (x * 2 + y) % 100 if (x - 210) ** 2 + (y - 180) ** 2 < 12000 or 150 < x < 270 and 240 < y < 540 else 252,
-            ),
-        )
-    return target
-
-
 def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: dict[str, Any], runtime_artifacts: dict[str, Any]) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     generated_dir = project / "assets" / "generated"
@@ -6058,56 +6174,42 @@ def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: 
             manifest["generator_result"] = generator_result
         except Exception as exc:
             manifest["errors"].append(f"project image generator failed: {exc}")
-    example_outputs = provider_result.get("example_outputs", {}) if isinstance(provider_result.get("example_outputs"), dict) else {}
     copied = runtime_artifacts.get("copied", {}) if isinstance(runtime_artifacts.get("copied"), dict) else {}
     candidate_backgrounds = [pathlib.Path(str(item)) for item in generator_result.get("backgrounds", []) if str(item).strip()]
     candidate_sprites = [pathlib.Path(str(item)) for item in generator_result.get("sprites", []) if str(item).strip()]
-    for key in ("background", "image_preview", "frame_preview"):
-        value = copied.get(key) or example_outputs.get(key)
-        path = _provider_runtime_path(value)
-        if path:
-            candidate_backgrounds.append(path)
-    for key in ("sprite", "character", "image_preview", "frame_preview"):
-        value = copied.get(key) or example_outputs.get(key)
-        path = _provider_runtime_path(value)
-        if path:
-            candidate_sprites.append(path)
+    background_runtime = _provider_runtime_path(copied.get("background"))
+    sprite_runtime = _provider_runtime_path(copied.get("sprite"))
+    if background_runtime:
+        candidate_backgrounds.append(background_runtime)
+    if sprite_runtime:
+        candidate_sprites.append(sprite_runtime)
     background_path = ""
     background_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
     for candidate in candidate_backgrounds:
         background_path, background_audit = _copy_if_quality_ok(candidate, generated_dir / f"background_{safe_id(candidate.stem or 'demo')}.png")
         if background_path:
             break
-    if not background_path:
-        fallback_background = create_fallback_generated_asset(project, "background")
-        background_audit = image_quality_audit(fallback_background)
-        if background_audit.get("ok"):
-            background_path = str(fallback_background.resolve())
-            manifest["fallback_background_generated"] = True
     sprite_path = ""
     sprite_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
     for candidate in candidate_sprites:
         sprite_path, sprite_audit = _copy_if_quality_ok(candidate, generated_dir / f"sprite_{safe_id(candidate.stem or 'demo')}.png")
         if sprite_path:
             break
-    if not sprite_path:
-        fallback_sprite = create_fallback_generated_asset(project, "sprite")
-        sprite_audit = image_quality_audit(fallback_sprite)
-        if sprite_audit.get("ok"):
-            sprite_path = str(fallback_sprite.resolve())
-            manifest["fallback_sprite_generated"] = True
-    screenshot_path, screenshot_audit = create_provider_ui_screenshot(
-        project,
-        pathlib.Path(background_path) if background_path else None,
-        pathlib.Path(sprite_path) if sprite_path else None,
-    )
+    screenshot_path = ""
+    screenshot_audit: dict[str, Any] = {"ok": False, "reason": "not_captured"}
+    screenshot_runtime = _provider_runtime_path(copied.get("ui_screenshot"))
+    if screenshot_runtime:
+        screenshot_path, screenshot_audit = _copy_if_quality_ok(
+            screenshot_runtime,
+            project / "screenshots" / "provider_ui_screenshot.png",
+        )
     for kind, path, audit in (
         ("background", background_path, background_audit),
         ("sprite", sprite_path, sprite_audit),
         ("ui_screenshot", screenshot_path, screenshot_audit),
     ):
         manifest["images"].append({"kind": kind, "path": path, "audit": audit})
-    manifest["ok"] = bool(background_path and sprite_path and screenshot_path)
+    manifest["ok"] = bool(background_path or sprite_path or screenshot_path)
     manifest_path = project / "generated_image_manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
@@ -6118,6 +6220,19 @@ def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: 
         "manifest_path": str(manifest_path.resolve()),
         "manifest": manifest,
     }
+
+
+def required_image_backend_missing_config(session: dict[str, Any]) -> list[str]:
+    text = _requirement_text(session).lower()
+    visual_requested = any(token in text for token in ("图片", "图像", "背景", "立绘", "image", "background", "sprite", "portrait"))
+    local_model_required = any(token in text for token in ("本地模型", "本地图片模型", "local model", "stable diffusion", "comfyui", "automatic1111"))
+    if not visual_requested or not local_model_required:
+        return []
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    discovery = whiteboard.get("local_image_model_discovery", {}) if isinstance(whiteboard.get("local_image_model_discovery"), dict) else {}
+    if discovery.get("available"):
+        return []
+    return ["local_image_model_backend"]
 
 
 def post_build_finalize_provider_project(
@@ -6161,25 +6276,75 @@ def post_build_finalize_provider_project(
         test_result = repaired_test
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
+    req = infer_public_delivery_requirements(session, "")
+    image_missing: list[str] = []
+    if req.get("screenshot") and not image_result.get("ui_screenshot"):
+        image_missing.append("ui_screenshot")
+    if req.get("background") and not image_result.get("background"):
+        image_missing.append("generated_background")
+    if req.get("sprite") and not image_result.get("sprite"):
+        image_missing.append("generated_sprite")
+    if req.get("generated_image") and not (image_result.get("background") or image_result.get("sprite")):
+        image_missing.append("generated_image")
+    missing_config = required_image_backend_missing_config(session)
+    image_missing.extend(f"missing_config:{item}" for item in missing_config)
+    image_result["missing"] = sorted(set(image_missing))
+    image_result["missing_config"] = missing_config
+    image_result["ok"] = not image_result["missing"]
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
     write_provider_delivery_notes(project_dir, provider_result, runtime_artifacts | {"post_build_image_evidence": image_result, "post_build_test_result": test_result})
     screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
-    req = infer_public_delivery_requirements(session, "")
     visual_required = bool(req.get("screenshot") or req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
+    delivery_limits: list[str] = []
+    if not test_result.get("ok"):
+        delivery_limits.append("Automated tests are incomplete or failing; this must be disclosed to the user.")
+    if image_result.get("missing") and visual_required:
+        delivery_limits.append("Missing verified image-generation or preview evidence: " + ", ".join(image_result.get("missing", [])))
     manifest = local_packager.package_project(
         project_dir,
         startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
         screenshot_path=screenshot_path if screenshot_path.exists() else None,
-        known_limits=[] if image_result.get("ok") or not visual_required else ["Missing verified local image model output for requested background/sprite evidence."],
+        known_limits=delivery_limits,
     )
-    gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+    manifest["provider_result"] = {
+        "status": provider_result.get("status", ""),
+        "provider": provider_result.get("provider", {}),
+        "provider_semantic_review": provider_result.get("provider_semantic_review", {}),
+    }
+    gate = evaluate_public_delivery_gate(
+        project_dir,
+        manifest,
+        session,
+        phase="final",
+        provider_result=provider_result,
+    )
+    gate["missing_config"] = missing_config
+    manifest["delivery_fact_check"] = gate.get("delivery_fact_check", {})
+    manifest["agent_delivery_judgment"] = {
+        key: gate.get(key)
+        for key in (
+            "verdict",
+            "delivery_allowed",
+            "is_final",
+            "confidence",
+            "reasons",
+            "user_visible_warnings",
+            "required_repairs",
+            "can_send_artifacts",
+            "must_not_claim",
+            "judgment_source",
+        )
+    }
+    manifest_path_value = str(manifest.get("manifest_path", "")).strip()
+    if manifest_path_value:
+        write_json(pathlib.Path(manifest_path_value), manifest)
     return {
         "test_result": test_result,
         "image_result": image_result,
         "visual_required": visual_required,
         "manifest": manifest,
         "gate": gate,
-        "ok": bool(test_result.get("ok") and (image_result.get("ok") or not visual_required) and gate.get("delivery_allowed")),
+        "ok": bool(gate.get("delivery_allowed")),
     }
 
 
@@ -6289,7 +6454,7 @@ def provider_success_artifact_audit(project_dir: pathlib.Path, session: dict[str
             missing.append("src")
         if not (project / "tests").is_dir() or not any(path.is_file() for path in (project / "tests").rglob("*")):
             missing.append("tests")
-        if not assets["screenshots"]:
+        if req["screenshot"] and not assets["screenshots"]:
             missing.append("ui_screenshot")
         if req["background"] and not assets["generated_backgrounds"]:
             missing.append("background_image")
@@ -6313,7 +6478,7 @@ def provider_error_is_retryable(error: BaseException | str) -> bool:
     text = str(error or "")
     lowered = text.lower()
     error_type = provider_error_type(text)
-    if error_type in {"PROVIDER_KEY_USAGE_LIMIT", "PROVIDER_FORBIDDEN", "PROVIDER_NON_RETRYABLE_HTTP", "PROVIDER_UNKNOWN_ERROR"}:
+    if error_type in {"PROVIDER_MISSING_CONFIG", "PROVIDER_KEY_USAGE_LIMIT", "PROVIDER_FORBIDDEN", "PROVIDER_NON_RETRYABLE_HTTP", "PROVIDER_UNKNOWN_ERROR"}:
         return False
     if "retryable=true" in lowered:
         return True
@@ -6345,6 +6510,13 @@ def provider_error_is_retryable(error: BaseException | str) -> bool:
 
 def provider_error_type(error: BaseException | str) -> str:
     return check_connectivity._provider_error_type(str(error or ""))
+
+
+def provider_missing_config(error: BaseException | str) -> list[str]:
+    error_type = provider_error_type(error)
+    if error_type == "PROVIDER_MISSING_CONFIG":
+        return ["CGKN_OPENAI_API_KEY or OPENAI_API_KEY"]
+    return []
 
 
 def provider_partial_artifacts(project_dir: pathlib.Path) -> list[str]:
@@ -6472,11 +6644,19 @@ def run_provider_generation_job(
             chat_id=chat_id,
             phase_log_path=phase_log_path,
         )
+        write_provider_phase_event(
+            phase_log_path,
+            {"kind": "provider_phase", "stage": "api_provider_project_generation", "status": "completed", "project_dir": str(project_dir)},
+        )
         append_agent_session_event(session_dir, chat_id, {"kind": "api-provider-project-generated", "role": "tool", "result_path": str(result_path), "project_dir": str(project_dir)})
         append_agent_session_event(session_dir, chat_id, {"kind": "provider-output-validated", "role": "tool", "provider_semantic_review": provider_result.get("provider_semantic_review", {})})
         append_agent_session_event(session_dir, chat_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, chat_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
         runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
+        write_provider_phase_event(
+            phase_log_path,
+            {"kind": "provider_phase", "stage": "post_build_finalize", "status": "started", "project_dir": str(project_dir)},
+        )
         finalize = post_build_finalize_provider_project(
             project_dir,
             provider_result,
@@ -6485,32 +6665,36 @@ def run_provider_generation_job(
             session_dir=session_dir,
             chat_id=chat_id,
         )
+        write_provider_phase_event(
+            phase_log_path,
+            {
+                "kind": "provider_phase",
+                "stage": "post_build_finalize",
+                "status": "completed" if finalize.get("ok") else "rework_blocked",
+                "project_dir": str(project_dir),
+            },
+        )
         manifest = finalize["manifest"]
         gate = finalize["gate"]
         artifact_audit = provider_success_artifact_audit(project_dir, session, manifest)
-        if not finalize.get("test_result", {}).get("ok"):
-            artifact_audit["ok"] = False
-            artifact_audit["missing"] = sorted(set(list(artifact_audit.get("missing", [])) + ["pytest_failed"]))
-        if finalize.get("visual_required") and not finalize.get("image_result", {}).get("ok"):
-            artifact_audit["ok"] = False
-            artifact_audit["missing"] = sorted(set(list(artifact_audit.get("missing", [])) + ["verified_image_evidence"]))
         append_agent_session_event(
             session_dir,
             chat_id,
             {"kind": "provider-success-artifact-audit", "role": "tool", "audit": artifact_audit, "post_build_finalize": finalize},
         )
-        if not artifact_audit.get("ok"):
-            gate = dict(gate)
-            gate["delivery_allowed"] = False
-            gate["status"] = "REWORK"
-            gate["provider_success_artifact_audit"] = artifact_audit
-            gate["missing"] = sorted(set(list(gate.get("missing", [])) + [f"provider:{item}" for item in artifact_audit.get("missing", [])]))
+        gate = dict(gate)
+        gate["provider_success_artifact_audit"] = artifact_audit
         if not gate.get("delivery_allowed"):
+            write_provider_phase_event(
+                phase_log_path,
+                {"kind": "provider_phase", "stage": "public_delivery_gate", "status": "rework_blocked", "missing": gate.get("missing", [])},
+            )
             session = load_session(session_dir, chat_id)
             session["generation"] = {
                 "status": "rework_blocked",
                 "driver": "api_provider_project_generation",
                 "finished_at": now(),
+                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
                 "project_dir": str(project_dir),
                 "manifest_path": str(manifest.get("manifest_path", "")),
                 "package_path": str(manifest.get("package_path", "")),
@@ -6535,10 +6719,21 @@ def run_provider_generation_job(
             "provider_run_dir": str(run_dir),
             "post_build_finalize": finalize,
         }
+        write_provider_phase_event(
+            phase_log_path,
+            {
+                "kind": "provider_phase",
+                "stage": "local_packager_and_public_delivery_gate",
+                "status": "completed",
+                "manifest_path": str(manifest.get("manifest_path", "")),
+                "package_path": str(manifest.get("package_path", "")),
+            },
+        )
         finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
     except Exception as exc:
         session = load_session(session_dir, chat_id)
         error_type = provider_error_type(exc)
+        missing_config = provider_missing_config(exc)
         partial_artifacts = provider_partial_artifacts(project_dir)
         manifest: dict[str, Any] = {}
         if partial_artifacts:
@@ -6548,25 +6743,30 @@ def run_provider_generation_job(
                     startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
                     known_limits=["Provider recovery mode inspected partial artifacts after a transport failure."],
                 )
-                gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
-                if gate.get("delivery_allowed"):
-                    gate = dict(gate)
-                    gate["delivery_allowed"] = False
-                    gate["status"] = "REWORK"
-                    gate["missing"] = sorted(set(list(gate.get("missing", [])) + ["provider_generation_exception"]))
+                gate = evaluate_public_delivery_gate(
+                    project_dir,
+                    manifest,
+                    session,
+                    phase="final",
+                    provider_result={"status": "failed", "error": str(exc)},
+                )
             except Exception:
                 manifest = {}
-        gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
-        gate = dict(gate)
-        gate["delivery_allowed"] = False
-        gate["status"] = "REWORK"
-        gate["missing"] = sorted(set(list(gate.get("missing", [])) + ["provider_generation_exception"]))
+        gate = evaluate_public_delivery_gate(
+            project_dir,
+            manifest,
+            session,
+            phase="final",
+            provider_result={"status": "failed", "error": str(exc)},
+        )
         session["generation"] = {
             "status": "rework_blocked",
             "driver": "api_provider_project_generation",
             "finished_at": now(),
             "error": str(exc),
             "provider_error_type": error_type,
+            "missing_config": missing_config,
+            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
             "project_dir": str(project_dir),
             "partial_artifacts": partial_artifacts,
             "current_stage": "api_provider_project_generation",
@@ -6594,6 +6794,7 @@ def run_provider_generation_job(
                 "role": "tool",
                 "error": str(exc),
                 "provider_error_type": error_type,
+                "missing_config": missing_config,
                 "project_dir": str(project_dir),
                 "result_path": str(result_path),
                 "partial_artifacts": partial_artifacts,
@@ -6607,6 +6808,7 @@ def run_provider_generation_job(
             data={
                 "error": str(exc),
                 "provider_error_type": error_type,
+                "missing_config": missing_config,
                 "delivery_gate": gate,
                 "partial_artifacts": partial_artifacts,
                 "current_stage": "api_provider_project_generation",
@@ -6614,6 +6816,17 @@ def run_provider_generation_job(
             },
         )
         save_session(session_dir, session)
+        write_provider_phase_event(
+            phase_log_path,
+            {
+                "kind": "provider_phase",
+                "stage": "api_provider_project_generation",
+                "status": "rework_blocked",
+                "provider_error_type": error_type,
+                "missing_config": missing_config,
+                "error": str(exc),
+            },
+        )
         log_bridge_error(log_dir, "provider_generation_rework_blocked", chat_id, exc, {"project_dir": str(project_dir)})
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
 
@@ -6865,6 +7078,53 @@ def finish_agent_loop_delivery(
         send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
     else:
         gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+        if gate.get("delivery_allowed") and gate.get("verdict") == "ASK_USER_REVIEW":
+            session["generation"].update(
+                {
+                    "status": "waiting_user_review",
+                    "delivery_allowed": True,
+                    "delivery_gate": gate,
+                }
+            )
+            update_active_run_status(
+                session,
+                "waiting_user_review",
+                driver=driver,
+                delivery_allowed=True,
+                delivery_gate=gate,
+                project_dir=str(project_dir),
+            )
+            append_memory_event(session, "agent_loop_waiting_user_review", data={"result": result, "delivery_gate": gate})
+            save_session(session_dir, session)
+            warnings = gate.get("user_visible_warnings", []) if isinstance(gate.get("user_visible_warnings"), list) else []
+            warning_text = "；".join(user_visible_known_limit(item) for item in warnings[:5] if str(item).strip())
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="delivery_user_review_requested",
+                source="adaptive_delivery_judgment",
+                direct_text=pre_send_guard(
+                    "当前已有真实项目结果可供检查，但还没有最终 zip，因此不能标成最终交付。"
+                    + (f"\n当前限制：{warning_text}" if warning_text else "")
+                ),
+            )
+            assets = collect_public_delivery_assets(project_dir, manifest)
+            items: list[tuple[pathlib.Path, str]] = []
+            items.extend((path, "screenshot") for path in assets["screenshots"][:3])
+            items.extend((path, "background") for path in assets["generated_backgrounds"][:2])
+            items.extend((path, "sprite") for path in assets["generated_sprites"][:2])
+            items.extend((path, "video") for path in assets["videos"][:2])
+            emit_public_delivery(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                filter_delivery_items_by_judgment(items, gate),
+                source="adaptive_user_review",
+            )
+            return
         session["generation"].update(
             {
                 "status": "rework_blocked",
@@ -7313,6 +7573,7 @@ def start_generation_from_income(
     session: dict[str, Any],
     *,
     reason: str,
+    generation_mode: str = "api",
 ) -> bool:
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "idle")).lower()
@@ -7330,6 +7591,9 @@ def start_generation_from_income(
     )
     append_memory_event(session, "agent_loop_income_start_requested", data={"reason": reason, "previous_generation_status": status})
     save_session(session_dir, session)
+    if str(generation_mode or "api").lower() == "simulator":
+        run_simulator_preflight(client, chat_id, session_dir, log_dir, session, reason=reason)
+        return True
     start_agent_generation(
         client,
         chat_id,
@@ -7341,6 +7605,92 @@ def start_generation_from_income(
         reason=reason,
     )
     return True
+
+
+def run_simulator_preflight(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    session: dict[str, Any],
+    *,
+    reason: str,
+) -> dict[str, Any]:
+    requirement = combined_requirement(session)
+    run_dir = log_dir / "simulator_preflight" / safe_id(chat_id)
+    result_path = run_dir / "simulator_preflight_result.json"
+    project_dir = ROOT / "generated" / "simulator_preflight" / safe_id(chat_id)
+    if project_dir.exists():
+        shutil.rmtree(project_dir)
+    args = argparse.Namespace(
+        plan="",
+        goal=requirement,
+        out_dir=str(project_dir),
+        run_dir=str(run_dir),
+        result=str(result_path),
+        model=model_policy.select_model("provider_generation"),
+        timeout=30,
+        allow_network=False,
+        allow_provider=False,
+        use_api=False,
+        allow_model_usage_planning=False,
+        phase_log_path=str(run_dir / "simulator_phase_log.jsonl"),
+    )
+    result = provider_project_pipeline.execute(args)
+    if str(result.get("status", "")).lower() == "pass":
+        result = {
+            **result,
+            "status": "BLOCKED",
+            "reason": "simulator_preflight_cannot_pass",
+            "delivery_allowed": False,
+        }
+        write_json(result_path, result)
+    if project_dir.exists():
+        shutil.rmtree(project_dir)
+    creds = check_connectivity._resolve_api_credentials()
+    missing_config = [] if str(creds.get("api_key", "")).strip() else ["CGKN_OPENAI_API_KEY or OPENAI_API_KEY"]
+    session = load_session(session_dir, chat_id)
+    session["generation"] = {
+        "status": "rework_blocked",
+        "driver": "simulator_preflight",
+        "finished_at": now(),
+        "reason": "simulator_preflight_only",
+        "preflight_result_path": str(result_path),
+        "run_dir": str(run_dir),
+        "project_dir": str(project_dir),
+        "missing_config": missing_config,
+        "delivery_allowed": False,
+    }
+    update_active_run_status(
+        session,
+        "rework_blocked",
+        driver="simulator_preflight",
+        delivery_allowed=False,
+        project_dir=str(project_dir),
+    )
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "simulator_preflight_result",
+            "role": "tool",
+            "reason": reason,
+            "result": result,
+            "delivery_allowed": False,
+            "missing_config": missing_config,
+        },
+    )
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="simulator_preflight_blocked",
+        source="simulator_preflight",
+        direct_text="当前是预检查模式，只验证规划和配置，不会生成或交付项目。请使用 api 模式启动真实 provider 生成。",
+    )
+    return result
 
 
 def queue_generation_job_legacy_disabled(
@@ -7405,6 +7755,7 @@ def auto_start_pending_intakes(
             timeout,
             session,
             reason="startup_pending_income",
+            generation_mode=generation_mode,
         ):
             started += 1
     return started
@@ -7751,6 +8102,7 @@ def handle_text(
             timeout,
             session,
             reason="new_project_income_auto_start",
+            generation_mode=generation_mode,
         )
         return
 
@@ -7773,23 +8125,26 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
-        send_customer_reply(
-            client,
-            chat_id,
-            session_dir,
-            session,
-            event="generation_started",
-            source="public_narration",
-            direct_text=public_narration.public_event_text("generation_started", {}),
-        )
-        start_agent_generation(
+        if str(generation_mode or "api").lower() == "api":
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="generation_started",
+                source="public_narration",
+                direct_text=public_narration.public_event_text("generation_started", {}),
+            )
+        start_generation_from_income(
             client,
             chat_id,
             session_dir,
             log_dir,
             model,
             timeout,
-            announce_start=False,
+            session,
+            reason="frontdesk_generation_confirmation",
+            generation_mode=generation_mode,
         )
         return
 
@@ -7904,6 +8259,7 @@ def handle_text(
         timeout,
         session,
         reason="project_update_income_auto_start",
+        generation_mode=generation_mode,
     )
 
 
@@ -7916,6 +8272,7 @@ def handle_attachment_message(
     upload_dir: pathlib.Path,
     model: str,
     timeout: int,
+    generation_mode: str = "api",
 ) -> None:
     session = load_session(session_dir, chat_id)
     client.send_chat_action(chat_id, "upload_document")
@@ -8073,6 +8430,7 @@ def handle_attachment_message(
         timeout,
         session,
         reason="attachment_income_auto_start",
+        generation_mode=generation_mode,
     )
 
 
@@ -8129,6 +8487,7 @@ def run(args: argparse.Namespace) -> None:
                     upload_dir,
                     args.model,
                     args.generation_timeout,
+                    args.generation_mode,
                 )
                 continue
             handle_text(client, chat_id, text, session_dir, log_dir, args.model, args.generation_timeout, args.generation_mode)
@@ -8143,7 +8502,12 @@ def main() -> int:
     parser.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR))
     parser.add_argument("--model", default=model_policy.select_model("provider_generation"))
     parser.add_argument("--generation-timeout", type=int, default=420)
-    parser.add_argument("--generation-mode", choices=["simulator", "api"], default=os.environ.get("CGNK_TELEGRAM_GENERATION_MODE", "api"))
+    parser.add_argument(
+        "--generation-mode",
+        choices=["simulator", "api"],
+        default=os.environ.get("CGNK_TELEGRAM_GENERATION_MODE", "api"),
+        help="api runs the reviewed provider delivery route; simulator performs preflight only and can never deliver PASS.",
+    )
     parser.add_argument("--http-timeout", type=int, default=35)
     parser.add_argument("--poll-timeout", type=int, default=20)
     parser.add_argument("--retry-delay", type=float, default=3.0)

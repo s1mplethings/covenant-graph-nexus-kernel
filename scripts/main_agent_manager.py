@@ -121,7 +121,7 @@ class MainAgentManager:
             "status": "intake_open",
             "driver": "main_agent_manager",
             "provider_route_required": True,
-            "delivery_contract": ["local_packager", "public_delivery_gate", "delivery_manifest"],
+            "delivery_contract": ["local_packager", "delivery_fact_check", "agent_delivery_judgment", "public_delivery_gate", "delivery_manifest"],
         }
         local_conversation_manager.append_assistant_message(
             conversation,
@@ -149,7 +149,7 @@ class MainAgentManager:
             "driver": "main_agent_manager",
             "revision_manifest": str(manifest_path),
             "provider_route_required": True,
-            "delivery_contract": ["local_packager", "public_delivery_gate", "delivery_manifest"],
+            "delivery_contract": ["local_packager", "delivery_fact_check", "agent_delivery_judgment", "public_delivery_gate", "delivery_manifest"],
         }
         local_conversation_manager.append_assistant_message(
             conversation,
@@ -185,7 +185,7 @@ class MainAgentManager:
             "driver": "main_agent_manager",
             "revision_manifest": str(manifest_path),
             "provider_route_required": True,
-            "delivery_contract": ["provider_route", "local_packager", "public_delivery_gate", "delivery_manifest"],
+            "delivery_contract": ["provider_route", "local_packager", "delivery_fact_check", "agent_delivery_judgment", "public_delivery_gate", "delivery_manifest"],
         }
         result = project_revision_lane.run_provider_revision_job(
             conversation=conversation,
@@ -199,7 +199,11 @@ class MainAgentManager:
         )
         conversation["generation"].update(
             {
-                "status": "revision_delivered" if result.get("status") == "ready" else "rework_blocked",
+                "status": (
+                    "revision_delivered"
+                    if result.get("status") == "ready"
+                    else ("waiting_user_review" if result.get("status") == "waiting_user_review" else "rework_blocked")
+                ),
                 "revision_manifest": result.get("revision_manifest", str(manifest_path)),
                 "package_path": result.get("package_path", ""),
                 "delivery_manifest": result.get("delivery_manifest", ""),

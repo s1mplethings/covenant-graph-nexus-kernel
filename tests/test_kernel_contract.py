@@ -54,6 +54,12 @@ def generation_confirmation_branch(text: str) -> str:
 
 
 class KernelContractTests(unittest.TestCase):
+    def test_kernel_contract_preserves_provider_pass_checkpoints(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("PASS checkpoints", contract)
+        self.assertIn("Failed attempts use separate diagnostics", contract)
+
     def test_kernel_contract_checker_passes(self) -> None:
         result = subprocess.run(
             [sys.executable, "scripts/kernel_contract_check.py"],
@@ -266,16 +272,20 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual("disabled", runtime["status"])
         self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
 
-    def test_public_delivery_gate_is_part_of_kernel_contract(self) -> None:
+    def test_adaptive_delivery_judgment_is_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         bridge_source = read_source("scripts/telegram_live_bridge.py")
         send_manifest = function_body(bridge_source, "send_delivery_from_manifest")
         send_checkpoint = function_body(bridge_source, "send_evidence_checkpoint")
 
-        self.assertIn("Telegram public delivery gate", doc)
-        self.assertIn("README-only/docs-only", doc)
+        self.assertIn("delivery_fact_check", doc)
+        self.assertIn("agent_delivery_judgment", doc)
+        self.assertIn("DELIVER_WITH_WARNINGS", doc)
+        self.assertIn("FACT_BLOCKED", doc)
         self.assertIn("NO TEST EXECUTED", doc)
-        self.assertIn("`.zip`", doc)
+        self.assertIn("any_zip_found", doc)
+        self.assertIn("final_package_exists", doc)
+        self.assertIn("must not mark final delivery as delivered until", doc)
         self.assertIn("PUBLIC_DELIVERY_SUFFIXES", bridge_source)
         self.assertIn("evaluate_public_delivery_gate", send_manifest)
         self.assertIn("evaluate_public_delivery_gate", send_checkpoint)
@@ -291,7 +301,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("requirements.txt", doc)
         self.assertIn("pipeline_step_result.status=rework_blocked", doc)
         self.assertIn("NO TEST EXECUTED", doc)
-        self.assertIn("not `waiting_user_review`", doc)
+        self.assertIn("`ASK_USER_REVIEW` is non-final", doc)
         self.assertIn("_build_completion_audit", runner)
         self.assertIn("_qa_completion_audit", runner)
         self.assertIn('"status": "rework_blocked"', runner)
@@ -325,6 +335,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("do not create a second formal generation path", doc)
         self.assertIn("failed revision", doc)
         self.assertIn("model_policy", doc)
+
+    def test_simulator_and_media_evidence_cannot_fake_delivery(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        packager_source = read_source("scripts/local_packager.py")
+
+        self.assertIn("preflight-only", doc)
+        self.assertIn("never generating fallback media", doc)
+        self.assertIn("run_simulator_preflight", bridge_source)
+        self.assertNotIn("create_fallback_generated_asset", bridge_source)
+        self.assertIn('"archive_members"', packager_source)
+        self.assertIn('"startup_entrypoint"', packager_source)
 
 
 if __name__ == "__main__":

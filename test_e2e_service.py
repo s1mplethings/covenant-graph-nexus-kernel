@@ -61,9 +61,10 @@ def test_backend_response():
     print()
     
     # Check for local image discovery
-    if analysis.get("local_image_discovery", {}).get("checked"):
-        print("✓ 系统已检查本地图片模型\n")
-    
+    if analysis.get("local_image_model_discovery", {}).get("checked"):
+        print("PASS: 系统已检查本地图片模型\n")
+    if not analysis.get("ready_to_generate"):
+        raise AssertionError("明确项目请求未被 backend dialogue 放行")
     return analysis
 
 def test_local_model_discovery():
@@ -121,12 +122,12 @@ def test_api_connectivity():
     result = check_connectivity.check_api(live=True, timeout_sec=10, model="gpt-5.4-nano")
     
     if result.get("ok"):
-        print(f"✓ API 连接成功")
+        print("PASS: API 连接成功")
         print(f"  Base URL: {result.get('base_url')}")
         print(f"  Model: {result.get('model')}")
         print(f"  API Key Source: {result.get('api_key_source', 'unknown')}")
     else:
-        print(f"✗ API 连接失败")
+        print("FAIL: API 连接失败")
         print(f"  Error: {result.get('error')}")
     print()
     
@@ -170,17 +171,18 @@ def test_e2e_flow():
         if strategy.get("capabilities"):
             print(f"  → 识别的能力: 是")
         
-        # Would trigger generation here
-        needs_gen = bool(analysis.get("backend_plan")) or has_image_gen
+        needs_gen = bool(analysis.get("ready_to_generate"))
         print(f"  → 触发生成: {'是' if needs_gen else '否'}")
+        if not needs_gen:
+            raise AssertionError(f"明确项目请求未触发生成决策: {request}")
         
     print()
 
 if __name__ == "__main__":
     print("\n")
-    print("╔" + "=" * 58 + "╗")
-    print("║" + " CGNK 客服系统 E2E 测试 ".center(58) + "║")
-    print("╚" + "=" * 58 + "╝")
+    print("+" + "=" * 58 + "+")
+    print("|" + " CGNK 客服系统 E2E 测试 ".center(58) + "|")
+    print("+" + "=" * 58 + "+")
     print()
     
     try:
@@ -199,20 +201,22 @@ if __name__ == "__main__":
         # Test 5: E2E flow
         test_e2e_flow()
         
+        all_ok = bool(analysis1.get("ready_to_generate")) and bool(api_result.get("ok"))
         print("=" * 60)
-        print("✓ 所有测试完成")
+        print("PASS: 所有测试完成" if all_ok else "FAIL: E2E 验收未通过")
         print("=" * 60)
         print()
-        
-        # Summary
+
         print("系统状态:")
-        print(f"  ✓ 后端对话分析: 正常")
-        print(f"  {'✓' if discovery.get('checked') else '○'} 本地模型检查: {'已启用' if discovery.get('checked') else '禁用'}")
-        print(f"  {'✓' if api_result.get('ok') else '✗'} API 连接: {'✓' if api_result.get('ok') else '✗'}")
+        print("  PASS: 后端对话分析正常")
+        print(f"  {'PASS' if discovery.get('checked') else 'INFO'}: 本地模型检查 {'已启用' if discovery.get('checked') else '禁用'}")
+        print(f"  {'PASS' if api_result.get('ok') else 'FAIL'}: API 连接")
         print()
+        if not all_ok:
+            sys.exit(1)
         
     except Exception as e:
-        print(f"✗ 测试失败: {e}")
+        print(f"FAIL: 测试失败: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

@@ -21,7 +21,7 @@ It is not a replacement for the provider generation route.
 - Bypass provider output validation.
 - Produce final zip delivery directly.
 - Bypass `local_packager`.
-- Bypass `public_delivery_gate`.
+- Bypass `delivery_fact_check` or `agent_delivery_judgment` (`public_delivery_gate` compatibility wrapper).
 - Treat internal JSON, Markdown, logs, or manifests as public attachments.
 - Use `backend_controls` as an execution queue.
 - Reconnect the legacy simulator as a formal generation path.

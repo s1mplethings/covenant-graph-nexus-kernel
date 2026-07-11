@@ -462,11 +462,33 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                     "created_at": bridge.now(),
                 }
             )
+            session["whiteboard"]["local_image_model_discovery"] = {"checked": True, "available": True}
+            screenshot = project / "runtime_ui_screenshot.png"
+            background = project / "runtime_generated_background.png"
+            sprite = project / "runtime_generated_sprite.png"
+            bridge.write_rgb_png(
+                screenshot,
+                640,
+                360,
+                lambda x, y: ((x * 3 + y) % 255, (x + y * 2) % 255, (x * 2 + y * 3) % 255),
+            )
+            bridge.write_rgb_png(
+                background,
+                640,
+                360,
+                lambda x, y: ((x * 5 + y) % 255, (x + y * 3) % 255, (x * 2 + y) % 255),
+            )
+            bridge.write_rgb_png(
+                sprite,
+                320,
+                480,
+                lambda x, y: ((x + y * 4) % 255, (x * 4 + y) % 255, (x * 2 + y * 2) % 255),
+            )
 
             result = bridge.post_build_finalize_provider_project(
                 project,
                 {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
-                {"copied": {}},
+                {"copied": {"ui_screenshot": str(screenshot), "background": str(background), "sprite": str(sprite)}},
                 session,
                 session_dir=session_dir,
                 chat_id="chat-vn-post",
@@ -477,7 +499,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertTrue(result["gate"]["delivery_allowed"], result["gate"])
             self.assertTrue((project / "TEST_REPORT.md").exists())
             self.assertIn("exit_code: 0", (project / "TEST_REPORT.md").read_text(encoding="utf-8"))
-            self.assertTrue((project / "screenshots" / "app_home.png").exists())
+            self.assertTrue((project / "screenshots" / "provider_ui_screenshot.png").exists())
             self.assertTrue(list((project / "assets" / "generated").glob("background_*.png")))
             self.assertTrue(list((project / "assets" / "generated").glob("sprite_*.png")))
             self.assertTrue((project / "generated_image_manifest.json").exists())

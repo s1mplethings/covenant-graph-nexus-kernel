@@ -14,6 +14,25 @@ import scripts.run_local_pipeline as run_local_pipeline
 
 
 class RunLocalPipelineUsageTests(unittest.TestCase):
+    def test_blocked_result_reloads_repair_context_for_same_goal(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_path = pathlib.Path(temp_dir) / "result.json"
+            run_local_pipeline.write_json(
+                result_path,
+                {
+                    "status": "BLOCKED",
+                    "reason": "provider_generation_failed",
+                    "goal": "build app",
+                    "repair_errors": ["provider semantic review failed: missing entrypoint"],
+                },
+            )
+
+            errors = run_local_pipeline.load_recoverable_repair_errors(result_path, "build app")
+            other_goal_errors = run_local_pipeline.load_recoverable_repair_errors(result_path, "other app")
+
+        self.assertEqual(["provider semantic review failed: missing entrypoint"], errors)
+        self.assertEqual([], other_goal_errors)
+
     def test_usage_plan_placeholders_expand_project_file_url(self) -> None:
         project_dir = ROOT / "generated" / "demo_project"
         run_dir = ROOT / "examples" / "runtime_runs" / "demo_project"
@@ -238,6 +257,94 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("foundation", result["component_checkpoint_summary"]["completed_components"])
         self.assertIn("backend", result["component_checkpoint_summary"]["completed_components"])
 
+    def test_semantic_repair_regenerates_checkpointed_components(self) -> None:
+        original = run_local_pipeline.provider_generate_project_component
+        calls: list[str] = []
+
+        def fake_provider_component(**kwargs):
+            component_id = kwargs["component"]["id"]
+            calls.append(component_id)
+            return {
+                "component_id": component_id,
+                "summary": "repaired",
+                "files": [{"path": "app.py", "content": "print('repaired')\n"}],
+                "quality_gate": {"status": "pass"},
+                "self_test": {"status": "pass", "checks": ["validated"]},
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir) / "artifacts" / "provider_components"
+            pipeline = {
+                "components": [{"id": "foundation"}],
+                "merge_policy": {"required_final_files": ["app.py"]},
+            }
+            spec_hash = run_local_pipeline.provider_component_spec_hash("build a project", pipeline, pipeline["components"][0])
+            run_local_pipeline.write_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash=spec_hash,
+                status="pass",
+                raw_output="",
+                parsed_result={"component_id": "foundation"},
+                files=[{"path": "app.py", "content": "print('stale')\n"}],
+                semantic_review={"status": "pass"},
+            )
+            run_local_pipeline.provider_generate_project_component = fake_provider_component
+            try:
+                result = run_local_pipeline.provider_generate_project_by_components(
+                    "build a project",
+                    pipeline,
+                    {},
+                    {},
+                    {},
+                    {},
+                    ["attempt 1: provider semantic review failed: missing runnable behavior"],
+                    "unused",
+                    30,
+                    checkpoint_dir=checkpoint_dir,
+                )
+            finally:
+                run_local_pipeline.provider_generate_project_component = original
+
+        self.assertEqual(["foundation"], calls)
+        self.assertEqual([], result["component_checkpoint_summary"]["skipped_from_checkpoint"])
+        self.assertEqual("print('repaired')\n", result["files"][0]["content"])
+
+    def test_failed_checkpoint_does_not_overwrite_last_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir)
+            run_local_pipeline.write_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="frontend",
+                spec_hash="same",
+                status="pass",
+                raw_output="",
+                parsed_result={"component_id": "frontend"},
+                files=[{"path": "index.html", "content": "<h1>working</h1>\n"}],
+                semantic_review={"status": "pass"},
+            )
+            run_local_pipeline.write_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="frontend",
+                spec_hash="same",
+                status="failed",
+                raw_output="",
+                parsed_result={"component_id": "frontend"},
+                files=[],
+                semantic_review={"status": "fail"},
+                error="temporary TLS failure",
+                provider_error_type="PROVIDER_TRANSPORT_UNSTABLE",
+            )
+
+            cached = run_local_pipeline.load_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="frontend",
+                spec_hash="same",
+            )
+
+        self.assertIsNotNone(cached)
+        self.assertEqual("<h1>working</h1>\n", cached[1][0]["content"])
+
     def test_component_merge_generates_test_plan_from_real_tests(self) -> None:
         original = run_local_pipeline.provider_generate_project_component
 
@@ -311,6 +418,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         merged = {item["path"]: item["content"] for item in files}
         self.assertEqual("<h1>frontend</h1>\n", merged["app/index.html"])
+
+    def test_component_merge_allows_nested_template_asset_conflicts(self) -> None:
+        files = run_local_pipeline.merge_component_files(
+            [
+                {
+                    "component_id": "foundation",
+                    "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>base</h1>\n"}],
+                },
+                {
+                    "component_id": "frontend",
+                    "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>frontend</h1>\n"}],
+                },
+            ]
+        )
+
+        merged = {item["path"]: item["content"] for item in files}
+        self.assertEqual("<h1>frontend</h1>\n", merged["src/task_board/templates/index.html"])
 
     def test_component_merge_allows_template_asset_conflicts(self) -> None:
         files = run_local_pipeline.merge_component_files(

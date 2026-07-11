@@ -109,6 +109,8 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 (target / "README.md").write_text("# Local task manager\n", encoding="utf-8")
                 (target / "main.py").write_text("print('ok')\n", encoding="utf-8")
                 (target / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+                (target / "tests").mkdir(exist_ok=True)
+                (target / "tests" / "test_main.py").write_text("def test_main():\n    assert True\n", encoding="utf-8")
                 (target / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
                 (target / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
                 return {
@@ -129,6 +131,12 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 def start(self):
                     self.target(*self.args, **self.kwargs)
 
+                def join(self, timeout=None):
+                    return None
+
+                def is_alive(self):
+                    return False
+
             bridge.provider_project_pipeline.execute = fake_provider_execute
             bridge.threading.Thread = InlineThread
             bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
@@ -141,7 +149,7 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 bridge.should_auto_start_generation = original_start_policy
 
             session = bridge.load_session(session_dir, "chat-e2e")
-            self.assertIn(str(session["generation"]["status"]).lower(), {"ready", "ready_with_warnings"})
+            self.assertIn(str(session["generation"]["status"]).lower(), {"delivered", "delivered_with_warnings"})
             self.assertNotEqual("queued", str(session["generation"]["status"]).lower())
             ledger_text = bridge.truth_ledger_path(session_dir, "chat-e2e").read_text(encoding="utf-8")
             self.assertIn("package", ledger_text)

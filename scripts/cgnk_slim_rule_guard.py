@@ -96,6 +96,18 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
         missing = [term for term in ROUTE_TERMS if term not in text]
         add(checks, f"{path} names reviewed Telegram route", not missing, ", ".join(missing))
+    add(
+        checks,
+        "kernel contract names adaptive delivery layers",
+        "delivery_fact_check" in kernel and "agent_delivery_judgment" in kernel,
+        "delivery_fact_check or agent_delivery_judgment missing",
+    )
+    add(
+        checks,
+        "telegram bridge implements adaptive delivery layers",
+        "def delivery_fact_check" in bridge and "def agent_delivery_judgment" in bridge,
+        "adaptive delivery functions missing",
+    )
 
     missing_team_files = [path for path in PROJECT_TEAM_FILES if not (ROOT / path).exists()]
     add(checks, "project team manager modules exist", not missing_team_files, ", ".join(missing_team_files))
@@ -118,8 +130,9 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     add(
         checks,
         "generation confirmation dispatch stays thin",
-        "start_agent_generation" in confirmation_branch and not bad_confirmation,
-        ", ".join(bad_confirmation) or "start_agent_generation missing",
+        any(name in confirmation_branch for name in ("start_agent_generation", "start_generation_from_income"))
+        and not bad_confirmation,
+        ", ".join(bad_confirmation) or "reviewed generation starter missing",
     )
 
     start_body = between(bridge, "def start_agent_generation", "def ")

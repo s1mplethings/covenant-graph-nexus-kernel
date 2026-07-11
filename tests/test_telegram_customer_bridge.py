@@ -47,6 +47,29 @@ class InlineThread:
     def start(self):
         self.target(*self.args, **self.kwargs)
 
+    def join(self, timeout=None):
+        return None
+
+    def is_alive(self):
+        return False
+
+
+def make_provider_result(project_dir: pathlib.Path) -> dict:
+    project_dir.mkdir(parents=True, exist_ok=True)
+    (project_dir / "README.md").write_text("# Generated Project\n\nRun `python main.py`.\n", encoding="utf-8")
+    (project_dir / "main.py").write_text("print('ok')\n", encoding="utf-8")
+    (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    (project_dir / "tests").mkdir(exist_ok=True)
+    (project_dir / "tests" / "test_main.py").write_text("def test_main():\n    assert True\n", encoding="utf-8")
+    return {
+        "status": "PASS",
+        "generated_files": ["README.md", "main.py", "requirements.txt", "tests/test_main.py"],
+        "provider_semantic_review": {"status": "pass"},
+        "artifact_refs": {},
+        "agent_usage": {"status": "pass", "events": [{"command": "python main.py"}]},
+        "example_outputs": {},
+    }
+
 
 class TelegramCustomerBridgeTests(unittest.TestCase):
     def assert_public_reply_style(self, text: str) -> None:
@@ -491,36 +514,27 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
-            original_provider_text = bridge.provider_text
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             called = {}
 
-            def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
+            def fake_provider_execute(args):
                 called["ran"] = True
-                called["session_path"] = str(session_path)
-                pathlib.Path(project_dir).mkdir(parents=True, exist_ok=True)
-                (pathlib.Path(project_dir) / "README.md").write_text("# Todo\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "app.py").write_text("print('todo')\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
-                manifest = local_packager.package_project(pathlib.Path(project_dir), startup_command="python app.py")
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
+                called["project_dir"] = str(args.out_dir)
+                return make_provider_result(pathlib.Path(args.out_dir))
 
-            bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
-            bridge.agent_conversation_loop.run_agent_loop = fake_run_agent_loop
+            bridge.provider_project_pipeline.execute = fake_provider_execute
             bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-4", "做一个本地待办事项应用", session_dir, log_dir, "gpt-test", 60)
                 bridge.handle_text(client, "chat-4", "开始生成", session_dir, log_dir, "gpt-test", 60)
             finally:
-                bridge.provider_text = original_provider_text
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
             session = bridge.load_session(session_dir, "chat-4")
             self.assertTrue(called["ran"])
-            self.assertIn("agent_session.jsonl", called["session_path"])
-            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
+            self.assertIn("chat-4", called["project_dir"])
+            self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assert_public_reply_style(client.messages[-1][1])
 
@@ -529,36 +543,28 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
 
-            def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
-                pathlib.Path(project_dir).mkdir(parents=True, exist_ok=True)
-                (pathlib.Path(project_dir) / "README.md").write_text("# VN\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "app.py").write_text("print('vn')\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
-                (pathlib.Path(project_dir) / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
-                manifest = local_packager.package_project(pathlib.Path(project_dir), startup_command="")
-                return {"status": manifest["status"], "manifest": manifest, "manifest_path": manifest["manifest_path"]}
-
-            bridge.agent_conversation_loop.run_agent_loop = fake_run_agent_loop
+            bridge.provider_project_pipeline.execute = lambda args: make_provider_result(pathlib.Path(args.out_dir))
             bridge.threading.Thread = InlineThread
 
             try:
                 bridge.handle_text(client, "chat-control", "做一个本地 VN 助手，要时间线和图片预览", session_dir, log_dir, "gpt-test", 60)
                 bridge.handle_text(client, "chat-control", "开始生成", session_dir, log_dir, "gpt-test", 60)
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
 
             session = bridge.load_session(session_dir, "chat-control")
             controls = session.get("backend_controls", [])
             start_controls = [row for row in controls if row.get("action") == "agent_loop_started"]
             self.assertEqual(0, len(start_controls))
-            self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
+            self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
-            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
-            self.assertEqual("REWORK_BLOCKED", session["generation"]["status"].upper())
+            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual("DELIVER_WITH_WARNINGS", session["generation"]["delivery_gate"]["verdict"])
+            self.assertEqual("DELIVERED_WITH_WARNINGS", session["generation"]["status"].upper())
 
     def test_startup_auto_starts_pending_intake(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -614,7 +620,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             events = bridge.agent_session_path(session_dir, "chat-revise").read_text(encoding="utf-8")
             self.assertIn("背景和立绘", events)
 
-    def test_completed_project_update_waits_for_confirmation(self) -> None:
+    def test_completed_project_update_can_start_provider_revision_with_assumptions(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -622,7 +628,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session = bridge.default_session("chat-restart")
             session["messages"].append({"role": "user", "text": "做一个本地 VN 助手", "created_at": bridge.now()})
             session["whiteboard"]["project_summary"] = "做一个本地 VN 助手"
-            session["generation"] = {"status": "ready_with_warnings", "driver": "agent_conversation_loop"}
+            session["generation"] = {"status": "ready_with_warnings", "driver": "api_provider_project_generation"}
             bridge.save_session(session_dir, session)
             original_start = bridge.start_agent_generation
             called = {}
@@ -630,8 +636,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
                 called["reason"] = reason
                 next_session = bridge.load_session(session_dir_arg, chat_id)
-                bridge.update_active_run_status(next_session, "running", driver="agent_conversation_loop")
-                next_session["generation"] = {"status": "running", "driver": "agent_conversation_loop"}
+                bridge.update_active_run_status(next_session, "running", driver="api_provider_project_generation")
+                next_session["generation"] = {"status": "running", "driver": "api_provider_project_generation"}
                 bridge.save_session(session_dir_arg, next_session)
 
             bridge.start_agent_generation = fake_start
@@ -641,13 +647,9 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 bridge.start_agent_generation = original_start
 
             session = bridge.load_session(session_dir, "chat-restart")
-            self.assertNotEqual("running", session["generation"]["status"])
-            self.assertEqual({}, called)
-            self.assertTrue(session["generation_start_waiting"])
-            self.assertIn("有几个点会直接影响实现质量", client.messages[-1][1])
-            self.assertIn("不会马上开工", client.messages[-1][1])
-            self.assertNotIn("我已记下", client.messages[-1][1])
-            self.assertNotIn("收到，方向", client.messages[-1][1])
+            self.assertEqual("running", session["generation"]["status"])
+            self.assertEqual("project_update_income_auto_start", called["reason"])
+            self.assertFalse(session.get("generation_start_waiting", False))
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
 
     def test_project_attachment_waits_for_confirmation(self) -> None:
@@ -753,18 +755,18 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session["whiteboard"]["blocking_questions"] = ["背景和立绘要用同一个模型吗？", "是否需要导出脚本？"]
             session["active_run"] = {"id": "run-chat-decision-1", "status": "intake_open"}
             bridge.save_session(session_dir, session)
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
-            bridge.agent_conversation_loop.run_agent_loop = lambda **kwargs: {"status": "max_turns_reached", "manifest": {}, "manifest_path": ""}
+            bridge.provider_project_pipeline.execute = lambda args: make_provider_result(pathlib.Path(args.out_dir))
             bridge.threading.Thread = InlineThread
             try:
                 bridge.handle_text(client, "chat-decision", "开始生成", session_dir, log_dir, "gpt-test", 60)
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
             session = bridge.load_session(session_dir, "chat-decision")
             self.assertNotEqual("waiting_decision", session["active_run"]["status"])
-            self.assertIn("agent_conversation_loop", session["generation"]["driver"])
+            self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_provider_escalation_requires_blocked_retry_exhausted_and_explicit_request(self) -> None:

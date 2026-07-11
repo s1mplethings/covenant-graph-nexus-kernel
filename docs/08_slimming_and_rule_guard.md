@@ -13,7 +13,8 @@ Telegram intake
 -> provider output validation
 -> post-build finalization
 -> local_packager
--> public_delivery_gate
+-> delivery_fact_check
+-> agent_delivery_judgment (`public_delivery_gate` compatibility wrapper)
 -> delivery_manifest.json
 ```
 
@@ -24,7 +25,7 @@ Telegram intake
 1. Keep `telegram_live_bridge.py` as a bridge: Telegram intake, session persistence, generation dispatch, user-visible delivery, and guarded replies only.
 2. Move project/domain-specific repair logic into skills, adapters, or legacy modules. Do not keep adding one-off generated-project hotfixes to the bridge.
 3. Public delivery must send only user-facing package/media artifacts by default. Internal reports, manifests, ledgers, logs, and Markdown files stay in the evidence bundle unless explicitly requested.
-4. Any new fallback must record `pipeline_fallback`, must stay behind validation, and must pass `local_packager` plus `public_delivery_gate` before user delivery.
+4. Any new fallback must record `pipeline_fallback`, stay behind validation, and pass `local_packager`, factual checking, and adaptive delivery judgment before user delivery.
 5. If a change increases bridge size or adds domain labels as a route decision, add or update a guard test in the same commit.
 
 ## Cleanup Order

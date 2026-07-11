@@ -99,13 +99,22 @@ def check_telegram(results: list[CheckResult]) -> None:
     ]
     add(results, "generation_confirmation does not call legacy pipeline", bool(generation_branch) and not forbidden, ", ".join(forbidden))
     generation_calls = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", generation_branch)
-    start_calls = [call for call in generation_calls if call == "start_agent_generation"]
+    start_calls = [call for call in generation_calls if call in {"start_agent_generation", "start_generation_from_income"}]
     forbidden_generation_calls = [call for call in generation_calls if call in {"run_agent_loop", "run_generation_job", "run_generation_subprocess"}]
     add(
         results,
-        "generation_confirmation only starts formal generation through start_agent_generation",
+        "generation_confirmation only starts formal generation through the reviewed generation starter",
         bool(start_calls) and not forbidden_generation_calls,
-        ", ".join(forbidden_generation_calls) or "start_agent_generation missing",
+        ", ".join(forbidden_generation_calls) or "reviewed generation starter missing",
+    )
+
+    income_start = function_body(text, "start_generation_from_income")
+    ok, missing = contains_all(income_start, ["start_agent_generation", "run_simulator_preflight"])
+    add(
+        results,
+        "generation starter routes api to provider and simulator to preflight only",
+        ok,
+        ", ".join(missing),
     )
 
     gate_pattern = r'if[^\n]*(soft_questions|blocking_questions)[^\n]*:\s*\n(?:\s+.*\n){0,6}?\s+return\b'
@@ -138,7 +147,12 @@ def check_telegram(results: list[CheckResult]) -> None:
             "finish_agent_loop_delivery",
         ],
     )
-    add(results, "provider generation route is wrapped by packager and public gate", ok, ", ".join(missing))
+    add(results, "provider generation route is wrapped by packager and adaptive delivery judgment", ok, ", ".join(missing))
+    adaptive_ok, adaptive_missing = contains_all(
+        text,
+        ["def delivery_fact_check", "def agent_delivery_judgment", "adaptive_delivery.delivery_fact_check", "adaptive_delivery.agent_delivery_judgment"],
+    )
+    add(results, "adaptive delivery fact and judgment layers are implemented", adaptive_ok, ", ".join(adaptive_missing))
 
     job = function_body(text, "run_agent_generation_job")
     planner_index = job.find("pipeline_planner_agent.plan_pipeline")

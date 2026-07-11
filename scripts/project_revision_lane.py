@@ -3,7 +3,7 @@ from __future__ import annotations
 
 # Phase 2 executes revisions through injected provider/finalize/package/gate adapters.
 # The lane still preserves the single formal delivery contract: provider route,
-# local_packager, public_delivery_gate, then delivery_manifest.
+# local_packager, delivery_fact_check, adaptive delivery judgment, then delivery_manifest.
 
 import json
 import pathlib
@@ -109,7 +109,7 @@ def create_revision_plan(conversation: dict[str, Any], revision_request: dict[st
         "preserve_requirements": preserve,
         "new_requirements": [request_text] if request_text else [],
         "removed_features": [],
-        "delivery_contract": ["local_packager", "public_delivery_gate", "delivery_manifest"],
+        "delivery_contract": ["local_packager", "delivery_fact_check", "agent_delivery_judgment", "public_delivery_gate", "delivery_manifest"],
     }
 
 
@@ -135,7 +135,7 @@ def build_revision_goal(conversation: dict[str, Any], revision_request: dict[str
         parts.append(f"Preserve: {item}")
     for item in revision_plan.get("new_requirements", []) if isinstance(revision_plan.get("new_requirements"), list) else []:
         parts.append(f"Change request: {item}")
-    parts.append("Final delivery must use local_packager, public_delivery_gate, and delivery_manifest.")
+    parts.append("Final delivery must use local_packager, delivery_fact_check, agent_delivery_judgment, the public_delivery_gate compatibility wrapper, and delivery_manifest.")
     return "\n".join(part for part in parts if str(part).strip())
 
 
@@ -290,7 +290,7 @@ def run_provider_revision_job(
             "started_at": now(),
             "model": str(model or ""),
             "provider_route": "api_provider_project_generation",
-            "delivery_contract": ["provider_route", "local_packager", "public_delivery_gate", "delivery_manifest"],
+            "delivery_contract": ["provider_route", "local_packager", "delivery_fact_check", "agent_delivery_judgment", "public_delivery_gate", "delivery_manifest"],
             "current_promoted": False,
         }
     )
@@ -330,19 +330,7 @@ def run_provider_revision_job(
         delivery_manifest = _result_path(package_manifest, "manifest_path")
         manifest["package_path"] = package_path
         manifest["delivery_manifest"] = delivery_manifest
-        artifact_missing = _artifact_missing(package_path, delivery_manifest)
-        if artifact_missing:
-            gate = {
-                "delivery_allowed": False,
-                "status": "REWORK",
-                "missing": artifact_missing,
-            }
-            manifest["public_delivery_gate"] = gate
-            manifest["current_promoted"] = False
-            failed = mark_revision_failed(conversation, manifest, "delivery_artifact_missing")
-            return _revision_result(failed, "rework_blocked", "delivery_artifact_missing")
-
-        # The concrete adapter is expected to be public_delivery_gate evaluation.
+        # The concrete adapter performs delivery_fact_check followed by adaptive agent judgment.
         gate = _call_adapter(
             evaluate_public_delivery_gate,
             project_dir=workspace,
@@ -353,11 +341,25 @@ def run_provider_revision_job(
         )
         if not isinstance(gate, dict):
             raise RuntimeError("evaluate_public_delivery_gate returned non-object result")
+        artifact_missing = _artifact_missing(package_path, delivery_manifest)
+        if artifact_missing:
+            gate = dict(gate)
+            gate["delivery_allowed"] = False
+            gate["is_final"] = False
+            gate["verdict"] = "FACT_BLOCKED"
+            gate["status"] = "FACT_BLOCKED"
+            gate["missing"] = sorted(set(list(gate.get("missing", [])) + artifact_missing))
+            gate["required_repairs"] = sorted(set(list(gate.get("required_repairs", [])) + artifact_missing))
+        elif gate.get("delivery_allowed") is True and "is_final" not in gate:
+            gate = dict(gate)
+            gate["is_final"] = True
         if package_path and not public_delivery_is_safe(package_path):
             gate = dict(gate)
             gate["delivery_allowed"] = False
-            gate["status"] = "REWORK"
-            gate["missing"] = sorted(set(list(gate.get("missing", [])) + ["public_package_suffix"]))
+            gate["is_final"] = False
+            gate["verdict"] = "FACT_BLOCKED"
+            gate["status"] = "FACT_BLOCKED"
+            gate["required_repairs"] = sorted(set(list(gate.get("required_repairs", [])) + ["public_package_suffix"]))
         manifest["public_delivery_gate"] = gate
 
         # _changed_files_for_revision wraps local_repo_manager.compute_changed_files.
@@ -370,6 +372,14 @@ def run_provider_revision_job(
             warning = _merge_changed_files_warning(warning, "all changed files were internal/generated artifacts")
         if warning:
             manifest["changed_files_warning"] = warning
+
+        if gate.get("delivery_allowed") is True and gate.get("is_final") is not True:
+            manifest["status"] = "waiting_user_review"
+            manifest["current_promoted"] = False
+            manifest["updated_at"] = now()
+            write_revision_manifest(manifest)
+            local_conversation_manager.append_revision_history(conversation, manifest)
+            return _revision_result(manifest, "waiting_user_review")
 
         if gate.get("delivery_allowed") is not True:
             manifest["current_promoted"] = False

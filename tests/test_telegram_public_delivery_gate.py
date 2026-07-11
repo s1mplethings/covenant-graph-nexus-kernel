@@ -13,12 +13,15 @@ import scripts.telegram_live_bridge as bridge
 
 
 class FakeTelegramClient:
-    def __init__(self) -> None:
+    def __init__(self, *, document_success: bool = True, photo_success: bool = True, video_success: bool = True) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.videos: list[tuple[str, pathlib.Path, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
+        self.document_success = document_success
+        self.photo_success = photo_success
+        self.video_success = video_success
 
     def send_message(self, chat_id: int | str, text: str) -> bool:
         self.messages.append((str(chat_id), text))
@@ -29,15 +32,15 @@ class FakeTelegramClient:
 
     def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.photos.append((str(chat_id), pathlib.Path(path), caption))
-        return True
+        return self.photo_success
 
     def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.videos.append((str(chat_id), pathlib.Path(path), caption))
-        return True
+        return self.video_success
 
     def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
-        return True
+        return self.document_success
 
 
 def vn_session(chat_id: str) -> dict:
@@ -48,6 +51,26 @@ def vn_session(chat_id: str) -> dict:
     session["active_run"] = {"id": f"run-{chat_id}-1", "status": "running", "created_at": bridge.now()}
     session["generation"] = {"status": "running"}
     return session
+
+
+def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
+    project = root / "project"
+    (project / "screenshots").mkdir(parents=True)
+    (project / "generated").mkdir(parents=True)
+    (project / "README.md").write_text("# VN helper\n", encoding="utf-8")
+    (project / "TEST_PLAN.md").write_text("# Test plan\n", encoding="utf-8")
+    (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
+    (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python main.py\n", encoding="utf-8")
+    (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+    screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
+    background = project / "generated" / "background_scene.png"
+    sprite = project / "generated" / "character_sprite.png"
+    screenshot.write_bytes(b"png")
+    background.write_bytes(b"png")
+    sprite.write_bytes(b"png")
+    manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+    return project, manifest
 
 
 class TelegramPublicDeliveryGateTests(unittest.TestCase):
@@ -89,8 +112,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("REWORK_BLOCKED", saved["generation"]["status"].upper())
         self.assertEqual("REWORK_BLOCKED", saved["active_run"]["status"].upper())
         joined_replies = "\n".join(text for _, text in client.messages)
-        self.assertIn("生成没有通过交付检查", joined_replies)
-        self.assertIn("不会把内部记录当成果发给你", joined_replies)
+        self.assertIn("事实级问题", joined_replies)
+        self.assertIn("不会把缺失文件、占位内容或内部记录当成成果", joined_replies)
         self.assertNotIn("后台", joined_replies)
         self.assertNotIn("中间测试和预览证据已准备好", joined_replies)
 
@@ -98,21 +121,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
-            project = root / "project"
-            (project / "screenshots").mkdir(parents=True)
-            (project / "generated").mkdir(parents=True)
-            (project / "README.md").write_text("# VN helper\n", encoding="utf-8")
-            (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
-            (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
-            (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python main.py\n", encoding="utf-8")
-            (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
-            screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
-            background = project / "generated" / "background_scene.png"
-            sprite = project / "generated" / "character_sprite.png"
-            screenshot.write_bytes(b"png")
-            background.write_bytes(b"png")
-            sprite.write_bytes(b"png")
-            manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+            project, manifest = make_deliverable_project(root)
             session = vn_session("chat-pass")
             bridge.save_session(session_dir, session)
             client = FakeTelegramClient()
@@ -127,6 +136,82 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertTrue(any(caption == "生成立绘" for _, _, caption in client.photos))
         self.assertEqual([".zip"], sorted({path.suffix.lower() for _, path, _ in client.documents}))
         self.assertFalse(any(path.suffix.lower() in {".md", ".json", ".txt", ".log"} for _, path, _ in client.documents))
+
+    def test_placeholder_screenshot_does_not_satisfy_requested_screenshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            for path in (project / "screenshots").glob("*"):
+                path.unlink()
+            placeholder = project / "screenshots" / "fallback_mock_screenshot.png"
+            placeholder.write_bytes(b"placeholder")
+            manifest["artifacts"]["preview_evidence"] = [str(placeholder)]
+            session = vn_session("chat-placeholder-screen")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertIn("screenshots", gate["missing"])
+        self.assertTrue(any("Requested real delivery evidence is missing: screenshots" in item for item in gate["warnings"]))
+
+    def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            for path in (project / "generated").glob("*"):
+                path.unlink()
+            placeholder = project / "generated" / "fallback_mock_background.png"
+            placeholder.write_bytes(b"placeholder")
+            manifest["artifacts"]["preview_evidence"] = [str(placeholder)]
+            session = vn_session("chat-placeholder-bg")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertIn("generated_background", gate["missing"])
+        self.assertIn("generated_images", gate["missing"])
+        self.assertTrue(any("Requested real delivery evidence is missing" in item for item in gate["warnings"]))
+
+    def test_delivery_allowed_but_no_artifact_sent_does_not_mark_delivered(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_deliverable_project(root)
+            session = vn_session("chat-empty-send")
+            bridge.save_session(session_dir, session)
+            original_gate = bridge.evaluate_public_delivery_gate
+            bridge.evaluate_public_delivery_gate = lambda *args, **kwargs: {
+                "verdict": "ASK_USER_REVIEW",
+                "status": "ASK_USER_REVIEW",
+                "delivery_allowed": True,
+                "is_final": False,
+                "can_send_artifacts": [],
+                "missing": [],
+                "warnings": [],
+            }
+            try:
+                sent = bridge.send_delivery_from_manifest(FakeTelegramClient(), "chat-empty-send", session_dir, session, manifest)
+            finally:
+                bridge.evaluate_public_delivery_gate = original_gate
+            saved = bridge.load_session(session_dir, "chat-empty-send")
+
+        self.assertEqual([], sent)
+        self.assertNotIn(saved["generation"]["status"], {"delivered", "delivered_with_warnings"})
+        self.assertEqual("no_public_artifacts_sent", saved["generation"]["delivery_gate"]["delivery_send_diagnostic"]["reason"])
+
+    def test_final_delivery_requires_package_send_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_deliverable_project(root)
+            session = vn_session("chat-package-fail")
+            bridge.save_session(session_dir, session)
+            client = FakeTelegramClient(document_success=False)
+
+            sent = bridge.send_delivery_from_manifest(client, "chat-package-fail", session_dir, session, manifest)
+            saved = bridge.load_session(session_dir, "chat-package-fail")
+
+        self.assertFalse(any(item["kind"] == "package" for item in sent))
+        self.assertNotIn(saved["generation"]["status"], {"delivered", "delivered_with_warnings"})
+        self.assertEqual("final_package_send_failed", saved["generation"]["delivery_gate"]["delivery_send_diagnostic"]["reason"])
 
 
 if __name__ == "__main__":

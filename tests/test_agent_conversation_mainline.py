@@ -52,6 +52,12 @@ class InlineThread:
     def start(self):
         self.target(*self.args, **self.kwargs)
 
+    def join(self, timeout=None):
+        return None
+
+    def is_alive(self):
+        return False
+
 
 def read_jsonl(path: pathlib.Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -68,11 +74,12 @@ def make_manifest(project_dir: pathlib.Path) -> dict:
 
 def make_provider_result(project_dir: pathlib.Path) -> dict:
     make_manifest(project_dir)
+    (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
     (project_dir / "tests").mkdir(exist_ok=True)
     (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     return {
         "status": "PASS",
-        "generated_files": ["README.md", "app.py", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
+        "generated_files": ["README.md", "app.py", "requirements.txt", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
         "provider_semantic_review": {"status": "pass"},
         "artifact_refs": {},
         "agent_usage": {"status": "pass", "events": [{"command": "python app.py"}]},
@@ -408,7 +415,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertFalse(client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("生成没有通过交付检查", joined)
+            self.assertIn("事实级问题", joined)
 
     def test_agent_pipeline_failure_becomes_rework_without_internal_public_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -437,11 +444,11 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertEqual([], client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("生成没有通过交付检查", joined)
+            self.assertIn("事实级问题", joined)
             for forbidden in ("TLS", "provider", "backend", "后台", "pipeline", "manifest"):
                 self.assertNotIn(forbidden, joined)
 
-    def test_run_local_pipeline_no_api_blocked_not_connected_to_telegram_mainline(self) -> None:
+    def test_simulator_mode_is_preflight_only_and_does_not_deliver(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
@@ -472,8 +479,10 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertTrue(called["provider"])
             session = bridge.load_session(session_dir, "chat-no-api")
-            self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
-            self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
+            self.assertEqual("simulator_preflight", session["generation"]["driver"])
+            self.assertEqual("rework_blocked", session["generation"]["status"])
+            self.assertFalse(session["generation"]["delivery_allowed"])
+            self.assertFalse((ROOT / "generated" / "simulator_preflight" / "chat-no-api" / "final_project_bundle.zip").exists())
 
 
 if __name__ == "__main__":

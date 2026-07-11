@@ -38,7 +38,8 @@ def test_local_studio_docs_preserve_delivery_contract() -> None:
     assert "not introduce a new formal generation path" in doc
     assert "MainAgentManager" in doc
     assert "local_packager" in doc
-    assert "public_delivery_gate" in doc
+    assert "delivery_fact_check" in doc
+    assert "agent_delivery_judgment" in doc
     assert "delivery_manifest" in doc
 
 

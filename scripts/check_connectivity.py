@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import ssl
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -146,6 +147,8 @@ def _error_is_retryable(error: str) -> bool:
 def _provider_error_type(error: str) -> str:
     text = str(error or "")
     lowered = text.lower()
+    if "missing openai-compatible api key" in lowered or "api_generation_mode requires configured" in lowered:
+        return "PROVIDER_MISSING_CONFIG"
     if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
         return "PROVIDER_KEY_USAGE_LIMIT"
     if "http 403" in lowered:
@@ -351,10 +354,19 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
     endpoint = _openai_compatible_endpoint(root)
     payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8})
-    doc, error = _post_json(endpoint, payload, token, timeout_sec)
+    doc: dict[str, Any] | None = None
+    error = ""
+    attempts = 0
+    for attempts in range(1, 4):
+        doc, error = _post_json(endpoint, payload, token, timeout_sec)
+        if doc is not None or not _error_is_retryable(error):
+            break
+        if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
+            time.sleep(float(attempts))
     result["endpoint_mode"] = endpoint_mode
     result["endpoint"] = endpoint
     result["tls_verify"] = _tls_verify_enabled()
+    result["attempts"] = attempts
     if doc is None:
         result["error"] = error
         return result

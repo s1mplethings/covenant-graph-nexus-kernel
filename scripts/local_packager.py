@@ -122,6 +122,21 @@ def _looks_like_demo_data_project(project: pathlib.Path, known_limits: list[str]
     return any(token in lowered for token in ("csgo", "csgo2", "cs2", "demo", "数据分析", "data analysis", "鉴挂", "反作弊", "外部文件", "样例输入"))
 
 
+def _relative_file(project: pathlib.Path, path: pathlib.Path) -> str:
+    try:
+        return str(path.resolve().relative_to(project)).replace("\\", "/")
+    except ValueError:
+        return str(path.resolve())
+
+
+def _startup_entrypoint(project: pathlib.Path) -> pathlib.Path | None:
+    for name in ("app.py", "main.py", "package.json", "index.html"):
+        path = project / name
+        if path.is_file():
+            return path
+    return None
+
+
 def collect_quality_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     paths = {
@@ -249,6 +264,7 @@ def package_project(
 
     package_path = target_dir / "final_project_bundle.zip"
     tmp_package = target_dir / f"final_project_bundle.{int(time.time() * 1000)}.tmp"
+    archive_members: list[str] = []
     with zipfile.ZipFile(tmp_package, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(project.rglob("*")):
             if not path.is_file():
@@ -260,10 +276,20 @@ def package_project(
                 continue
             if path.name == "delivery_manifest.json" and path.parent.resolve() == target_dir.resolve():
                 continue
-            zf.write(path, path.relative_to(project))
+            relative = path.relative_to(project)
+            zf.write(path, relative)
+            archive_members.append(str(relative).replace("\\", "/"))
     tmp_package.replace(package_path)
 
     combined_limits = list(known_limits or []) + warnings
+    entrypoint = _startup_entrypoint(project)
+    test_plan = project / "TEST_PLAN.md"
+    test_report = project / "TEST_REPORT.md"
+    preview_paths = [
+        _relative_file(project, path)
+        for path in _preview_candidates(project)
+        if not _is_placeholder_preview(path)
+    ]
     manifest = {
         "kind": "CGNKDeliveryManifest",
         "created_at": now(),
@@ -276,6 +302,15 @@ def package_project(
         "known_limits": combined_limits,
         "quality_evidence": quality_evidence,
         "user_review_evidence": user_review_evidence,
+        "artifacts": {
+            "readme": _relative_file(project, readme),
+            "startup_entrypoint": _relative_file(project, entrypoint) if entrypoint else "",
+            "test_plan": _relative_file(project, test_plan) if test_plan.is_file() else "",
+            "test_report": _relative_file(project, test_report) if test_report.is_file() else "",
+            "preview_evidence": preview_paths,
+            "delivery_zip": str(package_path.resolve()),
+        },
+        "archive_members": archive_members,
     }
     manifest_path = target_dir / "delivery_manifest.json"
     manifest["manifest_path"] = str(manifest_path.resolve())

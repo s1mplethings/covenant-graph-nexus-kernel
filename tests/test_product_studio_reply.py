@@ -21,8 +21,8 @@ class ProductStudioReplyTests(unittest.TestCase):
             }
         )
         self.assertIn("project_type_mismatch", text)
-        self.assertIn("项目方向偏题", text)
-        self.assertIn("虚拟项目组", text)
+        self.assertIn("项目方向出现偏差", text)
+        self.assertNotIn("虚拟项目组", text)
 
     def test_timeout_reply_is_not_only_generic_timeout(self) -> None:
         text = product_studio_reply.compose_timeout_or_blocked_reply(
@@ -34,8 +34,8 @@ class ProductStudioReplyTests(unittest.TestCase):
             }
         )
         self.assertIn("generation subprocess exceeded total timeout", text)
-        self.assertIn("最后阶段", text)
-        self.assertIn("缺失 artifact", text)
+        self.assertIn("最后进展", text)
+        self.assertIn("缺失材料", text)
 
 
 if __name__ == "__main__":

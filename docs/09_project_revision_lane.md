@@ -2,7 +2,7 @@
 
 The project revision lane lets CGNK continue work on an active project without treating every user change as a brand-new project.
 
-It is not a second public delivery route. A successful revision must still use the reviewed provider generation route, post-build finalization, `local_packager`, `public_delivery_gate`, and a `delivery_manifest`.
+It is not a second public delivery route. A successful revision must still use the reviewed provider generation route, post-build finalization, `local_packager`, `delivery_fact_check`, `agent_delivery_judgment`, and a `delivery_manifest`. `public_delivery_gate` remains the compatibility wrapper name.
 
 ## Phase 1 Scope
 
@@ -24,7 +24,7 @@ It does not yet execute provider-backed revision generation.
 
 Phase 2 adds provider-backed revision execution.
 
-Revision execution is not a second public delivery route. It is a controlled revision entry into the same provider route and must still complete through `local_packager`, `public_delivery_gate`, and `delivery_manifest`.
+Revision execution is not a second public delivery route. It is a controlled revision entry into the same provider route and must still complete through packaging, factual checking, adaptive judgment, and `delivery_manifest`.
 
 The formal Phase 2 flow is:
 
@@ -33,7 +33,8 @@ project_revision_request
 -> run_provider_revision_job
 -> post_build_finalize
 -> local_packager
--> public_delivery_gate
+-> delivery_fact_check
+-> agent_delivery_judgment
 -> mark_revision_success
 -> deliver revN
 ```
@@ -44,7 +45,7 @@ Success requires:
 - post-build finalization runs
 - package exists
 - delivery manifest exists
-- `public_delivery_gate.delivery_allowed` is true
+- the adaptive judgment has `delivery_allowed=true` and `is_final=true`
 - `changed_files` is recorded or a warning explains why it could not be calculated
 
 Revision `changed_files` excludes internal test environments, caches, package bundles, and delivery manifests so revision history remains human-readable.
@@ -97,4 +98,4 @@ A failed revision must not promote its workspace to `current`, must not update t
 
 ## Delivery Rule
 
-README-only or docs-only output is not a successful revision. Public delivery must be a safe media/package artifact and must pass `public_delivery_gate`.
+README-only or docs-only output is not a successful revision. Final promotion requires a safe media/package artifact and a final allowed adaptive verdict; `ASK_USER_REVIEW` does not promote current.

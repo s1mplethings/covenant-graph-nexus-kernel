@@ -58,9 +58,9 @@ class TelegramGenerationTimeoutResultTests(unittest.TestCase):
                 "missing_artifacts": ["generation_result.json", "visual_evidence_plan.json"],
             }
         )
-        self.assertIn("虚拟项目组", reply)
-        self.assertIn("后台生成超过", reply)
-        self.assertIn("缺失 artifact", reply)
+        self.assertNotIn("虚拟项目组", reply)
+        self.assertIn("这一轮等待时间已到", reply)
+        self.assertIn("缺失材料", reply)
 
 
 if __name__ == "__main__":

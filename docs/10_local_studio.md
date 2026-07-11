@@ -42,4 +42,4 @@ Do not commit generated test history, project memory, uploads, or packaged proje
 
 ## Delivery
 
-Local Studio may show project status and references, but public delivery still depends on `local_packager`, `public_delivery_gate`, and `delivery_manifest`. A revision is promoted only after the public gate allows delivery.
+Local Studio may show project status and references, but public delivery still depends on `local_packager`, `delivery_fact_check`, `agent_delivery_judgment`, and `delivery_manifest`. A revision is promoted only after a final allowed verdict; warning delivery is allowed, while user-review state is non-final.

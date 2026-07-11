@@ -56,15 +56,18 @@ Generated apps and runtime/test outputs are not source. They are written to `gen
 Telegram
   -> agent_session
   -> whiteboard/backend_dialogue
-  -> pipeline_planner_agent
-  -> pipeline_manifest
-  -> dynamic_pipeline_runner
-  -> local_agent_actions / local_agent_skills
+  -> reviewed API/provider project generation
+  -> provider output validation and semantic review
+  -> post-build tests and evidence collection
   -> local_packager
+  -> delivery_fact_check
+  -> agent_delivery_judgment
   -> delivery_manifest
 ```
 
-The Kernel is stable. The pipeline is agent-generated for each project from the current whiteboard and session history. The project is fully generated inside the bounded project workspace. Skills are controlled capability modules, and the whiteboard is the shared communication surface across intake, planning, generation, and delivery.
+`pipeline_planner_agent` + `pipeline_manifest` + `dynamic_pipeline_runner` remain the support/experimental planning lane. They do not replace the Telegram default provider route and cannot call the raw `run_local_pipeline.py` CLI as a second delivery mainline.
+
+The project is generated inside a bounded workspace. Simulator mode is preflight-only and cannot produce a public PASS or delivery bundle.
 
 ## Product Studio Direction
 
@@ -74,7 +77,7 @@ Let the user provide goal, input, output, and constraints.
 Create a virtual team before implementation.
 Freeze the output contract before building.
 Turn product story claims into acceptance implications.
-Require runnable project, test data, test report, visual evidence, and delivery bundle for PASS.
+Require factual project evidence for final PASS; allow honest warning/review delivery when non-factual quality evidence is incomplete.
 ```
 
 ## Core Direction
@@ -101,7 +104,9 @@ customer_intent
   -> delivery_bundle
 ```
 
-A generated project MUST NOT be marked PASS unless the delivery contains a runnable project, startup instructions, test data, test report, required screenshots or visual evidence, a project package, known limits, and a revision entry.
+A generated project must never receive `PASS_FINAL` without a real runnable result and final zip. Missing tests, previews, local models, or datasets may instead produce `DELIVER_WITH_WARNINGS`, `NEEDS_REWORK`, or `ASK_USER_REVIEW`; they are not automatic factual blocks.
+
+`agent_delivery_judgment` uses the bounded local judgment fallback by default. Set `CGNK_ADAPTIVE_DELIVERY_AGENT=provider` to request a provider-backed strict JSON judgment; factual blockers still override the returned verdict.
 
 ## Stable Baseline Guarantees
 
@@ -149,11 +154,22 @@ flow.project_refactor@1: OK errors=0
 
 ## Generation Workflow
 
-Use `scripts/generate_project.py` as the front door:
+Telegram is the reviewed public generation front door. Its default route is:
 
-```bash
-python scripts/generate_project.py --requirement "Build a local project that turns a requirement into blueprint artifacts"
+```text
+requirement analysis
+-> provider project generation
+-> local validation and provider semantic review
+-> generated project files
+-> post-build tests and evidence
+-> local_packager
+-> delivery_fact_check
+-> agent_delivery_judgment
+-> delivery_manifest.json
+-> Telegram attachment delivery
 ```
+
+`scripts/run_local_pipeline.py` exposes the reviewed provider implementation for direct diagnostics and acceptance runs. API mode requires `--allow-network --allow-provider --use-api`. Without those flags it performs preflight only and returns a blocked result; it does not generate a fallback project.
 
 Project-file generation is provider-backed by policy. The local composer reduces API context by splitting the project into component-scoped generation calls, then merging component file batches with conflict checks. The generated `pipeline_plan` includes a `component_pipeline` with component ids, dependencies, path hints, prompt budgets, and merge policy.
 
@@ -183,16 +199,16 @@ For local pipeline composition:
 python scripts/compose_local_pipeline.py --goal "Need customer intake, local librarian, local agent planning, project generation, test graph, and effect report" --no-network --no-provider
 ```
 
-For local execution:
+For an explicit provider-backed local acceptance run:
 
 ```bash
-python scripts/run_local_pipeline.py --goal "Generate a generic CGNK project" --no-provider
+python scripts/run_local_pipeline.py --goal "Build a local task board" --allow-network --allow-provider --use-api
 ```
 
 Local execution writes the standard runtime artifacts plus durable long-context artifacts under the run directory:
 `conversation_state.json`, `decision_ledger.json`, `generation_checkpoint.json`, and `context_pack.json`.
 
-Optional local-model route hints are disabled unless explicitly enabled with `--use-local-model`. Project-file generation uses the configured provider/API by default; use `--no-api`, `--no-provider`, or `--no-network` only when you intentionally want the provider-only generation policy to fail before writing files.
+Project-file generation uses the configured provider/API. Use `--no-api`, `--no-provider`, or `--no-network` only for preflight diagnostics that intentionally stop before project-file generation.
 
 For a compact Product Studio run artifact:
 

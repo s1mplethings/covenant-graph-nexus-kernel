@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import unittest
@@ -100,6 +101,39 @@ class ProviderApiTransportTests(unittest.TestCase):
             {"model": "gpt-5.4-nano", "input": "user: ping", "temperature": 0.2, "max_output_tokens": 10},
             payload,
         )
+
+    def test_connectivity_probe_retries_retryable_transport_error(self) -> None:
+        original_resolve = check_connectivity._resolve_api_credentials
+        original_post = check_connectivity._post_json
+        original_fast = os.environ.get("CGKN_PROVIDER_RETRY_FAST")
+        calls = {"count": 0}
+
+        def fake_post(endpoint, payload, token, timeout):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return None, "RemoteDisconnected: remote end closed connection [retryable=true]"
+            return {"id": "req-test", "choices": [{"message": {"content": "pong"}}]}, ""
+
+        try:
+            os.environ["CGKN_PROVIDER_RETRY_FAST"] = "1"
+            check_connectivity._resolve_api_credentials = lambda: {
+                "api_key": "test-key",
+                "api_key_source": "test",
+                "base_url": "https://api.gptsapi.net/v1",
+                "base_url_source": "test",
+            }
+            check_connectivity._post_json = fake_post
+            result = check_connectivity.check_api(True, 1, "gpt-test")
+        finally:
+            check_connectivity._resolve_api_credentials = original_resolve
+            check_connectivity._post_json = original_post
+            if original_fast is None:
+                os.environ.pop("CGKN_PROVIDER_RETRY_FAST", None)
+            else:
+                os.environ["CGKN_PROVIDER_RETRY_FAST"] = original_fast
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(2, result["attempts"])
 
 
 if __name__ == "__main__":

@@ -118,7 +118,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
-            original_income = bridge.start_generation_from_income
+            original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_step_agent = bridge.dynamic_pipeline_runner._call_step_provider
@@ -152,7 +152,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
-                bridge.start_generation_from_income = lambda *args, **kwargs: False
+                bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
                 bridge.dynamic_pipeline_runner._call_step_provider = fake_step_agent
@@ -161,7 +161,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-e2e-pipeline", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
-                bridge.start_generation_from_income = original_income
+                bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
                 bridge.dynamic_pipeline_runner._call_step_provider = original_step_agent
@@ -187,7 +187,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
-            original_income = bridge.start_generation_from_income
+            original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
@@ -197,7 +197,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 project = pathlib.Path(project_dir)
                 project.mkdir(parents=True, exist_ok=True)
                 (project / "README.md").write_text("# Fallback\n", encoding="utf-8")
-                (project / "app.py").write_text("print('fallback')\n", encoding="utf-8")
+                (project / "app.py").write_text("print('hello from generated app')\n", encoding="utf-8")
                 (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python app.py\n", encoding="utf-8")
                 (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: WARNING\n", encoding="utf-8")
                 manifest = local_packager.package_project(project, startup_command="python app.py")
@@ -205,7 +205,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
-                bridge.start_generation_from_income = lambda *args, **kwargs: False
+                bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
                 bridge.dynamic_pipeline_runner.run_dynamic_pipeline = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("runner failed"))
@@ -215,7 +215,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-fallback-e2e", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
-                bridge.start_generation_from_income = original_income
+                bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
                 bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner

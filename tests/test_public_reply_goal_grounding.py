@@ -68,7 +68,7 @@ class PublicReplyGoalGroundingTests(unittest.TestCase):
 
         for forbidden in ("后台", "internal", "provider", "TLS", "SSLError", "json", "report", "pipeline", "manifest"):
             self.assertNotIn(forbidden, reply)
-        for required in ("生成没有通过交付检查", "不会把内部记录当成果", "补齐可运行项目", "真实测试", "截图、图片或视频证据"):
+        for required in ("当前版本需要继续修复", "已有事实记录会保留", "完成必要修复后再重新判断"):
             self.assertIn(required, reply)
 
 
