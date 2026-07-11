@@ -1,56 +1,27 @@
-# CovenantGraph Nexus Kernel Design Bundle
+# CovenantGraph Nexus Kernel
 
-This repository is the CovenantGraph Nexus Kernel machine-first baseline for building an **Autonomous Project Studio Kernel**: a contract-governed project production system where coding agents plan, generate, test, evidence, and package modular projects safely.
+**Contract-governed autonomous project studio kernel for agent-planned, evidence-traced, and packageable project generation.**
 
-CGNK is agent-led, contract-guarded, artifact-traced, module-composed, evidence-delivered, and user-revisable.
+CovenantGraph Nexus Kernel, or CGNK, is a machine-first design bundle for building an autonomous project production system. It defines how coding agents plan, generate, test, evidence, revise, and package modular projects under explicit contracts.
 
-The product goal is one-sentence project delivery: a user gives a goal, input expectation, output requirement, and constraints; CGNK creates a virtual team, builds a product story, freezes an output contract, composes a local pipeline, materializes a bounded generated project, produces test/visual evidence, and emits a delivery bundle.
+> 中文：CGNK 是一个面向自主项目生产的合约式 Agent 内核设计包，强调“目标输入 → 合约冻结 → 模块化生成 → 测试证据 → 可交付包”。
 
-## Name
+## Product goal
 
-```text
-Full name: CovenantGraph Nexus Kernel
-Short name: CGNK
-Product line: Autonomous Project Studio Kernel
-Package/root name: covenant_graph_nexus_kernel_bundle
-```
+A user provides a goal, input expectation, output requirement, and constraints. CGNK then defines the system path for creating a virtual team, building a product story, freezing an output contract, composing a local pipeline, materializing a bounded generated project, producing test / visual evidence, and emitting a delivery bundle.
 
-## Source Layout
+## Design principles
 
-```text
-COVENANT_GRAPH_NEXUS_KERNEL_DESIGN.md   Main design document.
-PRODUCT_GOAL.md                         Product goal and generation rule.
-docs/00_product_studio_contract.md      Top-level Product Studio contract.
-docs/00_kernel_contract.md              Stable Kernel Contract for Telegram, whiteboard, agent-generated pipeline, runner, and packager boundaries.
-docs/01_virtual_team_contract.md        Virtual team role and artifact ownership contract.
-docs/02_product_story_contract.md       Product story and MVP contract.
-docs/03_execution_flow.md               Product Studio execution stage contract.
-docs/04_acceptance_and_evidence.md      Delivery evidence contract.
-docs/05_agent_operating_contract.md     Agent operating rules.
-docs/06_agent_led_layered_architecture.md Agent-led layered architecture contract.
-schemas/                                JSON Schemas for contract objects and compiled outputs.
-examples/artifacts/                     ArtifactTypeSpec examples.
-examples/modules/                       ModuleContract examples.
-examples/flows/                         FlowSpec examples.
-examples/proposals/                     GraphEditProposal examples.
-examples/policies/                      PolicySpec examples.
-examples/migrations/                    MigrationSpec examples.
-examples/compile_results/               Expected CompileResult snapshots.
-scripts/validate_bundle.py              Dependency-light semantic checker.
-scripts/requirement_blueprint.py        Generic requirement blueprint generator.
-scripts/context_prompt.py               Local context compression, key-point extraction, and prompt-pack generator.
-scripts/compose_local_pipeline.py       Local pipeline composer.
-scripts/run_local_pipeline.py           Generic local runtime executor.
-scripts/compose_test_pipeline.py        Test pipeline composer.
-scripts/run_test_pipeline.py            Test pipeline executor.
-scripts/check_connectivity.py           OpenAI-compatible API connectivity checker.
-implementation_plan/                    Phased implementation plan.
-codex_prompts/                          Ready-to-use coding-agent prompts.
-```
+- **Agent-led** — agents can plan and generate, but must operate inside explicit contracts.
+- **Contract-guarded** — product, kernel, module, policy, and flow boundaries are typed and validated.
+- **Artifact-traced** — generated outputs, evidence, compile results, and delivery manifests are first-class artifacts.
+- **Module-composed** — projects are built from modules with typed ports rather than uncontrolled cross-calls.
+- **Evidence-delivered** — a project is not considered complete without test evidence, visual evidence where required, and packaging metadata.
+- **User-revisable** — revision paths and known limits are part of the delivery model.
 
 Generated apps and runtime/test outputs are not source. They are written to `generated/`, `examples/runtime_runs/`, and `examples/test_results/` when commands run.
 
-## Kernel Architecture
+## Kernel architecture
 
 ```text
 Telegram
@@ -89,7 +60,7 @@ Make FlowSpec connect ports.
 Make the compiler validate graph compatibility, effect boundaries, policy, and migration invariants.
 ```
 
-## Required Product Studio Mainline
+## Required Product Studio mainline
 
 ```text
 customer_intent
@@ -104,25 +75,24 @@ customer_intent
   -> delivery_bundle
 ```
 
-A generated project must never receive `PASS_FINAL` without a real runnable result and final zip. Missing tests, previews, local models, or datasets may instead produce `DELIVER_WITH_WARNINGS`, `NEEDS_REWORK`, or `ASK_USER_REVIEW`; they are not automatic factual blocks.
+A generated project must not be marked PASS or `PASS_FINAL` unless the delivery contains a real runnable project, startup instructions, test data, test report, required screenshots or visual evidence, a project package, known limits, a revision entry, and a final zip. Missing tests, previews, local models, or datasets may instead produce `DELIVER_WITH_WARNINGS`, `NEEDS_REWORK`, or `ASK_USER_REVIEW`; they are not automatic factual blocks.
 
 `agent_delivery_judgment` uses the bounded local judgment fallback by default. Set `CGNK_ADAPTIVE_DELIVERY_AGENT=provider` to request a provider-backed strict JSON judgment; factual blockers still override the returned verdict.
 
-## Stable Baseline Guarantees
+## Source layout
 
 ```text
-1. Artifact refs are canonical: artifact.name@version.
-2. Module refs are canonical: module.name@version.
-3. SourceEndpoint and TargetEndpoint are direction-specific.
-4. Flow gates use structured Predicate schema, not free strings.
-5. GraphEditProposal uses op-specific schemas.
-6. project_refactor uses contract-only planning and compiles under no-provider/no-network policy.
-7. ContractPack, CompileResult, and CompiledContractBundle have schemas.
-8. scripts/validate_bundle.py compiles project_generation, project_refactor, and modular_project_generation successfully.
-9. Product Studio runs are governed by docs/00_product_studio_contract.md and related docs.
+COVENANT_GRAPH_NEXUS_KERNEL_DESIGN.md     Main design document
+PRODUCT_GOAL.md                           Product goal and generation rule
+docs/                                     Kernel, product studio, agent, flow, evidence, and architecture contracts
+schemas/                                  JSON Schemas for contract objects and compiled outputs
+examples/                                 Example artifacts, modules, flows, policies, migrations, and compile results
+scripts/                                  Validation, blueprint, context, pipeline, runtime, and preflight utilities
+implementation_plan/                      Phased implementation plan
+codex_prompts/                            Ready-to-use coding-agent prompts
 ```
 
-## Quick Validation
+## Quick validation
 
 ```bash
 python scripts/check_product_studio_contract.py
@@ -143,7 +113,7 @@ python scripts/cgnk_boundary_guard.py --intent examples/boundary/sample_intents.
 python scripts/cgnk_boundary_guard.py --intent examples/boundary/sample_intents.json --case block_product_agent_generated_path --json
 ```
 
-Expected result:
+## Status
 
 ```text
 REFS: OK errors=0
