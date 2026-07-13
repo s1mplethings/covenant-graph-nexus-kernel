@@ -2,13 +2,17 @@
 
 **Contract-governed autonomous project studio kernel for agent-planned, evidence-traced, and packageable project generation.**
 
-CovenantGraph Nexus Kernel, or CGNK, is a machine-first design bundle for building an autonomous project production system. It defines how coding agents plan, generate, test, evidence, revise, and package modular projects under explicit contracts.
+CovenantGraph Nexus Kernel, or CGKN, is a machine-first design bundle for building an autonomous project production system. It defines how coding agents plan, generate, test, evidence, revise, and package modular projects under explicit contracts.
 
-> 中文：CGNK 是一个面向自主项目生产的合约式 Agent 内核设计包，强调“目标输入 → 合约冻结 → 模块化生成 → 测试证据 → 可交付包”。
+CGKN is an Autonomous Project Studio Kernel. It is agent-led, contract-guarded, and governed by versioned delivery_manifest contracts.
+
+> 中文：CGKN 是一个面向自主项目生产的合约式 Agent 内核设计包，强调“目标输入 → 合约冻结 → 模块化生成 → 测试证据 → 可交付包”。
+
+`docs/01_contract_registry.md` is the authoritative registry for formal artifact kinds, schemas, producers, consumers, and canonical statuses.
 
 ## Product goal
 
-A user provides a goal, input expectation, output requirement, and constraints. CGNK then defines the system path for creating a virtual team, building a product story, freezing an output contract, composing a local pipeline, materializing a bounded generated project, producing test / visual evidence, and emitting a delivery bundle.
+A user provides a goal, input expectation, output requirement, and constraints. CGKN then defines the system path for creating a virtual team, building a product story, freezing an output contract, composing a local pipeline, materializing a bounded generated project, producing test / visual evidence, and emitting a delivery manifest.
 
 ## Design principles
 
@@ -25,20 +29,25 @@ Generated apps and runtime/test outputs are not source. They are written to `gen
 
 ```text
 Telegram
+  -> customer request
   -> agent_session
   -> whiteboard/backend_dialogue
   -> reviewed API/provider project generation
-  -> provider output validation and semantic review
-  -> post-build tests and evidence collection
+  -> provider output validation
+  -> post-build finalization
+  -> canonical test/runtime/visual evidence
+  -> user review when required
   -> local_packager
-  -> delivery_fact_check
-  -> agent_delivery_judgment
+  -> public delivery gate
+  -> delivery receipt
+  -> bind active project
+  -> canonical final verdict
   -> delivery_manifest
 ```
 
 `pipeline_planner_agent` + `pipeline_manifest` + `dynamic_pipeline_runner` remain the support/experimental planning lane. They do not replace the Telegram default provider route and cannot call the raw `run_local_pipeline.py` CLI as a second delivery mainline.
 
-The project is generated inside a bounded workspace. Simulator mode is preflight-only and cannot produce a public PASS or delivery bundle.
+The project is generated inside a bounded workspace. Simulator mode is preflight-only and cannot produce a public PASS or delivery manifest.
 
 ## Product Studio Direction
 
@@ -72,12 +81,12 @@ customer_intent
   -> build_plan
   -> generated_project
   -> test_evidence
-  -> delivery_bundle
+  -> delivery_manifest
 ```
 
-A generated project must not be marked PASS or `PASS_FINAL` unless the delivery contains a real runnable project, startup instructions, test data, test report, required screenshots or visual evidence, a project package, known limits, a revision entry, and a final zip. Missing tests, previews, local models, or datasets may instead produce `DELIVER_WITH_WARNINGS`, `NEEDS_REWORK`, or `ASK_USER_REVIEW`; they are not automatic factual blocks.
+A generated project must not be marked `PASS` unless the delivery contains a real runnable project, startup instructions, test data, canonical test/runtime/visual evidence, required screenshots or visual evidence, a project package, known limits, a revision entry, delivery receipt, and a final zip. Missing tests, previews, local models, or datasets may instead produce `PASS_WITH_LIMITS`, `NEEDS_REWORK`, `NOT_EVALUATED`, or a specific `BLOCKED_*` status; they are not automatic factual blocks.
 
-`agent_delivery_judgment` uses the bounded local judgment fallback by default. Set `CGNK_ADAPTIVE_DELIVERY_AGENT=provider` to request a provider-backed strict JSON judgment; factual blockers still override the returned verdict.
+Canonical final verdicts are written through `scripts/acceptance_verifier.py`. Legacy adaptive delivery judgment may remain as compatibility support, but it is not a second final truth source.
 
 ## Source layout
 
@@ -129,12 +138,16 @@ Telegram is the reviewed public generation front door. Its default route is:
 ```text
 requirement analysis
 -> provider project generation
--> local validation and provider semantic review
+-> provider output validation
 -> generated project files
--> post-build tests and evidence
+-> post-build finalization
+-> canonical test/runtime/visual evidence
+-> user review when required
 -> local_packager
--> delivery_fact_check
--> agent_delivery_judgment
+-> public delivery gate
+-> delivery receipt
+-> bind active project
+-> canonical final verdict
 -> delivery_manifest.json
 -> Telegram attachment delivery
 ```
@@ -180,20 +193,22 @@ Local execution writes the standard runtime artifacts plus durable long-context 
 
 Project-file generation uses the configured provider/API. Use `--no-api`, `--no-provider`, or `--no-network` only for preflight diagnostics that intentionally stop before project-file generation.
 
-For a compact Product Studio run artifact:
+For a legacy compact Product Studio support artifact:
 
 ```bash
-python scripts/run_product_studio.py --goal "Build a local GUI image rename tool" --input "image folder, prefix + index rule" --output "renamed images, report, README, test data, test report, screenshot evidence, delivery bundle" --out examples/product_studio/runs/demo
+python scripts/run_product_studio.py --goal "Build a local GUI image rename tool" --input "image folder, prefix + index rule" --output "renamed images, report, README, test data, test report, screenshot evidence, delivery manifest" --out examples/product_studio/runs/demo
 python scripts/check_product_studio_contract.py --run-file examples/product_studio/runs/demo/product_studio_run.json
 python scripts/deliver_product_studio.py --run-file examples/product_studio/runs/minimal_gui_tool_run/product_studio_run.json --out examples/product_studio/runs/minimal_gui_tool_run
 python scripts/check_product_studio_contract.py --run-file examples/product_studio/runs/minimal_gui_tool_run/product_studio_run.json --json
 ```
 
+The compact Product Studio scripts are legacy/support diagnostics. They do not create formal delivery success; Telegram final delivery must use the provider route, canonical evidence, `local_packager`, public delivery gate, `CGKNDeliveryReceipt`, and canonical final verdict.
+
 ## Testing
 
 ```bash
 python scripts/test_modular_modules.py
-python scripts/compose_test_pipeline.py --goal "test CGNK contracts" --profile contracts
+python scripts/compose_test_pipeline.py --goal "test CGKN contracts" --profile contracts
 python scripts/run_test_pipeline.py --plan examples/test_results/test_pipeline_composition_result.json
 python scripts/check_connectivity.py
 ```

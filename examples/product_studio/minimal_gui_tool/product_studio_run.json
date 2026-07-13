@@ -93,7 +93,7 @@
   },
   "test_evidence": {
     "kind": "test_evidence",
-    "status": "PARTIAL",
+    "status": "PASS_WITH_LIMITS",
     "test_data": [
       "sample_images/"
     ],
@@ -106,7 +106,7 @@
   },
   "delivery_bundle": {
     "kind": "delivery_bundle",
-    "status": "PARTIAL",
+    "status": "PASS_WITH_LIMITS",
     "included_evidence": [
       "test_report",
       "visual_evidence"

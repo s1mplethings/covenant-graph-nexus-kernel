@@ -272,16 +272,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual("disabled", runtime["status"])
         self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
 
-    def test_adaptive_delivery_judgment_is_part_of_kernel_contract(self) -> None:
+    def test_public_delivery_gate_receipt_and_final_verdict_are_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         bridge_source = read_source("scripts/telegram_live_bridge.py")
         send_manifest = function_body(bridge_source, "send_delivery_from_manifest")
         send_checkpoint = function_body(bridge_source, "send_evidence_checkpoint")
 
-        self.assertIn("delivery_fact_check", doc)
-        self.assertIn("agent_delivery_judgment", doc)
-        self.assertIn("DELIVER_WITH_WARNINGS", doc)
-        self.assertIn("FACT_BLOCKED", doc)
+        self.assertIn("canonical test/runtime/visual evidence", doc)
+        self.assertIn("public_delivery_gate", doc)
+        self.assertIn("delivery_receipt", doc)
+        self.assertIn("final_verdict.json", doc)
+        self.assertIn("PASS_WITH_LIMITS", doc)
+        self.assertIn("BLOCKED_*", doc)
         self.assertIn("NO TEST EXECUTED", doc)
         self.assertIn("any_zip_found", doc)
         self.assertIn("final_package_exists", doc)
@@ -301,7 +303,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("requirements.txt", doc)
         self.assertIn("pipeline_step_result.status=rework_blocked", doc)
         self.assertIn("NO TEST EXECUTED", doc)
-        self.assertIn("`ASK_USER_REVIEW` is non-final", doc)
+        self.assertIn("`NOT_EVALUATED` is non-final", doc)
         self.assertIn("_build_completion_audit", runner)
         self.assertIn("_qa_completion_audit", runner)
         self.assertIn('"status": "rework_blocked"', runner)

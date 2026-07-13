@@ -2,7 +2,7 @@
 
 ## 0. Purpose
 
-This document defines the required execution stages for CGNK as an Autonomous Project Studio Kernel.
+This document defines the required execution stages for CGKN as an Autonomous Project Studio Kernel.
 
 The flow keeps product intent, design, implementation, testing, evidence, and delivery in one traceable mainline.
 
@@ -320,7 +320,7 @@ known_limits
 Output:
 
 ```text
-delivery_bundle
+delivery_manifest
 user_summary
 project_package
 ```
@@ -342,7 +342,7 @@ Input:
 
 ```text
 user_feedback
-delivery_bundle
+delivery_manifest
 current artifacts
 ```
 
@@ -363,14 +363,20 @@ next build or review action recorded
 
 ## 14. Required status vocabulary
 
-Each stage MUST report one of:
+Each evidence stage MUST report one canonical EvidenceStatus from `docs/01_contract_registry.md`:
 
 ```text
 PASS
-PARTIAL
+PASS_WITH_LIMITS
+NOT_EVALUATED
 BLOCKED
+BLOCKED_PROVIDER
+BLOCKED_LOCAL_MODEL
+BLOCKED_ENVIRONMENT
+NEEDS_REWORK
 FAIL
-SKIPPED_WITH_REASON
 ```
 
-A required stage with `SKIPPED_WITH_REASON` MUST make the whole delivery PARTIAL or BLOCKED unless another artifact proves the requirement was satisfied.
+Workflow states such as `queued`, `running`, `waiting_user_review`, `delivery_sending`, and `final_delivered` are not evidence statuses.
+
+A required stage with `NOT_EVALUATED` MUST make the whole delivery `NEEDS_REWORK` unless the registry marks that artifact not required for the current output contract. `PASS_WITH_LIMITS` is honest evidence for incomplete internal work, not public final delivery.

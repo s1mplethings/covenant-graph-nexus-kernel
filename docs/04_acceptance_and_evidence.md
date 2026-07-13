@@ -4,7 +4,7 @@
 
 This document defines what counts as a successful Product Studio delivery.
 
-CGNK MUST judge success by usable output and evidence, not by code creation alone.
+CGKN MUST judge success by usable output and evidence, not by code creation alone.
 
 ## 1. Required delivery evidence
 
@@ -56,7 +56,7 @@ A Product Studio run SHOULD create `acceptance_matrix` with rows like:
   "source": "product_story.first_run_experience",
   "required_artifact": "generated_project + visual_evidence",
   "test_method": "run app with sample folder and capture result screen",
-  "status": "PASS | PARTIAL | BLOCKED | FAIL"
+  "status": "PASS | PASS_WITH_LIMITS | NOT_EVALUATED | BLOCKED | BLOCKED_PROVIDER | BLOCKED_LOCAL_MODEL | BLOCKED_ENVIRONMENT | NEEDS_REWORK | FAIL"
 }
 ```
 
@@ -71,17 +71,18 @@ output_contract exists
 product_story exists
 technical_plan exists
 generated_project exists
-environment run was attempted
+canonical CustomerRuntimeEvidence proves startup, health probe, customer operation, observed result hash, and shutdown
+canonical TestExecutionEvidence proves real test execution
 test data exists
 test report exists
-delivery bundle exists
 required visual evidence exists
+versioned delivery_manifest exists with verified hashes
 known limits are recorded
 ```
 
-## 5. PARTIAL rule
+## 5. PASS_WITH_LIMITS rule
 
-A run SHOULD be PARTIAL when the generated project is useful but one or more promised outputs are incomplete.
+A run SHOULD be PASS_WITH_LIMITS when the generated project is useful but one or more promised outputs are incomplete.
 
 Examples:
 
@@ -92,7 +93,7 @@ export feature exists but only sample export is verified
 README exists but installer is not packaged
 ```
 
-PARTIAL MUST include known limits and next actions.
+PASS_WITH_LIMITS MUST include known limits and next actions.
 
 ## 6. BLOCKED rule
 
@@ -136,10 +137,12 @@ requested feature after interaction
 result screen with real or sample data
 final UI screen
 app home screen
-error screen with explanation, only for BLOCKED/PARTIAL
+error screen with explanation, only for BLOCKED/PASS_WITH_LIMITS
 ```
 
-Visual evidence MUST be linked from `delivery_bundle`.
+Visual evidence MUST be real browser evidence when a GUI or visual output is required. A static placeholder, generated gradient, README screenshot claim, or file-exists check cannot satisfy PASS.
+
+Visual evidence MUST be linked from `delivery_manifest`.
 
 ## 9. Test data rule
 
@@ -158,9 +161,9 @@ mock API response
 
 A test report without input data SHOULD NOT be PASS.
 
-## 10. Delivery bundle rule
+## 10. Delivery manifest rule
 
-`delivery_bundle` MUST summarize:
+`delivery_manifest` MUST summarize:
 
 ```text
 what was generated

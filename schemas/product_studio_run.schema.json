@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Product Studio Run",
+  "title": "Legacy Product Studio Run",
+  "description": "Legacy compact Product Studio support artifact. Formal CGKN evidence and delivery artifacts use docs/01_contract_registry.md and the versioned *_v1 schemas.",
   "type": "object",
   "required": [
     "customer_intent",
@@ -87,7 +88,19 @@
       "required": ["kind", "status"],
       "properties": {
         "kind": { "const": "test_evidence" },
-        "status": { "enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL"] }
+        "status": {
+          "enum": [
+            "PASS",
+            "PASS_WITH_LIMITS",
+            "NOT_EVALUATED",
+            "BLOCKED",
+            "BLOCKED_PROVIDER",
+            "BLOCKED_LOCAL_MODEL",
+            "BLOCKED_ENVIRONMENT",
+            "NEEDS_REWORK",
+            "FAIL"
+          ]
+        }
       },
       "additionalProperties": true
     },
@@ -96,7 +109,19 @@
       "required": ["kind", "status", "included_evidence"],
       "properties": {
         "kind": { "const": "delivery_bundle" },
-        "status": { "enum": ["PASS", "PARTIAL", "BLOCKED", "FAIL"] },
+        "status": {
+          "enum": [
+            "PASS",
+            "PASS_WITH_LIMITS",
+            "NOT_EVALUATED",
+            "BLOCKED",
+            "BLOCKED_PROVIDER",
+            "BLOCKED_LOCAL_MODEL",
+            "BLOCKED_ENVIRONMENT",
+            "NEEDS_REWORK",
+            "FAIL"
+          ]
+        },
         "included_evidence": { "type": "array", "items": { "type": "string" } }
       },
       "additionalProperties": true

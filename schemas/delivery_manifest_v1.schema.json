@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CGKN Delivery Manifest v1",
+  "allOf": [{ "$ref": "canonical_defs.schema.json#/$defs/ArtifactEnvelope" }],
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "candidate_id",
+    "candidate_hash",
+    "commit_sha",
+    "producer",
+    "created_at",
+    "status",
+    "artifact_hash",
+    "source_tree_hash",
+    "package_sha256",
+    "package_entries_hash",
+    "test_execution_ref",
+    "test_execution_hash",
+    "customer_runtime_ref",
+    "customer_runtime_hash"
+  ],
+  "properties": {
+    "kind": { "const": "CGKNDeliveryManifest" },
+    "status": { "enum": ["PASS", "PASS_WITH_LIMITS", "NEEDS_REWORK"] },
+    "source_tree_hash": { "type": "string", "minLength": 1 },
+    "package_sha256": { "type": "string", "minLength": 1 },
+    "package_entries_hash": { "type": "string", "minLength": 1 },
+    "test_execution_ref": { "type": "string", "minLength": 1 },
+    "test_execution_hash": { "type": "string", "minLength": 1 },
+    "customer_runtime_ref": { "type": "string", "minLength": 1 },
+    "customer_runtime_hash": { "type": "string", "minLength": 1 },
+    "visual_evidence_ref": { "type": "string" },
+    "visual_evidence_hash": { "type": "string" },
+    "user_review_ref": { "type": "string" },
+    "user_review_hash": { "type": "string" }
+  },
+  "additionalProperties": true
+}

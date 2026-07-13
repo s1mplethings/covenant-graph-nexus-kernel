@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/canonical_defs.schema.json",
+  "$defs": {
+    "EvidenceStatus": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "PASS_WITH_LIMITS",
+        "NOT_EVALUATED",
+        "BLOCKED",
+        "BLOCKED_PROVIDER",
+        "BLOCKED_LOCAL_MODEL",
+        "BLOCKED_ENVIRONMENT",
+        "NEEDS_REWORK",
+        "FAIL"
+      ]
+    },
+    "WorkflowState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "validating",
+        "waiting_user_review",
+        "packaging",
+        "delivery_sending",
+        "delivery_send_failed",
+        "rework_blocked",
+        "final_delivered"
+      ]
+    },
+    "ArtifactEnvelope": {
+      "type": "object",
+      "required": [
+        "kind",
+        "schema_version",
+        "run_id",
+        "candidate_id",
+        "candidate_hash",
+        "commit_sha",
+        "producer",
+        "created_at",
+        "status",
+        "artifact_hash"
+      ],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "schema_version": { "const": "1.0" },
+        "run_id": { "type": "string", "minLength": 1 },
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "candidate_hash": { "type": "string", "minLength": 1 },
+        "commit_sha": { "type": "string", "minLength": 1 },
+        "producer": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/EvidenceStatus" },
+        "artifact_hash": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    }
+  }
+}

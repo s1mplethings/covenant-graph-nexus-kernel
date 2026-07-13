@@ -2,9 +2,9 @@
 
 ## 0. Purpose
 
-This document defines the CGNK agent-led layered architecture.
+This document defines the CGKN agent-led layered architecture.
 
-CGNK is agent-led and contract-guarded.
+CGKN is agent-led and contract-guarded.
 
 The Lead Agent controls the project run.
 
@@ -24,7 +24,7 @@ QA evidence verifies delivery; it does not replace product intent.
 
 ## 1. Architecture rule
 
-CGNK MUST be understood as:
+CGKN MUST be understood as:
 
 ```text
 agent-led
@@ -53,7 +53,7 @@ change the execution route when evidence shows a better route
 revise the plan after test failure
 request repair and retry
 update product_story, mvp_scope, or output_contract when user feedback changes scope
-decide whether to continue, repair, mark PARTIAL, mark BLOCKED, or deliver
+decide whether to continue, repair, mark PASS_WITH_LIMITS, mark BLOCKED, or deliver
 ```
 
 ### Lead Agent MUST
@@ -65,7 +65,7 @@ respect policy gates
 run or attempt validation
 collect test evidence
 collect visual evidence when required
-produce delivery_bundle
+produce delivery_manifest
 mark PASS only when evidence satisfies the contract
 ```
 
@@ -100,7 +100,7 @@ customer_intent
   -> GUI build
   -> sample image test
   -> screenshot evidence
-  -> delivery_bundle
+  -> delivery_manifest
 ```
 
 ### Excel data cleaning tool
@@ -127,7 +127,7 @@ customer_intent
   -> GUI build
   -> export test
   -> screenshot evidence
-  -> delivery_bundle
+  -> delivery_manifest
 ```
 
 ### AI tool frontend
@@ -153,7 +153,7 @@ customer_intent
   -> UI build
   -> mock/live test depending on policy
   -> screenshot evidence
-  -> delivery_bundle
+  -> delivery_manifest
 ```
 
 The Lead Agent MAY compose other routes when the project type requires different domain agents, modules, tests, or evidence.
@@ -662,7 +662,7 @@ The QA & Evidence Layer is responsible for `test_data`, `test_plan`, `test_repor
 
 ### Lead Agent authority in this layer
 
-The Lead Agent MAY accept QA findings, request repair and retry, change route after failure, mark PARTIAL or BLOCKED, or update product artifacts when user feedback changes scope.
+The Lead Agent MAY accept QA findings, request repair and retry, change route after failure, mark PASS_WITH_LIMITS or BLOCKED, or update product artifacts when user feedback changes scope.
 
 ### Specialist agents that may participate
 
@@ -752,7 +752,7 @@ redefining output_contract
 claiming tests passed without test_report
 claiming GUI delivery without screenshot evidence
 hiding known failures
-marking final PASS when delivery_bundle is missing
+marking final PASS when delivery_manifest is missing
 ```
 
 ### Handoff contract
@@ -763,11 +763,11 @@ The QA & Evidence Layer MUST hand off `test_data`, `test_plan`, `test_report`, `
 
 ### Responsibility
 
-The Delivery Layer is responsible for `delivery_bundle`, `README`, `user_summary`, `known_limits`, and `revision_entry`.
+The Delivery Layer is responsible for `delivery_manifest`, `README`, `user_summary`, `known_limits`, and `revision_entry`.
 
 ### Lead Agent authority in this layer
 
-The Lead Agent MAY decide to deliver, request more repair, mark PARTIAL, mark BLOCKED, or update scope based on user feedback and evidence.
+The Lead Agent MAY decide to deliver, request more repair, mark PASS_WITH_LIMITS, mark BLOCKED, or update scope based on user feedback and evidence.
 
 ### Specialist agents that may participate
 
@@ -796,7 +796,7 @@ output_contract
 ### Outputs
 
 ```text
-delivery_bundle
+delivery_manifest
 README
 user_summary
 known_limits
@@ -807,7 +807,7 @@ project_package
 ### Required artifacts
 
 ```text
-delivery_bundle
+delivery_manifest
 README
 user_summary
 known_limits
@@ -838,7 +838,7 @@ visual_evidence exists when required
 package exists
 known_limits included
 revision_entry included
-delivery_bundle exists
+delivery_manifest exists
 ```
 
 The Delivery Agent MUST NOT mark PASS when `runnable_project`, `test_report`, `visual_evidence`, or package is missing.
@@ -853,10 +853,10 @@ marking PASS without runnable_project
 marking PASS without test_report
 marking PASS without required visual_evidence
 marking PASS without package
-marking PASS without delivery_bundle
+marking PASS without delivery_manifest
 closing the user revision path
 ```
 
 ### Handoff contract
 
-The Delivery Layer MUST hand off `delivery_bundle`, `README`, `user_summary`, `known_limits`, and `revision_entry` to the user. The delivery MUST let the user continue requesting revisions.
+The Delivery Layer MUST hand off `delivery_manifest`, `README`, `user_summary`, `known_limits`, and `revision_entry` to the user. The delivery MUST let the user continue requesting revisions.

@@ -25,7 +25,7 @@ README_PHRASES = [
     "agent-led",
     "contract-guarded",
     "Autonomous Project Studio Kernel",
-    "delivery_bundle",
+    "delivery_manifest",
 ]
 
 PRODUCT_GOAL_PHRASES = [
@@ -37,7 +37,7 @@ PRODUCT_GOAL_PHRASES = [
 ]
 
 ARCHITECTURE_PHRASES = [
-    "CGNK is agent-led and contract-guarded",
+    "CGKN is agent-led and contract-guarded",
     "The Lead Agent controls the project run",
     "Layers do not control the run",
     "Modules are capabilities selected by agents",
@@ -55,7 +55,7 @@ MAINLINE_ARTIFACTS = [
     "build_plan",
     "generated_project",
     "test_evidence",
-    "delivery_bundle",
+    "delivery_manifest",
 ]
 
 PASS_CONDITION_ITEMS = [
@@ -63,7 +63,7 @@ PASS_CONDITION_ITEMS = [
     "test_data",
     "test_report",
     "visual_evidence",
-    "delivery_bundle",
+    "delivery_manifest",
 ]
 
 PRODUCT_STUDIO_RUN_ARTIFACTS = [

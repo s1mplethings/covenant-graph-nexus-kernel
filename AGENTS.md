@@ -2,6 +2,11 @@
 
 `CGKN` is the current formal project name. `CGNK` may remain only in historical filenames, legacy compatibility notes, or internal compatibility markers.
 
+- `docs/01_contract_registry.md` is the authoritative formal artifact/status/schema registry.
+- Formal evidence statuses are only `PASS`, `PASS_WITH_LIMITS`, `NOT_EVALUATED`, `BLOCKED`, `BLOCKED_PROVIDER`, `BLOCKED_LOCAL_MODEL`, `BLOCKED_ENVIRONMENT`, `NEEDS_REWORK`, and `FAIL`.
+- Workflow states such as `queued`, `running`, `waiting_user_review`, `delivery_sending`, and `final_delivered` are not evidence statuses.
+- Legacy status names may be interpreted only through `legacy/status_adapter.py`.
+
 - You may modify generated project files.
 - You may modify tests when explicitly asked.
 - You may add approved skills only through reviewed changes.

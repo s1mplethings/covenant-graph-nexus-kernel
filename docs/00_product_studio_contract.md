@@ -2,17 +2,17 @@
 
 ## 0. Contract status
 
-This document is the top-level product contract for CGNK.
+This document is the top-level product contract for CGKN. Formal artifact kinds, schemas, producers, consumers, and statuses are defined in `docs/01_contract_registry.md`.
 
-CGNK is an **Autonomous Project Studio Kernel**. It is not only a contract compiler and not only a code generator. Its product line is to turn a user's goal, input, output, and constraints into a usable project with design artifacts, implementation artifacts, test evidence, and a delivery bundle.
+CGKN is an **Autonomous Project Studio Kernel**. It is not only a contract compiler and not only a code generator. Its product line is to turn a user's goal, input, output, and constraints into a usable project with design artifacts, implementation artifacts, test evidence, and a delivery manifest.
 
-CGNK is agent-led and contract-guarded.
+CGKN is agent-led and contract-guarded.
 
 The Lead Agent owns the run. The Product Studio mainline is a required evidence and handoff structure, not a hardcoded script that replaces agent planning.
 
 ## 1. Primary user
 
-CGNK serves users who do not want to design the full project path, research the architecture, configure the environment, or manually prove whether the result works.
+CGKN serves users who do not want to design the full project path, research the architecture, configure the environment, or manually prove whether the result works.
 
 The user may provide only:
 
@@ -24,7 +24,7 @@ constraints
 preferred delivery format
 ```
 
-CGNK MUST convert that into a project delivery process.
+CGKN MUST convert that into a project delivery process.
 
 ## 2. Required mainline
 
@@ -40,7 +40,7 @@ customer_intent
   -> build_plan
   -> generated_project
   -> test_evidence
-  -> delivery_bundle
+  -> delivery_manifest
 ```
 
 A run MUST NOT be marked PASS unless the required artifacts exist and are internally consistent.
@@ -62,11 +62,11 @@ A valid Product Studio run MUST produce these artifacts:
 | `build_plan` | Converts the plan into agent-executable implementation tasks. |
 | `generated_project` | Contains the runnable project files. |
 | `test_evidence` | Contains test data, test results, visual evidence, and known failures. |
-| `delivery_bundle` | Contains the user-facing final package, README, evidence, summary, and revision entry. |
+| `delivery_manifest` | Versioned manifest produced by `local_packager` after canonical evidence and required review. |
 
 ## 4. Product completion rule
 
-A generated project is complete only when CGNK can provide user-visible evidence.
+A generated project is complete only when CGKN can provide user-visible evidence.
 
 A PASS delivery MUST include:
 
@@ -81,7 +81,7 @@ known_limits
 revision_entry
 ```
 
-If the project cannot be started, the run MUST be FAIL or BLOCKED.
+If the project cannot be started through canonical CustomerRuntimeEvidence, the run MUST be FAIL, NEEDS_REWORK, or a specific BLOCKED_* status.
 
 If test data is missing, the run MUST NOT be PASS.
 
@@ -91,7 +91,7 @@ If no delivery package exists, the run MUST NOT be PASS.
 
 ## 5. Virtual team rule
 
-CGNK MUST create a virtual team appropriate to the project type before implementation starts.
+CGKN MUST create a virtual team appropriate to the project type before implementation starts.
 
 The team is not decorative text. Each role MUST own one or more required artifacts.
 
@@ -132,17 +132,17 @@ skip output_contract
 skip acceptance criteria
 claim tests passed without test evidence
 claim a GUI exists without visual evidence
-claim delivery is complete without delivery_bundle
-replace the user's requested GUI with a CLI-only project unless it is marked PARTIAL and written into known_limits
+claim delivery is complete without delivery_manifest
+replace the user's requested GUI with a CLI-only project unless it is marked NEEDS_REWORK or PASS_WITH_LIMITS internally and written into known_limits
 ```
 
 ## 7. Output contract priority
 
 The customer-facing output format has priority over internal convenience.
 
-If the user asks for a GUI project, CGNK SHOULD deliver a GUI project.
+If the user asks for a GUI project, CGKN SHOULD deliver a GUI project.
 
-If the user asks for export files, CGNK MUST either produce export samples or mark the missing output as a blocking issue.
+If the user asks for export files, CGKN MUST either produce export samples or mark the missing output as a blocking issue.
 
 If the user asks for images, screenshots, video, reports, or other evidence, those outputs MUST be represented in `output_contract` and verified in `test_evidence`.
 
@@ -156,7 +156,7 @@ README-only delivery
 test-report without actual test data
 mock screenshot claimed as real runtime evidence
 successful status without runnable project
-successful status without delivery bundle
+successful status without delivery manifest
 implementation before product_story and output_contract exist
 ```
 
@@ -164,7 +164,7 @@ implementation before product_story and output_contract exist
 
 The first delivery is not the end of the workflow.
 
-A delivery bundle MUST include a revision entry that allows the user to request:
+A delivery manifest MUST include a revision entry that allows the user to request:
 
 ```text
 change UI
