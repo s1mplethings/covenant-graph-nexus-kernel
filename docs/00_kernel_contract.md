@@ -35,6 +35,7 @@ CGNK Kernel is fixed responsible for:
 25. Running Discovery & Selection Lane before complex project provider generation. This lane writes `run_dir/discovery/discovery_brief.md`, `candidate_directions.json`, `candidate_scorecard.json`, `selected_project_direction.json`, `rejected_options.md`, and `complexity_project_contract.json`, then passes the selected direction and contract into the existing provider route. It is an upstream selection and contract-freezing lane, not a project generator or delivery route.
 26. Treating clear requirement definition, scope, priorities, constraints, acceptance criteria, rejected options, and next steps as valuable intermediate outcomes when final code delivery is not complete yet.
 27. Keeping the Agent Director Loop as the agent-led coordination surface: it observes run state, selects tools from `agent_tool_registry`, validates evidence gates, executes the selected tool, and writes `artifacts/agent_decision_ledger.jsonl`. It does not replace the reviewed Telegram provider route, `local_packager`, or the public delivery gate.
+28. Treating `scripts/acceptance_verifier.py` as the only canonical `final_verdict.json` writer. Runners, benchmarks, trace builders, Dynamic Tree support lanes, and QA evidence collectors may produce run facts or claims, but their claimed PASS cannot override required upstream gates.
 
 ## Kernel Prohibitions
 
@@ -170,6 +171,8 @@ Cross-run agent reputation may be stored only in private support-lane state such
 Provider request governance remains part of the single `provider_transport.py` truth source. Planner, conversation, leaf generation, repair, review, evidence summary, and connectivity calls must use model choices from `model_policy`, request-type output limits, API budget profiles, redacted append-only usage ledgers, request fingerprints, per-run readiness cache, request cache where safe, cache schema/TTL validation, circuit breaker state including half-open probe control, budget reservations, bounded retries, and pre-call `BLOCKED_API_BUDGET` decisions. Provider quota, provider unavailable, unsupported method/model, network, and other external blockers must not be counted as Agent performance failures.
 
 Dynamic Tree repair should prefer incremental missing-file, test-failure, scope-violation, or malformed-response repair prompts before whole replacement. Repair evidence must record original and repair prompt sizes. No Provider governance ledger may store API keys, Authorization headers, or unreduced secrets.
+
+Dynamic Tree support lanes must not write independent final PASS verdicts. If they emit `final_verdict.json`, it must be produced through the canonical acceptance verifier and include runner-claimed verdicts only as conflict-checkable inputs.
 
 ## Legacy Code Policy
 

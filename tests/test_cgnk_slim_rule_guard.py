@@ -92,6 +92,13 @@ def test_public_suffix_whitelist_check() -> None:
     assert checks[name]["ok"]
 
 
+def test_final_verdict_writer_guard_present_and_ok() -> None:
+    checks = _checks_by_name()
+    name = "final verdict is written only by canonical verifier"
+    assert name in checks
+    assert checks[name]["ok"]
+
+
 def test_provider_route_check_is_scoped_to_function_bodies() -> None:
     # The provider route check must read only the two provider job bodies,
     # not the whole bridge file.

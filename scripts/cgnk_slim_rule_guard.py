@@ -53,6 +53,7 @@ SPLIT_MODULE_FILES = [
     "scripts/provider_project_compatibility.py",
     "scripts/project_signal_terms.py",
 ]
+FINAL_VERDICT_DIRECT_WRITE = re.compile(r"(write_json|write_text|open)\([^\n]*final_verdict\.json")
 
 
 def read_text(path: str) -> str:
@@ -105,6 +106,22 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     add(checks, "project team manager modules exist", not missing_team_files, ", ".join(missing_team_files))
     missing_split_modules = [path for path in SPLIT_MODULE_FILES if not (ROOT / path).exists()]
     add(checks, "bridge bloat functions are split into modules", not missing_split_modules, ", ".join(missing_split_modules))
+
+    direct_final_writers: list[str] = []
+    missing_canonical_writer: list[str] = []
+    for path in sorted((ROOT / "scripts").rglob("*.py")):
+        rel = path.relative_to(ROOT).as_posix()
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if FINAL_VERDICT_DIRECT_WRITE.search(text):
+            direct_final_writers.append(rel)
+        if rel != "scripts/acceptance_verifier.py" and "final_verdict.json" in text and "write_canonical_verdict" in text and "acceptance_verifier" not in text:
+            missing_canonical_writer.append(rel)
+    add(
+        checks,
+        "final verdict is written only by canonical verifier",
+        not direct_final_writers and not missing_canonical_writer,
+        ", ".join(direct_final_writers + missing_canonical_writer),
+    )
 
     suffix_block = between(bridge, "PUBLIC_DELIVERY_SUFFIXES", "}")
     bad_suffixes = [suffix for suffix in INTERNAL_SUFFIXES if suffix in suffix_block]

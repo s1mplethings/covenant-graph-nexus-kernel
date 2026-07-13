@@ -8,6 +8,11 @@ import subprocess
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -237,13 +242,13 @@ def run_resume(
     if injections["verdict"] != "PASS":
         classification, verdict = "fake_success_detected", "FAIL"
     final = _final_payload(classification=classification, verdict=verdict, plan=plan, cache=cache, merge=merge, root=root, leaf_result=leaf_result)
-    write_json(root / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(root / "final_verdict.json", final)
     (root / "00_INDEX.md").write_text(_index(analysis, plan, leaf_result, merge, final), encoding="utf-8")
     secret_scan = _secret_scan(root)
     trace = create_resume_trace_bundle(root)
     if trace["verdict"] != "PASS":
         final.update({"classification": "trace_incomplete", "classification_code": "N", "verdict": "NEEDS_REWORK"})
-        write_json(root / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(root / "final_verdict.json", final)
     report = {
         "repo": _repo_state(),
         "previous_run": analysis,
@@ -295,7 +300,7 @@ def finalize_existing_resume(
     if injections["verdict"] != "PASS":
         classification, verdict = "fake_success_detected", "FAIL"
     final = _final_payload(classification=classification, verdict=verdict, plan=plan, cache=cache, merge=merge, root=root, leaf_result=leaf_result, invalidated=invalidated)
-    write_json(root / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(root / "final_verdict.json", final)
     (root / "00_INDEX.md").write_text(_index(analysis, plan, leaf_result, merge, final), encoding="utf-8")
     secret_scan = _secret_scan(root)
     trace = create_resume_trace_bundle(root)

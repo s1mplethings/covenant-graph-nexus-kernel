@@ -21,3 +21,4 @@
 - Do not reintroduce fixed local pipeline generation.
 - Do not expose legacy internal jargon to users.
 - Move project/domain-specific generated-project compatibility patches into skills, adapters, or legacy modules instead of adding them to telegram_live_bridge.py.
+- `final_verdict.json` must be written only through `scripts/acceptance_verifier.py`; runners, benchmarks, Dynamic Tree lanes, and trace builders may report run results but must not define final PASS themselves.

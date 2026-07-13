@@ -6,6 +6,11 @@ import pathlib
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -55,7 +60,7 @@ def run_leaf_phase(
             "message": "生成接口当前不可用或额度不足，真实 provider leaf 未运行。",
         }
         write_json(out / f"checkpoint_{leaf}.json", result)
-        write_json(out / "final_verdict.json", result)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", result)
         return result
 
     result = run_real_provider_leaf(agent_id=leaf, out_dir=out, project_dir=project, user_goal=goal, model=model, readiness=readiness)
@@ -85,7 +90,7 @@ def run_leaf_phase(
         "forbidden_write_attempts": result.get("forbidden_write_attempts", []),
         "harness_scaffold_files": result.get("harness_scaffold_files", []),
     }
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 

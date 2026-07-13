@@ -5,6 +5,11 @@ import zipfile
 from typing import Any
 
 try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
+try:
     from agent_tree_contracts import read_json, read_jsonl, write_json
     from agent_tree_registry import render_tree
 except ModuleNotFoundError:  # pragma: no cover
@@ -24,7 +29,7 @@ def create_growth_trace_bundle(*, out_dir: str | pathlib.Path, project_dir: str 
     out = pathlib.Path(out_dir)
     project = pathlib.Path(project_dir)
     _write_project_tree(project, out)
-    write_json(out / "final_verdict.json", final_verdict)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final_verdict)
     registry = read_json(out / "agent_tree_registry.json", {})
     spawns = read_jsonl(out / "spawn_actions.jsonl")
     leaves = []

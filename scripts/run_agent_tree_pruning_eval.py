@@ -7,6 +7,11 @@ import subprocess
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -402,7 +407,7 @@ def run_eval(out_dir: str | pathlib.Path = DEFAULT_OUT) -> dict[str, Any]:
         "telegram_mainline": "not_connected",
         "delivery_executed": False,
     }
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     index = _render_index(cases, final, events, replans)
     (out / "00_INDEX.md").write_text(index, encoding="utf-8")
     bundle = create_pruning_trace_bundle(
@@ -431,7 +436,7 @@ def run_eval(out_dir: str | pathlib.Path = DEFAULT_OUT) -> dict[str, Any]:
     }
     write_json(out.parent / "pruning_report.json", report)
     (out.parent / "pruning_report.md").write_text(_render_report(report), encoding="utf-8")
-    write_json(out.parent / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out.parent / "final_verdict.json", final)
     return report
 
 

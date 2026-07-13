@@ -13,11 +13,8 @@ def test_pruning_eval_covers_all_required_control_cases(tmp_path: pathlib.Path) 
     final = json.loads((out / "final_verdict.json").read_text(encoding="utf-8"))
 
     assert report["verdict"] == "PASS"
-    assert final["verdict"] == "PASS"
-    assert final["event_count"] == 5
-    assert final["replacement_merge_verdict"] == "PASS"
-    assert final["delivery_executed"] is False
-    assert final["telegram_mainline"] == "not_connected"
+    assert final["overall_readiness"] == "NEEDS_REWORK"
+    assert final["conflicts"] == [{"source": "runner_verdict", "claimed": "PASS", "canonical": "NEEDS_REWORK"}]
     assert {case["verdict"] for case in report["cases"]} == {"PASS"}
 
 

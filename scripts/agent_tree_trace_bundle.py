@@ -5,6 +5,11 @@ import zipfile
 from typing import Any
 
 try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
+try:
     from agent_tree_contracts import DEFAULT_EVAL_DIR, write_json
 except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_contracts import DEFAULT_EVAL_DIR, write_json
@@ -32,7 +37,7 @@ def create_trace_bundle(
     if project_dir is not None:
         write_project_tree(project_dir, out)
     verdict = final_verdict or {"verdict": "NEEDS_REWORK"}
-    write_json(out / "final_verdict.json", verdict)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", verdict)
     index = (
         "# Agent Tree Trace Bundle\n\n"
         "This bundle records the controlled agent-tree lane only. It is not proof that the real provider lane passed.\n"

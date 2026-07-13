@@ -70,7 +70,9 @@ def test_dynamic_pipeline_writes_execution_first_ledgers_and_canonical_verdict()
             if event.get("event_type") == "package_created"
         ]
         assert package_events
-        assert result["execution_first"]["canonical_verdict"]["overall_readiness"] in {"NOT_EVALUATED", "PASS_WITH_LIMITS", "PASS"}
+        assert result["execution_first"]["canonical_verdict"]["overall_readiness"] == "NEEDS_REWORK"
+        assert result["execution_first"]["canonical_verdict"]["upstream_statuses"]["replan"] == "NOT_EVALUATED"
+        assert result["execution_first"]["canonical_verdict"]["upstream_statuses"]["recovery"] == "NOT_EVALUATED"
 
 
 def test_dynamic_pipeline_can_run_agent_turn_inside_isolated_leaf_workspace() -> None:

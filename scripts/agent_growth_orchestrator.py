@@ -6,6 +6,11 @@ import pathlib
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -330,7 +335,7 @@ def run_controlled_dynamic_growth(
     write_json(out / "goal_alignment.json", alignment)
     if alignment["verdict"] != "PASS":
         final = {"verdict": "FAIL", "reason": "goal_alignment_failed"}
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
 
     registry = plan_dynamic_growth(shared_context, out, budget)
@@ -417,7 +422,7 @@ def run_controlled_dynamic_growth(
     )
     bundle = create_growth_trace_bundle(out_dir=out, project_dir=project, final_verdict=final)
     final["trace_bundle"] = str(bundle)
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 

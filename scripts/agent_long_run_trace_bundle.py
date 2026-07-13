@@ -5,6 +5,11 @@ import zipfile
 from typing import Any
 
 try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
+try:
     from agent_tree_contracts import read_json, write_json
 except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_contracts import read_json, write_json
@@ -12,7 +17,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 def create_long_run_trace_bundle(*, out_dir: str | pathlib.Path, final_verdict: dict[str, Any]) -> pathlib.Path:
     out = pathlib.Path(out_dir)
-    write_json(out / "final_verdict.json", final_verdict)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final_verdict)
     section_names = {
         "01_start_state": "Start state",
         "02_provider_readiness": "Provider readiness",

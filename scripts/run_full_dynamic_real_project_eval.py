@@ -12,6 +12,11 @@ import time
 import zipfile
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -742,7 +747,7 @@ def run_full_dynamic_real_project_eval(
     readiness = readiness_override if isinstance(readiness_override, dict) else provider_readiness(out_dir=out, model=model)
     if not readiness.get("provider_ready") and not provider_output_overrides:
         final = {"classification": "provider_unavailable", "verdict": "BLOCKED", "not_proven": True, "provider_ready": False, "telegram_mainline": "telegram_mainline_not_connected", "created_at": now()}
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
     readiness_for_leaves = readiness if readiness.get("provider_ready") else {"provider_ready": True, "override_mode": True}
     overrides = provider_output_overrides or {}
@@ -763,12 +768,12 @@ def run_full_dynamic_real_project_eval(
             "telegram_mainline": "telegram_mainline_not_connected",
             "created_at": now(),
         }
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
     if integration.get("verdict") != "PASS":
         classification, verdict = classify_result(readiness=readiness_for_leaves, branch_merges=branch_merges, integration=integration)
         final = {"classification": classification, "verdict": verdict, "provider_ready": bool(readiness_for_leaves.get("provider_ready")), "telegram_mainline": "telegram_mainline_not_connected", "created_at": now()}
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
     tests = run_project_pytest(out)
     visual = capture_runtime_visual_evidence(out) if capture_visual else {"verdict": "FAIL", "reason": "visual_capture_disabled"}
@@ -795,7 +800,7 @@ def run_full_dynamic_real_project_eval(
         "telegram_mainline": "telegram_mainline_not_connected",
         "created_at": now(),
     }
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 
@@ -897,7 +902,7 @@ def write_final_report(out_root: str | pathlib.Path, run_dir: str | pathlib.Path
         "telegram_mainline": "telegram_mainline_not_connected",
     }
     write_json(root / "full_dynamic_real_project_report.json", report)
-    write_json(root / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(root / "final_verdict.json", final)
     branch = report["repo"].get("branch", "")
     head = report["repo"].get("head", "")
     lines = [

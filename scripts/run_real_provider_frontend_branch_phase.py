@@ -7,6 +7,11 @@ import shutil
 import zipfile
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 import sys
 
@@ -242,7 +247,7 @@ def run_frontend_branch_phase(
     readiness = readiness_override if isinstance(readiness_override, dict) else provider_readiness(out_dir=out, model=model)
     if not readiness.get("provider_ready") and not provider_output_overrides:
         final = {"classification": "provider_unavailable", "verdict": "BLOCKED", "provider_ready": False, "frontend_merge": "not_run", "fake_success_detected": False}
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
     overrides = provider_output_overrides or {}
     checkpoints = []
@@ -278,7 +283,7 @@ def run_frontend_branch_phase(
         "fake_success_detected": False,
         "created_at": now(),
     }
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 

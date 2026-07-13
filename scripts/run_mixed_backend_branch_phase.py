@@ -10,6 +10,11 @@ import sys
 import zipfile
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -334,7 +339,7 @@ def run_mixed_backend_branch_phase(
             "fake_success_detected": False,
             "backend_merge": "not_run",
         }
-        write_json(out / "final_verdict.json", final)
+        acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
         return final
 
     checkpoints: list[dict[str, Any]] = []
@@ -371,7 +376,7 @@ def run_mixed_backend_branch_phase(
         "fake_success_detected": False,
         "created_at": now(),
     }
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 
@@ -389,7 +394,7 @@ def run_scope_violation_injection(*, out_dir: str | pathlib.Path, project_name: 
     result["forbidden_file"] = "README.md"
     result["forbidden_file_written"] = project_readme_exists
     result["verdict"] = "PASS" if result.get("classification") == "real_leaf_scope_violation_blocked" and not project_readme_exists else "FAIL"
-    write_json(pathlib.Path(out_dir) / "final_verdict.json", result)
+    acceptance_verifier.write_canonical_verdict(pathlib.Path(out_dir) / "final_verdict.json", result)
     return result
 
 

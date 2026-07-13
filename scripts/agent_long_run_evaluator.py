@@ -8,6 +8,11 @@ import subprocess
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -236,7 +241,7 @@ def run_long_run_eval(*, out_dir: str | pathlib.Path) -> dict[str, Any]:
     }
     bundle = create_long_run_trace_bundle(out_dir=out, final_verdict=final)
     final["trace_bundle"] = str(bundle)
-    write_json(out / "final_verdict.json", final)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final)
     return final
 
 

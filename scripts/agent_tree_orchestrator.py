@@ -5,6 +5,11 @@ import pathlib
 import sys
 from typing import Any
 
+try:
+    import acceptance_verifier
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import acceptance_verifier  # type: ignore
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
@@ -172,7 +177,7 @@ def run_controlled_agent_tree(
     }
     bundle = create_trace_bundle(out_dir=out, project_dir=project, final_verdict=final_verdict)
     final_verdict["trace_bundle"] = str(bundle)
-    write_json(out / "final_verdict.json", final_verdict)
+    acceptance_verifier.write_canonical_verdict(out / "final_verdict.json", final_verdict)
     return final_verdict
 
 
