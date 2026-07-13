@@ -39,6 +39,7 @@ import local_model_router
 import main_agent_manager
 import model_policy
 import project_revision_lane
+import real_test_execution
 import run_local_pipeline as provider_project_pipeline
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
@@ -5846,133 +5847,52 @@ def run_provider_project_tests(
     dependency_setup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
-    report = project / "TEST_REPORT.md"
     tests_dir = project / "tests"
-    executable = str(python_executable or sys.executable)
     pytest_config = project / "pytest.ini"
     if not pytest_config.exists():
         pytest_config.write_text("[pytest]\ntestpaths = tests\npythonpath = .\n", encoding="utf-8")
-    command = [executable, "-m", "pytest", "-c", str(pytest_config), "--rootdir", ".", "tests"]
     if not tests_dir.exists() or not any(path.is_file() for path in tests_dir.rglob("test*.py")):
-        result = {
-            "ok": False,
-            "commands_run": [],
-            "exit_code": None,
-            "stdout": "",
-            "stderr": "",
-            "error": "tests directory missing or no test*.py files found",
-            "failure_type": "no_tests",
-        }
-        report.write_text(
-            "\n".join(
-                [
-                    "# Test Report",
-                    "",
-                    "NO TEST EXECUTED",
-                    "",
-                    "commands_run:",
-                    "- none",
-                    "",
-                    "exit_code: not_run",
-                    "",
-                    "stdout_summary:",
-                    "- tests directory missing or empty",
-                    "",
-                    "stderr_summary:",
-                    "- none",
-                    "",
-                    "failure_type:",
-                    "- no_tests",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        return result
-    env = os.environ.copy()
-    python_paths = [str(project)]
-    src_path = project / "src"
-    if src_path.exists():
-        python_paths.append(str(src_path))
-    if env.get("PYTHONPATH"):
-        python_paths.append(env["PYTHONPATH"])
-    env["PYTHONPATH"] = os.pathsep.join(python_paths)
-    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-    try:
-        proc = subprocess.run(
-            command,
-            cwd=str(project),
-            capture_output=True,
-            text=True,
+        evidence = real_test_execution.run_tests(
+            project,
             timeout=timeout,
-            env=env,
+            python_executable=python_executable,
+            test_profile="provider_post_build",
         )
-        exit_code = int(proc.returncode)
-        stdout = _short_output(proc.stdout)
-        stderr = _short_output(proc.stderr)
-        timed_out = False
-    except subprocess.TimeoutExpired as exc:
-        exit_code = 124
-        stdout = _short_output(exc.stdout or "")
-        stderr = _short_output(exc.stderr or "pytest timed out")
-        timed_out = True
-    report.write_text(
-        "\n".join(
-            [
-                "# Test Report",
-                "",
-                "commands_run:",
-                f"- {' '.join(command)}",
-                "",
-                f"cwd: {project}",
-                "",
-                f"exit_code: {exit_code}",
-                "",
-                "stdout_summary:",
-                "```text",
-                stdout or "(empty)",
-                "```",
-                "",
-                "stderr_summary:",
-                "```text",
-                stderr or "(empty)",
-                "```",
-                "",
-                "results:",
-                f"- {'PASS' if exit_code == 0 else 'FAIL'}",
-                "",
-                "failure_type:",
-                f"- {classify_provider_pytest_failure(stdout, stderr) if exit_code != 0 else 'none'}",
-                "",
-                "failures:",
-                "- none" if exit_code == 0 else "- pytest command failed" + (" or timed out" if timed_out else ""),
-                "",
-                "dependency_setup:",
-                "```json",
-                json.dumps(dependency_setup or {}, ensure_ascii=False, indent=2),
-                "```",
-                "",
-                "deterministic_repair:",
-                "```json",
-                json.dumps(repair_summary or {}, ensure_ascii=False, indent=2),
-                "```",
-            ]
+        evidence.update(
+            {
+                "ok": False,
+                "stdout": "",
+                "stderr": "tests directory missing or no test*.py files found",
+                "error": "tests directory missing or no test*.py files found",
+                "failure_type": "no_tests",
+                "dependency_setup": dependency_setup or {},
+                "deterministic_repair": repair_summary or {},
+            }
         )
-        + "\n",
-        encoding="utf-8",
+        return evidence
+
+    evidence = real_test_execution.run_tests(
+        project,
+        timeout=timeout,
+        python_executable=python_executable,
+        test_profile="provider_post_build",
     )
-    return {
-        "ok": exit_code == 0,
-        "commands_run": [" ".join(command)],
-        "exit_code": exit_code,
-        "stdout": stdout,
-        "stderr": stderr,
-        "timed_out": timed_out,
-        "report_path": str(report),
-        "failure_type": classify_provider_pytest_failure(stdout, stderr) if exit_code != 0 else "",
-        "dependency_setup": dependency_setup or {},
-        "deterministic_repair": repair_summary or {},
-    }
+    stdout_path = pathlib.Path(str(evidence.get("stdout_artifact", "")))
+    stderr_path = pathlib.Path(str(evidence.get("stderr_artifact", "")))
+    stdout = _short_output(stdout_path.read_text(encoding="utf-8", errors="replace") if stdout_path.exists() else "")
+    stderr = _short_output(stderr_path.read_text(encoding="utf-8", errors="replace") if stderr_path.exists() else "")
+    evidence.update(
+        {
+            "ok": evidence.get("status") == "PASS",
+            "stdout": stdout,
+            "stderr": stderr,
+            "report_path": str(project / "TEST_REPORT.md"),
+            "failure_type": classify_provider_pytest_failure(stdout, stderr) if evidence.get("status") != "PASS" else "",
+            "dependency_setup": dependency_setup or {},
+            "deterministic_repair": repair_summary or {},
+        }
+    )
+    return evidence
 
 
 def image_quality_audit(path: pathlib.Path) -> dict[str, Any]:

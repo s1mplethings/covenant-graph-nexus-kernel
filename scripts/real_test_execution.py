@@ -1,133 +1,301 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timezone
 from typing import Any
+
+from contracts.test_execution import KIND, PRODUCER, SCHEMA_VERSION
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _sha256_bytes(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def _sha256_text(text: str) -> str:
+    return _sha256_bytes(text.encode("utf-8"))
+
+
+def _sha256_file(path: pathlib.Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def project_tree_hash(project: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    ignored = {"test_execution.json", "TEST_REPORT.md", "test_stdout.txt", "test_stderr.txt"}
+    for path in sorted(item for item in project.rglob("*") if item.is_file()):
+        rel = path.relative_to(project).as_posix()
+        if rel in ignored or ".pytest_cache/" in rel:
+            continue
+        digest.update(rel.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return "sha256:" + digest.hexdigest()
+
+
+def current_commit_sha(project: pathlib.Path) -> str:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception:
+        return "unknown"
+    return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unknown"
+
+
 def detect_commands(project_dir: str | pathlib.Path) -> list[list[str]]:
     project = pathlib.Path(project_dir)
-    if (project / "tests").exists() and ((project / "pyproject.toml").exists() or (project / "requirements.txt").exists() or (project / "app.py").exists() or (project / "main.py").exists()):
+    if (project / "tests").exists() and any(path.is_file() for path in (project / "tests").rglob("test*.py")):
         return [["python", "-m", "pytest", "tests"]]
     if (project / "package.json").exists():
         return [["npm", "test"]]
     if (project / "index.html").exists():
         return [["python", "-c", "from pathlib import Path; assert Path('index.html').read_text(encoding='utf-8').strip()"]]
-    if (project / "app.py").exists():
-        return [["python", "app.py"]]
-    if (project / "main.py").exists():
-        return [["python", "main.py"]]
     return []
 
 
-def run_tests(project_dir: str | pathlib.Path, *, timeout: int = 60) -> dict[str, Any]:
-    project = pathlib.Path(project_dir)
+def _pytest_counts(stdout: str, stderr: str, exit_code: int) -> dict[str, int]:
+    text = "\n".join([stdout or "", stderr or ""])
+    collected = 0
+    match = re.search(r"collected\s+(\d+)\s+items?", text)
+    if match:
+        collected = int(match.group(1))
+    passed = sum(int(n) for n in re.findall(r"(\d+)\s+passed", text))
+    failed = sum(int(n) for n in re.findall(r"(\d+)\s+failed", text))
+    skipped = sum(int(n) for n in re.findall(r"(\d+)\s+skipped", text))
+    if collected == 0 and exit_code == 0 and passed == 0:
+        passed = 1
+        collected = 1
+    if collected == 0:
+        collected = passed + failed + skipped
+    return {"collected": collected, "passed": passed, "failed": failed, "skipped": skipped}
+
+
+def _skip_reasons(stdout: str, stderr: str) -> dict[str, int]:
+    text = "\n".join([stdout or "", stderr or ""])
+    reasons: dict[str, int] = {}
+    for reason in re.findall(r"SKIPPED\s+\[[^\]]+\]\s+(.+)", text):
+        key = reason.strip()[:160] or "uncategorized"
+        reasons[key] = reasons.get(key, 0) + 1
+    return reasons
+
+
+def _normalize_command(command: list[str], python_executable: str | pathlib.Path | None) -> list[str]:
+    if command[:3] == ["python", "-m", "pytest"]:
+        return [str(python_executable or sys.executable), "-m", "pytest", *command[3:]]
+    return [str(item) for item in command]
+
+
+def run_tests(
+    project_dir: str | pathlib.Path,
+    *,
+    timeout: int = 60,
+    python_executable: str | pathlib.Path | None = None,
+    run_id: str | None = None,
+    candidate_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
+    test_profile: str = "repo_default",
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
     project.mkdir(parents=True, exist_ok=True)
+    run_id = run_id or f"test-run-{uuid.uuid4().hex}"
+    candidate_id = candidate_id or project.name or "candidate"
+    candidate_hash = candidate_hash or project_tree_hash(project)
+    commit_sha = commit_sha or current_commit_sha(project)
     started = _now()
     commands = detect_commands(project)
-    executions: list[dict[str, Any]] = []
-    if not commands:
-        result = {
-            "verdict": "FAIL",
-            "commands_run": [],
-            "executions": [],
-            "started_at": started,
-            "finished_at": _now(),
-            "reason": "NO REAL TEST EXECUTION",
-        }
+    argv = _normalize_command(commands[0], python_executable) if commands else []
+    stdout = ""
+    stderr = ""
+    exit_code: int | None = None
+    timed_out = False
+
+    env_classification = "clean_env_overlay"
+    if not argv:
+        status = "FAIL"
+        stderr = "tests directory missing or no executable test command detected"
+        counts = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
     else:
-        for command in commands[:1]:
-            item_started = _now()
-            try:
-                env = os.environ.copy()
-                python_paths = [str(project)]
-                if env.get("PYTHONPATH"):
-                    python_paths.append(env["PYTHONPATH"])
-                env["PYTHONPATH"] = os.pathsep.join(python_paths)
-                env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-                if command[:3] == ["python", "-m", "pytest"]:
-                    command = [sys.executable, "-m", "pytest", *command[3:]]
-                proc = subprocess.run(command, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
-                executions.append(
-                    {
-                        "command": " ".join(command),
-                        "exit_code": proc.returncode,
-                        "stdout_summary": (proc.stdout or "")[-4000:],
-                        "stderr_summary": (proc.stderr or "")[-4000:],
-                        "started_at": item_started,
-                        "finished_at": _now(),
-                    }
-                )
-            except Exception as exc:
-                executions.append(
-                    {
-                        "command": " ".join(command),
-                        "exit_code": -1,
-                        "stdout_summary": "",
-                        "stderr_summary": str(exc),
-                        "started_at": item_started,
-                        "finished_at": _now(),
-                    }
-                )
-        result = {
-            "verdict": "PASS" if executions and all(int(item.get("exit_code", 1)) == 0 for item in executions) else "FAIL",
-            "commands_run": [item["command"] for item in executions],
-            "executions": executions,
-            "started_at": started,
-            "finished_at": _now(),
-        }
-    (project / "test_execution.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    write_test_report(project, result)
-    return result
+        env = os.environ.copy()
+        python_paths = [str(project)]
+        src_path = project / "src"
+        if src_path.exists():
+            python_paths.append(str(src_path))
+        if env.get("PYTHONPATH"):
+            python_paths.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(python_paths)
+        env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+        try:
+            proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
+            stdout = proc.stdout or ""
+            stderr = proc.stderr or ""
+            exit_code = int(proc.returncode)
+        except subprocess.TimeoutExpired as exc:
+            stdout = str(exc.stdout or "")
+            stderr = str(exc.stderr or "test command timed out")
+            exit_code = 124
+            timed_out = True
+        counts = _pytest_counts(stdout, stderr, int(exit_code))
+        status = "PASS" if exit_code == 0 and counts["failed"] == 0 and counts["collected"] > 0 else "FAIL"
+
+    stdout_path = project / "test_stdout.txt"
+    stderr_path = project / "test_stderr.txt"
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(stderr, encoding="utf-8")
+    finished = _now()
+    evidence: dict[str, Any] = {
+        "kind": KIND,
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "candidate_hash": candidate_hash,
+        "commit_sha": commit_sha,
+        "producer": PRODUCER,
+        "created_at": finished,
+        "status": status,
+        "artifact_hash": "",
+        "argv": argv,
+        "cwd": str(project),
+        "environment": env_classification,
+        "started_at": started,
+        "finished_at": finished,
+        "exit_code": exit_code if exit_code is not None else -1,
+        "timeout": timed_out,
+        "collected": counts["collected"],
+        "passed": counts["passed"],
+        "failed": counts["failed"],
+        "skipped": counts["skipped"],
+        "skip_reasons": _skip_reasons(stdout, stderr),
+        "stdout_artifact": str(stdout_path),
+        "stdout_hash": _sha256_file(stdout_path),
+        "stderr_artifact": str(stderr_path),
+        "stderr_hash": _sha256_file(stderr_path),
+        "result_artifact_hash": "",
+        "test_profile": test_profile,
+        "ok": status == "PASS",
+        "commands_run": [" ".join(argv)] if argv else [],
+        "verdict": status,
+        "executions": [
+            {
+                "argv": argv,
+                "exit_code": exit_code,
+                "stdout_hash": _sha256_file(stdout_path),
+                "stderr_hash": _sha256_file(stderr_path),
+                "started_at": started,
+                "finished_at": finished,
+            }
+        ]
+        if argv
+        else [],
+    }
+    artifact_hash = _sha256_text(json.dumps({**evidence, "artifact_hash": "", "result_artifact_hash": ""}, sort_keys=True, ensure_ascii=False))
+    evidence["artifact_hash"] = artifact_hash
+    evidence["result_artifact_hash"] = artifact_hash
+    execution_path = project / "test_execution.json"
+    execution_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    evidence["result_file"] = str(execution_path)
+    write_test_report(project, evidence)
+    return evidence
 
 
-def write_test_report(project: pathlib.Path, result: dict[str, Any]) -> pathlib.Path:
-    lines = ["# Test Report", "", "commands_run:"]
-    commands = result.get("commands_run", []) if isinstance(result.get("commands_run"), list) else []
-    if commands:
-        lines.extend(f"- {cmd}" for cmd in commands)
-    else:
-        lines.append("- NO REAL TEST EXECUTION")
-    first = result.get("executions", [{}])[0] if isinstance(result.get("executions"), list) and result.get("executions") else {}
+def write_test_report(project: pathlib.Path, evidence: dict[str, Any]) -> pathlib.Path:
+    path = project / "TEST_REPORT.md"
+    lines = [
+        "# Test Report",
+        "",
+        f"kind: {evidence.get('kind', '')}",
+        f"schema_version: {evidence.get('schema_version', '')}",
+        f"run_id: {evidence.get('run_id', '')}",
+        f"candidate_hash: {evidence.get('candidate_hash', '')}",
+        f"commit_sha: {evidence.get('commit_sha', '')}",
+        f"result_artifact_hash: {evidence.get('result_artifact_hash', '')}",
+        "",
+        "argv:",
+    ]
+    argv = evidence.get("argv", []) if isinstance(evidence.get("argv"), list) else []
+    lines.extend(f"- {item}" for item in argv)
     lines.extend(
         [
             "",
-            f"exit_code: {first.get('exit_code', 'none')}",
-            f"stdout_summary: {str(first.get('stdout_summary', ''))[:1000]}",
-            f"stderr_summary: {str(first.get('stderr_summary', ''))[:1000]}",
-            f"started_at: {result.get('started_at', '')}",
-            f"finished_at: {result.get('finished_at', '')}",
-            f"verdict: {result.get('verdict', 'FAIL')}",
+            f"cwd: {evidence.get('cwd', '')}",
+            f"exit_code: {evidence.get('exit_code', '')}",
+            f"timeout: {str(evidence.get('timeout', False)).lower()}",
+            f"collected: {evidence.get('collected', 0)}",
+            f"passed: {evidence.get('passed', 0)}",
+            f"failed: {evidence.get('failed', 0)}",
+            f"skipped: {evidence.get('skipped', 0)}",
+            f"status: {evidence.get('status', 'FAIL')}",
         ]
     )
-    if not commands:
+    if not argv:
         lines.append("NO REAL TEST EXECUTION")
-    path = project / "TEST_REPORT.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
 
-def inspect_test_report(project_dir: str | pathlib.Path) -> dict[str, Any]:
+def inspect_test_report(
+    project_dir: str | pathlib.Path,
+    *,
+    run_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
+) -> dict[str, Any]:
     project = pathlib.Path(project_dir)
     execution = project / "test_execution.json"
     report = project / "TEST_REPORT.md"
-    if execution.exists():
-        try:
-            doc = json.loads(execution.read_text(encoding="utf-8", errors="replace"))
-        except Exception:
-            doc = {}
-        return {"verdict": "PASS" if doc.get("verdict") == "PASS" else "FAIL", "source": "test_execution.json", "details": doc}
+    if not execution.exists():
+        return {"verdict": "FAIL", "status": "FAIL", "source": "", "missing": ["test_execution.json"]}
     if not report.exists():
-        return {"verdict": "FAIL", "source": "", "missing": ["TEST_REPORT.md"]}
+        return {"verdict": "FAIL", "status": "FAIL", "source": "test_execution.json", "missing": ["TEST_REPORT.md"]}
+    try:
+        doc = json.loads(execution.read_text(encoding="utf-8", errors="replace"))
+    except Exception as exc:
+        return {"verdict": "FAIL", "status": "FAIL", "source": "test_execution.json", "missing": ["valid_json"], "error": str(exc)}
+    missing: list[str] = []
+    if doc.get("kind") != KIND:
+        missing.append("canonical_kind")
+    if doc.get("schema_version") != SCHEMA_VERSION:
+        missing.append("schema_version")
+    if not doc.get("argv"):
+        missing.append("argv")
+    for field in ("stdout_artifact", "stderr_artifact", "stdout_hash", "stderr_hash", "result_artifact_hash"):
+        if not doc.get(field):
+            missing.append(field)
+    for artifact_field, hash_field in (("stdout_artifact", "stdout_hash"), ("stderr_artifact", "stderr_hash")):
+        artifact = pathlib.Path(str(doc.get(artifact_field, "")))
+        if not artifact.exists() or _sha256_file(artifact) != doc.get(hash_field):
+            missing.append(hash_field)
+    expected_hash = _sha256_text(json.dumps({**doc, "artifact_hash": "", "result_artifact_hash": "", "result_file": doc.get("result_file", "")}, sort_keys=True, ensure_ascii=False))
+    if doc.get("result_artifact_hash") not in {doc.get("artifact_hash"), expected_hash}:
+        missing.append("result_artifact_hash")
     text = report.read_text(encoding="utf-8", errors="replace")
-    has_command = "commands_run" in text and "exit_code" in text
-    fake = "NO TEST EXECUTED" in text.upper() or "NO REAL TEST EXECUTION" in text.upper()
-    return {"verdict": "PASS" if has_command and not fake else "FAIL", "source": "TEST_REPORT.md", "missing": [] if has_command and not fake else ["real_test_execution"]}
+    for token in (str(doc.get("run_id", "")), str(doc.get("candidate_hash", "")), str(doc.get("commit_sha", "")), str(doc.get("result_artifact_hash", ""))):
+        if token and token not in text:
+            missing.append("report_artifact_reference")
+            break
+    if run_id is not None and doc.get("run_id") != run_id:
+        missing.append("run_id")
+    if candidate_hash is not None and doc.get("candidate_hash") != candidate_hash:
+        missing.append("candidate_hash")
+    if commit_sha is not None and doc.get("commit_sha") != commit_sha:
+        missing.append("commit_sha")
+    if int(doc.get("collected", 0) or 0) <= 0:
+        missing.append("collected")
+    status = "PASS" if not missing and doc.get("status") == "PASS" else "FAIL"
+    return {"verdict": status, "status": status, "source": "test_execution.json", "missing": missing, "details": doc}
