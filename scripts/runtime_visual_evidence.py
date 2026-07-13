@@ -63,26 +63,37 @@ def write_runtime_preview_png(path: pathlib.Path, title: str = "Runtime preview"
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+    (path.with_suffix(path.suffix + ".placeholder.json")).write_text(
+        json.dumps({"formal_evidence": False, "reason": "synthetic runtime preview"}, indent=2),
+        encoding="utf-8",
+    )
     return path
 
 
 def collect_visual_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
     project = pathlib.Path(project_dir)
     project.mkdir(parents=True, exist_ok=True)
-    screenshots = [
-        item
-        for item in project.rglob("*")
-        if item.is_file() and item.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and any(token in str(item).lower() for token in ("screenshot", "preview", "app_home", "ui"))
-    ]
-    valid = [item for item in screenshots if item.suffix.lower() == ".png" and _real_png(item)]
+    from scripts import browser_visual_evidence
+
+    inspection = browser_visual_evidence.inspect(project)
+    details = inspection.get("details", {}) if isinstance(inspection.get("details"), dict) else {}
+    screenshot_raw = str(details.get("screenshot_path", "")).strip() if details else ""
+    screenshot = pathlib.Path(screenshot_raw) if screenshot_raw else None
+    screenshots = []
+    if screenshot is not None and screenshot.exists():
+        try:
+            screenshots = [str(screenshot.relative_to(project))]
+        except ValueError:
+            screenshots = [str(screenshot)]
     result = {
-        "verdict": "PASS" if valid else "FAIL",
-        "screenshots": [str(item.relative_to(project)) for item in valid],
-        "all_screenshots": [str(item.relative_to(project)) for item in screenshots],
+        "verdict": "PASS" if inspection.get("status") == "PASS" else "FAIL",
+        "screenshots": screenshots,
+        "all_screenshots": [str(path.relative_to(project)) for path in project.rglob("*.png")],
         "timestamp": _now(),
-        "screenshot_blocked_reason": "" if valid else "没有找到来自真实预览的有效截图",
+        "screenshot_blocked_reason": "" if inspection.get("status") == "PASS" else "canonical VisualEvidence missing or invalid",
+        "formal_evidence": inspection.get("status") == "PASS",
+        "missing": inspection.get("missing", []),
     }
-    (project / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
 
@@ -92,6 +103,5 @@ def create_static_html_preview_evidence(project_dir: str | pathlib.Path) -> dict
         return collect_visual_evidence(project)
     shot = write_runtime_preview_png(project / "screenshots" / "app_home.png")
     result = collect_visual_evidence(project)
-    result.update({"source": "static_or_app_preview", "screenshot_path": str(shot.relative_to(project)), "url_or_file": "project runtime preview"})
-    (project / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    result.update({"source": "placeholder_preview_only", "screenshot_path": str(shot.relative_to(project)), "url_or_file": "project runtime preview", "formal_evidence": False})
     return result

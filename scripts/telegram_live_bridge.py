@@ -31,6 +31,7 @@ import check_connectivity
 import adaptive_delivery
 import agent_conversation_loop
 import backend_dialogue_loop
+import browser_visual_evidence
 import capability_strategy
 import customer_runtime_runner
 import dynamic_pipeline_runner
@@ -6198,6 +6199,12 @@ def post_build_finalize_provider_project(
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
     runtime_result = customer_runtime_runner.run(project_dir)
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
+    visual_evidence_result = (
+        browser_visual_evidence.run(project_dir, runtime_ref=runtime_result.get("result_file"))
+        if runtime_result.get("status") == "PASS"
+        else {"status": "NOT_EVALUATED", "reason": "customer_runtime_not_pass"}
+    )
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     req = infer_public_delivery_requirements(session, "")
     image_missing: list[str] = []
@@ -6223,6 +6230,7 @@ def post_build_finalize_provider_project(
             "post_build_image_evidence": image_result,
             "post_build_test_result": test_result,
             "post_build_customer_runtime": runtime_result,
+            "post_build_browser_visual_evidence": visual_evidence_result,
         },
     )
     screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
@@ -6275,6 +6283,7 @@ def post_build_finalize_provider_project(
     return {
         "test_result": test_result,
         "runtime_result": runtime_result,
+        "visual_evidence_result": visual_evidence_result,
         "image_result": image_result,
         "visual_required": visual_required,
         "manifest": manifest,
