@@ -139,3 +139,42 @@ def validate_leaf_workspace_layout(leaf_dir: str | pathlib.Path) -> dict[str, An
         "missing_files": missing,
         "missing_dirs": missing_dirs,
     }
+
+
+def summarize_leaf_workspaces(workspaces: list[dict[str, Any]]) -> dict[str, Any]:
+    by_workspace_id: dict[str, dict[str, str]] = {}
+    duplicate_workspace_ids: list[str] = []
+    missing_identity: list[dict[str, Any]] = []
+    non_workspace_dirs: list[str] = []
+    for item in workspaces:
+        workspace_id = str(item.get("workspace_id", "")).strip()
+        workspace_root = str(item.get("workspace", "") or item.get("workspace_root", "")).strip()
+        if not workspace_id or not workspace_root:
+            missing_identity.append(item)
+            continue
+        if workspace_id in by_workspace_id:
+            duplicate_workspace_ids.append(workspace_id)
+            continue
+        by_workspace_id[workspace_id] = {
+            "workspace_id": workspace_id,
+            "workspace_root": str(pathlib.Path(workspace_root).resolve()),
+            "leaf_id": str(item.get("leaf_id", "")),
+            "task_id": str(item.get("task_id", "")),
+        }
+        for key in ("leaf_dir", "input_dir", "data_dir", "temp_dir"):
+            value = str(item.get(key, "")).strip()
+            if value:
+                non_workspace_dirs.append(str(pathlib.Path(value).resolve()))
+    real_roots = {row["workspace_root"] for row in by_workspace_id.values()}
+    counted_non_workspace_dirs = sorted(path for path in set(non_workspace_dirs) if path in real_roots)
+    ok = not duplicate_workspace_ids and not missing_identity and not counted_non_workspace_dirs
+    return {
+        "status": "PASS" if ok else "NEEDS_REWORK",
+        "leaf_workspace_count": len(by_workspace_id),
+        "workspace_ids": sorted(by_workspace_id),
+        "workspace_roots": sorted(real_roots),
+        "duplicate_workspace_ids": sorted(set(duplicate_workspace_ids)),
+        "missing_identity": missing_identity,
+        "ignored_container_dirs": sorted(set(non_workspace_dirs) - real_roots),
+        "counted_non_workspace_dirs": counted_non_workspace_dirs,
+    }

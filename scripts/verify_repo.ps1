@@ -19,7 +19,7 @@ $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $RepoRoot
 
 if (-not [string]::IsNullOrWhiteSpace($Profile)) {
-  $allowedProfiles = @("quick", "regression", "longrun", "provider", "e2e", "all")
+  $allowedProfiles = @("repo_default", "quick", "regression", "longrun", "provider", "e2e", "full_all", "all")
   if ($allowedProfiles -notcontains $Profile) {
     throw "Unknown test profile: $Profile"
   }

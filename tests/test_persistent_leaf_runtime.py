@@ -8,7 +8,7 @@ import pytest
 
 from scripts.evidence_provenance import EvidenceProvenanceLedger, gate_verified_evidence, sha256_file
 from scripts.leaf_collaboration_graph import LeafCollaborationGraph
-from scripts.leaf_workspace_manager import LeafWorkspaceManager, validate_leaf_workspace_layout
+from scripts.leaf_workspace_manager import LeafWorkspaceManager, summarize_leaf_workspaces, validate_leaf_workspace_layout
 from scripts.patch_merge_manager import PatchMergeManager
 from scripts.persistent_leaf_runtime import PersistentLeafRuntime
 from scripts.product_candidate_manager import ProductCandidateManager, tree_hash
@@ -46,6 +46,31 @@ def test_leaf_workspace_isolated_and_has_required_contract_files(tmp_path: pathl
     assert validate_leaf_workspace_layout(workspace["leaf_dir"])["status"] == "PASS"
     with pytest.raises(PermissionError):
         manager.resolve_workspace_path(workspace, "../candidate/app.py")
+
+
+def test_workspace_identity_counts_only_real_leaf_workspaces(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "app.py").write_text("print('base')\n", encoding="utf-8")
+    manager = LeafWorkspaceManager(tmp_path / "run", run_id="run_a")
+
+    workspaces = [
+        manager.create_workspace(
+            leaf_id=f"leaf_{index}",
+            task_id=f"task_{index}",
+            candidate_dir=candidate,
+            task_contract={"allowed_files": ["app.py"]},
+        )
+        for index in range(4)
+    ]
+
+    summary = summarize_leaf_workspaces(workspaces)
+
+    assert summary["status"] == "PASS"
+    assert summary["leaf_workspace_count"] == 4
+    assert len(summary["workspace_roots"]) == 4
+    assert all(workspace["temp_dir"] in summary["ignored_container_dirs"] for workspace in workspaces)
+    assert all(workspace["input_dir"] in summary["ignored_container_dirs"] for workspace in workspaces)
 
 
 def test_controlled_leaf_connections_enforce_limits_scope_and_cycles(tmp_path: pathlib.Path) -> None:
@@ -381,13 +406,110 @@ def test_persistent_leaf_runtime_keeps_changes_in_workspace_until_l2_merge(tmp_p
 
 
 def test_profile_boundary_rejects_reused_result_file_and_mixed_candidate(tmp_path: pathlib.Path) -> None:
-    ledger = ProfileLedger(tmp_path / "profiles.jsonl", run_id="run_a", candidate_id="candidate_a")
-    ledger.append_result(profile="focused", command="pytest focused", result_file="focused_result.json", status="PASS", exit_code=0)
-    ledger.append_result(profile="full_all", command="pytest full", result_file="focused_result.json", status="PASS", exit_code=0)
-    ledger.append_result(profile="browser", command="playwright", result_file="browser_result.json", status="PASS", exit_code=0, candidate_id="old_candidate")
+    result_file = tmp_path / "focused_result.json"
+    result_file.write_text('{"ok": true}\n', encoding="utf-8")
+    browser_result = tmp_path / "browser_result.json"
+    browser_result.write_text('{"ok": true}\n', encoding="utf-8")
+    ledger = ProfileLedger(tmp_path / "profiles.jsonl", run_id="run_a", candidate_id="candidate_a", commit_sha="commit_a")
+    ledger.append_result(
+        profile="focused",
+        command="pytest focused",
+        result_file=str(result_file),
+        status="PASS",
+        exit_code=0,
+        collected=1,
+        passed=1,
+        failed=0,
+        skipped=0,
+    )
+    ledger.append_result(
+        profile="full_all",
+        command="python -m pytest -q",
+        result_file=str(result_file),
+        status="PASS",
+        exit_code=0,
+        collected=1,
+        passed=1,
+        failed=0,
+        skipped=0,
+    )
+    ledger.append_result(
+        profile="browser",
+        command="playwright",
+        result_file=str(browser_result),
+        status="PASS",
+        exit_code=0,
+        candidate_id="old_candidate",
+        collected=1,
+        passed=1,
+        failed=0,
+        skipped=0,
+    )
 
-    gate = profile_boundary_gate(ledger.rows(), required_profiles=["focused", "full_all", "browser"], candidate_id="candidate_a")
+    gate = profile_boundary_gate(ledger.rows(), required_profiles=["focused", "full_all", "browser"], candidate_id="candidate_a", run_id="run_a", commit_sha="commit_a")
 
     assert gate["status"] == "NEEDS_REWORK"
     assert gate["duplicate_result_files"]
+    assert gate["duplicate_result_hashes"]
+    assert gate["invalid_commands"]
     assert gate["wrong_candidate"]
+
+
+def test_profile_boundary_rejects_old_run_commit_and_uncategorized_skips(tmp_path: pathlib.Path) -> None:
+    result_file = tmp_path / "e2e_result.json"
+    result_file.write_text('{"ok": true}\n', encoding="utf-8")
+    ledger = ProfileLedger(tmp_path / "profiles.jsonl", run_id="run_old", candidate_id="candidate_a", commit_sha="commit_old")
+    ledger.append_result(
+        profile="e2e",
+        command="python -m pytest -q -m e2e",
+        result_file=str(result_file),
+        status="PASS",
+        exit_code=0,
+        collected=343,
+        passed=0,
+        failed=0,
+        skipped=343,
+        skip_reasons={"only partially classified": 1},
+    )
+
+    gate = profile_boundary_gate(ledger.rows(), required_profiles=["e2e"], candidate_id="candidate_a", run_id="run_current", commit_sha="commit_current")
+
+    assert gate["status"] == "NEEDS_REWORK"
+    assert gate["wrong_run"]
+    assert gate["wrong_commit"]
+    assert gate["uncategorized_skips"]
+
+
+def test_profile_boundary_accepts_current_repo_default_and_full_all_contracts(tmp_path: pathlib.Path) -> None:
+    repo_result = tmp_path / "repo_default_result.json"
+    repo_result.write_text('{"ok": true, "profile": "repo_default"}\n', encoding="utf-8")
+    full_result = tmp_path / "full_all_result.json"
+    full_result.write_text('{"ok": true, "profile": "full_all"}\n', encoding="utf-8")
+    ledger = ProfileLedger(tmp_path / "profiles.jsonl", run_id="run_a", candidate_id="candidate_a", commit_sha="commit_a")
+    ledger.append_result(
+        profile="repo_default",
+        command="python -m pytest -q",
+        result_file=str(repo_result),
+        status="PASS",
+        exit_code=0,
+        collected=10,
+        passed=10,
+        failed=0,
+        skipped=0,
+    )
+    ledger.append_result(
+        profile="full_all",
+        command="python scripts/run_test_profile.py --profile full_all",
+        result_file=str(full_result),
+        status="PASS",
+        exit_code=0,
+        collected=12,
+        passed=10,
+        failed=0,
+        skipped=2,
+        skip_reasons={"profile-marked unavailable externally": 2},
+    )
+
+    gate = profile_boundary_gate(ledger.rows(), required_profiles=["repo_default", "full_all"], candidate_id="candidate_a", run_id="run_a", commit_sha="commit_a")
+
+    assert gate["status"] == "PASS"
