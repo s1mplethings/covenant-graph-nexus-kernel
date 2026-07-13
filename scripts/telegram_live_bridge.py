@@ -32,6 +32,7 @@ import adaptive_delivery
 import agent_conversation_loop
 import backend_dialogue_loop
 import capability_strategy
+import customer_runtime_runner
 import dynamic_pipeline_runner
 import local_packager
 import local_image_model_discovery
@@ -6195,6 +6196,8 @@ def post_build_finalize_provider_project(
         repaired_test["first_attempt"] = test_result
         test_result = repaired_test
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
+    runtime_result = customer_runtime_runner.run(project_dir)
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     req = infer_public_delivery_requirements(session, "")
     image_missing: list[str] = []
@@ -6212,12 +6215,23 @@ def post_build_finalize_provider_project(
     image_result["missing_config"] = missing_config
     image_result["ok"] = not image_result["missing"]
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
-    write_provider_delivery_notes(project_dir, provider_result, runtime_artifacts | {"post_build_image_evidence": image_result, "post_build_test_result": test_result})
+    write_provider_delivery_notes(
+        project_dir,
+        provider_result,
+        runtime_artifacts
+        | {
+            "post_build_image_evidence": image_result,
+            "post_build_test_result": test_result,
+            "post_build_customer_runtime": runtime_result,
+        },
+    )
     screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
     visual_required = bool(req.get("screenshot") or req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
     delivery_limits: list[str] = []
     if not test_result.get("ok"):
         delivery_limits.append("Automated tests are incomplete or failing; this must be disclosed to the user.")
+    if runtime_result.get("status") != "PASS":
+        delivery_limits.append("Customer runtime did not pass canonical startup and operation evidence.")
     if image_result.get("missing") and visual_required:
         delivery_limits.append("Missing verified image-generation or preview evidence: " + ", ".join(image_result.get("missing", [])))
     manifest = local_packager.package_project(
@@ -6260,6 +6274,7 @@ def post_build_finalize_provider_project(
         write_json(pathlib.Path(manifest_path_value), manifest)
     return {
         "test_result": test_result,
+        "runtime_result": runtime_result,
         "image_result": image_result,
         "visual_required": visual_required,
         "manifest": manifest,
