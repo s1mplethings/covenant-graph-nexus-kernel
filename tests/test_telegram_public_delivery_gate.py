@@ -47,6 +47,12 @@ class FakeTelegramClient:
         return True
 
 
+class ScreenshotFailingTelegramClient(FakeTelegramClient):
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+        return False
+
+
 def vn_session(chat_id: str) -> dict:
     session = bridge.default_session(chat_id)
     session["whiteboard"]["project_summary"] = "本地可运行的 VN 项目助手，桌面界面，文件导出，能直接生成背景和立绘图片"
@@ -174,6 +180,111 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertTrue(any(caption == "生成立绘" for _, _, caption in client.photos))
         self.assertEqual([".zip"], sorted({path.suffix.lower() for _, path, _ in client.documents}))
         self.assertFalse(any(path.suffix.lower() in {".md", ".json", ".txt", ".log"} for _, path, _ in client.documents))
+
+    def test_final_gate_rejects_package_warning_user_review_and_source_change(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            (project / "screenshots").mkdir(parents=True)
+            (project / "generated").mkdir(parents=True)
+            (project / "README.md").write_text("# VN helper\n\nRun with `python main.py`.\n", encoding="utf-8")
+            (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
+            (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+            real_test_execution.run_tests(project)
+            (project / "customer_runtime.json").write_text(
+                '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
+                encoding="utf-8",
+            )
+            (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+            screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
+            background = project / "generated" / "background_scene.png"
+            sprite = project / "generated" / "character_sprite.png"
+            bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
+            bridge.write_rgb_png(background, 160, 100, lambda x, y: (((x + 30) * 2) % 255, (y * 4) % 255, ((x + y + 10) * 3) % 255))
+            bridge.write_rgb_png(sprite, 160, 100, lambda x, y: ((x * 7) % 255, ((y + 40) * 2) % 255, ((x * 2 + y) * 2) % 255))
+            manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot, user_review_required=True, user_review_completed=False)
+            (project / "main.py").write_text("print('changed after package')\n", encoding="utf-8")
+            session = vn_session("review-source-change")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("package_not_ready", gate["missing"])
+        self.assertIn("user_review", gate["missing"])
+        self.assertIn("package_source_changed", gate["missing"])
+
+    def test_final_gate_rejects_package_hash_mismatch_and_nested_old_zip(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            (project / "screenshots").mkdir(parents=True)
+            (project / "generated").mkdir(parents=True)
+            (project / "archive").mkdir(parents=True)
+            (project / "archive" / "final_project_bundle.zip").write_bytes(b"old zip")
+            (project / "README.md").write_text("# VN helper\n\nRun with `python main.py`.\n", encoding="utf-8")
+            (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
+            (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+            real_test_execution.run_tests(project)
+            (project / "customer_runtime.json").write_text(
+                '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
+                encoding="utf-8",
+            )
+            (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+            screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
+            background = project / "generated" / "background_scene.png"
+            sprite = project / "generated" / "character_sprite.png"
+            bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
+            bridge.write_rgb_png(background, 160, 100, lambda x, y: (((x + 30) * 2) % 255, (y * 4) % 255, ((x + y + 10) * 3) % 255))
+            bridge.write_rgb_png(sprite, 160, 100, lambda x, y: ((x * 7) % 255, ((y + 40) * 2) % 255, ((x * 2 + y) * 2) % 255))
+            manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+            pathlib.Path(manifest["package_path"]).write_bytes(b"tampered")
+            session = vn_session("hash-nested")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("package_hash_mismatch", gate["missing"])
+        self.assertIn("final_package_contains_nested_zip", gate["missing"])
+
+    def test_screenshot_send_failure_does_not_mark_delivered(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project = root / "project"
+            (project / "screenshots").mkdir(parents=True)
+            (project / "generated").mkdir(parents=True)
+            (project / "README.md").write_text("# VN helper\n\nRun with `python main.py`.\n", encoding="utf-8")
+            (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
+            (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+            (project / "tests").mkdir(parents=True)
+            (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
+            real_test_execution.run_tests(project)
+            (project / "customer_runtime.json").write_text(
+                '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
+                encoding="utf-8",
+            )
+            (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+            screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
+            background = project / "generated" / "background_scene.png"
+            sprite = project / "generated" / "character_sprite.png"
+            bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
+            bridge.write_rgb_png(background, 160, 100, lambda x, y: (((x + 30) * 2) % 255, (y * 4) % 255, ((x + y + 10) * 3) % 255))
+            bridge.write_rgb_png(sprite, 160, 100, lambda x, y: ((x * 7) % 255, ((y + 40) * 2) % 255, ((x * 2 + y) * 2) % 255))
+            manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+            session = vn_session("send-fail")
+            bridge.save_session(session_dir, session)
+            client = ScreenshotFailingTelegramClient()
+
+            sent = bridge.send_delivery_from_manifest(client, "send-fail", session_dir, session, manifest)
+            saved = bridge.load_session(session_dir, "send-fail")
+
+        self.assertTrue(any(item.get("kind") == "package" for item in sent))
+        self.assertEqual("delivery_send_failed", saved["generation"]["status"])
+        self.assertNotEqual("delivered", saved["active_run"]["status"])
 
     def test_public_final_gate_rejects_solid_color_screenshot(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

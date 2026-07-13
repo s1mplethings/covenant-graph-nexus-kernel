@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import pathlib
 import re
 import time
@@ -17,6 +18,38 @@ def now() -> str:
 def _write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def sha256_file(path: str | pathlib.Path) -> str:
+    target = pathlib.Path(path)
+    return hashlib.sha256(target.read_bytes()).hexdigest()
+
+
+def project_tree_hash(project_dir: str | pathlib.Path) -> str:
+    project = pathlib.Path(project_dir).resolve()
+    digest = hashlib.sha256()
+    excluded_names = {
+        "final_project_bundle.zip",
+        "delivery_manifest.json",
+        "packager_run_log.txt",
+        "visual_evidence.json",
+        "pipeline_manifest.json",
+        "pipeline_run_summary.json",
+        "generation_context_snapshot.json",
+    }
+    for path in sorted(project.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(project)
+        if rel.parts and rel.parts[0] in {".cgnk_test_env", "__pycache__", ".pytest_cache"}:
+            continue
+        if path.name in excluded_names or path.name.endswith(".tmp"):
+            continue
+        digest.update(rel.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _infer_startup_command(project_dir: pathlib.Path) -> str:
@@ -239,6 +272,13 @@ def package_project(
         warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
     if user_review_required and not user_review_completed:
         warnings.append("用户尚未确认中间测试/预览证据")
+    nested_zip_candidates = [
+        path.relative_to(project).as_posix()
+        for path in sorted(project.rglob("*.zip"))
+        if path.name == "final_project_bundle.zip" and path.parent.resolve() != target_dir.resolve()
+    ]
+    if nested_zip_candidates:
+        warnings.append("最终项目包中存在嵌套旧 final_project_bundle.zip")
     run_log = pathlib.Path(run_log_path).resolve() if run_log_path else target_dir / "packager_run_log.txt"
     if not run_log.exists():
         run_log.write_text(f"{now()} packaged project\n", encoding="utf-8")
@@ -251,6 +291,7 @@ def package_project(
     else:
         warnings.append("本轮没有生成效果预览图，已先交付可运行项目文件")
 
+    source_tree_hash = project_tree_hash(project)
     package_path = target_dir / "final_project_bundle.zip"
     tmp_package = target_dir / f"final_project_bundle.{int(time.time() * 1000)}.tmp"
     with zipfile.ZipFile(tmp_package, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -266,6 +307,8 @@ def package_project(
                 continue
             zf.write(path, path.relative_to(project))
     tmp_package.replace(package_path)
+    with zipfile.ZipFile(package_path) as zf:
+        package_entries = zf.namelist()
 
     combined_limits = list(known_limits or []) + warnings
     manifest = {
@@ -277,6 +320,10 @@ def package_project(
         "readme_path": str(readme.resolve()),
         "startup_command": startup,
         "run_log_path": str(run_log.resolve()),
+        "source_tree_hash": source_tree_hash,
+        "package_sha256": sha256_file(package_path),
+        "package_entries": package_entries,
+        "nested_final_project_bundles": nested_zip_candidates,
         "known_limits": combined_limits,
         "quality_evidence": quality_evidence,
         "user_review_evidence": user_review_evidence,

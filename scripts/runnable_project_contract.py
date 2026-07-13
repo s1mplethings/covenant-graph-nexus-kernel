@@ -26,8 +26,12 @@ def _root(path: pathlib.Path) -> tuple[pathlib.Path, tempfile.TemporaryDirectory
     if resolved.is_file() and resolved.suffix.lower() == ".zip":
         temp = tempfile.TemporaryDirectory(prefix="cgnk_runnable_contract_")
         root = pathlib.Path(temp.name)
-        with zipfile.ZipFile(resolved) as zf:
-            zf.extractall(root)
+        try:
+            with zipfile.ZipFile(resolved) as zf:
+                zf.extractall(root)
+        except Exception:
+            temp.cleanup()
+            return pathlib.Path("__CGKN_BAD_ZIP__"), None
         return root, temp
     return resolved, None
 

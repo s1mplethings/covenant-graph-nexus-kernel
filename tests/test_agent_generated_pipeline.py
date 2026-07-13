@@ -23,6 +23,7 @@ class FakeTelegramClient:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
+        self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.actions: list[tuple[str, str]] = []
 
     def send_message(self, chat_id: int | str, text: str) -> bool:
@@ -31,6 +32,10 @@ class FakeTelegramClient:
 
     def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
+        return True
+
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(chat_id), pathlib.Path(path), caption))
         return True
 
     def send_chat_action(self, chat_id: int | str, action: str) -> None:
@@ -55,6 +60,8 @@ def package_result(project_dir: pathlib.Path) -> dict:
     (project_dir / "README.md").write_text("# Demo\n\nRun with `python app.py`.\n", encoding="utf-8")
     (project_dir / "app.py").write_text("print('demo')\n", encoding="utf-8")
     (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
+    (project_dir / "samples").mkdir(exist_ok=True)
+    (project_dir / "samples" / "input.txt").write_text("sample input\n", encoding="utf-8")
     (project_dir / "tests").mkdir(exist_ok=True)
     (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     real_test_execution.run_tests(project_dir)
@@ -62,8 +69,11 @@ def package_result(project_dir: pathlib.Path) -> dict:
         '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
         encoding="utf-8",
     )
+    (project_dir / "screenshots").mkdir(exist_ok=True)
+    screenshot = project_dir / "screenshots" / "app_home.png"
+    bridge.write_rgb_png(screenshot, 160, 100, lambda x, y: ((x * 3) % 255, (y * 5) % 255, ((x + y) * 2) % 255))
     (project_dir / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
-    manifest = local_packager.package_project(project_dir, startup_command="python app.py")
+    manifest = local_packager.package_project(project_dir, startup_command="python app.py", screenshot_path=screenshot)
     return {
         "status": manifest["status"],
         "manifest": manifest,

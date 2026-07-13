@@ -2081,6 +2081,25 @@ def evaluate_public_delivery_gate(
         missing.append("runnable_project")
     if phase == "final" and not assets["packages"]:
         missing.append("project_package")
+    if phase == "final" and str(manifest.get("status", "")) != "ready":
+        missing.append("package_not_ready")
+    review = manifest.get("user_review_evidence", {}) if isinstance(manifest.get("user_review_evidence"), dict) else {}
+    if phase == "final" and review.get("user_review_required") and not review.get("user_review_completed"):
+        missing.append("user_review")
+    if phase == "final" and manifest.get("source_tree_hash"):
+        try:
+            if str(manifest.get("source_tree_hash")) != local_packager.project_tree_hash(project):
+                missing.append("package_source_changed")
+        except Exception:
+            missing.append("package_source_hash_unreadable")
+    if phase == "final" and assets["packages"] and manifest.get("package_sha256"):
+        try:
+            if str(manifest.get("package_sha256")) != local_packager.sha256_file(assets["packages"][0]):
+                missing.append("package_hash_mismatch")
+        except Exception:
+            missing.append("package_hash_unreadable")
+    if phase == "final" and manifest.get("nested_final_project_bundles"):
+        missing.append("final_package_contains_nested_zip")
     missing.extend(rejected)
     if not quality.get("test_report_found"):
         missing.append("test_report")
@@ -6239,21 +6258,23 @@ def finish_agent_loop_delivery(
         run["package_path"] = str(manifest.get("package_path", result.get("package_path", "")))
         run["manifest_path"] = str(manifest.get("manifest_path", result.get("manifest_path", "")))
         session["active_run"] = run
-    if manifest and str(manifest.get("package_path", "")).strip():
-        try:
-            active_project = project_revision_lane.bind_initial_project_delivery(
-                session,
-                project_dir,
-                package_path=str(manifest.get("package_path", result.get("package_path", ""))),
-                delivery_manifest=str(manifest.get("manifest_path", result.get("manifest_path", ""))),
-            )
-            append_memory_event(session, "active_project_bound", data={"active_project": active_project})
-        except Exception as exc:
-            append_memory_event(session, "active_project_bind_failed", data={"error": str(exc)})
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
     if manifest and str(manifest.get("package_path", "")).strip():
         save_session(session_dir, session)
-        send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
+        sent = send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
+        if sent:
+            session = load_session(session_dir, chat_id)
+            try:
+                active_project = project_revision_lane.bind_initial_project_delivery(
+                    session,
+                    project_dir,
+                    package_path=str(manifest.get("package_path", result.get("package_path", ""))),
+                    delivery_manifest=str(manifest.get("manifest_path", result.get("manifest_path", ""))),
+                )
+                append_memory_event(session, "active_project_bound", data={"active_project": active_project})
+            except Exception as exc:
+                append_memory_event(session, "active_project_bind_failed", data={"error": str(exc)})
+            save_session(session_dir, session)
     else:
         gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
         session["generation"].update(
