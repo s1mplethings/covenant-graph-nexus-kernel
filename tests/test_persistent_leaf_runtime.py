@@ -15,10 +15,18 @@ from scripts.product_candidate_manager import ProductCandidateManager, tree_hash
 from scripts.test_profile_manager import ProfileLedger, profile_boundary_gate
 
 
-def _test_artifact(leaf: pathlib.Path, *, command: str = "python -c \"print('ok')\"", status: str = "PASS", exit_code: int = 0, content: str = "ok\n") -> dict:
+def _test_artifact(
+    leaf: pathlib.Path,
+    *,
+    command: str = "python -c \"print('ok')\"",
+    status: str = "PASS",
+    exit_code: int = 0,
+    content: str = "ok\n",
+    behavior_evidence: dict | None = None,
+) -> dict:
     artifact = leaf / "test.log"
     artifact.write_text(content, encoding="utf-8")
-    return {
+    result = {
         "command": command,
         "status": status,
         "exit_code": exit_code,
@@ -27,6 +35,30 @@ def _test_artifact(leaf: pathlib.Path, *, command: str = "python -c \"print('ok'
         "artifact_refs": ["test.log"],
         "hashes": {"test.log": hashlib.sha256(artifact.read_bytes()).hexdigest()},
     }
+    if behavior_evidence is not None:
+        result["behavior_evidence"] = behavior_evidence
+    return result
+
+
+BACKEND_BEHAVIOR = {
+    "http_request": True,
+    "response_body_asserted": True,
+    "status_code_asserted": True,
+    "schema_asserted": True,
+}
+PERSISTENCE_BEHAVIOR = {
+    "sqlite_created": True,
+    "crud_exercised": True,
+    "reopened_after_close": True,
+    "data_persisted": True,
+    "schema_validated": True,
+}
+FRONTEND_BEHAVIOR = {
+    "browser_started": True,
+    "browser_action": True,
+    "dom_state_asserted": True,
+    "backend_call_observed": True,
+}
 
 
 def test_leaf_workspace_isolated_and_has_required_contract_files(tmp_path: pathlib.Path) -> None:
@@ -222,6 +254,134 @@ def test_merge_rejects_unrelated_nearest_behavior_test(tmp_path: pathlib.Path) -
     merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
 
     assert merge["merge_status"] == "REJECTED_UNRELATED_TEST"
+
+
+def test_backend_leaf_merge_rejects_static_py_compile_without_behavior_evidence(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    workspace = tmp_path / "workspace"
+    leaf = tmp_path / "leaf"
+    (candidate / "backend").mkdir(parents=True)
+    (workspace / "backend").mkdir(parents=True)
+    leaf.mkdir()
+    (candidate / "backend" / "server.py").write_text("VALUE = 'base'\n", encoding="utf-8")
+    (workspace / "backend" / "server.py").write_text("VALUE = 'leaf'\n", encoding="utf-8")
+    manager = PatchMergeManager(tmp_path / "merge.jsonl")
+    result = manager.build_leaf_result(
+        base_candidate_dir=candidate,
+        leaf_workspace_dir=workspace,
+        leaf_dir=leaf,
+        allowed_files=["backend/server.py"],
+        nearest_test_result=_test_artifact(leaf, command="python -m py_compile backend/server.py"),
+    )
+
+    merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
+
+    assert merge["merge_status"] == "REJECTED_BEHAVIOR_TEST_CONTRACT"
+    assert merge["behavior_gate"]["reason"] == "static_precheck_cannot_authorize_behavior_merge"
+
+
+def test_persistence_leaf_merge_rejects_import_smoke_without_sqlite_behavior(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    workspace = tmp_path / "workspace"
+    leaf = tmp_path / "leaf"
+    (candidate / "db").mkdir(parents=True)
+    (workspace / "db").mkdir(parents=True)
+    leaf.mkdir()
+    (candidate / "db" / "schema.py").write_text("VERSION = 1\n", encoding="utf-8")
+    (workspace / "db" / "schema.py").write_text("VERSION = 2\n", encoding="utf-8")
+    manager = PatchMergeManager(tmp_path / "merge.jsonl")
+    result = manager.build_leaf_result(
+        base_candidate_dir=candidate,
+        leaf_workspace_dir=workspace,
+        leaf_dir=leaf,
+        allowed_files=["db/schema.py"],
+        nearest_test_result=_test_artifact(leaf, command="python -c \"import db.schema\""),
+    )
+
+    merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
+
+    assert merge["merge_status"] == "REJECTED_BEHAVIOR_TEST_CONTRACT"
+    assert "persistence" in merge["behavior_gate"]["required_kinds"]
+
+
+def test_frontend_leaf_merge_rejects_file_exists_check_without_browser_behavior(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    workspace = tmp_path / "workspace"
+    leaf = tmp_path / "leaf"
+    (candidate / "frontend").mkdir(parents=True)
+    (workspace / "frontend").mkdir(parents=True)
+    leaf.mkdir()
+    (candidate / "frontend" / "index.html").write_text("<button>Old</button>\n", encoding="utf-8")
+    (workspace / "frontend" / "index.html").write_text("<button>New</button>\n", encoding="utf-8")
+    manager = PatchMergeManager(tmp_path / "merge.jsonl")
+    result = manager.build_leaf_result(
+        base_candidate_dir=candidate,
+        leaf_workspace_dir=workspace,
+        leaf_dir=leaf,
+        allowed_files=["frontend/index.html"],
+        nearest_test_result=_test_artifact(leaf, command="python -c \"from pathlib import Path; assert Path('frontend/index.html').exists()\""),
+    )
+
+    merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
+
+    assert merge["merge_status"] == "REJECTED_BEHAVIOR_TEST_CONTRACT"
+    assert "frontend" in merge["behavior_gate"]["required_kinds"]
+
+
+def test_behavior_specific_evidence_allows_backend_persistence_and_frontend_merge(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    workspace = tmp_path / "workspace"
+    leaf = tmp_path / "leaf"
+    for root in (candidate, workspace):
+        (root / "backend").mkdir(parents=True)
+        (root / "db").mkdir(parents=True)
+        (root / "frontend").mkdir(parents=True)
+    leaf.mkdir()
+    (candidate / "backend" / "server.py").write_text("VALUE = 'base'\n", encoding="utf-8")
+    (candidate / "db" / "schema.py").write_text("VERSION = 1\n", encoding="utf-8")
+    (candidate / "frontend" / "index.html").write_text("<button>Old</button>\n", encoding="utf-8")
+    (workspace / "backend" / "server.py").write_text("VALUE = 'leaf'\n", encoding="utf-8")
+    (workspace / "db" / "schema.py").write_text("VERSION = 2\n", encoding="utf-8")
+    (workspace / "frontend" / "index.html").write_text("<button>New</button>\n", encoding="utf-8")
+    manager = PatchMergeManager(tmp_path / "merge.jsonl")
+    behavior = {**BACKEND_BEHAVIOR, **PERSISTENCE_BEHAVIOR, **FRONTEND_BEHAVIOR}
+    result = manager.build_leaf_result(
+        base_candidate_dir=candidate,
+        leaf_workspace_dir=workspace,
+        leaf_dir=leaf,
+        allowed_files=["backend/server.py", "db/schema.py", "frontend/index.html"],
+        nearest_test_result=_test_artifact(leaf, command="python -c \"print('behavior ok')\"", behavior_evidence=behavior),
+        integration_test_result={"status": "PASS", "exit_code": 0, "command": "python -m pytest tests/test_integration.py -q"},
+    )
+
+    merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
+
+    assert merge["merge_status"] == "MERGED"
+
+
+def test_merge_rejects_candidate_when_post_merge_integration_fails(tmp_path: pathlib.Path) -> None:
+    candidate = tmp_path / "candidate"
+    workspace = tmp_path / "workspace"
+    leaf = tmp_path / "leaf"
+    (candidate / "backend").mkdir(parents=True)
+    (workspace / "backend").mkdir(parents=True)
+    leaf.mkdir()
+    (candidate / "backend" / "server.py").write_text("VALUE = 'base'\n", encoding="utf-8")
+    (workspace / "backend" / "server.py").write_text("VALUE = 'leaf'\n", encoding="utf-8")
+    manager = PatchMergeManager(tmp_path / "merge.jsonl")
+    result = manager.build_leaf_result(
+        base_candidate_dir=candidate,
+        leaf_workspace_dir=workspace,
+        leaf_dir=leaf,
+        allowed_files=["backend/server.py"],
+        nearest_test_result=_test_artifact(leaf, command="python -m pytest tests/test_backend_api.py -q", behavior_evidence=BACKEND_BEHAVIOR),
+        integration_test_result={"status": "FAIL", "exit_code": 1, "command": "python -m pytest tests/test_integration.py -q"},
+    )
+
+    merge = manager.merge_leaf_result(candidate_dir=candidate, leaf_workspace_dir=workspace, result_manifest=result)
+
+    assert merge["merge_status"] == "REJECTED_INTEGRATION_TEST"
+    assert "leaf" not in (candidate / "backend" / "server.py").read_text(encoding="utf-8")
 
 
 def test_valid_test_merge_and_integration_failure_rolls_back_candidate(tmp_path: pathlib.Path) -> None:

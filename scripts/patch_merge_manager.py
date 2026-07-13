@@ -83,6 +83,58 @@ def validate_nearest_test_result(test_result: dict[str, Any], *, artifact_root: 
     return {"status": "MERGED", "reason": "nearest_test evidence accepted"}
 
 
+def changed_file_kinds(changed_files: list[str]) -> list[str]:
+    kinds: set[str] = set()
+    for raw in changed_files:
+        rel = raw.replace("\\", "/").lower()
+        name = pathlib.PurePosixPath(rel).name
+        if rel.startswith(("backend/", "api/", "server/", "routes/")) or name in {"server.py", "api.py"}:
+            kinds.add("backend")
+        if "migration" in rel or "schema" in rel or "sqlite" in rel or "database" in rel or rel.startswith(("models/", "db/", "migrations/")):
+            kinds.add("persistence")
+        if rel.startswith(("frontend/", "src/", "static/", "templates/")) or name in {"index.html", "app.js", "main.js"} or rel.endswith((".html", ".css", ".jsx", ".tsx", ".vue")):
+            kinds.add("frontend")
+    return sorted(kinds)
+
+
+def validate_behavior_test_contract(test_result: dict[str, Any], *, changed_files: list[str]) -> dict[str, Any]:
+    kinds = changed_file_kinds(changed_files)
+    if not kinds:
+        return {"status": "PASS", "required_kinds": [], "reason": "no behavior-specific changed files"}
+    command = str(test_result.get("command") or "").lower()
+    static_markers = ("py_compile", "compileall", "importlib.import_module", "__import__", "path.exists", "exists()")
+    if any(marker in command for marker in static_markers):
+        return {"status": "NEEDS_REWORK", "reason": "static_precheck_cannot_authorize_behavior_merge", "required_kinds": kinds}
+    evidence = test_result.get("behavior_evidence") if isinstance(test_result.get("behavior_evidence"), dict) else {}
+    missing: dict[str, list[str]] = {}
+    requirements: dict[str, tuple[str, ...]] = {
+        "backend": ("http_request", "response_body_asserted", "status_code_asserted", "schema_asserted"),
+        "persistence": ("sqlite_created", "crud_exercised", "reopened_after_close", "data_persisted", "schema_validated"),
+        "frontend": ("browser_started", "browser_action", "dom_state_asserted", "backend_call_observed"),
+    }
+    for kind in kinds:
+        absent = [field for field in requirements[kind] if not evidence.get(field)]
+        if absent:
+            missing[kind] = absent
+    if missing:
+        return {"status": "NEEDS_REWORK", "reason": "behavior_test_contract_missing", "required_kinds": kinds, "missing": missing}
+    return {"status": "PASS", "required_kinds": kinds, "reason": "behavior test matches changed file kinds"}
+
+
+def validate_integration_test_result(test_result: dict[str, Any] | None) -> dict[str, Any]:
+    if not test_result:
+        return {"status": "PASS", "reason": "no separate integration result supplied"}
+    status = str(test_result.get("status") or "NOT_EVALUATED")
+    exit_code = test_result.get("exit_code", test_result.get("returncode"))
+    try:
+        code = int(exit_code)
+    except (TypeError, ValueError):
+        code = 1
+    if status == "PASS" and code == 0:
+        return {"status": "PASS", "reason": "integration test passed"}
+    return {"status": "NEEDS_REWORK", "reason": "integration_test_failed", "integration_test_result": test_result}
+
+
 def changed_files_between(base_dir: str | pathlib.Path, workspace_dir: str | pathlib.Path) -> list[str]:
     base = pathlib.Path(base_dir).resolve()
     workspace = pathlib.Path(workspace_dir).resolve()
@@ -160,6 +212,7 @@ class PatchMergeManager:
         allowed_files: list[str],
         interface_impact: dict[str, Any] | None = None,
         nearest_test_result: dict[str, Any] | None = None,
+        integration_test_result: dict[str, Any] | None = None,
         peer_dependencies: list[str] | None = None,
         unresolved_findings: list[str] | None = None,
     ) -> dict[str, Any]:
@@ -174,6 +227,8 @@ class PatchMergeManager:
         patch_path.write_text(patch_text, encoding="utf-8")
         patch_hash = hashlib.sha256(patch_text.encode("utf-8")).hexdigest()
         test_gate = validate_nearest_test_result(nearest_test_result or {"status": "NOT_EVALUATED"}, artifact_root=leaf)
+        behavior_gate = validate_behavior_test_contract(nearest_test_result or {}, changed_files=changed)
+        integration_gate = validate_integration_test_result(integration_test_result)
         result = {
             "base_candidate_hash": product_candidate_manager.tree_hash(base),
             "patch_diff": str(patch_path),
@@ -183,9 +238,12 @@ class PatchMergeManager:
             "interface_impact": interface_impact or {},
             "nearest_test_result": nearest_test_result or {"status": "NOT_EVALUATED"},
             "nearest_test_gate": test_gate,
+            "behavior_test_gate": behavior_gate,
+            "integration_test_result": integration_test_result or {},
+            "integration_test_gate": integration_gate,
             "unresolved_findings": list(unresolved_findings or []),
             "peer_dependencies": list(peer_dependencies or []),
-            "result_classification": "PASS" if changed and not disallowed and not unresolved_findings and test_gate["status"] == "MERGED" else "NEEDS_REWORK",
+            "result_classification": "PASS" if changed and not disallowed and not unresolved_findings and test_gate["status"] == "MERGED" and behavior_gate["status"] == "PASS" and integration_gate["status"] == "PASS" else "NEEDS_REWORK",
             "created_at": utc_now(),
         }
         (leaf / "result_manifest.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -220,6 +278,19 @@ class PatchMergeManager:
             merge_status = str(test_gate["status"])
             event = self._event("merge_rejected", candidate, result_manifest, reason=test_gate.get("reason", "nearest_test_rejected"), merge_status=merge_status, test_gate=test_gate)
             return {"status": "NEEDS_REWORK", "merge_status": merge_status, "reason": test_gate.get("reason", "nearest_test_rejected"), "event": event, "test_gate": test_gate}
+        behavior_gate = validate_behavior_test_contract(
+            result_manifest.get("nearest_test_result", {}) if isinstance(result_manifest.get("nearest_test_result"), dict) else {},
+            changed_files=changed_files,
+        )
+        if behavior_gate["status"] != "PASS":
+            event = self._event("merge_rejected", candidate, result_manifest, reason=behavior_gate.get("reason", "behavior_test_contract_rejected"), merge_status="REJECTED_BEHAVIOR_TEST_CONTRACT", behavior_gate=behavior_gate)
+            return {"status": "NEEDS_REWORK", "merge_status": "REJECTED_BEHAVIOR_TEST_CONTRACT", "reason": behavior_gate.get("reason", "behavior_test_contract_rejected"), "event": event, "behavior_gate": behavior_gate}
+        integration_gate = validate_integration_test_result(
+            result_manifest.get("integration_test_result", {}) if isinstance(result_manifest.get("integration_test_result"), dict) else {}
+        )
+        if integration_gate["status"] != "PASS":
+            event = self._event("merge_rejected", candidate, result_manifest, reason=integration_gate.get("reason", "integration_test_failed"), merge_status="REJECTED_INTEGRATION_TEST", integration_gate=integration_gate)
+            return {"status": "NEEDS_REWORK", "merge_status": "REJECTED_INTEGRATION_TEST", "reason": integration_gate.get("reason", "integration_test_failed"), "event": event, "integration_gate": integration_gate}
         merge_tmp = candidate.parent / f".merge_candidate_{hashlib.sha256(current_hash.encode()).hexdigest()[:8]}"
         if merge_tmp.exists():
             shutil.rmtree(merge_tmp)
