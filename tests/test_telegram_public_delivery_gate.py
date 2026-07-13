@@ -9,6 +9,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
+import scripts.browser_visual_evidence as browser_visual_evidence
+import scripts.customer_runtime_runner as customer_runtime_runner
+import scripts.real_test_execution as real_test_execution
 import scripts.telegram_live_bridge as bridge
 
 
@@ -59,18 +62,34 @@ def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
     (project / "generated").mkdir(parents=True)
     (project / "README.md").write_text("# VN helper\n", encoding="utf-8")
     (project / "TEST_PLAN.md").write_text("# Test plan\n", encoding="utf-8")
-    (project / "main.py").write_text("print('vn helper')\n", encoding="utf-8")
+    (project / "index.html").write_text("<main><h1>VN helper</h1><button>Export</button></main>\n", encoding="utf-8")
     (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
-    (project / "TEST_REPORT.md").write_text("# Tests\n\ncommands_run:\n- python main.py\n", encoding="utf-8")
+    (project / "tests").mkdir()
+    (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
-    screenshot = project / "screenshots" / "desktop_ui_screenshot.png"
+    run_id = "run-public-gate"
+    candidate_hash = "sha256:public-gate-candidate"
+    commit_sha = "commit-public-gate"
+    real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
+    runtime = customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
+    visual = browser_visual_evidence.run(project, runtime_ref=runtime["result_file"])
+    if visual["status"] != "PASS":
+        raise AssertionError(visual)
+    screenshot = pathlib.Path(visual["screenshot_path"])
     background = project / "generated" / "background_scene.png"
     sprite = project / "generated" / "character_sprite.png"
-    screenshot.write_bytes(b"png")
     background.write_bytes(b"png")
     sprite.write_bytes(b"png")
-    manifest = local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot)
+    manifest = local_packager.package_project(project, startup_command="python -m http.server 8000", screenshot_path=screenshot)
     return project, manifest
+
+
+def write_json(path: pathlib.Path, update: dict) -> None:
+    import json
+
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc.update(update)
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 class TelegramPublicDeliveryGateTests(unittest.TestCase):
@@ -112,8 +131,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("REWORK_BLOCKED", saved["generation"]["status"].upper())
         self.assertEqual("REWORK_BLOCKED", saved["active_run"]["status"].upper())
         joined_replies = "\n".join(text for _, text in client.messages)
-        self.assertIn("事实级问题", joined_replies)
-        self.assertIn("不会把缺失文件、占位内容或内部记录当成成果", joined_replies)
+        self.assertIn("需要继续修复", joined_replies)
+        self.assertIn("完成必要修复后再重新判断", joined_replies)
         self.assertNotIn("后台", joined_replies)
         self.assertNotIn("中间测试和预览证据已准备好", joined_replies)
 
@@ -137,6 +156,115 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual([".zip"], sorted({path.suffix.lower() for _, path, _ in client.documents}))
         self.assertFalse(any(path.suffix.lower() in {".md", ".json", ".txt", ".log"} for _, path, _ in client.documents))
 
+    def test_test_execution_fail_blocks_even_with_package_and_screenshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json(project / "test_execution.json", {"status": "FAIL", "verdict": "FAIL"})
+            session = vn_session("chat-test-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertIn("test_execution", gate["canonical_evidence_gate"]["failures"])
+
+    def test_customer_runtime_fail_blocks_even_with_package_and_screenshot(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json(project / "customer_runtime.json", {"status": "FAIL"})
+            session = vn_session("chat-runtime-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertIn("customer_runtime", gate["canonical_evidence_gate"]["failures"])
+
+    def test_required_visual_fail_blocks_even_with_plain_png(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            (project / "screenshots" / "plain_existing.png").write_bytes(b"plain png")
+            write_json(project / "visual_evidence.json", {"status": "FAIL"})
+            session = vn_session("chat-visual-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
+
+    def test_identity_mismatch_blocks_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json(project / "customer_runtime.json", {"candidate_hash": "sha256:other-candidate"})
+            session = vn_session("chat-identity-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(gate["canonical_evidence_gate"]["identity_consistent"])
+        self.assertIn("identity_mismatch:candidate_hash", gate["canonical_evidence_gate"]["failures"])
+
+    def test_adaptive_pass_final_cannot_override_canonical_failure(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json(project / "test_execution.json", {"status": "FAIL", "verdict": "FAIL"})
+            session = vn_session("chat-agent-pass-final")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(called["agent"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+
+    def test_deliver_with_warnings_cannot_override_canonical_failure(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "DELIVER_WITH_WARNINGS", "delivery_allowed": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json(project / "customer_runtime.json", {"status": "FAIL"})
+            session = vn_session("chat-agent-warning")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(called["agent"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+
+    def test_canonical_pass_allows_adaptive_judgment_to_continue(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "ASK_USER_REVIEW", "delivery_allowed": True, "is_final": False}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            session = vn_session("chat-canonical-pass")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertTrue(gate["canonical_evidence_gate"]["identity_consistent"])
+        self.assertEqual("PASS", gate["canonical_evidence_gate"]["status"])
+        self.assertTrue(called["agent"])
+
     def test_placeholder_screenshot_does_not_satisfy_requested_screenshot(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -150,8 +278,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-        self.assertIn("screenshots", gate["missing"])
-        self.assertTrue(any("Requested real delivery evidence is missing: screenshots" in item for item in gate["warnings"]))
+        self.assertIn("visual_evidence:screenshot_hash", gate["missing"])
+        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
 
     def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

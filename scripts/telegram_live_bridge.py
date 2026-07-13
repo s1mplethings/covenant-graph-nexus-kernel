@@ -1756,6 +1756,72 @@ def agent_delivery_judgment(
     )
 
 
+def _evidence_identity(details: dict[str, Any]) -> dict[str, str]:
+    return {
+        "run_id": str(details.get("run_id", "")).strip(),
+        "candidate_hash": str(details.get("candidate_hash", "")).strip(),
+        "commit_sha": str(details.get("commit_sha", "")).strip(),
+    }
+
+
+def _identity_consistent(items: list[dict[str, str]]) -> tuple[bool, list[str]]:
+    failures: list[str] = []
+    keys = ("run_id", "candidate_hash", "commit_sha")
+    for key in keys:
+        values = {item.get(key, "") for item in items if item.get(key, "")}
+        if len(values) > 1:
+            failures.append(f"identity_mismatch:{key}")
+    return not failures, failures
+
+
+def evaluate_canonical_delivery_evidence(
+    project_dir: pathlib.Path,
+    *,
+    required_visual: bool,
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    test_result = real_test_execution.inspect_test_report(project)
+    runtime_result = customer_runtime_runner.inspect(project)
+    visual_result = browser_visual_evidence.inspect(project) if required_visual else {
+        "status": "PASS",
+        "missing": [],
+        "details": {},
+        "not_required": True,
+    }
+    missing: list[str] = []
+    failures: list[str] = []
+
+    if test_result.get("status") != "PASS":
+        failures.append("test_execution")
+        missing.extend(f"test_execution:{item}" for item in test_result.get("missing", []))
+    if runtime_result.get("status") != "PASS":
+        failures.append("customer_runtime")
+        missing.extend(f"customer_runtime:{item}" for item in runtime_result.get("missing", []))
+    if required_visual and visual_result.get("status") != "PASS":
+        failures.append("visual_evidence")
+        missing.extend(f"visual_evidence:{item}" for item in visual_result.get("missing", []))
+
+    identity_items = []
+    for result in (test_result, runtime_result, visual_result if required_visual else {}):
+        details = result.get("details", {}) if isinstance(result, dict) else {}
+        if isinstance(details, dict) and details:
+            identity_items.append(_evidence_identity(details))
+    identity_consistent, identity_failures = _identity_consistent(identity_items)
+    failures.extend(identity_failures)
+
+    status = "PASS" if not missing and not failures and identity_consistent else "NEEDS_REWORK"
+    return {
+        "status": status,
+        "test_execution": test_result,
+        "customer_runtime": runtime_result,
+        "visual_evidence": visual_result,
+        "required_visual": required_visual,
+        "identity_consistent": identity_consistent,
+        "missing": sorted(set(missing)),
+        "failures": sorted(set(failures)),
+    }
+
+
 def evaluate_public_delivery_gate(
     project_dir: pathlib.Path,
     manifest: dict[str, Any] | None,
@@ -1776,6 +1842,34 @@ def evaluate_public_delivery_gate(
         review_model = model_policy.select_model("review")
         agent = lambda messages: provider_text(messages, review_model, 60)
     quality = _quality_evidence_for_gate(project, manifest)
+    requirements = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
+    required_visual = any(
+        bool(requirements.get(key))
+        for key in ("screenshot", "generated_image", "background", "sprite", "video", "demo_video")
+    )
+    canonical_gate = evaluate_canonical_delivery_evidence(project, required_visual=required_visual)
+    if canonical_gate.get("status") != "PASS":
+        return {
+            "verdict": "NEEDS_REWORK",
+            "status": "NEEDS_REWORK",
+            "phase": phase,
+            "delivery_allowed": False,
+            "is_final": False,
+            "confidence": 1.0,
+            "reasons": ["canonical required evidence failed"],
+            "user_visible_warnings": [],
+            "required_repairs": canonical_gate.get("missing", []) + canonical_gate.get("failures", []),
+            "can_send_artifacts": [],
+            "must_not_claim": ["canonical evidence passed", "final delivery ready"],
+            "judgment_source": "canonical_evidence_gate",
+            "canonical_evidence_gate": canonical_gate,
+            "missing": canonical_gate.get("missing", []),
+            "warnings": [],
+            "requirements": requirements,
+            "asset_counts": {},
+            "quality_evidence": quality,
+            "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
+        }
     facts = delivery_fact_check(
         project,
         manifest,
@@ -1785,7 +1879,6 @@ def evaluate_public_delivery_gate(
     )
     safe_artifacts = facts.get("safe_artifacts", []) if isinstance(facts.get("safe_artifacts"), list) else []
     assets = _assets_from_safe_artifacts(safe_artifacts)
-    requirements = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
     requested_missing: list[str] = []
     if requirements["screenshot"] and not assets["screenshots"]:
         requested_missing.append("screenshots")
@@ -1831,6 +1924,7 @@ def evaluate_public_delivery_gate(
             "requirements": requirements,
             "asset_counts": {key: len(value) for key, value in assets.items()},
             "quality_evidence": quality,
+            "canonical_evidence_gate": canonical_gate,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
     )
