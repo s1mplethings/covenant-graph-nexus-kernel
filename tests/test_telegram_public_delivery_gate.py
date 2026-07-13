@@ -13,6 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
+import scripts.real_test_execution as real_test_execution
 import scripts.telegram_live_bridge as bridge
 
 pytestmark = [pytest.mark.telegram]
@@ -146,8 +147,9 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
             (project / "tests").mkdir(parents=True)
             (project / "tests" / "test_smoke.py").write_text("def test_smoke():\n    assert True\n", encoding="utf-8")
-            (project / "TEST_REPORT.md").write_text(
-                "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+            real_test_execution.run_tests(project)
+            (project / "customer_runtime.json").write_text(
+                '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
                 encoding="utf-8",
             )
             (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")

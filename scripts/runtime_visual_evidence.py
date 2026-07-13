@@ -63,6 +63,20 @@ def write_runtime_preview_png(path: pathlib.Path, title: str = "Runtime preview"
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+    (path.with_suffix(path.suffix + ".placeholder.json")).write_text(
+        json.dumps(
+            {
+                "status": "placeholder",
+                "reason": "synthetic_runtime_preview_is_not_formal_screenshot_evidence",
+                "title": title,
+                "created_at": _now(),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
@@ -74,13 +88,15 @@ def collect_visual_evidence(project_dir: str | pathlib.Path) -> dict[str, Any]:
         for item in project.rglob("*")
         if item.is_file() and item.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and any(token in str(item).lower() for token in ("screenshot", "preview", "app_home", "ui"))
     ]
-    valid = [item for item in screenshots if item.suffix.lower() == ".png" and _real_png(item)]
+    placeholder = [item for item in screenshots if item.with_suffix(item.suffix + ".placeholder.json").exists()]
+    valid = [item for item in screenshots if item.suffix.lower() == ".png" and _real_png(item) and item not in placeholder]
     result = {
         "verdict": "PASS" if valid else "FAIL",
         "screenshots": [str(item.relative_to(project)) for item in valid],
         "all_screenshots": [str(item.relative_to(project)) for item in screenshots],
+        "placeholder_screenshots": [str(item.relative_to(project)) for item in placeholder],
         "timestamp": _now(),
-        "screenshot_blocked_reason": "" if valid else "没有找到来自真实预览的有效截图",
+        "screenshot_blocked_reason": "" if valid else "没有找到来自真实运行页面的有效截图",
     }
     (project / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
@@ -92,6 +108,13 @@ def create_static_html_preview_evidence(project_dir: str | pathlib.Path) -> dict
         return collect_visual_evidence(project)
     shot = write_runtime_preview_png(project / "screenshots" / "app_home.png")
     result = collect_visual_evidence(project)
-    result.update({"source": "static_or_app_preview", "screenshot_path": str(shot.relative_to(project)), "url_or_file": "project runtime preview"})
+    result.update(
+        {
+            "source": "placeholder_static_or_app_preview",
+            "screenshot_path": str(shot.relative_to(project)),
+            "url_or_file": "project runtime preview",
+            "formal_screenshot_evidence": False,
+        }
+    )
     (project / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result

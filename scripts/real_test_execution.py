@@ -5,12 +5,18 @@ import os
 import pathlib
 import subprocess
 import sys
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def sha256_file(path: str | pathlib.Path) -> str:
+    target = pathlib.Path(path)
+    return hashlib.sha256(target.read_bytes()).hexdigest()
 
 
 def detect_commands(project_dir: str | pathlib.Path) -> list[list[str]]:
@@ -84,7 +90,10 @@ def run_tests(project_dir: str | pathlib.Path, *, timeout: int = 60) -> dict[str
             "started_at": started,
             "finished_at": _now(),
         }
-    (project / "test_execution.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    execution_path = project / "test_execution.json"
+    execution_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    result["result_file"] = str(execution_path)
+    result["result_hash"] = sha256_file(execution_path)
     write_test_report(project, result)
     return result
 
@@ -105,6 +114,8 @@ def write_test_report(project: pathlib.Path, result: dict[str, Any]) -> pathlib.
             f"stderr_summary: {str(first.get('stderr_summary', ''))[:1000]}",
             f"started_at: {result.get('started_at', '')}",
             f"finished_at: {result.get('finished_at', '')}",
+            f"test_execution_result: {result.get('result_file', '')}",
+            f"test_execution_sha256: {result.get('result_hash', '')}",
             f"verdict: {result.get('verdict', 'FAIL')}",
         ]
     )
@@ -124,10 +135,27 @@ def inspect_test_report(project_dir: str | pathlib.Path) -> dict[str, Any]:
             doc = json.loads(execution.read_text(encoding="utf-8", errors="replace"))
         except Exception:
             doc = {}
-        return {"verdict": "PASS" if doc.get("verdict") == "PASS" else "FAIL", "source": "test_execution.json", "details": doc}
+        report_hash = ""
+        if report.exists():
+            text = report.read_text(encoding="utf-8", errors="replace")
+            for line in text.splitlines():
+                if line.lower().startswith("test_execution_sha256:"):
+                    report_hash = line.split(":", 1)[1].strip()
+                    break
+        actual_hash = sha256_file(execution)
+        hash_matches = bool(report_hash and report_hash == actual_hash)
+        return {
+            "verdict": "PASS" if doc.get("verdict") == "PASS" and hash_matches else "FAIL",
+            "source": "test_execution.json",
+            "details": doc,
+            "result_hash": actual_hash,
+            "report_hash": report_hash,
+            "missing": [] if hash_matches else ["test_execution_hash"],
+        }
     if not report.exists():
         return {"verdict": "FAIL", "source": "", "missing": ["TEST_REPORT.md"]}
     text = report.read_text(encoding="utf-8", errors="replace")
     has_command = "commands_run" in text and "exit_code" in text
     fake = "NO TEST EXECUTED" in text.upper() or "NO REAL TEST EXECUTION" in text.upper()
-    return {"verdict": "PASS" if has_command and not fake else "FAIL", "source": "TEST_REPORT.md", "missing": [] if has_command and not fake else ["real_test_execution"]}
+    has_hash = "test_execution_sha256:" in text
+    return {"verdict": "FAIL", "source": "TEST_REPORT.md", "missing": [] if has_command and has_hash and not fake else ["real_test_execution"]}

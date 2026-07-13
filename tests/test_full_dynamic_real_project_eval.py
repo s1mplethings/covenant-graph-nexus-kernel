@@ -24,13 +24,13 @@ def _fake_visual(out: pathlib.Path) -> dict:
         project_path.parent.mkdir(parents=True, exist_ok=True)
         project_path.write_bytes(run_path.read_bytes())
         screenshots.append(f"screenshots/{page}.png")
-    result = {"verdict": "PASS", "screenshots": screenshots, "source": "unit_test_runtime_visual_stub"}
+    result = {"verdict": "FAIL", "screenshots": [], "placeholder_screenshots": screenshots, "source": "unit_test_runtime_visual_stub", "reason": "synthetic visual fixture is not formal screenshot evidence"}
     (out / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     (out / "generated_project" / "visual_evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
 
-def test_full_dynamic_real_project_control_path_can_pass_with_scoped_provider_overrides(tmp_path: pathlib.Path, monkeypatch) -> None:
+def test_full_dynamic_real_project_control_path_blocks_synthetic_visual_fixture(tmp_path: pathlib.Path, monkeypatch) -> None:
     monkeypatch.setattr("scripts.run_full_dynamic_real_project_eval.capture_runtime_visual_evidence", _fake_visual)
 
     result = run_full_dynamic_real_project_eval(
@@ -40,8 +40,8 @@ def test_full_dynamic_real_project_control_path_can_pass_with_scoped_provider_ov
         provider_output_overrides=controlled_full_project_outputs(),
     )
 
-    assert result["classification"] == "full_dynamic_real_project_pass"
-    assert result["verdict"] == "PASS"
+    assert result["classification"] == "visual_evidence_failed"
+    assert result["verdict"] == "NEEDS_REWORK"
     assert result["provider_output_overrides_used"] is True
     assert result["telegram_mainline"] == "telegram_mainline_not_connected"
     assert (tmp_path / "final_project_bundle.zip").exists()

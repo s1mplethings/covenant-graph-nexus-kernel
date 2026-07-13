@@ -15,6 +15,7 @@ import scripts.dynamic_pipeline_runner as dynamic_runner
 import scripts.local_packager as local_packager
 import scripts.pipeline_manifest as pipeline_manifest
 import scripts.pipeline_planner_agent as planner_agent
+import scripts.real_test_execution as real_test_execution
 import scripts.telegram_live_bridge as bridge
 
 
@@ -56,8 +57,9 @@ def package_result(project_dir: pathlib.Path) -> dict:
     (project_dir / "requirements.txt").write_text("pytest\n", encoding="utf-8")
     (project_dir / "tests").mkdir(exist_ok=True)
     (project_dir / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
-    (project_dir / "TEST_REPORT.md").write_text(
-        "# Tests\n\ncommands_run:\n- python -m pytest tests\n\nexit_code: 0\n\nstdout_summary:\n- 1 passed\n\nstderr_summary:\n- none\n\nverdict: PASS\n",
+    real_test_execution.run_tests(project_dir)
+    (project_dir / "customer_runtime.json").write_text(
+        '{"status":"PASS","clean_environment":true,"health_check":"PASS","customer_operation":"PASS"}\n',
         encoding="utf-8",
     )
     (project_dir / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
