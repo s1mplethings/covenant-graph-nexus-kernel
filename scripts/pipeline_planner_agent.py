@@ -14,6 +14,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import check_connectivity
 import local_model_router
+import provider_transport
 import pipeline_manifest
 
 
@@ -108,22 +109,31 @@ def _compact_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return selected[-80:]
 
 
-def collect_generation_context(session_path: str | pathlib.Path, whiteboard: dict[str, Any] | None) -> str:
+def collect_generation_context(session_path: str | pathlib.Path, whiteboard: dict[str, Any] | None, *, max_chars: int = 60000) -> str:
     events = read_agent_session(session_path)
     context = {
         "whiteboard": whiteboard if isinstance(whiteboard, dict) else {},
         "agent_session_events": _compact_events(events),
     }
-    return json.dumps(context, ensure_ascii=False, indent=2)[-60000:]
+    return json.dumps(context, ensure_ascii=False, indent=2)[-max(1, int(max_chars)):]
 
 
 def _extract_json_object(text: str) -> dict[str, Any] | None:
     return local_model_router.extract_json(text)
 
 
-def _call_provider(prompt: str, model: str, timeout: int) -> str:
+def _call_provider(prompt: str, model: str, timeout: int, *, api_budget: str, run_dir: str | pathlib.Path) -> str:
     if str(model).startswith("gpt-test"):
         raise RuntimeError("test model does not call provider")
+    budget = provider_transport.guarded_budget_check(
+        run_dir,
+        api_budget=api_budget,
+        agent_id="pipeline_planner_agent",
+        task_id="pipeline_planning",
+        request_type="pipeline_planning",
+    )
+    if not budget["allowed"]:
+        raise RuntimeError(provider_transport.BLOCKED_API_BUDGET)
     local_result = local_model_router.call_json_task("pipeline_planner", PLANNER_SYSTEM_PROMPT, prompt, timeout)
     if local_result.get("ok") and isinstance(local_result.get("json"), dict):
         doc = dict(local_result["json"])
@@ -139,16 +149,25 @@ def _call_provider(prompt: str, model: str, timeout: int) -> str:
         {"role": "user", "content": prompt},
     ]
     endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
+    selected_method = check_connectivity._selected_provider_api_method(root, model)
+    policy = provider_transport.request_type_policy("pipeline_planning", api_budget)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
-        {"model": model, "messages": messages, "temperature": 0.1, "max_tokens": 2200},
+        {"model": model, "messages": messages, "temperature": 0.1, "max_tokens": int(policy["max_output_tokens"])},
     )
-    transport = check_connectivity._post_json_with_retry(
+    transport = provider_transport.governed_post_json_with_retry(
         endpoint,
         payload,
         token,
-        timeout,
-        max_attempts=3,
+        min(timeout, int(provider_transport.api_budget_profile(api_budget)["timeout"])),
+        run_dir=run_dir,
+        project_id="pipeline_manifest",
+        task_id="pipeline_planning",
+        agent_id="pipeline_planner_agent",
+        request_type="pipeline_planning",
+        model=model,
+        endpoint_method=selected_method,
+        api_budget=api_budget,
         base_delay_sec=1.2,
     )
     if transport.doc is not None:
@@ -169,10 +188,10 @@ def plan_pipeline(
     timeout: int,
     api_budget: str = "low",
 ) -> dict[str, Any]:
-    del api_budget
     try:
-        context = collect_generation_context(session_path, whiteboard)
-        raw = _call_provider(context, model, timeout)
+        profile = provider_transport.api_budget_profile(api_budget)
+        context = collect_generation_context(session_path, whiteboard, max_chars=int(profile["max_prompt_chars"]))
+        raw = _call_provider(context, model, timeout, api_budget=api_budget, run_dir=pathlib.Path(session_path).parent)
         doc = _extract_json_object(raw)
         manifest = pipeline_manifest.normalize_pipeline_manifest(doc or {}, whiteboard)
         ok, errors = pipeline_manifest.validate_pipeline_manifest(manifest)
@@ -187,4 +206,5 @@ def plan_pipeline(
     except Exception as exc:
         fallback = pipeline_manifest.default_minimal_pipeline_manifest(whiteboard)
         fallback["planner_fallback_reason"] = str(exc)
+        fallback["api_budget"] = api_budget
         return fallback

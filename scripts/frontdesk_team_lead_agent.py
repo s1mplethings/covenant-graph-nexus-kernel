@@ -271,13 +271,13 @@ def _status_reply(
     compact_latest = re.sub(r"[\s,.!?。！？~～]+", "", latest.lower())
     if _is_model_backend_semantics_question(latest):
         return (
-            "这里分两层看。第一层是 CGKN 自己生成项目时用什么后端：这轮按当前系统配置继续推进，通常是外部接口生成，不会因为目标项目要接本地模型就停住。"
+            "这里分两层看。第一层是 CGKN 自己生成项目时用什么后端：这轮按当前系统配置继续推进，不会因为目标项目要接本地模型就停住。"
             "第二层是生成出来的项目运行时用什么模型：你的“走本地模型”属于这一层，所以项目里要设计本地模型适配层、模型路径或 endpoint 配置，"
             "并把缺少本地模型文件时不能宣称真实推理通过写进说明和测试限制。"
         )
     if generation_status == "generation_blocked_by_local_model_config" and compact_latest in {"那怎么办", "怎么办", "咋办", "那咋办", "接下来怎么办", "那要怎么办"}:
         return (
-            "现在本地模型路线还不能直接开工。如果你愿意改用接口生成，需要明确说“可以，切到接口生成”；"
+            "现在本地模型路线还不能直接开工。如果你愿意改用当前可用生成方式，需要明确说“继续生成”；"
             "在你确认前，我不会替你切换执行方式，也不会新开一轮生成。"
         )
     if any(term in latest for term in ("总结", "做到哪", "到哪了", "现在做到")):
@@ -289,9 +289,9 @@ def _status_reply(
         effective_mode = str(whiteboard.get("effective_generation_mode") or "").strip().lower()
         fallback_explicit = bool(whiteboard.get("local_to_api_fallback_explicit"))
         if requested_mode == "local" and effective_mode == "api" and fallback_explicit:
-            lines.append("本地模型路线之前不可用，你已经明确允许这轮切到接口生成，所以我会沿用同一个项目上下文继续推进。")
+            lines.append("本地模型路线之前不可用，你已经明确允许这轮改用当前可用生成方式，所以我会沿用同一个项目上下文继续推进。")
         elif requested_mode == "local" and effective_mode == "none":
-            lines.append("本地模型路线当前还不可用，也还没有切到接口生成。")
+            lines.append("本地模型路线当前还不可用，也还没有切换到当前可用生成方式。")
         target_architecture = whiteboard.get("target_project_architecture", {}) if isinstance(whiteboard.get("target_project_architecture"), dict) else {}
         cgkn_execution = whiteboard.get("cgkn_execution", {}) if isinstance(whiteboard.get("cgkn_execution"), dict) else {}
         if str(target_architecture.get("model_mode", "")).strip().lower() == "local_model":
@@ -390,8 +390,8 @@ def _start_reply(whiteboard: dict[str, Any], visible_status: str) -> str:
         if str(target_architecture.get("model_mode", "")).strip().lower() == "local_model":
             target_note = " 生成出来的项目仍按本地模型路线设计，我会保留模型适配层、配置入口和缺模型限制说明。"
         if summary:
-            return f"可以，你已经明确允许这轮先切到接口生成。{target_note}我会沿用刚才“{summary[:120]}”这个项目上下文继续推进，不另开项目；交付前仍要看真实运行、截图和测试证据。"
-        return f"可以，你已经明确允许这轮先切到接口生成。{target_note}我会沿用当前项目上下文继续推进，不另开项目；交付前仍要看真实运行、截图和测试证据。"
+            return f"可以，你已经明确允许这轮改用当前可用生成方式。{target_note}我会沿用刚才“{summary[:120]}”这个项目上下文继续推进，不另开项目；交付前仍要看真实运行、截图和测试证据。"
+        return f"可以，你已经明确允许这轮改用当前可用生成方式。{target_note}我会沿用当前项目上下文继续推进，不另开项目；交付前仍要看真实运行、截图和测试证据。"
     if str(target_architecture.get("model_mode", "")).strip().lower() == "local_model":
         if summary:
             return (
@@ -428,7 +428,7 @@ def _evidence_missing_reply(visible_status: str, evidence: dict[str, Any], limit
     if str(generation.get("status") or "").lower() == "generation_blocked_by_local_model_config":
         return (
             "我不能按本地模型路线直接开工，因为当前本地模型能力还没有确认可用。"
-            "这个项目需求会保留在同一上下文里；下一步要么先补本地模型配置，要么由你明确允许切到接口生成。"
+            "这个项目需求会保留在同一上下文里；下一步要么先补本地模型配置，要么由你明确允许改用当前可用生成方式。"
         )
     main_limits = _main_public_limits(limits)
     if missing:

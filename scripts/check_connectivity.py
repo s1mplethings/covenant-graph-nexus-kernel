@@ -362,7 +362,7 @@ def _extract_text(doc: dict[str, Any]) -> str:
     return ""
 
 
-def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
+def check_api(live: bool, timeout_sec: int, model: str, api_budget: str = "standard") -> dict[str, Any]:
     creds = _resolve_api_credentials()
     token = creds["api_key"]
     root = creds["base_url"]
@@ -385,8 +385,22 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
     selected_method = _selected_provider_api_method(root, model)
     endpoint_mode = _endpoint_mode_from_method(selected_method)
     endpoint = _openai_compatible_endpoint(root, model=model)
-    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8}, model=model)
-    transport = _post_json_with_retry(endpoint, payload, token, timeout_sec)
+    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 16}, model=model)
+    transport = provider_transport.governed_post_json_with_retry(
+        endpoint,
+        payload,
+        token,
+        timeout_sec,
+        run_dir=RESULT_PATH.parent / "connectivity_governance",
+        project_id="connectivity",
+        task_id="connectivity_smoke",
+        agent_id="check_connectivity",
+        request_type="connectivity",
+        model=model,
+        endpoint_method=selected_method,
+        api_budget=api_budget,
+        cache_enabled=False,
+    )
     doc, error = transport.doc, transport.error
     result["endpoint_mode"] = endpoint_mode
     result["selected_method"] = selected_method
@@ -410,7 +424,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     result = {
         "kind": "ConnectivityCheckResult",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "api": check_api(bool(args.live or args.live_api), args.timeout, args.model),
+        "api": check_api(bool(args.live or args.live_api), args.timeout, args.model, getattr(args, "api_budget", "standard")),
     }
     result["ok"] = bool(result["api"].get("ok"))
     _write_json(RESULT_PATH, result)
@@ -424,6 +438,7 @@ def main() -> int:
     parser.add_argument("--live-api", action="store_true", help="Run live OpenAI-compatible API probe.")
     parser.add_argument("--model", default=model_policy.select_model("connectivity"))
     parser.add_argument("--timeout", type=int, default=20)
+    parser.add_argument("--api-budget", default="standard", choices=["off", "low", "standard", "high"])
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     result = run(args)

@@ -8,7 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.agent_leaf_provider_guard import build_leaf_provider_prompt, build_provider_request, call_responses_provider, classify_provider_error, redact_secret, save_redacted_provider_request
-from scripts.agent_real_provider_leaf_builder import _test_leaf_read_context
+from scripts.agent_real_provider_leaf_builder import _test_leaf_read_context, parse_provider_files
 
 
 def test_provider_guard_prompt_limits_leaf_scope_and_redacts_request(tmp_path: pathlib.Path) -> None:
@@ -19,7 +19,7 @@ def test_provider_guard_prompt_limits_leaf_scope_and_redacts_request(tmp_path: p
         user_goal="Local AI Knowledge Studio",
     )
     request = build_provider_request(model="gpt-5.4-nano", prompt=prompt)
-    assert request["max_tokens"] == 9000
+    assert request["max_tokens"] == 3500
     fake_secret = "sk-" + "s" * 16
     request["api_key"] = fake_secret
     save_redacted_provider_request(out_dir=tmp_path, request_doc=request, prompt=prompt)
@@ -166,3 +166,11 @@ def test_ui_test_leaf_receives_read_only_integration_context(tmp_path: pathlib.P
     assert "def create_app()" in context
     assert "def render_page(page)" in context
     assert _test_leaf_read_context(tmp_path, "search_service_leaf") == ""
+
+
+def test_parse_provider_files_salvages_complete_raw_newline_json_but_rejects_truncated_file() -> None:
+    raw_newline = '{"files":[{"path":"app/a.py","content":"def ok():\n    return True"}]}'
+    truncated = '{"files":[{"path":"app/a.py","content":"def ok():\n    return'
+
+    assert parse_provider_files(raw_newline)["app/a.py"].startswith("def ok")
+    assert parse_provider_files(truncated) == {}

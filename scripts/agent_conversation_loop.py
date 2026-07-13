@@ -16,6 +16,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import check_connectivity
 import local_agent_actions
+import provider_transport
 
 
 AgentCallable = Callable[[list[dict[str, Any]], str, int], str | dict[str, Any]]
@@ -148,36 +149,46 @@ def parse_agent_response(response: str | dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _history_for_agent(events: list[dict[str, Any]]) -> str:
+def _history_for_agent(events: list[dict[str, Any]], *, max_chars: int = 60000) -> str:
     lines: list[str] = []
     for event in events:
         kind = str(event.get("kind") or event.get("role") or "event")
         payload = json.dumps(event, ensure_ascii=False)
         lines.append(f"{kind}: {payload}")
-    return "\n".join(lines)[-60000:]
+    return "\n".join(lines)[-max(1, int(max_chars)):]
 
 
-def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -> str:
+def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int, *, run_dir: str | pathlib.Path = ".", api_budget: str = "standard") -> str:
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     if not token:
         raise RuntimeError("missing OpenAI-compatible API key for agent conversation loop")
     root = str(creds.get("base_url", "")).rstrip("/")
+    profile = provider_transport.api_budget_profile(api_budget)
+    policy = provider_transport.request_type_policy("dialogue_analysis", api_budget)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": _history_for_agent(events)},
+        {"role": "user", "content": _history_for_agent(events, max_chars=int(policy["max_prompt_chars"]))},
     ]
     endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
+    selected_method = check_connectivity._selected_provider_api_method(root, model)
     payload = check_connectivity._build_openai_compatible_payload(
         root,
-        {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": 6000},
+        {"model": model, "messages": messages, "temperature": 0.2, "max_tokens": int(policy["max_output_tokens"])},
     )
-    transport = check_connectivity._post_json_with_retry(
+    transport = provider_transport.governed_post_json_with_retry(
         endpoint,
         payload,
         token,
-        timeout,
-        max_attempts=4,
+        min(timeout, int(profile["timeout"])),
+        run_dir=run_dir,
+        project_id="agent_conversation_loop",
+        task_id="dialogue_analysis",
+        agent_id="agent_conversation_loop",
+        request_type="dialogue_analysis",
+        model=model,
+        endpoint_method=selected_method,
+        api_budget=api_budget,
         base_delay_sec=1.5,
     )
     if transport.doc is not None:
@@ -199,11 +210,12 @@ def run_agent_loop(
     timeout: int = 120,
     max_turns: int = 12,
     agent: AgentCallable | None = None,
+    api_budget: str = "standard",
 ) -> dict[str, Any]:
     session_file = pathlib.Path(session_path).resolve()
     project = pathlib.Path(project_dir).resolve()
     executor = local_agent_actions.LocalAgentActionExecutor(project)
-    agent_fn = agent or call_default_agent
+    agent_fn = agent or (lambda events, model, timeout: call_default_agent(events, model, timeout, run_dir=session_file.parent, api_budget=api_budget))
     package_result: dict[str, Any] | None = None
     turns = 0
     repair_turn_used = False

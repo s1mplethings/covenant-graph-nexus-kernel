@@ -49,6 +49,10 @@ PROJECT_TEAM_FILES = [
     "scripts/main_agent_manager.py",
     "scripts/project_revision_lane.py",
 ]
+SPLIT_MODULE_FILES = [
+    "scripts/provider_project_compatibility.py",
+    "scripts/project_signal_terms.py",
+]
 
 
 def read_text(path: str) -> str:
@@ -99,6 +103,8 @@ def run_checks(strict: bool = False) -> dict[str, object]:
 
     missing_team_files = [path for path in PROJECT_TEAM_FILES if not (ROOT / path).exists()]
     add(checks, "project team manager modules exist", not missing_team_files, ", ".join(missing_team_files))
+    missing_split_modules = [path for path in SPLIT_MODULE_FILES if not (ROOT / path).exists()]
+    add(checks, "bridge bloat functions are split into modules", not missing_split_modules, ", ".join(missing_split_modules))
 
     suffix_block = between(bridge, "PUBLIC_DELIVERY_SUFFIXES", "}")
     bad_suffixes = [suffix for suffix in INTERNAL_SUFFIXES if suffix in suffix_block]
@@ -255,19 +261,16 @@ def run_checks(strict: bool = False) -> dict[str, object]:
             ", ".join(missing_markers),
         )
 
-    unmarked_wrappers: list[str] = []
+    exposed_wrappers: list[str] = []
     for name in LEGACY_BRIDGE_WRAPPERS:
         marker = f"def {name}"
-        index = bridge.find(marker)
-        if index < 0:
-            continue
-        if "LEGACY ONLY" not in bridge[max(0, index - 240):index]:
-            unmarked_wrappers.append(name)
+        if bridge.find(marker) >= 0:
+            exposed_wrappers.append(name)
     add(
         checks,
-        "legacy wrapper functions in the bridge are marked LEGACY ONLY",
-        not unmarked_wrappers,
-        ", ".join(unmarked_wrappers),
+        "legacy wrapper functions are not exposed by the bridge",
+        not exposed_wrappers,
+        ", ".join(exposed_wrappers),
     )
 
     line_count = bridge.count("\n") + 1
@@ -279,13 +282,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
             }
         )
     bloat_hits = [term for term in BLOAT_HINTS if term in bridge]
-    if bloat_hits:
-        warnings.append(
-            {
-                "name": "domain-specific bridge bloat",
-                "detail": ", ".join(bloat_hits),
-            }
-        )
+    add(checks, "domain-specific compatibility terms stay out of the bridge", not bloat_hits, ", ".join(bloat_hits))
 
     ok = all(bool(check["ok"]) for check in checks) and (not strict or not warnings)
     return {"ok": ok, "strict": strict, "checks": checks, "warnings": warnings}

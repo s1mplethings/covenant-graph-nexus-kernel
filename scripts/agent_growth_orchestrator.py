@@ -11,6 +11,18 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 try:
+    from agent_project_management import (
+        append_task_event,
+        build_performance_snapshot,
+        can_start_task,
+        parent_management_responsibility,
+        project_health_snapshot,
+        project_management_paths,
+        record_manager_decision,
+        record_performance_event,
+        run_project_manager_cycle,
+        task_statuses_from_ledger,
+    )
     from agent_growth_budget import check_leaf_size, default_growth_budget
     from agent_growth_feedback_router import create_growth_feedback_task
     from agent_growth_merge_protocol import merge_branch_results
@@ -28,6 +40,18 @@ try:
     import runtime_visual_evidence
     import telegram_live_bridge
 except ModuleNotFoundError:  # pragma: no cover
+    from scripts.agent_project_management import (
+        append_task_event,
+        build_performance_snapshot,
+        can_start_task,
+        parent_management_responsibility,
+        project_health_snapshot,
+        project_management_paths,
+        record_manager_decision,
+        record_performance_event,
+        run_project_manager_cycle,
+        task_statuses_from_ledger,
+    )
     from scripts.agent_growth_budget import check_leaf_size, default_growth_budget
     from scripts.agent_growth_feedback_router import create_growth_feedback_task
     from scripts.agent_growth_merge_protocol import merge_branch_results
@@ -63,6 +87,69 @@ def _checkpoint(out_dir: pathlib.Path, agent_id: str, verdict: str, *, present: 
     return doc
 
 
+def _load_project_tasks(out_dir: pathlib.Path) -> list[dict[str, Any]]:
+    plan = read_json(project_management_paths(out_dir)["project_plan"], {})
+    tasks = plan.get("work_breakdown_structure", []) if isinstance(plan, dict) else []
+    return tasks if isinstance(tasks, list) else []
+
+
+def _task_for_agent(out_dir: pathlib.Path, agent_id: str) -> dict[str, Any]:
+    tasks = _load_project_tasks(out_dir)
+    direct = next((task for task in tasks if task.get("owner_agent") == agent_id), {})
+    if direct:
+        return direct
+    agent_type = "leaf"
+    if agent_id.endswith("_branch_agent"):
+        agent_type = agent_id.replace("_branch_agent", "")
+    elif agent_id.endswith("_agent"):
+        agent_type = agent_id.replace("_agent", "")
+    return next((task for task in tasks if task.get("task_type") == agent_type), {}) or {
+        "project_id": read_json(project_management_paths(out_dir)["project_plan"], {}).get("project_id", ""),
+        "task_id": f"runtime_{agent_id}",
+        "task_type": agent_type,
+        "owner_agent": agent_id,
+        "dependency_task_ids": [],
+    }
+
+
+def _record_checkpoint_management(out_dir: pathlib.Path, agent_id: str, checkpoint: dict[str, Any], *, parent_agent: str = "") -> None:
+    task = _task_for_agent(out_dir, agent_id)
+    verdict = str(checkpoint.get("verdict", ""))
+    status = "completed" if verdict == "PASS" else ("blocked" if verdict in {"NEEDS_SPLIT", "BLOCKED"} else "failed")
+    append_task_event(
+        out_dir,
+        task,
+        "checkpoint",
+        status=status,
+        reason="dynamic_tree_checkpoint",
+        evidence_refs=[f"checkpoints/{agent_id}.json"],
+    )
+    issues = [str(item) for item in checkpoint.get("issues", [])]
+    event_type = "task_completed" if verdict == "PASS" else ("scope_violation" if any(item.startswith("scope_violation") for item in issues) else "task_failed")
+    if verdict == "NEEDS_SPLIT":
+        event_type = "task_failed"
+    record_performance_event(
+        out_dir,
+        agent_id=agent_id,
+        task_id=str(task.get("task_id", "")),
+        task_type=str(task.get("task_type", "leaf")),
+        event_type=event_type,
+        first_pass=verdict == "PASS",
+        repair_count=int(task.get("retry_count", 0) or 0),
+        scope_violations=sum(1 for item in issues if item.startswith("scope_violation")),
+        evidence_refs=[f"checkpoints/{agent_id}.json"],
+        reason=";".join(issues),
+    )
+    if verdict == "NEEDS_SPLIT" and parent_agent:
+        parent_management_responsibility(
+            parent_agent=parent_agent,
+            child_task=task,
+            failure_reason="oversized_scope",
+            evidence_refs=[f"checkpoints/{agent_id}.json"],
+            out_dir=out_dir,
+        )
+
+
 def _record_leaf_action(out_dir: pathlib.Path, agent_id: str, files: list[str], scope_ok: dict[str, Any]) -> None:
     append_jsonl(
         out_dir / "leaf_build_actions.jsonl",
@@ -81,10 +168,12 @@ def _record_leaf_action(out_dir: pathlib.Path, agent_id: str, files: list[str], 
 def controlled_leaf_build(agent: dict[str, Any], *, project_dir: pathlib.Path, out_dir: pathlib.Path, budget: dict[str, int], injected_files: list[str] | None = None) -> dict[str, Any]:
     agent_id = str(agent["agent_id"])
     contract = load_scope_contract(out_dir, agent_id)
+    task = _task_for_agent(out_dir, agent_id)
     expected_files = list(contract.get("allowed_files", []))
     size = check_leaf_size(expected_files, budget)
     if size["verdict"] == "NEEDS_SPLIT":
         cp = _checkpoint(out_dir, agent_id, "NEEDS_SPLIT", missing=expected_files, issues=[size["reason"]])
+        _record_checkpoint_management(out_dir, agent_id, cp, parent_agent=str(agent.get("parent_id") or ""))
         create_growth_feedback_task(
             out_dir=out_dir,
             target_agent=str(agent.get("parent_id") or agent_id),
@@ -100,14 +189,26 @@ def controlled_leaf_build(agent: dict[str, Any], *, project_dir: pathlib.Path, o
     _record_leaf_action(out_dir, agent_id, attempted_files, scope_ok)
     if not scope_ok["ok"]:
         cp = _checkpoint(out_dir, agent_id, "FAIL", missing=expected_files, issues=[f"scope_violation:{item}" for item in scope_ok["violations"]])
+        contract["intervention_level"] = 2
+        contract["required_reviewer"] = str(agent.get("parent_id") or "main_agent")
+        contract["allowed_actions"] = ["modify_owned_file", "request_parent_review"]
+        write_json(out_dir / "scope_contracts" / f"{agent_id}.json", contract)
+        _record_checkpoint_management(out_dir, agent_id, cp, parent_agent=str(agent.get("parent_id") or ""))
         create_growth_feedback_task(out_dir=out_dir, target_agent=agent_id, failed_agent=agent_id, reason="scope_violation", missing=scope_ok["violations"])
+        return cp
+    readiness = can_start_task(task, task_statuses_from_ledger(out_dir))
+    if not readiness["can_start"]:
+        cp = _checkpoint(out_dir, agent_id, "BLOCKED", missing=expected_files, issues=[f"dependency_blocked:{item}" for item in readiness["blocked_dependencies"]])
+        _record_checkpoint_management(out_dir, agent_id, cp, parent_agent=str(agent.get("parent_id") or ""))
         return cp
 
     for rel in expected_files:
         _write(project_dir, rel, _controlled_file_content(agent_id, rel))
     present = [rel for rel in expected_files if (project_dir / rel).exists()]
     missing = [rel for rel in expected_files if not (project_dir / rel).exists()]
-    return _checkpoint(out_dir, agent_id, "PASS" if not missing else "FAIL", present=present, missing=missing)
+    cp = _checkpoint(out_dir, agent_id, "PASS" if not missing else "FAIL", present=present, missing=missing)
+    _record_checkpoint_management(out_dir, agent_id, cp, parent_agent=str(agent.get("parent_id") or ""))
+    return cp
 
 
 def _controlled_file_content(agent_id: str, rel: str) -> str:
@@ -199,7 +300,9 @@ def _run_special_agent(agent_id: str, *, shared_context: dict[str, Any], project
         write_json(out_dir / "contract_checks" / "public_delivery_gate.json", gate)
     present = [rel for rel in files if (project_dir / rel).exists()]
     missing = [rel for rel in files if not (project_dir / rel).exists()]
-    return _checkpoint(out_dir, agent_id, "PASS" if not missing else "FAIL", present=present, missing=missing)
+    cp = _checkpoint(out_dir, agent_id, "PASS" if not missing else "FAIL", present=present, missing=missing)
+    _record_checkpoint_management(out_dir, agent_id, cp)
+    return cp
 
 
 def run_controlled_dynamic_growth(
@@ -231,18 +334,52 @@ def run_controlled_dynamic_growth(
         return final
 
     registry = plan_dynamic_growth(shared_context, out, budget)
+    plan = read_json(project_management_paths(out)["project_plan"], {})
+    tasks = plan.get("work_breakdown_structure", []) if isinstance(plan.get("work_breakdown_structure"), list) else []
     for agent_id in ("requirement_agent", "architecture_agent"):
         _run_special_agent(agent_id, shared_context=shared_context, project_dir=project, out_dir=out)
     for parent_id in ("backend_branch_agent", "frontend_branch_agent"):
+        parent_task = _task_for_agent(out, parent_id)
+        append_task_event(out, parent_task, "checkpoint", status="completed", reason="branch_scope_ready")
+        record_performance_event(
+            out,
+            agent_id=parent_id,
+            task_id=str(parent_task.get("task_id", "")),
+            task_type=str(parent_task.get("task_type", "management")),
+            event_type="task_completed",
+            first_pass=True,
+            evidence_refs=["project_plan.json"],
+            reason="branch scope approved before child execution",
+        )
         for child in children_of(registry, parent_id):
             controlled_leaf_build(child, project_dir=project, out_dir=out, budget=budget)
         merge_branch_results(registry=registry, parent_agent=parent_id, out_dir=out, owned_outputs=["app/services/" if parent_id.startswith("backend") else "app/templates/"])
+        record_performance_event(
+            out,
+            agent_id=parent_id,
+            task_id=f"merge_{parent_id}",
+            task_type="management",
+            event_type="handoff_accepted",
+            evidence_refs=[f"merge_results/{parent_id}.json"],
+            reason="branch merge completed",
+        )
+        run_project_manager_cycle(out, provider_state={"circuit_state": "closed"})
     _run_special_agent("integration_agent", shared_context=shared_context, project_dir=project, out_dir=out)
     for child in children_of(registry, "test_branch_agent"):
         controlled_leaf_build(child, project_dir=project, out_dir=out, budget=budget)
     test_result = real_test_execution.run_tests(project, timeout=60)
     write_json(out / "contract_checks" / "real_test_execution.json", test_result)
     merge_branch_results(registry=registry, parent_agent="test_branch_agent", out_dir=out, owned_outputs=["tests/"])
+    record_performance_event(
+        out,
+        agent_id="test_branch_agent",
+        task_id="merge_test_branch_agent",
+        task_type="management",
+        event_type="handoff_accepted",
+        evidence_refs=["merge_results/test_branch_agent.json"],
+        reason="test branch merge completed",
+    )
+    run_project_manager_cycle(out, provider_state={"circuit_state": "closed"})
     _run_special_agent("qa_agent", shared_context=shared_context, project_dir=project, out_dir=out)
     _run_special_agent("delivery_agent", shared_context=shared_context, project_dir=project, out_dir=out)
 
@@ -260,6 +397,24 @@ def run_controlled_dynamic_growth(
         "public_delivery_gate": gate,
         "created_at": now(),
     }
+    statuses = task_statuses_from_ledger(out)
+    health = project_health_snapshot(tasks, statuses, provider_state={"circuit_state": "closed"})
+    write_json(project_management_paths(out)["project_health"], health)
+    record_manager_decision(
+        out,
+        project_id=str(plan.get("project_id", "")),
+        task_id="task_delivery",
+        decision_type="promote",
+        candidate_agents=["delivery_agent"],
+        selected_agent="delivery_agent",
+        evidence_used=["contract_checks/public_delivery_gate.json", "agent_performance_snapshot.json", "project_health.json"],
+        performance_snapshot=build_performance_snapshot(out),
+        project_health_snapshot=health,
+        reason="delivery gate evaluated after controlled dynamic tree execution",
+        resulting_scope=["local_packager", "public_delivery_gate"],
+        resulting_budget={"provider_mode": provider_mode},
+        required_review_level="delivery_review",
+    )
     bundle = create_growth_trace_bundle(out_dir=out, project_dir=project, final_verdict=final)
     final["trace_bundle"] = str(bundle)
     write_json(out / "final_verdict.json", final)

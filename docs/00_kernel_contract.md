@@ -159,6 +159,18 @@ observe run state
 
 The formal live delivery closure remains available as a high-risk tool for final closure work. It is not the only controller that may call public delivery tools, and it does not weaken the rule that final public delivery requires `local_packager`, `delivery_manifest.json`, `final_project_bundle.zip`, evidence integrity, and the public delivery gate.
 
+## Dynamic Tree Project Management and Provider Governance
+
+The Dynamic Agent Tree support lane may maintain project-management artifacts for its own controlled runs: `project_plan.json`, append-only `task_ledger.jsonl`, `agent_performance_ledger.jsonl`, `project_manager_decisions.jsonl`, `agent_performance_snapshot.json`, `project_health.json`, and `project_health_history.jsonl`. These artifacts may influence Dynamic Tree assignment, scope, budget, reviewer, replacement, split, replan, and pruning decisions inside the support lane, but they do not connect Dynamic Tree to Telegram default generation and do not create a second public delivery route.
+
+Dynamic Tree WBS generation must be project-specific. The support lane may infer coarse domains such as knowledge studio, studio operations, media analysis, or generic product to derive different task ledgers, critical paths, child agents, and scope contracts. If dynamic WBS generation falls back to a static template, it must write an explicit `dynamic_planner_fallback.json` reason.
+
+Cross-run agent reputation may be stored only in private support-lane state such as `.agent_private/agent_reputation.json` or an explicit configured path. Reputation must be domain and task-type scoped, migrated by version, decayed when used for selection, and must not penalize agents for external provider quota, provider outage, network, or user requirement changes.
+
+Provider request governance remains part of the single `provider_transport.py` truth source. Planner, conversation, leaf generation, repair, review, evidence summary, and connectivity calls must use model choices from `model_policy`, request-type output limits, API budget profiles, redacted append-only usage ledgers, request fingerprints, per-run readiness cache, request cache where safe, cache schema/TTL validation, circuit breaker state including half-open probe control, budget reservations, bounded retries, and pre-call `BLOCKED_API_BUDGET` decisions. Provider quota, provider unavailable, unsupported method/model, network, and other external blockers must not be counted as Agent performance failures.
+
+Dynamic Tree repair should prefer incremental missing-file, test-failure, scope-violation, or malformed-response repair prompts before whole replacement. Repair evidence must record original and repair prompt sizes. No Provider governance ledger may store API keys, Authorization headers, or unreduced secrets.
+
 ## Legacy Code Policy
 
 Legacy provider pipeline code must not bypass post-build finalization, `local_packager`, or public delivery gate.

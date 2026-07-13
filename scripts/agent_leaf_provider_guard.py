@@ -14,10 +14,11 @@ if str(ROOT / "scripts") not in sys.path:
 
 try:
     import check_connectivity
+    import provider_transport
     import provider_api_smoke
     from agent_tree_contracts import write_json
 except ModuleNotFoundError:  # pragma: no cover
-    from scripts import check_connectivity, provider_api_smoke
+    from scripts import check_connectivity, provider_api_smoke, provider_transport
     from scripts.agent_tree_contracts import write_json
 
 
@@ -74,18 +75,43 @@ def call_responses_provider(
     timeout: int,
     max_attempts: int = 3,
     retry_delay: float = 0.5,
+    run_dir: str | pathlib.Path | None = None,
+    project_id: str = "",
+    task_id: str = "",
+    agent_id: str = "",
+    request_type: str = "leaf_generation",
+    api_budget: str = "standard",
 ) -> tuple[dict[str, Any] | None, str, int]:
     model = str(payload.get("model", "")).strip()
     endpoint = check_connectivity._openai_compatible_endpoint(base_url, model=model)
     request_payload = check_connectivity._build_openai_compatible_payload(base_url, payload, model=model)
-    transport = check_connectivity._post_json_with_retry(
-        endpoint,
-        request_payload,
-        token,
-        timeout,
-        max_attempts=max_attempts,
-        base_delay_sec=retry_delay,
-    )
+    selected_method = check_connectivity._selected_provider_api_method(base_url, model)
+    if run_dir is not None:
+        transport = provider_transport.governed_post_json_with_retry(
+            endpoint,
+            request_payload,
+            token,
+            timeout,
+            run_dir=run_dir,
+            project_id=project_id or "dynamic_tree",
+            task_id=task_id or agent_id or "provider_leaf",
+            agent_id=agent_id or "provider_leaf",
+            request_type=request_type,
+            model=model,
+            endpoint_method=selected_method,
+            api_budget=api_budget,
+            max_attempts=max_attempts,
+            base_delay_sec=retry_delay,
+        )
+    else:
+        transport = check_connectivity._post_json_with_retry(
+            endpoint,
+            request_payload,
+            token,
+            timeout,
+            max_attempts=max_attempts,
+            base_delay_sec=retry_delay,
+        )
     return transport.doc, redact_secret(transport.error), len(transport.attempts)
 
 
@@ -110,38 +136,53 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
         "raw_error_redacted": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    provider_key = f"{result['base_url_domain']}:{model}:{check_connectivity._selected_provider_api_method(base_url, model) if base_url else ''}"
+
+    def compute_readiness() -> dict[str, Any]:
+        local_result = dict(result)
+        if not token or not base_url:
+            local_result["smoke_status"] = "skipped_missing_credentials"
+            local_result["public_safe_error"] = "provider credentials are not fully configured"
+            return local_result
+        if smoke:
+            local_result["smoke_attempted"] = True
+            try:
+                smoke_result = provider_api_smoke.run_smoke(model=model, timeout=timeout, attempts=3)
+                text = str(smoke_result.get("response_preview", ""))
+                local_result["selected_method"] = str(smoke_result.get("selected_method", ""))
+                local_result["endpoint_mode"] = str(smoke_result.get("endpoint_mode", ""))
+                local_result["base_url_domain"] = str(smoke_result.get("base_url_domain", local_result["base_url_domain"]))
+                local_result["provider_error_type"] = str(smoke_result.get("provider_error_type", ""))
+                smoke_result = {
+                    "ok": bool(smoke_result.get("ok")),
+                    "error_summary": smoke_result.get("error_summary", ""),
+                    "error_code": smoke_result.get("error_code", ""),
+                    "response_preview": text[:120],
+                    "attempts": len(smoke_result.get("attempts", []) or []),
+                }
+            except Exception as exc:
+                smoke_result = {"ok": False, "error_summary": redact_secret(str(exc))}
+            local_result["smoke_status"] = "pass" if smoke_result.get("ok") else "fail"
+            local_result["provider_ready"] = bool(smoke_result.get("ok"))
+            local_result["smoke_attempts"] = int(smoke_result.get("attempts") or 1)
+            local_result["public_safe_error"] = "" if local_result["provider_ready"] else redact_secret(str(smoke_result.get("error_summary") or smoke_result.get("error_code") or "provider smoke failed"))
+            if not local_result["provider_error_type"] and local_result["public_safe_error"]:
+                local_result["provider_error_type"] = check_connectivity._provider_error_type(local_result["public_safe_error"])
+            transport_error_type = provider_transport.classify_provider_error(local_result["public_safe_error"])
+            if provider_transport.should_open_circuit(transport_error_type):
+                provider_transport.open_circuit(out, reason=transport_error_type, provider_key=provider_key)
+            return local_result
+        local_result["smoke_status"] = "skipped"
+        local_result["public_safe_error"] = "smoke disabled"
+        local_result["selected_method"] = check_connectivity._selected_provider_api_method(base_url, model) if base_url else ""
+        local_result["endpoint_mode"] = check_connectivity._endpoint_mode_from_method(local_result["selected_method"]) if local_result["selected_method"] else ""
+        return local_result
+
     if not token or not base_url:
         result["smoke_status"] = "skipped_missing_credentials"
         result["public_safe_error"] = "provider credentials are not fully configured"
-    elif smoke:
-        result["smoke_attempted"] = True
-        try:
-            smoke_result = provider_api_smoke.run_smoke(model=model, timeout=timeout, attempts=3)
-            text = str(smoke_result.get("response_preview", ""))
-            result["selected_method"] = str(smoke_result.get("selected_method", ""))
-            result["endpoint_mode"] = str(smoke_result.get("endpoint_mode", ""))
-            result["base_url_domain"] = str(smoke_result.get("base_url_domain", result["base_url_domain"]))
-            result["provider_error_type"] = str(smoke_result.get("provider_error_type", ""))
-            smoke_result = {
-                "ok": bool(smoke_result.get("ok")),
-                "error_summary": smoke_result.get("error_summary", ""),
-                "error_code": smoke_result.get("error_code", ""),
-                "response_preview": text[:120],
-                "attempts": len(smoke_result.get("attempts", []) or []),
-            }
-        except Exception as exc:
-            smoke_result = {"ok": False, "error_summary": redact_secret(str(exc))}
-        result["smoke_status"] = "pass" if smoke_result.get("ok") else "fail"
-        result["provider_ready"] = bool(smoke_result.get("ok"))
-        result["smoke_attempts"] = int(smoke_result.get("attempts") or 1)
-        result["public_safe_error"] = "" if result["provider_ready"] else redact_secret(str(smoke_result.get("error_summary") or smoke_result.get("error_code") or "provider smoke failed"))
-        if not result["provider_error_type"] and result["public_safe_error"]:
-            result["provider_error_type"] = check_connectivity._provider_error_type(result["public_safe_error"])
     else:
-        result["smoke_status"] = "skipped"
-        result["public_safe_error"] = "smoke disabled"
-        result["selected_method"] = check_connectivity._selected_provider_api_method(base_url, model) if base_url else ""
-        result["endpoint_mode"] = check_connectivity._endpoint_mode_from_method(result["selected_method"]) if result["selected_method"] else ""
+        result = provider_transport.cached_readiness(run_dir=out, provider_key=provider_key, ttl_seconds=300, compute_fn=compute_readiness)
 
     write_json(out / "provider_readiness.json", result)
     md = [
@@ -249,7 +290,8 @@ def build_leaf_provider_prompt(*, agent_id: str, allowed_files: list[str], forbi
     )
 
 
-def build_provider_request(*, model: str, prompt: str, base_url: str = "") -> dict[str, Any]:
+def build_provider_request(*, model: str, prompt: str, base_url: str = "", request_type: str = "leaf_generation", api_budget: str = "standard") -> dict[str, Any]:
+    policy = provider_transport.request_type_policy(request_type, api_budget)
     return {
         "model": model,
         "input": [
@@ -264,7 +306,7 @@ def build_provider_request(*, model: str, prompt: str, base_url: str = "") -> di
             }
         ],
         "temperature": 0,
-        "max_tokens": 9000,
+        "max_tokens": int(policy["max_output_tokens"]),
         "base_url_present": bool(base_url),
     }
 

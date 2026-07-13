@@ -239,8 +239,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
     def test_pre_send_guard_does_not_duplicate_external_api_wording(self) -> None:
         text = bridge.pre_send_guard("允许外部 API 作为备选，但不要暴露 API/provider。判断：先按可配置入口推进。")
 
-        self.assertIn("外部接口", text)
-        self.assertNotIn("外部 外部接口", text)
+        self.assertIn("外部服务", text)
+        self.assertNotIn("外部 外部服务", text)
         self.assertNotIn("API/provider", text)
         self.assertNotIn("判断：", text)
 
@@ -435,7 +435,15 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertEqual("用这个做参考", specs[1]["caption"])
 
     def test_generation_args_include_required_context_prompt_fields(self) -> None:
-        args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-5.4-nano", 420)
+        args = legacy_provider_pipeline.build_generation_args(
+            "test-chat",
+            "做一个 VN 助手",
+            ROOT / "examples" / "test_results",
+            "gpt-5.4-nano",
+            420,
+            root=ROOT,
+            safe_id_fn=bridge.safe_id,
+        )
         self.assertEqual(12000, args.prompt_max_chars)
         self.assertFalse(args.use_local_model)
         self.assertTrue(args.allow_provider)
@@ -448,8 +456,16 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("--use-api", command)
         self.assertNotIn("--no-api", command)
 
-    def test_generation_command_does_not_use_no_api_flags_in_simulator_mode(self) -> None:
-        args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-5.4-nano", 420, "simulator")
+    def test_generation_command_does_not_use_no_api_flags_in_legacy_mode(self) -> None:
+        args = legacy_provider_pipeline.build_generation_args(
+            "test-chat",
+            "做一个 VN 助手",
+            ROOT / "examples" / "test_results",
+            "gpt-5.4-nano",
+            420,
+            root=ROOT,
+            safe_id_fn=bridge.safe_id,
+        )
         command = legacy_provider_pipeline.generation_subprocess_command(args, root=ROOT)
         self.assertIn("--allow-network", command)
         self.assertIn("--allow-provider", command)

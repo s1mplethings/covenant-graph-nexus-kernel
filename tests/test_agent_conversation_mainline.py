@@ -456,7 +456,6 @@ class AgentConversationMainlineTests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeTelegramClient()
             original_execute = bridge.provider_project_pipeline.execute
-            original_subprocess = bridge.run_generation_subprocess
             original_thread = bridge.threading.Thread
             called = {"provider": False}
 
@@ -464,18 +463,14 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 called["provider"] = True
                 return make_provider_result(pathlib.Path(args.out_dir))
 
-            def forbidden_subprocess(*args, **kwargs):
-                raise AssertionError("Telegram mainline must not call old no-api subprocess path")
-
             bridge.provider_project_pipeline.execute = fake_execute
-            bridge.run_generation_subprocess = forbidden_subprocess
             bridge.threading.Thread = InlineThread
             try:
-                bridge.handle_text(client, "chat-no-api", "做一个本地笔记应用", session_dir, log_dir, "gpt-test", 30, "simulator")
-                bridge.handle_text(client, "chat-no-api", "开始生成", session_dir, log_dir, "gpt-test", 30, "simulator")
+                self.assertFalse(hasattr(bridge, "run_generation_subprocess"))
+                bridge.handle_text(client, "chat-no-api", "做一个本地笔记应用", session_dir, log_dir, "gpt-test", 30, "api")
+                bridge.handle_text(client, "chat-no-api", "开始生成", session_dir, log_dir, "gpt-test", 30, "api")
             finally:
                 bridge.provider_project_pipeline.execute = original_execute
-                bridge.run_generation_subprocess = original_subprocess
                 bridge.threading.Thread = original_thread
 
             self.assertTrue(called["provider"])

@@ -51,7 +51,17 @@ def _platform_no_api_requested(compact: str) -> bool:
 
 
 def _platform_api_allowed(compact: str) -> bool:
-    return any(token in compact for token in ("可以先切到接口生成", "先切到接口生成", "切到接口生成", "先用接口生成", "用接口生成", "允许接口生成", "走api生成"))
+    return any(
+        token in compact
+        for token in (
+            "继续生成",
+            "继续推进",
+            "用当前可用生成方式",
+            "先用当前可用生成方式",
+            "切到当前可用生成方式",
+            "允许当前可用生成方式",
+        )
+    )
 
 
 def parse_model_mode_semantics(user_text: str, session: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -91,13 +101,13 @@ def parse_model_mode_semantics(user_text: str, session: dict[str, Any] | None = 
     elif _platform_api_allowed(compact):
         backend_mode = "api"
         backend_source = "user_explicit_platform_constraint"
-        backend_notes.append("用户明确允许 CGKN 生成过程使用接口生成。")
+        backend_notes.append("用户明确允许 CGKN 生成过程使用当前可用生成方式。")
 
     if target_mode != "unspecified" and backend_mode == "none":
         reason = "用户描述的是生成项目内部模型方案，不是 CGKN 平台生成后端限制。"
         confidence = 0.92
     elif backend_mode != "none":
-        reason = "用户明确提到了 CGKN/生成过程/接口生成等平台执行约束。"
+        reason = "用户明确提到了 CGKN/生成过程/可用生成方式等平台执行约束。"
         confidence = 0.88
     else:
         reason = "未发现明确模型模式或平台生成后端约束。"

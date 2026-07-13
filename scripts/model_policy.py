@@ -17,6 +17,10 @@ TASK_ENV_VARS = {
     "repair": "CGNK_REPAIR_MODEL",
     "review": "CGNK_REVIEW_MODEL",
     "connectivity": "CGNK_CONNECTIVITY_MODEL",
+    "dialogue_analysis": "CGNK_DIALOGUE_ANALYSIS_MODEL",
+    "pipeline_planning": "CGNK_PIPELINE_PLANNING_MODEL",
+    "leaf_generation": "CGNK_LEAF_GENERATION_MODEL",
+    "evidence_summary": "CGNK_EVIDENCE_SUMMARY_MODEL",
 }
 
 MODEL_PROFILES: dict[str, dict[str, str]] = {
@@ -29,6 +33,10 @@ MODEL_PROFILES: dict[str, dict[str, str]] = {
         "repair": "gpt-5.4-nano",
         "review": "gpt-5.4-nano",
         "connectivity": "gpt-5.4-nano",
+        "dialogue_analysis": "gpt-5.4-nano",
+        "pipeline_planning": "gpt-5.4-nano",
+        "leaf_generation": "gpt-5.4-nano",
+        "evidence_summary": "gpt-5.4-nano",
     },
     "balanced": {
         "frontdesk": "gpt-5.4-nano",
@@ -39,6 +47,10 @@ MODEL_PROFILES: dict[str, dict[str, str]] = {
         "repair": "gpt-5.4-nano",
         "review": "gpt-5.4-nano",
         "connectivity": "gpt-5.4-nano",
+        "dialogue_analysis": "gpt-5.4-nano",
+        "pipeline_planning": "gpt-5.4-nano",
+        "leaf_generation": "gpt-5.4-nano",
+        "evidence_summary": "gpt-5.4-nano",
     },
     "quality": {
         "frontdesk": "gpt-5.4-nano",
@@ -49,7 +61,21 @@ MODEL_PROFILES: dict[str, dict[str, str]] = {
         "repair": "gpt-5.4-nano",
         "review": "gpt-5.4-nano",
         "connectivity": "gpt-5.4-nano",
+        "dialogue_analysis": "gpt-5.4-nano",
+        "pipeline_planning": "gpt-5.4-nano",
+        "leaf_generation": "gpt-5.4-nano",
+        "evidence_summary": "gpt-5.4-nano",
     },
+}
+
+REQUEST_OUTPUT_POLICIES: dict[str, dict[str, int]] = {
+    "connectivity": {"max_prompt_chars": 1200, "max_output_tokens": 40},
+    "dialogue_analysis": {"max_prompt_chars": 6000, "max_output_tokens": 900},
+    "pipeline_planning": {"max_prompt_chars": 8000, "max_output_tokens": 1800},
+    "leaf_generation": {"max_prompt_chars": 12000, "max_output_tokens": 3500},
+    "repair": {"max_prompt_chars": 7000, "max_output_tokens": 2200},
+    "review": {"max_prompt_chars": 6000, "max_output_tokens": 1200},
+    "evidence_summary": {"max_prompt_chars": 4000, "max_output_tokens": 900},
 }
 
 
@@ -117,5 +143,10 @@ def model_policy_snapshot() -> dict[str, Any]:
         "profile": profile_name,
         "models": {task: select_model(task, profile_name) for task in TASK_ENV_VARS},
         "task_env_vars": dict(TASK_ENV_VARS),
+        "request_output_policies": dict(REQUEST_OUTPUT_POLICIES),
         "openai_model": _clean(os.environ.get("OPENAI_MODEL")),
     }
+
+
+def request_output_policy(request_type: str) -> dict[str, int]:
+    return dict(REQUEST_OUTPUT_POLICIES.get(_clean(request_type), REQUEST_OUTPUT_POLICIES["leaf_generation"]))

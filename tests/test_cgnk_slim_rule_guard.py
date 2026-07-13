@@ -69,7 +69,7 @@ def test_delivery_gate_checks_present_and_ok() -> None:
 
 def test_legacy_marking_checks_present_and_ok() -> None:
     checks = _checks_by_name()
-    bridge_name = "legacy wrapper functions in the bridge are marked LEGACY ONLY"
+    bridge_name = "legacy wrapper functions are not exposed by the bridge"
     assert bridge_name in checks
     assert checks[bridge_name]["ok"]
     # File-level legacy markers (present only when the wrapper files exist).
@@ -110,6 +110,8 @@ def test_project_team_checks_present_and_ok() -> None:
     checks = _checks_by_name()
     for name in (
         "project team manager modules exist",
+        "bridge bloat functions are split into modules",
+        "domain-specific compatibility terms stay out of the bridge",
         "telegram default session carries active project state",
         "customer intents include project revision request",
         "telegram revision branch delegates out of bridge",

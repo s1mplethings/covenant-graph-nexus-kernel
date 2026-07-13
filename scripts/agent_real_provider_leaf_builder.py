@@ -14,12 +14,14 @@ if str(ROOT / "scripts") not in sys.path:
 
 try:
     import check_connectivity
+    import provider_transport
     from agent_leaf_provider_guard import build_leaf_provider_prompt, build_provider_request, call_responses_provider, classify_provider_error, provider_readiness, redact_secret, save_redacted_provider_request
     from agent_leaf_scope_enforcer import enforce_leaf_scope
     from agent_scope_contract import load_scope_contract
     from agent_tree_contracts import append_jsonl, write_json
 except ModuleNotFoundError:  # pragma: no cover
     from scripts import check_connectivity
+    from scripts import provider_transport
     from scripts.agent_leaf_provider_guard import build_leaf_provider_prompt, build_provider_request, call_responses_provider, classify_provider_error, provider_readiness, redact_secret, save_redacted_provider_request
     from scripts.agent_leaf_scope_enforcer import enforce_leaf_scope
     from scripts.agent_scope_contract import load_scope_contract
@@ -63,11 +65,15 @@ def _salvage_provider_files(raw: str) -> dict[str, str]:
         end = matches[index + 1].start() if index + 1 < len(matches) else raw.rfind("}")
         chunk = raw[start:end]
         # Provider sometimes returns raw newlines inside JSON strings. Trim only the structural tail.
+        tail_found = False
         for tail in ('"}', '"}]', '"}]}'):
             pos = chunk.rfind(tail)
             if pos >= 0:
                 chunk = chunk[:pos]
+                tail_found = True
                 break
+        if not tail_found:
+            continue
         chunk = chunk.rstrip().rstrip(",")
         content = chunk.replace('\\"', '"').replace("\\n", "\n")
         if path:
@@ -75,16 +81,22 @@ def _salvage_provider_files(raw: str) -> dict[str, str]:
     return result
 
 
-def _call_provider(prompt: str, *, model: str, timeout: int) -> tuple[str, str]:
+def _call_provider(prompt: str, *, model: str, timeout: int, out_dir: pathlib.Path | None = None, agent_id: str = "", request_type: str = "leaf_generation", api_budget: str = "standard") -> tuple[str, str]:
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).strip()
-    payload = build_provider_request(model=model, prompt=prompt, base_url=root)
+    payload = build_provider_request(model=model, prompt=prompt, base_url=root, request_type=request_type, api_budget=api_budget)
     doc, error, _attempts = call_responses_provider(
         base_url=root,
         token=token,
         payload=payload,
         timeout=timeout,
+        run_dir=out_dir,
+        project_id="dynamic_tree",
+        task_id=agent_id,
+        agent_id=agent_id,
+        request_type=request_type,
+        api_budget=api_budget,
     )
     if error:
         return "", error
@@ -93,12 +105,27 @@ def _call_provider(prompt: str, *, model: str, timeout: int) -> tuple[str, str]:
     return check_connectivity._extract_text(doc), ""
 
 
-def _repair_prompt(base_prompt: str, *, classification: str, missing: list[str], test_result: dict[str, Any] | None) -> str:
+def _repair_prompt(base_prompt: str, *, classification: str, missing: list[str], test_result: dict[str, Any] | None, allowed_files: list[str]) -> tuple[str, str]:
+    repair_type = "malformed_response"
+    target_files = list(allowed_files)
+    if classification == "real_provider_leaf_missing_files":
+        repair_type = "missing_files"
+        target_files = list(missing)
+    elif classification == "real_provider_leaf_test_failed":
+        repair_type = "test_failure"
+        target_files = [item for item in allowed_files if item.endswith(".py")]
+    elif classification == "real_provider_leaf_scope_violation_blocked":
+        repair_type = "scope_violation"
+        target_files = list(allowed_files)
+    elif classification == "architecture_mismatch":
+        repair_type = "architecture_mismatch"
+        target_files = list(allowed_files)
     details = [
-        base_prompt,
-        "",
-        "Previous real provider attempt did not pass. Return a complete replacement JSON response.",
+        "Return strict JSON only with shape {\"files\":[{\"path\":\"...\",\"content\":\"...\"}]}.\n",
+        "This is an incremental repair, not a full replacement unless repair_type is architecture_mismatch.",
+        f"repair_type: {repair_type}",
         f"failure_classification: {classification}",
+        f"target_files: {json.dumps(target_files, ensure_ascii=False)}",
         f"missing_files: {json.dumps(missing, ensure_ascii=False)}",
     ]
     if test_result:
@@ -112,8 +139,11 @@ def _repair_prompt(base_prompt: str, *, classification: str, missing: list[str],
                 str(test_result.get("stderr_tail", ""))[-1200:],
             ]
         )
-    details.append("Do not add files outside allowed_files. Include every allowed file exactly once.")
-    return "\n".join(details)
+    details.append("Do not add files outside target_files. Do not resend unchanged allowed files.")
+    compact = "\n".join(details)
+    if len(compact) > len(base_prompt):
+        compact = compact[: max(1, len(base_prompt))]
+    return compact, repair_type
 
 
 def _prepare_python_test_harness(project: pathlib.Path, allowed_files: list[str]) -> list[str]:
@@ -180,6 +210,7 @@ def run_real_provider_leaf(
     timeout: int = 90,
     max_repair_attempts: int = 1,
     run_leaf_tests: bool = True,
+    api_budget: str = "standard",
 ) -> dict[str, Any]:
     out = pathlib.Path(out_dir)
     project = pathlib.Path(project_dir)
@@ -190,7 +221,7 @@ def run_real_provider_leaf(
     ready = readiness if isinstance(readiness, dict) else provider_readiness(out_dir=out, model=model)
     prompt = build_leaf_provider_prompt(agent_id=agent_id, allowed_files=allowed_files, forbidden_files=forbidden_files, user_goal=user_goal)
     prompt += _test_leaf_read_context(project, agent_id)
-    request_doc = build_provider_request(model=model, prompt=prompt)
+    request_doc = build_provider_request(model=model, prompt=prompt, request_type="leaf_generation", api_budget=api_budget)
     save_redacted_provider_request(out_dir=out, request_doc=request_doc, prompt=prompt)
     if not ready.get("provider_ready") and provider_output_override is None:
         result = {
@@ -218,7 +249,18 @@ def run_real_provider_leaf(
             raw_text = provider_output_override
             provider_error = ""
         else:
-            raw_text, provider_error = _call_provider(current_prompt, model=model, timeout=timeout)
+            try:
+                raw_text, provider_error = _call_provider(
+                    current_prompt,
+                    model=model,
+                    timeout=timeout,
+                    out_dir=out,
+                    agent_id=agent_id,
+                    request_type="repair" if attempt > 1 else "leaf_generation",
+                    api_budget=api_budget,
+                )
+            except TypeError:
+                raw_text, provider_error = _call_provider(current_prompt, model=model, timeout=timeout)
         (out / "provider_output_raw_redacted.txt").write_text(redact_secret(raw_text or provider_error), encoding="utf-8")
         append_jsonl(out / "provider_attempts.jsonl", {"attempt": attempt, "provider_error": bool(provider_error), "raw_length": len(raw_text or provider_error or "")})
         if provider_error:
@@ -268,10 +310,20 @@ def run_real_provider_leaf(
             write_json(out / "test_execution_result.json", test_result)
             classification = "real_provider_leaf_pass" if test_result["exit_code"] == 0 else "real_provider_leaf_test_failed"
             checkpoint = "PASS" if classification == "real_provider_leaf_pass" else "FAIL"
-        append_jsonl(out / "repair_attempts.jsonl", {"attempt": attempt, "classification": classification, "checkpoint": checkpoint, "missing_files": missing, "test_exit_code": test_result.get("exit_code")})
+        append_jsonl(out / "repair_attempts.jsonl", {"attempt": attempt, "classification": classification, "checkpoint": checkpoint, "missing_files": missing, "test_exit_code": test_result.get("exit_code"), "prompt_chars": len(current_prompt), "original_prompt_chars": len(prompt)})
         if checkpoint == "PASS" or attempt >= attempts_allowed or provider_output_override is not None:
             break
-        current_prompt = _repair_prompt(prompt, classification=classification, missing=missing, test_result=test_result)
+        current_prompt, repair_type = _repair_prompt(prompt, classification=classification, missing=missing, test_result=test_result, allowed_files=allowed_files)
+        append_jsonl(
+            out / "repair_prompt_metrics.jsonl",
+            {
+                "attempt": attempt + 1,
+                "repair_type": repair_type,
+                "original_prompt_chars": len(prompt),
+                "repair_prompt_chars": len(current_prompt),
+                "target_files": missing if repair_type == "missing_files" else allowed_files,
+            },
+        )
     result = {
         "classification": classification,
         "verdict": "PASS" if classification == "real_provider_leaf_pass" else "NEEDS_REWORK",

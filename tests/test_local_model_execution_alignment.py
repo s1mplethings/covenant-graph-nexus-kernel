@@ -129,11 +129,12 @@ def test_api_generation_after_local_block_requires_user_confirmation(monkeypatch
         assert after_question["generation"]["status"] == "generation_blocked_by_local_model_config"
         assert after_question["active_run"]["id"] == blocked_run_id
         assert "明确" in client.messages[-1][1]
-        assert "接口生成" in client.messages[-1][1]
+        assert "当前可用生成方式" in client.messages[-1][1]
+        assert "接口生成" not in client.messages[-1][1]
         assert "不会" in client.messages[-1][1]
         assert_public_clean(client.messages[-1][1])
 
-        bridge.handle_text(client, "chat-local", "那先用接口生成", session_dir, log_dir, "gpt-test", 60, generation_mode="api")
+        bridge.handle_text(client, "chat-local", "继续生成", session_dir, log_dir, "gpt-test", 60, generation_mode="api")
 
         assert started["requested"] == "local"
         assert started["effective"] == "api"
@@ -142,7 +143,7 @@ def test_api_generation_after_local_block_requires_user_confirmation(monkeypatch
         assert switched["active_run"]["id"] == blocked_run_id
         assert switched["whiteboard"]["local_to_api_fallback_explicit"] is True
         assert any("明确允许" in item for item in switched["whiteboard"].get("known_facts", []))
-        assert "接口生成" in client.messages[-1][1]
+        assert "接口生成" not in client.messages[-1][1]
         assert "不另开项目" in client.messages[-1][1]
 
 

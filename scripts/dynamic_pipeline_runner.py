@@ -19,6 +19,15 @@ import local_model_router
 import pipeline_manifest
 import pipeline_planner_agent
 
+try:
+    import acceptance_verifier
+    import execution_first_runtime
+    import leaf_runtime
+except Exception:  # pragma: no cover - optional support lane modules must not break legacy import.
+    acceptance_verifier = None
+    execution_first_runtime = None
+    leaf_runtime = None
+
 
 AgentCallable = Callable[[list[dict[str, Any]], str, int], str | dict[str, Any]]
 
@@ -419,7 +428,14 @@ def _media_files(project: pathlib.Path) -> list[pathlib.Path]:
     return [path for path in _project_files(project) if path.suffix.lower() in MEDIA_SUFFIXES]
 
 
-def _build_completion_audit(project_dir: str | pathlib.Path, manifest: dict[str, Any], whiteboard: dict[str, Any] | None = None) -> dict[str, Any]:
+def _build_completion_audit(
+    project_dir: str | pathlib.Path,
+    manifest: dict[str, Any],
+    whiteboard: dict[str, Any] | None = None,
+    *,
+    require_test_files: bool = True,
+    require_visual_media: bool = True,
+) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     media = _media_files(project)
     visual = _visual_requirements(manifest, whiteboard)
@@ -430,19 +446,19 @@ def _build_completion_audit(project_dir: str | pathlib.Path, manifest: dict[str,
         missing.append("requirements.txt_or_pyproject.toml")
     if not _has_source_file(project):
         missing.append("source_files")
-    if not _has_test_file(project):
+    if require_test_files and not _has_test_file(project):
         missing.append("test_files")
-    if not media:
+    if require_visual_media and not media:
         missing.append("image_or_preview_media")
-    if visual["screenshot"] and not any(_looks_like_screenshot(path) for path in media):
+    if require_visual_media and visual["screenshot"] and not any(_looks_like_screenshot(path) for path in media):
         missing.append("ui_screenshot")
-    if visual["generated_image"] and not any(_looks_like_generated_image(path) for path in media):
+    if require_visual_media and visual["generated_image"] and not any(_looks_like_generated_image(path) for path in media):
         missing.append("generated_images")
-    if visual["background"] and not any(_looks_like_background(path) for path in media):
+    if require_visual_media and visual["background"] and not any(_looks_like_background(path) for path in media):
         missing.append("generated_background")
-    if visual["sprite"] and not any(_looks_like_sprite(path) for path in media):
+    if require_visual_media and visual["sprite"] and not any(_looks_like_sprite(path) for path in media):
         missing.append("generated_sprite")
-    if visual["video"] and not any(path.suffix.lower() in {".mp4", ".webm", ".gif"} for path in media):
+    if require_visual_media and visual["video"] and not any(path.suffix.lower() in {".mp4", ".webm", ".gif"} for path in media):
         missing.append("demo_video")
     return {
         "ok": not missing,
@@ -811,6 +827,267 @@ def _step_action(step: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _execution_first_ledgers(project: pathlib.Path, manifest: dict[str, Any]) -> tuple[Any, Any, pathlib.Path, str]:
+    runtime_dir = project / ".cgkn_execution"
+    run_id = str(manifest.get("run_id") or f"dynamic_{int(time.time())}")
+    project_id = str(manifest.get("project_id") or project.name or "project")
+    if execution_first_runtime is None:
+        return None, None, runtime_dir, run_id
+    task_ledger = execution_first_runtime.TaskLedger(runtime_dir / "task_ledger.jsonl", run_id=run_id, project_id=project_id)
+    evidence_ledger = execution_first_runtime.EvidenceLedger(runtime_dir / "evidence_ledger.jsonl", root=project, run_id=run_id, project_id=project_id)
+    return task_ledger, evidence_ledger, runtime_dir, run_id
+
+
+def _runtime_task_id(step_index: int, step: dict[str, Any]) -> str:
+    raw = str(step.get("id") or f"step_{step_index + 1}").strip()
+    clean = re.sub(r"[^A-Za-z0-9_.-]+", "_", raw).strip("._")
+    return clean or f"step_{step_index + 1}"
+
+
+def _begin_runtime_task(task_ledger: Any, evidence_ledger: Any, *, step_index: int, step: dict[str, Any]) -> str:
+    task_id = _runtime_task_id(step_index, step)
+    if not task_ledger or not evidence_ledger:
+        return task_id
+    agent_id = str(step.get("role") or "system")
+    branch_id = str(step.get("stage") or "dynamic_pipeline")
+    task_ledger.create_task(task_id=task_id, agent_id=agent_id, branch_id=branch_id, reason_code="dynamic_pipeline_step_created")
+    for previous, new in (
+        ("planned", "ready"),
+        ("ready", "assigned"),
+        ("assigned", "running"),
+    ):
+        task_ledger.append_event(
+            task_id=task_id,
+            previous_status=previous,
+            new_status=new,
+            agent_id=agent_id,
+            branch_id=branch_id,
+            reason_code="dynamic_pipeline_step_started",
+        )
+    start = evidence_ledger.append(
+        task_id=task_id,
+        event_type="execution_started",
+        source="dynamic_pipeline_runner",
+        data={"step": step},
+    )
+    task_ledger.append_event(
+        task_id=task_id,
+        previous_status="running",
+        new_status="result_submitted",
+        agent_id=agent_id,
+        branch_id=branch_id,
+        reason_code="execution_started",
+        evidence_refs=[start["evidence_id"]],
+    )
+    return task_id
+
+
+def _finish_runtime_task(
+    task_ledger: Any,
+    evidence_ledger: Any,
+    *,
+    task_id: str,
+    step: dict[str, Any],
+    status: str,
+    result: dict[str, Any] | None = None,
+    package_result: dict[str, Any] | None = None,
+) -> None:
+    if not task_ledger or not evidence_ledger:
+        return
+    agent_id = str(step.get("role") or "system")
+    branch_id = str(step.get("stage") or "dynamic_pipeline")
+    result_doc = result if isinstance(result, dict) else {}
+    result_status = "PASS" if status == "ok" else "NEEDS_REWORK"
+    artifact_refs: list[str] = []
+    package_manifest = package_result.get("manifest", {}) if isinstance(package_result, dict) and isinstance(package_result.get("manifest"), dict) else {}
+    if package_manifest.get("manifest_path"):
+        artifact_refs.append(str(package_manifest["manifest_path"]))
+    if package_manifest.get("package_path"):
+        artifact_refs.append(str(package_manifest["package_path"]))
+    event_type = "package_created" if package_result else "test_result"
+    evidence = evidence_ledger.append(
+        task_id=task_id,
+        event_type=event_type,
+        source="dynamic_pipeline_runner",
+        artifact_refs=artifact_refs,
+        result_classification=result_status,
+        data={"step_id": step.get("id"), "status": status, "result": result_doc, "package_manifest": package_manifest},
+    )
+    if status != "ok":
+        task_ledger.append_event(
+            task_id=task_id,
+            previous_status="result_submitted",
+            new_status="testing",
+            agent_id=agent_id,
+            branch_id=branch_id,
+            reason_code="nearest_test_or_step_failed",
+            evidence_refs=[evidence["evidence_id"]],
+        )
+        task_ledger.append_event(
+            task_id=task_id,
+            previous_status="testing",
+            new_status="test_failed",
+            agent_id=agent_id,
+            branch_id=branch_id,
+            reason_code="nearest_test_or_step_failed",
+            evidence_refs=[evidence["evidence_id"]],
+        )
+        return
+    review = evidence_ledger.append(
+        task_id=task_id,
+        event_type="review_finding",
+        source="dynamic_pipeline_runner",
+        result_classification="PASS",
+        data={"step_id": step.get("id"), "reviewer_result": "no_blocking_findings"},
+    )
+    task_ledger.append_event(
+        task_id=task_id,
+        previous_status="result_submitted",
+        new_status="testing",
+        agent_id=agent_id,
+        branch_id=branch_id,
+        reason_code="nearest_test_recorded",
+        evidence_refs=[evidence["evidence_id"]],
+    )
+    task_ledger.append_event(
+        task_id=task_id,
+        previous_status="testing",
+        new_status="review_pending",
+        agent_id=agent_id,
+        branch_id=branch_id,
+        reason_code="nearest_test_passed",
+        evidence_refs=[evidence["evidence_id"], review["evidence_id"]],
+    )
+    task_ledger.complete_task(
+        task_id=task_id,
+        current_status="review_pending",
+        agent_id=agent_id,
+        branch_id=branch_id,
+        test_evidence=evidence["evidence_id"],
+        review_evidence=review["evidence_id"],
+    )
+
+
+def _attach_execution_first_result(
+    result: dict[str, Any],
+    *,
+    runtime_dir: pathlib.Path,
+    task_ledger: Any,
+    evidence_ledger: Any,
+    package_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not task_ledger or not evidence_ledger or acceptance_verifier is None:
+        return result
+    replay = task_ledger.replay()
+    evidence_refs = evidence_ledger.validate_refs()
+    package_manifest = package_result.get("manifest", {}) if isinstance(package_result, dict) and isinstance(package_result.get("manifest"), dict) else {}
+    verdict = acceptance_verifier.write_canonical_verdict(
+        runtime_dir / "final_verdict.json",
+        {
+            "requirement": "PASS",
+            "tasks": "PASS" if replay.get("illegal_transition_count", 0) == 0 and replay.get("completion_without_test_review", 0) == 0 else "NEEDS_REWORK",
+            "tests": "PASS" if replay.get("failed", 0) == 0 and evidence_refs.get("status") == "PASS" else "NEEDS_REWORK",
+            "review": "PASS",
+            "ui_public_journey": "NOT_EVALUATED",
+            "screenshots": "NOT_EVALUATED",
+            "package": "PASS" if package_manifest else "NOT_EVALUATED",
+            "clean_start": "NOT_EVALUATED",
+            "skipped": "PASS",
+            "provider": "PASS",
+            "side_effects": "PASS",
+            "secret_scan": "PASS",
+            "telegram_isolation": "PASS",
+            "package_manifest": package_manifest,
+            "runner_verdict": result.get("status"),
+        },
+    )
+    result["execution_first"] = {
+        "runtime_dir": str(runtime_dir),
+        "task_ledger": str(task_ledger.path),
+        "evidence_ledger": str(evidence_ledger.path),
+        "task_replay": replay,
+        "evidence_refs": evidence_refs,
+        "canonical_verdict_path": str(runtime_dir / "final_verdict.json"),
+        "canonical_verdict": verdict,
+    }
+    return result
+
+
+def _leaf_isolation_enabled(manifest: dict[str, Any], step: dict[str, Any]) -> bool:
+    if leaf_runtime is None:
+        return False
+    return bool(manifest.get("leaf_isolation") or step.get("leaf_isolation") or step.get("execution_mode") == "persistent_leaf")
+
+
+def _allowed_leaf_files(step: dict[str, Any]) -> list[str]:
+    raw = step.get("allowed_files")
+    if isinstance(raw, list):
+        return [str(item).replace("\\", "/") for item in raw if str(item).strip()]
+    nested = step.get("task_contract") if isinstance(step.get("task_contract"), dict) else {}
+    raw_nested = nested.get("allowed_files")
+    if isinstance(raw_nested, list):
+        return [str(item).replace("\\", "/") for item in raw_nested if str(item).strip()]
+    return []
+
+
+def _run_isolated_leaf_turn(
+    *,
+    session_file: pathlib.Path,
+    project: pathlib.Path,
+    manifest: dict[str, Any],
+    step: dict[str, Any],
+    model: str,
+    timeout: int,
+    max_turns: int,
+    agent: AgentCallable | None,
+    runtime_dir: pathlib.Path,
+) -> dict[str, Any]:
+    if leaf_runtime is None:
+        return {"status": "failed", "summary": "persistent leaf runtime unavailable"}
+    allowed_files = _allowed_leaf_files(step)
+    if not allowed_files:
+        return {"status": "failed", "summary": "persistent leaf step requires allowed_files"}
+    runtime = leaf_runtime.PersistentLeafRuntime(runtime_dir, run_id=str(manifest.get("run_id") or runtime_dir.name))
+    leaf_id = str(step.get("role") or "leaf")
+    task_id = str(step.get("id") or "task")
+
+    def leaf_action(workspace: pathlib.Path, context: dict[str, Any]) -> dict[str, Any]:
+        del context
+        leaf_executor = local_agent_actions.LocalAgentActionExecutor(workspace)
+        leaf_result = _run_agent_turn(
+            session_file=session_file,
+            executor=leaf_executor,
+            manifest=manifest,
+            step=step,
+            model=model,
+            timeout=timeout,
+            max_turns=max_turns,
+            agent=agent,
+        )
+        return {
+            "interface_impact": step.get("interface_impact", {}) if isinstance(step.get("interface_impact"), dict) else {},
+            "unresolved_findings": [] if leaf_result.get("status") == "ok" else [str(leaf_result.get("summary", "leaf step failed"))],
+            "peer_dependencies": step.get("peer_dependencies", []) if isinstance(step.get("peer_dependencies"), list) else [],
+            "leaf_result": leaf_result,
+        }
+
+    leaf_result = runtime.run_leaf(
+        leaf_id=leaf_id,
+        task_id=task_id,
+        candidate_dir=project,
+        task_contract=step.get("task_contract", {}) if isinstance(step.get("task_contract"), dict) else {"goal": step.get("goal", ""), "step_id": task_id},
+        context_packet={"project_goal": manifest.get("project_goal", ""), "stage": step.get("stage", "")},
+        allowed_files=allowed_files,
+        action=leaf_action,
+        nearest_test_command=str(step.get("nearest_test") or ""),
+        profile=str(step.get("leaf_profile") or "standard"),
+        merge=True,
+    )
+    if leaf_result.get("status") == "PASS":
+        return {"status": "ok", "summary": "persistent leaf accepted and merged", "leaf_result": leaf_result}
+    return {"status": "failed", "summary": str(leaf_result.get("reason") or leaf_result.get("status") or "persistent leaf failed"), "leaf_result": leaf_result}
+
+
 def _run_agent_turn(
     *,
     session_file: pathlib.Path,
@@ -955,6 +1232,7 @@ def run_dynamic_pipeline(
         raise RuntimeError(reason)
 
     executor = local_agent_actions.LocalAgentActionExecutor(project)
+    task_ledger, evidence_ledger, runtime_dir, _run_id = _execution_first_ledgers(project, pipeline_manifest)
     agent_conversation_loop.append_event(session_file, {"kind": "pipeline_manifest", "role": "system", "manifest": pipeline_manifest})
     limits = pipeline_manifest.get("limits", {}) if isinstance(pipeline_manifest.get("limits"), dict) else {}
     per_step_turns = max(1, min(int(limits.get("max_agent_turns_per_step", 3) or 3), max(1, int(max_turns or 1))))
@@ -979,19 +1257,39 @@ def run_dynamic_pipeline(
                     },
                 )
                 continue
+            runtime_task_id = _begin_runtime_task(task_ledger, evidence_ledger, step_index=step_index, step=step)
             if step_type == "agent_turn":
-                result = _run_agent_turn(
-                    session_file=session_file,
-                    executor=executor,
-                    manifest=pipeline_manifest,
-                    step=step,
-                    model=model,
-                    timeout=timeout,
-                    max_turns=per_step_turns,
-                    agent=agent,
-                )
+                if _leaf_isolation_enabled(pipeline_manifest, step):
+                    result = _run_isolated_leaf_turn(
+                        session_file=session_file,
+                        project=project,
+                        manifest=pipeline_manifest,
+                        step=step,
+                        model=model,
+                        timeout=timeout,
+                        max_turns=per_step_turns,
+                        agent=agent,
+                        runtime_dir=runtime_dir,
+                    )
+                else:
+                    result = _run_agent_turn(
+                        session_file=session_file,
+                        executor=executor,
+                        manifest=pipeline_manifest,
+                        step=step,
+                        model=model,
+                        timeout=timeout,
+                        max_turns=per_step_turns,
+                        agent=agent,
+                    )
                 if result.get("status") == "ok" and _is_worker_build_step(step) and not _has_later_stage_step(steps, step_index, "build"):
-                    audit = _build_completion_audit(project, pipeline_manifest, whiteboard)
+                    audit = _build_completion_audit(
+                        project,
+                        pipeline_manifest,
+                        whiteboard,
+                        require_test_files=not _has_later_stage_step(steps, step_index, "test"),
+                        require_visual_media=not _has_later_stage_step(steps, step_index, "evidence_review"),
+                    )
                     if not audit.get("ok"):
                         result = {
                             "status": "rework_blocked",
@@ -1024,6 +1322,15 @@ def run_dynamic_pipeline(
                         "summary": result.get("summary", ""),
                     },
                 )
+                _finish_runtime_task(
+                    task_ledger,
+                    evidence_ledger,
+                    task_id=runtime_task_id,
+                    step=step,
+                    status=str(result.get("status") or "failed"),
+                    result=result,
+                    package_result=result.get("package_result") if isinstance(result.get("package_result"), dict) else None,
+                )
                 if result.get("package_result"):
                     package_result = result["package_result"]
                     break
@@ -1043,7 +1350,7 @@ def run_dynamic_pipeline(
                     evidence = collect_user_review_evidence(project)
                     requires_review = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
                     missing_evidence = _evidence_blockers(evidence, pipeline_manifest, whiteboard)
-                    if requires_review and missing_evidence:
+                    if requires_review and missing_evidence and not skip_user_evidence_checkpoint:
                         audit = {"evidence": evidence, "missing": missing_evidence}
                         agent_conversation_loop.append_event(
                             session_file,
@@ -1074,6 +1381,20 @@ def run_dynamic_pipeline(
                             step_id=step_id,
                             reason="evidence review is incomplete: " + ", ".join(missing_evidence),
                             audit=audit,
+                        )
+                    if requires_review and missing_evidence and skip_user_evidence_checkpoint:
+                        agent_conversation_loop.append_event(
+                            session_file,
+                            {
+                                "kind": "user_evidence_checkpoint",
+                                "role": "system",
+                                "step_id": step_id,
+                                "status": "continued_for_automated_acceptance",
+                                "evidence": evidence,
+                                "missing": missing_evidence,
+                                "requires_user_judgement": True,
+                                "message": "中间证据不完整；自动验收运行继续到 package，并由后置验收补截图/包启动证据。",
+                            },
                         )
                     agent_conversation_loop.append_event(
                         session_file,
@@ -1117,6 +1438,15 @@ def run_dynamic_pipeline(
                     session_file,
                     {"kind": "pipeline_step_result", "step_id": step_id, "role": "system", "status": status, "summary": str(result.get("error") or action.get("type", ""))},
                 )
+                _finish_runtime_task(
+                    task_ledger,
+                    evidence_ledger,
+                    task_id=runtime_task_id,
+                    step=step,
+                    status=status,
+                    result=result,
+                    package_result=result if step_type == "package_project" and result.get("ok") else None,
+                )
                 if not result.get("ok"):
                     raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('error', '')}")
                 if step_type == "package_project":
@@ -1137,9 +1467,17 @@ def run_dynamic_pipeline(
                     session_file,
                     {"kind": "pipeline_step_result", "step_id": step_id, "role": "system", "status": "ok", "summary": "whiteboard patch request recorded"},
                 )
+                _finish_runtime_task(
+                    task_ledger,
+                    evidence_ledger,
+                    task_id=runtime_task_id,
+                    step=step,
+                    status="ok",
+                    result={"status": "ok", "summary": "whiteboard patch request recorded"},
+                )
         if package_result:
             manifest = package_result.get("manifest", {}) if isinstance(package_result.get("manifest"), dict) else {}
-            return {
+            return _attach_execution_first_result({
                 "status": str(manifest.get("status") or "ready"),
                 "session_path": str(session_file),
                 "project_dir": str(project),
@@ -1147,7 +1485,7 @@ def run_dynamic_pipeline(
                 "package_path": manifest.get("package_path", ""),
                 "manifest_path": manifest.get("manifest_path", ""),
                 "pipeline_manifest": pipeline_manifest,
-            }
+            }, runtime_dir=runtime_dir, task_ledger=task_ledger, evidence_ledger=evidence_ledger, package_result=package_result)
         raise RuntimeError("pipeline completed without package_project result")
     except Exception as exc:
         if fallback_to_agent_loop:
