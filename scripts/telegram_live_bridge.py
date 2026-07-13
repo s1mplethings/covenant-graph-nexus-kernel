@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 import zlib
 from datetime import datetime, timezone
 from typing import Any
@@ -43,6 +44,7 @@ import model_policy
 import project_revision_lane
 import real_test_execution
 import run_local_pipeline as provider_project_pipeline
+import visual_evidence
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
 import product_studio_reply
@@ -1759,31 +1761,47 @@ def agent_delivery_judgment(
 def _evidence_identity(details: dict[str, Any]) -> dict[str, str]:
     return {
         "run_id": str(details.get("run_id", "")).strip(),
+        "candidate_id": str(details.get("candidate_id", "")).strip(),
         "candidate_hash": str(details.get("candidate_hash", "")).strip(),
         "commit_sha": str(details.get("commit_sha", "")).strip(),
     }
 
 
+def _valid_identity_value(value: str) -> bool:
+    normalized = str(value or "").strip()
+    return bool(normalized) and normalized.lower() not in {"null", "none"}
+
+
 def _identity_consistent(items: list[dict[str, str]]) -> tuple[bool, list[str]]:
     failures: list[str] = []
-    keys = ("run_id", "candidate_hash", "commit_sha")
+    keys = ("run_id", "candidate_id", "candidate_hash", "commit_sha")
     for key in keys:
-        values = {item.get(key, "") for item in items if item.get(key, "")}
+        values = {item.get(key, "") for item in items if _valid_identity_value(item.get(key, ""))}
         if len(values) > 1:
             failures.append(f"identity_mismatch:{key}")
     return not failures, failures
 
 
+def _required_identity_failures(source: str, result: dict[str, Any]) -> list[str]:
+    details = result.get("details", {}) if isinstance(result, dict) else {}
+    identity = _evidence_identity(details if isinstance(details, dict) else {})
+    failures: list[str] = []
+    for key, value in identity.items():
+        if not _valid_identity_value(value):
+            failures.append(f"identity_missing:{source}:{key}")
+    return failures
+
+
 def evaluate_canonical_delivery_evidence(
     project_dir: pathlib.Path,
     *,
-    required_visual: bool,
+    browser_visual_required: bool,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     test_result = real_test_execution.inspect_test_report(project)
     runtime_result = customer_runtime_runner.inspect(project)
-    visual_result = browser_visual_evidence.inspect(project) if required_visual else {
-        "status": "PASS",
+    visual_result = browser_visual_evidence.inspect(project) if browser_visual_required else {
+        "status": "NOT_EVALUATED",
         "missing": [],
         "details": {},
         "not_required": True,
@@ -1797,17 +1815,25 @@ def evaluate_canonical_delivery_evidence(
     if runtime_result.get("status") != "PASS":
         failures.append("customer_runtime")
         missing.extend(f"customer_runtime:{item}" for item in runtime_result.get("missing", []))
-    if required_visual and visual_result.get("status") != "PASS":
+    if browser_visual_required and visual_result.get("status") != "PASS":
         failures.append("visual_evidence")
         missing.extend(f"visual_evidence:{item}" for item in visual_result.get("missing", []))
 
     identity_items = []
-    for result in (test_result, runtime_result, visual_result if required_visual else {}):
+    required_results = [
+        ("test_execution", test_result),
+        ("customer_runtime", runtime_result),
+    ]
+    if browser_visual_required:
+        required_results.append(("visual_evidence", visual_result))
+    for source, result in required_results:
+        failures.extend(_required_identity_failures(source, result))
         details = result.get("details", {}) if isinstance(result, dict) else {}
-        if isinstance(details, dict) and details:
-            identity_items.append(_evidence_identity(details))
+        identity_items.append(_evidence_identity(details if isinstance(details, dict) else {}))
     identity_consistent, identity_failures = _identity_consistent(identity_items)
     failures.extend(identity_failures)
+    if any(item.startswith("identity_missing:") for item in failures):
+        identity_consistent = False
 
     status = "PASS" if not missing and not failures and identity_consistent else "NEEDS_REWORK"
     return {
@@ -1815,7 +1841,7 @@ def evaluate_canonical_delivery_evidence(
         "test_execution": test_result,
         "customer_runtime": runtime_result,
         "visual_evidence": visual_result,
-        "required_visual": required_visual,
+        "browser_visual_required": browser_visual_required,
         "identity_consistent": identity_consistent,
         "missing": sorted(set(missing)),
         "failures": sorted(set(failures)),
@@ -1843,11 +1869,12 @@ def evaluate_public_delivery_gate(
         agent = lambda messages: provider_text(messages, review_model, 60)
     quality = _quality_evidence_for_gate(project, manifest)
     requirements = infer_public_delivery_requirements(session, str(manifest.get("startup_command", "")))
-    required_visual = any(
+    browser_visual_required = bool(requirements.get("screenshot"))
+    media_evidence_required = any(
         bool(requirements.get(key))
-        for key in ("screenshot", "generated_image", "background", "sprite", "video", "demo_video")
+        for key in ("generated_image", "background", "sprite", "video", "demo_video")
     )
-    canonical_gate = evaluate_canonical_delivery_evidence(project, required_visual=required_visual)
+    canonical_gate = evaluate_canonical_delivery_evidence(project, browser_visual_required=browser_visual_required)
     if canonical_gate.get("status") != "PASS":
         return {
             "verdict": "NEEDS_REWORK",
@@ -1866,6 +1893,8 @@ def evaluate_public_delivery_gate(
             "missing": canonical_gate.get("missing", []),
             "warnings": [],
             "requirements": requirements,
+            "browser_visual_required": browser_visual_required,
+            "media_evidence_required": media_evidence_required,
             "asset_counts": {},
             "quality_evidence": quality,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
@@ -1893,6 +1922,9 @@ def evaluate_public_delivery_gate(
     if requested_missing:
         facts = dict(facts)
         facts["missing"] = sorted(set(list(facts.get("missing", [])) + requested_missing))
+        facts["hard_blockers"] = sorted(
+            set(list(facts.get("hard_blockers", [])) + [f"requested_artifact_missing:{item}" for item in requested_missing])
+        )
         facts["warnings"] = sorted(
             set(list(facts.get("warnings", [])) + [f"Requested real delivery evidence is missing: {item}" for item in requested_missing])
         )
@@ -1922,6 +1954,8 @@ def evaluate_public_delivery_gate(
             "missing": facts.get("missing", []),
             "warnings": facts.get("warnings", []),
             "requirements": requirements,
+            "browser_visual_required": browser_visual_required,
+            "media_evidence_required": media_evidence_required,
             "asset_counts": {key: len(value) for key, value in assets.items()},
             "quality_evidence": quality,
             "canonical_evidence_gate": canonical_gate,
@@ -5939,6 +5973,10 @@ def run_provider_project_tests(
     *,
     timeout: int = 180,
     python_executable: str | pathlib.Path | None = None,
+    run_id: str | None = None,
+    candidate_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
     repair_summary: dict[str, Any] | None = None,
     dependency_setup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -5952,6 +5990,10 @@ def run_provider_project_tests(
             project,
             timeout=timeout,
             python_executable=python_executable,
+            run_id=run_id,
+            candidate_id=candidate_id,
+            candidate_hash=candidate_hash,
+            commit_sha=commit_sha,
             test_profile="provider_post_build",
         )
         evidence.update(
@@ -5971,6 +6013,10 @@ def run_provider_project_tests(
         project,
         timeout=timeout,
         python_executable=python_executable,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        candidate_hash=candidate_hash,
+        commit_sha=commit_sha,
         test_profile="provider_post_build",
     )
     stdout_path = pathlib.Path(str(evidence.get("stdout_artifact", "")))
@@ -6264,7 +6310,8 @@ def post_build_finalize_provider_project(
     launcher_result = ensure_provider_root_launcher(project_dir)
     if launcher_result.get("changed"):
         append_agent_session_event(session_dir, chat_id, {"kind": "post_build_entrypoint_repair", "role": "tool", "result": launcher_result})
-    test_result = run_provider_project_tests(project_dir)
+    post_build_run_id = f"post-build-{uuid.uuid4().hex}"
+    test_result = run_provider_project_tests(project_dir, run_id=post_build_run_id)
     if not test_result.get("ok"):
         repair_result = deterministic_post_build_repair(project_dir, test_result)
         dependency_setup = ensure_provider_test_environment(project_dir)
@@ -6278,6 +6325,7 @@ def post_build_finalize_provider_project(
                 project_dir,
                 timeout=240,
                 python_executable=str(dependency_setup.get("python")),
+                run_id=post_build_run_id,
                 repair_summary=repair_result,
                 dependency_setup=dependency_setup,
             )
@@ -6285,13 +6333,20 @@ def post_build_finalize_provider_project(
             repaired_test = run_provider_project_tests(
                 project_dir,
                 timeout=240,
+                run_id=post_build_run_id,
                 repair_summary=repair_result,
                 dependency_setup=dependency_setup,
             )
         repaired_test["first_attempt"] = test_result
         test_result = repaired_test
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
-    runtime_result = customer_runtime_runner.run(project_dir)
+    runtime_result = customer_runtime_runner.run(
+        project_dir,
+        run_id=str(test_result.get("run_id", "")) or None,
+        candidate_id=str(test_result.get("candidate_id", "")) or None,
+        candidate_hash=str(test_result.get("candidate_hash", "")) or None,
+        commit_sha=str(test_result.get("commit_sha", "")) or None,
+    )
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
     visual_evidence_result = (
         browser_visual_evidence.run(project_dir, runtime_ref=runtime_result.get("result_file"))
@@ -6310,11 +6365,35 @@ def post_build_finalize_provider_project(
         image_missing.append("generated_sprite")
     if req.get("generated_image") and not (image_result.get("background") or image_result.get("sprite")):
         image_missing.append("generated_image")
+    copied_runtime = runtime_artifacts.get("copied", {}) if isinstance(runtime_artifacts.get("copied"), dict) else {}
+    video_requested = bool(req.get("video") or req.get("demo_video"))
+    video_source = _provider_runtime_path(copied_runtime.get("video"))
+    video_result: dict[str, Any] = {"requested": video_requested, "blocked": False, "video": "", "video_blocked": ""}
+    if video_requested and video_source:
+        video_target = project_dir / "artifacts" / "workflow_demo.mp4"
+        copied_video = _copy_provider_runtime_asset(video_source, video_target)
+        video_result.update({"video": copied_video, "blocked": not bool(copied_video)})
+        if not copied_video:
+            image_missing.append("video")
+    elif video_requested:
+        blocked_path = visual_evidence.write_video_blocked(
+            project_dir,
+            "demo video was requested but no real video artifact was produced during provider post-build finalize",
+            failure_reason="capture_failed",
+            environment={"ffmpeg": "", "playwright": "not_checked"},
+            video_requested_value=True,
+            next_repair_hint="Produce a real workflow video artifact or remove the video delivery requirement.",
+        )
+        video_result.update({"blocked": True, "video_blocked": blocked_path, "failure_reason": "capture_failed"})
+        image_missing.append("video")
     missing_config = required_image_backend_missing_config(session)
     image_missing.extend(f"missing_config:{item}" for item in missing_config)
     image_result["missing"] = sorted(set(image_missing))
     image_result["missing_config"] = missing_config
     image_result["ok"] = not image_result["missing"]
+    image_result["video"] = video_result.get("video", "")
+    image_result["video_blocked"] = video_result.get("video_blocked", "")
+    image_result["video_result"] = video_result
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
     write_provider_delivery_notes(
         project_dir,
@@ -6325,17 +6404,21 @@ def post_build_finalize_provider_project(
             "post_build_test_result": test_result,
             "post_build_customer_runtime": runtime_result,
             "post_build_browser_visual_evidence": visual_evidence_result,
+            "post_build_video_evidence": video_result,
         },
     )
     screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
-    visual_required = bool(req.get("screenshot") or req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
+    browser_visual_required = bool(req.get("screenshot"))
+    media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
     delivery_limits: list[str] = []
     if not test_result.get("ok"):
         delivery_limits.append("Automated tests are incomplete or failing; this must be disclosed to the user.")
     if runtime_result.get("status") != "PASS":
         delivery_limits.append("Customer runtime did not pass canonical startup and operation evidence.")
-    if image_result.get("missing") and visual_required:
+    if image_result.get("missing") and (browser_visual_required or media_evidence_required):
         delivery_limits.append("Missing verified image-generation or preview evidence: " + ", ".join(image_result.get("missing", [])))
+    if video_result.get("video_blocked"):
+        delivery_limits.append("video_blocked: demo video was not produced during provider post-build finalize")
     manifest = local_packager.package_project(
         project_dir,
         startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
@@ -6379,7 +6462,9 @@ def post_build_finalize_provider_project(
         "runtime_result": runtime_result,
         "visual_evidence_result": visual_evidence_result,
         "image_result": image_result,
-        "visual_required": visual_required,
+        "video_result": video_result,
+        "browser_visual_required": browser_visual_required,
+        "media_evidence_required": media_evidence_required,
         "manifest": manifest,
         "gate": gate,
         "ok": bool(gate.get("delivery_allowed")),

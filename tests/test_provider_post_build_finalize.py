@@ -464,6 +464,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             project.mkdir()
             (project / "README.md").write_text("# VN Assistant\n\nRun `python app.py`.\n", encoding="utf-8")
             (project / "app.py").write_text("print('vn assistant')\n", encoding="utf-8")
+            (project / "index.html").write_text("<main><h1>VN Assistant</h1><button>Export</button></main>\n", encoding="utf-8")
             (project / "requirements.txt").write_text("pytest\nPillow\n", encoding="utf-8")
             (project / "tests").mkdir()
             (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
@@ -546,6 +547,15 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertTrue(result["test_result"]["ok"])
             self.assertTrue(result["image_result"]["ok"])
             self.assertTrue(result["gate"]["delivery_allowed"], result["gate"])
+            self.assertEqual("PASS", result["gate"]["canonical_evidence_gate"]["status"])
+            self.assertTrue(result["gate"]["canonical_evidence_gate"]["identity_consistent"])
+            for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
+                self.assertTrue(result["test_result"].get(field), field)
+                self.assertEqual(result["test_result"].get(field), result["runtime_result"].get(field), field)
+                self.assertEqual(result["test_result"].get(field), result["visual_evidence_result"].get(field), field)
+            first_attempt = result["test_result"].get("first_attempt", {})
+            if first_attempt:
+                self.assertNotEqual(first_attempt.get("candidate_hash"), result["runtime_result"].get("candidate_hash"))
             self.assertTrue((project / "TEST_REPORT.md").exists())
             self.assertIn("exit_code: 0", (project / "TEST_REPORT.md").read_text(encoding="utf-8"))
             self.assertTrue((project / "screenshots" / "provider_ui_screenshot.png").exists())
