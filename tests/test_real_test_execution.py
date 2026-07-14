@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import json
@@ -39,6 +40,76 @@ def test_real_pytest_execution_passes(tmp_path: pathlib.Path) -> None:
     assert f"candidate_hash: {result['candidate_hash']}" in report
     assert "commit_sha: commit-a" in report
     assert real_test_execution.inspect_test_report(tmp_path, run_id="run-a", candidate_hash=result["candidate_hash"], commit_sha="commit-a")["verdict"] == "PASS"
+
+
+def test_test_output_dir_is_cleaned_after_success(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "pytest.ini").write_text("[pytest]\naddopts = -s\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_output_dir.py").write_text(
+        "import os\n"
+        "from pathlib import Path\n\n"
+        "def test_uses_test_output_dir():\n"
+        "    root = Path(os.environ['CGKN_TEST_OUTPUT_DIR'])\n"
+        "    marker = root / 'marker.txt'\n"
+        "    marker.write_text('ok', encoding='utf-8')\n"
+        "    print(f'CGKN_TEST_OUTPUT_DIR={root}', flush=True)\n"
+        "    print(f'CGKN_TEST_OUTPUT_MARKER={marker.exists()}', flush=True)\n",
+        encoding="utf-8",
+    )
+    result = real_test_execution.run_tests(tmp_path)
+    stdout = (tmp_path / "test_stdout.txt").read_text(encoding="utf-8")
+    output_line = next(line for line in stdout.splitlines() if "CGKN_TEST_OUTPUT_DIR=" in line)
+    output_dir = pathlib.Path(output_line.split("CGKN_TEST_OUTPUT_DIR=", 1)[1])
+
+    assert result["status"] == "PASS"
+    assert "CGKN_TEST_OUTPUT_MARKER=True" in stdout
+    assert not output_dir.exists()
+    assert not (tmp_path / "marker.txt").exists()
+    assert "CGKN_TEST_OUTPUT_DIR" not in os.environ
+    assert result["candidate_mutated_during_test"] is False
+
+
+def test_test_output_dir_is_cleaned_after_timeout(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created: list[pathlib.Path] = []
+    real_temporary_directory = real_test_execution.tempfile.TemporaryDirectory
+
+    class RecordingTemporaryDirectory:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            self._inner = real_temporary_directory(*args, **kwargs)
+
+        def __enter__(self) -> str:
+            path = pathlib.Path(self._inner.__enter__())
+            created.append(path)
+            return str(path)
+
+        def __exit__(self, *exc_info: object) -> object:
+            return self._inner.__exit__(*exc_info)
+
+    monkeypatch.setattr(real_test_execution.tempfile, "TemporaryDirectory", RecordingTemporaryDirectory)
+    (tmp_path / "pytest.ini").write_text("[pytest]\naddopts = -s\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_timeout.py").write_text(
+        "import os\n"
+        "import time\n"
+        "from pathlib import Path\n\n"
+        "def test_timeout_cleanup():\n"
+        "    root = Path(os.environ['CGKN_TEST_OUTPUT_DIR'])\n"
+        "    (root / 'timeout-marker.txt').write_text('alive', encoding='utf-8')\n"
+        "    print(f'CGKN_TEST_OUTPUT_DIR={root}', flush=True)\n"
+        "    time.sleep(10)\n",
+        encoding="utf-8",
+    )
+    result = real_test_execution.run_tests(tmp_path, timeout=1)
+
+    assert result["status"] == "FAIL"
+    assert result["timeout"] is True
+    assert created
+    assert all(not path.exists() for path in created)
+    assert "CGKN_TEST_OUTPUT_DIR" not in os.environ
 
 
 def test_candidate_source_hash_excludes_evidence_outputs_not_product_assets(tmp_path: pathlib.Path) -> None:

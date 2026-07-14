@@ -130,17 +130,18 @@ def run_tests(
             python_paths.append(env["PYTHONPATH"])
         env["PYTHONPATH"] = os.pathsep.join(python_paths)
         env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-        env["CGKN_TEST_OUTPUT_DIR"] = tempfile.mkdtemp(prefix="cgkn_test_outputs_")
-        try:
-            proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
-            stdout = proc.stdout or ""
-            stderr = proc.stderr or ""
-            exit_code = int(proc.returncode)
-        except subprocess.TimeoutExpired as exc:
-            stdout = str(exc.stdout or "")
-            stderr = str(exc.stderr or "test command timed out")
-            exit_code = 124
-            timed_out = True
+        with tempfile.TemporaryDirectory(prefix="cgkn_test_outputs_") as test_output_dir:
+            env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
+            try:
+                proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
+                stdout = proc.stdout or ""
+                stderr = proc.stderr or ""
+                exit_code = int(proc.returncode)
+            except subprocess.TimeoutExpired as exc:
+                stdout = str(exc.stdout or "")
+                stderr = str(exc.stderr or "test command timed out")
+                exit_code = 124
+                timed_out = True
         counts = _pytest_counts(stdout, stderr, int(exit_code))
         status = "PASS" if exit_code == 0 and counts["failed"] == 0 and counts["collected"] > 0 else "FAIL"
 
