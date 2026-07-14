@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import pathlib
 import socket
@@ -15,6 +14,7 @@ from typing import Any
 
 from contracts.customer_runtime import KIND, PRODUCER, SCHEMA_VERSION
 from contracts.status import EvidenceStatus
+from scripts import canonical_evidence_hash
 
 
 def _now() -> str:
@@ -22,7 +22,7 @@ def _now() -> str:
 
 
 def _sha256_text(text: str) -> str:
-    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return canonical_evidence_hash.sha256_bytes(text.encode("utf-8"))
 
 
 def _free_port() -> int:
@@ -32,16 +32,7 @@ def _free_port() -> int:
 
 
 def _tree_hash(project: pathlib.Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(item for item in project.rglob("*") if item.is_file()):
-        rel = path.relative_to(project).as_posix()
-        if rel == "customer_runtime.json" or ".pytest_cache/" in rel:
-            continue
-        digest.update(rel.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return "sha256:" + digest.hexdigest()
+    return canonical_evidence_hash.candidate_source_hash(project)
 
 
 def _commit_sha(project: pathlib.Path) -> str:
@@ -88,7 +79,9 @@ def run(
     started = _now()
     run_id = run_id or f"runtime-run-{uuid.uuid4().hex}"
     candidate_id = candidate_id or project.name or "candidate"
-    candidate_hash = candidate_hash or _tree_hash(project)
+    current_candidate_hash = _tree_hash(project)
+    expected_candidate_hash = candidate_hash
+    candidate_hash = candidate_hash or current_candidate_hash
     commit_sha = commit_sha or _commit_sha(project)
     clean_root = pathlib.Path(tempfile.mkdtemp(prefix="cgkn_customer_runtime_"))
     port = _free_port()
@@ -110,6 +103,9 @@ def run(
                 status = EvidenceStatus.PASS.value if observed.strip() else EvidenceStatus.FAIL.value
             else:
                 observed = health_body
+        if expected_candidate_hash is not None and current_candidate_hash != expected_candidate_hash:
+            status = EvidenceStatus.FAIL.value
+            observed = (observed + "\n" if observed else "") + "candidate source hash changed before runtime"
     finally:
         if proc is not None:
             proc.terminate()
@@ -127,6 +123,8 @@ def run(
         "run_id": run_id,
         "candidate_id": candidate_id,
         "candidate_hash": candidate_hash,
+        "candidate_hash_observed": current_candidate_hash,
+        "candidate_hash_verified": current_candidate_hash == candidate_hash,
         "commit_sha": commit_sha,
         "producer": PRODUCER,
         "created_at": finished,
@@ -148,7 +146,7 @@ def run(
         "started_at": started,
         "finished_at": finished,
     }
-    evidence["artifact_hash"] = _sha256_text(json.dumps({**evidence, "artifact_hash": ""}, sort_keys=True, ensure_ascii=False))
+    evidence["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(evidence, ("artifact_hash",))
     path = project / "customer_runtime.json"
     path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     evidence["result_file"] = str(path)
@@ -170,6 +168,9 @@ def inspect(path: str | pathlib.Path, *, candidate_hash: str | None = None, comm
         missing.append("kind")
     if doc.get("schema_version") != SCHEMA_VERSION:
         missing.append("schema_version")
+    expected_hash = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash",))
+    if not doc.get("artifact_hash") or doc.get("artifact_hash") != expected_hash:
+        missing.append("artifact_hash_mismatch")
     if doc.get("status") != EvidenceStatus.PASS.value:
         missing.append("status")
     if int(doc.get("pid", 0) or 0) <= 0:
@@ -178,6 +179,14 @@ def inspect(path: str | pathlib.Path, *, candidate_hash: str | None = None, comm
         missing.append("health_probe")
     if not doc.get("observed_result_hash") or _sha256_text(str(doc.get("observed_result", ""))) != doc.get("observed_result_hash"):
         missing.append("observed_result_hash")
+    project = evidence_path.parent
+    current_candidate_hash = _tree_hash(project)
+    if doc.get("candidate_hash") != current_candidate_hash:
+        missing.append("candidate_hash_current")
+    if doc.get("candidate_hash_observed") and doc.get("candidate_hash_observed") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_observed")
+    if doc.get("candidate_hash_verified") is not True:
+        missing.append("candidate_hash_verified")
     if not doc.get("shutdown_result", {}).get("stopped"):
         missing.append("shutdown_result")
     if candidate_hash is not None and doc.get("candidate_hash") != candidate_hash:

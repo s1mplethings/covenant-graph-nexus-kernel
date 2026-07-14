@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import pathlib
 import subprocess
@@ -12,7 +11,7 @@ from typing import Any
 
 from contracts.status import EvidenceStatus
 from contracts.visual_evidence import KIND, PRODUCER, SCHEMA_VERSION
-from scripts import customer_runtime_runner
+from scripts import canonical_evidence_hash, customer_runtime_runner
 
 
 def _now() -> str:
@@ -20,7 +19,7 @@ def _now() -> str:
 
 
 def _sha256_bytes(data: bytes) -> str:
-    return "sha256:" + hashlib.sha256(data).hexdigest()
+    return canonical_evidence_hash.sha256_bytes(data)
 
 
 def _sha256_file(path: pathlib.Path) -> str:
@@ -50,6 +49,7 @@ def run(project_dir: str | pathlib.Path, *, runtime_ref: str | pathlib.Path | No
     runtime_inspection = customer_runtime_runner.inspect(runtime_path)
     runtime_doc = runtime_inspection.get("details", {}) if isinstance(runtime_inspection.get("details"), dict) else {}
     candidate_hash = str(runtime_doc.get("candidate_hash") or customer_runtime_runner._tree_hash(project))
+    current_candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = str(runtime_doc.get("commit_sha") or customer_runtime_runner._commit_sha(project))
     run_id = str(runtime_doc.get("run_id") or f"visual-run-{uuid.uuid4().hex}")
     port = customer_runtime_runner._free_port()
@@ -81,6 +81,12 @@ def run(project_dir: str | pathlib.Path, *, runtime_ref: str | pathlib.Path | No
                 page.screenshot(path=str(screenshot), full_page=True)
                 browser.close()
                 status = EvidenceStatus.PASS.value if body_text.strip() and screenshot.exists() else EvidenceStatus.FAIL.value
+        if runtime_inspection.get("status") != "PASS":
+            status = EvidenceStatus.FAIL.value
+            error = (error + "; " if error else "") + "customer_runtime_ref_not_pass"
+        if current_candidate_hash != candidate_hash:
+            status = EvidenceStatus.FAIL.value
+            error = (error + "; " if error else "") + "candidate_source_hash_mismatch"
     except Exception as exc:
         error = str(exc)
     finally:
@@ -97,6 +103,8 @@ def run(project_dir: str | pathlib.Path, *, runtime_ref: str | pathlib.Path | No
         "run_id": run_id,
         "candidate_id": str(runtime_doc.get("candidate_id") or project.name),
         "candidate_hash": candidate_hash,
+        "candidate_hash_observed": current_candidate_hash,
+        "candidate_hash_verified": current_candidate_hash == candidate_hash,
         "commit_sha": commit_sha,
         "producer": PRODUCER,
         "created_at": finished,
@@ -117,7 +125,7 @@ def run(project_dir: str | pathlib.Path, *, runtime_ref: str | pathlib.Path | No
         "formal_evidence": True,
         "error": error,
     }
-    evidence["artifact_hash"] = _sha256_text(json.dumps({**evidence, "artifact_hash": ""}, sort_keys=True, ensure_ascii=False))
+    evidence["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(evidence, ("artifact_hash",))
     path = project / "visual_evidence.json"
     path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     evidence["result_file"] = str(path)
@@ -138,6 +146,9 @@ def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
         missing.append("kind")
     if doc.get("schema_version") != SCHEMA_VERSION:
         missing.append("schema_version")
+    expected_hash = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash",))
+    if not doc.get("artifact_hash") or doc.get("artifact_hash") != expected_hash:
+        missing.append("artifact_hash_mismatch")
     if doc.get("formal_evidence") is not True:
         missing.append("formal_evidence")
     if not doc.get("dom_assertions"):
@@ -145,6 +156,22 @@ def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
     screenshot = pathlib.Path(str(doc.get("screenshot_path", "")))
     if not screenshot.exists() or _sha256_file(screenshot) != doc.get("screenshot_hash"):
         missing.append("screenshot_hash")
+    runtime_ref = pathlib.Path(str(doc.get("customer_runtime_ref", "")))
+    if not runtime_ref.exists():
+        missing.append("customer_runtime_ref")
+    else:
+        if _sha256_file(runtime_ref) != doc.get("customer_runtime_hash"):
+            missing.append("customer_runtime_hash")
+        runtime_inspection = customer_runtime_runner.inspect(runtime_ref)
+        if runtime_inspection.get("status") != "PASS":
+            missing.append("customer_runtime_ref_inspect")
+    current_candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+    if doc.get("candidate_hash") != current_candidate_hash:
+        missing.append("candidate_hash_current")
+    if doc.get("candidate_hash_observed") and doc.get("candidate_hash_observed") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_observed")
+    if doc.get("candidate_hash_verified") is not True:
+        missing.append("candidate_hash_verified")
     if doc.get("status") != EvidenceStatus.PASS.value:
         missing.append("status")
     return {"status": "PASS" if not missing else "FAIL", "missing": missing, "details": doc}

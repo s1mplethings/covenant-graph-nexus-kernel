@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
 import scripts.browser_visual_evidence as browser_visual_evidence
+import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
 import scripts.telegram_live_bridge as bridge
@@ -74,8 +75,12 @@ def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
     (project / "tests").mkdir()
     (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
+    background = project / "generated" / "background_scene.png"
+    sprite = project / "generated" / "character_sprite.png"
+    background.write_bytes(b"png")
+    sprite.write_bytes(b"png")
     run_id = "run-public-gate"
-    candidate_hash = "sha256:public-gate-candidate"
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-public-gate"
     real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
     runtime = customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
@@ -83,10 +88,6 @@ def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
     if visual["status"] != "PASS":
         raise AssertionError(visual)
     screenshot = pathlib.Path(visual["screenshot_path"])
-    background = project / "generated" / "background_scene.png"
-    sprite = project / "generated" / "character_sprite.png"
-    background.write_bytes(b"png")
-    sprite.write_bytes(b"png")
     manifest = local_packager.package_project(project, startup_command="python -m http.server 8000", screenshot_path=screenshot)
     return project, manifest
 
@@ -102,17 +103,19 @@ def make_media_project_without_browser_evidence(root: pathlib.Path, *, media: st
     (project / "requirements.txt").write_text("pytest\n", encoding="utf-8")
     (project / "tests").mkdir()
     (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
-    run_id = "run-media-gate"
-    candidate_hash = "sha256:media-gate-candidate"
-    commit_sha = "commit-media-gate"
-    real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
     if media == "background":
         (project / "generated" / "background_scene.png").write_bytes(b"real-background")
     elif media == "sprite":
         (project / "generated" / "character_sprite.png").write_bytes(b"real-sprite")
     elif media == "video":
         (project / "artifacts" / "workflow_demo.mp4").write_bytes(b"real-video")
+    elif media == "placeholder_background":
+        (project / "generated" / "fallback_mock_background.png").write_bytes(b"placeholder")
+    run_id = "run-media-gate"
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+    commit_sha = "commit-media-gate"
+    real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
+    customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
     manifest = local_packager.package_project(project, startup_command="python -m http.server 8000")
     return project, manifest
 
@@ -408,10 +411,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-            for path in (project / "generated").glob("*background*"):
-                path.unlink()
-            missing_manifest = local_packager.package_project(project, startup_command="python -m http.server 8000")
-            missing_gate = bridge.evaluate_public_delivery_gate(project, missing_manifest, session, phase="final")
+            missing_project, missing_manifest = make_media_project_without_browser_evidence(root / "missing-bg", media="none")
+            missing_gate = bridge.evaluate_public_delivery_gate(missing_project, missing_manifest, session, phase="final")
 
         self.assertFalse(gate["browser_visual_required"])
         self.assertEqual("PASS", gate["canonical_evidence_gate"]["status"])
@@ -427,10 +428,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-            for path in (project / "generated").glob("*sprite*"):
-                path.unlink()
-            missing_manifest = local_packager.package_project(project, startup_command="python -m http.server 8000")
-            missing_gate = bridge.evaluate_public_delivery_gate(project, missing_manifest, session, phase="final")
+            missing_project, missing_manifest = make_media_project_without_browser_evidence(root / "missing-sprite", media="none")
+            missing_gate = bridge.evaluate_public_delivery_gate(missing_project, missing_manifest, session, phase="final")
 
         self.assertFalse(gate["browser_visual_required"])
         self.assertEqual("PASS", gate["canonical_evidence_gate"]["status"])
@@ -446,10 +445,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-            for path in (project / "artifacts").glob("*.mp4"):
-                path.unlink()
-            missing_manifest = local_packager.package_project(project, startup_command="python -m http.server 8000")
-            missing_gate = bridge.evaluate_public_delivery_gate(project, missing_manifest, session, phase="final")
+            missing_project, missing_manifest = make_media_project_without_browser_evidence(root / "missing-video", media="none")
+            missing_gate = bridge.evaluate_public_delivery_gate(missing_project, missing_manifest, session, phase="final")
 
         self.assertFalse(gate["browser_visual_required"])
         self.assertEqual("PASS", gate["canonical_evidence_gate"]["status"])
@@ -524,16 +521,34 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertFalse(gate["is_final"])
         self.assertEqual("ASK_USER_REVIEW", gate["verdict"])
 
-    def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
+    def test_source_tamper_after_canonical_evidence_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True}
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project, manifest = make_deliverable_project(root)
-            for path in (project / "generated").glob("*"):
-                path.unlink()
-            placeholder = project / "generated" / "fallback_mock_background.png"
-            placeholder.write_bytes(b"placeholder")
-            manifest["artifacts"]["preview_evidence"] = [str(placeholder)]
-            session = vn_session("chat-placeholder-bg")
+            (project / "index.html").write_text("<main><h1>Tampered after evidence</h1></main>\n", encoding="utf-8")
+            session = vn_session("chat-source-tamper")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertFalse(called["agent"])
+        failures = gate["canonical_evidence_gate"]["failures"]
+        self.assertTrue({"test_execution", "customer_runtime", "visual_evidence"} & set(failures))
+        missing = gate["canonical_evidence_gate"]["missing"]
+        self.assertTrue(any("candidate_hash_current" in item for item in missing), missing)
+
+    def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="placeholder_background")
+            session = requirement_session("chat-placeholder-bg", "只需要生成背景图片 background image")
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 

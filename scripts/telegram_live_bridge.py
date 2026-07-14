@@ -5815,10 +5815,10 @@ def repair_common_provider_project_interfaces(project_dir: pathlib.Path, error_t
                         "        return str(target)",
                         "    def generate_background(self, project_id, prompt):",
                         "        import pathlib",
-                        "        return _cgnk_write_project_api_png(pathlib.Path('assets/generated') / f'background_{project_id}.png', 'background')",
+                        "        return _cgnk_write_project_api_png(pathlib.Path('media/generated_images') / f'background_{project_id}.png', 'background')",
                         "    def generate_sprite(self, project_id, prompt):",
                         "        import pathlib",
-                        "        return _cgnk_write_project_api_png(pathlib.Path('assets/generated') / f'sprite_{project_id}.png', 'sprite')",
+                        "        return _cgnk_write_project_api_png(pathlib.Path('media/generated_images') / f'sprite_{project_id}.png', 'sprite')",
                     ]
                 )
                 + "\n",
@@ -6310,6 +6310,47 @@ def post_build_finalize_provider_project(
     launcher_result = ensure_provider_root_launcher(project_dir)
     if launcher_result.get("changed"):
         append_agent_session_event(session_dir, chat_id, {"kind": "post_build_entrypoint_repair", "role": "tool", "result": launcher_result})
+    image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
+    req = infer_public_delivery_requirements(session, "")
+    image_missing: list[str] = []
+    if req.get("screenshot") and not image_result.get("ui_screenshot"):
+        image_missing.append("ui_screenshot")
+    if req.get("background") and not image_result.get("background"):
+        image_missing.append("generated_background")
+    if req.get("sprite") and not image_result.get("sprite"):
+        image_missing.append("generated_sprite")
+    if req.get("generated_image") and not (image_result.get("background") or image_result.get("sprite")):
+        image_missing.append("generated_image")
+    copied_runtime = runtime_artifacts.get("copied", {}) if isinstance(runtime_artifacts.get("copied"), dict) else {}
+    video_requested = bool(req.get("video") or req.get("demo_video"))
+    video_source = _provider_runtime_path(copied_runtime.get("video"))
+    video_result: dict[str, Any] = {"requested": video_requested, "blocked": False, "video": "", "video_blocked": ""}
+    if video_requested and video_source:
+        video_target = project_dir / "artifacts" / "workflow_demo.mp4"
+        copied_video = _copy_provider_runtime_asset(video_source, video_target)
+        video_result.update({"video": copied_video, "blocked": not bool(copied_video)})
+        if not copied_video:
+            image_missing.append("video")
+    elif video_requested:
+        blocked_path = visual_evidence.write_video_blocked(
+            project_dir,
+            "demo video was requested but no real video artifact was produced during provider post-build finalize",
+            failure_reason="capture_failed",
+            environment={"ffmpeg": "", "playwright": "not_checked"},
+            video_requested_value=True,
+            next_repair_hint="Produce a real workflow video artifact or remove the video delivery requirement.",
+        )
+        video_result.update({"blocked": True, "video_blocked": blocked_path, "failure_reason": "capture_failed"})
+        image_missing.append("video")
+    missing_config = required_image_backend_missing_config(session)
+    image_missing.extend(f"missing_config:{item}" for item in missing_config)
+    image_result["missing"] = sorted(set(image_missing))
+    image_result["missing_config"] = missing_config
+    image_result["ok"] = not image_result["missing"]
+    image_result["video"] = video_result.get("video", "")
+    image_result["video_blocked"] = video_result.get("video_blocked", "")
+    image_result["video_result"] = video_result
+    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
     post_build_run_id = f"post-build-{uuid.uuid4().hex}"
     test_result = run_provider_project_tests(project_dir, run_id=post_build_run_id)
     if not test_result.get("ok"):
@@ -6354,47 +6395,6 @@ def post_build_finalize_provider_project(
         else {"status": "NOT_EVALUATED", "reason": "customer_runtime_not_pass"}
     )
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
-    image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
-    req = infer_public_delivery_requirements(session, "")
-    image_missing: list[str] = []
-    if req.get("screenshot") and not image_result.get("ui_screenshot"):
-        image_missing.append("ui_screenshot")
-    if req.get("background") and not image_result.get("background"):
-        image_missing.append("generated_background")
-    if req.get("sprite") and not image_result.get("sprite"):
-        image_missing.append("generated_sprite")
-    if req.get("generated_image") and not (image_result.get("background") or image_result.get("sprite")):
-        image_missing.append("generated_image")
-    copied_runtime = runtime_artifacts.get("copied", {}) if isinstance(runtime_artifacts.get("copied"), dict) else {}
-    video_requested = bool(req.get("video") or req.get("demo_video"))
-    video_source = _provider_runtime_path(copied_runtime.get("video"))
-    video_result: dict[str, Any] = {"requested": video_requested, "blocked": False, "video": "", "video_blocked": ""}
-    if video_requested and video_source:
-        video_target = project_dir / "artifacts" / "workflow_demo.mp4"
-        copied_video = _copy_provider_runtime_asset(video_source, video_target)
-        video_result.update({"video": copied_video, "blocked": not bool(copied_video)})
-        if not copied_video:
-            image_missing.append("video")
-    elif video_requested:
-        blocked_path = visual_evidence.write_video_blocked(
-            project_dir,
-            "demo video was requested but no real video artifact was produced during provider post-build finalize",
-            failure_reason="capture_failed",
-            environment={"ffmpeg": "", "playwright": "not_checked"},
-            video_requested_value=True,
-            next_repair_hint="Produce a real workflow video artifact or remove the video delivery requirement.",
-        )
-        video_result.update({"blocked": True, "video_blocked": blocked_path, "failure_reason": "capture_failed"})
-        image_missing.append("video")
-    missing_config = required_image_backend_missing_config(session)
-    image_missing.extend(f"missing_config:{item}" for item in missing_config)
-    image_result["missing"] = sorted(set(image_missing))
-    image_result["missing_config"] = missing_config
-    image_result["ok"] = not image_result["missing"]
-    image_result["video"] = video_result.get("video", "")
-    image_result["video_blocked"] = video_result.get("video_blocked", "")
-    image_result["video_result"] = video_result
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
     write_provider_delivery_notes(
         project_dir,
         provider_result,

@@ -599,6 +599,47 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertFalse(list(project.rglob("*.webm")))
             self.assertTrue(any("video_blocked" in item for item in result["manifest"]["known_limits"]))
 
+    def test_post_build_finalize_repair_uses_final_candidate_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            (project / "src").mkdir(parents=True)
+            (project / "src" / "__init__.py").write_text("", encoding="utf-8")
+            (project / "src" / "main.py").write_text("from fastapi import FastAPI\n\napp = FastAPI()\n", encoding="utf-8")
+            (project / "index.html").write_text("<main><h1>Repair App</h1></main>\n", encoding="utf-8")
+            (project / "README.md").write_text("# Repair App\n", encoding="utf-8")
+            (project / "requirements.txt").write_text("pytest\nfastapi>=0.115,<1\nflask>=3,<4\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_repair.py").write_text(
+                "from src.main import create_app\n\n"
+                "def test_create_app_repair():\n"
+                "    assert create_app() is not None\n",
+                encoding="utf-8",
+            )
+            screenshot = project / "runtime_ui_screenshot.png"
+            bridge.write_rgb_png(screenshot, 320, 180, lambda x, y: ((x + y) % 255, (x * 2) % 255, (y * 3) % 255))
+            session_dir = root / "sessions"
+            session = bridge.default_session("chat-repair-post")
+            session["messages"].append({"role": "user", "text": "做一个本地网页应用，需要界面截图", "created_at": bridge.now()})
+
+            result = bridge.post_build_finalize_provider_project(
+                project,
+                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                {"copied": {"ui_screenshot": str(screenshot)}},
+                session,
+                session_dir=session_dir,
+                chat_id="chat-repair-post",
+            )
+
+            first_attempt = result["test_result"].get("first_attempt", {})
+            self.assertTrue(first_attempt, result["test_result"])
+            self.assertNotEqual(first_attempt.get("candidate_hash"), result["test_result"].get("candidate_hash"))
+            for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
+                self.assertEqual(result["test_result"].get(field), result["runtime_result"].get(field), field)
+                self.assertEqual(result["test_result"].get(field), result["visual_evidence_result"].get(field), field)
+            self.assertEqual("PASS", result["gate"]["canonical_evidence_gate"]["status"])
+            self.assertTrue(result["gate"]["canonical_evidence_gate"]["identity_consistent"])
+
 
 if __name__ == "__main__":
     unittest.main()

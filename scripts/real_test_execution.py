@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import pathlib
@@ -12,36 +11,23 @@ from datetime import datetime, timezone
 from typing import Any
 
 from contracts.test_execution import KIND, PRODUCER, SCHEMA_VERSION
+from scripts import canonical_evidence_hash
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _sha256_bytes(data: bytes) -> str:
-    return "sha256:" + hashlib.sha256(data).hexdigest()
-
-
 def _sha256_text(text: str) -> str:
-    return _sha256_bytes(text.encode("utf-8"))
+    return canonical_evidence_hash.sha256_bytes(text.encode("utf-8"))
 
 
 def _sha256_file(path: pathlib.Path) -> str:
-    return _sha256_bytes(path.read_bytes())
+    return canonical_evidence_hash.sha256_file(path)
 
 
 def project_tree_hash(project: pathlib.Path) -> str:
-    digest = hashlib.sha256()
-    ignored = {"test_execution.json", "TEST_REPORT.md", "test_stdout.txt", "test_stderr.txt"}
-    for path in sorted(item for item in project.rglob("*") if item.is_file()):
-        rel = path.relative_to(project).as_posix()
-        if rel in ignored or ".pytest_cache/" in rel:
-            continue
-        digest.update(rel.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return "sha256:" + digest.hexdigest()
+    return canonical_evidence_hash.candidate_source_hash(project)
 
 
 def current_commit_sha(project: pathlib.Path) -> str:
@@ -116,7 +102,9 @@ def run_tests(
     project.mkdir(parents=True, exist_ok=True)
     run_id = run_id or f"test-run-{uuid.uuid4().hex}"
     candidate_id = candidate_id or project.name or "candidate"
-    candidate_hash = candidate_hash or project_tree_hash(project)
+    candidate_manifest_before = canonical_evidence_hash.candidate_source_manifest(project)
+    candidate_hash_before = project_tree_hash(project)
+    candidate_hash = candidate_hash or candidate_hash_before
     commit_sha = commit_sha or current_commit_sha(project)
     started = _now()
     commands = detect_commands(project)
@@ -158,6 +146,11 @@ def run_tests(
     stderr_path = project / "test_stderr.txt"
     stdout_path.write_text(stdout, encoding="utf-8")
     stderr_path.write_text(stderr, encoding="utf-8")
+    candidate_manifest_after = canonical_evidence_hash.candidate_source_manifest(project)
+    candidate_hash_after = project_tree_hash(project)
+    candidate_mutated = candidate_hash_after != candidate_hash_before
+    if candidate_mutated:
+        status = "FAIL"
     finished = _now()
     evidence: dict[str, Any] = {
         "kind": KIND,
@@ -165,6 +158,10 @@ def run_tests(
         "run_id": run_id,
         "candidate_id": candidate_id,
         "candidate_hash": candidate_hash,
+        "candidate_hash_before": candidate_hash_before,
+        "candidate_hash_after": candidate_hash_after,
+        "candidate_mutated_during_test": candidate_mutated,
+        "candidate_source_diff": canonical_evidence_hash.candidate_source_manifest_diff(candidate_manifest_before, candidate_manifest_after),
         "commit_sha": commit_sha,
         "producer": PRODUCER,
         "created_at": finished,
@@ -204,7 +201,7 @@ def run_tests(
         if argv
         else [],
     }
-    artifact_hash = _sha256_text(json.dumps({**evidence, "artifact_hash": "", "result_artifact_hash": ""}, sort_keys=True, ensure_ascii=False))
+    artifact_hash = canonical_evidence_hash.canonical_json_hash(evidence, ("artifact_hash", "result_artifact_hash"))
     evidence["artifact_hash"] = artifact_hash
     evidence["result_artifact_hash"] = artifact_hash
     execution_path = project / "test_execution.json"
@@ -274,16 +271,27 @@ def inspect_test_report(
         missing.append("schema_version")
     if not doc.get("argv"):
         missing.append("argv")
-    for field in ("stdout_artifact", "stderr_artifact", "stdout_hash", "stderr_hash", "result_artifact_hash"):
+    for field in ("stdout_artifact", "stderr_artifact", "stdout_hash", "stderr_hash", "artifact_hash", "result_artifact_hash"):
         if not doc.get(field):
             missing.append(field)
     for artifact_field, hash_field in (("stdout_artifact", "stdout_hash"), ("stderr_artifact", "stderr_hash")):
         artifact = pathlib.Path(str(doc.get(artifact_field, "")))
         if not artifact.exists() or _sha256_file(artifact) != doc.get(hash_field):
-            missing.append(hash_field)
-    expected_hash = _sha256_text(json.dumps({**doc, "artifact_hash": "", "result_artifact_hash": "", "result_file": doc.get("result_file", "")}, sort_keys=True, ensure_ascii=False))
-    if doc.get("result_artifact_hash") not in {doc.get("artifact_hash"), expected_hash}:
+            missing.append(f"{hash_field}_mismatch")
+    expected_hash = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash", "result_artifact_hash"))
+    if doc.get("artifact_hash") != expected_hash:
+        missing.append("artifact_hash_mismatch")
+    if doc.get("result_artifact_hash") != expected_hash:
         missing.append("result_artifact_hash")
+    current_candidate_hash = project_tree_hash(project)
+    if doc.get("candidate_hash") != current_candidate_hash:
+        missing.append("candidate_hash_current")
+    if doc.get("candidate_hash_before") and doc.get("candidate_hash_before") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_before")
+    if doc.get("candidate_hash_after") and doc.get("candidate_hash_after") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_after")
+    if doc.get("candidate_mutated_during_test"):
+        missing.append("candidate_mutated_during_test")
     text = report.read_text(encoding="utf-8", errors="replace")
     for token in (str(doc.get("run_id", "")), str(doc.get("candidate_hash", "")), str(doc.get("commit_sha", "")), str(doc.get("result_artifact_hash", ""))):
         if token and token not in text:
