@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 
 HASH_PREFIX = "sha256:"
-EVIDENCE_OUTPUT_NAMES = {
+ROOT_EVIDENCE_OUTPUT_NAMES = {
     "test_execution.json",
     "TEST_REPORT.md",
     "test_stdout.txt",
@@ -22,12 +22,14 @@ EVIDENCE_OUTPUT_NAMES = {
     "final_project_bundle.zip",
 }
 EVIDENCE_OUTPUT_SUFFIXES = {".tmp", ".pyc"}
-EVIDENCE_OUTPUT_DIRS = {
-    ".git",
+ANY_DEPTH_CACHE_DIRS = {
     "__pycache__",
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
+}
+ROOT_TOOL_DIRS = {
+    ".git",
     ".venv",
     "venv",
     "env",
@@ -39,15 +41,6 @@ EVIDENCE_OUTPUT_DIRS = {
 EVIDENCE_OUTPUT_RELATIVE_PATHS = {
     "screenshots/browser_visual_evidence.png",
 }
-EVIDENCE_OUTPUT_RELATIVE_PREFIXES = (
-    "screenshots/",
-    "media/generated_images/",
-    "export/",
-    "exports/",
-    "output/",
-    "outputs/",
-    "projects/",
-)
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -77,16 +70,17 @@ def is_candidate_source_path(path: pathlib.Path, project_dir: str | pathlib.Path
         rel = candidate.resolve().relative_to(project).as_posix()
     except ValueError:
         return False
-    parts = set(pathlib.PurePosixPath(rel).parts)
-    if parts & EVIDENCE_OUTPUT_DIRS:
+    path_parts = pathlib.PurePosixPath(rel).parts
+    parts = set(path_parts)
+    if parts & ANY_DEPTH_CACHE_DIRS:
         return False
-    if candidate.name in EVIDENCE_OUTPUT_NAMES:
+    if path_parts and path_parts[0] in ROOT_TOOL_DIRS:
         return False
-    if candidate.suffix.lower() in EVIDENCE_OUTPUT_SUFFIXES:
+    if rel in ROOT_EVIDENCE_OUTPUT_NAMES:
         return False
     if rel in EVIDENCE_OUTPUT_RELATIVE_PATHS:
         return False
-    if any(rel.startswith(prefix) for prefix in EVIDENCE_OUTPUT_RELATIVE_PREFIXES):
+    if candidate.suffix.lower() in EVIDENCE_OUTPUT_SUFFIXES:
         return False
     return True
 

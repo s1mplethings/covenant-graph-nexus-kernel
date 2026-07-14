@@ -64,7 +64,7 @@ def requirement_session(chat_id: str, text: str) -> dict:
     return session
 
 
-def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
+def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, bytes | str] | None = None) -> tuple[pathlib.Path, dict]:
     project = root / "project"
     (project / "screenshots").mkdir(parents=True)
     (project / "generated").mkdir(parents=True)
@@ -79,6 +79,13 @@ def make_deliverable_project(root: pathlib.Path) -> tuple[pathlib.Path, dict]:
     sprite = project / "generated" / "character_sprite.png"
     background.write_bytes(b"png")
     sprite.write_bytes(b"png")
+    for relative, content in (extra_product_files or {}).items():
+        target = project / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(content, bytes):
+            target.write_bytes(content)
+        else:
+            target.write_text(content, encoding="utf-8")
     run_id = "run-public-gate"
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-public-gate"
@@ -543,6 +550,48 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertTrue({"test_execution", "customer_runtime", "visual_evidence"} & set(failures))
         missing = gate["canonical_evidence_gate"]["missing"]
         self.assertTrue(any("candidate_hash_current" in item for item in missing), missing)
+
+    def test_export_product_tamper_after_canonical_evidence_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root, {"export/project.json": '{"version": 1}\n'})
+            (project / "export" / "project.json").write_text('{"version": 2}\n', encoding="utf-8")
+            session = vn_session("chat-export-tamper")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertFalse(gate["is_final"])
+        self.assertFalse(called["agent"])
+        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
+
+    def test_generated_image_product_tamper_after_canonical_evidence_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root, {"media/generated_images/final_background.png": b"image-v1"})
+            (project / "media" / "generated_images" / "final_background.png").write_bytes(b"image-v2")
+            session = vn_session("chat-generated-image-tamper")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertFalse(gate["is_final"])
+        self.assertFalse(called["agent"])
+        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
 
     def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

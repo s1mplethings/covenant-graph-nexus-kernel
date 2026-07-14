@@ -4,6 +4,8 @@ import pathlib
 import sys
 import json
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -52,6 +54,61 @@ def test_candidate_source_hash_excludes_evidence_outputs_not_product_assets(tmp_
     assert canonical_evidence_hash.candidate_source_hash(tmp_path) == before
     asset.write_bytes(b"changed-product-asset")
     assert canonical_evidence_hash.candidate_source_hash(tmp_path) != before
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "screenshots/product_reference.png",
+        "media/generated_images/final_background.png",
+        "export/project.json",
+        "exports/customer_bundle.json",
+        "output/final_result.json",
+        "outputs/report.json",
+        "projects/workspace.json",
+        "src/env/settings.py",
+        "fixtures/delivery_manifest.json",
+    ],
+)
+def test_candidate_source_hash_includes_product_paths_with_tool_like_names(tmp_path: pathlib.Path, relative_path: str) -> None:
+    target = tmp_path / relative_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("product-v1\n", encoding="utf-8")
+    before = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    target.write_text("product-v2\n", encoding="utf-8")
+    after = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    assert after != before
+
+
+def test_candidate_source_hash_excludes_only_root_evidence_files(tmp_path: pathlib.Path) -> None:
+    root_manifest = tmp_path / "delivery_manifest.json"
+    root_manifest.write_text("root evidence\n", encoding="utf-8")
+    before = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    root_manifest.write_text("changed root evidence\n", encoding="utf-8")
+    assert canonical_evidence_hash.candidate_source_hash(tmp_path) == before
+
+    nested_manifest = tmp_path / "fixtures" / "delivery_manifest.json"
+    nested_manifest.parent.mkdir()
+    nested_manifest.write_text("nested product manifest\n", encoding="utf-8")
+    nested_before = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    nested_manifest.write_text("changed nested product manifest\n", encoding="utf-8")
+    assert canonical_evidence_hash.candidate_source_hash(tmp_path) != nested_before
+
+
+def test_candidate_source_hash_excludes_root_env_but_includes_nested_env(tmp_path: pathlib.Path) -> None:
+    root_env = tmp_path / "env" / "tool.txt"
+    root_env.parent.mkdir()
+    root_env.write_text("root env\n", encoding="utf-8")
+    before = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    root_env.write_text("changed root env\n", encoding="utf-8")
+    assert canonical_evidence_hash.candidate_source_hash(tmp_path) == before
+
+    nested_env = tmp_path / "src" / "env" / "settings.py"
+    nested_env.parent.mkdir(parents=True)
+    nested_env.write_text("VALUE = 1\n", encoding="utf-8")
+    nested_before = canonical_evidence_hash.candidate_source_hash(tmp_path)
+    nested_env.write_text("VALUE = 2\n", encoding="utf-8")
+    assert canonical_evidence_hash.candidate_source_hash(tmp_path) != nested_before
 
 
 def test_no_real_execution_marker_fails(tmp_path: pathlib.Path) -> None:
@@ -140,3 +197,53 @@ def test_candidate_hash_mismatch_fails(tmp_path: pathlib.Path) -> None:
     result = real_test_execution.inspect_test_report(tmp_path, candidate_hash="sha256:other")
     assert result["verdict"] == "FAIL"
     assert "candidate_hash" in result["missing"]
+
+
+def test_test_time_product_file_change_detects_candidate_mutation(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "export").mkdir()
+    (tmp_path / "export" / "project.json").write_text('{"version": 1}\n', encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_mutation.py").write_text(
+        "from pathlib import Path\n\n"
+        "def test_mutates_export():\n"
+        "    Path('export/project.json').write_text('{\"version\": 2}\\n', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    result = real_test_execution.run_tests(tmp_path)
+    assert result["status"] == "FAIL"
+    assert result["candidate_mutated_during_test"] is True
+    assert "export/project.json" in result["candidate_source_diff"]["changed"]
+
+
+def test_test_time_product_file_added_detects_candidate_mutation(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_mutation.py").write_text(
+        "from pathlib import Path\n\n"
+        "def test_adds_output():\n"
+        "    Path('outputs').mkdir(exist_ok=True)\n"
+        "    Path('outputs/result.json').write_text('{\"ok\": true}\\n', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    result = real_test_execution.run_tests(tmp_path)
+    assert result["status"] == "FAIL"
+    assert result["candidate_mutated_during_test"] is True
+    assert "outputs/result.json" in result["candidate_source_diff"]["added"]
+
+
+def test_test_time_cache_and_evidence_outputs_do_not_trigger_candidate_mutation(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_outputs.py").write_text(
+        "from pathlib import Path\n\n"
+        "def test_writes_only_cache_and_evidence_outputs():\n"
+        "    Path('__pycache__').mkdir(exist_ok=True)\n"
+        "    Path('__pycache__/module.pyc').write_bytes(b'pyc')\n"
+        "    Path('.pytest_cache').mkdir(exist_ok=True)\n"
+        "    Path('.pytest_cache/state').write_text('cache', encoding='utf-8')\n"
+        "    Path('test_stdout.txt').write_text('stdout', encoding='utf-8')\n"
+        "    Path('test_stderr.txt').write_text('stderr', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    result = real_test_execution.run_tests(tmp_path)
+    assert result["status"] == "PASS"
+    assert result["candidate_mutated_during_test"] is False
