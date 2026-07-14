@@ -589,6 +589,13 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                 self.assertTrue(result["test_result"].get(field), field)
                 self.assertEqual(result["test_result"].get(field), result["runtime_result"].get(field), field)
                 self.assertEqual(result["test_result"].get(field), result["visual_evidence_result"].get(field), field)
+            runtime_result = result["runtime_result"]
+            self.assertTrue(runtime_result["execution_root_isolated"], runtime_result)
+            self.assertNotEqual(pathlib.Path(runtime_result["cwd"]).resolve(), project.resolve())
+            self.assertEqual(runtime_result["source_candidate_hash"], runtime_result["candidate_hash"])
+            self.assertEqual(runtime_result["copied_candidate_hash"], runtime_result["candidate_hash"])
+            self.assertTrue(runtime_result["cleanup_result"]["removed"])
+            self.assertFalse(pathlib.Path(runtime_result["execution_root"]).exists())
             first_attempt = result["test_result"].get("first_attempt", {})
             if first_attempt:
                 self.assertNotEqual(first_attempt.get("candidate_hash"), result["runtime_result"].get("candidate_hash"))

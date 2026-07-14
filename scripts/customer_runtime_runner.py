@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import shutil
 import socket
 import subprocess
 import sys
@@ -33,6 +34,83 @@ def _free_port() -> int:
 
 def _tree_hash(project: pathlib.Path) -> str:
     return canonical_evidence_hash.candidate_source_hash(project)
+
+
+def _manifest_hash(manifest: dict[str, str]) -> str:
+    payload = json.dumps(manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return canonical_evidence_hash.sha256_bytes(payload)
+
+
+def _is_relative_to(path: pathlib.Path, root: pathlib.Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _external_symlink_failures(project: pathlib.Path) -> list[str]:
+    failures: list[str] = []
+    for path in sorted(project.rglob("*")):
+        if not path.is_symlink():
+            continue
+        try:
+            target = path.resolve(strict=True)
+        except OSError as exc:
+            failures.append(f"{path.relative_to(project).as_posix()}:unresolved:{exc}")
+            continue
+        if not _is_relative_to(target, project):
+            failures.append(f"{path.relative_to(project).as_posix()} -> {target}")
+    return failures
+
+
+def _copy_candidate_source(
+    source_project: pathlib.Path,
+    execution_root: pathlib.Path,
+    source_manifest: dict[str, str],
+) -> dict[str, Any]:
+    failures: list[str] = []
+    external_symlinks = _external_symlink_failures(source_project)
+    if external_symlinks:
+        return {
+            "ok": False,
+            "failures": [f"external_symlink:{item}" for item in external_symlinks],
+            "copied_file_count": 0,
+            "copied_manifest": {},
+            "copied_manifest_hash": "",
+            "copied_candidate_hash": "",
+        }
+    for relative, expected_hash in source_manifest.items():
+        source = source_project / pathlib.Path(*relative.split("/"))
+        destination = execution_root / pathlib.Path(*relative.split("/"))
+        try:
+            if source.is_symlink() and not _is_relative_to(source.resolve(strict=True), source_project):
+                failures.append(f"external_symlink:{relative}")
+                continue
+            if not source.is_file():
+                failures.append(f"missing_source:{relative}")
+                continue
+            if canonical_evidence_hash.sha256_file(source) != expected_hash:
+                failures.append(f"source_hash_changed:{relative}")
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination, follow_symlinks=True)
+            if canonical_evidence_hash.sha256_file(destination) != expected_hash:
+                failures.append(f"copied_hash_mismatch:{relative}")
+        except Exception as exc:
+            failures.append(f"copy_failed:{relative}:{exc}")
+    copied_manifest = canonical_evidence_hash.candidate_source_manifest(execution_root)
+    copied_candidate_hash = canonical_evidence_hash.candidate_source_hash(execution_root)
+    if copied_manifest != source_manifest:
+        failures.append("copied_manifest_mismatch")
+    return {
+        "ok": not failures,
+        "failures": failures,
+        "copied_file_count": len(copied_manifest),
+        "copied_manifest": copied_manifest,
+        "copied_manifest_hash": _manifest_hash(copied_manifest),
+        "copied_candidate_hash": copied_candidate_hash,
+    }
 
 
 def _commit_sha(project: pathlib.Path) -> str:
@@ -79,60 +157,100 @@ def run(
     started = _now()
     run_id = run_id or f"runtime-run-{uuid.uuid4().hex}"
     candidate_id = candidate_id or project.name or "candidate"
+    source_manifest = canonical_evidence_hash.candidate_source_manifest(project)
+    source_manifest_hash = _manifest_hash(source_manifest)
     current_candidate_hash = _tree_hash(project)
     expected_candidate_hash = candidate_hash
     candidate_hash = candidate_hash or current_candidate_hash
     commit_sha = commit_sha or _commit_sha(project)
-    clean_root = pathlib.Path(tempfile.mkdtemp(prefix="cgkn_customer_runtime_"))
+    execution_root = pathlib.Path("")
     port = _free_port()
-    argv = _startup_for(project, port)
     url = f"http://127.0.0.1:{port}{customer_path}"
+    argv: list[str] = []
     proc: subprocess.Popen[str] | None = None
     observed = ""
     health_code = 0
+    health_body = ""
     shutdown_result: dict[str, Any] = {"stopped": False}
+    cleanup_result: dict[str, Any] = {"removed": False}
+    copy_result: dict[str, Any] = {
+        "ok": False,
+        "failures": [],
+        "copied_file_count": 0,
+        "copied_manifest_hash": "",
+        "copied_candidate_hash": "",
+    }
     status = EvidenceStatus.FAIL.value
     try:
-        if not argv:
-            observed = "no supported startup command"
-        else:
-            proc = subprocess.Popen(argv, cwd=project, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            health_code, health_body = _wait_for_health(f"http://127.0.0.1:{port}/")
-            if health_code:
-                _code, observed = _get(url)
-                status = EvidenceStatus.PASS.value if observed.strip() else EvidenceStatus.FAIL.value
-            else:
-                observed = health_body
-        if expected_candidate_hash is not None and current_candidate_hash != expected_candidate_hash:
-            status = EvidenceStatus.FAIL.value
-            observed = (observed + "\n" if observed else "") + "candidate source hash changed before runtime"
-    finally:
-        if proc is not None:
-            proc.terminate()
+        with tempfile.TemporaryDirectory(prefix="cgkn_customer_runtime_") as temp_dir:
+            execution_root = pathlib.Path(temp_dir).resolve()
+            copy_result = _copy_candidate_source(project, execution_root, source_manifest)
+            copied_candidate_hash = str(copy_result.get("copied_candidate_hash") or "")
+            argv = _startup_for(execution_root, port)
             try:
-                proc.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait(timeout=3)
-            shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode}
+                if not copy_result.get("ok"):
+                    observed = "\n".join(str(item) for item in copy_result.get("failures", [])) or "candidate copy failed"
+                elif current_candidate_hash != copied_candidate_hash:
+                    observed = "candidate copy hash mismatch"
+                elif expected_candidate_hash is not None and current_candidate_hash != expected_candidate_hash:
+                    observed = "candidate source hash changed before runtime"
+                elif not argv:
+                    observed = "no supported startup command"
+                else:
+                    proc = subprocess.Popen(argv, cwd=execution_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    health_code, health_body = _wait_for_health(f"http://127.0.0.1:{port}/")
+                    if health_code:
+                        _code, observed = _get(url)
+                        status = EvidenceStatus.PASS.value if observed.strip() else EvidenceStatus.FAIL.value
+                    else:
+                        observed = health_body
+            finally:
+                if proc is not None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait(timeout=3)
+                    shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode}
+        cleanup_result = {"removed": bool(str(execution_root) and not execution_root.exists())}
+    except Exception as exc:
+        observed = (observed + "\n" if observed else "") + f"{type(exc).__name__}: {exc}"
+        status = EvidenceStatus.FAIL.value
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=3)
+            shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
+    if not cleanup_result.get("removed"):
+        status = EvidenceStatus.FAIL.value
     finished = _now()
-    health_body_hash = _sha256_text(observed if health_code else "")
+    health_body_hash = _sha256_text(health_body)
+    copied_candidate_hash = str(copy_result.get("copied_candidate_hash") or "")
     evidence: dict[str, Any] = {
         "kind": KIND,
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
         "candidate_id": candidate_id,
         "candidate_hash": candidate_hash,
+        "source_project_root": str(project),
+        "execution_root": str(execution_root),
+        "execution_root_isolated": bool(str(execution_root) and execution_root.resolve() != project),
+        "source_candidate_hash": current_candidate_hash,
+        "copied_candidate_hash": copied_candidate_hash,
+        "copied_file_count": int(copy_result.get("copied_file_count") or 0),
+        "source_manifest_hash": source_manifest_hash,
+        "copied_manifest_hash": str(copy_result.get("copied_manifest_hash") or ""),
         "candidate_hash_observed": current_candidate_hash,
-        "candidate_hash_verified": current_candidate_hash == candidate_hash,
+        "candidate_hash_verified": current_candidate_hash == candidate_hash == copied_candidate_hash,
         "commit_sha": commit_sha,
         "producer": PRODUCER,
         "created_at": finished,
         "status": status,
         "artifact_hash": "",
         "startup_argv": argv,
-        "cwd": str(project),
-        "clean_environment_root": str(clean_root),
+        "cwd": str(execution_root),
+        "clean_environment_root": str(execution_root),
         "dependency_setup": {"status": "not_required_for_static_http"},
         "pid": int(proc.pid) if proc is not None else 0,
         "port": port,
@@ -143,6 +261,7 @@ def run(
         "observed_result": observed[:4000],
         "observed_result_hash": _sha256_text(observed),
         "shutdown_result": shutdown_result,
+        "cleanup_result": cleanup_result,
         "started_at": started,
         "finished_at": finished,
     }
@@ -179,10 +298,47 @@ def inspect(path: str | pathlib.Path, *, candidate_hash: str | None = None, comm
         missing.append("health_probe")
     if not doc.get("observed_result_hash") or _sha256_text(str(doc.get("observed_result", ""))) != doc.get("observed_result_hash"):
         missing.append("observed_result_hash")
-    project = evidence_path.parent
+    project = evidence_path.parent.resolve()
+    source_root_value = str(doc.get("source_project_root", "") or "")
+    execution_root_value = str(doc.get("execution_root", "") or "")
+    cwd_value = str(doc.get("cwd", "") or "")
+    clean_root_value = str(doc.get("clean_environment_root", "") or "")
+    source_root = pathlib.Path(source_root_value).resolve() if source_root_value else pathlib.Path("")
+    execution_root = pathlib.Path(execution_root_value).resolve() if execution_root_value else pathlib.Path("")
+    cwd = pathlib.Path(cwd_value).resolve() if cwd_value else pathlib.Path("")
+    if not source_root_value:
+        missing.append("source_project_root")
+    elif source_root != project:
+        missing.append("source_project_root")
+    if not execution_root_value:
+        missing.append("execution_root")
+    if doc.get("execution_root_isolated") is not True:
+        missing.append("execution_root_isolated")
+    if source_root_value and execution_root_value and source_root == execution_root:
+        missing.append("execution_root")
+    if source_root_value and execution_root_value and _is_relative_to(execution_root, source_root):
+        missing.append("execution_root_isolated")
+    if not cwd_value or (execution_root_value and cwd != execution_root):
+        missing.append("cwd")
+    if clean_root_value and execution_root_value and pathlib.Path(clean_root_value).resolve() != execution_root:
+        missing.append("clean_environment_root")
+    if int(doc.get("copied_file_count", 0) or 0) <= 0:
+        missing.append("copied_file_count")
+    if not doc.get("copied_manifest_hash"):
+        missing.append("copied_manifest_hash")
+    if doc.get("cleanup_result", {}).get("removed") is not True:
+        missing.append("cleanup_result")
+    if execution_root_value and execution_root.exists():
+        missing.append("execution_root_cleanup")
     current_candidate_hash = _tree_hash(project)
+    source_candidate_hash = doc.get("source_candidate_hash")
+    copied_candidate_hash = doc.get("copied_candidate_hash")
     if doc.get("candidate_hash") != current_candidate_hash:
         missing.append("candidate_hash_current")
+    if source_candidate_hash != doc.get("candidate_hash"):
+        missing.append("source_candidate_hash")
+    if copied_candidate_hash != doc.get("candidate_hash"):
+        missing.append("copied_candidate_hash")
     if doc.get("candidate_hash_observed") and doc.get("candidate_hash_observed") != doc.get("candidate_hash"):
         missing.append("candidate_hash_observed")
     if doc.get("candidate_hash_verified") is not True:

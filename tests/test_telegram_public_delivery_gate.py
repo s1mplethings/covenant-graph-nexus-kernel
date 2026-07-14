@@ -135,6 +135,15 @@ def write_json(path: pathlib.Path, update: dict) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def write_json_with_artifact_hash(path: pathlib.Path, update: dict) -> None:
+    import json
+
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    doc.update(update)
+    doc["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash",))
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 class TelegramPublicDeliveryGateTests(unittest.TestCase):
     def test_readme_only_no_test_executed_blocks_public_delivery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -356,6 +365,27 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertFalse(gate["delivery_allowed"])
         self.assertFalse(called["agent"])
         self.assertEqual("NEEDS_REWORK", gate["status"])
+
+    def test_unclean_customer_runtime_evidence_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json_with_artifact_hash(project / "customer_runtime.json", {"cwd": str(project.resolve())})
+            session = vn_session("chat-runtime-clean-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(called["agent"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertIn("customer_runtime", gate["canonical_evidence_gate"]["failures"])
+        self.assertIn("customer_runtime:cwd", gate["canonical_evidence_gate"]["missing"])
 
     def test_adaptive_pass_final_cannot_override_missing_identity(self) -> None:
         called = {"agent": False}
