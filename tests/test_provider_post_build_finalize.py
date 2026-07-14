@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pathlib
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -361,6 +363,40 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertTrue(dependency_setup["ok"], dependency_setup)
             self.assertTrue(second["ok"], second)
             self.assertIn("configfile: pytest.ini", second["stdout"])
+            customer_env = os.environ.copy()
+            customer_env.pop("CGKN_TEST_OUTPUT_DIR", None)
+            customer_env["PYTHONPATH"] = os.pathsep.join([str(project), str(project / "src"), customer_env.get("PYTHONPATH", "")])
+            customer_proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "\n".join(
+                        [
+                            "from pathlib import Path",
+                            "from src.backend.image_generator import ImageGenerator",
+                            "from src.backend.project_api import ProjectAPI",
+                            "gen = ImageGenerator()",
+                            "bg = Path(gen.generate_background('customer-default'))",
+                            "sp = Path(gen.generate_sprite('customer-default'))",
+                            "api = ProjectAPI()",
+                            "pid = api.create_project('Customer')",
+                            "exported = Path(api.export_project(pid))",
+                            "api_bg = Path(api.generate_background(pid, 'lake'))",
+                            "assert bg.exists() and sp.exists() and exported.exists() and api_bg.exists()",
+                            "assert bg.parts[:2] == ('media', 'generated_images')",
+                            "assert sp.parts[:2] == ('media', 'generated_images')",
+                            "assert exported.parts[0] == 'export'",
+                            "assert api_bg.parts[:2] == ('media', 'generated_images')",
+                        ]
+                    ),
+                ],
+                cwd=project,
+                env=customer_env,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(0, customer_proc.returncode, customer_proc.stderr or customer_proc.stdout)
 
     def test_provider_runtime_repair_adds_fastapi_script_entrypoint(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

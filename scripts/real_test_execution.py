@@ -6,6 +6,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -129,6 +130,7 @@ def run_tests(
             python_paths.append(env["PYTHONPATH"])
         env["PYTHONPATH"] = os.pathsep.join(python_paths)
         env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+        env["CGKN_TEST_OUTPUT_DIR"] = tempfile.mkdtemp(prefix="cgkn_test_outputs_")
         try:
             proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
             stdout = proc.stdout or ""
