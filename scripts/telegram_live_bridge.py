@@ -34,6 +34,7 @@ import agent_conversation_loop
 import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
+import canonical_media_validation
 import customer_runtime_runner
 import dynamic_pipeline_runner
 import local_packager
@@ -1622,6 +1623,77 @@ def _assets_from_safe_artifacts(safe_artifacts: list[dict[str, Any]]) -> dict[st
     return assets
 
 
+def _validated_assets_from_safe_artifacts(
+    project_dir: pathlib.Path,
+    safe_artifacts: list[dict[str, Any]],
+) -> tuple[dict[str, list[pathlib.Path]], dict[str, Any], list[dict[str, str]]]:
+    project = pathlib.Path(project_dir).resolve()
+    assets: dict[str, list[pathlib.Path]] = {
+        "packages": [],
+        "screenshots": [],
+        "generated_images": [],
+        "generated_backgrounds": [],
+        "generated_sprites": [],
+        "videos": [],
+    }
+    validated_assets: list[dict[str, Any]] = []
+    rejected_assets: list[dict[str, Any]] = []
+    blocked_assets: list[dict[str, Any]] = []
+    filtered_safe: list[dict[str, str]] = []
+    required_roles = {"background", "sprite", "generated_image", "video"}
+    for item in safe_artifacts:
+        if not isinstance(item, dict):
+            continue
+        path = _evidence_path(str(item.get("path", "")))
+        if not path:
+            continue
+        kind = str(item.get("kind", "")).strip()
+        if kind == "package":
+            _add_asset(assets["packages"], path)
+            filtered_safe.append({"path": str(path), "kind": kind, "source": str(item.get("source", ""))})
+            continue
+        if kind == "screenshot":
+            _add_asset(assets["screenshots"], path)
+            filtered_safe.append({"path": str(path), "kind": kind, "source": str(item.get("source", ""))})
+            continue
+        if kind not in required_roles:
+            continue
+        validation = canonical_media_validation.validate_media(path, project, requested_role=kind)
+        record = {"path": str(path), "kind": kind, "source": str(item.get("source", "")), "validation": validation}
+        if validation.get("status") == "PASS":
+            validated_assets.append(record)
+            filtered_safe.append({"path": str(path), "kind": kind, "source": str(item.get("source", ""))})
+            if kind == "background":
+                _add_asset(assets["generated_backgrounds"], path)
+                _add_asset(assets["generated_images"], path)
+            elif kind == "sprite":
+                _add_asset(assets["generated_sprites"], path)
+                _add_asset(assets["generated_images"], path)
+            elif kind == "generated_image":
+                _add_asset(assets["generated_images"], path)
+            elif kind == "video":
+                _add_asset(assets["videos"], path)
+        elif validation.get("status") == "BLOCKED_ENVIRONMENT":
+            blocked_assets.append(record)
+        else:
+            rejected_assets.append(record)
+    counts = {key: len(value) for key, value in assets.items()}
+    overall_status = "PASS"
+    if blocked_assets:
+        overall_status = "BLOCKED_ENVIRONMENT"
+    elif rejected_assets:
+        overall_status = "FAIL"
+    media_validation = {
+        "required_roles": sorted(required_roles),
+        "validated_assets": validated_assets,
+        "rejected_assets": rejected_assets,
+        "blocked_assets": blocked_assets,
+        "counts": counts,
+        "overall_status": overall_status,
+    }
+    return assets, media_validation, filtered_safe
+
+
 def collect_public_delivery_assets(
     project_dir: pathlib.Path,
     manifest: dict[str, Any] | None = None,
@@ -1632,7 +1704,8 @@ def collect_public_delivery_assets(
     evidence = evidence if isinstance(evidence, dict) else {}
     facts = delivery_fact_check(project, manifest, evidence=evidence, phase="checkpoint")
     safe_artifacts = facts.get("safe_artifacts", []) if isinstance(facts.get("safe_artifacts"), list) else []
-    return _assets_from_safe_artifacts(safe_artifacts)
+    assets, _media_validation, _filtered = _validated_assets_from_safe_artifacts(project, safe_artifacts)
+    return assets
 
 
 def _requirement_text(session: dict[str, Any], fallback: str = "") -> str:
@@ -1907,7 +1980,10 @@ def evaluate_public_delivery_gate(
         provider_result=provider_result,
     )
     safe_artifacts = facts.get("safe_artifacts", []) if isinstance(facts.get("safe_artifacts"), list) else []
-    assets = _assets_from_safe_artifacts(safe_artifacts)
+    assets, media_validation, filtered_safe_artifacts = _validated_assets_from_safe_artifacts(project, safe_artifacts)
+    facts = dict(facts)
+    facts["safe_artifacts"] = filtered_safe_artifacts
+    facts["media_validation"] = media_validation
     requested_missing: list[str] = []
     if requirements["screenshot"] and not assets["screenshots"]:
         requested_missing.append("screenshots")
@@ -1932,6 +2008,33 @@ def evaluate_public_delivery_gate(
         facts["facts"]["requested_artifacts_present"] = False
     else:
         facts["facts"]["requested_artifacts_present"] = True
+    media_missing = [item for item in requested_missing if item in {"videos", "generated_images", "generated_background", "generated_sprite"}]
+    if media_missing:
+        return {
+            "verdict": "NEEDS_REWORK",
+            "status": "NEEDS_REWORK",
+            "phase": phase,
+            "delivery_allowed": False,
+            "is_final": False,
+            "confidence": 1.0,
+            "reasons": ["canonical required media evidence failed"],
+            "user_visible_warnings": [],
+            "required_repairs": facts.get("missing", []) + facts.get("hard_blockers", []),
+            "can_send_artifacts": [],
+            "must_not_claim": ["invalid or undecodable media as real delivery evidence"],
+            "judgment_source": "canonical_media_validation",
+            "delivery_fact_check": facts,
+            "canonical_evidence_gate": canonical_gate,
+            "media_validation": media_validation,
+            "missing": facts.get("missing", []),
+            "warnings": facts.get("warnings", []),
+            "requirements": requirements,
+            "browser_visual_required": browser_visual_required,
+            "media_evidence_required": media_evidence_required,
+            "asset_counts": {key: len(value) for key, value in assets.items()},
+            "quality_evidence": quality,
+            "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
+        }
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     test_report_path = project / "TEST_REPORT.md"
     test_report = test_report_path.read_text(encoding="utf-8", errors="replace") if test_report_path.is_file() else ""
@@ -1957,6 +2060,7 @@ def evaluate_public_delivery_gate(
             "browser_visual_required": browser_visual_required,
             "media_evidence_required": media_evidence_required,
             "asset_counts": {key: len(value) for key, value in assets.items()},
+            "media_validation": media_validation,
             "quality_evidence": quality,
             "canonical_evidence_gate": canonical_gate,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
@@ -6068,41 +6172,19 @@ def run_provider_project_tests(
     return evidence
 
 
-def image_quality_audit(path: pathlib.Path) -> dict[str, Any]:
-    result: dict[str, Any] = {"path": str(path), "ok": False, "reason": ""}
-    if not path.exists() or not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
-        result["reason"] = "missing_or_not_image"
-        return result
-    if any(token in path.name.lower() for token in ("placeholder", "mock", "fallback", "blank", "empty")):
-        result["reason"] = "placeholder_name"
-        return result
-    try:
-        from PIL import Image
-
-        with Image.open(path) as img:
-            rgb = img.convert("RGB")
-            width, height = rgb.size
-            extrema = rgb.getextrema()
-            colors = rgb.resize((64, 64)).getcolors(maxcolors=4096) or []
-        varied_channels = sum(1 for low, high in extrema if high - low > 8)
-        unique_colors = len(colors)
-        result.update({"width": width, "height": height, "unique_colors": unique_colors, "varied_channels": varied_channels})
-        if width < 64 or height < 64:
-            result["reason"] = "too_small"
-            return result
-        if varied_channels < 2 or unique_colors < 16:
-            result["reason"] = "blank_or_solid_color"
-            return result
-    except Exception as exc:
-        if path.suffix.lower() == ".png":
-            fallback = png_quality_audit(path)
-            fallback["pil_error"] = str(exc)
-            return fallback
-        result["reason"] = f"image_open_failed: {exc}"
-        return result
-    result["ok"] = True
-    result["reason"] = "nonblank_image"
-    return result
+def image_quality_audit(path: pathlib.Path, *, project_dir: pathlib.Path | None = None, requested_role: str = "generated_image") -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve() if project_dir else pathlib.Path(path).resolve().parent
+    validation = canonical_media_validation.validate_image(path, project, requested_role=requested_role)
+    return {
+        "path": validation.get("path", str(path)),
+        "ok": validation.get("status") == "PASS",
+        "reason": validation.get("failure_reason") or "canonical_media_pass",
+        "validation": validation,
+        "sha256": validation.get("sha256", ""),
+        "width": validation.get("width", 0),
+        "height": validation.get("height", 0),
+        "detected_format": validation.get("detected_format", ""),
+    }
 
 
 def _png_chunk(kind: bytes, data: bytes) -> bytes:
@@ -6127,71 +6209,13 @@ def write_rgb_png(path: pathlib.Path, width: int, height: int, pixel_fn) -> None
 
 
 def png_quality_audit(path: pathlib.Path) -> dict[str, Any]:
-    result: dict[str, Any] = {"path": str(path), "ok": False, "reason": ""}
-    try:
-        data = path.read_bytes()
-        if not data.startswith(b"\x89PNG\r\n\x1a\n"):
-            result["reason"] = "not_png"
-            return result
-        pos = 8
-        width = height = 0
-        compressed = bytearray()
-        while pos + 8 <= len(data):
-            length = struct.unpack(">I", data[pos : pos + 4])[0]
-            kind = data[pos + 4 : pos + 8]
-            chunk = data[pos + 8 : pos + 8 + length]
-            pos += 12 + length
-            if kind == b"IHDR":
-                width, height, bit_depth, color_type, _, _, _ = struct.unpack(">IIBBBBB", chunk)
-                if bit_depth != 8 or color_type != 2:
-                    result["reason"] = "unsupported_png_format"
-                    return result
-            elif kind == b"IDAT":
-                compressed.extend(chunk)
-            elif kind == b"IEND":
-                break
-        if width < 64 or height < 64:
-            result["reason"] = "too_small"
-            return result
-        raw = zlib.decompress(bytes(compressed))
-        stride = 1 + width * 3
-        colors: set[tuple[int, int, int]] = set()
-        min_rgb = [255, 255, 255]
-        max_rgb = [0, 0, 0]
-        sample_step_y = max(1, height // 64)
-        sample_step_x = max(1, width // 64)
-        for y in range(0, height, sample_step_y):
-            row = raw[y * stride : (y + 1) * stride]
-            if not row or row[0] != 0:
-                result["reason"] = "unsupported_png_filter"
-                return result
-            pixels = row[1:]
-            for x in range(0, width, sample_step_x):
-                idx = x * 3
-                rgb = tuple(pixels[idx : idx + 3])
-                if len(rgb) != 3:
-                    continue
-                colors.add(rgb)
-                for channel, value in enumerate(rgb):
-                    min_rgb[channel] = min(min_rgb[channel], value)
-                    max_rgb[channel] = max(max_rgb[channel], value)
-        varied_channels = sum(1 for low, high in zip(min_rgb, max_rgb) if high - low > 8)
-        result.update({"width": width, "height": height, "unique_colors": len(colors), "varied_channels": varied_channels})
-        if varied_channels < 2 or len(colors) < 16:
-            result["reason"] = "blank_or_solid_color"
-            return result
-        result["ok"] = True
-        result["reason"] = "nonblank_png"
-        return result
-    except Exception as exc:
-        result["reason"] = f"png_audit_failed: {exc}"
-        return result
+    return image_quality_audit(path, requested_role="generated_image")
 
 
-def _copy_if_quality_ok(source: pathlib.Path | None, target: pathlib.Path) -> tuple[str, dict[str, Any]]:
+def _copy_if_quality_ok(source: pathlib.Path | None, target: pathlib.Path, *, project_dir: pathlib.Path, requested_role: str) -> tuple[str, dict[str, Any]]:
     if not source or not source.exists():
         return "", {"ok": False, "reason": "missing_source"}
-    audit = image_quality_audit(source)
+    audit = image_quality_audit(source, project_dir=project_dir, requested_role=requested_role)
     if not audit.get("ok"):
         return "", audit
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -6200,7 +6224,7 @@ def _copy_if_quality_ok(source: pathlib.Path | None, target: pathlib.Path) -> tu
             shutil.copy2(source, target)
     except Exception:
         shutil.copy2(source, target)
-    copied_audit = image_quality_audit(target)
+    copied_audit = image_quality_audit(target, project_dir=project_dir, requested_role=requested_role)
     return (str(target.resolve()) if copied_audit.get("ok") else ""), copied_audit
 
 
@@ -6279,13 +6303,23 @@ def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: 
     background_path = ""
     background_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
     for candidate in candidate_backgrounds:
-        background_path, background_audit = _copy_if_quality_ok(candidate, generated_dir / f"background_{safe_id(candidate.stem or 'demo')}.png")
+        background_path, background_audit = _copy_if_quality_ok(
+            candidate,
+            generated_dir / f"background_{safe_id(candidate.stem or 'demo')}.png",
+            project_dir=project,
+            requested_role="background",
+        )
         if background_path:
             break
     sprite_path = ""
     sprite_audit: dict[str, Any] = {"ok": False, "reason": "not_generated"}
     for candidate in candidate_sprites:
-        sprite_path, sprite_audit = _copy_if_quality_ok(candidate, generated_dir / f"sprite_{safe_id(candidate.stem or 'demo')}.png")
+        sprite_path, sprite_audit = _copy_if_quality_ok(
+            candidate,
+            generated_dir / f"sprite_{safe_id(candidate.stem or 'demo')}.png",
+            project_dir=project,
+            requested_role="sprite",
+        )
         if sprite_path:
             break
     screenshot_path = ""
@@ -6295,6 +6329,8 @@ def collect_provider_image_evidence(project_dir: pathlib.Path, provider_result: 
         screenshot_path, screenshot_audit = _copy_if_quality_ok(
             screenshot_runtime,
             project / "screenshots" / "provider_ui_screenshot.png",
+            project_dir=project,
+            requested_role="screenshot",
         )
     for kind, path, audit in (
         ("background", background_path, background_audit),
@@ -6359,8 +6395,10 @@ def post_build_finalize_provider_project(
     if video_requested and video_source:
         video_target = project_dir / "artifacts" / "workflow_demo.mp4"
         copied_video = _copy_provider_runtime_asset(video_source, video_target)
-        video_result.update({"video": copied_video, "blocked": not bool(copied_video)})
-        if not copied_video:
+        video_validation = canonical_media_validation.validate_media(copied_video, project_dir, requested_role="video") if copied_video else {"status": "FAIL", "failure_reason": "copy_failed"}
+        video_ok = bool(copied_video) and video_validation.get("status") == "PASS"
+        video_result.update({"video": copied_video if video_ok else "", "blocked": not video_ok, "validation": video_validation})
+        if not video_ok:
             image_missing.append("video")
     elif video_requested:
         blocked_path = visual_evidence.write_video_blocked(

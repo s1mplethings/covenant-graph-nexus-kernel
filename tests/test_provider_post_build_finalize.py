@@ -15,6 +15,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.canonical_evidence_hash as canonical_evidence_hash
+import scripts.canonical_media_validation as canonical_media_validation
 import scripts.telegram_live_bridge as bridge
 
 
@@ -571,6 +572,8 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                 480,
                 lambda x, y: ((x + y * 4) % 255, (x * 4 + y) % 255, (x * 2 + y * 2) % 255),
             )
+            (project / "generated").mkdir()
+            (project / "generated" / "fake_background.png").write_bytes(b"real-background")
 
             result = bridge.post_build_finalize_provider_project(
                 project,
@@ -610,6 +613,26 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertEqual(
                 canonical_evidence_hash.sha256_file(visual_result["customer_runtime_ref"]),
                 visual_result["customer_runtime_hash"],
+            )
+            image_manifest = result["image_result"]["manifest"]
+            for item in image_manifest["images"]:
+                if item["path"]:
+                    self.assertEqual("PASS", item["audit"]["validation"]["status"], item)
+                    self.assertTrue(item["audit"]["validation"]["sha256"].startswith("sha256:"), item)
+            self.assertTrue(result["gate"]["media_validation"]["validated_assets"])
+            rejected_paths = {
+                pathlib.Path(item["path"]).name
+                for item in result["gate"]["media_validation"]["rejected_assets"]
+                if item.get("path")
+            }
+            self.assertIn("fake_background.png", rejected_paths)
+            self.assertEqual(
+                "PASS",
+                canonical_media_validation.validate_media(
+                    result["image_result"]["background"],
+                    project,
+                    requested_role="background",
+                )["status"],
             )
             first_attempt = result["test_result"].get("first_attempt", {})
             if first_attempt:

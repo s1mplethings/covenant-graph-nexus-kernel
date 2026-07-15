@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,6 +15,33 @@ import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
 import scripts.telegram_live_bridge as bridge
+
+
+def write_real_png(path: pathlib.Path, width: int = 160, height: int = 120) -> None:
+    bridge.write_rgb_png(path, width, height, lambda x, y: ((x * 3 + y) % 255, (x + y * 5) % 255, (x * 7 + y * 2) % 255))
+
+
+def write_real_mp4(path: pathlib.Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=96x64:rate=10:duration=0.6",
+            "-pix_fmt",
+            "yuv420p",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
 
 
 class FakeTelegramClient:
@@ -77,8 +105,8 @@ def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, 
     (project / "DELIVERY_NOTES.md").write_text("# Delivery\n\ndelivery_status: PASS\n", encoding="utf-8")
     background = project / "generated" / "background_scene.png"
     sprite = project / "generated" / "character_sprite.png"
-    background.write_bytes(b"png")
-    sprite.write_bytes(b"png")
+    write_real_png(background, 160, 120)
+    write_real_png(sprite, 128, 160)
     for relative, content in (extra_product_files or {}).items():
         target = project / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -90,20 +118,25 @@ def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, 
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-public-gate"
     real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    runtime = customer_runtime_runner.run(
-        project,
-        run_id=run_id,
-        candidate_hash=candidate_hash,
-        commit_sha=commit_sha,
-        live_consumer=browser_visual_evidence.capture_live_runtime,
-        browser_capture_required=True,
-    )
-    visual = browser_visual_evidence.finalize_evidence(
-        project,
-        runtime_result=runtime,
-        capture_receipt=runtime["browser_capture_receipt"],
-        required=True,
-    )
+    runtime = {}
+    visual = {}
+    for _attempt in range(3):
+        runtime = customer_runtime_runner.run(
+            project,
+            run_id=run_id,
+            candidate_hash=candidate_hash,
+            commit_sha=commit_sha,
+            live_consumer=browser_visual_evidence.capture_live_runtime,
+            browser_capture_required=True,
+        )
+        visual = browser_visual_evidence.finalize_evidence(
+            project,
+            runtime_result=runtime,
+            capture_receipt=runtime["browser_capture_receipt"],
+            required=True,
+        )
+        if visual["status"] == "PASS" or "ERR_UNSAFE_PORT" not in str(visual.get("capture_error", "")):
+            break
     if visual["status"] != "PASS":
         raise AssertionError(visual)
     screenshot = pathlib.Path(visual["screenshot_path"])
@@ -123,13 +156,19 @@ def make_media_project_without_browser_evidence(root: pathlib.Path, *, media: st
     (project / "tests").mkdir()
     (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
     if media == "background":
-        (project / "generated" / "background_scene.png").write_bytes(b"real-background")
+        write_real_png(project / "generated" / "background_scene.png", 160, 120)
     elif media == "sprite":
-        (project / "generated" / "character_sprite.png").write_bytes(b"real-sprite")
+        write_real_png(project / "generated" / "character_sprite.png", 128, 160)
     elif media == "video":
+        write_real_mp4(project / "artifacts" / "workflow_demo.mp4")
+    elif media == "fake_background":
+        (project / "generated" / "background_scene.png").write_bytes(b"real-background")
+    elif media == "fake_sprite":
+        (project / "generated" / "character_sprite.png").write_bytes(b"real-sprite")
+    elif media == "fake_video":
         (project / "artifacts" / "workflow_demo.mp4").write_bytes(b"real-video")
     elif media == "placeholder_background":
-        (project / "generated" / "fallback_mock_background.png").write_bytes(b"placeholder")
+        write_real_png(project / "generated" / "fallback_mock_background.png", 160, 120)
     run_id = "run-media-gate"
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-media-gate"
@@ -489,6 +528,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertNotIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
         self.assertFalse(missing_gate["delivery_allowed"])
         self.assertIn("generated_background", missing_gate["missing"])
+        self.assertEqual("PASS", gate["media_validation"]["overall_status"])
 
     def test_sprite_only_does_not_require_browser_visual_but_requires_sprite_asset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -506,6 +546,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertNotIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
         self.assertFalse(missing_gate["delivery_allowed"])
         self.assertIn("generated_sprite", missing_gate["missing"])
+        self.assertEqual("PASS", gate["media_validation"]["overall_status"])
 
     def test_video_only_does_not_require_browser_visual_but_requires_video_asset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -523,6 +564,62 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertNotIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
         self.assertFalse(missing_gate["delivery_allowed"])
         self.assertIn("videos", missing_gate["missing"])
+        self.assertEqual("PASS", gate["media_validation"]["overall_status"])
+
+    def test_fake_background_media_blocks_before_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="fake_background")
+            session = requirement_session("chat-fake-bg", "只需要生成背景 background")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(called["agent"])
+        self.assertIn("generated_background", gate["missing"])
+        self.assertTrue(gate["media_validation"]["rejected_assets"])
+
+    def test_fake_sprite_media_blocks_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="fake_sprite")
+            session = requirement_session("chat-fake-sprite", "只需要角色立绘 sprite")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("generated_sprite", gate["missing"])
+        self.assertTrue(gate["media_validation"]["rejected_assets"])
+
+    def test_fake_video_media_blocks_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="fake_video")
+            session = requirement_session("chat-fake-video", "只需要演示视频 video")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("videos", gate["missing"])
+        self.assertTrue(gate["media_validation"]["rejected_assets"])
+
+    def test_media_tamper_after_manifest_blocks_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="background")
+            (project / "generated" / "background_scene.png").write_bytes(b"tampered")
+            session = requirement_session("chat-media-tamper", "只需要生成背景 background")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
 
     def test_screenshot_request_requires_canonical_browser_visual_even_with_plain_png(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
