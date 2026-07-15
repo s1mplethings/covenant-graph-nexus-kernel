@@ -90,8 +90,20 @@ def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, 
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-public-gate"
     real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    runtime = customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    visual = browser_visual_evidence.run(project, runtime_ref=runtime["result_file"])
+    runtime = customer_runtime_runner.run(
+        project,
+        run_id=run_id,
+        candidate_hash=candidate_hash,
+        commit_sha=commit_sha,
+        live_consumer=browser_visual_evidence.capture_live_runtime,
+        browser_capture_required=True,
+    )
+    visual = browser_visual_evidence.finalize_evidence(
+        project,
+        runtime_result=runtime,
+        capture_receipt=runtime["browser_capture_receipt"],
+        required=True,
+    )
     if visual["status"] != "PASS":
         raise AssertionError(visual)
     screenshot = pathlib.Path(visual["screenshot_path"])
@@ -386,6 +398,27 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("NEEDS_REWORK", gate["status"])
         self.assertIn("customer_runtime", gate["canonical_evidence_gate"]["failures"])
         self.assertIn("customer_runtime:cwd", gate["canonical_evidence_gate"]["missing"])
+
+    def test_visual_runtime_binding_mismatch_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            write_json_with_artifact_hash(project / "visual_evidence.json", {"runtime_url": "http://127.0.0.1:1/"})
+            session = vn_session("chat-visual-binding-fail")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertFalse(called["agent"])
+        self.assertEqual("NEEDS_REWORK", gate["status"])
+        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
+        self.assertIn("visual_evidence:runtime_url", gate["canonical_evidence_gate"]["missing"])
 
     def test_adaptive_pass_final_cannot_override_missing_identity(self) -> None:
         called = {"agent": False}

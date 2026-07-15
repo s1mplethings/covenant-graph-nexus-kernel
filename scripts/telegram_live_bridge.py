@@ -6412,18 +6412,26 @@ def post_build_finalize_provider_project(
         repaired_test["first_attempt"] = test_result
         test_result = repaired_test
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
+    browser_visual_required = bool(req.get("screenshot"))
     runtime_result = customer_runtime_runner.run(
         project_dir,
         run_id=str(test_result.get("run_id", "")) or None,
         candidate_id=str(test_result.get("candidate_id", "")) or None,
         candidate_hash=str(test_result.get("candidate_hash", "")) or None,
         commit_sha=str(test_result.get("commit_sha", "")) or None,
+        live_consumer=browser_visual_evidence.capture_live_runtime if browser_visual_required else None,
+        browser_capture_required=browser_visual_required,
     )
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
     visual_evidence_result = (
-        browser_visual_evidence.run(project_dir, runtime_ref=runtime_result.get("result_file"))
-        if runtime_result.get("status") == "PASS"
-        else {"status": "NOT_EVALUATED", "reason": "customer_runtime_not_pass"}
+        browser_visual_evidence.finalize_evidence(
+            project_dir,
+            runtime_result=runtime_result,
+            capture_receipt=runtime_result.get("browser_capture_receipt") if isinstance(runtime_result.get("browser_capture_receipt"), dict) else {},
+            required=True,
+        )
+        if browser_visual_required
+        else {"status": "NOT_EVALUATED", "reason": "not_required", "not_required": True}
     )
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
     write_provider_delivery_notes(
@@ -6439,7 +6447,6 @@ def post_build_finalize_provider_project(
         },
     )
     screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
-    browser_visual_required = bool(req.get("screenshot"))
     media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
     delivery_limits: list[str] = []
     if not test_result.get("ok"):

@@ -14,6 +14,7 @@ pytestmark = pytest.mark.slow
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.telegram_live_bridge as bridge
 
 
@@ -596,6 +597,20 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertEqual(runtime_result["copied_candidate_hash"], runtime_result["candidate_hash"])
             self.assertTrue(runtime_result["cleanup_result"]["removed"])
             self.assertFalse(pathlib.Path(runtime_result["execution_root"]).exists())
+            visual_result = result["visual_evidence_result"]
+            self.assertEqual(runtime_result["pid"], visual_result["runtime_pid"])
+            self.assertEqual(runtime_result["url"], visual_result["runtime_url"])
+            self.assertEqual(runtime_result["port"], visual_result["runtime_port"])
+            self.assertEqual(runtime_result["execution_root"], visual_result["runtime_execution_root"])
+            self.assertEqual(runtime_result["browser_capture_id"], visual_result["browser_capture_id"])
+            self.assertEqual(runtime_result["browser_capture_hash"], visual_result["browser_capture_hash"])
+            self.assertTrue(visual_result["runtime_alive_before_capture"])
+            self.assertTrue(visual_result["runtime_alive_after_capture"])
+            self.assertEqual(canonical_evidence_hash.sha256_file(visual_result["screenshot_path"]), visual_result["screenshot_hash"])
+            self.assertEqual(
+                canonical_evidence_hash.sha256_file(visual_result["customer_runtime_ref"]),
+                visual_result["customer_runtime_hash"],
+            )
             first_attempt = result["test_result"].get("first_attempt", {})
             if first_attempt:
                 self.assertNotEqual(first_attempt.get("candidate_hash"), result["runtime_result"].get("candidate_hash"))

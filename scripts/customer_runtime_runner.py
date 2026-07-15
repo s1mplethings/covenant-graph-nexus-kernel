@@ -10,12 +10,46 @@ import tempfile
 import time
 import urllib.request
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from contracts.customer_runtime import KIND, PRODUCER, SCHEMA_VERSION
 from contracts.status import EvidenceStatus
 from scripts import canonical_evidence_hash
+
+
+@dataclass(frozen=True)
+class LiveRuntimeHandle:
+    run_id: str
+    candidate_id: str
+    candidate_hash: str
+    commit_sha: str
+    source_project_root: pathlib.Path
+    execution_root: pathlib.Path
+    pid: int
+    port: int
+    url: str
+    process: subprocess.Popen[str]
+    startup_argv: list[str]
+    started_at: str
+    source_candidate_hash: str
+    copied_candidate_hash: str
+    copied_manifest_hash: str
+
+    def is_alive(self) -> bool:
+        return self.process.poll() is None
+
+    def execution_root_exists(self) -> bool:
+        return self.execution_root.exists()
+
+    def candidate_hash_verified(self) -> bool:
+        return self.source_candidate_hash == self.copied_candidate_hash == self.candidate_hash
+
+    def is_isolated(self) -> bool:
+        return self.execution_root.resolve() != self.source_project_root.resolve() and not _is_relative_to(
+            self.execution_root, self.source_project_root
+        )
 
 
 def _now() -> str:
@@ -144,6 +178,10 @@ def _startup_for(project: pathlib.Path, port: int) -> list[str]:
     return []
 
 
+def _start_process(argv: list[str], cwd: pathlib.Path) -> subprocess.Popen[str]:
+    return subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
 def run(
     project_dir: str | pathlib.Path,
     *,
@@ -152,6 +190,8 @@ def run(
     candidate_hash: str | None = None,
     commit_sha: str | None = None,
     customer_path: str = "/",
+    live_consumer: Callable[[LiveRuntimeHandle], dict[str, Any]] | None = None,
+    browser_capture_required: bool = False,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     started = _now()
@@ -173,6 +213,11 @@ def run(
     health_body = ""
     shutdown_result: dict[str, Any] = {"stopped": False}
     cleanup_result: dict[str, Any] = {"removed": False}
+    browser_capture_receipt: dict[str, Any] = {
+        "capture_status": EvidenceStatus.NOT_EVALUATED.value,
+        "error": "not_required" if not browser_capture_required else "not_started",
+    }
+    browser_capture_hash = canonical_evidence_hash.canonical_json_hash(browser_capture_receipt, ())
     copy_result: dict[str, Any] = {
         "ok": False,
         "failures": [],
@@ -197,11 +242,45 @@ def run(
                 elif not argv:
                     observed = "no supported startup command"
                 else:
-                    proc = subprocess.Popen(argv, cwd=execution_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    proc = _start_process(argv, execution_root)
                     health_code, health_body = _wait_for_health(f"http://127.0.0.1:{port}/")
                     if health_code:
                         _code, observed = _get(url)
                         status = EvidenceStatus.PASS.value if observed.strip() else EvidenceStatus.FAIL.value
+                        if live_consumer is not None:
+                            handle = LiveRuntimeHandle(
+                                run_id=run_id,
+                                candidate_id=candidate_id,
+                                candidate_hash=candidate_hash,
+                                commit_sha=commit_sha,
+                                source_project_root=project,
+                                execution_root=execution_root,
+                                pid=int(proc.pid),
+                                port=port,
+                                url=url,
+                                process=proc,
+                                startup_argv=argv,
+                                started_at=started,
+                                source_candidate_hash=current_candidate_hash,
+                                copied_candidate_hash=copied_candidate_hash,
+                                copied_manifest_hash=str(copy_result.get("copied_manifest_hash") or ""),
+                            )
+                            try:
+                                browser_capture_receipt = live_consumer(handle)
+                            except Exception as exc:
+                                browser_capture_receipt = {
+                                    "capture_status": EvidenceStatus.FAIL.value,
+                                    "error": f"{type(exc).__name__}: {exc}",
+                                    "runtime_pid": int(proc.pid),
+                                    "runtime_url": url,
+                                    "runtime_port": port,
+                                    "runtime_execution_root": str(execution_root),
+                                    "runtime_alive_before_capture": proc.poll() is None,
+                                    "runtime_alive_after_capture": proc.poll() is None,
+                                }
+                            browser_capture_hash = canonical_evidence_hash.canonical_json_hash(browser_capture_receipt, ())
+                            if browser_capture_required and browser_capture_receipt.get("capture_status") != EvidenceStatus.PASS.value:
+                                status = EvidenceStatus.FAIL.value
                     else:
                         observed = health_body
             finally:
@@ -223,6 +302,8 @@ def run(
             proc.wait(timeout=3)
             shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
     if not cleanup_result.get("removed"):
+        status = EvidenceStatus.FAIL.value
+    if browser_capture_required and browser_capture_receipt.get("capture_status") != EvidenceStatus.PASS.value:
         status = EvidenceStatus.FAIL.value
     finished = _now()
     health_body_hash = _sha256_text(health_body)
@@ -262,6 +343,17 @@ def run(
         "observed_result_hash": _sha256_text(observed),
         "shutdown_result": shutdown_result,
         "cleanup_result": cleanup_result,
+        "browser_capture_required": bool(browser_capture_required),
+        "browser_capture_status": str(browser_capture_receipt.get("capture_status") or EvidenceStatus.NOT_EVALUATED.value),
+        "browser_capture_id": str(browser_capture_receipt.get("capture_id") or ""),
+        "browser_capture_hash": browser_capture_hash,
+        "browser_runtime_pid": int(browser_capture_receipt.get("runtime_pid") or 0),
+        "browser_runtime_url": str(browser_capture_receipt.get("runtime_url") or ""),
+        "browser_runtime_port": int(browser_capture_receipt.get("runtime_port") or 0),
+        "browser_runtime_execution_root": str(browser_capture_receipt.get("runtime_execution_root") or ""),
+        "runtime_alive_before_browser": bool(browser_capture_receipt.get("runtime_alive_before_capture") or False),
+        "runtime_alive_after_browser": bool(browser_capture_receipt.get("runtime_alive_after_capture") or False),
+        "browser_capture_receipt": browser_capture_receipt,
         "started_at": started,
         "finished_at": finished,
     }
@@ -345,6 +437,30 @@ def inspect(path: str | pathlib.Path, *, candidate_hash: str | None = None, comm
         missing.append("candidate_hash_verified")
     if not doc.get("shutdown_result", {}).get("stopped"):
         missing.append("shutdown_result")
+    if doc.get("browser_capture_required") is True:
+        receipt = doc.get("browser_capture_receipt", {})
+        if not isinstance(receipt, dict):
+            receipt = {}
+            missing.append("browser_capture_receipt")
+        expected_capture_hash = canonical_evidence_hash.canonical_json_hash(receipt, ())
+        if not doc.get("browser_capture_hash") or doc.get("browser_capture_hash") != expected_capture_hash:
+            missing.append("browser_capture_hash")
+        if doc.get("browser_capture_status") != EvidenceStatus.PASS.value or receipt.get("capture_status") != EvidenceStatus.PASS.value:
+            missing.append("browser_capture_status")
+        if not doc.get("browser_capture_id") or doc.get("browser_capture_id") != receipt.get("capture_id"):
+            missing.append("browser_capture_id")
+        if int(doc.get("browser_runtime_pid", 0) or 0) != int(doc.get("pid", 0) or 0):
+            missing.append("browser_runtime_pid")
+        if doc.get("browser_runtime_url") != doc.get("url"):
+            missing.append("browser_runtime_url")
+        if int(doc.get("browser_runtime_port", 0) or 0) != int(doc.get("port", 0) or 0):
+            missing.append("browser_runtime_port")
+        if str(doc.get("browser_runtime_execution_root") or "") != str(doc.get("execution_root") or ""):
+            missing.append("browser_runtime_execution_root")
+        if doc.get("runtime_alive_before_browser") is not True or receipt.get("runtime_alive_before_capture") is not True:
+            missing.append("runtime_alive_before_browser")
+        if doc.get("runtime_alive_after_browser") is not True or receipt.get("runtime_alive_after_capture") is not True:
+            missing.append("runtime_alive_after_browser")
     if candidate_hash is not None and doc.get("candidate_hash") != candidate_hash:
         missing.append("candidate_hash")
     if commit_sha is not None and doc.get("commit_sha") != commit_sha:
