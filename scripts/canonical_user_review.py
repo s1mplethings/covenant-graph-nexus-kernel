@@ -181,7 +181,14 @@ def mark_review_request_presented(
             elif kind in {"background", "sprite", "generated_image", "video"}:
                 if canonical_media_validation.validate_media(path, project, requested_role=kind).get("status") != "PASS":
                     continue
-        normalized.append({"kind": kind, "ref": ref, "sha256": digest, "sent": True, "presented_at": str(item.get("presented_at") or now())})
+        normalized_item = {
+            "kind": kind, "ref": ref, "sha256": digest, "sent": True,
+            "presented_at": str(item.get("presented_at") or now()),
+        }
+        for key in ("telegram_message_id", "telegram_chat_id"):
+            if item.get(key) not in (None, ""):
+                normalized_item[key] = str(item[key])
+        normalized.append(normalized_item)
     roles = set(str(x) for x in disk.get("required_presentation_roles", []))
     presented_roles = {str(x.get("kind")) for x in normalized}
     succeeded = bool(roles and roles <= presented_roles)

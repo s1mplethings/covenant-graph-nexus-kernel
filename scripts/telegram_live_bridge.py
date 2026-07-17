@@ -2202,6 +2202,22 @@ def emit_public_delivery(
     source: str,
     package_approval: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    def normalized_send_result(value: Any, expected_chat_id: int | str) -> tuple[bool, dict[str, str]]:
+        if value is True:
+            return True, {}
+        if not isinstance(value, dict) or value.get("ok") is not True:
+            return False, {}
+        result = value.get("result")
+        if not isinstance(result, dict) or result.get("message_id") in (None, ""):
+            return False, {}
+        chat = result.get("chat") if isinstance(result.get("chat"), dict) else {}
+        if chat.get("id") not in (None, "") and str(chat.get("id")) != str(expected_chat_id):
+            return False, {}
+        return True, {
+            "telegram_message_id": str(result["message_id"]),
+            "telegram_chat_id": str(chat.get("id", "")),
+        }
+
     sent: list[dict[str, Any]] = []
     seen: set[str] = set()
     for path, kind in items:
@@ -2215,12 +2231,20 @@ def emit_public_delivery(
         suffix = path.suffix.lower()
         if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
             client.send_chat_action(chat_id, "upload_photo")
-            if client.send_photo(chat_id, path, caption):
-                sent.append({"kind": kind, "path": str(path), "caption": caption})
+            try:
+                ok, metadata = normalized_send_result(client.send_photo(chat_id, path, caption), chat_id)
+            except Exception:
+                ok, metadata = False, {}
+            if ok:
+                sent.append({"kind": kind, "path": str(path), "caption": caption, **metadata})
         elif suffix in VIDEO_SUFFIXES:
             client.send_chat_action(chat_id, "upload_video")
-            if client.send_video(chat_id, path, caption):
-                sent.append({"kind": kind, "path": str(path), "caption": caption})
+            try:
+                ok, metadata = normalized_send_result(client.send_video(chat_id, path, caption), chat_id)
+            except Exception:
+                ok, metadata = False, {}
+            if ok:
+                sent.append({"kind": kind, "path": str(path), "caption": caption, **metadata})
         else:
             client.send_chat_action(chat_id, "upload_document")
             if kind == "package" and isinstance(package_approval, dict):
@@ -2248,8 +2272,12 @@ def emit_public_delivery(
                 if not package_ok:
                     package_approval["failure_reason"] = "package_changed_before_send"
                     continue
-            if client.send_document(chat_id, path, caption):
-                sent.append({"kind": kind, "path": str(path), "caption": caption})
+            try:
+                ok, metadata = normalized_send_result(client.send_document(chat_id, path, caption), chat_id)
+            except Exception:
+                ok, metadata = False, {}
+            if ok:
+                sent.append({"kind": kind, "path": str(path), "caption": caption, **metadata})
     if sent:
         append_truth_ledger(
             session_dir,
@@ -2331,7 +2359,25 @@ def send_evidence_checkpoint(
     sent: list[dict[str, Any]] = []
     gate = evaluate_public_delivery_gate(project_dir, {}, session, evidence=evidence, phase="checkpoint")
     if not gate.get("delivery_allowed"):
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        current = load_session(session_dir, chat_id)
+        checkpoint = current.get("pending_evidence_checkpoint", {}) if isinstance(current.get("pending_evidence_checkpoint"), dict) else {}
+        if checkpoint:
+            checkpoint = canonical_user_review.mark_review_request_presented(
+                project_dir,
+                checkpoint,
+                presented_artifacts=[],
+            )
+            checkpoint["sender_diagnostic"] = {
+                "status": "NEEDS_REWORK",
+                "failures": sorted(set(
+                    ["checkpoint_gate_failed"]
+                    + [str(item) for item in gate.get("required_repairs", [])]
+                )),
+                "sent_kinds": [],
+            }
+            current["pending_evidence_checkpoint"] = checkpoint
+            save_session(session_dir, current)
+        mark_public_delivery_rework(client, chat_id, session_dir, current, project_dir, gate)
         return []
     presentation_sent = send_customer_reply(
         client,
@@ -2344,6 +2390,7 @@ def send_evidence_checkpoint(
     )
     session = load_session(session_dir, chat_id)
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+    sender_failures: list[str] = []
     summary_artifact = {
         "kind": "nonvisual_summary",
         "ref": f"telegram:chat:{chat_id}:review-summary",
@@ -2364,7 +2411,42 @@ def send_evidence_checkpoint(
             break
     items.extend((path, "video") for path in assets["videos"][:2])
     items = filter_delivery_items_by_judgment(items, gate)
+    request_inspection = canonical_user_review.inspect_user_review_request(project_dir, require_presented=False)
+    if request_inspection.get("status") != "PASS":
+        sender_failures.extend(request_inspection.get("failures", ["review_request_pre_send_invalid"]))
+        items = []
+    elif checkpoint.get("visual_required") is not True:
+        items = [(path, kind) for path, kind in items if kind != "screenshot"]
+    else:
+        visual_inspection = browser_visual_evidence.inspect(project_dir)
+        visual_details = visual_inspection.get("details", {}) if isinstance(visual_inspection.get("details"), dict) else {}
+        canonical_screenshot = pathlib.Path(str(visual_details.get("screenshot_path", "")))
+        canonical_hash = str(visual_details.get("screenshot_hash", ""))
+        valid_items: list[tuple[pathlib.Path, str]] = []
+        canonical_screenshot_found = False
+        for path, kind in items:
+            if kind != "screenshot":
+                valid_items.append((path, kind))
+                continue
+            try:
+                matches = (
+                    visual_inspection.get("status") == "PASS"
+                    and path.resolve(strict=True) == canonical_screenshot.resolve(strict=True)
+                    and canonical_evidence_hash.sha256_file(path) == canonical_hash
+                )
+            except (OSError, ValueError):
+                matches = False
+            if matches:
+                valid_items.append((path, kind))
+                canonical_screenshot_found = True
+            else:
+                sender_failures.append("canonical_screenshot_path_or_hash_changed")
+        if not canonical_screenshot_found:
+            sender_failures.append("canonical_screenshot_not_sendable")
+        items = valid_items
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
+    if checkpoint.get("visual_required") is True and not any(item.get("kind") == "screenshot" for item in sent):
+        sender_failures.append("telegram_screenshot_send_failed_or_invalid")
     presented_artifacts = ([summary_artifact] if summary_artifact else []) + [
         {
             "kind": str(item.get("kind", "")),
@@ -2372,6 +2454,11 @@ def send_evidence_checkpoint(
             "sha256": canonical_evidence_hash.sha256_file(item["path"]),
             "sent": True,
             "presented_at": now(),
+            **{
+                key: str(item[key])
+                for key in ("telegram_message_id", "telegram_chat_id")
+                if item.get(key) not in (None, "")
+            },
         }
         for item in sent
         if item.get("path") and pathlib.Path(str(item["path"])).is_file()
@@ -2381,6 +2468,11 @@ def send_evidence_checkpoint(
         checkpoint,
         presented_artifacts=presented_artifacts,
     )
+    checkpoint["sender_diagnostic"] = {
+        "status": "PASS" if checkpoint.get("presentation_succeeded") else "NEEDS_REWORK",
+        "failures": sorted(set(sender_failures)),
+        "sent_kinds": [str(item.get("kind", "")) for item in sent],
+    }
     session["pending_evidence_checkpoint"] = checkpoint
     save_session(session_dir, session)
     if sent:

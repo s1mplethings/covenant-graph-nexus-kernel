@@ -254,6 +254,9 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("message_context", bridge_source)
         self.assertIn("user_review_required", packager_source)
         self.assertIn("session booleans and text substrings are not review truth", contract)
+        self.assertIn("canonical_screenshot_path_or_hash_changed", bridge_source)
+        self.assertIn("telegram_screenshot_send_failed_or_invalid", bridge_source)
+        self.assertIn("normalized successful Telegram returns", contract)
 
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")

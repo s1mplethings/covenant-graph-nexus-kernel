@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import base64
 import pathlib
 import sys
 import tempfile
@@ -17,6 +18,12 @@ from scripts import customer_runtime_runner
 from scripts import local_packager
 from scripts import real_test_execution
 from scripts import telegram_live_bridge as bridge
+
+
+TEST_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFElEQVR4nGP4z8DAwMDAxMDAwMAAAAwAAf4B"
+    "9pYAAAAASUVORK5CYII="
+)
 
 
 class FakeClient:
@@ -84,6 +91,77 @@ def context(**updates) -> dict:
     }
     value.update(updates)
     return value
+
+
+def make_visual_project(root: pathlib.Path) -> tuple[pathlib.Path, dict, dict]:
+    project = root / "visual-project"
+    project.mkdir()
+    (project / "index.html").write_text("<main><h1>Visual checkpoint</h1></main>\n", encoding="utf-8")
+    (project / "README.md").write_text("# Visual checkpoint\n", encoding="utf-8")
+    (project / "DELIVERY_NOTES.md").write_text("# Delivery\n", encoding="utf-8")
+    (project / "tests").mkdir()
+    (project / "tests" / "test_app.py").write_text("def test_ok(): assert True\n", encoding="utf-8")
+    (project / "screenshots").mkdir()
+    (project / "screenshots" / "old.png").write_bytes(TEST_PNG)
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+    identity = {
+        "run_id": "run-visual-checkpoint",
+        "candidate_id": "candidate-visual-checkpoint",
+        "candidate_hash": candidate_hash,
+        "commit_sha": "commit-visual-checkpoint",
+    }
+    assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+    runtime = customer_runtime_runner.run(
+        project,
+        **identity,
+        live_consumer=browser_visual_evidence.capture_live_runtime,
+        browser_capture_required=True,
+    )
+    visual = browser_visual_evidence.finalize_evidence(
+        project,
+        runtime_result=runtime,
+        capture_receipt=runtime["browser_capture_receipt"],
+        required=True,
+    )
+    assert runtime["status"] == "PASS"
+    assert visual["status"] == "PASS"
+    assert browser_visual_evidence.inspect(project)["status"] == "PASS"
+    return project, runtime, visual
+
+
+class InvalidPhotoResultClient(FakeClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.photos: list[tuple[str, pathlib.Path, str]] = []
+
+    def send_photo(self, chat_id, path, caption):
+        self.photos.append((str(chat_id), pathlib.Path(path).resolve(), str(caption)))
+        return {"ok": False}
+
+    def send_document(self, _chat_id, _path, _caption):
+        return False
+
+    def send_video(self, _chat_id, _path, _caption):
+        return False
+
+
+class StructuredPhotoResultClient(InvalidPhotoResultClient):
+    def __init__(self, *, raises: bool = False) -> None:
+        super().__init__()
+        self.raises = raises
+
+    def send_photo(self, chat_id, path, caption):
+        self.photos.append((str(chat_id), pathlib.Path(path).resolve(), str(caption)))
+        if self.raises:
+            raise RuntimeError("telegram photo send failed")
+        return {
+            "ok": True,
+            "result": {
+                "message_id": 7001,
+                "chat": {"id": chat_id},
+                "photo": [{"file_id": "fake-canonical-screenshot"}],
+            },
+        }
 
 
 def test_explicit_approval_creates_candidate_bound_review_and_package() -> None:
@@ -710,6 +788,310 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
         assert runtime["shutdown_result"]["stopped"] is True
         assert runtime["cleanup_result"]["removed"] is True
         assert not execution_root.exists()
+
+
+def test_formal_checkpoint_sender_rejects_invalid_telegram_photo_result() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        project, runtime, visual = make_visual_project(root)
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual-sender",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["需要真实界面截图"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary", "screenshot"],
+        )
+        session_dir = root / "sessions"
+        session = bridge.default_session("group-visual-sender")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        client = InvalidPhotoResultClient()
+        bridge.send_evidence_checkpoint(
+            client,
+            "group-visual-sender",
+            session_dir,
+            session,
+            project,
+            {"screenshots": [str(pathlib.Path(visual["screenshot_path"]).relative_to(project))]},
+        )
+        saved = bridge.load_session(session_dir, "group-visual-sender")["pending_evidence_checkpoint"]
+        assert len(client.photos) == 1
+        assert saved["status"] == "presentation_failed", saved
+        assert saved["presentation_succeeded"] is False
+        assert {item["kind"] for item in saved["presented_artifacts"]} == {"nonvisual_summary"}
+        assert not any(item.get("kind") == "screenshot" for item in saved["presented_artifacts"])
+        assert "telegram_screenshot_send_failed_or_invalid" in saved["sender_diagnostic"]["failures"]
+        assert runtime["shutdown_result"]["stopped"] is True
+        assert runtime["cleanup_result"]["removed"] is True
+
+
+def test_formal_checkpoint_sender_closes_visual_review_package_and_gate() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        project, runtime, visual = make_visual_project(root)
+        canonical_screenshot = pathlib.Path(visual["screenshot_path"]).resolve()
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual-success",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["需要真实界面截图"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary", "screenshot"],
+        )
+        session_dir = root / "sessions"
+        session = bridge.default_session("group-visual-success")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        client = StructuredPhotoResultClient()
+        sent = bridge.send_evidence_checkpoint(
+            client,
+            "group-visual-success",
+            session_dir,
+            session,
+            project,
+            {"screenshots": ["screenshots/old.png", str(canonical_screenshot.relative_to(project))]},
+        )
+        assert len(client.photos) == 1
+        sent_chat, sent_path, sent_caption = client.photos[0]
+        assert sent_chat == "group-visual-success"
+        assert sent_path == canonical_screenshot
+        assert sent_caption == "界面截图"
+        assert canonical_evidence_hash.sha256_file(sent_path) == visual["screenshot_hash"]
+        assert [item["kind"] for item in sent] == ["screenshot"]
+        disk_request = json.loads((project / "user_review_request.json").read_text(encoding="utf-8"))
+        assert disk_request["status"] == "presented"
+        assert disk_request["presentation_succeeded"] is True
+        assert {item["kind"] for item in disk_request["presented_artifacts"]} == {
+            "nonvisual_summary", "screenshot",
+        }
+        screenshot_artifact = next(
+            item for item in disk_request["presented_artifacts"] if item["kind"] == "screenshot"
+        )
+        assert pathlib.Path(screenshot_artifact["ref"]).resolve() == canonical_screenshot
+        assert screenshot_artifact["sha256"] == visual["screenshot_hash"]
+        assert screenshot_artifact["sent"] is True
+        assert screenshot_artifact["telegram_message_id"] == "7001"
+        assert screenshot_artifact["telegram_chat_id"] == "group-visual-success"
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "PASS"
+        review = canonical_user_review.record_user_review_approval(
+            project,
+            bridge.load_session(session_dir, "group-visual-success")["pending_evidence_checkpoint"],
+            "我确认这个版本，可以最终打包",
+            context(chat_id="group-visual-success", update_id=7100, message_id=7101),
+        )
+        assert review["status"] == "PASS", review
+        assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "PASS"
+        manifest = local_packager.package_project(
+            project, visual_required=True, user_review_required=True
+        )
+        assert manifest["status"] == "PASS", manifest
+        assert canonical_delivery_manifest.inspect_canonical_delivery_manifest(
+            project, manifest, visual_required=True, user_review_required=True
+        )["status"] == "PASS"
+        approved_session = bridge.load_session(session_dir, "group-visual-success")
+        approved_session["pending_evidence_checkpoint"]["status"] = "approved"
+        adaptive_called: list[bool] = []
+        gate = bridge.evaluate_public_delivery_gate(
+            project,
+            manifest,
+            approved_session,
+            phase="final",
+            agent=lambda _messages: adaptive_called.append(True) or {
+                "verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True,
+                "confidence": 1.0, "reasons": ["canonical checkpoint passed"],
+                "user_visible_warnings": [], "required_repairs": [],
+                "can_send_artifacts": [manifest["package_path"], str(canonical_screenshot)],
+                "must_not_claim": [],
+            },
+        )
+        assert gate["delivery_allowed"] is True, gate
+        assert gate["canonical_package_inspection"]["status"] == "PASS"
+        assert adaptive_called == [True]
+        assert runtime["shutdown_result"]["stopped"] is True
+        assert runtime["cleanup_result"]["removed"] is True
+        assert not pathlib.Path(runtime["execution_root"]).exists()
+
+
+def test_formal_checkpoint_sender_exception_blocks_approval_package_and_adaptive_gate() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        project, _runtime, visual = make_visual_project(root)
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual-exception",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["需要真实界面截图"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary", "screenshot"],
+        )
+        session_dir = root / "sessions"
+        session = bridge.default_session("group-visual-exception")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        client = StructuredPhotoResultClient(raises=True)
+        bridge.send_evidence_checkpoint(
+            client,
+            "group-visual-exception",
+            session_dir,
+            session,
+            project,
+            {"screenshots": [str(pathlib.Path(visual["screenshot_path"]).relative_to(project))]},
+        )
+        saved_session = bridge.load_session(session_dir, "group-visual-exception")
+        saved_request = saved_session["pending_evidence_checkpoint"]
+        assert len(client.photos) == 1
+        assert saved_request["status"] == "presentation_failed"
+        assert saved_request["presentation_succeeded"] is False
+        assert "telegram_screenshot_send_failed_or_invalid" in saved_request["sender_diagnostic"]["failures"]
+        assert canonical_user_review.record_user_review_approval(
+            project,
+            saved_request,
+            "我确认这个版本，可以最终打包",
+            context(chat_id="group-visual-exception", update_id=7200, message_id=7201),
+        )["status"] == "NEEDS_REWORK"
+        manifest = local_packager.package_project(
+            project, visual_required=True, user_review_required=True
+        )
+        assert manifest["status"] == "NEEDS_REWORK"
+        adaptive_called: list[bool] = []
+        gate = bridge.evaluate_public_delivery_gate(
+            project,
+            manifest,
+            saved_session,
+            phase="final",
+            agent=lambda _messages: adaptive_called.append(True) or {
+                "verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True,
+            },
+        )
+        assert gate["delivery_allowed"] is False
+        assert adaptive_called == []
+
+
+def test_formal_checkpoint_sender_detects_pre_send_and_post_send_tampering() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        project, _runtime, visual = make_visual_project(root)
+        screenshot = pathlib.Path(visual["screenshot_path"])
+        original_screenshot = screenshot.read_bytes()
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual-tamper",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["需要真实界面截图"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary", "screenshot"],
+        )
+        session_dir = root / "sessions"
+        session = bridge.default_session("group-visual-tamper")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        screenshot.write_bytes(original_screenshot + b"changed-before-send")
+        pre_client = StructuredPhotoResultClient()
+        bridge.send_evidence_checkpoint(
+            pre_client,
+            "group-visual-tamper",
+            session_dir,
+            session,
+            project,
+            {"screenshots": [str(screenshot.relative_to(project))]},
+        )
+        pre_saved = bridge.load_session(session_dir, "group-visual-tamper")["pending_evidence_checkpoint"]
+        assert pre_client.photos == []
+        assert pre_saved["status"] == "presentation_failed"
+        assert "checkpoint_gate_failed" in pre_saved["sender_diagnostic"]["failures"]
+        screenshot.write_bytes(original_screenshot)
+
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual-tamper",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["需要真实界面截图"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary", "screenshot"],
+        )
+        session = bridge.default_session("group-visual-tamper")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        success_client = StructuredPhotoResultClient()
+        bridge.send_evidence_checkpoint(
+            success_client,
+            "group-visual-tamper",
+            session_dir,
+            session,
+            project,
+            {"screenshots": [str(screenshot.relative_to(project))]},
+        )
+        sent_request = bridge.load_session(session_dir, "group-visual-tamper")["pending_evidence_checkpoint"]
+        assert sent_request["status"] == "presented"
+        screenshot.write_bytes(original_screenshot + b"changed-after-send")
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        assert canonical_user_review.record_user_review_approval(
+            project,
+            sent_request,
+            "我确认这个版本，可以最终打包",
+            context(chat_id="group-visual-tamper", update_id=7300, message_id=7301),
+        )["status"] == "NEEDS_REWORK"
+        screenshot.write_bytes(original_screenshot)
+        visual_path = project / "visual_evidence.json"
+        original_visual = visual_path.read_bytes()
+        visual_path.write_bytes(original_visual + b" ")
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        assert canonical_user_review.record_user_review_approval(
+            project,
+            sent_request,
+            "我确认这个版本，可以最终打包",
+            context(chat_id="group-visual-tamper", update_id=7302, message_id=7303),
+        )["status"] == "NEEDS_REWORK"
+
+
+def test_formal_checkpoint_sender_nonvisual_summary_does_not_send_old_png() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        root = pathlib.Path(temp)
+        project = make_project(root)
+        (project / "screenshots").mkdir()
+        (project / "screenshots" / "old.png").write_bytes(TEST_PNG)
+        candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+        identity = {
+            "run_id": "run-review", "candidate_id": "candidate-review",
+            "candidate_hash": candidate_hash, "commit_sha": "commit-review",
+        }
+        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+        assert customer_runtime_runner.run(project, **identity)["status"] == "PASS"
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-nonvisual-sender",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["plain cli"],
+            visual_required=False,
+            required_presentation_roles=["nonvisual_summary"],
+        )
+        session_dir = root / "sessions"
+        session = bridge.default_session("group-nonvisual-sender")
+        session["whiteboard"]["project_summary"] = "plain cli"
+        session["pending_evidence_checkpoint"] = request
+        bridge.save_session(session_dir, session)
+        client = StructuredPhotoResultClient()
+        sent = bridge.send_evidence_checkpoint(
+            client,
+            "group-nonvisual-sender",
+            session_dir,
+            session,
+            project,
+            {"screenshots": ["screenshots/old.png"]},
+        )
+        saved = bridge.load_session(session_dir, "group-nonvisual-sender")["pending_evidence_checkpoint"]
+        assert client.photos == []
+        assert sent == []
+        assert saved["visual_required"] is False
+        assert saved["status"] == "presented"
+        assert {item["kind"] for item in saved["presented_artifacts"]} == {"nonvisual_summary"}
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "PASS"
 
 
 def test_nonvisual_request_rejects_visual_scope_injection_and_old_screenshot_does_not_promote() -> None:
