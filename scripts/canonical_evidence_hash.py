@@ -20,6 +20,7 @@ ROOT_EVIDENCE_OUTPUT_NAMES = {
     "delivery_manifest.json",
     "packager_run_log.txt",
     "final_project_bundle.zip",
+    "user_review.json",
 }
 EVIDENCE_OUTPUT_SUFFIXES = {".tmp", ".pyc"}
 ANY_DEPTH_CACHE_DIRS = {

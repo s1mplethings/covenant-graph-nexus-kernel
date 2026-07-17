@@ -37,6 +37,7 @@ import capability_strategy
 import canonical_delivery_manifest
 import canonical_evidence_hash
 import canonical_media_validation
+import canonical_user_review
 import customer_runtime_runner
 import dynamic_pipeline_runner
 import local_packager
@@ -2039,10 +2040,18 @@ def evaluate_public_delivery_gate(
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
     if phase == "final":
+        expected_user_review = bool(
+            isinstance(session.get("pending_evidence_checkpoint"), dict)
+            or (
+                isinstance(session.get("whiteboard"), dict)
+                and session.get("whiteboard", {}).get("requires_user_evidence_review")
+            )
+        )
         package_inspection = canonical_delivery_manifest.inspect_canonical_delivery_manifest(
             project,
             manifest,
             visual_required=browser_visual_required,
+            user_review_required=expected_user_review,
         )
         if package_inspection.get("status") != "PASS":
             return {
@@ -2271,23 +2280,7 @@ def filter_delivery_items_by_judgment(
 
 
 def is_user_review_continue(text: str) -> bool:
-    normalized = re.sub(r"\s+", "", str(text or "").lower())
-    if not normalized:
-        return False
-    continue_words = (
-        "继续",
-        "可以",
-        "没问题",
-        "打包",
-        "最终交付",
-        "继续生成",
-        "继续打包",
-        "确认",
-        "通过",
-        "ok",
-        "go",
-    )
-    return any(word in normalized for word in continue_words)
+    return canonical_user_review.classify_review_text(text) == "APPROVED"
 
 
 def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
@@ -2323,7 +2316,7 @@ def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
             "preview_files": "预览文件",
         }
         lines.append("缺少的证据：" + "；".join(labels.get(str(item), str(item)) for item in missing[:4]))
-    lines.append("回复“继续/打包”进入最终交付；如果要改，直接说要改哪里。")
+    lines.append("如果批准，请明确回复“我确认这个版本，可以最终打包”；如果要改，直接说要改哪里。")
     return public_narration.redact_internal_terms("\n".join(lines))
 
 
@@ -2340,7 +2333,7 @@ def send_evidence_checkpoint(
     if not gate.get("delivery_allowed"):
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
         return []
-    send_customer_reply(
+    presentation_sent = send_customer_reply(
         client,
         chat_id,
         session_dir,
@@ -2350,6 +2343,12 @@ def send_evidence_checkpoint(
         direct_text=evidence_checkpoint_summary(evidence),
     )
     session = load_session(session_dir, chat_id)
+    checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+    if not presentation_sent:
+        checkpoint = canonical_user_review.mark_review_request_presented(checkpoint, presented=False, evidence_kinds=[])
+        session["pending_evidence_checkpoint"] = checkpoint
+        save_session(session_dir, session)
+        return []
     assets = collect_public_delivery_assets(project_dir, {}, evidence)
     items: list[tuple[pathlib.Path, str]] = []
     items.extend((path, "package") for path in assets["packages"][:1])
@@ -2364,6 +2363,20 @@ def send_evidence_checkpoint(
     items.extend((path, "video") for path in assets["videos"][:2])
     items = filter_delivery_items_by_judgment(items, gate)
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
+    presentation_ok = bool(
+        presentation_sent
+        and (
+            not checkpoint.get("visual_required")
+            or any(item.get("kind") == "screenshot" for item in sent)
+        )
+    )
+    checkpoint = canonical_user_review.mark_review_request_presented(
+        checkpoint,
+        presented=presentation_ok,
+        evidence_kinds=[str(item.get("kind", "")) for item in checkpoint.get("reviewed_evidence", []) if isinstance(item, dict)],
+    )
+    session["pending_evidence_checkpoint"] = checkpoint
+    save_session(session_dir, session)
     if sent:
         append_truth_ledger(
             session_dir,
@@ -2373,7 +2386,13 @@ def send_evidence_checkpoint(
             status="sent",
             evidence_ref=str(project_dir),
             can_user_see=True,
-            data={"artifact": "user_evidence_checkpoint", "sent": sent},
+            data={
+                "artifact": "user_evidence_checkpoint",
+                "sent": sent,
+                "review_request_id": checkpoint.get("review_request_id", ""),
+                "presented_evidence_kinds": checkpoint.get("presented_evidence_kinds", []),
+                "reviewed_evidence_hashes": checkpoint.get("reviewed_evidence_hashes", []),
+            },
         )
         append_memory_event(session, "user_evidence_checkpoint_sent", data={"sent": sent, "evidence": evidence})
         save_session(session_dir, session)
@@ -7245,10 +7264,18 @@ def run_agent_generation_job(
             "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
             "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
         }
-        session["pending_evidence_checkpoint"] = {
-            "status": "waiting_user_review",
-            "created_at": now(),
-            "project_dir": str(checkpoint_project_dir),
+        review_request = canonical_user_review.create_review_request_snapshot(
+            checkpoint_project_dir,
+            chat_id=chat_id,
+            requirement_snapshot=session.get("whiteboard", {}).get("delivery_requirements", []),
+            visual_required=bool(infer_public_delivery_requirements(session, "").get("screenshot")),
+        )
+        if review_request.get("status") == "NEEDS_REWORK":
+            session["generation"]["status"] = "rework_blocked"
+            session["generation"]["review_failures"] = review_request.get("failures", [])
+            save_session(session_dir, session)
+            return
+        session["pending_evidence_checkpoint"] = review_request | {
             "pipeline_manifest": result.get("pipeline_manifest") if isinstance(result.get("pipeline_manifest"), dict) else manifest,
             "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
             "agent_session_path": str(session_file),
@@ -7523,6 +7550,8 @@ def record_evidence_review_feedback(
     session: dict[str, Any],
 ) -> None:
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+    review_path = pathlib.Path(str(checkpoint.get("project_dir", ""))) / canonical_user_review.REVIEW_FILE
+    review_path.unlink(missing_ok=True)
     checkpoint["status"] = "feedback_received"
     checkpoint["feedback"] = text
     checkpoint["feedback_at"] = now()
@@ -8063,6 +8092,7 @@ def handle_text(
     model: str,
     timeout: int,
     generation_mode: str = "api",
+    message_context: dict[str, Any] | None = None,
 ) -> None:
     session = load_session(session_dir, chat_id)
     text = text.strip()
@@ -8195,13 +8225,49 @@ def handle_text(
 
     generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     if generation_status == "waiting_user_review" and intent not in {"admin_command", "greeting", "status_query"}:
-        if is_user_review_continue(text):
+        decision = canonical_user_review.classify_review_text(text)
+        if decision == "APPROVED":
+            checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
+            project_dir = pathlib.Path(str(checkpoint.get("project_dir", "")))
+            approval = canonical_user_review.record_user_review_approval(
+                project_dir,
+                checkpoint,
+                text,
+                message_context,
+            )
+            if approval.get("status") != "PASS":
+                checkpoint["approval_failures"] = approval.get("failures", [])
+                session["pending_evidence_checkpoint"] = checkpoint
+                save_session(session_dir, session)
+                send_customer_reply(
+                    client,
+                    chat_id,
+                    session_dir,
+                    session,
+                    event="user_evidence_review_identity_required",
+                    direct_text="我还不能把这条消息记录为正式批准；审核对象或消息身份已变化，请在当前审核消息之后明确确认。",
+                )
+                return
+            checkpoint["consumed_message_id"] = str((message_context or {}).get("message_id", ""))
+            checkpoint["status"] = "approved"
+            session["pending_evidence_checkpoint"] = checkpoint
+            save_session(session_dir, session)
             append_agent_session_event(
                 session_dir,
                 chat_id,
                 {"kind": "user_evidence_review_approved", "role": "user", "text": text},
             )
             resume_after_evidence_review(client, chat_id, session_dir, log_dir, model, timeout)
+            return
+        if decision == "AMBIGUOUS":
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="user_evidence_review_ambiguous",
+                direct_text="请明确说明是否批准当前版本用于最终打包；如果需要修改，直接告诉我要改哪里。",
+            )
             return
         record_evidence_review_feedback(client, chat_id, text, session_dir, log_dir, model, timeout, session)
         return
@@ -8735,7 +8801,26 @@ def run(args: argparse.Namespace) -> None:
                     args.generation_mode,
                 )
                 continue
-            handle_text(client, chat_id, text, session_dir, log_dir, args.model, args.generation_timeout, args.generation_mode)
+            from_user = message.get("from") if isinstance(message.get("from"), dict) else {}
+            handle_text(
+                client,
+                chat_id,
+                text,
+                session_dir,
+                log_dir,
+                args.model,
+                args.generation_timeout,
+                args.generation_mode,
+                message_context={
+                    "update_id": update_id,
+                    "message_id": message.get("message_id"),
+                    "chat_id": chat_id,
+                    "from_user_id": from_user.get("id"),
+                    "from_username": from_user.get("username", ""),
+                    "message_date": message.get("date"),
+                    "edited_message": "edited_message" in update,
+                },
+            )
 
 
 def main() -> int:

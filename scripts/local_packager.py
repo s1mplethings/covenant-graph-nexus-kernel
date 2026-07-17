@@ -258,14 +258,13 @@ def package_project(
     if not quality_evidence["delivery_notes_found"]:
         warnings.append("未找到 DELIVERY_NOTES.md，本轮交付复核不足")
     preview_required = bool(visual_required or media_required)
+    canonical_review_required = bool(user_review_required or (project / "user_review.json").is_file())
     if preview_required and quality_evidence.get("preview_placeholder_found"):
         warnings.append("预览为占位示例，不算真实运行证据")
     if preview_required and not quality_evidence["preview_evidence_found"]:
         warnings.append("未找到预览证据")
     if _looks_like_demo_data_project(project, known_limits) and not quality_evidence.get("sample_input_found") and not quality_evidence.get("test_report_mentions_sample_input"):
         warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
-    if user_review_required and not user_review_completed:
-        warnings.append("用户尚未确认中间测试/预览证据")
     run_log = pathlib.Path(run_log_path).resolve() if run_log_path else target_dir / "packager_run_log.txt"
     if not run_log.exists():
         run_log.write_text(f"{now()} packaged project\n", encoding="utf-8")
@@ -291,6 +290,7 @@ def package_project(
         startup_command=startup,
         known_limits=combined_limits,
         visual_required=visual_required,
+        user_review_required=canonical_review_required,
         extra_fields={
             "readme_path": str(readme.resolve()),
             "run_log_path": str(run_log.resolve()),

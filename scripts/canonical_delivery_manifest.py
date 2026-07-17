@@ -9,10 +9,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 try:
-    from . import browser_visual_evidence, canonical_evidence_hash, customer_runtime_runner, real_test_execution
+    from . import browser_visual_evidence, canonical_evidence_hash, canonical_user_review, customer_runtime_runner, real_test_execution
 except ImportError:
     import browser_visual_evidence
     import canonical_evidence_hash
+    import canonical_user_review
     import customer_runtime_runner
     import real_test_execution
 
@@ -239,6 +240,7 @@ def build_canonical_package(
     startup_command: str = "",
     known_limits: list[str] | None = None,
     visual_required: bool = False,
+    user_review_required: bool = False,
     extra_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
@@ -270,6 +272,13 @@ def build_canonical_package(
         + inclusion_blockers
         + [f"reserved_extra_field:{field}" for field in reserved_attempts]
     )
+    review_inspection = canonical_user_review.inspect_user_review_evidence(project) if user_review_required else {
+        "status": "NOT_EVALUATED",
+        "details": {},
+    }
+    if user_review_required and review_inspection.get("status") != "PASS":
+        failures.extend(review_inspection.get("failures", ["user_review_not_pass"]))
+    review_path = project / canonical_user_review.REVIEW_FILE
     if identity.get("candidate_hash") != before_source_hash:
         failures.append("source_tree_hash_candidate_hash_mismatch")
     limits = [str(item) for item in known_limits or [] if str(item).strip()]
@@ -325,6 +334,9 @@ def build_canonical_package(
         "customer_runtime_hash": runtime_record["hash"],
         "visual_evidence_ref": visual_record["ref"] if visual_required else "",
         "visual_evidence_hash": visual_record["hash"] if visual_required else "",
+        "user_review_required": bool(user_review_required),
+        "user_review_ref": str(review_path.resolve()) if user_review_required and review_path.is_file() else "",
+        "user_review_hash": canonical_evidence_hash.sha256_file(review_path) if user_review_required and review_path.is_file() else "",
         "project_dir": str(project),
         "package_path": str(package),
         "manifest_path": str(manifest_path),
@@ -356,6 +368,7 @@ def inspect_canonical_delivery_manifest(
     manifest: dict[str, Any] | str | pathlib.Path | None = None,
     *,
     visual_required: bool | None = None,
+    user_review_required: bool | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     manifest_path = project / MANIFEST_NAME
@@ -442,6 +455,10 @@ def inspect_canonical_delivery_manifest(
         failures.append("package_entry_manifest_mismatch")
     if visual_required is None:
         visual_required = bool(document.get("visual_evidence_ref"))
+    if user_review_required is None:
+        user_review_required = bool(document.get("user_review_required"))
+    if bool(document.get("user_review_required")) != bool(user_review_required):
+        failures.append("user_review_requirement_mismatch")
     evidence_specs = [
         ("test", "test_execution_ref", "test_execution_hash", True),
         ("runtime", "customer_runtime_ref", "customer_runtime_hash", True),
@@ -465,6 +482,23 @@ def inspect_canonical_delivery_manifest(
     for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
         if document.get(field) != identity.get(field):
             failures.append(f"manifest_identity:{field}")
+    if user_review_required:
+        review_inspection = canonical_user_review.inspect_user_review_evidence(project)
+        review_path = project / canonical_user_review.REVIEW_FILE
+        review_details = review_inspection.get("details", {}) if isinstance(review_inspection.get("details"), dict) else {}
+        if review_inspection.get("status") != "PASS":
+            failures.extend(review_inspection.get("failures", ["user_review_not_pass"]))
+        if document.get("user_review_ref") != str(review_path.resolve()):
+            failures.append("user_review_ref")
+        if not review_path.is_file() or document.get("user_review_hash") != canonical_evidence_hash.sha256_file(review_path):
+            failures.append("user_review_hash")
+        if review_details.get("reviewed_candidate_hash") != document.get("candidate_hash"):
+            failures.append("user_review_candidate_hash")
+        for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
+            if review_details.get(field) != document.get(field):
+                failures.append(f"user_review_identity:{field}")
+    elif document.get("user_review_ref") or document.get("user_review_hash"):
+        failures.append("unexpected_user_review")
     return {
         "status": "PASS" if not failures else "NEEDS_REWORK",
         "failures": sorted(set(failures)),

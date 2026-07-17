@@ -242,6 +242,19 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("evidence_changed_during_packaging", canonical_source)
         self.assertIn('canonical_json_hash(manifest, ("artifact_hash",))', canonical_source)
 
+    def test_user_review_is_candidate_bound_canonical_evidence(self) -> None:
+        review_source = read_source("scripts/canonical_user_review.py")
+        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        packager_source = read_source("scripts/canonical_delivery_manifest.py")
+        contract = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("record_user_review_approval", review_source)
+        self.assertIn("inspect_user_review_evidence", review_source)
+        self.assertIn("from_user_id", bridge_source)
+        self.assertIn("message_context", bridge_source)
+        self.assertIn("user_review_required", packager_source)
+        self.assertIn("session booleans and text substrings are not review truth", contract)
+
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
