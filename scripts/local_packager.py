@@ -76,7 +76,13 @@ def _preview_candidates(project: pathlib.Path) -> list[pathlib.Path]:
     preview_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".html"}
     if not project.exists():
         return []
-    return [path for path in project.rglob("*") if path.is_file() and path.suffix.lower() in preview_suffixes]
+    return [
+        path
+        for path in project.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in preview_suffixes
+        and path.resolve() != (project / "index.html").resolve()
+    ]
 
 
 def _sample_input_found(project: pathlib.Path) -> bool:
@@ -223,6 +229,8 @@ def package_project(
     known_limits: list[str] | None = None,
     user_review_required: bool = False,
     user_review_completed: bool = False,
+    visual_required: bool = False,
+    media_required: bool = False,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
@@ -249,9 +257,10 @@ def package_project(
         warnings.append("测试报告存在，但未执行真实测试命令")
     if not quality_evidence["delivery_notes_found"]:
         warnings.append("未找到 DELIVERY_NOTES.md，本轮交付复核不足")
-    if quality_evidence.get("preview_placeholder_found"):
+    preview_required = bool(visual_required or media_required)
+    if preview_required and quality_evidence.get("preview_placeholder_found"):
         warnings.append("预览为占位示例，不算真实运行证据")
-    if not quality_evidence["preview_evidence_found"]:
+    if preview_required and not quality_evidence["preview_evidence_found"]:
         warnings.append("未找到预览证据")
     if _looks_like_demo_data_project(project, known_limits) and not quality_evidence.get("sample_input_found") and not quality_evidence.get("test_report_mentions_sample_input"):
         warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
@@ -264,7 +273,7 @@ def package_project(
         screenshot = pathlib.Path(screenshot_path)
         if not screenshot.exists():
             warnings.append(f"效果预览文件未找到: {screenshot}")
-        elif _is_placeholder_preview(screenshot):
+        elif preview_required and _is_placeholder_preview(screenshot):
             warnings.append("预览为占位示例，不算真实运行证据")
 
     combined_limits = list(known_limits or []) + warnings
@@ -276,7 +285,6 @@ def package_project(
         for path in _preview_candidates(project)
         if not _is_placeholder_preview(path)
     ]
-    visual_required = bool(screenshot_path)
     manifest = canonical_delivery_manifest.build_canonical_package(
         project,
         output_dir=target_dir,

@@ -232,8 +232,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("inspect_canonical_delivery_manifest", gate)
         self.assertIn("inspect_canonical_delivery_manifest", sender)
         self.assertNotIn("write_json(manifest_path, manifest)", sender)
+        self.assertIn("package_approval", sender)
+        self.assertIn("package_changed_before_send", bridge_source)
+        self.assertIn("visual_required=browser_visual_required", bridge_source)
+        self.assertIn("media_required=media_evidence_required", bridge_source)
         self.assertIn("candidate_source_hash", canonical_source)
         self.assertIn("inspect_zip_entries", canonical_source)
+        self.assertIn("RESERVED_FIELDS", canonical_source)
+        self.assertIn("evidence_changed_during_packaging", canonical_source)
         self.assertIn('canonical_json_hash(manifest, ("artifact_hash",))', canonical_source)
 
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:

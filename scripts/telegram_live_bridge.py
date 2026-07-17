@@ -35,6 +35,7 @@ import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
 import canonical_delivery_manifest
+import canonical_evidence_hash
 import canonical_media_validation
 import customer_runtime_runner
 import dynamic_pipeline_runner
@@ -2190,6 +2191,7 @@ def emit_public_delivery(
     items: list[tuple[pathlib.Path, str]],
     *,
     source: str,
+    package_approval: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     sent: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -2212,6 +2214,31 @@ def emit_public_delivery(
                 sent.append({"kind": kind, "path": str(path), "caption": caption})
         else:
             client.send_chat_action(chat_id, "upload_document")
+            if kind == "package" and isinstance(package_approval, dict):
+                approved_path = pathlib.Path(str(package_approval.get("package_path", "")))
+                approved_manifest_path = pathlib.Path(str(package_approval.get("manifest_path", "")))
+                package_ok = False
+                try:
+                    zip_inspection = canonical_delivery_manifest.inspect_zip_entries(path)
+                    manifest_doc = json.loads(approved_manifest_path.read_text(encoding="utf-8"))
+                    package_ok = (
+                        path.resolve(strict=True) == approved_path.resolve(strict=True)
+                        and canonical_evidence_hash.sha256_file(path)
+                        == package_approval.get("package_sha256")
+                        and zip_inspection.get("status") == "PASS"
+                        and zip_inspection.get("package_entries_hash") == package_approval.get("package_entries_hash")
+                        and manifest_doc.get("artifact_hash") == package_approval.get("manifest_artifact_hash")
+                        and canonical_evidence_hash.canonical_json_hash(
+                            manifest_doc,
+                            ("artifact_hash",),
+                        )
+                        == package_approval.get("manifest_artifact_hash")
+                    )
+                except (OSError, ValueError, TypeError):
+                    package_ok = False
+                if not package_ok:
+                    package_approval["failure_reason"] = "package_changed_before_send"
+                    continue
             if client.send_document(chat_id, path, caption):
                 sent.append({"kind": kind, "path": str(path), "caption": caption})
     if sent:
@@ -2622,6 +2649,15 @@ def send_delivery_from_manifest(
         )
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
         return []
+    approved_manifest = package_inspection.get("manifest", {}) if isinstance(package_inspection.get("manifest"), dict) else {}
+    package_approval = {
+        "package_path": package_inspection.get("package_path", ""),
+        "package_sha256": package_inspection.get("package_sha256", ""),
+        "package_entries_hash": package_inspection.get("package_entries_hash", ""),
+        "manifest_path": package_inspection.get("manifest_path", ""),
+        "manifest_artifact_hash": approved_manifest.get("artifact_hash", ""),
+        "failure_reason": "",
+    }
     session = load_session(session_dir, chat_id)
     assets = collect_public_delivery_assets(project_dir, manifest)
     items: list[tuple[pathlib.Path, str]] = []
@@ -2636,8 +2672,19 @@ def send_delivery_from_manifest(
             break
     items.extend((path, "video") for path in assets["videos"][:2])
     items = filter_delivery_items_by_judgment(items, gate)
-    sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="delivery_manifest")
+    sent = emit_public_delivery(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        items,
+        source="delivery_manifest",
+        package_approval=package_approval,
+    )
     diagnostic = delivery_send_diagnostic(gate, items, sent)
+    if package_approval.get("failure_reason"):
+        diagnostic["reason"] = str(package_approval["failure_reason"])
+        diagnostic["package_sent"] = False
     if diagnostic["reason"]:
         failed_gate = dict(gate)
         failed_gate.update(
@@ -6402,8 +6449,6 @@ def post_build_finalize_provider_project(
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     req = infer_public_delivery_requirements(session, "")
     image_missing: list[str] = []
-    if req.get("screenshot") and not image_result.get("ui_screenshot"):
-        image_missing.append("ui_screenshot")
     if req.get("background") and not image_result.get("background"):
         image_missing.append("generated_background")
     if req.get("sprite") and not image_result.get("sprite"):
@@ -6506,8 +6551,9 @@ def post_build_finalize_provider_project(
             "post_build_video_evidence": video_result,
         },
     )
-    screenshot_path = pathlib.Path(str(image_result.get("ui_screenshot", "")))
     media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
+    canonical_screenshot = str(visual_evidence_result.get("screenshot_path", "")) if browser_visual_required else ""
+    screenshot_path = pathlib.Path(canonical_screenshot or str(image_result.get("ui_screenshot", "")))
     delivery_limits: list[str] = []
     if not test_result.get("ok"):
         delivery_limits.append("Automated tests are incomplete or failing; this must be disclosed to the user.")
@@ -6522,6 +6568,8 @@ def post_build_finalize_provider_project(
         startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
         screenshot_path=screenshot_path if screenshot_path.exists() else None,
         known_limits=delivery_limits,
+        visual_required=browser_visual_required,
+        media_required=media_evidence_required,
     )
     gate = evaluate_public_delivery_gate(
         project_dir,

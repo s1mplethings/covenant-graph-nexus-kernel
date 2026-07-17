@@ -141,7 +141,13 @@ def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, 
     if visual["status"] != "PASS":
         raise AssertionError(visual)
     screenshot = pathlib.Path(visual["screenshot_path"])
-    manifest = local_packager.package_project(project, startup_command="python -m http.server 8000", screenshot_path=screenshot)
+    manifest = local_packager.package_project(
+        project,
+        startup_command="python -m http.server 8000",
+        screenshot_path=screenshot,
+        visual_required=True,
+        media_required=True,
+    )
     return project, manifest
 
 
@@ -175,7 +181,11 @@ def make_media_project_without_browser_evidence(root: pathlib.Path, *, media: st
     commit_sha = "commit-media-gate"
     real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
     customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    manifest = local_packager.package_project(project, startup_command="python -m http.server 8000")
+    manifest = local_packager.package_project(
+        project,
+        startup_command="python -m http.server 8000",
+        media_required=media in {"background", "sprite", "video", "fake_background", "fake_sprite", "fake_video", "placeholder_background"},
+    )
     return project, manifest
 
 
@@ -876,6 +886,109 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
                 "PASS",
                 canonical_delivery_manifest.inspect_canonical_delivery_manifest(project, manifest)["status"],
             )
+
+    def test_package_replaced_after_inspector_is_not_sent(self) -> None:
+        class ReplacingClient(FakeTelegramClient):
+            def __init__(self, package: pathlib.Path) -> None:
+                super().__init__()
+                self.package = package
+
+            def send_chat_action(self, chat_id: int | str, action: str) -> None:
+                super().send_chat_action(chat_id, action)
+                if action == "upload_document":
+                    self.package.write_bytes(self.package.read_bytes() + b"replaced-before-send")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_media_project_without_browser_evidence(root, media="background")
+            session = requirement_session("chat-send-race", "只需要生成背景 background")
+            bridge.save_session(session_dir, session)
+            package = pathlib.Path(manifest["package_path"])
+            client = ReplacingClient(package)
+
+            sent = bridge.send_delivery_from_manifest(client, "chat-send-race", session_dir, session, manifest)
+            saved = bridge.load_session(session_dir, "chat-send-race")
+
+        self.assertFalse(client.documents)
+        self.assertFalse(any(item["kind"] == "package" for item in sent))
+        self.assertNotIn(saved["generation"]["status"], {"delivered", "delivered_with_warnings"})
+        self.assertEqual(
+            "package_changed_before_send",
+            saved["generation"]["delivery_gate"]["delivery_send_diagnostic"]["reason"],
+        )
+
+    def test_unchanged_approved_package_is_sent_once_with_manifest_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_media_project_without_browser_evidence(root, media="background")
+            session = requirement_session("chat-send-bound", "只需要生成背景 background")
+            bridge.save_session(session_dir, session)
+            client = FakeTelegramClient()
+
+            sent = bridge.send_delivery_from_manifest(client, "chat-send-bound", session_dir, session, manifest)
+            package_documents = [item for item in client.documents if item[1].name == "final_project_bundle.zip"]
+            sent_package_hash = canonical_evidence_hash.sha256_file(package_documents[0][1]) if package_documents else ""
+
+        self.assertEqual(1, len(package_documents))
+        self.assertEqual(pathlib.Path(manifest["package_path"]).resolve(), package_documents[0][1].resolve())
+        self.assertTrue(any(item["kind"] == "package" for item in sent))
+        self.assertEqual(manifest["package_sha256"], sent_package_hash)
+
+    def test_visual_evidence_hash_tamper_blocks_before_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_deliverable_project(root)
+            changed = dict(manifest)
+            changed["visual_evidence_hash"] = "sha256:" + "0" * 64
+            changed["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(changed, ("artifact_hash",))
+            pathlib.Path(manifest["manifest_path"]).write_text(
+                __import__("json").dumps(changed, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            session = vn_session("chat-visual-manifest-hash")
+
+            gate = bridge.evaluate_public_delivery_gate(project, changed, session, phase="final", agent=agent)
+
+        self.assertFalse(called["agent"])
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertIn("visual_evidence_hash", gate["canonical_package_inspection"]["failures"])
+
+    def test_nonvisual_project_without_preview_reaches_adaptive_gate(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {
+                "verdict": "ASK_USER_REVIEW",
+                "delivery_allowed": True,
+                "is_final": False,
+                "confidence": 0.9,
+                "reasons": [],
+                "user_visible_warnings": [],
+                "required_repairs": [],
+                "can_send_artifacts": ["package"],
+                "must_not_claim": [],
+            }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="none")
+            session = requirement_session("chat-nonvisual-package", "JSON API 后台服务，返回结构化数据")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertEqual("PASS", manifest["status"], manifest)
+        self.assertFalse(manifest["quality_evidence"]["preview_evidence_found"])
+        self.assertTrue(called["agent"])
+        self.assertEqual("PASS", gate["canonical_package_inspection"]["status"])
 
 
 if __name__ == "__main__":

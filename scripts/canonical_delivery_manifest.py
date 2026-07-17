@@ -24,6 +24,33 @@ _CACHE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 _ROOT_TOOL_DIRS = {".git", ".venv", "venv", "env", ".env", ".cgnk_test_env", ".cgkn_test_env", "node_modules"}
 _TEMP_SUFFIXES = {".tmp", ".pyc"}
 _OLD_DELIVERY_RE = re.compile(r"^final_project_bundle(?:[._-].*)?\.zip$", re.I)
+RESERVED_FIELDS = {
+    "kind",
+    "schema_version",
+    "run_id",
+    "candidate_id",
+    "candidate_hash",
+    "commit_sha",
+    "producer",
+    "created_at",
+    "status",
+    "artifact_hash",
+    "source_tree_hash",
+    "package_sha256",
+    "package_entries_hash",
+    "test_execution_ref",
+    "test_execution_hash",
+    "customer_runtime_ref",
+    "customer_runtime_hash",
+    "visual_evidence_ref",
+    "visual_evidence_hash",
+    "project_dir",
+    "package_path",
+    "manifest_path",
+    "inclusion_manifest",
+    "failures",
+    "known_limits",
+}
 
 
 def _now() -> str:
@@ -224,11 +251,25 @@ def build_canonical_package(
     runtime_record, runtime_failures = _evidence_record(project, "runtime", True)
     visual_record, visual_failures = _evidence_record(project, "visual", visual_required)
     required_records = [test_record, runtime_record] + ([visual_record] if visual_required else [])
+    evidence_hashes_before = {
+        str(record["path"].resolve()): record["hash"]
+        for record in required_records
+        if record["ref"]
+    }
     identity, identity_failures = _identity_failures(required_records)
     before_source_manifest = canonical_evidence_hash.candidate_source_manifest(project)
     before_source_hash = canonical_evidence_hash.candidate_source_hash(project)
     inclusion, inclusion_blockers = build_inclusion_manifest(project)
-    failures = test_failures + runtime_failures + visual_failures + identity_failures + inclusion_blockers
+    extra = dict(extra_fields or {})
+    reserved_attempts = sorted(RESERVED_FIELDS & set(extra))
+    failures = (
+        test_failures
+        + runtime_failures
+        + visual_failures
+        + identity_failures
+        + inclusion_blockers
+        + [f"reserved_extra_field:{field}" for field in reserved_attempts]
+    )
     if identity.get("candidate_hash") != before_source_hash:
         failures.append("source_tree_hash_candidate_hash_mismatch")
     limits = [str(item) for item in known_limits or [] if str(item).strip()]
@@ -247,6 +288,13 @@ def build_canonical_package(
             after_source_hash = canonical_evidence_hash.candidate_source_hash(project)
             if before_source_manifest != after_source_manifest or before_source_hash != after_source_hash:
                 failures.append("source_changed_during_packaging")
+            evidence_hashes_after = {
+                value: canonical_evidence_hash.sha256_file(value)
+                for value in evidence_hashes_before
+                if pathlib.Path(value).is_file()
+            }
+            if evidence_hashes_before != evidence_hashes_after:
+                failures.append("evidence_changed_during_packaging")
             if failures:
                 temp_package.unlink(missing_ok=True)
                 package.unlink(missing_ok=True)
@@ -285,9 +333,21 @@ def build_canonical_package(
         "inclusion_manifest": inclusion,
         "failures": sorted(set(failures)),
     }
-    manifest.update(extra_fields or {})
+    manifest.update({key: value for key, value in extra.items() if key not in RESERVED_FIELDS})
     manifest["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(manifest, ("artifact_hash",))
     _write_json(manifest_path, manifest)
+    if manifest["status"] == "PASS":
+        self_inspection = inspect_canonical_delivery_manifest(project, manifest, visual_required=visual_required)
+        if self_inspection.get("status") != "PASS":
+            package.unlink(missing_ok=True)
+            manifest["status"] = "NEEDS_REWORK"
+            manifest["package_sha256"] = ""
+            manifest["package_entries_hash"] = ""
+            manifest["failures"] = sorted(
+                set(manifest["failures"] + ["producer_self_inspection_failed"] + self_inspection.get("failures", []))
+            )
+            manifest["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(manifest, ("artifact_hash",))
+            _write_json(manifest_path, manifest)
     return manifest
 
 
@@ -315,8 +375,20 @@ def inspect_canonical_delivery_manifest(
     else:
         document = _read_json(manifest_path)
     failures: list[str] = []
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        failures.append("manifest_path_invalid")
     if argument_mismatch:
         failures.append("manifest_argument_mismatch")
+    declared_manifest_path = pathlib.Path(str(document.get("manifest_path", "")))
+    try:
+        if (
+            not declared_manifest_path.is_absolute()
+            or declared_manifest_path.is_symlink()
+            or declared_manifest_path.resolve(strict=True) != manifest_path.resolve(strict=True)
+        ):
+            failures.append("manifest_path_mismatch")
+    except (OSError, ValueError):
+        failures.append("manifest_path_mismatch")
     required_fields = (
         "kind", "schema_version", "run_id", "candidate_id", "candidate_hash", "commit_sha", "producer",
         "created_at", "status", "artifact_hash", "source_tree_hash", "package_sha256", "package_entries_hash",
@@ -337,7 +409,22 @@ def inspect_canonical_delivery_manifest(
     if document.get("source_tree_hash") != current_source_hash or document.get("candidate_hash") != current_source_hash:
         failures.append("source_tree_hash_mismatch")
     package = pathlib.Path(str(document.get("package_path", "")))
-    if not package.is_file() or package.name != FINAL_PACKAGE_NAME:
+    package_path_valid = True
+    try:
+        package_resolved = package.resolve(strict=True)
+        manifest_parent = manifest_path.resolve(strict=True).parent
+        if (
+            not package.is_absolute()
+            or package.is_symlink()
+            or package_resolved.name != FINAL_PACKAGE_NAME
+            or package_resolved.parent != manifest_parent
+        ):
+            package_path_valid = False
+    except (OSError, ValueError):
+        package_path_valid = False
+    if not package_path_valid:
+        failures.append("package_manifest_directory_mismatch")
+    if not package_path_valid or not package.is_file() or package.name != FINAL_PACKAGE_NAME:
         failures.append("package_missing")
         actual_package_hash = ""
         zip_result = {"status": "NEEDS_REWORK", "entries": [], "package_entries_hash": "", "failures": ["package_missing"]}

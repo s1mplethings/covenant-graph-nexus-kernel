@@ -20,6 +20,49 @@ import scripts.telegram_live_bridge as bridge
 
 
 class ProviderPostBuildFinalizeTests(unittest.TestCase):
+    def test_canonical_playwright_visual_satisfies_screenshot_without_provider_ui_image(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project = root / "project"
+            project.mkdir()
+            (project / "index.html").write_text(
+                "<main><h1>Canonical browser capture</h1><button>Run</button></main>\n",
+                encoding="utf-8",
+            )
+            (project / "README.md").write_text("# Browser capture\n", encoding="utf-8")
+            (project / "tests").mkdir()
+            (project / "tests" / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+            session_dir = root / "sessions"
+            session = bridge.default_session("chat-canonical-browser-only")
+            session["messages"].append(
+                {
+                    "role": "user",
+                    "text": "做一个网页并交付真实界面截图",
+                    "created_at": bridge.now(),
+                }
+            )
+            session["whiteboard"]["delivery_requirements"] = ["界面截图"]
+
+            result = bridge.post_build_finalize_provider_project(
+                project,
+                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                {"copied": {}},
+                session,
+                session_dir=session_dir,
+                chat_id="chat-canonical-browser-only",
+            )
+
+            self.assertFalse(result["image_result"].get("ui_screenshot"))
+            self.assertEqual([], result["image_result"]["missing"])
+            self.assertEqual("PASS", result["visual_evidence_result"]["status"], result["visual_evidence_result"])
+            self.assertEqual("PASS", result["manifest"]["status"], result["manifest"])
+            self.assertTrue(result["manifest"]["visual_evidence_ref"])
+            self.assertEqual(
+                canonical_evidence_hash.sha256_file(result["manifest"]["visual_evidence_ref"]),
+                result["manifest"]["visual_evidence_hash"],
+            )
+            self.assertEqual("PASS", result["gate"]["canonical_package_inspection"]["status"], result["gate"])
+
     def test_entrypoint_and_dependency_repairs_are_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "project"
