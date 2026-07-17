@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
 import scripts.browser_visual_evidence as browser_visual_evidence
+import scripts.canonical_delivery_manifest as canonical_delivery_manifest
 import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
@@ -807,6 +808,74 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertFalse(any(item["kind"] == "package" for item in sent))
         self.assertNotIn(saved["generation"]["status"], {"delivered", "delivered_with_warnings"})
         self.assertEqual("final_package_send_failed", saved["generation"]["delivery_gate"]["delivery_send_diagnostic"]["reason"])
+
+    def test_package_tamper_short_circuits_adaptive_agent(self) -> None:
+        called = {"agent": False}
+
+        def agent(_messages):
+            called["agent"] = True
+            return {"verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project, manifest = make_media_project_without_browser_evidence(root, media="background")
+            package = pathlib.Path(manifest["package_path"])
+            package.write_bytes(package.read_bytes() + b"tampered")
+            session = requirement_session("chat-package-tamper", "只需要生成背景 background")
+
+            gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final", agent=agent)
+
+        self.assertFalse(called["agent"])
+        self.assertFalse(gate["delivery_allowed"])
+        self.assertEqual("canonical_delivery_manifest", gate["judgment_source"])
+        self.assertIn("package_sha256_mismatch", gate["canonical_package_inspection"]["failures"])
+
+    def test_gate_and_sender_do_not_modify_frozen_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_media_project_without_browser_evidence(root, media="background")
+            manifest_path = pathlib.Path(manifest["manifest_path"])
+            frozen = manifest_path.read_bytes()
+            session = requirement_session("chat-frozen-manifest", "只需要生成背景 background")
+            bridge.save_session(session_dir, session)
+
+            gate = bridge.evaluate_public_delivery_gate(
+                project,
+                manifest,
+                session,
+                phase="final",
+                agent=lambda _messages: {
+                    "verdict": "ASK_USER_REVIEW",
+                    "delivery_allowed": True,
+                    "is_final": False,
+                    "confidence": 0.9,
+                    "reasons": [],
+                    "user_visible_warnings": [],
+                    "required_repairs": [],
+                    "can_send_artifacts": ["package", "background"],
+                    "must_not_claim": [],
+                },
+            )
+            self.assertEqual(frozen, manifest_path.read_bytes())
+            original_gate = bridge.evaluate_public_delivery_gate
+            bridge.evaluate_public_delivery_gate = lambda *args, **kwargs: gate
+            try:
+                bridge.send_delivery_from_manifest(
+                    FakeTelegramClient(),
+                    "chat-frozen-manifest",
+                    session_dir,
+                    session,
+                    manifest,
+                )
+            finally:
+                bridge.evaluate_public_delivery_gate = original_gate
+
+            self.assertEqual(frozen, manifest_path.read_bytes())
+            self.assertEqual(
+                "PASS",
+                canonical_delivery_manifest.inspect_canonical_delivery_manifest(project, manifest)["status"],
+            )
 
 
 if __name__ == "__main__":

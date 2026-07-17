@@ -221,6 +221,21 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("final_message", finish)
         self.assertNotIn("final_message", evidence)
 
+    def test_final_delivery_recomputes_canonical_package_without_mutating_manifest(self) -> None:
+        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        packager_source = read_source("scripts/local_packager.py")
+        canonical_source = read_source("scripts/canonical_delivery_manifest.py")
+        gate = function_body(bridge_source, "evaluate_public_delivery_gate")
+        sender = function_body(bridge_source, "send_delivery_from_manifest")
+
+        self.assertIn("canonical_delivery_manifest.build_canonical_package", packager_source)
+        self.assertIn("inspect_canonical_delivery_manifest", gate)
+        self.assertIn("inspect_canonical_delivery_manifest", sender)
+        self.assertNotIn("write_json(manifest_path, manifest)", sender)
+        self.assertIn("candidate_source_hash", canonical_source)
+        self.assertIn("inspect_zip_entries", canonical_source)
+        self.assertIn('canonical_json_hash(manifest, ("artifact_hash",))', canonical_source)
+
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         manifest = pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
@@ -347,7 +362,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("never generating fallback media", doc)
         self.assertIn("run_simulator_preflight", bridge_source)
         self.assertNotIn("create_fallback_generated_asset", bridge_source)
-        self.assertIn('"archive_members"', packager_source)
+        self.assertIn("build_canonical_package", packager_source)
+        self.assertIn('"inclusion_manifest"', read_source("scripts/canonical_delivery_manifest.py"))
         self.assertIn('"startup_entrypoint"', packager_source)
 
 

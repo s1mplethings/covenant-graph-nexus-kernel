@@ -4,10 +4,13 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-import time
-import zipfile
 from datetime import datetime, timezone
 from typing import Any
+
+try:
+    from . import canonical_delivery_manifest
+except ImportError:
+    import canonical_delivery_manifest
 
 
 def now() -> str:
@@ -263,27 +266,6 @@ def package_project(
             warnings.append(f"效果预览文件未找到: {screenshot}")
         elif _is_placeholder_preview(screenshot):
             warnings.append("预览为占位示例，不算真实运行证据")
-    else:
-        warnings.append("本轮没有生成效果预览图，已先交付可运行项目文件")
-
-    package_path = target_dir / "final_project_bundle.zip"
-    tmp_package = target_dir / f"final_project_bundle.{int(time.time() * 1000)}.tmp"
-    archive_members: list[str] = []
-    with zipfile.ZipFile(tmp_package, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(project.rglob("*")):
-            if not path.is_file():
-                continue
-            rel_parts = set(path.relative_to(project).parts)
-            if rel_parts & {".cgnk_test_env", "__pycache__", ".pytest_cache"}:
-                continue
-            if path.resolve() in {package_path.resolve(), tmp_package.resolve()}:
-                continue
-            if path.name == "delivery_manifest.json" and path.parent.resolve() == target_dir.resolve():
-                continue
-            relative = path.relative_to(project)
-            zf.write(path, relative)
-            archive_members.append(str(relative).replace("\\", "/"))
-    tmp_package.replace(package_path)
 
     combined_limits = list(known_limits or []) + warnings
     entrypoint = _startup_entrypoint(project)
@@ -294,29 +276,26 @@ def package_project(
         for path in _preview_candidates(project)
         if not _is_placeholder_preview(path)
     ]
-    manifest = {
-        "kind": "CGNKDeliveryManifest",
-        "created_at": now(),
-        "status": "ready_with_warnings" if combined_limits else "ready",
-        "project_dir": str(project),
-        "package_path": str(package_path.resolve()),
-        "readme_path": str(readme.resolve()),
-        "startup_command": startup,
-        "run_log_path": str(run_log.resolve()),
-        "known_limits": combined_limits,
-        "quality_evidence": quality_evidence,
-        "user_review_evidence": user_review_evidence,
-        "artifacts": {
-            "readme": _relative_file(project, readme),
-            "startup_entrypoint": _relative_file(project, entrypoint) if entrypoint else "",
-            "test_plan": _relative_file(project, test_plan) if test_plan.is_file() else "",
-            "test_report": _relative_file(project, test_report) if test_report.is_file() else "",
-            "preview_evidence": preview_paths,
-            "delivery_zip": str(package_path.resolve()),
+    visual_required = bool(screenshot_path)
+    manifest = canonical_delivery_manifest.build_canonical_package(
+        project,
+        output_dir=target_dir,
+        startup_command=startup,
+        known_limits=combined_limits,
+        visual_required=visual_required,
+        extra_fields={
+            "readme_path": str(readme.resolve()),
+            "run_log_path": str(run_log.resolve()),
+            "quality_evidence": quality_evidence,
+            "user_review_evidence": user_review_evidence,
+            "artifacts": {
+                "readme": _relative_file(project, readme),
+                "startup_entrypoint": _relative_file(project, entrypoint) if entrypoint else "",
+                "test_plan": _relative_file(project, test_plan) if test_plan.is_file() else "",
+                "test_report": _relative_file(project, test_report) if test_report.is_file() else "",
+                "preview_evidence": preview_paths,
+                "delivery_zip": str((target_dir / "final_project_bundle.zip").resolve()),
+            },
         },
-        "archive_members": archive_members,
-    }
-    manifest_path = target_dir / "delivery_manifest.json"
-    manifest["manifest_path"] = str(manifest_path.resolve())
-    _write_json(manifest_path, manifest)
+    )
     return manifest

@@ -34,6 +34,7 @@ import agent_conversation_loop
 import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
+import canonical_delivery_manifest
 import canonical_media_validation
 import customer_runtime_runner
 import dynamic_pipeline_runner
@@ -1972,6 +1973,7 @@ def evaluate_public_delivery_gate(
             "quality_evidence": quality,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
+    package_inspection: dict[str, Any] = {"status": "NOT_EVALUATED", "failures": []}
     facts = delivery_fact_check(
         project,
         manifest,
@@ -2035,6 +2037,38 @@ def evaluate_public_delivery_gate(
             "quality_evidence": quality,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
+    if phase == "final":
+        package_inspection = canonical_delivery_manifest.inspect_canonical_delivery_manifest(
+            project,
+            manifest,
+            visual_required=browser_visual_required,
+        )
+        if package_inspection.get("status") != "PASS":
+            return {
+                "verdict": "NEEDS_REWORK",
+                "status": "NEEDS_REWORK",
+                "phase": phase,
+                "delivery_allowed": False,
+                "is_final": False,
+                "confidence": 1.0,
+                "reasons": ["canonical final package failed"],
+                "user_visible_warnings": [],
+                "required_repairs": package_inspection.get("failures", []),
+                "can_send_artifacts": [],
+                "must_not_claim": ["final package integrity passed", "final delivery ready"],
+                "judgment_source": "canonical_delivery_manifest",
+                "canonical_evidence_gate": canonical_gate,
+                "canonical_package_inspection": package_inspection,
+                "media_validation": media_validation,
+                "missing": package_inspection.get("failures", []),
+                "warnings": facts.get("warnings", []),
+                "requirements": requirements,
+                "browser_visual_required": browser_visual_required,
+                "media_evidence_required": media_evidence_required,
+                "asset_counts": {key: len(value) for key, value in assets.items()},
+                "quality_evidence": quality,
+                "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
+            }
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     test_report_path = project / "TEST_REPORT.md"
     test_report = test_report_path.read_text(encoding="utf-8", errors="replace") if test_report_path.is_file() else ""
@@ -2063,6 +2097,7 @@ def evaluate_public_delivery_gate(
             "media_validation": media_validation,
             "quality_evidence": quality,
             "canonical_evidence_gate": canonical_gate,
+            "canonical_package_inspection": package_inspection,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
     )
@@ -2565,32 +2600,27 @@ def send_delivery_from_manifest(
     sent: list[dict[str, Any]] = []
     project_dir = pathlib.Path(str(manifest.get("project_dir", ""))).resolve()
     gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
-    manifest["delivery_allowed"] = bool(gate.get("delivery_allowed"))
-    manifest["delivery_gate"] = gate
-    manifest["delivery_fact_check"] = gate.get("delivery_fact_check", {})
-    manifest["agent_delivery_judgment"] = {
-        key: gate.get(key)
-        for key in (
-            "verdict",
-            "delivery_allowed",
-            "is_final",
-            "confidence",
-            "reasons",
-            "user_visible_warnings",
-            "required_repairs",
-            "can_send_artifacts",
-            "must_not_claim",
-            "judgment_source",
-        )
-    }
-    manifest_path = _evidence_path(str(manifest.get("manifest_path", "")))
-    if manifest_path:
-        try:
-            write_json(manifest_path, manifest)
-        except Exception:
-            pass
     if not gate.get("delivery_allowed"):
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        return []
+    package_inspection = canonical_delivery_manifest.inspect_canonical_delivery_manifest(
+        project_dir,
+        manifest,
+        visual_required=bool(gate.get("browser_visual_required")),
+    )
+    if package_inspection.get("status") != "PASS":
+        failed_gate = dict(gate)
+        failed_gate.update(
+            {
+                "verdict": "NEEDS_REWORK",
+                "status": "NEEDS_REWORK",
+                "delivery_allowed": False,
+                "is_final": False,
+                "required_repairs": package_inspection.get("failures", []),
+                "canonical_package_inspection": package_inspection,
+            }
+        )
+        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
         return []
     session = load_session(session_dir, chat_id)
     assets = collect_public_delivery_assets(project_dir, manifest)
@@ -2618,14 +2648,6 @@ def send_delivery_from_manifest(
                 "delivery_send_diagnostic": diagnostic,
             }
         )
-        manifest["delivery_allowed"] = False
-        manifest["delivery_gate"] = failed_gate
-        manifest["delivery_send_diagnostic"] = diagnostic
-        if manifest_path:
-            try:
-                write_json(manifest_path, manifest)
-            except Exception:
-                pass
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
         return sent
     send_customer_reply(
@@ -6501,11 +6523,6 @@ def post_build_finalize_provider_project(
         screenshot_path=screenshot_path if screenshot_path.exists() else None,
         known_limits=delivery_limits,
     )
-    manifest["provider_result"] = {
-        "status": provider_result.get("status", ""),
-        "provider": provider_result.get("provider", {}),
-        "provider_semantic_review": provider_result.get("provider_semantic_review", {}),
-    }
     gate = evaluate_public_delivery_gate(
         project_dir,
         manifest,
@@ -6514,25 +6531,6 @@ def post_build_finalize_provider_project(
         provider_result=provider_result,
     )
     gate["missing_config"] = missing_config
-    manifest["delivery_fact_check"] = gate.get("delivery_fact_check", {})
-    manifest["agent_delivery_judgment"] = {
-        key: gate.get(key)
-        for key in (
-            "verdict",
-            "delivery_allowed",
-            "is_final",
-            "confidence",
-            "reasons",
-            "user_visible_warnings",
-            "required_repairs",
-            "can_send_artifacts",
-            "must_not_claim",
-            "judgment_source",
-        )
-    }
-    manifest_path_value = str(manifest.get("manifest_path", "")).strip()
-    if manifest_path_value:
-        write_json(pathlib.Path(manifest_path_value), manifest)
     return {
         "test_result": test_result,
         "runtime_result": runtime_result,
