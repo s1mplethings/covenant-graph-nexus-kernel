@@ -123,6 +123,10 @@ def create_review_request_snapshot(
         return {"status": "NEEDS_REWORK", "failures": sorted(set(failures))}
     requested = now()
     roles = list(dict.fromkeys(required_presentation_roles or (["screenshot"] if visual_required else ["nonvisual_summary"])))
+    if visual_required and "screenshot" not in roles:
+        return {"status": "NEEDS_REWORK", "failures": ["visual_screenshot_role_missing"]}
+    if not visual_required and "screenshot" in roles:
+        return {"status": "NEEDS_REWORK", "failures": ["unexpected_visual_binding"]}
     document: dict[str, Any] = {
         "kind": "CGKNUserReviewRequest", "schema_version": SCHEMA_VERSION, **identity,
         "producer": "scripts/canonical_user_review.py", "created_at": requested, "status": "waiting_user_review",
@@ -130,6 +134,7 @@ def create_review_request_snapshot(
         "chat_id": str(chat_id), "expected_reviewer_user_id": str(expected_reviewer_user_id),
         "replay_ledger_ref": str(pathlib.Path(replay_ledger_path).resolve()) if replay_ledger_path else str((project / REPLAY_LEDGER_FILE).resolve()),
         "reviewed_evidence": records, "reviewed_evidence_hashes": [item["hash"] for item in records],
+        "visual_required": bool(visual_required),
         "required_presentation_roles": roles, "presented_artifacts": [],
         "requirement_snapshot": requirement_snapshot, "requested_at": requested, "presented_at": "",
         "presentation_succeeded": False,
@@ -166,7 +171,12 @@ def mark_review_request_presented(
                     screenshot_matches = path.resolve() == pathlib.Path(str(visual.get("screenshot_path", ""))).resolve()
                 except OSError:
                     screenshot_matches = False
-                if not screenshot_matches or visual.get("screenshot_hash") != digest:
+                if (
+                    not disk.get("visual_required")
+                    or not screenshot_matches
+                    or visual.get("screenshot_hash") != digest
+                    or canonical_media_validation.validate_image(path, project, requested_role="screenshot").get("status") != "PASS"
+                ):
                     continue
             elif kind in {"background", "sprite", "generated_image", "video"}:
                 if canonical_media_validation.validate_media(path, project, requested_role=kind).get("status") != "PASS":
@@ -208,6 +218,8 @@ def inspect_user_review_request(project_dir: str | pathlib.Path, *, require_pres
         return {"status": "NEEDS_REWORK", "failures": ["user_review_request_missing"], "details": {}}
     if document.get("kind") != "CGKNUserReviewRequest" or document.get("schema_version") != SCHEMA_VERSION:
         failures.append("request_contract")
+    if not isinstance(document.get("visual_required"), bool):
+        failures.append("visual_required_invalid")
     if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
         failures.append("request_artifact_hash")
     for key in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "review_request_id", "chat_id", "expected_reviewer_user_id", "replay_ledger_ref"):
@@ -221,7 +233,8 @@ def inspect_user_review_request(project_dir: str | pathlib.Path, *, require_pres
             failures.append("request_not_presented")
         if presented is None or (requested and requested > presented):
             failures.append("presented_at_invalid")
-    records, identity, evidence_failures = _evidence(project, any(x == "visual_evidence" for x in document.get("reviewed_evidence", [])))
+    visual_required = document.get("visual_required") is True
+    records, identity, evidence_failures = _evidence(project, visual_required)
     failures.extend(evidence_failures)
     if records != document.get("reviewed_evidence") or [x["hash"] for x in records] != document.get("reviewed_evidence_hashes"):
         failures.append("request_evidence_changed")
@@ -229,6 +242,13 @@ def inspect_user_review_request(project_dir: str | pathlib.Path, *, require_pres
         if document.get(key) != identity.get(key):
             failures.append(f"request_identity:{key}")
     roles = set(document.get("required_presentation_roles", []))
+    if visual_required and "screenshot" not in roles:
+        failures.append("visual_screenshot_role_missing")
+    if not visual_required and (
+        "screenshot" in roles
+        or any(item.get("kind") == "visual_evidence" for item in document.get("reviewed_evidence", []) if isinstance(item, dict))
+    ):
+        failures.append("unexpected_visual_binding")
     artifacts = document.get("presented_artifacts", [])
     if not isinstance(artifacts, list):
         failures.append("presented_artifacts_invalid")
@@ -252,6 +272,8 @@ def inspect_user_review_request(project_dir: str | pathlib.Path, *, require_pres
                     screenshot_matches = False
                 if not screenshot_matches or visual.get("screenshot_hash") != item.get("sha256"):
                     failures.append("presented_artifact_not_canonical:screenshot")
+                if canonical_media_validation.validate_image(artifact, project, requested_role="screenshot").get("status") != "PASS":
+                    failures.append("presented_artifact_not_decodable:screenshot")
             elif kind in {"background", "sprite", "generated_image", "video"}:
                 if canonical_media_validation.validate_media(artifact, project, requested_role=kind).get("status") != "PASS":
                     failures.append(f"presented_artifact_not_canonical:{kind}")
@@ -322,6 +344,7 @@ def record_user_review_approval(
         **{key: disk[key] for key in ("run_id", "candidate_id", "candidate_hash", "commit_sha")},
         "producer": "scripts/canonical_user_review.py", "created_at": reviewed_at, "status": "PASS", "artifact_hash": "",
         "review_required": True, "review_request_id": disk["review_request_id"],
+        "visual_required": disk["visual_required"],
         "review_request_ref": str((project / REQUEST_FILE).resolve()),
         "review_request_hash": canonical_evidence_hash.sha256_file(project / REQUEST_FILE),
         "review_event_id": f"telegram:{context['chat_id']}:{context['message_id']}",
@@ -361,6 +384,8 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         failures.append("review_contract")
     if document.get("review_required") is not True or document.get("decision") != "APPROVED" or document.get("channel") != "telegram":
         failures.append("review_decision")
+    if not isinstance(document.get("visual_required"), bool):
+        failures.append("review_visual_required_invalid")
     if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
         failures.append("artifact_hash_mismatch")
     request_inspection = inspect_user_review_request(project)
@@ -378,6 +403,8 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         failures.append("reviewer_mismatch")
     if document.get("chat_id") != request.get("chat_id"):
         failures.append("chat_id_mismatch")
+    if document.get("visual_required") != request.get("visual_required"):
+        failures.append("review_visual_requirement_mismatch")
     for key in ("telegram_update_id", "telegram_message_id"):
         if not str(document.get(key, "")).strip():
             failures.append(f"missing:{key}")
@@ -399,9 +426,10 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
     kinds = [item.get("kind") for item in records if isinstance(item, dict)]
     if len(kinds) != len(set(kinds)):
         failures.append("reviewed_evidence_duplicate")
-    if not {"test_execution", "customer_runtime"} <= set(kinds):
+    expected_kinds = {"test_execution", "customer_runtime"} | ({"visual_evidence"} if request.get("visual_required") is True else set())
+    if set(kinds) != expected_kinds:
         failures.append("required_reviewed_evidence")
-    expected_records, identity, evidence_failures = _evidence(project, "visual_evidence" in kinds)
+    expected_records, identity, evidence_failures = _evidence(project, request.get("visual_required") is True)
     failures.extend(evidence_failures)
     if records != expected_records or document.get("reviewed_evidence_hashes") != [x["hash"] for x in expected_records]:
         failures.append("reviewed_evidence_changed")

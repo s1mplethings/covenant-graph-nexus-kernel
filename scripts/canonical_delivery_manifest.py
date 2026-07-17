@@ -45,6 +45,7 @@ RESERVED_FIELDS = {
     "customer_runtime_hash",
     "visual_evidence_ref",
     "visual_evidence_hash",
+    "visual_required",
     "user_review_required",
     "user_review_request_ref",
     "user_review_request_hash",
@@ -287,6 +288,13 @@ def build_canonical_package(
     }
     if user_review_required and review_inspection.get("status") != "PASS":
         failures.extend(review_inspection.get("failures", ["user_review_not_pass"]))
+    if user_review_required:
+        review_details = review_inspection.get("details", {}) if isinstance(review_inspection.get("details"), dict) else {}
+        request_details = canonical_user_review.inspect_user_review_request(project).get("details", {})
+        if review_details.get("visual_required") is not bool(visual_required):
+            failures.append("user_review_visual_requirement_mismatch")
+        if not isinstance(request_details, dict) or request_details.get("visual_required") is not bool(visual_required):
+            failures.append("user_review_request_visual_requirement_mismatch")
     review_path = project / canonical_user_review.REVIEW_FILE
     review_request_path = project / canonical_user_review.REQUEST_FILE
     if identity.get("candidate_hash") != before_source_hash:
@@ -344,6 +352,7 @@ def build_canonical_package(
         "customer_runtime_hash": runtime_record["hash"],
         "visual_evidence_ref": visual_record["ref"] if visual_required else "",
         "visual_evidence_hash": visual_record["hash"] if visual_required else "",
+        "visual_required": bool(visual_required),
         "user_review_required": bool(user_review_required),
         "user_review_request_ref": str(review_request_path.resolve()) if user_review_required and review_request_path.is_file() else "",
         "user_review_request_hash": canonical_evidence_hash.sha256_file(review_request_path) if user_review_required and review_request_path.is_file() else "",
@@ -466,7 +475,9 @@ def inspect_canonical_delivery_manifest(
     if not isinstance(declared_entries, list) or declared_entries != zip_result.get("entries"):
         failures.append("package_entry_manifest_mismatch")
     if visual_required is None:
-        visual_required = bool(document.get("visual_evidence_ref"))
+        visual_required = bool(document.get("visual_required"))
+    if document.get("visual_required") is not bool(visual_required):
+        failures.append("visual_requirement_mismatch")
     if user_review_required is None:
         user_review_required = bool(document.get("user_review_required"))
     if bool(document.get("user_review_required")) != bool(user_review_required):
@@ -500,6 +511,7 @@ def inspect_canonical_delivery_manifest(
         request_path = project / canonical_user_review.REQUEST_FILE
         review_path = project / canonical_user_review.REVIEW_FILE
         review_details = review_inspection.get("details", {}) if isinstance(review_inspection.get("details"), dict) else {}
+        request_details = request_inspection.get("details", {}) if isinstance(request_inspection.get("details"), dict) else {}
         if request_inspection.get("status") != "PASS":
             failures.extend(request_inspection.get("failures", ["user_review_request_not_pass"]))
         if document.get("user_review_request_ref") != str(request_path.resolve()):
@@ -514,6 +526,10 @@ def inspect_canonical_delivery_manifest(
             failures.append("user_review_hash")
         if review_details.get("reviewed_candidate_hash") != document.get("candidate_hash"):
             failures.append("user_review_candidate_hash")
+        if request_details.get("visual_required") is not bool(visual_required):
+            failures.append("user_review_request_visual_requirement_mismatch")
+        if review_details.get("visual_required") is not bool(visual_required):
+            failures.append("user_review_visual_requirement_mismatch")
         for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
             if review_details.get(field) != document.get(field):
                 failures.append(f"user_review_identity:{field}")

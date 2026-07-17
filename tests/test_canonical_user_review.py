@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from scripts import canonical_delivery_manifest
 from scripts import canonical_evidence_hash
 from scripts import canonical_user_review
+from scripts import browser_visual_evidence
 from scripts import customer_runtime_runner
 from scripts import local_packager
 from scripts import real_test_execution
@@ -432,7 +433,7 @@ def test_forged_but_self_hashed_reviews_are_independently_rejected() -> None:
 
 
 def test_required_presentation_roles_are_backed_by_actual_sent_artifacts() -> None:
-    for role in ("screenshot", "background", "sprite", "generated_image", "video"):
+    for role in ("background", "sprite", "generated_image", "video"):
         with tempfile.TemporaryDirectory() as temp:
             project = make_project(pathlib.Path(temp))
             request = canonical_user_review.create_review_request_snapshot(
@@ -499,7 +500,7 @@ def test_checkpoint_sender_uses_actual_attachment_results_for_required_roles() -
     bridge.filter_delivery_items_by_judgment = lambda items, _gate: items
     bridge.emit_public_delivery = lambda *args, **kwargs: []
     try:
-        for role in ("screenshot", "background", "sprite", "generated_image", "video"):
+        for role in ("background", "sprite", "generated_image", "video"):
             with tempfile.TemporaryDirectory() as temp:
                 root = pathlib.Path(temp)
                 project = make_project(root)
@@ -537,3 +538,241 @@ def test_checkpoint_sender_uses_actual_attachment_results_for_required_roles() -
             bridge.filter_delivery_items_by_judgment,
             bridge.emit_public_delivery,
         ) = originals
+
+
+def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        project = pathlib.Path(temp) / "visual-project"
+        project.mkdir()
+        (project / "index.html").write_text("<main><h1>Visual review</h1></main>\n", encoding="utf-8")
+        (project / "README.md").write_text("# Visual review\n", encoding="utf-8")
+        (project / "DELIVERY_NOTES.md").write_text("# Delivery\n", encoding="utf-8")
+        (project / "tests").mkdir()
+        (project / "tests" / "test_app.py").write_text("def test_ok(): assert True\n", encoding="utf-8")
+        candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+        identity = {
+            "run_id": "run-visual-review",
+            "candidate_id": "candidate-visual-review",
+            "candidate_hash": candidate_hash,
+            "commit_sha": "commit-visual-review",
+        }
+        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+        runtime = customer_runtime_runner.run(
+            project,
+            **identity,
+            live_consumer=browser_visual_evidence.capture_live_runtime,
+            browser_capture_required=True,
+        )
+        visual = browser_visual_evidence.finalize_evidence(
+            project,
+            runtime_result=runtime,
+            capture_receipt=runtime["browser_capture_receipt"],
+            required=True,
+        )
+        assert visual["status"] == "PASS"
+        missing_role_request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["screenshot required"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary"],
+        )
+        assert missing_role_request["status"] == "NEEDS_REWORK"
+        assert "visual_screenshot_role_missing" in missing_role_request["failures"]
+        failed_request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["screenshot required"],
+            visual_required=True,
+            required_presentation_roles=["screenshot"],
+        )
+        failed_request = canonical_user_review.mark_review_request_presented(
+            project, failed_request, presented_artifacts=[]
+        )
+        assert failed_request["status"] == "presentation_failed"
+        request = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-visual",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["screenshot required"],
+            visual_required=True,
+            required_presentation_roles=["screenshot"],
+        )
+        assert {item["kind"] for item in request["reviewed_evidence"]} == {
+            "test_execution", "customer_runtime", "visual_evidence",
+        }
+        screenshot = pathlib.Path(visual["screenshot_path"])
+        request = canonical_user_review.mark_review_request_presented(
+            project,
+            request,
+            presented_artifacts=[{
+                "kind": "screenshot",
+                "ref": str(screenshot),
+                "sha256": canonical_evidence_hash.sha256_file(screenshot),
+                "sent": True,
+                "presented_at": canonical_user_review.now(),
+            }],
+        )
+        assert request["status"] == "presented"
+        inspection = canonical_user_review.inspect_user_review_request(project)
+        assert inspection["status"] == "PASS", inspection
+        review = canonical_user_review.record_user_review_approval(
+            project,
+            request,
+            "我确认这个版本，可以最终打包",
+            context(chat_id="group-visual"),
+        )
+        assert review["status"] == "PASS", review
+        assert review["visual_required"] is True
+        assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "PASS"
+        manifest = local_packager.package_project(
+            project,
+            visual_required=True,
+            user_review_required=True,
+        )
+        assert manifest["status"] == "PASS", manifest
+        assert canonical_delivery_manifest.inspect_canonical_delivery_manifest(
+            project,
+            manifest,
+            visual_required=True,
+            user_review_required=True,
+        )["status"] == "PASS"
+        session = bridge.default_session("group-visual")
+        session["whiteboard"]["project_summary"] = "需要真实界面截图"
+        session["pending_evidence_checkpoint"] = request | {"status": "approved"}
+        adaptive_called: list[bool] = []
+        gate = bridge.evaluate_public_delivery_gate(
+            project,
+            manifest,
+            session,
+            phase="final",
+            agent=lambda _messages: adaptive_called.append(True) or {
+                "verdict": "PASS_FINAL",
+                "delivery_allowed": True,
+                "is_final": True,
+                "confidence": 1.0,
+                "reasons": ["canonical visual review passed"],
+                "user_visible_warnings": [],
+                "required_repairs": [],
+                "can_send_artifacts": [manifest["package_path"], visual["screenshot_path"]],
+                "must_not_claim": [],
+            },
+        )
+        assert gate["delivery_allowed"] is True, gate
+        assert gate["canonical_package_inspection"]["status"] == "PASS"
+        assert adaptive_called == [True]
+        screenshot_bytes = screenshot.read_bytes()
+        screenshot.write_bytes(screenshot_bytes + b"changed")
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "NEEDS_REWORK"
+        blocked_agent: list[bool] = []
+        blocked_gate = bridge.evaluate_public_delivery_gate(
+            project,
+            manifest,
+            session,
+            phase="final",
+            agent=lambda _messages: blocked_agent.append(True) or {
+                "verdict": "PASS_FINAL", "delivery_allowed": True, "is_final": True,
+                "confidence": 1.0, "reasons": [], "user_visible_warnings": [],
+                "required_repairs": [], "can_send_artifacts": [], "must_not_claim": [],
+            },
+        )
+        assert blocked_gate["status"] == "NEEDS_REWORK"
+        assert blocked_agent == []
+        screenshot.write_bytes(screenshot_bytes)
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "PASS"
+        visual_path = project / "visual_evidence.json"
+        visual_bytes = visual_path.read_bytes()
+        visual_path.write_bytes(visual_bytes + b" ")
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        visual_path.write_bytes(visual_bytes)
+        mismatched_visual = json.loads(visual_bytes.decode("utf-8"))
+        mismatched_visual["screenshot_hash"] = "sha256:" + "0" * 64
+        mismatched_visual["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(
+            mismatched_visual, ("artifact_hash",)
+        )
+        visual_path.write_text(
+            json.dumps(mismatched_visual, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        visual_path.write_bytes(visual_bytes)
+        request_doc = json.loads((project / "user_review_request.json").read_text(encoding="utf-8"))
+        request_doc["visual_required"] = False
+        request_doc["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(request_doc, ("artifact_hash",))
+        (project / "user_review_request.json").write_text(
+            json.dumps(request_doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "NEEDS_REWORK"
+        assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "NEEDS_REWORK"
+        execution_root = pathlib.Path(runtime["execution_root"])
+        assert runtime["shutdown_result"]["stopped"] is True
+        assert runtime["cleanup_result"]["removed"] is True
+        assert not execution_root.exists()
+
+
+def test_nonvisual_request_rejects_visual_scope_injection_and_old_screenshot_does_not_promote() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        project = make_project(pathlib.Path(temp))
+        screenshots = project / "screenshots"
+        screenshots.mkdir()
+        (screenshots / "old.png").write_bytes(b"not canonical visual evidence")
+        candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+        identity = {
+            "run_id": "run-review", "candidate_id": "candidate-review",
+            "candidate_hash": candidate_hash, "commit_sha": "commit-review",
+        }
+        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+        assert customer_runtime_runner.run(project, **identity)["status"] == "PASS"
+        request = request_for(project)
+        assert request["visual_required"] is False
+        assert {item["kind"] for item in request["reviewed_evidence"]} == {
+            "test_execution", "customer_runtime",
+        }
+        assert canonical_user_review.inspect_user_review_request(project)["status"] == "PASS"
+        forged = json.loads((project / "user_review_request.json").read_text(encoding="utf-8"))
+        forged["required_presentation_roles"].append("screenshot")
+        forged["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(forged, ("artifact_hash",))
+        (project / "user_review_request.json").write_text(
+            json.dumps(forged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        inspection = canonical_user_review.inspect_user_review_request(project)
+        assert inspection["status"] == "NEEDS_REWORK"
+        assert "unexpected_visual_binding" in inspection["failures"]
+        forged["required_presentation_roles"] = ["nonvisual_summary"]
+        forged["reviewed_evidence"].append({
+            "kind": "visual_evidence",
+            "ref": str((project / "visual_evidence.json").resolve()),
+            "hash": "sha256:" + "0" * 64,
+        })
+        forged["reviewed_evidence_hashes"].append("sha256:" + "0" * 64)
+        forged["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(forged, ("artifact_hash",))
+        (project / "user_review_request.json").write_text(
+            json.dumps(forged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        inspection = canonical_user_review.inspect_user_review_request(project)
+        assert inspection["status"] == "NEEDS_REWORK"
+        assert "unexpected_visual_binding" in inspection["failures"]
+
+
+def test_visual_request_requires_visual_evidence_and_screenshot_role() -> None:
+    with tempfile.TemporaryDirectory() as temp:
+        project = make_project(pathlib.Path(temp))
+        missing_visual = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-1",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["visual"],
+            visual_required=True,
+        )
+        assert missing_visual["status"] == "NEEDS_REWORK"
+        missing_role = canonical_user_review.create_review_request_snapshot(
+            project,
+            chat_id="group-1",
+            expected_reviewer_user_id=303,
+            requirement_snapshot=["visual"],
+            visual_required=True,
+            required_presentation_roles=["nonvisual_summary"],
+        )
+        assert missing_role["status"] == "NEEDS_REWORK"

@@ -5,7 +5,7 @@
   "required": [
     "kind", "schema_version", "run_id", "candidate_id", "candidate_hash", "commit_sha",
     "producer", "created_at", "status", "artifact_hash", "review_request_id", "project_dir",
-    "chat_id", "expected_reviewer_user_id", "replay_ledger_ref", "reviewed_evidence", "reviewed_evidence_hashes",
+    "chat_id", "expected_reviewer_user_id", "replay_ledger_ref", "reviewed_evidence", "reviewed_evidence_hashes", "visual_required",
     "required_presentation_roles", "presented_artifacts", "requirement_snapshot", "requested_at",
     "presented_at", "presentation_succeeded"
   ],
@@ -18,6 +18,7 @@
     "replay_ledger_ref": { "type": "string", "minLength": 1 },
     "reviewed_evidence": { "type": "array", "minItems": 2, "items": { "type": "object" } },
     "reviewed_evidence_hashes": { "type": "array", "minItems": 2, "items": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } },
+    "visual_required": { "type": "boolean" },
     "required_presentation_roles": { "type": "array", "minItems": 1, "items": { "type": "string" } },
     "presented_artifacts": { "type": "array", "items": { "type": "object" } },
     "requested_at": { "type": "string", "minLength": 1 },

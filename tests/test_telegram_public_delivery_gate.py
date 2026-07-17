@@ -792,6 +792,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
                 "can_send_artifacts": [],
                 "missing": [],
                 "warnings": [],
+                "browser_visual_required": True,
             }
             try:
                 sent = bridge.send_delivery_from_manifest(FakeTelegramClient(), "chat-empty-send", session_dir, session, manifest)

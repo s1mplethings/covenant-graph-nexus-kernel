@@ -14,6 +14,7 @@
     "status",
     "artifact_hash",
     "review_required",
+    "visual_required",
     "review_request_id",
     "review_request_ref",
     "review_request_hash",
@@ -36,6 +37,7 @@
   "properties": {
     "kind": { "const": "CGKNUserReviewEvidence" },
     "review_required": { "type": "boolean" },
+    "visual_required": { "type": "boolean" },
     "review_request_id": { "type": "string", "minLength": 1 },
     "review_request_ref": { "type": "string", "minLength": 1 },
     "review_request_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
