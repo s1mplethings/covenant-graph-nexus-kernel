@@ -22,7 +22,7 @@ SCHEMA_VERSION = "1.0"
 FINAL_PACKAGE_NAME = "final_project_bundle.zip"
 MANIFEST_NAME = "delivery_manifest.json"
 _CACHE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
-_ROOT_TOOL_DIRS = {".git", ".venv", "venv", "env", ".env", ".cgnk_test_env", ".cgkn_test_env", "node_modules"}
+_ROOT_TOOL_DIRS = {".git", ".venv", "venv", "env", ".env", ".cgnk_test_env", ".cgkn_test_env", "node_modules", ".cgkn_review_history"}
 _TEMP_SUFFIXES = {".tmp", ".pyc"}
 _OLD_DELIVERY_RE = re.compile(r"^final_project_bundle(?:[._-].*)?\.zip$", re.I)
 RESERVED_FIELDS = {
@@ -45,6 +45,11 @@ RESERVED_FIELDS = {
     "customer_runtime_hash",
     "visual_evidence_ref",
     "visual_evidence_hash",
+    "user_review_required",
+    "user_review_request_ref",
+    "user_review_request_hash",
+    "user_review_ref",
+    "user_review_hash",
     "project_dir",
     "package_path",
     "manifest_path",
@@ -91,7 +96,11 @@ def _is_excluded(relative: str) -> bool:
         return True
     if pure.suffix.lower() in _TEMP_SUFFIXES:
         return True
-    if relative in {MANIFEST_NAME, FINAL_PACKAGE_NAME, "packager_run_log.txt"}:
+    if relative in {
+        MANIFEST_NAME, FINAL_PACKAGE_NAME, "packager_run_log.txt",
+        canonical_user_review.REQUEST_FILE, canonical_user_review.REVIEW_FILE,
+        canonical_user_review.REPLAY_LEDGER_FILE,
+    }:
         return True
     return False
 
@@ -279,6 +288,7 @@ def build_canonical_package(
     if user_review_required and review_inspection.get("status") != "PASS":
         failures.extend(review_inspection.get("failures", ["user_review_not_pass"]))
     review_path = project / canonical_user_review.REVIEW_FILE
+    review_request_path = project / canonical_user_review.REQUEST_FILE
     if identity.get("candidate_hash") != before_source_hash:
         failures.append("source_tree_hash_candidate_hash_mismatch")
     limits = [str(item) for item in known_limits or [] if str(item).strip()]
@@ -335,6 +345,8 @@ def build_canonical_package(
         "visual_evidence_ref": visual_record["ref"] if visual_required else "",
         "visual_evidence_hash": visual_record["hash"] if visual_required else "",
         "user_review_required": bool(user_review_required),
+        "user_review_request_ref": str(review_request_path.resolve()) if user_review_required and review_request_path.is_file() else "",
+        "user_review_request_hash": canonical_evidence_hash.sha256_file(review_request_path) if user_review_required and review_request_path.is_file() else "",
         "user_review_ref": str(review_path.resolve()) if user_review_required and review_path.is_file() else "",
         "user_review_hash": canonical_evidence_hash.sha256_file(review_path) if user_review_required and review_path.is_file() else "",
         "project_dir": str(project),
@@ -483,9 +495,17 @@ def inspect_canonical_delivery_manifest(
         if document.get(field) != identity.get(field):
             failures.append(f"manifest_identity:{field}")
     if user_review_required:
+        request_inspection = canonical_user_review.inspect_user_review_request(project)
         review_inspection = canonical_user_review.inspect_user_review_evidence(project)
+        request_path = project / canonical_user_review.REQUEST_FILE
         review_path = project / canonical_user_review.REVIEW_FILE
         review_details = review_inspection.get("details", {}) if isinstance(review_inspection.get("details"), dict) else {}
+        if request_inspection.get("status") != "PASS":
+            failures.extend(request_inspection.get("failures", ["user_review_request_not_pass"]))
+        if document.get("user_review_request_ref") != str(request_path.resolve()):
+            failures.append("user_review_request_ref")
+        if not request_path.is_file() or document.get("user_review_request_hash") != canonical_evidence_hash.sha256_file(request_path):
+            failures.append("user_review_request_hash")
         if review_inspection.get("status") != "PASS":
             failures.extend(review_inspection.get("failures", ["user_review_not_pass"]))
         if document.get("user_review_ref") != str(review_path.resolve()):
@@ -497,7 +517,9 @@ def inspect_canonical_delivery_manifest(
         for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
             if review_details.get(field) != document.get(field):
                 failures.append(f"user_review_identity:{field}")
-    elif document.get("user_review_ref") or document.get("user_review_hash"):
+    elif any(document.get(field) for field in (
+        "user_review_request_ref", "user_review_request_hash", "user_review_ref", "user_review_hash"
+    )):
         failures.append("unexpected_user_review")
     return {
         "status": "PASS" if not failures else "NEEDS_REWORK",

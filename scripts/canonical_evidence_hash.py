@@ -21,6 +21,8 @@ ROOT_EVIDENCE_OUTPUT_NAMES = {
     "packager_run_log.txt",
     "final_project_bundle.zip",
     "user_review.json",
+    "user_review_request.json",
+    "user_review_replay_ledger.json",
 }
 EVIDENCE_OUTPUT_SUFFIXES = {".tmp", ".pyc"}
 ANY_DEPTH_CACHE_DIRS = {
@@ -38,6 +40,7 @@ ROOT_TOOL_DIRS = {
     ".cgnk_test_env",
     ".cgkn_test_env",
     "node_modules",
+    ".cgkn_review_history",
 }
 EVIDENCE_OUTPUT_RELATIVE_PATHS = {
     "screenshots/browser_visual_evidence.png",

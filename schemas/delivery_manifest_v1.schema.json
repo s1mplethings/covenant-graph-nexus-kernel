@@ -20,7 +20,11 @@
     "test_execution_hash",
     "customer_runtime_ref",
     "customer_runtime_hash",
-    "user_review_required"
+    "user_review_required",
+    "user_review_request_ref",
+    "user_review_request_hash",
+    "user_review_ref",
+    "user_review_hash"
   ],
   "properties": {
     "kind": { "const": "CGKNDeliveryManifest" },
@@ -35,6 +39,8 @@
     "visual_evidence_ref": { "type": "string" },
     "visual_evidence_hash": { "type": "string" },
     "user_review_required": { "type": "boolean" },
+    "user_review_request_ref": { "type": "string" },
+    "user_review_request_hash": { "type": "string" },
     "user_review_ref": { "type": "string" },
     "user_review_hash": { "type": "string" }
   },

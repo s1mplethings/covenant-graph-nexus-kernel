@@ -258,7 +258,7 @@ def package_project(
     if not quality_evidence["delivery_notes_found"]:
         warnings.append("未找到 DELIVERY_NOTES.md，本轮交付复核不足")
     preview_required = bool(visual_required or media_required)
-    canonical_review_required = bool(user_review_required or (project / "user_review.json").is_file())
+    canonical_review_required = bool(user_review_required)
     if preview_required and quality_evidence.get("preview_placeholder_found"):
         warnings.append("预览为占位示例，不算真实运行证据")
     if preview_required and not quality_evidence["preview_evidence_found"]:

@@ -2344,11 +2344,13 @@ def send_evidence_checkpoint(
     )
     session = load_session(session_dir, chat_id)
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
-    if not presentation_sent:
-        checkpoint = canonical_user_review.mark_review_request_presented(checkpoint, presented=False, evidence_kinds=[])
-        session["pending_evidence_checkpoint"] = checkpoint
-        save_session(session_dir, session)
-        return []
+    summary_artifact = {
+        "kind": "nonvisual_summary",
+        "ref": f"telegram:chat:{chat_id}:review-summary",
+        "sha256": canonical_evidence_hash.sha256_bytes(evidence_checkpoint_summary(evidence).encode("utf-8")),
+        "sent": True,
+        "presented_at": now(),
+    } if presentation_sent else None
     assets = collect_public_delivery_assets(project_dir, {}, evidence)
     items: list[tuple[pathlib.Path, str]] = []
     items.extend((path, "package") for path in assets["packages"][:1])
@@ -2363,17 +2365,21 @@ def send_evidence_checkpoint(
     items.extend((path, "video") for path in assets["videos"][:2])
     items = filter_delivery_items_by_judgment(items, gate)
     sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
-    presentation_ok = bool(
-        presentation_sent
-        and (
-            not checkpoint.get("visual_required")
-            or any(item.get("kind") == "screenshot" for item in sent)
-        )
-    )
+    presented_artifacts = ([summary_artifact] if summary_artifact else []) + [
+        {
+            "kind": str(item.get("kind", "")),
+            "ref": str(pathlib.Path(str(item.get("path", ""))).resolve()),
+            "sha256": canonical_evidence_hash.sha256_file(item["path"]),
+            "sent": True,
+            "presented_at": now(),
+        }
+        for item in sent
+        if item.get("path") and pathlib.Path(str(item["path"])).is_file()
+    ]
     checkpoint = canonical_user_review.mark_review_request_presented(
+        project_dir,
         checkpoint,
-        presented=presentation_ok,
-        evidence_kinds=[str(item.get("kind", "")) for item in checkpoint.get("reviewed_evidence", []) if isinstance(item, dict)],
+        presented_artifacts=presented_artifacts,
     )
     session["pending_evidence_checkpoint"] = checkpoint
     save_session(session_dir, session)
@@ -2390,7 +2396,7 @@ def send_evidence_checkpoint(
                 "artifact": "user_evidence_checkpoint",
                 "sent": sent,
                 "review_request_id": checkpoint.get("review_request_id", ""),
-                "presented_evidence_kinds": checkpoint.get("presented_evidence_kinds", []),
+                "presented_artifacts": checkpoint.get("presented_artifacts", []),
                 "reviewed_evidence_hashes": checkpoint.get("reviewed_evidence_hashes", []),
             },
         )
@@ -7264,11 +7270,22 @@ def run_agent_generation_job(
             "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
             "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
         }
+        requirements = infer_public_delivery_requirements(session, "")
+        required_roles = ["nonvisual_summary"]
+        required_roles.extend(role for role in ("screenshot", "background", "sprite") if requirements.get(role))
+        if requirements.get("generated_image") and not (requirements.get("background") or requirements.get("sprite")):
+            required_roles.append("generated_image")
+        if requirements.get("video") or requirements.get("demo_video"):
+            required_roles.append("video")
+        owner = session.get("active_request_owner", {}) if isinstance(session.get("active_request_owner"), dict) else {}
         review_request = canonical_user_review.create_review_request_snapshot(
             checkpoint_project_dir,
             chat_id=chat_id,
+            expected_reviewer_user_id=owner.get("from_user_id", ""),
             requirement_snapshot=session.get("whiteboard", {}).get("delivery_requirements", []),
-            visual_required=bool(infer_public_delivery_requirements(session, "").get("screenshot")),
+            visual_required=bool(requirements.get("screenshot")),
+            required_presentation_roles=required_roles,
+            replay_ledger_path=session_dir / f"{safe_id(chat_id)}.review_replay_ledger.json",
         )
         if review_request.get("status") == "NEEDS_REWORK":
             session["generation"]["status"] = "rework_blocked"
@@ -7550,8 +7567,10 @@ def record_evidence_review_feedback(
     session: dict[str, Any],
 ) -> None:
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
-    review_path = pathlib.Path(str(checkpoint.get("project_dir", ""))) / canonical_user_review.REVIEW_FILE
-    review_path.unlink(missing_ok=True)
+    canonical_user_review.invalidate_review_request(
+        pathlib.Path(str(checkpoint.get("project_dir", ""))),
+        status="changes_requested",
+    )
     checkpoint["status"] = "feedback_received"
     checkpoint["feedback"] = text
     checkpoint["feedback_at"] = now()
@@ -8166,11 +8185,29 @@ def handle_text(
         )
         return
 
+    intent = str(classification.get("intent", ""))
     session.setdefault("messages", []).append({"role": "user", "text": text, "created_at": now(), "classification": classification})
+    current_generation_status = (
+        str(session.get("generation", {}).get("status", "idle")).lower()
+        if isinstance(session.get("generation"), dict) else "idle"
+    )
+    if (
+        isinstance(message_context, dict)
+        and intent not in {"admin_command", "greeting", "status_query"}
+        and (
+            not isinstance(session.get("active_request_owner"), dict)
+            or current_generation_status in {"idle", "failed", "completed", "final_delivered"}
+        )
+    ):
+        session["active_request_owner"] = {
+            "chat_id": str(message_context.get("chat_id", chat_id)),
+            "from_user_id": str(message_context.get("from_user_id", "")),
+            "update_id": str(message_context.get("update_id", "")),
+            "message_id": str(message_context.get("message_id", "")),
+        }
     append_memory_event(session, "user_message", text, {"classification": classification})
     save_session(session_dir, session)
 
-    intent = str(classification.get("intent", ""))
     if intent == "greeting":
         evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
         if send_provider_message(
