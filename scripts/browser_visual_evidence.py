@@ -237,11 +237,11 @@ def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
     if not doc.get("dom_assertions"):
         missing.append("dom_assertions")
     screenshot = pathlib.Path(str(doc.get("screenshot_path", "")))
-    if not screenshot.exists() or _sha256_file(screenshot) != doc.get("screenshot_hash"):
+    if not screenshot.is_file() or screenshot.is_symlink() or _sha256_file(screenshot) != doc.get("screenshot_hash"):
         missing.append("screenshot_hash")
     runtime_ref = pathlib.Path(str(doc.get("customer_runtime_ref", "")))
     runtime_doc: dict[str, Any] = {}
-    if not runtime_ref.exists():
+    if not runtime_ref.is_file() or runtime_ref.is_symlink():
         missing.append("customer_runtime_ref")
     else:
         if _sha256_file(runtime_ref) != doc.get("customer_runtime_hash"):

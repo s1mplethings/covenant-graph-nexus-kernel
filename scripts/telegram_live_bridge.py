@@ -3186,6 +3186,18 @@ def combined_requirement(session: dict[str, Any]) -> str:
         summary = str(whiteboard.get("project_summary", "")).strip()
         if summary:
             parts.append(summary)
+        target_architecture = whiteboard.get("target_project_architecture")
+        if isinstance(target_architecture, dict) and target_architecture:
+            parts.append(
+                "目标项目模型架构要求:\n"
+                + "\n".join(f"- {key}: {value}" for key, value in sorted(target_architecture.items()))
+            )
+        cgkn_execution = whiteboard.get("cgkn_execution")
+        if isinstance(cgkn_execution, dict) and cgkn_execution:
+            parts.append(
+                "平台生成约束:\n"
+                + "\n".join(f"- {key}: {value}" for key, value in sorted(cgkn_execution.items()))
+            )
         attachment_lines = attachment_requirement_lines(session)
         if attachment_lines:
             parts.append("用户上传资料和本地输入:\n" + "\n".join(attachment_lines))

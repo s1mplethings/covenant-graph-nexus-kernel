@@ -157,13 +157,14 @@ class GenerationCompletionContractTests(unittest.TestCase):
             preview.write_bytes(b"nonempty-preview")
             manifest = local_packager.package_project(project, screenshot_path=preview)
             artifacts = manifest["artifacts"]
-            self.assertTrue(pathlib.Path(manifest["package_path"]).is_file())
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
+            self.assertFalse(pathlib.Path(manifest["package_path"]).is_file())
             self.assertEqual("README.md", artifacts["readme"])
             self.assertEqual("app.py", artifacts["startup_entrypoint"])
             self.assertEqual("TEST_PLAN.md", artifacts["test_plan"])
             self.assertEqual("TEST_REPORT.md", artifacts["test_report"])
             self.assertIn("screenshots/app_home.png", artifacts["preview_evidence"])
-            self.assertIn("README.md", manifest["archive_members"])
+            self.assertIn("README.md", {item["relative_path"] for item in manifest["inclusion_manifest"]})
 
     def test_missing_api_key_has_explicit_blocked_diagnostic(self) -> None:
         with mock.patch.object(
