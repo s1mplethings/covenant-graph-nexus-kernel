@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import os
@@ -318,6 +319,11 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("canonical test/runtime/visual evidence", doc)
         self.assertIn("public_delivery_gate", doc)
         self.assertIn("delivery_receipt", doc)
+        receipt_schema = json.loads((ROOT / "schemas" / "delivery_receipt_v1.schema.json").read_text(encoding="utf-8"))
+        for field in ("delivery_attempt_id", "delivery_manifest_file_hash", "package_entries_hash", "telegram_receipts"):
+            self.assertIn(field, receipt_schema["required"])
+        registry = (ROOT / "docs" / "01_contract_registry.md").read_text(encoding="utf-8")
+        self.assertIn("scripts/canonical_delivery_receipt.py", registry)
         self.assertIn("final_verdict.json", doc)
         self.assertIn("PASS_WITH_LIMITS", doc)
         self.assertIn("BLOCKED_*", doc)

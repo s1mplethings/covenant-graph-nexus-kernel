@@ -35,6 +35,7 @@ import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
 import canonical_delivery_manifest
+import canonical_delivery_receipt
 import canonical_evidence_hash
 import canonical_media_validation
 import canonical_user_review
@@ -285,9 +286,9 @@ class TelegramClient:
                 shutil.copyfileobj(resp, fh)
         tmp.replace(target)
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
         if not path.exists() or not path.is_file():
-            return False
+            return {}
         boundary = "----CGNKTelegramBoundary"
         fields = {"chat_id": str(chat_id), "caption": caption[:900]}
         suffix = path.suffix.lower()
@@ -331,13 +332,13 @@ class TelegramClient:
                 break
             except Exception:
                 if attempt == 2:
-                    return False
+                    return {}
                 time.sleep(min(8.0, 2.0 * (attempt + 1)))
-        return bool(isinstance(doc, dict) and doc.get("ok"))
+        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
         if not path.exists() or not path.is_file():
-            return False
+            return {}
         fields = {"chat_id": str(chat_id), "caption": caption[:900]}
         content_type = "application/octet-stream"
         doc: dict[str, Any] | None = None
@@ -381,13 +382,13 @@ class TelegramClient:
                 break
             except Exception:
                 if attempt == 2:
-                    return False
+                    return {}
                 time.sleep(min(8.0, 2.0 * (attempt + 1)))
-        return bool(isinstance(doc, dict) and doc.get("ok"))
+        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
         if not path.exists() or not path.is_file():
-            return False
+            return {}
         boundary = "----CGNKTelegramBoundary"
         fields = {"chat_id": str(chat_id), "caption": caption[:900], "supports_streaming": "true"}
         suffix = path.suffix.lower()
@@ -435,9 +436,9 @@ class TelegramClient:
                 break
             except Exception:
                 if attempt == 2:
-                    return False
+                    return {}
                 time.sleep(min(12.0, 3.0 * (attempt + 1)))
-        return bool(isinstance(doc, dict) and doc.get("ok"))
+        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
 
     def get_updates(self, offset: int, poll_timeout: int) -> list[dict[str, Any]]:
         doc = self.call("getUpdates", {"offset": str(offset), "timeout": str(poll_timeout)})
@@ -2202,7 +2203,7 @@ def emit_public_delivery(
     source: str,
     package_approval: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    def normalized_send_result(value: Any, expected_chat_id: int | str) -> tuple[bool, dict[str, str]]:
+    def normalized_send_result(value: Any, expected_chat_id: int | str, kind: str) -> tuple[bool, dict[str, str]]:
         if value is True:
             return True, {}
         if not isinstance(value, dict) or value.get("ok") is not True:
@@ -2213,9 +2214,21 @@ def emit_public_delivery(
         chat = result.get("chat") if isinstance(result.get("chat"), dict) else {}
         if chat.get("id") not in (None, "") and str(chat.get("id")) != str(expected_chat_id):
             return False, {}
+        media: dict[str, Any] = {}
+        if kind in {"package"}:
+            media = result.get("document") if isinstance(result.get("document"), dict) else {}
+        elif kind == "video":
+            media = result.get("video") if isinstance(result.get("video"), dict) else {}
+        else:
+            photos = [item for item in result.get("photo", []) if isinstance(item, dict) and item.get("file_id")]
+            if photos:
+                media = max(photos, key=lambda item: int(item.get("width", 0)) * int(item.get("height", 0)))
         return True, {
             "telegram_message_id": str(result["message_id"]),
             "telegram_chat_id": str(chat.get("id", "")),
+            "telegram_file_id": str(media.get("file_id", "")),
+            "telegram_file_unique_id": str(media.get("file_unique_id", "")),
+            "sent_at": now(),
         }
 
     sent: list[dict[str, Any]] = []
@@ -2232,7 +2245,7 @@ def emit_public_delivery(
         if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
             client.send_chat_action(chat_id, "upload_photo")
             try:
-                ok, metadata = normalized_send_result(client.send_photo(chat_id, path, caption), chat_id)
+                ok, metadata = normalized_send_result(client.send_photo(chat_id, path, caption), chat_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
@@ -2240,7 +2253,7 @@ def emit_public_delivery(
         elif suffix in VIDEO_SUFFIXES:
             client.send_chat_action(chat_id, "upload_video")
             try:
-                ok, metadata = normalized_send_result(client.send_video(chat_id, path, caption), chat_id)
+                ok, metadata = normalized_send_result(client.send_video(chat_id, path, caption), chat_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
@@ -2273,7 +2286,7 @@ def emit_public_delivery(
                     package_approval["failure_reason"] = "package_changed_before_send"
                     continue
             try:
-                ok, metadata = normalized_send_result(client.send_document(chat_id, path, caption), chat_id)
+                ok, metadata = normalized_send_result(client.send_document(chat_id, path, caption), chat_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
@@ -2789,6 +2802,10 @@ def send_delivery_from_manifest(
             break
     items.extend((path, "video") for path in assets["videos"][:2])
     items = filter_delivery_items_by_judgment(items, gate)
+    requirements = gate.get("requirements", {}) if isinstance(gate.get("requirements"), dict) else {}
+    required_kinds = set(canonical_delivery_receipt.required_attachment_kinds(requirements))
+    items = [(path, kind) for path, kind in items if kind in required_kinds]
+    delivery_started_at = now()
     sent = emit_public_delivery(
         client,
         chat_id,
@@ -2799,10 +2816,25 @@ def send_delivery_from_manifest(
         package_approval=package_approval,
     )
     diagnostic = delivery_send_diagnostic(gate, items, sent)
+    canonical_delivery_receipt.produce_canonical_delivery_receipt(
+        project_dir,
+        chat_id=chat_id,
+        manifest_inspection=package_inspection,
+        requirement_snapshot=requirements,
+        attempted_items=items,
+        sent_items=sent,
+        started_at=delivery_started_at,
+    )
+    receipt_inspection = canonical_delivery_receipt.inspect_canonical_delivery_receipt(
+        project_dir,
+        expected_chat_id=chat_id,
+        expected_requirements=requirements,
+    )
+    gate["canonical_delivery_receipt_inspection"] = receipt_inspection
     if package_approval.get("failure_reason"):
         diagnostic["reason"] = str(package_approval["failure_reason"])
         diagnostic["package_sent"] = False
-    if diagnostic["reason"]:
+    if diagnostic["reason"] or receipt_inspection.get("status") != "PASS" or gate.get("verdict") != "PASS_FINAL":
         failed_gate = dict(gate)
         failed_gate.update(
             {
@@ -2810,6 +2842,9 @@ def send_delivery_from_manifest(
                 "is_final": False,
                 "status": "delivery_send_failed",
                 "delivery_send_diagnostic": diagnostic,
+                "canonical_delivery_receipt_inspection": receipt_inspection,
+                "required_repairs": receipt_inspection.get("failures", [])
+                + ([] if gate.get("verdict") == "PASS_FINAL" else ["canonical_final_delivery_requires_pass_final"]),
             }
         )
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)

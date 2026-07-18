@@ -3,33 +3,61 @@
   "title": "CGKN Delivery Receipt v1",
   "allOf": [{ "$ref": "canonical_defs.schema.json#/$defs/ArtifactEnvelope" }],
   "required": [
-    "kind",
-    "schema_version",
-    "run_id",
-    "candidate_id",
-    "candidate_hash",
-    "commit_sha",
-    "producer",
-    "created_at",
-    "status",
-    "artifact_hash",
-    "required_attachment_kinds",
-    "sent_attachment_kinds",
-    "telegram_receipts",
-    "file_hashes",
-    "failed_attachment_kinds",
-    "started_at",
-    "finished_at"
+    "kind", "schema_version", "run_id", "candidate_id", "candidate_hash", "commit_sha", "producer",
+    "created_at", "status", "artifact_hash", "project_dir", "chat_id", "delivery_attempt_id",
+    "delivery_manifest_ref", "delivery_manifest_file_hash", "delivery_manifest_artifact_hash",
+    "package_ref", "package_sha256", "package_entries_hash", "requirement_snapshot",
+    "requirement_snapshot_hash", "required_attachment_kinds", "attempted_attachment_kinds",
+    "sent_attachment_kinds", "failed_attachment_kinds", "telegram_receipts", "started_at", "finished_at"
   ],
   "properties": {
     "kind": { "const": "CGKNDeliveryReceipt" },
-    "required_attachment_kinds": { "type": "array", "items": { "type": "string" } },
-    "sent_attachment_kinds": { "type": "array", "items": { "type": "string" } },
-    "telegram_receipts": { "type": "array" },
-    "file_hashes": { "type": "object" },
-    "failed_attachment_kinds": { "type": "array", "items": { "type": "string" } },
+    "schema_version": { "const": "1.0" },
+    "status": { "enum": ["PASS", "FAIL", "NEEDS_REWORK"] },
+    "project_dir": { "type": "string", "minLength": 1 },
+    "chat_id": { "type": "string", "minLength": 1 },
+    "delivery_attempt_id": { "type": "string", "minLength": 1 },
+    "delivery_manifest_ref": { "type": "string", "minLength": 1 },
+    "delivery_manifest_file_hash": { "$ref": "#/$defs/sha256" },
+    "delivery_manifest_artifact_hash": { "$ref": "#/$defs/sha256" },
+    "package_ref": { "type": "string", "minLength": 1 },
+    "package_sha256": { "$ref": "#/$defs/sha256" },
+    "package_entries_hash": { "$ref": "#/$defs/sha256" },
+    "requirement_snapshot": { "type": "object" },
+    "requirement_snapshot_hash": { "$ref": "#/$defs/sha256" },
+    "required_attachment_kinds": { "$ref": "#/$defs/kinds" },
+    "attempted_attachment_kinds": { "$ref": "#/$defs/kinds" },
+    "sent_attachment_kinds": { "$ref": "#/$defs/kinds" },
+    "failed_attachment_kinds": { "$ref": "#/$defs/kinds" },
+    "telegram_receipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "local_ref", "local_sha256", "telegram_chat_id", "telegram_message_id", "telegram_file_id", "telegram_file_unique_id", "sent_at", "send_status"],
+        "properties": {
+          "kind": { "enum": ["package", "screenshot", "background", "sprite", "generated_image", "video"] },
+          "local_ref": { "type": "string", "minLength": 1 },
+          "local_sha256": { "$ref": "#/$defs/sha256" },
+          "telegram_chat_id": { "type": "string", "minLength": 1 },
+          "telegram_message_id": { "type": "string", "minLength": 1 },
+          "telegram_file_id": { "type": "string", "minLength": 1 },
+          "telegram_file_unique_id": { "type": "string" },
+          "sent_at": { "type": "string", "minLength": 1 },
+          "send_status": { "enum": ["PASS", "FAIL"] }
+        },
+        "additionalProperties": false
+      }
+    },
     "started_at": { "type": "string", "minLength": 1 },
     "finished_at": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "kinds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["package", "screenshot", "background", "sprite", "generated_image", "video"] }
+    }
   },
   "additionalProperties": true
 }

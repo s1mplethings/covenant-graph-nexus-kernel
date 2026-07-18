@@ -55,6 +55,13 @@ class FakeTelegramClient:
         self.document_success = document_success
         self.photo_success = photo_success
         self.video_success = video_success
+        self._message_id = 100
+
+    def _result(self, chat_id: int | str, field: str) -> dict:
+        self._message_id += 1
+        media = {"file_id": f"{field}-{self._message_id}", "file_unique_id": f"unique-{field}-{self._message_id}"}
+        value = [dict(media, width=160, height=120)] if field == "photo" else media
+        return {"ok": True, "result": {"message_id": self._message_id, "chat": {"id": chat_id}, field: value}}
 
     def send_message(self, chat_id: int | str, text: str) -> bool:
         self.messages.append((str(chat_id), text))
@@ -63,17 +70,17 @@ class FakeTelegramClient:
     def send_chat_action(self, chat_id: int | str, action: str) -> None:
         self.actions.append((str(chat_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
         self.photos.append((str(chat_id), pathlib.Path(path), caption))
-        return self.photo_success
+        return self._result(chat_id, "photo") if self.photo_success else False
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
         self.videos.append((str(chat_id), pathlib.Path(path), caption))
-        return self.video_success
+        return self._result(chat_id, "video") if self.video_success else False
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
         self.documents.append((str(chat_id), pathlib.Path(path), caption))
-        return self.document_success
+        return self._result(chat_id, "document") if self.document_success else False
 
 
 def vn_session(chat_id: str) -> dict:
@@ -207,6 +214,32 @@ def write_json_with_artifact_hash(path: pathlib.Path, update: dict) -> None:
 
 
 class TelegramPublicDeliveryGateTests(unittest.TestCase):
+    def test_final_delivery_requires_canonical_receipt_not_bare_true(self) -> None:
+        class BareTrueTelegramClient(FakeTelegramClient):
+            def _result(self, chat_id: int | str, field: str) -> bool:
+                return True
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project, manifest = make_deliverable_project(root)
+            session = vn_session("chat-receipt-missing")
+            bridge.save_session(session_dir, session)
+            sent = bridge.send_delivery_from_manifest(
+                BareTrueTelegramClient(),
+                "chat-receipt-missing",
+                session_dir,
+                session,
+                manifest,
+            )
+            saved = bridge.load_session(session_dir, "chat-receipt-missing")
+            receipt = project / "delivery_receipt.json"
+            receipt_exists = receipt.is_file()
+
+        self.assertTrue(any(item.get("kind") == "package" for item in sent))
+        self.assertTrue(receipt_exists)
+        self.assertNotEqual("delivered", saved["generation"]["status"])
+
     def test_readme_only_no_test_executed_blocks_public_delivery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)

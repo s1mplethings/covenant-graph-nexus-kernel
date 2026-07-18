@@ -100,7 +100,7 @@ def _is_excluded(relative: str) -> bool:
     if relative in {
         MANIFEST_NAME, FINAL_PACKAGE_NAME, "packager_run_log.txt",
         canonical_user_review.REQUEST_FILE, canonical_user_review.REVIEW_FILE,
-        canonical_user_review.REPLAY_LEDGER_FILE,
+        canonical_user_review.REPLAY_LEDGER_FILE, "delivery_receipt.json",
     }:
         return True
     return False

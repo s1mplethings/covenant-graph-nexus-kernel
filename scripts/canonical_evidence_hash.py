@@ -18,6 +18,7 @@ ROOT_EVIDENCE_OUTPUT_NAMES = {
     "generated_image_manifest.json",
     "video_blocked.json",
     "delivery_manifest.json",
+    "delivery_receipt.json",
     "packager_run_log.txt",
     "final_project_bundle.zip",
     "user_review.json",
