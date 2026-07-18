@@ -707,7 +707,10 @@ def build(
         screenshot_path=screenshot.get("path") or "",
         known_limits=["degraded scaffold: no real external media/model processing claimed"],
     )
-    manifest_path = project / "delivery_manifest.json"
+    # Keep the canonical manifest written by local_packager authoritative.  This
+    # builder's richer support-lane report must never overwrite that trust-boundary
+    # artifact, especially when canonical packaging returns NEEDS_REWORK.
+    manifest_path = project / "delivery_evidence_manifest.json"
     manifest = evidence_manifest(project, run, smoke, screenshot, package_manifest, capability)
     write_json(manifest_path, manifest)
     # Re-package once so the enriched manifest is included in the bundle as evidence.
@@ -721,7 +724,14 @@ def build(
     )
     manifest = evidence_manifest(project, run, smoke, screenshot, package_manifest, capability)
     write_json(manifest_path, manifest)
-    status = "PASS" if smoke.get("status") == "PASS" and screenshot.get("status") == "PASS" else "PARTIAL"
+    package_status = str(package_manifest.get("status", "NEEDS_REWORK"))
+    status = (
+        package_status
+        if package_status in {"PASS", "PASS_WITH_LIMITS"}
+        and smoke.get("status") == "PASS"
+        and screenshot.get("status") == "PASS"
+        else "NEEDS_REWORK"
+    )
     return {
         "status": status,
         "project_dir": str(project),

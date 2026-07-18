@@ -11,9 +11,9 @@ FORMAL_ARTIFACTS = {
     "test_execution": ("CGKNTestExecutionEvidence", "schemas/test_execution_v1.schema.json", "scripts/real_test_execution.py"),
     "customer_runtime": ("CGKNCustomerRuntimeEvidence", "schemas/customer_runtime_v1.schema.json", "scripts/customer_runtime_runner.py"),
     "visual_evidence": ("CGKNVisualEvidence", "schemas/visual_evidence_v1.schema.json", "scripts/browser_visual_evidence.py"),
-    "user_review": ("CGKNUserReviewEvidence", "schemas/user_review_v1.schema.json", "session/truth ledger review event writer"),
+    "user_review": ("CGKNUserReviewEvidence", "schemas/user_review_v1.schema.json", "scripts/canonical_user_review.py"),
     "delivery_manifest": ("CGKNDeliveryManifest", "schemas/delivery_manifest_v1.schema.json", "scripts/local_packager.py"),
-    "delivery_receipt": ("CGKNDeliveryReceipt", "schemas/delivery_receipt_v1.schema.json", "scripts/telegram_live_bridge.py"),
+    "delivery_receipt": ("CGKNDeliveryReceipt", "schemas/delivery_receipt_v1.schema.json", "scripts/canonical_delivery_receipt.py"),
     "final_verdict": ("CGKNFinalVerdict", "schemas/final_verdict_v1.schema.json", "scripts/acceptance_verifier.py"),
 }
 

@@ -41,6 +41,10 @@ CGKN Kernel is fixed responsible for:
 
 `public_delivery_gate` remains a compatibility name for the wrapper that verifies canonical evidence, package integrity, and delivery receipts; it is not a second delivery route.
 
+## Pipeline Module Mutation Contract
+
+Replaceable support-lane modules may be changed only through reviewed repository changes that preserve their declared `contract()` boundary. This includes directly modifying, generating, or deleting bounded modules. truth modules—canonical evidence producers, inspectors, package and delivery gates—are not replaceable support modules and cannot be bypassed by a candidate bundle or module stub. A candidate bundle remains non-final until the canonical mainline independently validates and promotes it.
+
 ## Kernel Prohibitions
 
 CGKN Kernel must not:

@@ -218,7 +218,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 skip_user_evidence_checkpoint=True,
             )
 
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
             events = read_jsonl(session_path)
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
@@ -335,7 +335,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 dynamic_runner._call_step_provider = original_provider
 
             self.assertTrue((project_dir / "MODULE_PIPELINE.md").exists())
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
 
     def test_dynamic_pipeline_runner_retries_malformed_agent_json_without_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -383,7 +383,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             )
 
             events = read_jsonl(session_path)
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
             self.assertGreaterEqual(calls["count"], 2)
             self.assertFalse(any(event.get("kind") == "pipeline_fallback" for event in events))
             self.assertTrue(any("malformed JSON" in str(event.get("error", "")) for event in events))
@@ -438,7 +438,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             )
 
             events = read_jsonl(session_path)
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
             self.assertEqual('print("ok")\n', (project_dir / "backend" / "app.py").read_text(encoding="utf-8"))
             self.assertEqual("# Backend\n", (project_dir / "HANDOFF_BACKEND.md").read_text(encoding="utf-8"))
             self.assertEqual(2, calls["count"])
@@ -488,7 +488,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             )
 
             events = read_jsonl(session_path)
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
             self.assertEqual('{"project_goal":"demo"}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
             self.assertTrue(any("JSON content is invalid" in str(event) for event in events))
 
@@ -527,7 +527,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 bridge.agent_conversation_loop.run_agent_loop = original_loop
 
             self.assertEqual(["planner", "runner"], calls)
-            self.assertTrue(client.documents)
+            self.assertFalse(client.documents)
 
     def test_pipeline_runner_fallback_to_agent_loop_on_runner_failure(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

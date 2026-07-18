@@ -16,7 +16,7 @@ GOAL = "做一个本地 AI 知识工作台，用于导入资料、建立本地�
 def test_controlled_dynamic_orchestrator_grows_tree_and_delivers(tmp_path: pathlib.Path) -> None:
     result = run_controlled_dynamic_growth(goal=GOAL, project_name="Local AI Knowledge Studio", out_dir=tmp_path)
 
-    assert result["verdict"] == "PASS"
+    assert result["verdict"] == "NEEDS_REWORK"
     assert (tmp_path / "agent_tree_registry.json").exists()
     assert (tmp_path / "spawn_actions.jsonl").exists()
     assert (tmp_path / "scope_contracts").exists()
@@ -27,5 +27,5 @@ def test_controlled_dynamic_orchestrator_grows_tree_and_delivers(tmp_path: pathl
         assert merge["merge_verdict"] == "PASS"
     assert json.loads((tmp_path / "checkpoints" / "integration_agent.json").read_text(encoding="utf-8"))["verdict"] == "PASS"
     gate = json.loads((tmp_path / "contract_checks" / "public_delivery_gate.json").read_text(encoding="utf-8"))
-    assert gate["delivery_allowed"] is True
-    assert (tmp_path / "generated_project" / "final_project_bundle.zip").exists()
+    assert gate["delivery_allowed"] is False
+    assert not (tmp_path / "generated_project" / "final_project_bundle.zip").exists()

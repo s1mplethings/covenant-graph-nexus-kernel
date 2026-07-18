@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import pathlib
-import importlib
-import sys
+import json
 from typing import Any
 
 try:
@@ -12,23 +11,28 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
     from scripts.pipeline_contracts import CandidateMaterializationResult, base_result
 
 
-def _legacy() -> Any:
-    main = sys.modules.get("__main__")
-    if main is not None and hasattr(main, "write_provider_files"):
-        return main
-    packaged = sys.modules.get("scripts.run_local_pipeline")
-    if packaged is not None and hasattr(packaged, "write_provider_files"):
-        return packaged
-    try:
-        return importlib.import_module("run_local_pipeline")
-    except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
-
-
 def run(*, candidate_dir: pathlib.Path, files: list[dict[str, str]], semantic_classes: dict[str, Any] | None = None, sanitize_result: dict[str, Any] | None = None) -> dict[str, Any]:
-    legacy = _legacy()
-    generated_files = legacy.write_provider_files(candidate_dir, files)
-    legacy.write_candidate_marker(candidate_dir, "needs_rework", semantic_classes or {}, sanitize_result or {})
+    root = pathlib.Path(candidate_dir).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    generated_files: list[str] = []
+    for item in files:
+        relative = pathlib.PurePosixPath(str(item.get("path", "")).replace("\\", "/"))
+        if not relative.parts or relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"unsafe candidate path: {relative}")
+        target = (root / pathlib.Path(*relative.parts)).resolve()
+        target.relative_to(root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(str(item.get("content", "")), encoding="utf-8")
+        generated_files.append(relative.as_posix())
+    marker = {
+        "kind": "CGKNCandidateOnlyMarker",
+        "status": "needs_rework",
+        "semantic_classes": semantic_classes or {},
+        "sanitize_result": sanitize_result or {},
+    }
+    (root / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").write_text(
+        json.dumps(marker, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     result = CandidateMaterializationResult(
         status="pass",
         verdict="candidate_materialized",

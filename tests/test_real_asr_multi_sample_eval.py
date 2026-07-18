@@ -237,8 +237,8 @@ def test_delivery_evidence_references_multi_sample_fixture_report(tmp_path: path
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
-    manifest = json.loads((project / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert result["status"] == "NEEDS_REWORK"
+    manifest = json.loads((project / "delivery_evidence_manifest.json").read_text(encoding="utf-8"))
     assert "asr_multi_sample_report.json" in manifest["files"]
     assert manifest["capability_manifest"]["capabilities"]["asr_quality"]["asr_quality_status"] == "contract_only"
     test_report = (project / "TEST_REPORT.md").read_text(encoding="utf-8")

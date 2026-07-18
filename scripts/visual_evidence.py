@@ -38,7 +38,13 @@ def _legacy_call(name: str, *args: Any, **kwargs: Any) -> Any:
 
 
 def real_image_file(path: pathlib.Path) -> bool:
-    return bool(_legacy_call("real_image_file", path))
+    try:
+        from canonical_media_validation import validate_image
+    except ModuleNotFoundError:
+        from scripts.canonical_media_validation import validate_image
+    target = pathlib.Path(path)
+    result = validate_image(target, target.parent, requested_role="screenshot")
+    return result.get("status") == "PASS"
 
 
 def video_requested(explicit: bool | None = None) -> bool:

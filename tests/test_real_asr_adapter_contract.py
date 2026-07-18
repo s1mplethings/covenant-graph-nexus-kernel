@@ -212,8 +212,8 @@ def test_delivery_manifest_and_reports_reference_real_asr_contract_fixture(tmp_p
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
-    delivery_manifest = read_json(project / "delivery_manifest.json")
+    assert result["status"] == "NEEDS_REWORK"
+    delivery_manifest = read_json(project / "delivery_evidence_manifest.json")
     asr = delivery_manifest["capability_manifest"]["capabilities"]["asr"]
     assert asr["status"] == "asr_contract_fixture_verified"
     assert asr["evidence_tier"] == "contract_fixture"

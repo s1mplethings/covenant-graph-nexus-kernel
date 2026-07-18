@@ -34,7 +34,7 @@ def test_generated_media_project_runs_real_local_fixture_processing(tmp_path: pa
 
     result = delivery_evidence_builder.build(project_dir=project_dir, run_dir=run_dir)
 
-    assert result["status"] == "PASS"
+    assert result["status"] == "NEEDS_REWORK"
     assert "fixtures/media_fixture.json" in " ".join(result["smoke_command"]["argv"])
     segment_analysis = json.loads((project_dir / "segment_analysis.json").read_text(encoding="utf-8"))
     selected = json.loads((project_dir / "selected_segments.json").read_text(encoding="utf-8"))
@@ -53,7 +53,7 @@ def test_delivery_manifest_records_fixture_artifact_hashes_and_sizes(tmp_path: p
     project_dir, run_dir = materialize_fixture_project(tmp_path)
 
     delivery_evidence_builder.build(project_dir=project_dir, run_dir=run_dir)
-    manifest = json.loads((project_dir / "delivery_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((project_dir / "delivery_evidence_manifest.json").read_text(encoding="utf-8"))
 
     for rel in ("fixtures/media_fixture.json", "fixtures/sample_audio.wav", "capability_manifest.json", "media_manifest.json", "segment_analysis.json", "export_results.json"):
         assert rel in manifest["files"]
@@ -83,10 +83,10 @@ def test_corrupt_fixture_hash_blocks_smoke_and_delivery_pass(tmp_path: pathlib.P
     fixture_path.write_text(json.dumps(fixture, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     result = delivery_evidence_builder.build(project_dir=project_dir, run_dir=run_dir)
-    manifest = json.loads((project_dir / "delivery_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((project_dir / "delivery_evidence_manifest.json").read_text(encoding="utf-8"))
     layers = requirement_acceptance_check.evaluate_layers(project_dir=project_dir, run_dir=run_dir)
 
-    assert result["status"] == "PARTIAL"
+    assert result["status"] == "NEEDS_REWORK"
     assert result["smoke_command"]["status"] == "FAIL"
     assert "fixture_validation_failed" in result["smoke_command"]["stderr"]
     assert "sha256_mismatch" in result["smoke_command"]["stderr"]

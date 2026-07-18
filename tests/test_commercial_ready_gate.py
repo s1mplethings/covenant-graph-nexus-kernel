@@ -228,10 +228,10 @@ def test_delivery_evidence_records_fixture_ready_rejection(tmp_path: pathlib.Pat
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
+    assert result["status"] == "NEEDS_REWORK"
     ready = json.loads((project / "commercial_ready_report.json").read_text(encoding="utf-8"))
     reliability = json.loads((project / "production_reliability_report.json").read_text(encoding="utf-8"))
-    manifest = json.loads((project / "delivery_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((project / "delivery_evidence_manifest.json").read_text(encoding="utf-8"))
     assert ready["ready_decision"] == "NOT_READY"
     assert ready["commercial_ready"] is False
     assert reliability["reliability_status"] == "not_ready"

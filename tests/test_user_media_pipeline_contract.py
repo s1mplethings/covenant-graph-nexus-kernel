@@ -137,8 +137,8 @@ def test_delivery_evidence_records_user_media_pipeline_status(tmp_path: pathlib.
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
-    delivery_manifest = read_json(project / "delivery_manifest.json")
+    assert result["status"] == "NEEDS_REWORK"
+    delivery_manifest = read_json(project / "delivery_evidence_manifest.json")
     assert delivery_manifest["capability_manifest"]["capabilities"]["user_media_input"]["status"] == "verified"
     assert "media_manifest.json" in delivery_manifest["files"]
     assert "capability_manifest.json" in delivery_manifest["files"]

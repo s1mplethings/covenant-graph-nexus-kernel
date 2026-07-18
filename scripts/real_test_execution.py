@@ -279,7 +279,11 @@ def inspect_test_report(
             missing.append(field)
     for artifact_field, hash_field in (("stdout_artifact", "stdout_hash"), ("stderr_artifact", "stderr_hash")):
         artifact = pathlib.Path(str(doc.get(artifact_field, "")))
-        if not artifact.exists() or _sha256_file(artifact) != doc.get(hash_field):
+        try:
+            valid_artifact = artifact.is_file() and not artifact.is_symlink() and _sha256_file(artifact) == doc.get(hash_field)
+        except (OSError, ValueError):
+            valid_artifact = False
+        if not valid_artifact:
             missing.append(f"{hash_field}_mismatch")
     expected_hash = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash", "result_artifact_hash"))
     if doc.get("artifact_hash") != expected_hash:

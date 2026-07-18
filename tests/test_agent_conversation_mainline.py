@@ -126,8 +126,10 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.threading.Thread = original_thread
 
             self.assertIn("chat-b", str(called["project_dir"]))
-            self.assertNotEqual([], client.documents)
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual([], client.documents)
+            saved = bridge.load_session(session_dir, "chat-b")
+            self.assertNotIn(saved.get("generation", {}).get("status"), {"delivered", "delivered_with_warnings"})
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 
     def test_backend_controls_not_required_for_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -251,7 +253,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertIn("先做任务管理", captured["texts"])
             self.assertIn("再加日历视图", captured["texts"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
 
     def test_failed_command_is_returned_to_agent_for_repair(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -278,7 +281,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             result = agent_loop.run_agent_loop(session_path=session_path, project_dir=project_dir, agent=fake_agent, max_turns=3)
 
             self.assertTrue(saw_failed_result["value"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
 
     def test_malformed_agent_json_is_returned_as_no_action_parse_error(self) -> None:
         parsed = agent_loop.parse_agent_response('{"message":"bad","actions":[{"type":"write_file","path":"README.md"}')
@@ -306,8 +310,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir)
 
-            self.assertEqual("ready_with_warnings", manifest["status"])
-            self.assertTrue(pathlib.Path(manifest["package_path"]).exists())
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
+            self.assertFalse(pathlib.Path(manifest["package_path"]).exists())
             self.assertTrue(pathlib.Path(manifest["manifest_path"]).exists())
 
     def test_local_packager_marks_known_limits_as_warning_status(self) -> None:
@@ -320,7 +324,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir, screenshot_path=screenshot, known_limits=["模型未配置"])
 
-            self.assertEqual("ready_with_warnings", manifest["status"])
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
             self.assertIn("模型未配置", manifest["known_limits"])
 
     def test_agent_cannot_write_outside_project_dir(self) -> None:
@@ -366,7 +370,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             result = agent_loop.run_agent_loop(session_path=session_path, project_dir=project_dir, agent=fake_agent, max_turns=3)
 
             self.assertTrue(saw_json_failure["value"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
             self.assertEqual('{"ok": true}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
 
     def test_telegram_delivery_uses_delivery_manifest(self) -> None:
@@ -381,14 +386,15 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             sent = bridge.send_delivery_from_manifest(client, "chat-d", session_dir, session, manifest)
 
-            self.assertTrue(any(item["kind"] == "package" for item in sent))
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual([], sent)
+            self.assertEqual([], client.documents)
             self.assertFalse(any(path.name == "delivery_manifest.json" for _, path, _ in client.documents))
             self.assertFalse(any(path.name == "README.md" for _, path, _ in client.documents))
             self.assertNotIn("screenshot", client.messages[-1][1].lower())
             self.assertNotIn("not provided", client.messages[-1][1].lower())
             ledger = bridge.truth_ledger_path(session_dir, "chat-d").read_text(encoding="utf-8")
-            self.assertIn("public_delivery_attachment_sent", ledger)
+            self.assertIn("public_delivery_gate", ledger)
+            self.assertNotIn("public_delivery_attachment_sent", ledger)
 
     def test_non_pass_generation_without_package_becomes_rework(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -415,7 +421,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertFalse(client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("事实级问题", joined)
+            self.assertIn("需要继续修复", joined)
+            self.assertNotIn("事实级问题", joined)
 
     def test_agent_pipeline_failure_becomes_rework_without_internal_public_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -444,7 +451,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertEqual([], client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("事实级问题", joined)
+            self.assertIn("需要继续修复", joined)
+            self.assertNotIn("事实级问题", joined)
             for forbidden in ("TLS", "provider", "backend", "后台", "pipeline", "manifest"):
                 self.assertNotIn(forbidden, joined)
 

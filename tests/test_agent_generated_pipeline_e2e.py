@@ -170,7 +170,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-e2e-pipeline")
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-e2e-pipeline"))
 
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertNotIn(session["generation"]["status"], {"delivered", "delivered_with_warnings"})
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
             self.assertEqual("agent_generated_pipeline", session["generation"]["driver"])
@@ -225,7 +226,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-fallback-e2e"))
 
             self.assertTrue(any(event.get("kind") == "pipeline_fallback" for event in events))
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertNotIn(session["generation"]["status"], {"delivered", "delivered_with_warnings"})
             self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
 
     def test_pipeline_manifest_cannot_use_legacy_paths(self) -> None:
