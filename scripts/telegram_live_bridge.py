@@ -2829,6 +2829,7 @@ def send_delivery_from_manifest(
         project_dir,
         expected_chat_id=chat_id,
         expected_requirements=requirements,
+        expected_attachment_refs={kind: path for path, kind in items},
     )
     gate["canonical_delivery_receipt_inspection"] = receipt_inspection
     if package_approval.get("failure_reason"):

@@ -126,6 +126,7 @@ def inspect_canonical_delivery_receipt(
     *,
     expected_chat_id: int | str | None = None,
     expected_requirements: dict[str, Any] | None = None,
+    expected_attachment_refs: dict[str, str | pathlib.Path] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     receipt_path = project / RECEIPT_NAME
@@ -144,7 +145,13 @@ def inspect_canonical_delivery_receipt(
         failures.append("producer_mismatch")
     if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
         failures.append("artifact_hash_mismatch")
-    requirements = expected_requirements if expected_requirements is not None else document.get("requirement_snapshot", {})
+    if expected_chat_id is None:
+        failures.append("expected_chat_id_required")
+    if expected_requirements is None:
+        failures.append("expected_requirements_required")
+    if expected_attachment_refs is None:
+        failures.append("expected_attachment_refs_required")
+    requirements = expected_requirements if expected_requirements is not None else {}
     if document.get("requirement_snapshot") != requirements:
         failures.append("requirement_snapshot_mismatch")
     if document.get("requirement_snapshot_hash") != canonical_evidence_hash.canonical_json_hash(requirements, ()):
@@ -159,6 +166,15 @@ def inspect_canonical_delivery_receipt(
     attempted = document.get("attempted_attachment_kinds", [])
     if isinstance(attempted, list) and (any(kind not in required for kind in attempted) or not set(required).issubset(set(attempted))):
         failures.append("attempted_attachment_kinds_not_exact")
+    approved_refs: dict[str, pathlib.Path] = {}
+    for kind, value in (expected_attachment_refs or {}).items():
+        if kind in ATTACHMENT_KINDS:
+            try:
+                approved_refs[kind] = pathlib.Path(value).resolve(strict=True)
+            except (OSError, ValueError):
+                failures.append(f"expected_attachment_ref_invalid:{kind}")
+    if set(approved_refs) != set(required):
+        failures.append("expected_attachment_refs_not_exact")
     if expected_chat_id is not None and str(document.get("chat_id")) != str(expected_chat_id):
         failures.append("telegram_chat_id_mismatch")
     if document.get("project_dir") != str(project) or not str(document.get("delivery_attempt_id", "")).strip():
@@ -229,6 +245,8 @@ def inspect_canonical_delivery_receipt(
         try:
             resolved = local.resolve(strict=True)
             resolved.relative_to(project)
+            if approved_refs.get(kind) != resolved:
+                failures.append(f"local_ref_not_approved:{kind}")
             if local.is_symlink() or entry.get("local_sha256") != canonical_evidence_hash.sha256_file(resolved):
                 failures.append(f"local_artifact_hash_mismatch:{kind}")
             if kind == "package" and resolved != pathlib.Path(str(document.get("package_ref", ""))).resolve(strict=True):

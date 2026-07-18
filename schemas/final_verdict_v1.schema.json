@@ -20,7 +20,20 @@
   "properties": {
     "kind": { "const": "CGKNFinalVerdict" },
     "required_gates": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-    "upstream_gates": { "type": "object" },
+    "upstream_gates": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "ref", "file_hash"],
+        "properties": {
+          "status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" },
+          "ref": { "type": "string", "minLength": 1 },
+          "file_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        },
+        "additionalProperties": false
+      }
+    },
     "overall_status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" }
   },
   "additionalProperties": true

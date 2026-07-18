@@ -48,6 +48,7 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
                 project,
                 expected_chat_id="receipt-package",
                 expected_requirements=bridge.infer_public_delivery_requirements(session, manifest["startup_command"]),
+                expected_attachment_refs={item["kind"]: item["path"] for item in sent},
             )
             saved = bridge.load_session(sessions, "receipt-package")
 
@@ -71,7 +72,8 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
                 bridge.send_delivery_from_manifest(FakeTelegramClient(), "receipt-visual", sessions, session, manifest)
             requirements = bridge.infer_public_delivery_requirements(session, manifest["startup_command"])
             inspection = receipt.inspect_canonical_delivery_receipt(
-                project, expected_chat_id="receipt-visual", expected_requirements=requirements
+                project, expected_chat_id="receipt-visual", expected_requirements=requirements,
+                expected_attachment_refs={item["kind"]: item["local_ref"] for item in json.loads((project / receipt.RECEIPT_NAME).read_text(encoding="utf-8"))["telegram_receipts"]},
             )
 
             self.assertEqual("PASS", inspection["status"], inspection)
@@ -102,6 +104,7 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
                 project,
                 expected_chat_id="receipt-tamper",
                 expected_requirements=bridge.infer_public_delivery_requirements(session, manifest["startup_command"]),
+                expected_attachment_refs={item["kind"]: item["local_ref"] for item in document["telegram_receipts"]},
             )
             self.assertEqual("NEEDS_REWORK", inspection["status"])
             self.assertIn("duplicate_telegram_message_id", inspection["failures"])

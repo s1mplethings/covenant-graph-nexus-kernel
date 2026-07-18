@@ -1,0 +1,205 @@
+from __future__ import annotations
+
+import json
+import pathlib
+import sys
+from datetime import datetime, timezone
+from typing import Any
+
+SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+import canonical_evidence_hash
+
+
+KIND = "CGKNFinalVerdict"
+SCHEMA_VERSION = "1.0"
+FILE_NAME = "final_verdict.json"
+PRODUCER = "scripts/acceptance_verifier.py"
+PASS = "PASS"
+REQUIRED_GATES = (
+    "test_execution",
+    "customer_runtime",
+    "visual_evidence",
+    "media_evidence",
+    "user_review",
+    "delivery_manifest",
+    "delivery_receipt",
+    "leaf_profile",
+    "workspace_truth",
+    "full_all",
+    "replan",
+    "recovery",
+    "provider_causal_trace",
+    "collaboration_timing",
+    "startup_profile",
+    "deterministic_e2e",
+    "live_provider_e2e",
+)
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _read(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, json.JSONDecodeError):
+        return {}
+
+
+def _write(path: pathlib.Path, document: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def _evidence_status(document: dict[str, Any]) -> str:
+    return str(document.get("overall_status") or document.get("status") or "NOT_EVALUATED").upper()
+
+
+def produce_canonical_final_verdict(
+    acceptance_dir: str | pathlib.Path,
+    *,
+    run_id: str,
+    candidate_id: str,
+    candidate_hash: str,
+    commit_sha: str,
+    upstream_refs: dict[str, str | pathlib.Path],
+) -> dict[str, Any]:
+    root = pathlib.Path(acceptance_dir).resolve()
+    gates: dict[str, Any] = {}
+    failures: list[str] = []
+    for name in REQUIRED_GATES:
+        ref_value = upstream_refs.get(name)
+        path = pathlib.Path(ref_value).resolve() if ref_value else pathlib.Path()
+        document = _read(path) if ref_value else {}
+        status = _evidence_status(document)
+        file_hash = canonical_evidence_hash.sha256_file(path) if ref_value and path.is_file() and not path.is_symlink() else ""
+        gates[name] = {"status": status, "ref": str(path) if ref_value else "", "file_hash": file_hash}
+        if not ref_value or not document:
+            failures.append(f"missing_gate:{name}")
+        elif status != PASS:
+            failures.append(f"gate_not_pass:{name}:{status}")
+        for field, expected in (
+            ("run_id", run_id),
+            ("candidate_id", candidate_id),
+            ("candidate_hash", candidate_hash),
+            ("commit_sha", commit_sha),
+        ):
+            if str(document.get(field, "")) != str(expected):
+                failures.append(f"gate_identity_mismatch:{name}:{field}")
+    statuses = {item["status"] for item in gates.values()}
+    if "BLOCKED_PROVIDER" in statuses:
+        overall = "BLOCKED_PROVIDER"
+    elif any(status.startswith("BLOCKED") for status in statuses):
+        overall = "BLOCKED"
+    else:
+        overall = PASS if not failures else "NEEDS_REWORK"
+    verdict: dict[str, Any] = {
+        "kind": KIND,
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "candidate_hash": candidate_hash,
+        "commit_sha": commit_sha,
+        "producer": PRODUCER,
+        "created_at": _now(),
+        "status": overall,
+        "artifact_hash": "",
+        "required_gates": list(REQUIRED_GATES),
+        "upstream_gates": gates,
+        "overall_status": overall,
+        "failures": sorted(set(failures)),
+    }
+    verdict["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(verdict, ("artifact_hash",))
+    _write(root / FILE_NAME, verdict)
+    return verdict
+
+
+def inspect_canonical_final_verdict(
+    acceptance_dir: str | pathlib.Path,
+    *,
+    expected_run_id: str,
+    expected_candidate_id: str,
+    expected_candidate_hash: str,
+    expected_commit_sha: str,
+    expected_upstream_refs: dict[str, str | pathlib.Path],
+) -> dict[str, Any]:
+    root = pathlib.Path(acceptance_dir).resolve()
+    path = root / FILE_NAME
+    failures: list[str] = []
+    if not path.is_file() or path.is_symlink():
+        return {"status": "NEEDS_REWORK", "failures": ["final_verdict_path_invalid"], "verdict_path": str(path)}
+    document = _read(path)
+    if document.get("kind") != KIND or document.get("schema_version") != SCHEMA_VERSION or document.get("producer") != PRODUCER:
+        failures.append("final_verdict_contract")
+    if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
+        failures.append("artifact_hash_mismatch")
+    for field, expected in (
+        ("run_id", expected_run_id),
+        ("candidate_id", expected_candidate_id),
+        ("candidate_hash", expected_candidate_hash),
+        ("commit_sha", expected_commit_sha),
+    ):
+        if str(document.get(field, "")) != str(expected):
+            failures.append(f"verdict_identity_mismatch:{field}")
+    if document.get("required_gates") != list(REQUIRED_GATES):
+        failures.append("required_gates_mismatch")
+    gates = document.get("upstream_gates", {})
+    if not isinstance(gates, dict) or set(gates) != set(REQUIRED_GATES):
+        failures.append("upstream_gates_mismatch")
+        gates = {}
+    nonpass: list[str] = []
+    for name in REQUIRED_GATES:
+        expected_value = expected_upstream_refs.get(name)
+        if not expected_value:
+            failures.append(f"expected_upstream_ref_missing:{name}")
+            nonpass.append(name)
+            continue
+        expected_path = pathlib.Path(expected_value).resolve()
+        gate = gates.get(name, {}) if isinstance(gates.get(name), dict) else {}
+        if gate.get("ref") != str(expected_path):
+            failures.append(f"upstream_ref_mismatch:{name}")
+        upstream = _read(expected_path)
+        if not expected_path.is_file() or expected_path.is_symlink() or not upstream:
+            failures.append(f"upstream_unreadable:{name}")
+            nonpass.append(name)
+            continue
+        if gate.get("file_hash") != canonical_evidence_hash.sha256_file(expected_path):
+            failures.append(f"upstream_hash_mismatch:{name}")
+        status = _evidence_status(upstream)
+        if gate.get("status") != status:
+            failures.append(f"upstream_status_mismatch:{name}")
+        if status != PASS:
+            nonpass.append(name)
+        for field, expected in (
+            ("run_id", expected_run_id),
+            ("candidate_id", expected_candidate_id),
+            ("candidate_hash", expected_candidate_hash),
+            ("commit_sha", expected_commit_sha),
+        ):
+            if str(upstream.get(field, "")) != str(expected):
+                failures.append(f"upstream_identity_mismatch:{name}:{field}")
+    claimed = str(document.get("overall_status", ""))
+    if claimed != document.get("status"):
+        failures.append("overall_status_mismatch")
+    if claimed == PASS and (failures or nonpass):
+        failures.append("false_pass")
+    if claimed != PASS and not failures and not nonpass:
+        failures.append("false_nonpass")
+    return {
+        "status": PASS if not failures and not nonpass and claimed == PASS else "NEEDS_REWORK",
+        "failures": sorted(set(failures)),
+        "nonpass_gates": sorted(set(nonpass)),
+        "verdict_path": str(path),
+        "verdict": document,
+    }
+
+
+produce = produce_canonical_final_verdict
+inspect = inspect_canonical_final_verdict
