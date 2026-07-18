@@ -110,7 +110,7 @@ class IntakeStartPolicyTests(unittest.TestCase):
             (project_dir / "DELIVERY_NOTES.md").write_text("delivery_status: WARNING\n", encoding="utf-8")
             (project_dir / "placeholder_preview.png").write_bytes(b"\x89PNG\r\n\x1a\nplaceholder")
 
-            manifest = local_packager.package_project(project_dir)
+            manifest = local_packager.package_project(project_dir, visual_required=True)
 
         self.assertFalse(manifest["quality_evidence"]["preview_evidence_found"])
         self.assertTrue(manifest["quality_evidence"]["preview_placeholder_found"])
@@ -126,7 +126,7 @@ class IntakeStartPolicyTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir)
 
-        self.assertEqual("ready_with_warnings", manifest["status"])
+        self.assertEqual("NEEDS_REWORK", manifest["status"])
         self.assertTrue(manifest["quality_evidence"]["test_report_has_no_test_executed"])
         self.assertTrue(any("未执行真实测试" in item for item in manifest["known_limits"]))
 
@@ -140,7 +140,7 @@ class IntakeStartPolicyTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir, known_limits=["demo/data analysis project"])
 
-        self.assertEqual("ready_with_warnings", manifest["status"])
+        self.assertEqual("NEEDS_REWORK", manifest["status"])
         self.assertTrue(any("缺少真实 demo 或样例输入" in item for item in manifest["known_limits"]))
 
 

@@ -11,7 +11,7 @@ import product_studio_reply
 
 
 class ProductStudioReplyTests(unittest.TestCase):
-    def test_project_type_mismatch_reply_names_block_reason(self) -> None:
+    def test_project_type_mismatch_reply_explains_block_without_internal_code(self) -> None:
         text = product_studio_reply.compose_timeout_or_blocked_reply(
             {
                 "status": "BLOCKED",
@@ -20,8 +20,8 @@ class ProductStudioReplyTests(unittest.TestCase):
                 "missing_artifacts": ["effect_report.json"],
             }
         )
-        self.assertIn("project_type_mismatch", text)
-        self.assertIn("项目方向出现偏差", text)
+        self.assertNotIn("project_type_mismatch", text)
+        self.assertIn("目标或证据要求还没有对齐", text)
         self.assertNotIn("虚拟项目组", text)
 
     def test_timeout_reply_is_not_only_generic_timeout(self) -> None:
@@ -33,9 +33,9 @@ class ProductStudioReplyTests(unittest.TestCase):
                 "missing_artifacts": ["usage_plan.json"],
             }
         )
-        self.assertIn("generation subprocess exceeded total timeout", text)
-        self.assertIn("最后进展", text)
-        self.assertIn("缺失材料", text)
+        self.assertNotIn("generation subprocess exceeded total timeout", text)
+        self.assertIn("等待时间已到", text)
+        self.assertIn("主要缺口", text)
 
 
 if __name__ == "__main__":

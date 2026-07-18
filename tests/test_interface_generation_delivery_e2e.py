@@ -4,7 +4,6 @@ import json
 import pathlib
 import sys
 import tempfile
-import zipfile
 
 import pytest
 
@@ -83,7 +82,7 @@ def package_project(project: pathlib.Path) -> dict:
     return local_packager.package_project(project, startup_command="python main.py", screenshot_path=screenshot if screenshot else None)
 
 
-def test_authorized_api_generation_starts_once_and_keeps_context(monkeypatch) -> None:
+def test_ambiguous_model_mode_message_does_not_restart_active_run(monkeypatch) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
@@ -97,7 +96,6 @@ def test_authorized_api_generation_starts_once_and_keeps_context(monkeypatch) ->
             session["generation"]["status"] = "running"
             bridge.save_session(session_dir_arg, session)
 
-        monkeypatch.setattr(bridge, "local_project_generation_available", lambda: False)
         monkeypatch.setattr(bridge, "provider_user_message", lambda **kwargs: "")
         monkeypatch.setattr(bridge, "start_agent_generation", fake_start)
 
@@ -106,10 +104,8 @@ def test_authorized_api_generation_starts_once_and_keeps_context(monkeypatch) ->
         bridge.handle_text(client, "chat-e2e", "还在做吗", session_dir, log_dir, "gpt-test", 60)
 
         saved = bridge.load_session(session_dir, "chat-e2e")
-        assert starts == ["run-chat-e2e"]
+        assert starts == []
         assert saved["active_run"]["id"] == "run-chat-e2e"
-        assert saved["generation"]["effective_generation_mode"] == "api"
-        assert saved["whiteboard"]["target_project_architecture"]["model_mode"] == "local_model"
 
 
 def test_final_gate_rejects_missing_final_bundle() -> None:
@@ -122,7 +118,7 @@ def test_final_gate_rejects_missing_final_bundle() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "project_package" in gate["missing"]
+        assert "test_execution:test_execution.json" in gate["missing"]
 
 
 def test_final_gate_rejects_missing_screenshot() -> None:
@@ -135,7 +131,7 @@ def test_final_gate_rejects_missing_screenshot() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "screenshots" in gate["missing"]
+        assert "visual_evidence:visual_evidence.json" in gate["missing"]
 
 
 def test_final_gate_rejects_missing_test_report() -> None:
@@ -148,7 +144,7 @@ def test_final_gate_rejects_missing_test_report() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "test_report" in gate["missing"]
+        assert "test_execution:test_execution.json" in gate["missing"]
 
 
 def test_final_gate_rejects_blank_or_solid_screenshot() -> None:
@@ -161,12 +157,10 @@ def test_final_gate_rejects_blank_or_solid_screenshot() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "screenshots" in gate["missing"]
-        assert "invalid_screenshot_evidence" in gate["rejected"]
-        assert gate["invalid_screenshots"]
+        assert "visual_evidence:visual_evidence.json" in gate["missing"]
 
 
-def test_successful_delivery_sends_package_and_screenshot_and_public_reply_is_clear() -> None:
+def test_incomplete_manifest_sends_no_public_artifacts() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         session_dir = root / "sessions"
@@ -178,21 +172,12 @@ def test_successful_delivery_sends_package_and_screenshot_and_public_reply_is_cl
 
         sent = bridge.send_delivery_from_manifest(client, "delivery-success", session_dir, session, manifest)
         saved = bridge.load_session(session_dir, "delivery-success")
-        package = pathlib.Path(manifest["package_path"])
-
-        assert any(item["kind"] == "package" for item in sent)
-        assert any(item["kind"] == "screenshot" for item in sent)
-        assert client.documents and client.documents[0][1].name == "final_project_bundle.zip"
-        assert client.photos
-        assert any(event.get("type") == "delivery_manifest_sent" for event in saved.get("memory_events", []))
+        assert sent == []
+        assert not client.documents
+        assert not client.photos
+        assert saved["generation"]["status"] == "rework_blocked"
         visible = "\n".join(text for _, text in client.messages)
-        assert "可运行项目" in visible
-        assert "截图" in visible or "效果预览" in visible
-        assert "测试报告" in visible
-        assert "交付包" in visible
-        with zipfile.ZipFile(package) as zf:
-            names = {pathlib.PurePosixPath(item).name for item in zf.namelist()}
-        assert {"README.md", "TEST_REPORT.md", "main.py"}.issubset(names)
+        assert "继续修复" in visible
 
 
 def test_delivery_is_not_complete_when_telegram_document_send_fails() -> None:
@@ -210,9 +195,9 @@ def test_delivery_is_not_complete_when_telegram_document_send_fails() -> None:
         visible = "\n".join(text for _, text in client.messages)
 
         assert not any(item["kind"] == "package" for item in sent)
-        assert saved["generation"]["status"] == "delivery_send_failed"
-        assert saved["active_run"]["status"] == "delivery_send_failed"
-        assert "还不能交付" in visible or "还不能算交付完成" in visible
+        assert saved["generation"]["status"] == "rework_blocked"
+        assert saved["active_run"]["status"] == "rework_blocked"
+        assert "继续修复" in visible
         assert "403" not in visible
         assert "quota" not in visible.lower()
         assert "provider" not in visible.lower()

@@ -84,7 +84,7 @@ class ProductStudioDisciplineTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir)
 
-        self.assertEqual("ready_with_warnings", manifest["status"])
+        self.assertEqual("NEEDS_REWORK", manifest["status"])
         self.assertFalse(manifest["quality_evidence"]["test_report_found"])
         self.assertTrue(any("TEST_REPORT" in item for item in manifest["known_limits"]))
 
