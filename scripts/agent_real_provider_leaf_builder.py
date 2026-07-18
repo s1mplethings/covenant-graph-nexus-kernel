@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import pathlib
 import re
@@ -75,7 +76,15 @@ def _salvage_provider_files(raw: str) -> dict[str, str]:
     return result
 
 
-def _call_provider(prompt: str, *, model: str, timeout: int) -> tuple[str, str]:
+def _hash_bytes(value: bytes) -> str:
+    return "sha256:" + hashlib.sha256(value).hexdigest()
+
+
+def _hash_json(value: Any) -> str:
+    return _hash_bytes(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+
+
+def _call_provider(prompt: str, *, model: str, timeout: int) -> tuple[str, str, dict[str, Any]]:
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     root = str(creds.get("base_url", "")).strip()
@@ -87,10 +96,15 @@ def _call_provider(prompt: str, *, model: str, timeout: int) -> tuple[str, str]:
         timeout=timeout,
     )
     if error:
-        return "", error
+        return "", error, {"request_body_hash": _hash_json(payload), "provider_response_id": "", "response_content_hash": ""}
     if not doc:
-        return "", "empty provider response"
-    return check_connectivity._extract_text(doc), ""
+        return "", "empty provider response", {"request_body_hash": _hash_json(payload), "provider_response_id": "", "response_content_hash": ""}
+    text = check_connectivity._extract_text(doc)
+    return text, "", {
+        "request_body_hash": _hash_json(payload),
+        "provider_response_id": str(doc.get("id", "")).strip(),
+        "response_content_hash": _hash_bytes(text.encode("utf-8")),
+    }
 
 
 def _repair_prompt(base_prompt: str, *, classification: str, missing: list[str], test_result: dict[str, Any] | None) -> str:
@@ -213,12 +227,15 @@ def run_real_provider_leaf(
     test_result: dict[str, Any] = {}
     missing: list[str] = []
     current_prompt = prompt
+    provider_identity: dict[str, Any] = {}
     for attempt in range(1, attempts_allowed + 1):
         if provider_output_override is not None:
             raw_text = provider_output_override
             provider_error = ""
         else:
-            raw_text, provider_error = _call_provider(current_prompt, model=model, timeout=timeout)
+            provider_call = _call_provider(current_prompt, model=model, timeout=timeout)
+            raw_text, provider_error = provider_call[:2]
+            provider_identity = provider_call[2] if len(provider_call) > 2 and isinstance(provider_call[2], dict) else {}
         (out / "provider_output_raw_redacted.txt").write_text(redact_secret(raw_text or provider_error), encoding="utf-8")
         append_jsonl(out / "provider_attempts.jsonl", {"attempt": attempt, "provider_error": bool(provider_error), "raw_length": len(raw_text or provider_error or "")})
         if provider_error:
@@ -241,6 +258,34 @@ def run_real_provider_leaf(
             parse_error = ""
         write_json(out / "provider_output_files.json", {"files": [{"path": path, "content_length": len(content)} for path, content in files.items()], "parse_error": parse_error, "attempt": attempt})
         enforcement = enforce_leaf_scope(contract=contract, candidate_files=files, project_dir=project, out_dir=out, write_allowed=True)
+        decision = {
+            "agent_id": agent_id,
+            "attempt": attempt,
+            "files": [{"path": path, "content_hash": _hash_bytes(content.encode("utf-8"))} for path, content in sorted(files.items())],
+        }
+        patch = [
+            {
+                "path": path,
+                "file_hash": _hash_bytes((project / path).read_bytes()),
+            }
+            for path in enforcement.get("written_files", [])
+            if (project / path).is_file()
+        ]
+        write_json(
+            out / "provider_causal_trace.json",
+            {
+                "kind": "CGKNProviderCausalTrace",
+                "schema_version": "1.0",
+                "provider_request_identity": f"{agent_id}:{attempt}",
+                **provider_identity,
+                "decision": decision,
+                "decision_hash": _hash_json(decision),
+                "consumed_by": "scripts.agent_leaf_scope_enforcer.enforce_leaf_scope",
+                "patch": patch,
+                "patch_hash": _hash_json(patch),
+                "provider_output_override": provider_output_override is not None,
+            },
+        )
         if enforcement["blocked_files"]:
             classification = "real_provider_leaf_scope_violation_blocked"
             checkpoint = "FAIL"
