@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import sys
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any
 
@@ -76,8 +77,8 @@ def call_responses_provider(
     retry_delay: float = 0.5,
 ) -> tuple[dict[str, Any] | None, str, int]:
     model = str(payload.get("model", "")).strip()
-    endpoint = check_connectivity._openai_compatible_endpoint(base_url, model=model)
-    request_payload = check_connectivity._build_openai_compatible_payload(base_url, payload, model=model)
+    endpoint = check_connectivity._responses_endpoint(base_url)
+    request_payload = dict(payload)
     transport = check_connectivity._post_json_with_retry(
         endpoint,
         request_payload,
@@ -105,7 +106,7 @@ def provider_readiness(*, out_dir: str | pathlib.Path, model: str = "gpt-5.4-nan
         "public_safe_error": "",
         "selected_method": "",
         "endpoint_mode": "",
-        "base_url_domain": check_connectivity._base_url_domain(base_url) if base_url else "",
+        "base_url_domain": urllib.parse.urlparse(base_url).netloc if base_url else "",
         "provider_error_type": "",
         "raw_error_redacted": True,
         "created_at": datetime.now(timezone.utc).isoformat(),

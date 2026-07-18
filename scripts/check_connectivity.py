@@ -10,6 +10,8 @@ import ssl
 import time
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from typing import Any
 
@@ -77,7 +79,21 @@ def _responses_endpoint(base_url: str) -> str:
     return _join_endpoint(base_url, "/responses")
 
 
-def _openai_compatible_endpoint(base_url: str) -> str:
+def _selected_provider_api_method(base_url: str, model: str = "") -> str:
+    del model
+    return "chat_completions" if _is_gptsapi_base_url(base_url) else "responses"
+
+
+def _endpoint_mode_from_method(method: str) -> str:
+    return "chat" if method == "chat_completions" else "responses"
+
+
+def _base_url_domain(base_url: str) -> str:
+    return urlparse(str(base_url)).netloc
+
+
+def _openai_compatible_endpoint(base_url: str, model: str = "") -> str:
+    del model
     return _chat_completions_endpoint(base_url) if _is_gptsapi_base_url(base_url) else _responses_endpoint(base_url)
 
 
@@ -89,7 +105,8 @@ def _messages_to_input(messages: list[dict[str, Any]]) -> str:
     )
 
 
-def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any], model: str = "") -> dict[str, Any]:
+    del model
     request_payload = dict(payload)
     if _is_gptsapi_base_url(base_url):
         if "input" in request_payload and "messages" not in request_payload:
@@ -149,6 +166,8 @@ def _provider_error_type(error: str) -> str:
     lowered = text.lower()
     if "missing openai-compatible api key" in lowered or "api_generation_mode requires configured" in lowered:
         return "PROVIDER_MISSING_CONFIG"
+    if "does not support this api" in lowered or "method unsupported" in lowered:
+        return "PROVIDER_METHOD_UNSUPPORTED"
     if "key usage limit exceeded" in lowered or "insufficient_quota" in lowered:
         return "PROVIDER_KEY_USAGE_LIMIT"
     if "http 403" in lowered:
@@ -305,6 +324,63 @@ def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: 
     if not isinstance(doc, dict):
         return None, "response is not object"
     return doc, ""
+
+
+@dataclass
+class ProviderTransportAttempt:
+    attempt: int
+    elapsed_ms: int
+    ok: bool
+    error: str
+    error_type: str
+    retryable: bool
+
+
+@dataclass
+class ProviderTransportResult:
+    doc: dict[str, Any] | None
+    error: str
+    attempts: list[ProviderTransportAttempt]
+    error_type: str
+    recovered: bool
+
+
+def _post_json_with_retry(
+    endpoint: str,
+    payload: dict[str, Any],
+    token: str,
+    timeout_sec: int,
+    *,
+    max_attempts: int = 3,
+    base_delay_sec: float = 0.5,
+) -> ProviderTransportResult:
+    attempts: list[ProviderTransportAttempt] = []
+    doc: dict[str, Any] | None = None
+    error = ""
+    for number in range(1, max(1, max_attempts) + 1):
+        started = time.monotonic()
+        doc, error = _post_json(endpoint, payload, token, timeout_sec)
+        attempts.append(
+            ProviderTransportAttempt(
+                attempt=number,
+                elapsed_ms=round((time.monotonic() - started) * 1000),
+                ok=doc is not None,
+                error=error,
+                error_type=_provider_error_type(error) if error else "",
+                retryable=bool(error and _error_is_retryable(error)),
+            )
+        )
+        if doc is not None or not _error_is_retryable(error):
+            break
+        if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
+            time.sleep(max(0.0, base_delay_sec) * number)
+    return ProviderTransportResult(
+        doc=doc,
+        error=error,
+        attempts=attempts,
+        error_type=_provider_error_type(error) if error else "",
+        recovered=doc is not None and len(attempts) > 1,
+    )
 
 
 def _extract_text(doc: dict[str, Any]) -> str:
