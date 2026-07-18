@@ -232,7 +232,7 @@ def main() -> int:
     args = parser.parse_args()
     result = build_acceptance(args.run_dir, test_chat_id=args.telegram_test_chat_id)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0 if result["inspection"] in {"PASS", "NEEDS_REWORK"} else 1
+    return 0 if result["inspection"] in {"PASS", "NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else 1
 
 
 if __name__ == "__main__":

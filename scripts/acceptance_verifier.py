@@ -192,8 +192,11 @@ def inspect_canonical_final_verdict(
         failures.append("false_pass")
     if claimed != PASS and not failures and not nonpass:
         failures.append("false_nonpass")
+    inspection_status = PASS if not failures and not nonpass and claimed == PASS else (
+        claimed if not failures and nonpass and claimed in {"NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else "NEEDS_REWORK"
+    )
     return {
-        "status": PASS if not failures and not nonpass and claimed == PASS else "NEEDS_REWORK",
+        "status": inspection_status,
         "failures": sorted(set(failures)),
         "nonpass_gates": sorted(set(nonpass)),
         "verdict_path": str(path),
