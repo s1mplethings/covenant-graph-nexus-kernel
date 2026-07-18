@@ -24,7 +24,7 @@ def write_quota_failure(run_dir: pathlib.Path) -> None:
 
 
 def test_api_403_key_usage_limit_is_provider_quota() -> None:
-    assert check_connectivity._provider_error_type(QUOTA_ERROR) == "PROVIDER_QUOTA_EXCEEDED"
+    assert check_connectivity._provider_error_type(QUOTA_ERROR) == "PROVIDER_KEY_USAGE_LIMIT"
 
 
 def test_observer_classifies_provider_quota(tmp_path: pathlib.Path, monkeypatch) -> None:

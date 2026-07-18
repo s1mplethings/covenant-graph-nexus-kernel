@@ -190,6 +190,8 @@ def _provider_status(run_dir: pathlib.Path) -> dict[str, Any]:
     docs = _iter_json_docs(run_dir)
     text = "\n".join(item for doc in docs for item in _collect_strings(doc))
     provider_error_type = check_connectivity._provider_error_type(text) if text.strip() else ""
+    if provider_error_type == "PROVIDER_KEY_USAGE_LIMIT":
+        provider_error_type = "PROVIDER_QUOTA_EXCEEDED"
     provider_error_code = ""
     if provider_error_type:
         import re

@@ -10,11 +10,11 @@ from scripts import check_connectivity, provider_transport
 from scripts.agent_leaf_provider_guard import call_responses_provider, classify_provider_error
 
 
-def test_gptsapi_gpt54nano_uses_responses_method() -> None:
+def test_gptsapi_gpt54nano_uses_verified_chat_compatibility_method() -> None:
     root = "https://api.gptsapi.net/v1"
 
-    assert provider_transport.select_provider_api_method(root, "gpt-5.4-nano") == "responses"
-    assert check_connectivity._openai_compatible_endpoint(root, model="gpt-5.4-nano") == "https://api.gptsapi.net/v1/responses"
+    assert provider_transport.select_provider_api_method(root, "gpt-5.4-nano") == "chat_completions"
+    assert check_connectivity._openai_compatible_endpoint(root, model="gpt-5.4-nano") == "https://api.gptsapi.net/v1/chat/completions"
 
 
 def test_gptsapi_non_gpt5_model_keeps_chat_compatibility() -> None:

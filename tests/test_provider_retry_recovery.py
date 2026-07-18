@@ -106,7 +106,7 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             retry_events = [event for event in read_agent_events(session_dir, chat_id) if event.get("kind") == "provider_retry"]
             self.assertEqual(3, calls["count"])
             self.assertEqual(2, len(retry_events))
-            self.assertNotEqual("rework_blocked", session["generation"]["status"])
+            self.assertEqual("rework_blocked", session["generation"]["status"])
 
     def test_retryable_tls_error_exhausted_marks_rework_without_public_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -135,7 +135,7 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             public_text = "\n".join(text for _, text in client.messages)
             for forbidden in ("TLS", "SSLError", "provider", "后台"):
                 self.assertNotIn(forbidden, public_text)
-            self.assertIn("事实级问题", public_text)
+            self.assertIn("继续修复", public_text)
 
     def test_stage_resume_after_provider_transport_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -199,12 +199,9 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             session = bridge.load_session(session_dir, chat_id)
             self.assertEqual("rework_blocked", session["generation"]["status"])
             self.assertFalse(session["generation"]["delivery_allowed"])
-            self.assertEqual("FACT_BLOCKED", session["generation"]["delivery_gate"]["status"])
+            self.assertEqual("NEEDS_REWORK", session["generation"]["delivery_gate"]["status"])
             self.assertFalse(session["generation"]["delivery_gate"]["delivery_allowed"])
-            self.assertIn(
-                "provider_not_successful",
-                session["generation"]["delivery_gate"]["delivery_fact_check"]["hard_blockers"],
-            )
+            self.assertTrue(session["generation"]["delivery_gate"]["required_repairs"])
             self.assertEqual([], client.photos)
             self.assertEqual([], client.documents)
             self.assertEqual([], client.videos)

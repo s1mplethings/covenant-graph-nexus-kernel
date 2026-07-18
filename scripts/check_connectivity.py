@@ -92,9 +92,9 @@ def _base_url_domain(base_url: str) -> str:
     return urlparse(str(base_url)).netloc
 
 
-def _openai_compatible_endpoint(base_url: str, model: str = "") -> str:
-    del model
-    return _chat_completions_endpoint(base_url) if _is_gptsapi_base_url(base_url) else _responses_endpoint(base_url)
+def _openai_compatible_endpoint(base_url: str, model: str = "", requested_method: str = "") -> str:
+    method = str(requested_method or "").strip() or _selected_provider_api_method(base_url, model)
+    return _chat_completions_endpoint(base_url) if method == "chat_completions" else _responses_endpoint(base_url)
 
 
 def _messages_to_input(messages: list[dict[str, Any]]) -> str:
