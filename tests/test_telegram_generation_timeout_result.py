@@ -60,7 +60,7 @@ class TelegramGenerationTimeoutResultTests(unittest.TestCase):
         )
         self.assertNotIn("虚拟项目组", reply)
         self.assertIn("这一轮等待时间已到", reply)
-        self.assertIn("缺失材料", reply)
+        self.assertIn("主要缺口", reply)
 
 
 if __name__ == "__main__":

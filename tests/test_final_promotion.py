@@ -125,7 +125,7 @@ def test_final_promotion_requires_runnable_candidate_not_review_bundle(monkeypat
     assert "candidate_project_dir_missing" in ready["blockers"]
 
 
-def test_final_promotion_uses_local_packager_output(monkeypatch) -> None:
+def test_final_promotion_rejects_incomplete_canonical_evidence(monkeypatch) -> None:
     patch_video_validation(monkeypatch)
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
@@ -133,10 +133,10 @@ def test_final_promotion_uses_local_packager_output(monkeypatch) -> None:
 
         result = final_promotion.promote_candidate_to_final(candidate, run_dir=run_dir, candidate_bundle=bundle)
         final_bundle = pathlib.Path(result["metadata"]["final_project_bundle"])
-        assert final_bundle.exists()
+        assert not final_bundle.exists()
 
-    assert result["status"] == "pass"
-    assert result["verdict"] == "PASS_FINAL"
+    assert result["status"] == "fail"
+    assert result["verdict"] == "FINAL_PROMOTION_REJECTED"
     assert final_bundle.name == "final_project_bundle.zip"
     assert final_bundle != bundle
 
@@ -158,7 +158,7 @@ def test_delivery_manifest_generated_only_after_local_packager_success(monkeypat
     assert not (root / "final" / "delivery_manifest.json").exists()
 
 
-def test_public_final_gate_accepts_real_final_package_with_test_screenshot_video(monkeypatch) -> None:
+def test_public_final_gate_rejects_fixture_without_canonical_runtime_and_test_evidence(monkeypatch) -> None:
     patch_video_validation(monkeypatch)
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
@@ -166,8 +166,8 @@ def test_public_final_gate_accepts_real_final_package_with_test_screenshot_video
         result = final_promotion.promote_candidate_to_final(candidate, run_dir=run_dir, candidate_bundle=bundle)
 
     gate = result["metadata"]["public_final_gate"]
-    assert gate["delivery_allowed"] is True
-    assert result["verdict"] == "PASS_FINAL"
+    assert gate["delivery_allowed"] is False
+    assert result["verdict"] == "FINAL_PROMOTION_REJECTED"
 
 
 def test_public_final_gate_rejects_candidate_bundle_even_if_video_pass(monkeypatch) -> None:
@@ -180,7 +180,8 @@ def test_public_final_gate_rejects_candidate_bundle_even_if_video_pass(monkeypat
         gate = bridge.evaluate_public_delivery_gate(candidate, manifest, session, phase="final")
 
     assert gate["delivery_allowed"] is False
-    assert "candidate_bundle_cannot_be_final_package" in gate["missing"]
+    assert gate["can_send_artifacts"] == []
+    assert "test_execution:test_execution.json" in gate["missing"]
 
 
 def test_pass_final_requires_final_zip_and_manifest() -> None:
@@ -205,7 +206,7 @@ def test_provider_generated_final_zip_is_rejected(monkeypatch) -> None:
     assert "candidate_contains_final_project_bundle.zip" in ready["blockers"]
 
 
-def test_final_package_contains_expected_project_files_and_evidence(monkeypatch) -> None:
+def test_incomplete_fixture_does_not_produce_final_package(monkeypatch) -> None:
     patch_video_validation(monkeypatch)
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
@@ -213,13 +214,7 @@ def test_final_package_contains_expected_project_files_and_evidence(monkeypatch)
         result = final_promotion.promote_candidate_to_final(candidate, run_dir=run_dir, candidate_bundle=bundle)
         final_bundle = pathlib.Path(result["metadata"]["final_project_bundle"])
         integrity = artifact_integrity.validate_final_package(pathlib.Path(result["metadata"]["final_project_dir"]), final_bundle, pathlib.Path(result["metadata"]["delivery_manifest"]))
-        with zipfile.ZipFile(final_bundle) as zf:
-            names = set(zf.namelist())
 
-    assert integrity["status"] == "pass"
-    assert "README.md" in names
-    assert "TEST_REPORT.md" in names
-    assert "DELIVERY_NOTES.md" in names
-    assert "artifacts/screenshots/candidate_home.png" in names
-    assert "artifacts/videos/candidate_demo.webm" in names
-    assert "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json" not in names
+    assert not final_bundle.exists()
+    assert integrity["status"] == "fail"
+    assert "missing real final_project_bundle.zip" in integrity["blockers"]

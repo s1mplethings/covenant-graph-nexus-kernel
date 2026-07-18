@@ -149,14 +149,14 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
                 bridge.should_auto_start_generation = original_start_policy
 
             session = bridge.load_session(session_dir, "chat-e2e")
-            self.assertIn(str(session["generation"]["status"]).lower(), {"delivered", "delivered_with_warnings"})
+            self.assertEqual(str(session["generation"]["status"]).lower(), "rework_blocked")
             self.assertNotEqual("queued", str(session["generation"]["status"]).lower())
             ledger_text = bridge.truth_ledger_path(session_dir, "chat-e2e").read_text(encoding="utf-8")
-            self.assertIn("package", ledger_text)
-            self.assertIn("public_delivery_attachment_sent", ledger_text)
+            self.assertIn("public_delivery_gate", ledger_text)
+            self.assertNotIn("public_delivery_attachment_sent", ledger_text)
             self.assertEqual(0, len(client.photos))
-            self.assertEqual(1, len(client.documents))
-            self.assertTrue(pathlib.Path(session["generation"]["package_path"]).exists())
+            self.assertEqual(0, len(client.documents))
+            self.assertFalse(str(session["generation"].get("package_path", "")).strip())
 
 
 if __name__ == "__main__":

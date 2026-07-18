@@ -13,12 +13,12 @@ from scripts.agent_long_run_evaluator import phase1_controlled_replay, phase2_re
 pytestmark = [pytest.mark.longrun, pytest.mark.slow, pytest.mark.e2e]
 
 
-def test_long_run_phase1_controlled_replay_passes(tmp_path: pathlib.Path) -> None:
+def test_long_run_phase1_controlled_replay_cannot_claim_public_delivery(tmp_path: pathlib.Path) -> None:
     result = phase1_controlled_replay(tmp_path)
 
-    assert result["verdict"] == "PASS"
+    assert result["verdict"] == "NEEDS_REWORK"
     assert result["agent_count"] >= 20
-    assert result["public_delivery_gate"] is True
+    assert result["public_delivery_gate"] is False
 
 
 def test_long_run_phase2_classifies_provider_unavailable(tmp_path: pathlib.Path) -> None:

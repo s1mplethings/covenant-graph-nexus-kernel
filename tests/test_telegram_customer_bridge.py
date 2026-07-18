@@ -180,7 +180,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("内容生成能力", targets)
         self.assertIn("Hosted provider/API backend", targets)
         self.assertIn("SQLite", targets)
-        self.assertIn("生成能力优先走本地模型、外部高级 API", "\n".join(updated["critical_questions"]))
+        self.assertIn("外部高质量模型服务", "\n".join(updated["critical_questions"]))
         self.assertIn("核心能力", "\n".join(updated["known_facts"]))
 
     def test_blocking_questions_are_limited_and_rest_become_open_questions(self) -> None:
@@ -535,7 +535,8 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertTrue(called["ran"])
             self.assertIn("chat-4", called["project_dir"])
             self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual("rework_blocked", session["generation"]["status"])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_generation_confirmation_does_not_require_backend_control_command(self) -> None:
@@ -562,9 +563,9 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(0, len(start_controls))
             self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assertIn("agent_session.jsonl", session["generation"]["agent_session_path"])
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
-            self.assertEqual("DELIVER_WITH_WARNINGS", session["generation"]["delivery_gate"]["verdict"])
-            self.assertEqual("DELIVERED_WITH_WARNINGS", session["generation"]["status"].upper())
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual("NEEDS_REWORK", session["generation"]["delivery_gate"]["verdict"])
+            self.assertEqual("REWORK_BLOCKED", session["generation"]["status"].upper())
 
     def test_startup_auto_starts_pending_intake(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

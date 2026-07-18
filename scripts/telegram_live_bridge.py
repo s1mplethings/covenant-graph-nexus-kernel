@@ -41,6 +41,7 @@ import canonical_media_validation
 import canonical_user_review
 import customer_runtime_runner
 import dynamic_pipeline_runner
+import frontdesk_team_lead_agent
 import local_packager
 import local_image_model_discovery
 import local_model_router
@@ -1435,7 +1436,28 @@ def send_customer_reply(
     source: str = "frontdesk_composer",
     direct_text: str = "",
 ) -> bool:
-    text = pre_send_guard(direct_text or frontdesk_compose(event, session, facts, backend_memo))
+    fact_doc = facts if isinstance(facts, dict) else {}
+    generation = fact_doc.get("generation") if isinstance(fact_doc.get("generation"), dict) else session.get("generation", {})
+    evidence = fact_doc.get("evidence_state") if isinstance(fact_doc.get("evidence_state"), dict) else delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    draft = direct_text or frontdesk_compose(event, session, facts, backend_memo)
+    context = frontdesk_team_lead_agent.build_context(
+        latest_user_message=latest_user_text(session),
+        conversation_history_summary=frontdesk_team_lead_agent.conversation_history_summary(session.get("messages", [])),
+        whiteboard=whiteboard,
+        active_run=active_run(session),
+        generation_status=generation if isinstance(generation, dict) else {},
+        delivery_evidence=evidence,
+        known_limits=frontdesk_team_lead_agent.known_limits_from_context(whiteboard, generation, evidence),
+        customer_agent_policy=read_customer_agent_policy(),
+        draft_reply=draft,
+        event=event,
+    )
+    structured = frontdesk_team_lead_agent.compose_reply(context)
+    session["last_team_lead_reply"] = structured
+    # Preserve the event-specific public composer as the actual wording while
+    # recording Team Lead intent/status metadata for continuity and auditing.
+    text = pre_send_guard(draft)
     session.setdefault("messages", []).append({"role": "assistant", "text": text, "created_at": now(), "source": source, "event": event})
     append_memory_event(session, "assistant_message", text, {"source": source, "event": event})
     append_truth_ledger(
