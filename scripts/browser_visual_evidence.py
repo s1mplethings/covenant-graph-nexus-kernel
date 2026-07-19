@@ -180,6 +180,12 @@ def finalize_evidence(
         "candidate_hash_observed": canonical_evidence_hash.candidate_source_hash(project),
         "candidate_hash_verified": canonical_evidence_hash.candidate_source_hash(project) == str(runtime_result.get("candidate_hash") or ""),
         "commit_sha": str(runtime_result.get("commit_sha") or ""),
+        "production_provenance_ref": str(
+            runtime_result.get("production_provenance_ref") or ""
+        ),
+        "production_provenance_hash": str(
+            runtime_result.get("production_provenance_hash") or ""
+        ),
         "producer": PRODUCER,
         "created_at": _now(),
         "status": status,
@@ -213,7 +219,16 @@ def finalize_evidence(
     return evidence
 
 
-def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
+def inspect(
+    project_dir: str | pathlib.Path,
+    *,
+    run_id: str | None = None,
+    candidate_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str | None = None,
+) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     path = project / "visual_evidence.json"
     if not path.exists():
@@ -280,6 +295,16 @@ def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
         missing.append("candidate_hash")
     if doc.get("commit_sha") != runtime_doc.get("commit_sha"):
         missing.append("commit_sha")
+    if (
+        doc.get("production_provenance_ref")
+        != runtime_doc.get("production_provenance_ref")
+    ):
+        missing.append("production_provenance_ref_runtime")
+    if (
+        doc.get("production_provenance_hash")
+        != runtime_doc.get("production_provenance_hash")
+    ):
+        missing.append("production_provenance_hash_runtime")
     current_candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     if doc.get("candidate_hash") != current_candidate_hash:
         missing.append("candidate_hash_current")
@@ -293,4 +318,33 @@ def inspect(project_dir: str | pathlib.Path) -> dict[str, Any]:
     requests = doc.get("network_requests", []) if isinstance(doc.get("network_requests"), list) else []
     if not requests or any(_origin(str(request)) != expected_origin for request in requests):
         missing.append("network_requests")
+    for field, expected in (
+        ("run_id", run_id),
+        ("candidate_id", candidate_id),
+        ("candidate_hash", candidate_hash),
+        ("commit_sha", commit_sha),
+    ):
+        if expected is not None and doc.get(field) != expected:
+            missing.append(field)
+    if production_provenance_ref is not None:
+        expected_provenance = pathlib.Path(production_provenance_ref).resolve()
+        actual_ref_value = str(doc.get("production_provenance_ref", "")).strip()
+        actual_ref = pathlib.Path(actual_ref_value).resolve() if actual_ref_value else pathlib.Path()
+        if actual_ref != expected_provenance:
+            missing.append("production_provenance_ref")
+        expected_file_hash = (
+            canonical_evidence_hash.sha256_file(expected_provenance)
+            if expected_provenance.is_file() and not expected_provenance.is_symlink()
+            else ""
+        )
+        if (
+            not expected_file_hash
+            or doc.get("production_provenance_hash") != expected_file_hash
+            or (
+                production_provenance_hash is not None
+                and doc.get("production_provenance_hash")
+                != production_provenance_hash
+            )
+        ):
+            missing.append("production_provenance_hash")
     return {"status": "PASS" if not missing else "FAIL", "missing": sorted(set(missing)), "details": doc}

@@ -19,7 +19,88 @@ import scripts.canonical_delivery_manifest as canonical_delivery_manifest
 import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
+import scripts.production_candidate_provenance as production_candidate_provenance
 import scripts.telegram_live_bridge as bridge
+
+
+@pytest.fixture(autouse=True)
+def _allow_test_production_candidate_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+):
+    temporary_root = pathlib.Path(tempfile.gettempdir()).resolve()
+    monkeypatch.setattr(
+        production_candidate_provenance, "PRODUCTION_CANDIDATE_ROOT", temporary_root
+    )
+    monkeypatch.setattr(
+        bridge.production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(bridge, "DEFAULT_MEMORY_DIR", tmp_path / "project_memory")
+    monkeypatch.setenv(
+        "CGNK_LOCAL_STUDIO_CONVERSATION_ROOT",
+        str(tmp_path / "conversations"),
+    )
+
+
+def bind_test_production_provenance(
+    root: pathlib.Path,
+    project: pathlib.Path,
+    *,
+    run_id: str,
+    candidate_id: str,
+    commit_sha: str,
+) -> dict:
+    run_root = root / "production_run"
+    run_root.mkdir(parents=True, exist_ok=True)
+    provider_result = run_root / "provider_generation_result.json"
+    provider_result.write_text(
+        '{"status":"PASS","provider_semantic_review":{"status":"pass"}}',
+        encoding="utf-8",
+    )
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
+    manifest_hash = canonical_evidence_hash.canonical_json_hash(
+        {
+            "candidate_source_manifest": canonical_evidence_hash.candidate_source_manifest(
+                project
+            )
+        },
+        (),
+    )
+    provider_ref = {
+        "role": "provider_generation_result",
+        "ref": str(provider_result.resolve()),
+        "hash": canonical_evidence_hash.sha256_file(provider_result),
+    }
+    receipts = {}
+    for index, stage in enumerate(production_candidate_provenance.STAGE_ORDER):
+        receipts[stage] = production_candidate_provenance.write_stage_receipt(
+            run_root,
+            stage=stage,
+            run_id=run_id,
+            candidate_id=candidate_id,
+            commit_sha=commit_sha,
+            candidate_root=project,
+            started_at=f"2026-07-19T00:00:0{index * 2}+00:00",
+            finished_at=f"2026-07-19T00:00:0{index * 2 + 1}+00:00",
+            candidate_hash=candidate_hash if stage == "post_build" else "",
+            candidate_source_manifest_hash=manifest_hash
+            if stage == "post_build"
+            else "",
+            artifact_refs=[provider_ref]
+            if stage in {"provider_generation", "provider_validation"}
+            else [],
+        )
+    return production_candidate_provenance.produce(
+        project,
+        run_root,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+        stage_receipts=receipts,
+        provider_result_ref=provider_result,
+    )
 
 
 def write_real_png(path: pathlib.Path, width: int = 160, height: int = 120) -> None:
@@ -127,17 +208,38 @@ def make_deliverable_project(root: pathlib.Path, extra_product_files: dict[str, 
         else:
             target.write_text(content, encoding="utf-8")
     run_id = "run-public-gate"
+    candidate_id = "project"
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-public-gate"
-    real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
+    provenance = bind_test_production_provenance(
+        root,
+        project,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+    )
+    provenance_args = {
+        "production_provenance_ref": provenance["provenance_ref"],
+        "production_provenance_hash": provenance["provenance_hash"],
+    }
+    real_test_execution.run_tests(
+        project,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        candidate_hash=candidate_hash,
+        commit_sha=commit_sha,
+        **provenance_args,
+    )
     runtime = {}
     visual = {}
     for _attempt in range(3):
         runtime = customer_runtime_runner.run(
             project,
             run_id=run_id,
+            candidate_id=candidate_id,
             candidate_hash=candidate_hash,
             commit_sha=commit_sha,
+            **provenance_args,
             live_consumer=browser_visual_evidence.capture_live_runtime,
             browser_capture_required=True,
         )
@@ -188,10 +290,36 @@ def make_media_project_without_browser_evidence(root: pathlib.Path, *, media: st
     elif media == "placeholder_background":
         write_real_png(project / "generated" / "fallback_mock_background.png", 160, 120)
     run_id = "run-media-gate"
+    candidate_id = "project"
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
     commit_sha = "commit-media-gate"
-    real_test_execution.run_tests(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
-    customer_runtime_runner.run(project, run_id=run_id, candidate_hash=candidate_hash, commit_sha=commit_sha)
+    provenance = bind_test_production_provenance(
+        root,
+        project,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+    )
+    provenance_args = {
+        "production_provenance_ref": provenance["provenance_ref"],
+        "production_provenance_hash": provenance["provenance_hash"],
+    }
+    real_test_execution.run_tests(
+        project,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        candidate_hash=candidate_hash,
+        commit_sha=commit_sha,
+        **provenance_args,
+    )
+    customer_runtime_runner.run(
+        project,
+        run_id=run_id,
+        candidate_id=candidate_id,
+        candidate_hash=candidate_hash,
+        commit_sha=commit_sha,
+        **provenance_args,
+    )
     manifest = local_packager.package_project(
         project,
         startup_command="python -m http.server 8000",
@@ -345,7 +473,10 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
         self.assertFalse(gate["delivery_allowed"])
         self.assertEqual("NEEDS_REWORK", gate["status"])
-        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_identity_mismatch_blocks_delivery(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -557,8 +688,14 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-        self.assertIn("visual_evidence:screenshot_hash", gate["missing"])
-        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
+        self.assertIn(
+            "candidate_source_manifest_mismatch",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_background_only_does_not_require_browser_visual_but_requires_background_asset(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -667,7 +804,14 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         self.assertFalse(gate["delivery_allowed"])
-        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
+        self.assertIn(
+            "candidate_source_manifest_mismatch",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_screenshot_request_requires_canonical_browser_visual_even_with_plain_png(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -682,7 +826,10 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
 
         self.assertTrue(gate["browser_visual_required"])
         self.assertFalse(gate["delivery_allowed"])
-        self.assertIn("visual_evidence", gate["canonical_evidence_gate"]["failures"])
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_checkpoint_canonical_failure_short_circuits_adaptive_agent(self) -> None:
         called = {"agent": False}
@@ -755,9 +902,8 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("NEEDS_REWORK", gate["status"])
         self.assertFalse(called["agent"])
         failures = gate["canonical_evidence_gate"]["failures"]
-        self.assertTrue({"test_execution", "customer_runtime", "visual_evidence"} & set(failures))
-        missing = gate["canonical_evidence_gate"]["missing"]
-        self.assertTrue(any("candidate_hash_current" in item for item in missing), missing)
+        self.assertIn("production_candidate_provenance", failures)
+        self.assertIn("candidate_source_manifest_mismatch", failures)
 
     def test_export_product_tamper_after_canonical_evidence_short_circuits_adaptive_agent(self) -> None:
         called = {"agent": False}
@@ -778,7 +924,14 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("NEEDS_REWORK", gate["status"])
         self.assertFalse(gate["is_final"])
         self.assertFalse(called["agent"])
-        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
+        self.assertIn(
+            "candidate_source_manifest_mismatch",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_generated_image_product_tamper_after_canonical_evidence_short_circuits_adaptive_agent(self) -> None:
         called = {"agent": False}
@@ -799,7 +952,14 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
         self.assertEqual("NEEDS_REWORK", gate["status"])
         self.assertFalse(gate["is_final"])
         self.assertFalse(called["agent"])
-        self.assertTrue(any("candidate_hash_current" in item for item in gate["canonical_evidence_gate"]["missing"]))
+        self.assertIn(
+            "production_candidate_provenance",
+            gate["canonical_evidence_gate"]["failures"],
+        )
+        self.assertIn(
+            "candidate_source_manifest_mismatch",
+            gate["canonical_evidence_gate"]["failures"],
+        )
 
     def test_placeholder_background_does_not_satisfy_requested_background(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

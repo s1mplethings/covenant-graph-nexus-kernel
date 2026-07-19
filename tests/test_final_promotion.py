@@ -181,7 +181,9 @@ def test_public_final_gate_rejects_candidate_bundle_even_if_video_pass(monkeypat
 
     assert gate["delivery_allowed"] is False
     assert gate["can_send_artifacts"] == []
-    assert "test_execution:test_execution.json" in gate["missing"]
+    assert "production_candidate_provenance" in gate[
+        "canonical_evidence_gate"
+    ]["failures"]
 
 
 def test_pass_final_requires_final_zip_and_manifest() -> None:

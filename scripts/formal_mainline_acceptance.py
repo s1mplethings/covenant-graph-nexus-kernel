@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 from scripts import acceptance_verifier
 from scripts import canonical_evidence_hash
 from scripts import formal_gate_registry
+from scripts import production_candidate_provenance
 
 PRODUCER = "scripts/formal_mainline_acceptance.py"
 SCHEMA_VERSION = "1.0"
@@ -158,49 +159,31 @@ def _source_for_gate(
 def _production_provenance(
     candidate_dir: pathlib.Path | None,
     production_run_dir: pathlib.Path | None,
+    commit_sha: str,
 ) -> dict[str, Any]:
-    provider_result = (
-        production_run_dir / "provider_generation_result.json"
-        if production_run_dir is not None
-        else None
-    )
-    phase_log = (
-        production_run_dir / "provider_phase_log.jsonl"
-        if production_run_dir is not None
-        else None
-    )
-    failures: list[str] = []
     if candidate_dir is None or not candidate_dir.is_dir():
-        failures.append("production_candidate_missing")
+        return {
+            "status": "NOT_EVALUATED",
+            "failures": ["production_candidate_missing"],
+        }
     if production_run_dir is None or not production_run_dir.is_dir():
-        failures.append("production_run_missing")
-    if provider_result is None or not provider_result.is_file() or provider_result.is_symlink():
-        failures.append("provider_generation_result_missing")
-    if phase_log is None or not phase_log.is_file() or phase_log.is_symlink():
-        failures.append("provider_phase_log_missing")
-    # The current provider result/phase log are useful diagnostics, but they do
-    # not have a canonical envelope binding run_id, candidate source hash,
-    # commit SHA, producer and artifact hash.  Do not promote them by inventing
-    # an acceptance-only production contract.
-    failures.append("canonical_production_candidate_provenance_contract_unavailable")
-    return {
-        "status": "NOT_EVALUATED",
-        "failures": sorted(set(failures)),
-        "candidate_root": str(candidate_dir) if candidate_dir else "",
-        "production_run_root": str(production_run_dir) if production_run_dir else "",
-        "provider_generation_result_ref": str(provider_result.resolve())
-        if provider_result and provider_result.is_file()
-        else "",
-        "provider_generation_result_hash": canonical_evidence_hash.sha256_file(provider_result)
-        if provider_result and provider_result.is_file() and not provider_result.is_symlink()
-        else "",
-        "provider_phase_log_ref": str(phase_log.resolve())
-        if phase_log and phase_log.is_file()
-        else "",
-        "provider_phase_log_hash": canonical_evidence_hash.sha256_file(phase_log)
-        if phase_log and phase_log.is_file() and not phase_log.is_symlink()
-        else "",
-    }
+        return {
+            "status": "NOT_EVALUATED",
+            "failures": ["production_run_missing"],
+        }
+    provenance_ref = production_run_dir / production_candidate_provenance.FILE_NAME
+    if not provenance_ref.is_file() or provenance_ref.is_symlink():
+        return {
+            "status": "NOT_EVALUATED",
+            "failures": ["canonical_production_candidate_provenance_missing"],
+            "provenance_ref": str(provenance_ref),
+        }
+    return production_candidate_provenance.inspect(
+        provenance_ref,
+        expected_candidate_dir=candidate_dir,
+        expected_production_run_dir=production_run_dir,
+        expected_commit_sha=commit_sha,
+    )
 
 
 def _gate_status(
@@ -248,7 +231,16 @@ def build_acceptance(
     production_run = pathlib.Path(production_run_dir).resolve() if production_run_dir else None
     full_all = pathlib.Path(full_all_result).resolve() if full_all_result else None
     identity, identity_failures = _candidate_identity(candidate, commit_sha)
-    provenance = _production_provenance(candidate, production_run)
+    provenance = _production_provenance(candidate, production_run, commit_sha)
+    if provenance["status"] == "PASS":
+        provenance_identity = provenance.get("identity", {})
+        for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
+            if identity.get(field) != provenance_identity.get(field):
+                identity_failures.append(f"production_provenance_identity_mismatch:{field}")
+        identity = {
+            field: str(provenance_identity.get(field, ""))
+            for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha")
+        }
     if provenance["status"] != "PASS":
         identity_failures.append("production_candidate_provenance_not_verified")
         identity_failures = sorted(set(identity_failures))
@@ -281,13 +273,17 @@ def build_acceptance(
             hash_method="scripts.canonical_evidence_hash.candidate_source_hash",
         ),
     )
-    provenance_ref = write_json(
-        out / "production_provenance.json",
+    provenance_inspection_ref = write_json(
+        out / "production_provenance_inspection.json",
         envelope(
             "CGKNProductionCandidateProvenanceInspection",
             identity,
             str(provenance["status"]),
-            **{key: value for key, value in provenance.items() if key != "status"},
+            **{
+                key: value
+                for key, value in provenance.items()
+                if key not in {"status", "identity"}
+            },
         ),
     )
     requirement = write_json(
@@ -314,9 +310,7 @@ def build_acceptance(
     refs: dict[str, pathlib.Path] = {}
     gate_results: dict[str, dict[str, Any]] = {}
     context = {
-        "require_production_provenance": True,
-        "production_provenance_verified": provenance["status"] == "PASS",
-        "production_provenance_ref": str(provenance_ref),
+        "production_provenance_ref": str(provenance.get("provenance_ref", "")),
         **(
             {"delivery_receipt_expectations": receipt_expectations}
             if receipt_expectations
@@ -352,6 +346,19 @@ def build_acceptance(
             source_producer=str(inspection.get("source_producer", "")),
             inspector=str(inspection.get("inspector", spec.get("inspector", ""))),
             inspector_result=inspection.get("inspector_result", inspection),
+            production_provenance_ref=str(
+                provenance.get("provenance_ref", "")
+            )
+            if gate in formal_gate_registry.PROVENANCE_BOUND_GATES
+            else "",
+            production_provenance_hash=str(
+                provenance.get("provenance_hash", "")
+            )
+            if gate in formal_gate_registry.PROVENANCE_BOUND_GATES
+            else "",
+            production_provenance_inspection=inspection.get(
+                "provenance_inspection", {}
+            ),
             failures=inspection.get("failures", []),
             reason=str(inspection.get("reason", "")),
             blocker_code=blocker_code,
@@ -403,7 +410,12 @@ def build_acceptance(
             verdict["status"],
             repository_identity_ref=str((out / "repository_identity.json").resolve()),
             candidate_identity_ref=str((out / "candidate_identity.json").resolve()),
-            production_provenance_ref=str(provenance_ref),
+            production_provenance_ref=str(
+                provenance.get("provenance_ref", "")
+            ),
+            production_provenance_inspection_ref=str(
+                provenance_inspection_ref
+            ),
             requirement_snapshot_ref=str(requirement),
             gate_registry_ref=str(registry),
             acceptance_matrix_ref=str(matrix),

@@ -97,6 +97,8 @@ def run_tests(
     candidate_id: str | None = None,
     candidate_hash: str | None = None,
     commit_sha: str | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str = "",
     test_profile: str = "repo_default",
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
@@ -166,6 +168,12 @@ def run_tests(
         "candidate_mutated_during_test": candidate_mutated,
         "candidate_source_diff": canonical_evidence_hash.candidate_source_manifest_diff(candidate_manifest_before, candidate_manifest_after),
         "commit_sha": commit_sha,
+        "production_provenance_ref": str(
+            pathlib.Path(production_provenance_ref).resolve()
+        )
+        if production_provenance_ref
+        else "",
+        "production_provenance_hash": production_provenance_hash,
         "producer": PRODUCER,
         "created_at": finished,
         "status": status,
@@ -253,8 +261,11 @@ def inspect_test_report(
     project_dir: str | pathlib.Path,
     *,
     run_id: str | None = None,
+    candidate_id: str | None = None,
     candidate_hash: str | None = None,
     commit_sha: str | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir)
     execution = project / "test_execution.json"
@@ -306,10 +317,33 @@ def inspect_test_report(
             break
     if run_id is not None and doc.get("run_id") != run_id:
         missing.append("run_id")
+    if candidate_id is not None and doc.get("candidate_id") != candidate_id:
+        missing.append("candidate_id")
     if candidate_hash is not None and doc.get("candidate_hash") != candidate_hash:
         missing.append("candidate_hash")
     if commit_sha is not None and doc.get("commit_sha") != commit_sha:
         missing.append("commit_sha")
+    if production_provenance_ref is not None:
+        expected_provenance = pathlib.Path(production_provenance_ref).resolve()
+        actual_ref_value = str(doc.get("production_provenance_ref", "")).strip()
+        actual_ref = pathlib.Path(actual_ref_value).resolve() if actual_ref_value else pathlib.Path()
+        if actual_ref != expected_provenance:
+            missing.append("production_provenance_ref")
+        expected_file_hash = (
+            canonical_evidence_hash.sha256_file(expected_provenance)
+            if expected_provenance.is_file() and not expected_provenance.is_symlink()
+            else ""
+        )
+        if (
+            not expected_file_hash
+            or doc.get("production_provenance_hash") != expected_file_hash
+            or (
+                production_provenance_hash is not None
+                and doc.get("production_provenance_hash")
+                != production_provenance_hash
+            )
+        ):
+            missing.append("production_provenance_hash")
     if int(doc.get("collected", 0) or 0) <= 0:
         missing.append("collected")
     status = "PASS" if not missing and doc.get("status") == "PASS" else "FAIL"

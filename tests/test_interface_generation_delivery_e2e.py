@@ -118,7 +118,9 @@ def test_final_gate_rejects_missing_final_bundle() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "test_execution:test_execution.json" in gate["missing"]
+        assert "production_candidate_provenance" in gate[
+            "canonical_evidence_gate"
+        ]["failures"]
 
 
 def test_final_gate_rejects_missing_screenshot() -> None:
@@ -131,7 +133,9 @@ def test_final_gate_rejects_missing_screenshot() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "visual_evidence:visual_evidence.json" in gate["missing"]
+        assert "production_candidate_provenance" in gate[
+            "canonical_evidence_gate"
+        ]["failures"]
 
 
 def test_final_gate_rejects_missing_test_report() -> None:
@@ -144,7 +148,9 @@ def test_final_gate_rejects_missing_test_report() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "test_execution:test_execution.json" in gate["missing"]
+        assert "production_candidate_provenance" in gate[
+            "canonical_evidence_gate"
+        ]["failures"]
 
 
 def test_final_gate_rejects_blank_or_solid_screenshot() -> None:
@@ -157,7 +163,9 @@ def test_final_gate_rejects_blank_or_solid_screenshot() -> None:
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
         assert not gate["delivery_allowed"]
-        assert "visual_evidence:visual_evidence.json" in gate["missing"]
+        assert "production_candidate_provenance" in gate[
+            "canonical_evidence_gate"
+        ]["failures"]
 
 
 def test_incomplete_manifest_sends_no_public_artifacts() -> None:

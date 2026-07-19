@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import pathlib
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 
 import pytest
 
@@ -17,6 +19,65 @@ sys.path.insert(0, str(ROOT))
 import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.canonical_media_validation as canonical_media_validation
 import scripts.telegram_live_bridge as bridge
+
+
+@contextmanager
+def production_post_build_context(root: pathlib.Path, project: pathlib.Path):
+    provenance = bridge.production_candidate_provenance
+    original_root = provenance.PRODUCTION_CANDIDATE_ROOT
+    provenance.PRODUCTION_CANDIDATE_ROOT = root.resolve()
+    run_dir = root / "production_run"
+    run_dir.mkdir()
+    provider_result_path = run_dir / "provider_generation_result.json"
+    provider_result_path.write_text(
+        json.dumps(
+            {
+                "status": "PASS",
+                "provider_semantic_review": {"status": "pass"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    identity = {
+        "run_id": "production-post-build-run",
+        "candidate_id": f"candidate-{project.name}",
+        "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    }
+    provider_ref = {
+        "role": "provider_generation_result",
+        "ref": str(provider_result_path.resolve()),
+        "hash": canonical_evidence_hash.sha256_file(provider_result_path),
+    }
+    times = (
+        ("2026-07-19T00:00:00+00:00", "2026-07-19T00:00:01+00:00"),
+        ("2026-07-19T00:00:02+00:00", "2026-07-19T00:00:03+00:00"),
+        ("2026-07-19T00:00:04+00:00", "2026-07-19T00:00:05+00:00"),
+    )
+    receipts = {}
+    try:
+        for index, stage in enumerate(provenance.STAGE_ORDER[:3]):
+            receipts[stage] = provenance.write_stage_receipt(
+                run_dir,
+                stage=stage,
+                run_id=identity["run_id"],
+                candidate_id=identity["candidate_id"],
+                commit_sha=identity["commit_sha"],
+                candidate_root=project,
+                started_at=times[index][0],
+                finished_at=times[index][1],
+                artifact_refs=[provider_ref]
+                if stage in {"provider_generation", "provider_validation"}
+                else [],
+            )
+        yield {
+            "production_identity": identity,
+            "production_run_dir": run_dir,
+            "stage_receipts": receipts,
+            "provider_result_path": provider_result_path,
+        }
+    finally:
+        provenance.PRODUCTION_CANDIDATE_ROOT = original_root
 
 
 class ProviderPostBuildFinalizeTests(unittest.TestCase):
@@ -43,14 +104,16 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             )
             session["whiteboard"]["delivery_requirements"] = ["界面截图"]
 
-            result = bridge.post_build_finalize_provider_project(
-                project,
-                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
-                {"copied": {}},
-                session,
-                session_dir=session_dir,
-                chat_id="chat-canonical-browser-only",
-            )
+            with production_post_build_context(root, project) as production:
+                result = bridge.post_build_finalize_provider_project(
+                    project,
+                    {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                    {"copied": {}},
+                    session,
+                    session_dir=session_dir,
+                    chat_id="chat-canonical-browser-only",
+                    **production,
+                )
 
             self.assertFalse(result["image_result"].get("ui_screenshot"))
             self.assertEqual([], result["image_result"]["missing"])
@@ -618,14 +681,16 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             (project / "generated").mkdir()
             (project / "generated" / "fake_background.png").write_bytes(b"real-background")
 
-            result = bridge.post_build_finalize_provider_project(
-                project,
-                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
-                {"copied": {"ui_screenshot": str(screenshot), "background": str(background), "sprite": str(sprite)}},
-                session,
-                session_dir=session_dir,
-                chat_id="chat-vn-post",
-            )
+            with production_post_build_context(root, project) as production:
+                result = bridge.post_build_finalize_provider_project(
+                    project,
+                    {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                    {"copied": {"ui_screenshot": str(screenshot), "background": str(background), "sprite": str(sprite)}},
+                    session,
+                    session_dir=session_dir,
+                    chat_id="chat-vn-post",
+                    **production,
+                )
 
             self.assertTrue(result["test_result"]["ok"])
             self.assertTrue(result["image_result"]["ok"])
@@ -708,14 +773,16 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             )
             session["whiteboard"]["delivery_requirements"] = ["界面截图", "演示视频"]
 
-            result = bridge.post_build_finalize_provider_project(
-                project,
-                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
-                {"copied": {}},
-                session,
-                session_dir=session_dir,
-                chat_id="chat-video-blocked",
-            )
+            with production_post_build_context(root, project) as production:
+                result = bridge.post_build_finalize_provider_project(
+                    project,
+                    {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                    {"copied": {}},
+                    session,
+                    session_dir=session_dir,
+                    chat_id="chat-video-blocked",
+                    **production,
+                )
 
             self.assertTrue((project / "video_blocked.json").exists())
             self.assertTrue(result["video_result"]["blocked"])
@@ -746,17 +813,19 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             session = bridge.default_session("chat-repair-post")
             session["messages"].append({"role": "user", "text": "做一个本地网页应用，需要界面截图", "created_at": bridge.now()})
 
-            result = bridge.post_build_finalize_provider_project(
-                project,
-                {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
-                {"copied": {"ui_screenshot": str(screenshot)}},
-                session,
-                session_dir=session_dir,
-                chat_id="chat-repair-post",
-            )
+            with production_post_build_context(root, project) as production:
+                result = bridge.post_build_finalize_provider_project(
+                    project,
+                    {"status": "PASS", "example_outputs": {}, "agent_usage": {"events": []}},
+                    {"copied": {"ui_screenshot": str(screenshot)}},
+                    session,
+                    session_dir=session_dir,
+                    chat_id="chat-repair-post",
+                    **production,
+                )
 
-            first_attempt = result["test_result"].get("first_attempt", {})
-            self.assertTrue(first_attempt, result["test_result"])
+            first_attempt = result["preseal_test_result"]
+            self.assertFalse(first_attempt.get("ok"), first_attempt)
             self.assertNotEqual(first_attempt.get("candidate_hash"), result["test_result"].get("candidate_hash"))
             for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
                 self.assertEqual(result["test_result"].get(field), result["runtime_result"].get(field), field)

@@ -11,6 +11,7 @@ from scripts import canonical_evidence_hash
 from scripts import canonical_user_review
 from scripts import customer_runtime_runner
 from scripts import real_test_execution
+from scripts import production_candidate_provenance
 
 FORMAL_GATE_STATUS_PRODUCER = "scripts/formal_mainline_acceptance.py"
 FORMAL_GATE_STATUS_KIND = "CGKNFormalGateStatus"
@@ -18,6 +19,11 @@ TELEGRAM_BLOCKABLE_GATES = {
     "user_review",
     "delivery_manifest",
     "delivery_receipt",
+}
+PROVENANCE_BOUND_GATES = {
+    "test_execution",
+    "customer_runtime",
+    "visual_evidence",
 }
 FORBIDDEN_PRODUCER_PREFIXES = (
     "tests",
@@ -179,6 +185,56 @@ def inspect_source(
     if _producer_forbidden(producer) or producer != spec.get("producer"):
         failures.append("producer_not_authorized")
     failures.extend(_identity_failures(document, expected_identity, scope=str(spec["scope"])))
+    provenance_inspection: dict[str, Any] = {
+        "status": "NOT_EVALUATED",
+        "failures": ["not_required_for_gate"],
+    }
+    provenance_ref_value = str(
+        (context or {}).get("production_provenance_ref", "")
+    ).strip()
+    if gate in PROVENANCE_BOUND_GATES:
+        if not provenance_ref_value:
+            return {
+                "status": "NEEDS_REWORK",
+                "failures": sorted(set(failures + ["production_candidate_provenance_missing"])),
+                "source_ref": str(path),
+                "source_hash": canonical_evidence_hash.sha256_file(path),
+                "source_producer": producer,
+                "inspector": spec.get("inspector", ""),
+                "provenance_inspection": {
+                    "status": "NEEDS_REWORK",
+                    "failures": ["production_provenance_missing"],
+                },
+                "scope": spec["scope"],
+            }
+        provenance_inspection = production_candidate_provenance.inspect(
+            provenance_ref_value,
+            expected_candidate_dir=path.parent,
+            expected_run_id=expected_identity["run_id"],
+            expected_candidate_id=expected_identity["candidate_id"],
+            expected_candidate_hash=expected_identity["candidate_hash"],
+            expected_commit_sha=expected_identity["commit_sha"],
+        )
+        if provenance_inspection.get("status") != "PASS":
+            return {
+                "status": "NEEDS_REWORK",
+                "failures": sorted(
+                    set(
+                        failures
+                        + ["production_candidate_provenance_not_verified"]
+                        + list(provenance_inspection.get("failures", []))
+                    )
+                ),
+                "source_ref": str(path),
+                "source_hash": canonical_evidence_hash.sha256_file(path),
+                "source_producer": producer,
+                "inspector": spec.get("inspector", ""),
+                "provenance_inspection": provenance_inspection,
+                "scope": spec["scope"],
+            }
+        provenance_hash = str(provenance_inspection["provenance_hash"])
+    else:
+        provenance_hash = ""
     if not spec.get("inspector") or gate == "media_evidence":
         return {
             "status": "NOT_EVALUATED",
@@ -199,17 +255,32 @@ def inspect_source(
         inspection = real_test_execution.inspect_test_report(
             path.parent,
             run_id=expected_identity["run_id"],
+            candidate_id=expected_identity["candidate_id"],
             candidate_hash=expected_identity["candidate_hash"],
             commit_sha=expected_identity["commit_sha"],
+            production_provenance_ref=provenance_ref_value,
+            production_provenance_hash=provenance_hash,
         )
     elif gate == "customer_runtime":
         inspection = customer_runtime_runner.inspect(
             path,
+            run_id=expected_identity["run_id"],
+            candidate_id=expected_identity["candidate_id"],
             candidate_hash=expected_identity["candidate_hash"],
             commit_sha=expected_identity["commit_sha"],
+            production_provenance_ref=provenance_ref_value,
+            production_provenance_hash=provenance_hash,
         )
     elif gate == "visual_evidence":
-        inspection = browser_visual_evidence.inspect(path.parent)
+        inspection = browser_visual_evidence.inspect(
+            path.parent,
+            run_id=expected_identity["run_id"],
+            candidate_id=expected_identity["candidate_id"],
+            candidate_hash=expected_identity["candidate_hash"],
+            commit_sha=expected_identity["commit_sha"],
+            production_provenance_ref=provenance_ref_value,
+            production_provenance_hash=provenance_hash,
+        )
     elif gate == "user_review":
         inspection = canonical_user_review.inspect_user_review_evidence(path.parent)
     elif gate == "delivery_manifest":
@@ -235,12 +306,6 @@ def inspect_source(
             str(item)
             for item in (inspection.get("failures") or inspection.get("missing") or [f"inspector:{inspection_status}"])
         )
-    if (
-        spec["scope"] == "candidate"
-        and (context or {}).get("require_production_provenance") is True
-        and (context or {}).get("production_provenance_verified") is not True
-    ):
-        failures.append("production_candidate_provenance_not_verified")
     status = "PASS" if not failures and inspection_status == "PASS" else (
         "NOT_EVALUATED" if inspection_status == "NOT_EVALUATED" and not [x for x in failures if x != "formal_inspector_unavailable"] else "NEEDS_REWORK"
     )
@@ -252,6 +317,7 @@ def inspect_source(
         "source_producer": producer,
         "inspector": spec.get("inspector", ""),
         "inspector_result": inspection,
+        "provenance_inspection": provenance_inspection,
         "scope": spec["scope"],
     }
 
@@ -298,6 +364,32 @@ def inspect_gate_status(
             failures.append("source_producer_mismatch")
         if document.get("inspector") != actual.get("inspector"):
             failures.append("inspector_mismatch")
+        if gate in PROVENANCE_BOUND_GATES:
+            expected_provenance_value = str(
+                (context or {}).get("production_provenance_ref", "")
+            ).strip()
+            expected_provenance = (
+                pathlib.Path(expected_provenance_value).resolve()
+                if expected_provenance_value
+                else pathlib.Path()
+            )
+            expected_provenance_hash = (
+                canonical_evidence_hash.sha256_file(expected_provenance)
+                if expected_provenance_value
+                and expected_provenance.is_file()
+                and not expected_provenance.is_symlink()
+                else ""
+            )
+            if document.get("production_provenance_ref") != (
+                str(expected_provenance) if expected_provenance_value else ""
+            ):
+                failures.append("production_provenance_ref_mismatch")
+            if (
+                not expected_provenance_hash
+                or document.get("production_provenance_hash")
+                != expected_provenance_hash
+            ):
+                failures.append("production_provenance_hash_mismatch")
     else:
         actual = {
             "status": claimed,

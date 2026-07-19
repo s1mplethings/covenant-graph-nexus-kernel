@@ -55,6 +55,7 @@ import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
+import production_candidate_provenance
 import public_narration
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
@@ -89,6 +90,66 @@ It is the front-office interface for the CGNK project generation and delivery wo
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def repository_commit_sha() -> str:
+    proc = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise RuntimeError("repository_commit_sha_unavailable")
+    return proc.stdout.strip()
+
+
+def production_generation_identity(
+    chat_id: int | str,
+    session: dict[str, Any],
+) -> dict[str, str]:
+    generation = (
+        session.get("generation", {})
+        if isinstance(session.get("generation"), dict)
+        else {}
+    )
+    run_id = str(generation.get("run_id", "")).strip()
+    candidate_id = str(generation.get("candidate_id", "")).strip()
+    commit_sha = str(generation.get("commit_sha", "")).strip()
+    if not run_id:
+        run_id = f"production-{uuid.uuid4().hex}"
+    if not candidate_id:
+        candidate_id = f"customer-{safe_id(chat_id)}-{run_id.rsplit('-', 1)[-1]}"
+    if not commit_sha:
+        commit_sha = repository_commit_sha()
+    return {
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "commit_sha": commit_sha,
+    }
+
+
+def production_paths(
+    chat_id: int | str,
+    log_dir: pathlib.Path,
+    identity: dict[str, str],
+) -> tuple[pathlib.Path, pathlib.Path]:
+    run_slug = safe_id(chat_id)
+    project_dir = (
+        ROOT
+        / "generated"
+        / "telegram_provider_projects"
+        / run_slug
+        / identity["candidate_id"]
+    ).resolve()
+    run_dir = (
+        pathlib.Path(log_dir)
+        / "provider_runs"
+        / run_slug
+        / identity["run_id"]
+    ).resolve()
+    return project_dir, run_dir
 
 
 def read_customer_agent_policy() -> str:
@@ -1895,11 +1956,76 @@ def evaluate_canonical_delivery_evidence(
     project_dir: pathlib.Path,
     *,
     browser_visual_required: bool,
+    production_provenance_ref: str | pathlib.Path | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
-    test_result = real_test_execution.inspect_test_report(project)
-    runtime_result = customer_runtime_runner.inspect(project)
-    visual_result = browser_visual_evidence.inspect(project) if browser_visual_required else {
+    test_document = read_json(project / "test_execution.json", {})
+    provenance_value = str(
+        production_provenance_ref
+        or test_document.get("production_provenance_ref", "")
+    ).strip()
+    provenance_path = (
+        pathlib.Path(provenance_value).resolve()
+        if provenance_value
+        else pathlib.Path()
+    )
+    provenance_inspection = (
+        production_candidate_provenance.inspect(
+            provenance_path,
+            expected_candidate_dir=project,
+        )
+        if provenance_value
+        else {
+            "status": "NEEDS_REWORK",
+            "failures": ["production_provenance_missing"],
+        }
+    )
+    if provenance_inspection.get("status") != "PASS":
+        return {
+            "status": "NEEDS_REWORK",
+            "production_provenance": provenance_inspection,
+            "test_execution": {"status": "NOT_EVALUATED"},
+            "customer_runtime": {"status": "NOT_EVALUATED"},
+            "visual_evidence": {"status": "NOT_EVALUATED"},
+            "browser_visual_required": browser_visual_required,
+            "identity_consistent": False,
+            "missing": [],
+            "failures": sorted(
+                set(
+                    ["production_candidate_provenance"]
+                    + list(provenance_inspection.get("failures", []))
+                )
+            ),
+        }
+    identity = provenance_inspection["identity"]
+    provenance_hash = str(provenance_inspection["provenance_hash"])
+    test_result = real_test_execution.inspect_test_report(
+        project,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        candidate_hash=identity["candidate_hash"],
+        commit_sha=identity["commit_sha"],
+        production_provenance_ref=provenance_path,
+        production_provenance_hash=provenance_hash,
+    )
+    runtime_result = customer_runtime_runner.inspect(
+        project,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        candidate_hash=identity["candidate_hash"],
+        commit_sha=identity["commit_sha"],
+        production_provenance_ref=provenance_path,
+        production_provenance_hash=provenance_hash,
+    )
+    visual_result = browser_visual_evidence.inspect(
+        project,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        candidate_hash=identity["candidate_hash"],
+        commit_sha=identity["commit_sha"],
+        production_provenance_ref=provenance_path,
+        production_provenance_hash=provenance_hash,
+    ) if browser_visual_required else {
         "status": "NOT_EVALUATED",
         "missing": [],
         "details": {},
@@ -1937,6 +2063,7 @@ def evaluate_canonical_delivery_evidence(
     status = "PASS" if not missing and not failures and identity_consistent else "NEEDS_REWORK"
     return {
         "status": status,
+        "production_provenance": provenance_inspection,
         "test_execution": test_result,
         "customer_runtime": runtime_result,
         "visual_evidence": visual_result,
@@ -1957,6 +2084,7 @@ def evaluate_public_delivery_gate(
     phase: str = "final",
     provider_result: dict[str, Any] | None = None,
     agent: Any = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
 ) -> dict[str, Any]:
     session = session if isinstance(session, dict) else (conversation if isinstance(conversation, dict) else {})
     project = pathlib.Path(project_dir).resolve()
@@ -1973,7 +2101,11 @@ def evaluate_public_delivery_gate(
         bool(requirements.get(key))
         for key in ("generated_image", "background", "sprite", "video", "demo_video")
     )
-    canonical_gate = evaluate_canonical_delivery_evidence(project, browser_visual_required=browser_visual_required)
+    canonical_gate = evaluate_canonical_delivery_evidence(
+        project,
+        browser_visual_required=browser_visual_required,
+        production_provenance_ref=production_provenance_ref,
+    )
     if canonical_gate.get("status") != "PASS":
         return {
             "verdict": "NEEDS_REWORK",
@@ -6378,6 +6510,8 @@ def run_provider_project_tests(
     commit_sha: str | None = None,
     repair_summary: dict[str, Any] | None = None,
     dependency_setup: dict[str, Any] | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str = "",
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     tests_dir = project / "tests"
@@ -6393,6 +6527,8 @@ def run_provider_project_tests(
             candidate_id=candidate_id,
             candidate_hash=candidate_hash,
             commit_sha=commit_sha,
+            production_provenance_ref=production_provenance_ref,
+            production_provenance_hash=production_provenance_hash,
             test_profile="provider_post_build",
         )
         evidence.update(
@@ -6416,6 +6552,8 @@ def run_provider_project_tests(
         candidate_id=candidate_id,
         candidate_hash=candidate_hash,
         commit_sha=commit_sha,
+        production_provenance_ref=production_provenance_ref,
+        production_provenance_hash=production_provenance_hash,
         test_profile="provider_post_build",
     )
     stdout_path = pathlib.Path(str(evidence.get("stdout_artifact", "")))
@@ -6636,7 +6774,12 @@ def post_build_finalize_provider_project(
     *,
     session_dir: pathlib.Path,
     chat_id: int | str,
+    production_identity: dict[str, str],
+    production_run_dir: pathlib.Path,
+    stage_receipts: dict[str, pathlib.Path],
+    provider_result_path: pathlib.Path,
 ) -> dict[str, Any]:
+    post_build_started_at = now()
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
     launcher_result = ensure_provider_root_launcher(project_dir)
     if launcher_result.get("changed"):
@@ -6682,36 +6825,89 @@ def post_build_finalize_provider_project(
     image_result["video_blocked"] = video_result.get("video_blocked", "")
     image_result["video_result"] = video_result
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
-    post_build_run_id = f"post-build-{uuid.uuid4().hex}"
-    test_result = run_provider_project_tests(project_dir, run_id=post_build_run_id)
-    if not test_result.get("ok"):
-        repair_result = deterministic_post_build_repair(project_dir, test_result)
+    preseal_test_result = run_provider_project_tests(
+        project_dir,
+        run_id=f"preseal-diagnostic-{uuid.uuid4().hex}",
+        candidate_id=production_identity["candidate_id"],
+        commit_sha=production_identity["commit_sha"],
+    )
+    repair_result: dict[str, Any] = {}
+    dependency_setup: dict[str, Any] = {}
+    if not preseal_test_result.get("ok"):
+        repair_result = deterministic_post_build_repair(project_dir, preseal_test_result)
         dependency_setup = ensure_provider_test_environment(project_dir)
         append_agent_session_event(
             session_dir,
             chat_id,
             {"kind": "post_build_deterministic_repair", "role": "tool", "repair": repair_result, "dependency_setup": dependency_setup},
         )
-        if dependency_setup.get("ok") and dependency_setup.get("python"):
-            repaired_test = run_provider_project_tests(
-                project_dir,
-                timeout=240,
-                python_executable=str(dependency_setup.get("python")),
-                run_id=post_build_run_id,
-                repair_summary=repair_result,
-                dependency_setup=dependency_setup,
-            )
-        else:
-            repaired_test = run_provider_project_tests(
-                project_dir,
-                timeout=240,
-                run_id=post_build_run_id,
-                repair_summary=repair_result,
-                dependency_setup=dependency_setup,
-            )
-        repaired_test["first_attempt"] = test_result
-        test_result = repaired_test
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_test_result", "role": "tool", "result": test_result})
+    candidate_manifest = canonical_evidence_hash.candidate_source_manifest(project_dir)
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
+    candidate_manifest_hash = canonical_evidence_hash.canonical_json_hash(
+        {"candidate_source_manifest": candidate_manifest}, ()
+    )
+    validation_receipt = stage_receipts["provider_validation"]
+    post_build_receipt = production_candidate_provenance.write_stage_receipt(
+        production_run_dir,
+        stage="post_build",
+        run_id=production_identity["run_id"],
+        candidate_id=production_identity["candidate_id"],
+        commit_sha=production_identity["commit_sha"],
+        candidate_root=project_dir,
+        started_at=post_build_started_at,
+        finished_at=now(),
+        candidate_hash=candidate_hash,
+        candidate_source_manifest_hash=candidate_manifest_hash,
+        artifact_refs=[
+            {
+                "role": "provider_validation_receipt",
+                "ref": str(validation_receipt.resolve()),
+                "hash": canonical_evidence_hash.sha256_file(validation_receipt),
+            }
+        ],
+    )
+    stage_receipts["post_build"] = post_build_receipt
+    provenance = production_candidate_provenance.produce(
+        project_dir,
+        production_run_dir,
+        run_id=production_identity["run_id"],
+        candidate_id=production_identity["candidate_id"],
+        commit_sha=production_identity["commit_sha"],
+        stage_receipts=stage_receipts,
+        provider_result_ref=provider_result_path,
+    )
+    provenance_ref = pathlib.Path(str(provenance["provenance_ref"])).resolve()
+    provenance_hash = str(provenance["provenance_hash"])
+    test_result = run_provider_project_tests(
+        project_dir,
+        timeout=240,
+        python_executable=(
+            str(dependency_setup.get("python"))
+            if dependency_setup.get("ok") and dependency_setup.get("python")
+            else None
+        ),
+        run_id=production_identity["run_id"],
+        candidate_id=production_identity["candidate_id"],
+        candidate_hash=candidate_hash,
+        commit_sha=production_identity["commit_sha"],
+        repair_summary=repair_result,
+        dependency_setup=dependency_setup,
+        production_provenance_ref=provenance_ref,
+        production_provenance_hash=provenance_hash,
+    )
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "post_build_test_result",
+            "role": "tool",
+            "result": test_result,
+            "preseal_diagnostic_status": str(
+                preseal_test_result.get("status", "NOT_EVALUATED")
+            ),
+            "production_provenance_ref": str(provenance_ref),
+        },
+    )
     browser_visual_required = bool(req.get("screenshot"))
     runtime_result = customer_runtime_runner.run(
         project_dir,
@@ -6719,6 +6915,8 @@ def post_build_finalize_provider_project(
         candidate_id=str(test_result.get("candidate_id", "")) or None,
         candidate_hash=str(test_result.get("candidate_hash", "")) or None,
         commit_sha=str(test_result.get("commit_sha", "")) or None,
+        production_provenance_ref=provenance_ref,
+        production_provenance_hash=provenance_hash,
         live_consumer=browser_visual_evidence.capture_live_runtime if browser_visual_required else None,
         browser_capture_required=browser_visual_required,
     )
@@ -6772,16 +6970,19 @@ def post_build_finalize_provider_project(
         session,
         phase="final",
         provider_result=provider_result,
+        production_provenance_ref=provenance_ref,
     )
     gate["missing_config"] = missing_config
     return {
         "test_result": test_result,
+        "preseal_test_result": preseal_test_result,
         "runtime_result": runtime_result,
         "visual_evidence_result": visual_evidence_result,
         "image_result": image_result,
         "video_result": video_result,
         "browser_visual_required": browser_visual_required,
         "media_evidence_required": media_evidence_required,
+        "production_provenance": provenance,
         "manifest": manifest,
         "gate": gate,
         "ok": bool(gate.get("delivery_allowed")),
@@ -6983,6 +7184,61 @@ def write_provider_phase_event(path: pathlib.Path, event: dict[str, Any]) -> Non
         pass
 
 
+def validate_provider_generation_output(
+    project_dir: pathlib.Path,
+    provider_result: dict[str, Any],
+    provider_result_path: pathlib.Path,
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    result_path = pathlib.Path(provider_result_path).resolve()
+    failures: list[str] = []
+    if str(provider_result.get("status", "")).upper() != "PASS":
+        failures.append("provider_generation_status")
+    semantic = (
+        provider_result.get("provider_semantic_review", {})
+        if isinstance(provider_result.get("provider_semantic_review"), dict)
+        else {}
+    )
+    if str(semantic.get("status", "")).lower() != "pass":
+        failures.append("provider_semantic_review")
+    generated = (
+        provider_result.get("generated_files", [])
+        if isinstance(provider_result.get("generated_files"), list)
+        else []
+    )
+    normalized_generated = sorted(
+        {
+            pathlib.PurePosixPath(str(item).replace("\\", "/")).as_posix()
+            for item in generated
+            if str(item).strip()
+        }
+    )
+    if not normalized_generated:
+        failures.append("generated_files")
+    for relative in normalized_generated:
+        path = (project / pathlib.PurePosixPath(relative)).resolve()
+        try:
+            path.relative_to(project)
+        except ValueError:
+            failures.append(f"generated_file_escape:{relative}")
+            continue
+        if not path.is_file() or path.is_symlink():
+            failures.append(f"generated_file_missing:{relative}")
+    if not result_path.is_file() or result_path.is_symlink():
+        failures.append("provider_generation_result")
+    return {
+        "status": "PASS" if not failures else "NEEDS_REWORK",
+        "failures": sorted(set(failures)),
+        "project_dir": str(project),
+        "provider_result_ref": str(result_path),
+        "provider_result_hash": canonical_evidence_hash.sha256_file(result_path)
+        if result_path.is_file() and not result_path.is_symlink()
+        else "",
+        "generated_files": normalized_generated,
+        "provider_semantic_review": semantic,
+    }
+
+
 def run_provider_execute_with_retries(
     args: argparse.Namespace,
     *,
@@ -7040,11 +7296,37 @@ def run_provider_generation_job(
     if not requirement:
         send_customer_reply(client, chat_id, session_dir, session, event="missing_requirement_before_generation", facts={"message": "当前没有可执行项目目标；后台未启动。"})
         return
+    prior_generation = (
+        session.get("generation", {})
+        if isinstance(session.get("generation"), dict)
+        else {}
+    )
+    identity = production_generation_identity(chat_id, session)
+    entry_ref_value = str(
+        prior_generation.get("production_entry_receipt_ref", "")
+    ).strip()
+    entry_ref = pathlib.Path(entry_ref_value).resolve() if entry_ref_value else pathlib.Path()
+    formal_entry = bool(
+        entry_ref_value
+        and entry_ref.is_file()
+        and not entry_ref.is_symlink()
+    )
+    if formal_entry:
+        project_dir, run_dir = production_paths(chat_id, log_dir, identity)
+    else:
+        run_slug = safe_id(chat_id)
+        project_dir = (
+            ROOT / "generated" / "telegram_provider_projects" / run_slug
+        ).resolve()
+        run_dir = (pathlib.Path(log_dir) / "provider_runs" / run_slug).resolve()
     session["generation"] = {
         "status": "running",
         "driver": "api_provider_project_generation",
         "started_at": now(),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        **identity,
+        "project_dir": str(project_dir),
+        "provider_run_dir": str(run_dir),
     }
     update_active_run_status(session, "running", driver="api_provider_project_generation")
     snapshot = ensure_generation_context_snapshot(session_dir, chat_id, session, requirement)
@@ -7054,16 +7336,17 @@ def run_provider_generation_job(
     if announce_start:
         send_customer_reply(client, chat_id, session_dir, session, event="generation_started", direct_text=public_narration.public_event_text("generation_started", {}))
 
-    run_slug = safe_id(chat_id)
-    provider_root = ROOT / "generated" / "telegram_provider_projects"
-    project_dir = provider_root / run_slug
-    run_dir = log_dir / "provider_runs" / run_slug
     result_path = run_dir / "provider_generation_result.json"
     phase_log_path = run_dir / "provider_phase_log.jsonl"
     run_dir.mkdir(parents=True, exist_ok=True)
     write_generation_context_snapshot(project_dir, snapshot)
     provider_result: dict[str, Any] = {}
     try:
+        entry_receipt = (
+            entry_ref
+            if formal_entry
+            else run_dir / "production_entry_receipt.json"
+        )
         args = argparse.Namespace(
             plan="",
             goal=requirement,
@@ -7078,18 +7361,89 @@ def run_provider_generation_job(
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
         )
+        provider_generation_started_at = now()
         provider_result = run_provider_execute_with_retries(
             args,
             session_dir=session_dir,
             chat_id=chat_id,
             phase_log_path=phase_log_path,
         )
+        if not result_path.is_file():
+            write_json(result_path, provider_result)
+        provider_result_hash = canonical_evidence_hash.sha256_file(result_path)
+        generation_receipt = production_candidate_provenance.write_stage_receipt(
+            run_dir,
+            stage="provider_generation",
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=project_dir,
+            started_at=provider_generation_started_at,
+            finished_at=now(),
+            artifact_refs=[
+                {
+                    "role": "provider_generation_result",
+                    "ref": str(result_path.resolve()),
+                    "hash": provider_result_hash,
+                }
+            ],
+        )
+        validation_started_at = now()
+        provider_validation = validate_provider_generation_output(
+            project_dir, provider_result, result_path
+        )
+        if provider_validation["status"] != "PASS":
+            raise RuntimeError(
+                "provider_output_validation_failed:"
+                + ",".join(provider_validation["failures"])
+            )
+        if not formal_entry:
+            raise RuntimeError(
+                "canonical_production_entry_receipt_missing:"
+                "generation must start through start_generation_from_income"
+            )
+        validation_receipt = production_candidate_provenance.write_stage_receipt(
+            run_dir,
+            stage="provider_validation",
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=project_dir,
+            started_at=validation_started_at,
+            finished_at=now(),
+            artifact_refs=[
+                {
+                    "role": "provider_generation_result",
+                    "ref": str(result_path.resolve()),
+                    "hash": provider_result_hash,
+                },
+                {
+                    "role": "provider_generation_receipt",
+                    "ref": str(generation_receipt.resolve()),
+                    "hash": canonical_evidence_hash.sha256_file(
+                        generation_receipt
+                    ),
+                },
+            ],
+        )
         write_provider_phase_event(
             phase_log_path,
             {"kind": "provider_phase", "stage": "api_provider_project_generation", "status": "completed", "project_dir": str(project_dir)},
         )
         append_agent_session_event(session_dir, chat_id, {"kind": "api-provider-project-generated", "role": "tool", "result_path": str(result_path), "project_dir": str(project_dir)})
-        append_agent_session_event(session_dir, chat_id, {"kind": "provider-output-validated", "role": "tool", "provider_semantic_review": provider_result.get("provider_semantic_review", {})})
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {
+                "kind": "provider-output-validated",
+                "role": "tool",
+                "provider_semantic_review": provider_result.get(
+                    "provider_semantic_review", {}
+                ),
+                "canonical_validation": provider_validation,
+                "validation_receipt": str(validation_receipt),
+            },
+        )
         append_agent_session_event(session_dir, chat_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, chat_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
         runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
@@ -7104,6 +7458,14 @@ def run_provider_generation_job(
             session,
             session_dir=session_dir,
             chat_id=chat_id,
+            production_identity=identity,
+            production_run_dir=run_dir,
+            stage_receipts={
+                "production_entry": entry_receipt,
+                "provider_generation": generation_receipt,
+                "provider_validation": validation_receipt,
+            },
+            provider_result_path=result_path,
         )
         write_provider_phase_event(
             phase_log_path,
@@ -7112,6 +7474,7 @@ def run_provider_generation_job(
                 "stage": "post_build_finalize",
                 "status": "completed" if finalize.get("ok") else "rework_blocked",
                 "project_dir": str(project_dir),
+                "provider_run_dir": str(run_dir),
             },
         )
         manifest = finalize["manifest"]
@@ -7134,13 +7497,20 @@ def run_provider_generation_job(
                 "status": "rework_blocked",
                 "driver": "api_provider_project_generation",
                 "finished_at": now(),
+                **identity,
                 "agent_session_path": str(agent_session_path(session_dir, chat_id)),
                 "project_dir": str(project_dir),
+                "provider_run_dir": str(run_dir),
                 "manifest_path": str(manifest.get("manifest_path", "")),
                 "package_path": "",
                 "build_integrity_audit": artifact_audit,
                 "qa_integrity_audit": finalize.get("test_result", {}),
                 "post_build_finalize": finalize,
+                "production_provenance_ref": str(
+                    finalize.get("production_provenance", {}).get(
+                        "provenance_ref", ""
+                    )
+                ),
                 "delivery_allowed": False,
                 "delivery_gate": gate,
             }
@@ -7158,6 +7528,11 @@ def run_provider_generation_job(
             "provider_result_path": str(result_path),
             "provider_run_dir": str(run_dir),
             "post_build_finalize": finalize,
+            "production_provenance_ref": str(
+                finalize.get("production_provenance", {}).get(
+                    "provenance_ref", ""
+                )
+            ),
         }
         write_provider_phase_event(
             phase_log_path,
@@ -7203,11 +7578,13 @@ def run_provider_generation_job(
             "status": "rework_blocked",
             "driver": "api_provider_project_generation",
             "finished_at": now(),
+            **identity,
             "error": str(exc),
             "provider_error_type": error_type,
             "missing_config": missing_config,
             "agent_session_path": str(agent_session_path(session_dir, chat_id)),
             "project_dir": str(project_dir),
+            "provider_run_dir": str(run_dir),
             "partial_artifacts": partial_artifacts,
             "current_stage": "api_provider_project_generation",
             "provider_recovery_needed": True,
@@ -7499,6 +7876,16 @@ def finish_agent_loop_delivery(
         manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
     session = load_session(session_dir, chat_id)
     driver = str(result.get("driver") or "agent_conversation_loop")
+    post_build = (
+        result.get("post_build_finalize", {})
+        if isinstance(result.get("post_build_finalize"), dict)
+        else {}
+    )
+    provenance = (
+        post_build.get("production_provenance", {})
+        if isinstance(post_build.get("production_provenance"), dict)
+        else {}
+    )
     session["generation"] = {
         "status": str(result.get("status", "unknown")),
         "driver": driver,
@@ -7510,6 +7897,14 @@ def finish_agent_loop_delivery(
         "pipeline_manifest_path": str(result.get("pipeline_manifest_path", "")),
         "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
         "pipeline_run_summary_path": str(result.get("pipeline_run_summary_path", "")),
+        "run_id": str(provenance.get("run_id", "")),
+        "candidate_id": str(provenance.get("candidate_id", "")),
+        "candidate_hash": str(provenance.get("candidate_hash", "")),
+        "commit_sha": str(provenance.get("commit_sha", "")),
+        "provider_run_dir": str(result.get("provider_run_dir", "")),
+        "production_provenance_ref": str(
+            result.get("production_provenance_ref", "")
+        ),
     }
     run = active_run(session)
     if run is not None:
@@ -7811,12 +8206,28 @@ def start_agent_generation(
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
+    identity = production_generation_identity(chat_id, session)
+    project_dir, run_dir = production_paths(chat_id, log_dir, identity)
+    prior_generation = (
+        session.get("generation", {})
+        if isinstance(session.get("generation"), dict)
+        else {}
+    )
     update_active_run_status(session, "running", driver="api_provider_project_generation")
     session["generation"] = {
         "status": "running",
         "driver": "api_provider_project_generation",
-        "started_at": now(),
+        "started_at": str(prior_generation.get("started_at") or now()),
         "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        **identity,
+        "project_dir": str(project_dir),
+        "provider_run_dir": str(run_dir),
+        "production_entry_receipt_ref": str(
+            prior_generation.get("production_entry_receipt_ref", "")
+        ),
+        "production_entry_receipt_hash": str(
+            prior_generation.get("production_entry_receipt_hash", "")
+        ),
     }
     save_session(session_dir, session)
     client.send_chat_action(chat_id, "typing")
@@ -8057,6 +8468,52 @@ def start_generation_from_income(
     if str(generation_mode or "api").lower() == "simulator":
         run_simulator_preflight(client, chat_id, session_dir, log_dir, session, reason=reason)
         return True
+    entry_started_at = now()
+    identity = {
+        "run_id": f"production-{uuid.uuid4().hex}",
+        "candidate_id": "",
+        "commit_sha": repository_commit_sha(),
+    }
+    identity["candidate_id"] = (
+        f"customer-{safe_id(chat_id)}-{identity['run_id'].rsplit('-', 1)[-1]}"
+    )
+    project_dir, production_run_dir = production_paths(chat_id, log_dir, identity)
+    entry_receipt = production_candidate_provenance.write_stage_receipt(
+        production_run_dir,
+        stage="production_entry",
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+        candidate_root=project_dir,
+        started_at=entry_started_at,
+        finished_at=now(),
+    )
+    session["generation"] = {
+        "status": "queued",
+        "driver": "api_provider_project_generation",
+        "started_at": entry_started_at,
+        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        **identity,
+        "project_dir": str(project_dir),
+        "provider_run_dir": str(production_run_dir),
+        "production_entry_receipt_ref": str(entry_receipt),
+        "production_entry_receipt_hash": canonical_evidence_hash.sha256_file(
+            entry_receipt
+        ),
+    }
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "canonical_production_entry",
+            "role": "system",
+            **identity,
+            "candidate_root": str(project_dir),
+            "production_run_root": str(production_run_dir),
+            "entry_receipt_ref": str(entry_receipt),
+        },
+    )
+    save_session(session_dir, session)
     start_agent_generation(
         client,
         chat_id,

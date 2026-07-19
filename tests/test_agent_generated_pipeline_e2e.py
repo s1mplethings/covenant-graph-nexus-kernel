@@ -122,6 +122,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
@@ -156,6 +157,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
+                bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
@@ -165,6 +167,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-e2e-pipeline", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
@@ -192,6 +195,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeTelegramClient()
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
@@ -210,6 +214,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
+                bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
@@ -220,6 +225,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-fallback-e2e", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan

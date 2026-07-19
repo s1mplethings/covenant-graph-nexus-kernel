@@ -9,6 +9,8 @@
     "candidate_id",
     "candidate_hash",
     "commit_sha",
+    "production_provenance_ref",
+    "production_provenance_hash",
     "producer",
     "created_at",
     "status",
@@ -27,6 +29,8 @@
   ],
   "properties": {
     "kind": { "const": "CGKNVisualEvidence" },
+    "production_provenance_ref": { "type": "string" },
+    "production_provenance_hash": { "type": "string" },
     "customer_runtime_ref": { "type": "string", "minLength": 1 },
     "customer_runtime_hash": { "type": "string", "minLength": 1 },
     "browser": { "type": "object", "required": ["engine", "version"], "additionalProperties": true },

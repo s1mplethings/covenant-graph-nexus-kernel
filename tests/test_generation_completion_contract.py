@@ -74,7 +74,9 @@ class GenerationCompletionContractTests(unittest.TestCase):
             session["messages"].append({"role": "user", "text": "做一个本地任务工具"})
             bridge.save_session(session_dir, session)
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             bridge.threading.Thread = CaptureThread
+            bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
             try:
                 bridge.start_agent_generation(
                     FakeTelegramClient(),
@@ -87,6 +89,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
                 )
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
             saved = bridge.load_session(session_dir, "provider-start")
             self.assertIs(CaptureThread.target, bridge.run_provider_generation_job)
             self.assertEqual("api_provider_project_generation", saved["generation"]["driver"])

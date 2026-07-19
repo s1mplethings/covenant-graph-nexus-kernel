@@ -10,6 +10,8 @@ This registry is the authoritative list of formal CGKN evidence and delivery con
   "candidate_id": "candidate-001",
   "candidate_hash": "sha256:...",
   "commit_sha": "abc123",
+  "production_provenance_ref": "/production/run-001/production_candidate_provenance.json",
+  "production_provenance_hash": "sha256:...",
   "producer": "scripts/real_test_execution.py",
   "created_at": "2026-07-13T00:00:00Z",
   "status": "PASS",
@@ -67,6 +69,7 @@ final_delivered
 
 | Artifact kind | Schema | Producer | Formal consumers | Mainline | Status enum | Required fields | Legacy replacement |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| `CGKNProductionCandidateProvenance` | `schemas/production_candidate_provenance_v1.schema.json` | `scripts/telegram_live_bridge.py` | canonical test/runtime/visual producers, public delivery gate, formal mainline acceptance | yes, frozen after provider validation and source-changing post-build work | canonical EvidenceStatus | envelope, production entrypoint and generation function, run/candidate/commit identity, canonical candidate path, independently reproducible source manifest/hash, ordered self-hashed production stage receipts, provider result ref/hash | replaces session booleans, wrapper declarations, provider diagnostics, repository commit hashes, and acceptance-created provenance claims |
 | `CGKNTestExecutionEvidence` | `schemas/test_execution_v1.schema.json` | `scripts/real_test_execution.py` | post-build finalization, public delivery gate, final verdict | yes | canonical EvidenceStatus | envelope, argv, cwd, environment, run/candidate/commit IDs, timing, exit code, counts, categorized skips, stdout/stderr refs and hashes, result hash, profile | replaces ad hoc `ok`, `commands_run`, `exit_code`, and handwritten `TEST_REPORT.md` truth |
 | `CGKNCustomerRuntimeEvidence` | `schemas/customer_runtime_v1.schema.json` | `scripts/customer_runtime_runner.py` | runnable project contract, visual evidence, public delivery gate, final verdict | yes | canonical EvidenceStatus | envelope, startup argv, cwd, clean environment root, dependency setup, PID, URL, health probe, customer action, expected/observed result, observed hash, shutdown result | replaces hand-written `customer_runtime.json` PASS fixtures |
 | `CGKNVisualEvidence` | `schemas/visual_evidence_v1.schema.json` | `scripts/browser_visual_evidence.py` | runtime visual evidence collector, public delivery gate, final verdict | yes when GUI/visual output is required | canonical EvidenceStatus | envelope, customer runtime ref/hash, browser engine/version, URL, actions, DOM assertions, network observations, screenshot path/hash, viewport, `formal_evidence=true` | replaces static preview PNG/SVG and placeholder screenshot sidecars |
@@ -86,7 +89,8 @@ final_delivered
 customer request
 -> API/provider project generation
 -> provider output validation
--> post-build finalization
+-> source-changing post-build finalization
+-> canonical production-candidate provenance
 -> canonical test/runtime/visual evidence
 -> user review when required
 -> local_packager
@@ -100,9 +104,9 @@ customer request
 
 ## Formal Acceptance Gate Registry
 
-`scripts/formal_mainline_acceptance.py` reads existing artifacts only. It never runs a project team, replan, recovery, provider, packager, or Telegram sender. `candidate_hash` is the canonical customer source hash; repository `commit_sha` is a separate repository-scoped identity.
+`scripts/formal_mainline_acceptance.py` reads existing artifacts only. It never runs a project team, replan, recovery, provider, packager, Telegram sender, or provenance producer. `candidate_hash` is the canonical customer source hash; repository `commit_sha` is a separate repository-scoped identity.
 
-The current Telegram provider diagnostics (`provider_generation_result.json` and `provider_phase_log.jsonl`) do not yet provide a canonical, self-hashed production-candidate provenance envelope binding the production run, customer candidate source hash, commit, and producer. The formal reader records this as `canonical_production_candidate_provenance_contract_unavailable`; it may still report the canonical test/runtime/visual inspector results, but it cannot promote those candidate-scoped Gates to formal PASS without production provenance. This gap must not be repaired by an acceptance-only artifact.
+The Telegram production entry assigns a unique production `run_id` and `candidate_id`, and the provider job freezes ordered `production_entry`, `provider_generation`, `provider_validation`, and `post_build` receipts. After all source-changing repair work and before canonical tests, `scripts/production_candidate_provenance.py` writes `production_candidate_provenance.json` under that production run. Its inspector independently rereads every referenced artifact, validates time and identity continuity, rejects path escape and reparse links, and recomputes both the source manifest hash and the sole canonical candidate source hash. Test, runtime, and visual Gates cannot run their evidence inspector until this provenance inspector passes; a caller boolean or `source_inspection="PASS"` has no authority.
 
 | Gate | Scope | Authoritative producer | Inspector | Source artifact | Current formal availability |
 | --- | --- | --- | --- | --- | --- |
@@ -124,7 +128,7 @@ The current Telegram provider diagnostics (`provider_generation_result.json` and
 | deterministic E2E | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
 | live provider E2E | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
 
-The production Telegram entry is `scripts.telegram_live_bridge.start_generation_from_income`; its default generation target is `run_provider_generation_job`, followed by provider output validation, `post_build_finalize.run`, canonical test/runtime/visual evidence, canonical review when required, `local_packager.package_project`, public delivery gate, manifest-bound send, `CGKNDeliveryReceipt`, and canonical final verdict. `run_agent_generation_job -> dynamic_pipeline_runner.run_dynamic_pipeline -> agent_conversation_loop.run_agent_loop` remains the support/experimental lane.
+The production Telegram entry is `scripts.telegram_live_bridge.start_generation_from_income`; its default generation target is `run_provider_generation_job`, followed by provider output validation, source-changing post-build work, canonical production-candidate provenance, canonical test/runtime/visual evidence, canonical review when required, `local_packager.package_project`, public delivery gate, manifest-bound send, `CGKNDeliveryReceipt`, and canonical final verdict. `run_agent_generation_job -> dynamic_pipeline_runner.run_dynamic_pipeline -> agent_conversation_loop.run_agent_loop` remains the support/experimental lane.
 
 ## Runtime And Visual Evidence Definitions
 

@@ -127,5 +127,7 @@ def test_public_delivery_judgment_blocks_requested_asset_gaps() -> None:
     assert gate["verdict"] == "NEEDS_REWORK"
     assert gate["is_final"] is False
     assert gate["judgment_source"] == "canonical_evidence_gate"
-    assert gate["missing"]
+    assert "production_candidate_provenance" in gate[
+        "canonical_evidence_gate"
+    ]["failures"]
     assert gate["required_repairs"]

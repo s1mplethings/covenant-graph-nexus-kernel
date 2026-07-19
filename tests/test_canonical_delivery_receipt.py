@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -13,12 +14,36 @@ sys.path.insert(0, str(ROOT))
 import scripts.canonical_delivery_receipt as receipt
 import scripts.canonical_evidence_hash as evidence_hash
 import scripts.telegram_live_bridge as bridge
+import scripts.production_candidate_provenance as production_candidate_provenance
 from tests.test_telegram_public_delivery_gate import (
     FakeTelegramClient,
     make_deliverable_project,
     make_media_project_without_browser_evidence,
     requirement_session,
 )
+
+
+@pytest.fixture(autouse=True)
+def _allow_receipt_test_production_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+):
+    temporary_root = pathlib.Path(tempfile.gettempdir()).resolve()
+    monkeypatch.setattr(
+        production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(
+        bridge.production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(bridge, "DEFAULT_MEMORY_DIR", tmp_path / "project_memory")
+    monkeypatch.setenv(
+        "CGNK_LOCAL_STUDIO_CONVERSATION_ROOT",
+        str(tmp_path / "conversations"),
+    )
 
 
 class CanonicalDeliveryReceiptTests(unittest.TestCase):

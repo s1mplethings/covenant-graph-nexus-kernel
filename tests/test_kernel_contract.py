@@ -184,6 +184,21 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("mark_public_delivery_rework", provider_job)
         self.assertIn("finish_agent_loop_delivery", provider_job)
 
+    def test_production_candidate_provenance_is_frozen_before_canonical_evidence(self) -> None:
+        source = read_source("scripts/telegram_live_bridge.py")
+        finalize = function_body(source, "post_build_finalize_provider_project")
+        contract = read_source("docs/00_kernel_contract.md")
+
+        provenance_index = finalize.find("production_candidate_provenance.produce")
+        test_index = finalize.find("run_provider_project_tests(", provenance_index)
+        runtime_index = finalize.find("customer_runtime_runner.run", provenance_index)
+        self.assertGreaterEqual(provenance_index, 0)
+        self.assertGreater(test_index, provenance_index)
+        self.assertGreater(runtime_index, provenance_index)
+        self.assertIn("CGKNProductionCandidateProvenance", contract)
+        self.assertIn("Session/context booleans", contract)
+        self.assertIn("short-circuits canonical evidence inspection", contract)
+
     def test_support_pipeline_manifest_required_before_dynamic_runner(self) -> None:
         body = function_body(read_source("scripts/telegram_live_bridge.py"), "run_agent_generation_job")
 

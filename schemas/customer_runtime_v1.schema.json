@@ -9,6 +9,8 @@
     "candidate_id",
     "candidate_hash",
     "commit_sha",
+    "production_provenance_ref",
+    "production_provenance_hash",
     "producer",
     "created_at",
     "status",
@@ -28,6 +30,8 @@
   ],
   "properties": {
     "kind": { "const": "CGKNCustomerRuntimeEvidence" },
+    "production_provenance_ref": { "type": "string" },
+    "production_provenance_hash": { "type": "string" },
     "startup_argv": { "type": "array", "minItems": 1, "items": { "type": "string" } },
     "cwd": { "type": "string", "minLength": 1 },
     "clean_environment_root": { "type": "string", "minLength": 1 },

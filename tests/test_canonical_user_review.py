@@ -6,6 +6,8 @@ import pathlib
 import sys
 import tempfile
 import time
+from datetime import datetime
+import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -18,6 +20,33 @@ from scripts import customer_runtime_runner
 from scripts import local_packager
 from scripts import real_test_execution
 from scripts import telegram_live_bridge as bridge
+from scripts import production_candidate_provenance
+from tests.test_telegram_public_delivery_gate import (
+    bind_test_production_provenance,
+)
+
+
+@pytest.fixture(autouse=True)
+def _allow_review_test_production_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+):
+    temporary_root = pathlib.Path(tempfile.gettempdir()).resolve()
+    monkeypatch.setattr(
+        production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(
+        bridge.production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(bridge, "DEFAULT_MEMORY_DIR", tmp_path / "project_memory")
+    monkeypatch.setenv(
+        "CGNK_LOCAL_STUDIO_CONVERSATION_ROOT",
+        str(tmp_path / "conversations"),
+    )
 
 
 TEST_PNG = base64.b64decode(
@@ -53,8 +82,29 @@ def make_project(root: pathlib.Path) -> pathlib.Path:
         "candidate_hash": candidate_hash,
         "commit_sha": "commit-review",
     }
-    assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
-    assert customer_runtime_runner.run(project, **identity)["status"] == "PASS"
+    provenance = bind_test_production_provenance(
+        root,
+        project,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+    )
+    provenance_args = {
+        "production_provenance_ref": provenance["provenance_ref"],
+        "production_provenance_hash": provenance["provenance_hash"],
+    }
+    assert (
+        real_test_execution.run_tests(
+            project, **identity, **provenance_args
+        )["status"]
+        == "PASS"
+    )
+    assert (
+        customer_runtime_runner.run(
+            project, **identity, **provenance_args
+        )["status"]
+        == "PASS"
+    )
     return project
 
 
@@ -66,7 +116,7 @@ def request_for(project: pathlib.Path, chat_id: str = "group-1") -> dict:
         requirement_snapshot=["review this build"],
     )
     assert request["status"] == "waiting_user_review"
-    return canonical_user_review.mark_review_request_presented(
+    presented = canonical_user_review.mark_review_request_presented(
         project,
         request,
         presented_artifacts=[{
@@ -77,6 +127,14 @@ def request_for(project: pathlib.Path, chat_id: str = "group-1") -> dict:
             "presented_at": canonical_user_review.now(),
         }],
     )
+    presented_epoch = datetime.fromisoformat(
+        str(presented["presented_at"]).replace("Z", "+00:00")
+    ).timestamp()
+    deadline = time.monotonic() + 1.0
+    while time.time() <= presented_epoch + 0.02 and time.monotonic() < deadline:
+        time.sleep(0.001)
+    assert time.time() > presented_epoch + 0.02
+    return presented
 
 
 def context(**updates) -> dict:
@@ -86,7 +144,7 @@ def context(**updates) -> dict:
         "chat_id": "group-1",
         "from_user_id": 303,
         "from_username": "reviewer",
-        "message_date": time.time(),
+        "message_date": time.time() - 0.005,
         "edited_message": False,
     }
     value.update(updates)
@@ -110,10 +168,27 @@ def make_visual_project(root: pathlib.Path) -> tuple[pathlib.Path, dict, dict]:
         "candidate_hash": candidate_hash,
         "commit_sha": "commit-visual-checkpoint",
     }
-    assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+    provenance = bind_test_production_provenance(
+        root,
+        project,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+    )
+    provenance_args = {
+        "production_provenance_ref": provenance["provenance_ref"],
+        "production_provenance_hash": provenance["provenance_hash"],
+    }
+    assert (
+        real_test_execution.run_tests(
+            project, **identity, **provenance_args
+        )["status"]
+        == "PASS"
+    )
     runtime = customer_runtime_runner.run(
         project,
         **identity,
+        **provenance_args,
         live_consumer=browser_visual_evidence.capture_live_runtime,
         browser_capture_required=True,
     )
@@ -501,7 +576,7 @@ def test_forged_but_self_hashed_reviews_are_independently_rejected() -> None:
             review = canonical_user_review.record_user_review_approval(
                 project, request, "我确认这个版本，可以最终打包", context()
             )
-            assert review["status"] == "PASS", name
+            assert review["status"] == "PASS", (name, review)
             mutate(review, request)
             review["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(review, ("artifact_hash",))
             (project / "user_review.json").write_text(
@@ -634,10 +709,27 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
             "candidate_hash": candidate_hash,
             "commit_sha": "commit-visual-review",
         }
-        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
+        provenance = bind_test_production_provenance(
+            pathlib.Path(temp),
+            project,
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+        )
+        provenance_args = {
+            "production_provenance_ref": provenance["provenance_ref"],
+            "production_provenance_hash": provenance["provenance_hash"],
+        }
+        assert (
+            real_test_execution.run_tests(
+                project, **identity, **provenance_args
+            )["status"]
+            == "PASS"
+        )
         runtime = customer_runtime_runner.run(
             project,
             **identity,
+            **provenance_args,
             live_consumer=browser_visual_evidence.capture_live_runtime,
             browser_capture_required=True,
         )
@@ -1061,8 +1153,23 @@ def test_formal_checkpoint_sender_nonvisual_summary_does_not_send_old_png() -> N
             "run_id": "run-review", "candidate_id": "candidate-review",
             "candidate_hash": candidate_hash, "commit_sha": "commit-review",
         }
-        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
-        assert customer_runtime_runner.run(project, **identity)["status"] == "PASS"
+        provenance = bind_test_production_provenance(
+            root,
+            project,
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+        )
+        provenance_args = {
+            "production_provenance_ref": provenance["provenance_ref"],
+            "production_provenance_hash": provenance["provenance_hash"],
+        }
+        assert real_test_execution.run_tests(
+            project, **identity, **provenance_args
+        )["status"] == "PASS"
+        assert customer_runtime_runner.run(
+            project, **identity, **provenance_args
+        )["status"] == "PASS"
         request = canonical_user_review.create_review_request_snapshot(
             project,
             chat_id="group-nonvisual-sender",
@@ -1105,8 +1212,23 @@ def test_nonvisual_request_rejects_visual_scope_injection_and_old_screenshot_doe
             "run_id": "run-review", "candidate_id": "candidate-review",
             "candidate_hash": candidate_hash, "commit_sha": "commit-review",
         }
-        assert real_test_execution.run_tests(project, **identity)["status"] == "PASS"
-        assert customer_runtime_runner.run(project, **identity)["status"] == "PASS"
+        provenance = bind_test_production_provenance(
+            pathlib.Path(temp),
+            project,
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+        )
+        provenance_args = {
+            "production_provenance_ref": provenance["provenance_ref"],
+            "production_provenance_hash": provenance["provenance_hash"],
+        }
+        assert real_test_execution.run_tests(
+            project, **identity, **provenance_args
+        )["status"] == "PASS"
+        assert customer_runtime_runner.run(
+            project, **identity, **provenance_args
+        )["status"] == "PASS"
         request = request_for(project)
         assert request["visual_required"] is False
         assert {item["kind"] for item in request["reviewed_evidence"]} == {

@@ -15,6 +15,7 @@ from scripts import customer_runtime_runner
 from scripts import formal_gate_registry
 from scripts import formal_mainline_acceptance
 from scripts import real_test_execution
+from scripts import production_candidate_provenance
 
 
 FIXTURE_PRODUCER = "scripts/final_internal_acceptance.py"
@@ -437,6 +438,7 @@ def test_20_fixture_source_with_correct_self_hash_cannot_enter_formal_gate(
 
 def test_real_canonical_test_runtime_and_playwright_visual_enter_registry_pass(
     tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     candidate = tmp_path / "candidate"
     candidate.mkdir()
@@ -455,10 +457,65 @@ def test_real_canonical_test_runtime_and_playwright_visual_enter_registry_pass(
         "candidate_hash": canonical_evidence_hash.candidate_source_hash(candidate),
         "commit_sha": formal_mainline_acceptance.git_sha(),
     }
-    test_result = real_test_execution.run_tests(candidate, **identity)
+    run_root = tmp_path / "production-run"
+    run_root.mkdir()
+    provider_result = run_root / "provider_generation_result.json"
+    provider_result.write_text('{"status":"PASS"}', encoding="utf-8")
+    times = (
+        ("2026-07-19T00:00:00+00:00", "2026-07-19T00:00:01+00:00"),
+        ("2026-07-19T00:00:02+00:00", "2026-07-19T00:00:03+00:00"),
+        ("2026-07-19T00:00:04+00:00", "2026-07-19T00:00:05+00:00"),
+        ("2026-07-19T00:00:06+00:00", "2026-07-19T00:00:07+00:00"),
+    )
+    receipts = {}
+    provider_ref = {
+        "role": "provider_generation_result",
+        "ref": str(provider_result.resolve()),
+        "hash": canonical_evidence_hash.sha256_file(provider_result),
+    }
+    manifest = canonical_evidence_hash.candidate_source_manifest(candidate)
+    manifest_hash = canonical_evidence_hash.canonical_json_hash(
+        {"candidate_source_manifest": manifest}, ()
+    )
+    for index, stage in enumerate(production_candidate_provenance.STAGE_ORDER):
+        receipts[stage] = production_candidate_provenance.write_stage_receipt(
+            run_root,
+            stage=stage,
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=candidate,
+            started_at=times[index][0],
+            finished_at=times[index][1],
+            candidate_hash=identity["candidate_hash"] if stage == "post_build" else "",
+            candidate_source_manifest_hash=manifest_hash if stage == "post_build" else "",
+            artifact_refs=[provider_ref]
+            if stage in {"provider_generation", "provider_validation"}
+            else [],
+        )
+    monkeypatch.setattr(
+        production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        tmp_path.resolve(),
+    )
+    provenance = production_candidate_provenance.produce(
+        candidate,
+        run_root,
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+        stage_receipts=receipts,
+        provider_result_ref=provider_result,
+    )
+    provenance_args = {
+        "production_provenance_ref": provenance["provenance_ref"],
+        "production_provenance_hash": provenance["provenance_hash"],
+    }
+    test_result = real_test_execution.run_tests(candidate, **identity, **provenance_args)
     runtime = customer_runtime_runner.run(
         candidate,
         **identity,
+        **provenance_args,
         live_consumer=browser_visual_evidence.capture_live_runtime,
         browser_capture_required=True,
     )
@@ -475,26 +532,35 @@ def test_real_canonical_test_runtime_and_playwright_visual_enter_registry_pass(
         ("visual_evidence", "visual_evidence.json"),
     ):
         inspection = formal_gate_registry.inspect_source(
-            gate, candidate / artifact, expected_identity=identity
+            gate,
+            candidate / artifact,
+            expected_identity=identity,
+            context={
+                "production_provenance_ref": provenance[
+                    "provenance_ref"
+                ]
+            },
         )
         assert inspection["status"] == "PASS", inspection
     acceptance = formal_mainline_acceptance.build_acceptance(
-        tmp_path / "formal", candidate_dir=candidate
+        tmp_path / "formal",
+        candidate_dir=candidate,
+        production_run_dir=run_root,
     )
     assert {
         gate: acceptance["gates"][gate]["status"]
         for gate in ("test_execution", "customer_runtime", "visual_evidence")
     } == {
-        "test_execution": "NEEDS_REWORK",
-        "customer_runtime": "NEEDS_REWORK",
-        "visual_evidence": "NEEDS_REWORK",
+        "test_execution": "PASS",
+        "customer_runtime": "PASS",
+        "visual_evidence": "PASS",
     }
     for gate in ("test_execution", "customer_runtime", "visual_evidence"):
         inspection = acceptance["gates"][gate]["formal_inspection"][
             "source_inspection"
         ]
         assert inspection["inspector_result"]["status"] == "PASS"
-        assert "production_candidate_provenance_not_verified" in inspection["failures"]
+        assert inspection["provenance_inspection"]["status"] == "PASS"
     assert acceptance["status"] == "NEEDS_REWORK"
     assert acceptance["candidate_identity"] == identity
     assert not any(
