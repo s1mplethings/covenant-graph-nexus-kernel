@@ -190,6 +190,13 @@ class GenerationCompletionContractTests(unittest.TestCase):
         args.model = "gpt-test"
         args.timeout = 30
         args.phase_log_path = ""
+        args.resume_run_dir = ""
+        args.small_model = ""
+        args.large_model = ""
+        args.disable_model_routing = True
+        args.provider_semantic_repair_attempts = None
+        args.post_build_repair_attempts = None
+        args.allow_model_usage_planning = False
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             args.out_dir = str(root / "project")
@@ -197,17 +204,15 @@ class GenerationCompletionContractTests(unittest.TestCase):
             args.result = str(root / "result.json")
             with (
                 mock.patch.object(run_local_pipeline.compose_local_pipeline, "compose", return_value={"steps": []}),
-                mock.patch.object(run_local_pipeline, "provider_generate_project_by_components", side_effect=RuntimeError("provider_api_request_failed: TLS failure")),
+                mock.patch.object(run_local_pipeline._impl, "provider_generate_project_by_components", side_effect=RuntimeError("provider_api_request_failed: TLS failure")),
                 mock.patch.object(run_local_pipeline.requirement_blueprint, "build_requirement_blueprint", return_value={}),
                 mock.patch.object(run_local_pipeline.online_input_agent, "collect_online_inputs", return_value={}),
                 mock.patch.object(run_local_pipeline.market_research_agent, "run_market_research", return_value={}),
             ):
                 result = run_local_pipeline.execute(args)
         self.assertEqual("BLOCKED", result["status"])
-        self.assertEqual("provider_generation_failed", result["reason"])
-        self.assertTrue(result["can_retry"])
-        self.assertEqual(5, len(result["repair_errors"]))
-        self.assertIn("provider_components", result["checkpoint_dir"])
+        self.assertEqual("provider_fact_blocked", result["reason"])
+        self.assertFalse((root / "project" / "final_project_bundle.zip").exists())
 
     def test_missing_local_image_model_cannot_claim_real_image_pass(self) -> None:
         session = bridge.default_session("missing-local-image")
