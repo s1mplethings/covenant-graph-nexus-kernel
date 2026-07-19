@@ -114,6 +114,26 @@ def _full_all_status(path: pathlib.Path, commit_sha: str) -> tuple[str, list[str
     return ("PASS" if not failures else "NEEDS_REWORK"), failures
 
 
+def _bound_evidence_status(
+    path: pathlib.Path, *, commit_sha: str, candidate_hash: str
+) -> tuple[str, list[str]]:
+    failures: list[str] = []
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return "NOT_EVALUATED", ["evidence_missing"]
+    status = str(document.get("status", "NOT_EVALUATED"))
+    if document.get("commit_sha") != commit_sha:
+        failures.append("commit_mismatch")
+    if document.get("candidate_id") != "CGKN" or document.get("candidate_hash") != candidate_hash:
+        failures.append("candidate_identity_mismatch")
+    if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
+        failures.append("artifact_hash_mismatch")
+    if failures:
+        return "NEEDS_REWORK", failures
+    return status, []
+
+
 def build_acceptance(
     run_dir: str | pathlib.Path,
     *,
@@ -129,6 +149,26 @@ def build_acceptance(
         "candidate_id": "CGKN",
         "candidate_hash": "sha256:" + hashlib.sha256(commit_sha.encode()).hexdigest(),
         "commit_sha": commit_sha,
+    }
+    internal_sources = {
+        "test_execution": out / "internal_test_execution.json",
+        "customer_runtime": out / "internal_customer_runtime.json",
+        "visual_evidence": out / "internal_visual_evidence.json",
+        "media_evidence": out / "internal_media_evidence.json",
+        "leaf_profile": out / "internal_leaf_sessions.json",
+        "workspace_truth": out / "internal_workspace_inventory.json",
+        "replan": out / "internal_replan_evidence.json",
+        "recovery": out / "internal_recovery_evidence.json",
+        "collaboration_timing": out / "internal_collaboration_evidence.json",
+        "startup_profile": out / "internal_startup_profile.json",
+        "deterministic_e2e": out / "internal_deterministic_e2e.json",
+        "live_provider_e2e": out / "internal_live_provider_e2e.json",
+    }
+    internal_statuses = {
+        gate: _bound_evidence_status(
+            path, commit_sha=commit_sha, candidate_hash=identity["candidate_hash"]
+        )
+        for gate, path in internal_sources.items()
     }
     live_leaf = out / "live_provider_leaf"
     project = out / "customer_project"
@@ -149,40 +189,86 @@ def build_acceptance(
     )
     candidate = _write(out / "candidate_identity.json", _envelope("CGKNCandidateIdentity", identity, "PASS"))
     gate_specs: dict[str, tuple[str, dict[str, Any]]] = {
-        "test_execution": ("NOT_EVALUATED", {"reason": "fresh full customer-project test execution not yet bound"}),
-        "customer_runtime": ("NOT_EVALUATED", {"reason": "fresh customer runtime not yet executed"}),
-        "visual_evidence": ("NOT_EVALUATED", {"reason": "fresh Playwright customer visual evidence not yet executed"}),
-        "media_evidence": ("NOT_EVALUATED", {"reason": "formal generated media was not required by the live backend leaf"}),
-        "user_review": ("NOT_EVALUATED", {"reason": "no fresh Telegram reviewer event"}),
-        "delivery_manifest": ("NOT_EVALUATED", {"reason": "fresh final package not produced"}),
+        "test_execution": (
+            internal_statuses["test_execution"][0],
+            {"failures": internal_statuses["test_execution"][1], **_source(internal_sources["test_execution"])},
+        ),
+        "customer_runtime": (
+            internal_statuses["customer_runtime"][0],
+            {"failures": internal_statuses["customer_runtime"][1], **_source(internal_sources["customer_runtime"])},
+        ),
+        "visual_evidence": (
+            internal_statuses["visual_evidence"][0],
+            {"failures": internal_statuses["visual_evidence"][1], **_source(internal_sources["visual_evidence"])},
+        ),
+        "media_evidence": (
+            internal_statuses["media_evidence"][0],
+            {"failures": internal_statuses["media_evidence"][1], **_source(internal_sources["media_evidence"])},
+        ),
+        "user_review": (
+            "NOT_EVALUATED" if test_chat_id else "BLOCKED",
+            {
+                "blocker_code": "" if test_chat_id else "BLOCKED_TELEGRAM_TEST_CHAT",
+                "reason": "no fresh Telegram reviewer event"
+                if test_chat_id
+                else "no explicit Telegram test chat configured",
+            },
+        ),
+        "delivery_manifest": (
+            "NOT_EVALUATED" if test_chat_id else "BLOCKED",
+            {
+                "blocker_code": "" if test_chat_id else "BLOCKED_TELEGRAM_TEST_CHAT",
+                "reason": "fresh final package not produced"
+                if test_chat_id
+                else "package promotion requires the blocked Telegram user-review checkpoint",
+            },
+        ),
         "delivery_receipt": (
             "BLOCKED",
             {"blocker_code": "BLOCKED_TELEGRAM_TEST_CHAT", "reason": "no explicit Telegram test chat configured"},
         ),
         "leaf_profile": (
-            "NEEDS_REWORK",
-            {
-                "reason": "one real backend leaf passed; independent persistence and frontend browser leaves remain absent",
-                **_source(live_leaf / "checkpoint_acceptance_backend_leaf.json"),
-            },
+            internal_statuses["leaf_profile"][0],
+            {"failures": internal_statuses["leaf_profile"][1], **_source(internal_sources["leaf_profile"])},
         ),
-        "workspace_truth": ("NOT_EVALUATED", {"reason": "formal independent workspace inventory not executed"}),
+        "workspace_truth": (
+            internal_statuses["workspace_truth"][0],
+            {"failures": internal_statuses["workspace_truth"][1], **_source(internal_sources["workspace_truth"])},
+        ),
         "full_all": (
             full_all_status,
             {"failures": full_all_failures, **_source(full_all_source)},
         ),
-        "replan": ("NOT_EVALUATED", {"reason": "fresh failure-to-replacement chain not executed"}),
-        "recovery": ("NOT_EVALUATED", {"reason": "fresh worker kill/restart/re-execution chain not executed"}),
+        "replan": (
+            internal_statuses["replan"][0],
+            {"failures": internal_statuses["replan"][1], **_source(internal_sources["replan"])},
+        ),
+        "recovery": (
+            internal_statuses["recovery"][0],
+            {"failures": internal_statuses["recovery"][1], **_source(internal_sources["recovery"])},
+        ),
         "provider_causal_trace": (
             causal_status,
             {"failures": causal_failures, **_source(causal_source)},
         ),
-        "collaboration_timing": ("NOT_EVALUATED", {"reason": "implementation-before-consumption timing not executed"}),
-        "startup_profile": ("NOT_EVALUATED", {"reason": "declared startup profiles not freshly exercised"}),
-        "deterministic_e2e": ("NOT_EVALUATED", {"reason": "fresh deterministic total-chain E2E not executed"}),
+        "collaboration_timing": (
+            internal_statuses["collaboration_timing"][0],
+            {"failures": internal_statuses["collaboration_timing"][1], **_source(internal_sources["collaboration_timing"])},
+        ),
+        "startup_profile": (
+            internal_statuses["startup_profile"][0],
+            {"failures": internal_statuses["startup_profile"][1], **_source(internal_sources["startup_profile"])},
+        ),
+        "deterministic_e2e": (
+            internal_statuses["deterministic_e2e"][0],
+            {"failures": internal_statuses["deterministic_e2e"][1], **_source(internal_sources["deterministic_e2e"])},
+        ),
         "live_provider_e2e": (
-            "NEEDS_REWORK" if causal_status == "PASS" else "NOT_EVALUATED",
-            {"reason": "live provider leaf passed but downstream runtime/review/delivery chain is incomplete", **_source(causal_source)},
+            internal_statuses["live_provider_e2e"][0],
+            {
+                "failures": internal_statuses["live_provider_e2e"][1],
+                **_source(internal_sources["live_provider_e2e"]),
+            },
         ),
     }
     refs: dict[str, pathlib.Path] = {}

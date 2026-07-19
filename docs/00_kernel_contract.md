@@ -109,6 +109,8 @@ Telegram delivery uses public delivery gate followed by `CGKNDeliveryReceipt`. T
 
 `scripts/canonical_delivery_receipt.py` is the sole producer and inspector for the authoritative project-root `delivery_receipt.json`. Telegram final delivery may enter `delivered` only after structured API receipts bind every formally required attachment to the expected chat and the on-disk receipt inspector returns `PASS`; sent lists, truth ledgers, booleans, and session flags are not substitutes.
 
+`scripts/final_internal_acceptance.py` is an acceptance-only executor for independent Leaf workspaces, behavior merges, implementation-time collaboration, replan, Worker recovery, startup, runtime, and browser evidence. It does not create a generation route, send Telegram messages, produce `CGKNDeliveryReceipt`, or decide `CGKNFinalVerdict`. `scripts/final_contract_unification_acceptance.py` must independently verify its identity and self-hash before binding any internal gate.
+
 When an agent reply is malformed or truncated, the runner may salvage fully closed actions and execute them, but it must keep the step in repair until strict JSON succeeds. This is parser resilience inside the current manifest step, not a separate generation path.
 
 Local-model routing may reduce provider cost for low-risk tasks. Public reply tasks must not alter `whiteboard`, `pipeline_manifest`, generation actions, or delivery readiness. Generation-affecting local tasks must be opt-in and must stay inside the same `pipeline_manifest` and `dynamic_pipeline_runner` boundary. They must not bypass manifest validation, `local_agent_actions`, `local_packager`, or final delivery evidence.
