@@ -20,6 +20,7 @@ import canonical_evidence_hash
 
 SCHEMA_VERSION = "1.0"
 PRODUCER = "scripts/final_contract_unification_acceptance.py"
+DEFAULT_FULL_ALL_RESULT = ROOT / "generated" / "dynamic_agent_tree_fix_eval" / "test_profiles" / "full_all_result.json"
 
 
 def _now() -> str:
@@ -89,7 +90,36 @@ def _provider_causal_status(trace_path: pathlib.Path, project: pathlib.Path) -> 
     return ("PASS" if not failures else "NEEDS_REWORK"), failures
 
 
-def build_acceptance(run_dir: str | pathlib.Path, *, test_chat_id: str = "") -> dict[str, Any]:
+def _full_all_status(path: pathlib.Path, commit_sha: str) -> tuple[str, list[str]]:
+    failures: list[str] = []
+    try:
+        result = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return "NOT_EVALUATED", ["full_all_result_missing"]
+    if result.get("kind") != "CGKNTestProfileResult" or result.get("profile") != "full_all":
+        failures.append("full_all_contract")
+    if result.get("status") != "PASS" or result.get("exit_code") != 0 or result.get("pytest_run") is not True:
+        failures.append("full_all_not_pass")
+    if result.get("commit_sha") != commit_sha:
+        failures.append("full_all_commit_mismatch")
+    for field in ("collected", "executed", "passed"):
+        if not isinstance(result.get(field), int) or result[field] <= 0:
+            failures.append(f"full_all_invalid_count:{field}")
+    if result.get("executed") != result.get("collected") or result.get("passed") != result.get("executed"):
+        failures.append("full_all_incomplete")
+    if any(result.get(field) != 0 for field in ("failed", "skipped", "deselected")):
+        failures.append("full_all_exclusions")
+    if result.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(result, ("artifact_hash",)):
+        failures.append("full_all_artifact_hash")
+    return ("PASS" if not failures else "NEEDS_REWORK"), failures
+
+
+def build_acceptance(
+    run_dir: str | pathlib.Path,
+    *,
+    test_chat_id: str = "",
+    full_all_result: str | pathlib.Path = DEFAULT_FULL_ALL_RESULT,
+) -> dict[str, Any]:
     out = pathlib.Path(run_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)
     run_id = out.name
@@ -104,6 +134,8 @@ def build_acceptance(run_dir: str | pathlib.Path, *, test_chat_id: str = "") -> 
     project = out / "customer_project"
     causal_source = live_leaf / "provider_causal_trace.json"
     causal_status, causal_failures = _provider_causal_status(causal_source, project)
+    full_all_source = pathlib.Path(full_all_result).resolve()
+    full_all_status, full_all_failures = _full_all_status(full_all_source, commit_sha)
 
     requirement = _write(
         out / "requirement_snapshot.json",
@@ -135,7 +167,10 @@ def build_acceptance(run_dir: str | pathlib.Path, *, test_chat_id: str = "") -> 
             },
         ),
         "workspace_truth": ("NOT_EVALUATED", {"reason": "formal independent workspace inventory not executed"}),
-        "full_all": ("NOT_EVALUATED", {"reason": "fresh full_all result not supplied"}),
+        "full_all": (
+            full_all_status,
+            {"failures": full_all_failures, **_source(full_all_source)},
+        ),
         "replan": ("NOT_EVALUATED", {"reason": "fresh failure-to-replacement chain not executed"}),
         "recovery": ("NOT_EVALUATED", {"reason": "fresh worker kill/restart/re-execution chain not executed"}),
         "provider_causal_trace": (
@@ -229,8 +264,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--telegram-test-chat-id", default="")
+    parser.add_argument("--full-all-result", default=str(DEFAULT_FULL_ALL_RESULT))
     args = parser.parse_args()
-    result = build_acceptance(args.run_dir, test_chat_id=args.telegram_test_chat_id)
+    result = build_acceptance(
+        args.run_dir,
+        test_chat_id=args.telegram_test_chat_id,
+        full_all_result=args.full_all_result,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["inspection"] in {"PASS", "NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else 1
 
