@@ -373,6 +373,7 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
         "status": "NOT_EVALUATED",
         "reason": "fresh provider leaf not present in this run",
     }
+    provider_leaf: dict[str, Any] | None = None
     if provider_trace_path.is_file():
         trace = json.loads(provider_trace_path.read_text(encoding="utf-8"))
         copied: list[dict[str, str]] = []
@@ -401,6 +402,35 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
             "merged_patch": copied,
             "behavior_test": provider_test,
             "merged_at": now(),
+        }
+        checkpoint_path = out / "live_provider_leaf" / "checkpoint_acceptance_backend_leaf.json"
+        checkpoint = (
+            json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            if checkpoint_path.is_file()
+            else {}
+        )
+        provider_leaf = {
+            "workspace_id": f"{out.name}:acceptance_backend_leaf:live-provider-task",
+            "leaf_id": "acceptance_backend_leaf",
+            "task_id": "live-provider-task",
+            "leaf_root": str((out / "live_provider_leaf").resolve()),
+            "workspace_root": str(provider_project.resolve()),
+            "created_at": str(trace.get("created_at") or now()),
+            "started_at": str(trace.get("created_at") or now()),
+            "finished_at": provider_integration["merged_at"],
+            "worker": {
+                "provider_request_identity": trace.get("provider_request_identity"),
+                "provider_response_id": trace.get("provider_response_id"),
+                "decision_hash": trace.get("decision_hash"),
+                "patch_hash": trace.get("patch_hash"),
+            },
+            "patch": provider_integration["merged_patch"],
+            "behavior_test": provider_integration["behavior_test"],
+            "checkpoint_ref": str(checkpoint_path.resolve()),
+            "checkpoint_hash": sha(checkpoint_path) if checkpoint_path.is_file() else "",
+            "checkpoint": checkpoint,
+            "merge": provider_integration,
+            "status": str(provider_integration["status"]),
         }
 
     candidate_hash = canonical_evidence_hash.candidate_source_hash(candidate)
@@ -496,6 +526,8 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
     )
 
     leaves = [backend, persistence, frontend, original, replacement, recovery_leaf]
+    if provider_leaf is not None:
+        leaves.append(provider_leaf)
     workspace_ids = [leaf["workspace_id"] for leaf in leaves]
     workspace_roots = [leaf["workspace_root"] for leaf in leaves]
     workspace_status = (
@@ -521,9 +553,11 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
         envelope(
             "CGKNLeafSessionsEvidence",
             identity,
-            "PASS" if leaf_test["exit_code"] == 0 and all(x["status"] == "PASS" for x in (backend, persistence, frontend)) else "NEEDS_REWORK",
+            "PASS"
+            if leaf_test["exit_code"] == 0 and all(x["status"] == "PASS" for x in leaves)
+            else "NEEDS_REWORK",
             leaves=leaves,
-            merges=merges,
+            merges={**merges, **({"acceptance_backend_leaf": provider_integration} if provider_leaf else {})},
             integrated_behavior_test=leaf_test,
         ),
     )
