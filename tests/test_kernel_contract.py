@@ -374,13 +374,17 @@ class KernelContractTests(unittest.TestCase):
     def test_internal_acceptance_cannot_replace_delivery_truth(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         source = read_source("scripts/final_internal_acceptance.py")
-        producer = read_source("scripts/final_contract_unification_acceptance.py")
+        registry = read_source("scripts/formal_gate_registry.py")
+        producer = read_source("scripts/formal_mainline_acceptance.py")
 
-        self.assertIn("acceptance-only executor", doc)
+        self.assertIn("diagnostic fixture exerciser", doc)
+        self.assertIn("cannot authorize a formal Gate `PASS`", doc)
+        self.assertIn("DIAGNOSTIC_FIXTURE_ONLY = True", source)
         self.assertNotIn("send_delivery_from_manifest", source)
         self.assertNotIn("canonical_delivery_receipt", source)
         self.assertNotIn("produce_canonical_final_verdict", source)
-        self.assertIn("_bound_evidence_status", producer)
+        self.assertIn('"scripts/final_internal_acceptance.py"', registry)
+        self.assertNotIn("build_internal_acceptance", producer)
 
     def test_malformed_agent_json_recovery_stays_inside_manifest_step(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")

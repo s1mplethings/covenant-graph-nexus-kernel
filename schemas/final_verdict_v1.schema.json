@@ -29,7 +29,9 @@
         "properties": {
           "status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" },
           "ref": { "type": "string", "minLength": 1 },
-          "file_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+          "file_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "blocker_code": { "type": "string" },
+          "formal_inspection": { "type": "object" }
         },
         "additionalProperties": false
       }

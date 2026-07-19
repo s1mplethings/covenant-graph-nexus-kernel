@@ -605,22 +605,61 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             client = FakeTelegramClient()
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
-            original_thread = bridge.threading.Thread
+            original_start = bridge.start_agent_generation
+            original_provider_message = bridge.send_provider_message
+            original_backend_tick = bridge.apply_backend_dialogue_tick
+            original_frontdesk_turn = bridge.run_model_frontdesk_turn
 
-            def fake_run_agent_loop(*, session_path, project_dir, model, timeout, max_turns):
-                return {"status": "max_turns_reached", "manifest": {}, "manifest_path": ""}
+            def fake_start(
+                client_arg,
+                chat_id,
+                session_dir_arg,
+                log_dir_arg,
+                model,
+                timeout,
+                *,
+                announce_start,
+                reason="frontdesk_generation_confirmation",
+            ):
+                running = bridge.load_session(session_dir_arg, chat_id)
+                bridge.update_active_run_status(
+                    running, "running", driver="api_provider_project_generation"
+                )
+                running["generation"] = {
+                    "status": "running",
+                    "driver": "api_provider_project_generation",
+                }
+                bridge.save_session(session_dir_arg, running)
 
-            bridge.agent_conversation_loop.run_agent_loop = fake_run_agent_loop
-            bridge.threading.Thread = InlineThread
+            bridge.start_agent_generation = fake_start
+            bridge.send_provider_message = lambda *args, **kwargs: False
+            bridge.apply_backend_dialogue_tick = lambda *args, **kwargs: {
+                "status": "PASS",
+                "source": "test",
+                "reason": kwargs.get("reason", ""),
+                "soft_questions": [],
+                "critical_questions": [],
+                "missing_required_inputs": [],
+                "needs_direction_confirmation": True,
+                "confidence": 0.5,
+                "user_visible_reply": "需求已记录，等待明确开始。",
+            }
+            bridge.run_model_frontdesk_turn = lambda *args, **kwargs: {
+                "reply": "需求已记录，等待明确开始。",
+                "action": "continue_chat",
+                "source": "test",
+                "status": "ok",
+            }
 
             try:
                 bridge.handle_text(client, "chat-revise", "做一个本地图片生成工具", session_dir, log_dir, "gpt-test", 60)
                 bridge.handle_text(client, "chat-revise", "开始生成", session_dir, log_dir, "gpt-test", 60)
                 bridge.handle_text(client, "chat-revise", "背景和立绘必须分开两个入口", session_dir, log_dir, "gpt-test", 60)
             finally:
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
-                bridge.threading.Thread = original_thread
+                bridge.start_agent_generation = original_start
+                bridge.send_provider_message = original_provider_message
+                bridge.apply_backend_dialogue_tick = original_backend_tick
+                bridge.run_model_frontdesk_turn = original_frontdesk_turn
 
             events = bridge.agent_session_path(session_dir, "chat-revise").read_text(encoding="utf-8")
             self.assertIn("背景和立绘", events)

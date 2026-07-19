@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Diagnostic fixture exerciser; never a formal mainline evidence producer.
+
+The fixed Task Studio project, workers, replan and recovery scenarios in this
+module exist only to test the diagnostic harness.  The formal gate registry
+explicitly forbids this producer from authorizing any Gate PASS.
+"""
+
 import argparse
 import hashlib
 import json
@@ -21,6 +28,7 @@ from scripts import browser_visual_evidence, canonical_evidence_hash, customer_r
 
 SCHEMA_VERSION = "1.0"
 PRODUCER = "scripts/final_internal_acceptance.py"
+DIAGNOSTIC_FIXTURE_ONLY = True
 
 
 def now() -> str:

@@ -14,6 +14,7 @@ FORMAL_ARTIFACTS = {
     "user_review": ("CGKNUserReviewEvidence", "schemas/user_review_v1.schema.json", "scripts/canonical_user_review.py"),
     "delivery_manifest": ("CGKNDeliveryManifest", "schemas/delivery_manifest_v1.schema.json", "scripts/local_packager.py"),
     "delivery_receipt": ("CGKNDeliveryReceipt", "schemas/delivery_receipt_v1.schema.json", "scripts/canonical_delivery_receipt.py"),
+    "formal_gate_status": ("CGKNFormalGateStatus", "schemas/formal_gate_status_v1.schema.json", "scripts/formal_mainline_acceptance.py"),
     "final_verdict": ("CGKNFinalVerdict", "schemas/final_verdict_v1.schema.json", "scripts/acceptance_verifier.py"),
 }
 

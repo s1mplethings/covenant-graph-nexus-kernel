@@ -7,10 +7,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+ROOT = SCRIPTS_DIR.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-import canonical_evidence_hash
+from scripts import canonical_evidence_hash
+from scripts import formal_gate_registry
 
 
 KIND = "CGKNFinalVerdict"
@@ -18,6 +20,13 @@ SCHEMA_VERSION = "1.0"
 FILE_NAME = "final_verdict.json"
 PRODUCER = "scripts/acceptance_verifier.py"
 PASS = "PASS"
+TELEGRAM_DEPENDENT_GATES = {
+    "user_review",
+    "delivery_manifest",
+    "delivery_receipt",
+    "live_provider_e2e",
+}
+PROVIDER_DEPENDENT_GATES = {"provider_causal_trace", "live_provider_e2e"}
 REQUIRED_GATES = (
     "test_execution",
     "customer_runtime",
@@ -62,6 +71,36 @@ def _evidence_status(document: dict[str, Any]) -> str:
     return str(document.get("overall_status") or document.get("status") or "NOT_EVALUATED").upper()
 
 
+def _aggregate_status(gates: dict[str, Any]) -> tuple[str, list[str], list[str]]:
+    internal_failures: list[str] = []
+    blockers: list[str] = []
+    for name, item in gates.items():
+        status = str(item.get("status", "NOT_EVALUATED")).upper()
+        if name in TELEGRAM_DEPENDENT_GATES and status.startswith("BLOCKED"):
+            blockers.append(str(item.get("blocker_code") or "BLOCKED_TELEGRAM_TEST_CHAT"))
+        elif name in PROVIDER_DEPENDENT_GATES and status == "BLOCKED_PROVIDER":
+            blockers.append(str(item.get("blocker_code") or "BLOCKED_PROVIDER"))
+        elif status != PASS:
+            internal_failures.append(name)
+    statuses = {str(item.get("status", "")).upper() for item in gates.values()}
+    internal_statuses = {
+        str(item.get("status", "")).upper()
+        for name, item in gates.items()
+        if name not in TELEGRAM_DEPENDENT_GATES | PROVIDER_DEPENDENT_GATES
+    }
+    if "FAIL" in statuses:
+        overall = "FAIL"
+    elif internal_failures or internal_statuses & {"NEEDS_REWORK", "NOT_EVALUATED", "PASS_WITH_LIMITS"}:
+        overall = "NEEDS_REWORK"
+    elif "BLOCKED_PROVIDER" in statuses:
+        overall = "BLOCKED_PROVIDER"
+    elif any(status.startswith("BLOCKED") for status in statuses):
+        overall = "BLOCKED"
+    else:
+        overall = PASS
+    return overall, sorted(set(internal_failures)), sorted(set(blockers))
+
+
 def produce_canonical_final_verdict(
     acceptance_dir: str | pathlib.Path,
     *,
@@ -70,6 +109,7 @@ def produce_canonical_final_verdict(
     candidate_hash: str,
     commit_sha: str,
     upstream_refs: dict[str, str | pathlib.Path],
+    inspection_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = pathlib.Path(acceptance_dir).resolve()
     gates: dict[str, Any] = {}
@@ -78,9 +118,34 @@ def produce_canonical_final_verdict(
         ref_value = upstream_refs.get(name)
         path = pathlib.Path(ref_value).resolve() if ref_value else pathlib.Path()
         document = _read(path) if ref_value else {}
-        status = _evidence_status(document)
+        formal_inspection: dict[str, Any] = {}
+        if document.get("producer") == formal_gate_registry.FORMAL_GATE_STATUS_PRODUCER:
+            formal_inspection = formal_gate_registry.inspect_gate_status(
+                name,
+                path,
+                expected_identity={
+                    "run_id": run_id,
+                    "candidate_id": candidate_id,
+                    "candidate_hash": candidate_hash,
+                    "commit_sha": commit_sha,
+                },
+                context=inspection_context,
+            )
+            status = str(formal_inspection.get("status", "NOT_EVALUATED")).upper()
+        else:
+            formal_inspection = {
+                "status": "NEEDS_REWORK",
+                "failures": ["upstream_not_formal_gate_status"],
+            }
+            status = "NEEDS_REWORK"
         file_hash = canonical_evidence_hash.sha256_file(path) if ref_value and path.is_file() and not path.is_symlink() else ""
-        gates[name] = {"status": status, "ref": str(path) if ref_value else "", "file_hash": file_hash}
+        gates[name] = {
+            "status": status,
+            "ref": str(path) if ref_value else "",
+            "file_hash": file_hash,
+            "blocker_code": str(document.get("blocker_code", "")),
+            "formal_inspection": formal_inspection,
+        }
         if not ref_value or not document:
             failures.append(f"missing_gate:{name}")
         elif status != PASS:
@@ -93,13 +158,9 @@ def produce_canonical_final_verdict(
         ):
             if str(document.get(field, "")) != str(expected):
                 failures.append(f"gate_identity_mismatch:{name}:{field}")
-    statuses = {item["status"] for item in gates.values()}
-    if "BLOCKED_PROVIDER" in statuses:
-        overall = "BLOCKED_PROVIDER"
-    elif any(status.startswith("BLOCKED") for status in statuses):
-        overall = "BLOCKED"
-    else:
-        overall = PASS if not failures else "NEEDS_REWORK"
+    overall, internal_failures, blockers = _aggregate_status(gates)
+    if failures and overall == PASS:
+        overall = "NEEDS_REWORK"
     verdict: dict[str, Any] = {
         "kind": KIND,
         "schema_version": SCHEMA_VERSION,
@@ -115,6 +176,8 @@ def produce_canonical_final_verdict(
         "upstream_gates": gates,
         "overall_status": overall,
         "failures": sorted(set(failures)),
+        "internal_failures": internal_failures,
+        "blockers": blockers,
     }
     verdict["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(verdict, ("artifact_hash",))
     _write(root / FILE_NAME, verdict)
@@ -129,6 +192,7 @@ def inspect_canonical_final_verdict(
     expected_candidate_hash: str,
     expected_commit_sha: str,
     expected_upstream_refs: dict[str, str | pathlib.Path],
+    inspection_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = pathlib.Path(acceptance_dir).resolve()
     path = root / FILE_NAME
@@ -172,7 +236,22 @@ def inspect_canonical_final_verdict(
             continue
         if gate.get("file_hash") != canonical_evidence_hash.sha256_file(expected_path):
             failures.append(f"upstream_hash_mismatch:{name}")
-        status = _evidence_status(upstream)
+        if upstream.get("producer") == formal_gate_registry.FORMAL_GATE_STATUS_PRODUCER:
+            actual_inspection = formal_gate_registry.inspect_gate_status(
+                name,
+                expected_path,
+                expected_identity={
+                    "run_id": expected_run_id,
+                    "candidate_id": expected_candidate_id,
+                    "candidate_hash": expected_candidate_hash,
+                    "commit_sha": expected_commit_sha,
+                },
+                context=inspection_context,
+            )
+            status = str(actual_inspection.get("status", "NOT_EVALUATED")).upper()
+        else:
+            status = "NEEDS_REWORK"
+            failures.append(f"upstream_not_formal_gate_status:{name}")
         if gate.get("status") != status:
             failures.append(f"upstream_status_mismatch:{name}")
         if status != PASS:
@@ -192,6 +271,23 @@ def inspect_canonical_final_verdict(
         failures.append("false_pass")
     if claimed != PASS and not failures and not nonpass:
         failures.append("false_nonpass")
+    recomputed, internal_failures, blockers = _aggregate_status(
+        {
+            name: {
+                "status": str((gates.get(name) or {}).get("status", "NOT_EVALUATED")),
+                "blocker_code": str(_read(pathlib.Path(expected_upstream_refs[name]).resolve()).get("blocker_code", ""))
+                if expected_upstream_refs.get(name)
+                else "",
+            }
+            for name in REQUIRED_GATES
+        }
+    )
+    if claimed != recomputed:
+        failures.append("status_priority_mismatch")
+    if document.get("internal_failures", []) != internal_failures:
+        failures.append("internal_failures_mismatch")
+    if document.get("blockers", []) != blockers:
+        failures.append("blockers_mismatch")
     inspection_status = PASS if not failures and not nonpass and claimed == PASS else (
         claimed if not failures and nonpass and claimed in {"NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else "NEEDS_REWORK"
     )

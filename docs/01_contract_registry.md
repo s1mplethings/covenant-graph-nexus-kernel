@@ -75,8 +75,10 @@ final_delivered
 | `CGKNUserReviewEvidence` | `schemas/user_review_v1.schema.json` | `scripts/canonical_user_review.py` | local packager, public delivery gate, final verdict | yes when review is required | canonical EvidenceStatus | envelope, request ref/hash, explicit `visual_required`, event id, Telegram update/message/date/reviewer identity, reviewed candidate, structured evidence refs/hashes, approval text hash, decision, reviewed_at | replaces session approval booleans and substring-based approval; inspector independently checks request, visual scope, time order and durable replay binding |
 | `CGKNDeliveryManifest` | `schemas/delivery_manifest_v1.schema.json` | `scripts/local_packager.py` | public delivery gate, Telegram delivery sender, final verdict | yes | `PASS`, `PASS_WITH_LIMITS`, `NEEDS_REWORK` | envelope, source tree hash, package hash, package entries hash, candidate hash, test/runtime/visual evidence plus user review request/review refs and hashes when required | replaces unversioned delivery bundle success records |
 | `CGKNDeliveryReceipt` | `schemas/delivery_receipt_v1.schema.json` | `scripts/canonical_delivery_receipt.py` | Telegram final sender, active project binder, final verdict | yes | `PASS`, `FAIL`, `NEEDS_REWORK` | envelope, delivery attempt/candidate/manifest/package binding, frozen requirements, exact attachment kinds, Telegram chat/message/file identities, local hashes, started/sent/finished timestamps | replaces boolean `sent` checks and pre-send delivered markers |
+| `CGKNFormalGateStatus` | `schemas/formal_gate_status_v1.schema.json` | `scripts/formal_mainline_acceptance.py` | `scripts/acceptance_verifier.py` | read-only formal acceptance | canonical EvidenceStatus | envelope, candidate or repository scope, authoritative source ref/hash/producer, registered inspector and actual result, failures and blocker code | replaces handwritten wrapper PASS and `source_inspection="PASS"`; cannot replace its canonical source artifact |
 | `CGKNFinalVerdict` | `schemas/final_verdict_v1.schema.json` | `scripts/acceptance_verifier.py` | CLIs, reports, final user-visible completion | yes | canonical EvidenceStatus | envelope, required gates, upstream gate statuses, overall status | replaces runner-local final PASS decisions |
-| `CGKNInternal*Evidence` | inline gate-specific canonical envelope | `scripts/final_internal_acceptance.py` | `scripts/final_contract_unification_acceptance.py`, final verdict | acceptance only | canonical EvidenceStatus | envelope plus immutable source refs/hashes and the gate-specific Leaf/workspace/collaboration/replan/recovery/startup/E2E execution facts | replaces handwritten acceptance PASS JSON; this producer cannot send Telegram, create a delivery receipt, or produce the final verdict |
+
+`scripts/final_internal_acceptance.py` and its `CGKNInternal*Evidence` files are diagnostic fixtures, not formal artifacts. The producer provenance denylist prevents them, `tests/*`, fixtures, examples, demos, and benchmark-only producers from authorizing a formal Gate PASS.
 
 ## Formal Telegram Mainline
 
@@ -95,6 +97,34 @@ customer request
 ```
 
 `pipeline_manifest` and `dynamic_pipeline_runner` remain the support/experimental planning lane. They may produce upstream evidence, but they are not a second Telegram public delivery route.
+
+## Formal Acceptance Gate Registry
+
+`scripts/formal_mainline_acceptance.py` reads existing artifacts only. It never runs a project team, replan, recovery, provider, packager, or Telegram sender. `candidate_hash` is the canonical customer source hash; repository `commit_sha` is a separate repository-scoped identity.
+
+The current Telegram provider diagnostics (`provider_generation_result.json` and `provider_phase_log.jsonl`) do not yet provide a canonical, self-hashed production-candidate provenance envelope binding the production run, customer candidate source hash, commit, and producer. The formal reader records this as `canonical_production_candidate_provenance_contract_unavailable`; it may still report the canonical test/runtime/visual inspector results, but it cannot promote those candidate-scoped Gates to formal PASS without production provenance. This gap must not be repaired by an acceptance-only artifact.
+
+| Gate | Scope | Authoritative producer | Inspector | Source artifact | Current formal availability |
+| --- | --- | --- | --- | --- | --- |
+| test execution | candidate | `scripts/real_test_execution.py` | `scripts.real_test_execution.inspect_test_report` | `test_execution.json` plus `TEST_REPORT.md` | available |
+| customer runtime | candidate | `scripts/customer_runtime_runner.py` | `scripts.customer_runtime_runner.inspect` | `customer_runtime.json` | available |
+| visual evidence | candidate | `scripts/browser_visual_evidence.py` | `scripts.browser_visual_evidence.inspect` | `visual_evidence.json` and bound screenshot/runtime | available |
+| media evidence | candidate | `scripts/canonical_media_validation.py` | `scripts.canonical_media_validation.validate_media` | no aggregate production artifact contract | `NOT_EVALUATED` until a production artifact binds the validated assets |
+| user review | candidate | `scripts/canonical_user_review.py` | `inspect_user_review_request` then `inspect_user_review_evidence` | `user_review_request.json`, `user_review.json`, replay ledger, presented artifacts | available when a real Telegram review exists |
+| delivery manifest | candidate | `scripts/local_packager.py` | `scripts.canonical_delivery_manifest.inspect_canonical_delivery_manifest` | `delivery_manifest.json`, final ZIP, evidence refs | available |
+| delivery receipt | candidate | `scripts/canonical_delivery_receipt.py` | `scripts.canonical_delivery_receipt.inspect_canonical_delivery_receipt` | `delivery_receipt.json`, manifest, package, exact Telegram receipts | available with frozen send expectations |
+| full_all | repository | `scripts/run_test_profile.py` | `scripts.formal_gate_registry.inspect_full_all` | `full_all_result.json`, stdout/stderr hashes | available |
+| provider causal trace | candidate | `scripts/agent_real_provider_leaf_builder.py` | none registered | `provider_causal_trace.json` | `NOT_EVALUATED` |
+| leaf profile | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| workspace truth | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| replan | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| recovery | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| collaboration timing | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| startup profile | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| deterministic E2E | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+| live provider E2E | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
+
+The production Telegram entry is `scripts.telegram_live_bridge.start_generation_from_income`; its default generation target is `run_provider_generation_job`, followed by provider output validation, `post_build_finalize.run`, canonical test/runtime/visual evidence, canonical review when required, `local_packager.package_project`, public delivery gate, manifest-bound send, `CGKNDeliveryReceipt`, and canonical final verdict. `run_agent_generation_job -> dynamic_pipeline_runner.run_dynamic_pipeline -> agent_conversation_loop.run_agent_loop` remains the support/experimental lane.
 
 ## Runtime And Visual Evidence Definitions
 

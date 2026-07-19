@@ -1,0 +1,464 @@
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import subprocess
+import sys
+from datetime import datetime, timezone
+from typing import Any
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts import acceptance_verifier
+from scripts import canonical_evidence_hash
+from scripts import formal_gate_registry
+
+PRODUCER = "scripts/formal_mainline_acceptance.py"
+SCHEMA_VERSION = "1.0"
+TELEGRAM_GATES = {"user_review", "delivery_manifest", "delivery_receipt"}
+PRODUCTION_MAINLINE = {
+    "entry": "scripts.telegram_live_bridge.start_generation_from_income",
+    "default_generation": "scripts.telegram_live_bridge.run_provider_generation_job",
+    "execution_chain": [
+        "scripts.telegram_live_bridge.run_provider_execute_with_retries",
+        "provider output validation",
+        "scripts.post_build_finalize.run",
+        "scripts.real_test_execution.run_tests",
+        "scripts.customer_runtime_runner.run",
+        "scripts.browser_visual_evidence.finalize_evidence",
+        "scripts.canonical_user_review",
+        "scripts.local_packager.package_project",
+        "scripts.telegram_live_bridge.evaluate_public_delivery_gate",
+        "scripts.telegram_live_bridge.send_delivery_from_manifest",
+        "scripts.canonical_delivery_receipt.produce_canonical_delivery_receipt",
+        "scripts.acceptance_verifier.produce_canonical_final_verdict",
+    ],
+    "support_lane": [
+        "scripts.telegram_live_bridge.run_agent_generation_job",
+        "scripts.dynamic_pipeline_runner.run_dynamic_pipeline",
+        "scripts.agent_conversation_loop.run_agent_loop",
+    ],
+    "diagnostic_only": ["scripts.final_internal_acceptance"],
+}
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def git_sha() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+def read_json(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, json.JSONDecodeError):
+        return {}
+
+
+def write_json(path: pathlib.Path, document: dict[str, Any]) -> pathlib.Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    document["artifact_hash"] = ""
+    document["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",))
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+    return path
+
+
+def envelope(kind: str, identity: dict[str, str], status: str, **extra: Any) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "schema_version": SCHEMA_VERSION,
+        **identity,
+        "producer": PRODUCER,
+        "created_at": now(),
+        "status": status,
+        "artifact_hash": "",
+        **extra,
+    }
+
+
+def _candidate_identity(candidate_dir: pathlib.Path | None, commit_sha: str) -> tuple[dict[str, str], list[str]]:
+    failures: list[str] = []
+    if candidate_dir is None or not candidate_dir.is_dir():
+        return {
+            "run_id": "NOT_EVALUATED",
+            "candidate_id": "NOT_EVALUATED",
+            "candidate_hash": "NOT_EVALUATED",
+            "commit_sha": commit_sha,
+        }, ["production_candidate_missing"]
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(candidate_dir)
+    identity_docs = [
+        read_json(candidate_dir / name)
+        for name in (
+            "test_execution.json",
+            "customer_runtime.json",
+            "visual_evidence.json",
+            "user_review_request.json",
+            "user_review.json",
+            "delivery_manifest.json",
+            "delivery_receipt.json",
+            "provider_causal_trace.json",
+        )
+        if (candidate_dir / name).is_file()
+    ]
+    run_ids = {str(doc.get("run_id", "")).strip() for doc in identity_docs if str(doc.get("run_id", "")).strip()}
+    candidate_ids = {
+        str(doc.get("candidate_id", "")).strip()
+        for doc in identity_docs
+        if str(doc.get("candidate_id", "")).strip()
+    }
+    if len(run_ids) != 1:
+        failures.append("production_run_identity_missing_or_mixed")
+    if len(candidate_ids) != 1:
+        failures.append("production_candidate_identity_missing_or_mixed")
+    for doc in identity_docs:
+        if doc.get("candidate_hash") != candidate_hash:
+            failures.append("candidate_identity_mismatch")
+        if doc.get("commit_sha") != commit_sha:
+            failures.append("commit_mismatch")
+    return {
+        "run_id": next(iter(run_ids), "NOT_EVALUATED"),
+        "candidate_id": next(iter(candidate_ids), candidate_dir.name),
+        "candidate_hash": candidate_hash,
+        "commit_sha": commit_sha,
+    }, sorted(set(failures))
+
+
+def _source_for_gate(
+    gate: str,
+    *,
+    candidate_dir: pathlib.Path | None,
+    production_run_dir: pathlib.Path | None,
+    full_all_result: pathlib.Path | None,
+) -> pathlib.Path | None:
+    spec = formal_gate_registry.GATE_SPECS[gate]
+    if gate == "full_all":
+        return full_all_result
+    artifact = str(spec.get("artifact", "")).strip()
+    if artifact and candidate_dir is not None:
+        candidate_source = candidate_dir / artifact
+        if candidate_source.is_file():
+            return candidate_source
+    if artifact and production_run_dir is not None:
+        run_source = production_run_dir / artifact
+        if run_source.is_file():
+            return run_source
+    return None
+
+
+def _production_provenance(
+    candidate_dir: pathlib.Path | None,
+    production_run_dir: pathlib.Path | None,
+) -> dict[str, Any]:
+    provider_result = (
+        production_run_dir / "provider_generation_result.json"
+        if production_run_dir is not None
+        else None
+    )
+    phase_log = (
+        production_run_dir / "provider_phase_log.jsonl"
+        if production_run_dir is not None
+        else None
+    )
+    failures: list[str] = []
+    if candidate_dir is None or not candidate_dir.is_dir():
+        failures.append("production_candidate_missing")
+    if production_run_dir is None or not production_run_dir.is_dir():
+        failures.append("production_run_missing")
+    if provider_result is None or not provider_result.is_file() or provider_result.is_symlink():
+        failures.append("provider_generation_result_missing")
+    if phase_log is None or not phase_log.is_file() or phase_log.is_symlink():
+        failures.append("provider_phase_log_missing")
+    # The current provider result/phase log are useful diagnostics, but they do
+    # not have a canonical envelope binding run_id, candidate source hash,
+    # commit SHA, producer and artifact hash.  Do not promote them by inventing
+    # an acceptance-only production contract.
+    failures.append("canonical_production_candidate_provenance_contract_unavailable")
+    return {
+        "status": "NOT_EVALUATED",
+        "failures": sorted(set(failures)),
+        "candidate_root": str(candidate_dir) if candidate_dir else "",
+        "production_run_root": str(production_run_dir) if production_run_dir else "",
+        "provider_generation_result_ref": str(provider_result.resolve())
+        if provider_result and provider_result.is_file()
+        else "",
+        "provider_generation_result_hash": canonical_evidence_hash.sha256_file(provider_result)
+        if provider_result and provider_result.is_file() and not provider_result.is_symlink()
+        else "",
+        "provider_phase_log_ref": str(phase_log.resolve())
+        if phase_log and phase_log.is_file()
+        else "",
+        "provider_phase_log_hash": canonical_evidence_hash.sha256_file(phase_log)
+        if phase_log and phase_log.is_file() and not phase_log.is_symlink()
+        else "",
+    }
+
+
+def _gate_status(
+    gate: str,
+    *,
+    identity: dict[str, str],
+    source: pathlib.Path | None,
+    telegram_test_chat_configured: bool,
+    context: dict[str, Any] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    spec = formal_gate_registry.GATE_SPECS[gate]
+    if source is not None:
+        inspection = formal_gate_registry.inspect_source(
+            gate, source, expected_identity=identity, context=context
+        )
+        return str(inspection["status"]), inspection
+    if gate in TELEGRAM_GATES and not telegram_test_chat_configured:
+        return "BLOCKED", {
+            "status": "BLOCKED",
+            "failures": [],
+            "blocker_code": "BLOCKED_TELEGRAM_TEST_CHAT",
+            "reason": "No explicit Telegram test chat is configured; no send was attempted.",
+        }
+    reason = (
+        "formal_inspector_unavailable"
+        if not spec.get("inspector")
+        else "production_artifact_missing"
+    )
+    return "NOT_EVALUATED", {"status": "NOT_EVALUATED", "failures": [reason], "reason": reason}
+
+
+def build_acceptance(
+    out_dir: str | pathlib.Path,
+    *,
+    candidate_dir: str | pathlib.Path | None = None,
+    production_run_dir: str | pathlib.Path | None = None,
+    full_all_result: str | pathlib.Path | None = None,
+    telegram_test_chat_id: str = "",
+    receipt_expectations: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    out = pathlib.Path(out_dir).resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    commit_sha = git_sha()
+    candidate = pathlib.Path(candidate_dir).resolve() if candidate_dir else None
+    production_run = pathlib.Path(production_run_dir).resolve() if production_run_dir else None
+    full_all = pathlib.Path(full_all_result).resolve() if full_all_result else None
+    identity, identity_failures = _candidate_identity(candidate, commit_sha)
+    provenance = _production_provenance(candidate, production_run)
+    if provenance["status"] != "PASS":
+        identity_failures.append("production_candidate_provenance_not_verified")
+        identity_failures = sorted(set(identity_failures))
+    repository_identity = {
+        "repository_root": str(ROOT),
+        "commit_sha": commit_sha,
+        "branch": subprocess.run(
+            ["git", "branch", "--show-current"], cwd=ROOT, capture_output=True, text=True
+        ).stdout.strip(),
+    }
+    write_json(
+        out / "repository_identity.json",
+        envelope(
+            "CGKNRepositoryIdentity",
+            identity,
+            "PASS",
+            scope="repository",
+            repository_identity=repository_identity,
+        ),
+    )
+    write_json(
+        out / "candidate_identity.json",
+        envelope(
+            "CGKNCandidateIdentity",
+            identity,
+            "PASS" if not identity_failures else "NOT_EVALUATED",
+            scope="candidate",
+            candidate_root=str(candidate) if candidate else "",
+            identity_failures=identity_failures,
+            hash_method="scripts.canonical_evidence_hash.candidate_source_hash",
+        ),
+    )
+    provenance_ref = write_json(
+        out / "production_provenance.json",
+        envelope(
+            "CGKNProductionCandidateProvenanceInspection",
+            identity,
+            str(provenance["status"]),
+            **{key: value for key, value in provenance.items() if key != "status"},
+        ),
+    )
+    requirement = write_json(
+        out / "requirement_snapshot.json",
+        envelope(
+            "CGKNFormalAcceptanceRequirementSnapshot",
+            identity,
+            "NOT_EVALUATED",
+            reason="No frozen production requirement snapshot was supplied.",
+            required_gates=list(acceptance_verifier.REQUIRED_GATES),
+        ),
+    )
+    registry = write_json(
+        out / "gate_registry.json",
+        envelope(
+            "CGKNFormalGateRegistry",
+            identity,
+            "PASS",
+            gates=formal_gate_registry.GATE_SPECS,
+            forbidden_producers=sorted(formal_gate_registry.FORBIDDEN_PRODUCERS),
+            production_mainline=PRODUCTION_MAINLINE,
+        ),
+    )
+    refs: dict[str, pathlib.Path] = {}
+    gate_results: dict[str, dict[str, Any]] = {}
+    context = {
+        "require_production_provenance": True,
+        "production_provenance_verified": provenance["status"] == "PASS",
+        "production_provenance_ref": str(provenance_ref),
+        **(
+            {"delivery_receipt_expectations": receipt_expectations}
+            if receipt_expectations
+            else {}
+        ),
+    }
+    for gate in acceptance_verifier.REQUIRED_GATES:
+        source = _source_for_gate(
+            gate,
+            candidate_dir=candidate,
+            production_run_dir=production_run,
+            full_all_result=full_all,
+        )
+        status, inspection = _gate_status(
+            gate,
+            identity=identity,
+            source=source,
+            telegram_test_chat_configured=bool(telegram_test_chat_id),
+            context=context,
+        )
+        spec = formal_gate_registry.GATE_SPECS[gate]
+        blocker_code = str(inspection.get("blocker_code", ""))
+        document = envelope(
+            "CGKNFormalGateStatus",
+            identity,
+            status,
+            gate=gate,
+            scope=spec["scope"],
+            source_ref=str(source.resolve()) if source else "",
+            source_hash=canonical_evidence_hash.sha256_file(source)
+            if source and source.is_file() and not source.is_symlink()
+            else "",
+            source_producer=str(inspection.get("source_producer", "")),
+            inspector=str(inspection.get("inspector", spec.get("inspector", ""))),
+            inspector_result=inspection.get("inspector_result", inspection),
+            failures=inspection.get("failures", []),
+            reason=str(inspection.get("reason", "")),
+            blocker_code=blocker_code,
+        )
+        refs[gate] = write_json(out / f"{gate}_gate_status.json", document)
+        gate_results[gate] = {
+            "status": status,
+            "source_ref": document["source_ref"],
+            "producer": document["source_producer"],
+            "inspector": document["inspector"],
+            "failures": document["failures"],
+            "blocker_code": blocker_code,
+        }
+    verdict = acceptance_verifier.produce_canonical_final_verdict(
+        out, upstream_refs=refs, inspection_context=context, **identity
+    )
+    for gate, result in gate_results.items():
+        verified = verdict.get("upstream_gates", {}).get(gate, {})
+        result["status"] = str(verified.get("status", result["status"]))
+        result["formal_inspection"] = verified.get("formal_inspection", {})
+    verdict_inspection = acceptance_verifier.inspect_canonical_final_verdict(
+        out,
+        expected_run_id=identity["run_id"],
+        expected_candidate_id=identity["candidate_id"],
+        expected_candidate_hash=identity["candidate_hash"],
+        expected_commit_sha=identity["commit_sha"],
+        expected_upstream_refs=refs,
+        inspection_context=context,
+    )
+    matrix = write_json(
+        out / "acceptance_matrix.json",
+        envelope(
+            "CGKNFormalAcceptanceMatrix",
+            identity,
+            verdict["status"],
+            gates=gate_results,
+            internal_failures=verdict.get("internal_failures", []),
+            blockers=verdict.get("blockers", []),
+            final_verdict_ref=str((out / acceptance_verifier.FILE_NAME).resolve()),
+            final_verdict_hash=canonical_evidence_hash.sha256_file(out / acceptance_verifier.FILE_NAME),
+            final_verdict_inspection=verdict_inspection,
+        ),
+    )
+    run_manifest = write_json(
+        out / "run_manifest.json",
+        envelope(
+            "CGKNFormalMainlineAcceptanceRun",
+            identity,
+            verdict["status"],
+            repository_identity_ref=str((out / "repository_identity.json").resolve()),
+            candidate_identity_ref=str((out / "candidate_identity.json").resolve()),
+            production_provenance_ref=str(provenance_ref),
+            requirement_snapshot_ref=str(requirement),
+            gate_registry_ref=str(registry),
+            acceptance_matrix_ref=str(matrix),
+            final_verdict_ref=str((out / acceptance_verifier.FILE_NAME).resolve()),
+            telegram_messages_sent=0,
+            telegram_test_chat_configured=bool(telegram_test_chat_id),
+        ),
+    )
+    pass_gates = sorted(name for name, result in gate_results.items() if result["status"] == "PASS")
+    nonpass_gates = sorted(name for name, result in gate_results.items() if result["status"] != "PASS")
+    (out / "customer_validation_summary.md").write_text(
+        "# CGKN formal mainline acceptance\n\n"
+        f"- verdict: {verdict['status']}\n"
+        f"- production run identity: {identity['run_id']}\n"
+        f"- customer candidate hash: {identity['candidate_hash'] or 'NOT_EVALUATED'}\n"
+        f"- inspected PASS gates: {', '.join(pass_gates) or 'none'}\n"
+        f"- non-PASS gates: {', '.join(nonpass_gates)}\n"
+        "- Telegram messages sent: 0\n"
+        "- Fixture/diagnostic producers cannot authorize formal Gate PASS.\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": verdict["status"],
+        "inspection": verdict_inspection["status"],
+        "run_dir": str(out),
+        "candidate_identity": identity,
+        "gates": gate_results,
+        "run_manifest": str(run_manifest),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--candidate-dir", default="")
+    parser.add_argument("--production-run-dir", default="")
+    parser.add_argument("--full-all-result", default="")
+    parser.add_argument("--telegram-test-chat-id", default="")
+    args = parser.parse_args()
+    result = build_acceptance(
+        args.out_dir,
+        candidate_dir=args.candidate_dir or None,
+        production_run_dir=args.production_run_dir or None,
+        full_all_result=args.full_all_result or None,
+        telegram_test_chat_id=args.telegram_test_chat_id,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["inspection"] in {
+        "PASS",
+        "NEEDS_REWORK",
+        "NOT_EVALUATED",
+        "BLOCKED",
+        "BLOCKED_PROVIDER",
+    } else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
