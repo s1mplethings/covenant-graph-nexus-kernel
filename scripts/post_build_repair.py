@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pathlib
+import importlib
 import json
 import re
 from typing import Any
@@ -80,14 +81,20 @@ def _legacy() -> Any:
     top_level = sys.modules.get("run_local_pipeline")
     if top_level is not None and hasattr(top_level, "write_json"):
         return top_level
+    implementation = sys.modules.get("scripts.run_local_pipeline_impl")
+    if implementation is not None:
+        return implementation
     try:
-        return importlib.import_module("run_local_pipeline")
+        return importlib.import_module("scripts.run_local_pipeline_impl")
     except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
+        return importlib.import_module("run_local_pipeline_impl")
 
 
 def _legacy_call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return getattr(_legacy(), name)(*args, **kwargs)
+    target = _legacy()
+    if not hasattr(target, name):
+        target = importlib.import_module("scripts.run_local_pipeline_impl")
+    return getattr(target, name)(*args, **kwargs)
 
 
 def post_build_repair_attempts(args: Any | None = None) -> int:

@@ -18,10 +18,13 @@ def _legacy() -> Any:
     packaged = sys.modules.get("scripts.run_local_pipeline")
     if packaged is not None and hasattr(packaged, "sanitize_candidate_files_before_materialization"):
         return packaged
+    implementation = sys.modules.get("scripts.run_local_pipeline_impl")
+    if implementation is not None:
+        return implementation
     try:
-        return importlib.import_module("run_local_pipeline")
+        return importlib.import_module("scripts.run_local_pipeline_impl")
     except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
+        return importlib.import_module("run_local_pipeline_impl")
 
 
 def run(files: list[dict[str, str]], repairable_fact_blockers: list[Any]) -> dict[str, Any]:

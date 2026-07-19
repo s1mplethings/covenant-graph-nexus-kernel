@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import pathlib
 import sys
 import tempfile
@@ -42,7 +41,7 @@ def test_provider_component_payload_contains_requirement_decision_context() -> N
     assert payload["acceptance_contract"]["contract_id"] == "requirement_acceptance_contract_v1"
 
 
-def test_run_local_pipeline_no_api_writes_requirement_decision_before_implementation() -> None:
+def test_run_local_pipeline_no_api_blocks_without_materializing_a_parallel_lane() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         result = run_local_pipeline.execute(
@@ -70,9 +69,7 @@ def test_run_local_pipeline_no_api_writes_requirement_decision_before_implementa
         )
 
         req_dir = root / "run" / "requirement_decision"
-        selected = json.loads((req_dir / "selected_requirement.json").read_text(encoding="utf-8"))
         assert result["status"] == "BLOCKED"
         assert result["reason"] == "provider_api_disabled_by_default"
-        assert "requirement_decision" in result
-        assert selected["selected_requirement_id"]
-        assert (req_dir / "acceptance_contract.json").exists()
+        assert "requirement_decision" not in result
+        assert not req_dir.exists()

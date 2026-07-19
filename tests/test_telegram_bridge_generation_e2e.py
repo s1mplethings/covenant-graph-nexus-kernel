@@ -4,6 +4,10 @@ import pathlib
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = [pytest.mark.telegram, pytest.mark.e2e]
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 import sys
 

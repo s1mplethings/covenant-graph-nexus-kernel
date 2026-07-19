@@ -20,9 +20,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.run_local_pipeline as run_local_pipeline
+import scripts.run_local_pipeline_impl as run_local_pipeline_impl
 import scripts.local_packager as local_packager
 import scripts.check_test_environment as check_test_environment
 import scripts.run_candidate_smoke_benchmark as run_candidate_smoke_benchmark
+import scripts.visual_evidence as visual_evidence
 
 
 def tiny_nonblank_png() -> bytes:
@@ -132,7 +134,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_blocked_result_reloads_repair_context_for_same_goal(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result_path = pathlib.Path(temp_dir) / "result.json"
-            run_local_pipeline.write_json(
+            run_local_pipeline_impl.write_json(
                 result_path,
                 {
                     "status": "BLOCKED",
@@ -159,14 +161,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             ],
             "pre_commands": [["python", "{project_dir}\\scripts\\demo.py"]],
         }
-        normalized = run_local_pipeline.normalize_usage_plan_placeholders(plan, project_dir, run_dir)
+        normalized = run_local_pipeline_impl.normalize_usage_plan_placeholders(plan, project_dir, run_dir)
         self.assertEqual(project_dir.resolve().as_uri() + "/index.html", normalized["wait_url"])
         self.assertEqual(project_dir.resolve().as_uri() + "/index.html", normalized["browser_steps"][0]["url"])
         self.assertIn(str(project_dir.resolve()), normalized["browser_steps"][1]["text"])
         self.assertIn(str(project_dir.resolve()), normalized["pre_commands"][0][1])
 
     def test_pip_install_pre_command_is_skipped_without_failure(self) -> None:
-        result = run_local_pipeline.run_allowed_command(["python", "-m", "pip", "install", "-r", "requirements.txt"], ROOT)
+        result = run_local_pipeline_impl.run_allowed_command(["python", "-m", "pip", "install", "-r", "requirements.txt"], ROOT)
         self.assertEqual("pass", result["status"])
         self.assertTrue(result["skipped"])
         self.assertIn("shared runtime", result["reason"])
@@ -175,7 +177,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         original = "做一个工具，通过 CSGO2 demo 文件分析鼠标键盘动作和视角，用于鉴别外挂行为。"
         compressed = "# CGNK Requirement Blueprint Generator\n\n## Current Project Summary\n" + original
 
-        intent = run_local_pipeline.frozen_user_intent(
+        intent = run_local_pipeline_impl.frozen_user_intent(
             {
                 "original_requirement": original,
                 "pipeline_plan": {"payload": {"requirement": compressed}},
@@ -195,7 +197,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             (project_dir / "index.html").write_text("<html><body>ok</body></html>", encoding="utf-8")
             phase_log = run_dir / "artifacts" / "generation_phase_log.jsonl"
 
-            result = run_local_pipeline.run_project_usage_agent(
+            result = run_local_pipeline_impl.run_project_usage_agent(
                 "本地静态页面",
                 project_dir,
                 run_dir,
@@ -221,13 +223,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             "pipeline_plan": {"payload": {"requirement": "做一个真实项目"}},
         }
 
-        sanitized = run_local_pipeline.provider_plan_doc(plan)
+        sanitized = run_local_pipeline_impl.provider_plan_doc(plan)
 
         self.assertNotIn("internal_context_prompt", sanitized)
         self.assertEqual("做一个真实项目", sanitized["goal"])
 
     def test_provider_blueprint_context_is_marked_as_supporting_only(self) -> None:
-        context = run_local_pipeline.provider_blueprint_context({"raw_requirement": "做一个真实项目"})
+        context = run_local_pipeline_impl.provider_blueprint_context({"raw_requirement": "做一个真实项目"})
 
         self.assertEqual("supporting_requirement_analysis_only", context["role"])
         self.assertIn("not a blueprint generator", context["warning"])
@@ -236,22 +238,22 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_remaining_timeout_is_capped_by_deadline(self) -> None:
         deadline = time.time() + 6
 
-        value = run_local_pipeline.remaining_timeout(deadline, 120, floor=1, cap=90)
+        value = run_local_pipeline_impl.remaining_timeout(deadline, 120, floor=1, cap=90)
 
         self.assertLessEqual(value, 6)
         self.assertGreaterEqual(value, 1)
 
     def test_progress_deadline_extends_after_meaningful_work(self) -> None:
-        deadline = run_local_pipeline.ProgressDeadline(time.time() - 1, extension_seconds=60)
+        deadline = run_local_pipeline_impl.ProgressDeadline(time.time() - 1, extension_seconds=60)
 
         deadline.mark_progress("project_generation", "component returned files", ["app.py"])
-        value = run_local_pipeline.remaining_timeout(deadline, 120, floor=5, cap=90)
+        value = run_local_pipeline_impl.remaining_timeout(deadline, 120, floor=5, cap=90)
 
         self.assertGreaterEqual(value, 5)
         self.assertEqual("project_generation", deadline.progress_events[-1]["phase"])
 
     def test_provider_component_progress_refreshes_deadline_between_components(self) -> None:
-        original = run_local_pipeline.provider_generate_project_component
+        original = run_local_pipeline_impl.provider_generate_project_component
         calls: list[str] = []
 
         def fake_provider_component(**kwargs):
@@ -264,10 +266,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "files": [{"path": f"{component_id}.py", "content": "print('ok')\n"}],
             }
 
-        run_local_pipeline.provider_generate_project_component = fake_provider_component
+        run_local_pipeline_impl.provider_generate_project_component = fake_provider_component
         try:
-            deadline = run_local_pipeline.ProgressDeadline(time.time() + 6, extension_seconds=60)
-            result = run_local_pipeline.provider_generate_project_by_components(
+            deadline = run_local_pipeline_impl.ProgressDeadline(time.time() + 6, extension_seconds=60)
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
                 "build a project",
                 {
                     "components": [{"id": "app"}, {"id": "tests"}],
@@ -283,14 +285,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 deadline=deadline,
             )
         finally:
-            run_local_pipeline.provider_generate_project_component = original
+            run_local_pipeline_impl.provider_generate_project_component = original
 
         self.assertEqual(["app", "tests"], calls)
         self.assertEqual(2, len(result["files"]))
         self.assertTrue(deadline.progress_events)
 
     def test_provider_component_checkpoint_resumes_completed_components(self) -> None:
-        original = run_local_pipeline.provider_generate_project_component
+        original = run_local_pipeline_impl.provider_generate_project_component
         original_fast = os.environ.get("CGKN_PROVIDER_RETRY_FAST")
         os.environ["CGKN_PROVIDER_RETRY_FAST"] = "1"
         calls: list[str] = []
@@ -314,10 +316,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "components": [{"id": "foundation"}, {"id": "backend"}],
                 "merge_policy": {"required_final_files": ["app.py", "src/backend.py"]},
             }
-            run_local_pipeline.provider_generate_project_component = first_run_component
+            run_local_pipeline_impl.provider_generate_project_component = first_run_component
             try:
                 with self.assertRaises(RuntimeError):
-                    run_local_pipeline.provider_generate_project_by_components(
+                    run_local_pipeline_impl.provider_generate_project_by_components(
                         "build a project",
                         pipeline,
                         {},
@@ -346,8 +348,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                         "self_test": {"status": "pass", "checks": ["validated"]},
                     }
 
-                run_local_pipeline.provider_generate_project_component = second_run_component
-                result = run_local_pipeline.provider_generate_project_by_components(
+                run_local_pipeline_impl.provider_generate_project_component = second_run_component
+                result = run_local_pipeline_impl.provider_generate_project_by_components(
                     "build a project",
                     pipeline,
                     {},
@@ -361,7 +363,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
                 self.assertTrue((checkpoint_dir / "component_checkpoint_summary.json").exists())
             finally:
-                run_local_pipeline.provider_generate_project_component = original
+                run_local_pipeline_impl.provider_generate_project_component = original
                 if original_fast is None:
                     os.environ.pop("CGKN_PROVIDER_RETRY_FAST", None)
                 else:
@@ -372,8 +374,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("foundation", result["component_checkpoint_summary"]["completed_components"])
         self.assertIn("backend", result["component_checkpoint_summary"]["completed_components"])
 
-    def test_semantic_repair_regenerates_checkpointed_components(self) -> None:
-        original = run_local_pipeline.provider_generate_project_component
+    def test_unscoped_repair_text_does_not_invalidate_passed_checkpoint(self) -> None:
+        original = run_local_pipeline_impl.provider_generate_project_component
+        original_split = run_local_pipeline_impl.provider_generate_project_component_split
         calls: list[str] = []
 
         def fake_provider_component(**kwargs):
@@ -393,8 +396,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "components": [{"id": "foundation"}],
                 "merge_policy": {"required_final_files": ["app.py"]},
             }
-            spec_hash = run_local_pipeline.provider_component_spec_hash("build a project", pipeline, pipeline["components"][0])
-            run_local_pipeline.write_provider_component_checkpoint(
+            spec_hash = run_local_pipeline_impl.provider_component_spec_hash("build a project", pipeline, pipeline["components"][0])
+            run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="foundation",
                 spec_hash=spec_hash,
@@ -404,9 +407,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 files=[{"path": "app.py", "content": "print('stale')\n"}],
                 semantic_review={"status": "pass"},
             )
-            run_local_pipeline.provider_generate_project_component = fake_provider_component
+            run_local_pipeline_impl.provider_generate_project_component = fake_provider_component
+            run_local_pipeline_impl.provider_generate_project_component_split = fake_provider_component
             try:
-                result = run_local_pipeline.provider_generate_project_by_components(
+                result = run_local_pipeline_impl.provider_generate_project_by_components(
                     "build a project",
                     pipeline,
                     {},
@@ -419,16 +423,17 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     checkpoint_dir=checkpoint_dir,
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original
+                run_local_pipeline_impl.provider_generate_project_component = original
+                run_local_pipeline_impl.provider_generate_project_component_split = original_split
 
-        self.assertEqual(["foundation"], calls)
-        self.assertEqual([], result["component_checkpoint_summary"]["skipped_from_checkpoint"])
-        self.assertEqual("print('repaired')\n", result["files"][0]["content"])
+        self.assertEqual([], calls)
+        self.assertEqual(["foundation"], result["component_checkpoint_summary"]["skipped_from_checkpoint"])
+        self.assertEqual("print('stale')\n", result["files"][0]["content"])
 
     def test_failed_checkpoint_does_not_overwrite_last_pass(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             checkpoint_dir = pathlib.Path(temp_dir)
-            run_local_pipeline.write_provider_component_checkpoint(
+            run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="frontend",
                 spec_hash="same",
@@ -438,7 +443,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 files=[{"path": "index.html", "content": "<h1>working</h1>\n"}],
                 semantic_review={"status": "pass"},
             )
-            run_local_pipeline.write_provider_component_checkpoint(
+            run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="frontend",
                 spec_hash="same",
@@ -451,17 +456,16 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 provider_error_type="PROVIDER_TRANSPORT_UNSTABLE",
             )
 
-            cached = run_local_pipeline.load_provider_component_checkpoint(
+            cached = run_local_pipeline_impl.load_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="frontend",
                 spec_hash="same",
             )
 
-        self.assertIsNotNone(cached)
-        self.assertEqual("<h1>working</h1>\n", cached[1][0]["content"])
+        self.assertIsNone(cached)
 
     def test_component_merge_generates_test_plan_from_real_tests(self) -> None:
-        original = run_local_pipeline.provider_generate_project_component
+        original = run_local_pipeline_impl.provider_generate_project_component
 
         def fake_provider_component(**kwargs):
             component_id = kwargs["component"]["id"]
@@ -481,9 +485,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "self_test": {"status": "pass", "checks": ["validated"]},
             }
 
-        run_local_pipeline.provider_generate_project_component = fake_provider_component
+        run_local_pipeline_impl.provider_generate_project_component = fake_provider_component
         try:
-            result = run_local_pipeline.provider_generate_project_by_components(
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
                 "build a project",
                 {
                     "components": [{"id": "docs"}, {"id": "tests"}],
@@ -498,14 +502,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 30,
             )
         finally:
-            run_local_pipeline.provider_generate_project_component = original
+            run_local_pipeline_impl.provider_generate_project_component = original
 
         files = {item["path"]: item["content"] for item in result["files"]}
         self.assertIn("TEST_PLAN.md", files)
         self.assertIn("tests/test_app.py", files["TEST_PLAN.md"])
 
     def test_component_merge_combines_document_conflicts_only(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "foundation", "files": [{"path": "README.md", "content": "# App\n"}]},
                 {"component_id": "docs", "files": [{"path": "README.md", "content": "# Usage\n"}]},
@@ -516,7 +520,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("# Usage", readme)
 
         with self.assertRaises(RuntimeError):
-            run_local_pipeline.merge_component_files(
+            run_local_pipeline_impl.merge_component_files(
                 [
                     {"component_id": "one", "files": [{"path": "src/app.py", "content": "print(1)\n"}]},
                     {"component_id": "two", "files": [{"path": "src/app.py", "content": "print(2)\n"}]},
@@ -524,7 +528,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             )
 
     def test_component_merge_allows_frontend_asset_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "foundation", "files": [{"path": "app/index.html", "content": "<h1>base</h1>\n"}]},
                 {"component_id": "frontend", "files": [{"path": "app/index.html", "content": "<h1>frontend</h1>\n"}]},
@@ -534,25 +538,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         merged = {item["path"]: item["content"] for item in files}
         self.assertEqual("<h1>frontend</h1>\n", merged["app/index.html"])
 
-    def test_component_merge_allows_nested_template_asset_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
-            [
-                {
-                    "component_id": "foundation",
-                    "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>base</h1>\n"}],
-                },
-                {
-                    "component_id": "frontend",
-                    "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>frontend</h1>\n"}],
-                },
-            ]
-        )
-
-        merged = {item["path"]: item["content"] for item in files}
-        self.assertEqual("<h1>frontend</h1>\n", merged["src/task_board/templates/index.html"])
+    def test_component_merge_rejects_nested_template_asset_conflicts(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "component file conflict"):
+            run_local_pipeline_impl.merge_component_files(
+                [
+                    {
+                        "component_id": "foundation",
+                        "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>base</h1>\n"}],
+                    },
+                    {
+                        "component_id": "frontend",
+                        "files": [{"path": "src/task_board/templates/index.html", "content": "<h1>frontend</h1>\n"}],
+                    },
+                ]
+            )
 
     def test_component_merge_allows_template_asset_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "foundation", "files": [{"path": "templates/index.html", "content": "<h1>base</h1>\n"}]},
                 {"component_id": "execution", "files": [{"path": "templates/index.html", "content": "<h1>execution</h1>\n"}]},
@@ -563,7 +565,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("<h1>execution</h1>\n", merged["templates/index.html"])
 
     def test_component_merge_allows_top_level_entrypoint_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "generation", "files": [{"path": "app.py", "content": "print('base')\n"}]},
                 {"component_id": "execution", "files": [{"path": "app.py", "content": "print('runnable')\n"}]},
@@ -574,7 +576,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("print('runnable')\n", merged["app.py"])
 
     def test_component_merge_allows_src_file_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "init", "files": [{"path": "src/task_store.py", "content": "TASKS = []\n"}]},
                 {"component_id": "generate_project", "files": [{"path": "src/task_store.py", "content": "TASKS = ['ready']\n"}]},
@@ -585,7 +587,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("TASKS = ['ready']\n", merged["src/task_store.py"])
 
     def test_component_merge_allows_test_file_conflicts(self) -> None:
-        files = run_local_pipeline.merge_component_files(
+        files = run_local_pipeline_impl.merge_component_files(
             [
                 {"component_id": "init", "files": [{"path": "tests/test_app.py", "content": "def test_placeholder(): pass\n"}]},
                 {"component_id": "generate_project", "files": [{"path": "tests/test_app.py", "content": "def test_home(): pass\n"}]},
@@ -596,7 +598,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("def test_home(): pass\n", merged["tests/test_app.py"])
 
     def test_component_merge_accepts_test_report_as_qa_evidence(self) -> None:
-        original = run_local_pipeline.provider_generate_project_component
+        original = run_local_pipeline_impl.provider_generate_project_component
 
         def fake_component(**kwargs):
             component_id = kwargs["component"]["id"]
@@ -610,9 +612,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 ],
             }
 
-        run_local_pipeline.provider_generate_project_component = fake_component
+        run_local_pipeline_impl.provider_generate_project_component = fake_component
         try:
-            result = run_local_pipeline.provider_generate_project_by_components(
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
                 goal="做一个小工具",
                 component_pipeline={
                     "components": [
@@ -630,15 +632,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 timeout=5,
             )
         finally:
-            run_local_pipeline.provider_generate_project_component = original
+            run_local_pipeline_impl.provider_generate_project_component = original
 
         files = {item["path"]: item["content"] for item in result["files"]}
         assert "README.md" in files
         assert "TEST_REPORT.md" in files
 
     def test_provider_semantic_review_retry_on_frontend_backend_mismatch(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         calls: list[str] = []
 
@@ -691,10 +693,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -708,7 +710,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -716,8 +718,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
                 else:
@@ -731,8 +733,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual(["backend", "frontend"], result["attempted_repairs"][0]["affected_components"])
 
     def test_provider_semantic_review_retry_on_test_coverage_blocker(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
 
         def fake_component(**kwargs):
             component_id = kwargs["component"]["id"]
@@ -752,10 +754,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -769,7 +771,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -777,16 +779,16 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
 
         self.assertEqual("pass", result["status"])
         self.assertEqual(["tests"], result["attempted_repairs"][0]["affected_components"])
         self.assertIn("test_crud_filter_json_persistence_api", {item["path"]: item["content"] for item in result["files"]}["tests/test_app.py"])
 
     def test_provider_review_failure_writes_diagnostics_without_materializing(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
 
         def fake_component(**kwargs):
             return {
@@ -802,10 +804,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             out_dir = root / "generated" / "project"
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -816,7 +818,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=out_dir,
                     result_path=root / "result.json",
@@ -824,15 +826,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
 
             diagnostics_path = root / "run" / "artifacts" / "provider_semantic_review_failure.json"
             self.assertEqual("blocked", result["status"])
             self.assertFalse(out_dir.exists())
             self.assertFalse((out_dir / "final_project_bundle.zip").exists())
             self.assertTrue(diagnostics_path.exists())
-            diagnostics = run_local_pipeline.load_json(diagnostics_path)
+            diagnostics = run_local_pipeline_impl.load_json(diagnostics_path)
             self.assertFalse(diagnostics["materialized"])
             self.assertIsNone(diagnostics["project_dir"])
             self.assertIn("README 仍然是占位说明", diagnostics["remaining_blockers"])
@@ -840,7 +842,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_rejected_project_preview_not_delivery_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             preview = pathlib.Path(temp_dir) / "artifacts" / "rejected_project_preview"
-            run_local_pipeline.write_rejected_project_preview(
+            run_local_pipeline_impl.write_rejected_project_preview(
                 preview,
                 [{"path": "README.md", "content": "# Rejected\n"}, {"path": "app.py", "content": "print('debug only')\n"}],
             )
@@ -849,7 +851,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 local_packager.package_project(preview)
 
     def test_compile_repair_plan_for_component_file_conflict(self) -> None:
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             {},
             component_pipeline={"components": [{"id": "foundation"}, {"id": "frontend"}]},
@@ -872,33 +874,33 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             ],
             "frontend": [{"path": "src/app.js", "content": "console.log('frontend')\n"}],
         }
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             component_files,
             component_pipeline={"components": [{"id": "foundation"}, {"id": "frontend"}]},
         )
 
-        result = run_local_pipeline.apply_deterministic_repair_actions(component_files, plan)
+        result = run_local_pipeline_impl.apply_deterministic_repair_actions(component_files, plan)
 
         self.assertTrue(result["changed"])
         self.assertEqual(["package.json"], [item["path"] for item in component_files["foundation"]])
         self.assertEqual(["src/app.js"], [item["path"] for item in component_files["frontend"]])
 
     def test_repair_prompt_is_component_scoped_and_file_specific(self) -> None:
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             ["前端只用 localStorage，未调用后端 API"],
             {},
             component_pipeline={"components": [{"id": "frontend"}, {"id": "backend"}]},
         )
-        prompt = run_local_pipeline.repair_plan_component_instructions(plan)["frontend"][0]
+        prompt = run_local_pipeline_impl.repair_plan_component_instructions(plan)["frontend"][0]
 
         self.assertIn("regenerating frontend_files only", prompt)
         self.assertIn("You own src/app.js", prompt)
         self.assertIn("Do not use localStorage as the primary persistence layer", prompt)
 
     def test_repair_invariant_failed_on_repeated_blocker(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
 
         def fake_component(**kwargs):
@@ -916,10 +918,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -930,7 +932,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -938,8 +940,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
                 else:
@@ -950,21 +952,21 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("REPAIR_INVARIANT_FAILED", result["provider_review"]["issues"])
 
     def test_transport_error_does_not_consume_semantic_repair_attempt(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
+        original_component = run_local_pipeline_impl.provider_generate_project_component
 
         def fake_component(**kwargs):
             raise RuntimeError("provider_api_request_failed: HTTP 522: timeout [endpoint=https://api.gptsapi.net, retryable=true]")
 
-        pending = run_local_pipeline.compile_repair_plan(
+        pending = run_local_pipeline_impl.compile_repair_plan(
             ["前端只用 localStorage，未调用后端 API"],
             {},
             component_pipeline={"components": [{"id": "frontend"}, {"id": "backend"}]},
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -975,7 +977,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -984,7 +986,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     initial_repair_plan=pending,
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component = original_component
 
             diagnostics = result["diagnostics"]
             self.assertEqual("provider_semantic_repair", diagnostics["stage"])
@@ -994,10 +996,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertTrue((root / "run" / "artifacts" / "pending_repair_plan.json").exists())
 
     def test_resume_continues_pending_frontend_repair(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         calls: list[str] = []
-        pending = run_local_pipeline.compile_repair_plan(
+        pending = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             {},
             component_pipeline={"components": [{"id": "foundation"}, {"id": "frontend"}]},
@@ -1020,27 +1022,27 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             run_dir = root / "run"
             (run_dir / "artifacts").mkdir(parents=True)
-            run_local_pipeline.write_json(run_dir / "artifacts" / "pending_repair_plan.json", pending)
-            loaded = run_local_pipeline.load_pending_repair_plan(run_dir)
+            run_local_pipeline_impl.write_json(run_dir / "artifacts" / "pending_repair_plan.json", pending)
+            loaded = run_local_pipeline_impl.load_pending_repair_plan(run_dir)
             pipeline = {"components": [{"id": "foundation"}, {"id": "backend"}, {"id": "frontend"}], "merge_policy": {"required_final_files": ["package.json", "backend/server.py", "src/app.js"]}}
             checkpoint_dir = run_dir / "artifacts" / "provider_components"
             for component_id, rel in (("foundation", "package.json"), ("backend", "backend/server.py")):
                 component = {"id": component_id}
                 files = [{"path": rel, "content": "{}\n" if rel == "package.json" else "print('api')\n"}]
-                run_local_pipeline.write_provider_component_checkpoint(
+                run_local_pipeline_impl.write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
-                    spec_hash=run_local_pipeline.provider_component_spec_hash("做任务看板", pipeline, component),
+                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash("做任务看板", pipeline, component),
                     status="pass",
                     raw_output="{}",
                     parsed_result={"component_id": component_id, "files": files, "quality_gate": {"status": "pass"}, "self_test": {"status": "pass"}},
                     files=files,
                     semantic_review={"status": "pass"},
                 )
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal=loaded["raw_user_goal"],
                     plan_doc={},
                     blueprint={},
@@ -1051,7 +1053,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=run_dir,
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -1060,15 +1062,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     initial_repair_plan=loaded,
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
 
         self.assertEqual("pass", result["status"])
         self.assertEqual(["frontend"], calls)
 
     def test_pending_repair_plan_written_before_provider_call(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        pending = run_local_pipeline.compile_repair_plan(
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        pending = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             {"frontend": [{"path": "src/app.js", "content": "old\n"}]},
             component_pipeline={"components": [{"id": "foundation"}, {"id": "frontend"}]},
@@ -1079,7 +1081,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_component(**kwargs):
             pending_path = root / "run" / "artifacts" / "pending_repair_plan.json"
             self.assertTrue(pending_path.exists())
-            doc = run_local_pipeline.load_json(pending_path)
+            doc = run_local_pipeline_impl.load_json(pending_path)
             self.assertNotEqual({}, doc)
             self.assertEqual("做任务看板", doc["raw_user_goal"])
             self.assertEqual("frontend", doc["failed_component"])
@@ -1090,10 +1092,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             checkpoint_dir = root / "run" / "artifacts" / "provider_components"
-            run_local_pipeline.write_provider_component_checkpoint(
+            run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="foundation",
-                spec_hash=run_local_pipeline.provider_component_spec_hash(
+                spec_hash=run_local_pipeline_impl.provider_component_spec_hash(
                     "做任务看板",
                     pipeline,
                     {"id": "foundation"},
@@ -1104,9 +1106,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 files=[{"path": "package.json", "content": "{}\n"}],
                 semantic_review={"status": "pass"},
             )
-            run_local_pipeline.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -1117,7 +1119,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -1126,7 +1128,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     initial_repair_plan=pending,
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component = original_component
 
             self.assertEqual("blocked", result["status"])
             diagnostics = result["diagnostics"]
@@ -1135,20 +1137,20 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("ray-1", diagnostics["provider_headers"]["cf-ray"])
 
     def test_resume_uses_run_context_when_pending_plan_exists(self) -> None:
-        original_compose = run_local_pipeline.compose_local_pipeline.compose
-        original_blueprint = run_local_pipeline.requirement_blueprint.build_requirement_blueprint
-        original_online = run_local_pipeline.online_input_agent.collect_online_inputs
-        original_market = run_local_pipeline.market_research_agent.run_market_research
-        original_semantic = run_local_pipeline.run_provider_semantic_review_with_repair
+        original_compose = run_local_pipeline_impl.compose_local_pipeline.compose
+        original_blueprint = run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint
+        original_online = run_local_pipeline_impl.online_input_agent.collect_online_inputs
+        original_market = run_local_pipeline_impl.market_research_agent.run_market_research
+        original_semantic = run_local_pipeline_impl.run_provider_semantic_review_with_repair
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             run_dir = root / "run"
             (run_dir / "artifacts").mkdir(parents=True)
-            run_local_pipeline.write_json(
+            run_local_pipeline_impl.write_json(
                 run_dir / "artifacts" / "pending_repair_plan.json",
                 {"status": "pending", "stage": "provider_semantic_repair", "provider_actions": [{"component": "frontend", "path": "src/app.js", "instruction": "fix"}]},
             )
-            run_local_pipeline.write_run_context(
+            run_local_pipeline_impl.write_run_context(
                 run_dir,
                 raw_user_goal="做任务看板",
                 model="unused",
@@ -1156,19 +1158,19 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 generation_mode="api",
                 requested_project_dir=root / "generated" / "project",
             )
-            run_local_pipeline.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {"component_pipeline": {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}}}}}
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
-            run_local_pipeline.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
-            run_local_pipeline.market_research_agent.run_market_research = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {"component_pipeline": {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}}}}}
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.market_research_agent.run_market_research = lambda *args, **kwargs: {}
 
             def fake_semantic(**kwargs):
                 self.assertEqual("做任务看板", kwargs["user_goal"])
                 self.assertTrue(kwargs["initial_repair_plan"])
                 return {"status": "blocked", "generation": {}, "files": [], "provider_review": {"status": "fail", "issues": ["stop"]}, "attempted_repairs": [], "diagnostics": {"stage": "test"}}
 
-            run_local_pipeline.run_provider_semantic_review_with_repair = fake_semantic
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = fake_semantic
             try:
-                result = run_local_pipeline.execute(
+                result = run_local_pipeline_impl.execute(
                     type(
                         "Args",
                         (),
@@ -1190,11 +1192,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     )()
                 )
             finally:
-                run_local_pipeline.compose_local_pipeline.compose = original_compose
-                run_local_pipeline.requirement_blueprint.build_requirement_blueprint = original_blueprint
-                run_local_pipeline.online_input_agent.collect_online_inputs = original_online
-                run_local_pipeline.market_research_agent.run_market_research = original_market
-                run_local_pipeline.run_provider_semantic_review_with_repair = original_semantic
+                run_local_pipeline_impl.compose_local_pipeline.compose = original_compose
+                run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = original_blueprint
+                run_local_pipeline_impl.online_input_agent.collect_online_inputs = original_online
+                run_local_pipeline_impl.market_research_agent.run_market_research = original_market
+                run_local_pipeline_impl.run_provider_semantic_review_with_repair = original_semantic
 
             self.assertEqual("BLOCKED", result["status"])
 
@@ -1203,7 +1205,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             run_dir = pathlib.Path(temp_dir) / "run"
             (run_dir / "artifacts").mkdir(parents=True)
             with self.assertRaisesRegex(RuntimeError, "RESUME_CONTEXT_MISSING_GOAL"):
-                run_local_pipeline.execute(
+                run_local_pipeline_impl.execute(
                     type(
                         "Args",
                         (),
@@ -1232,7 +1234,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             "online_input_examples": {"huge": "z" * 50000},
             "market_research": {"huge": "m" * 50000},
         }
-        scoped = run_local_pipeline.apply_repair_prompt_budget(
+        scoped = run_local_pipeline_impl.apply_repair_prompt_budget(
             payload,
             component_id="frontend",
             repair_actions=[{"component": "frontend", "path": "src/app.js"}],
@@ -1249,12 +1251,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual(["src/app.js"], [item["path"] for item in scoped["repair_scope"]["relevant_existing_files"]])
 
     def test_file_level_repair_prompt_for_frontend_app_conflict(self) -> None:
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             {},
             component_pipeline={"components": [{"id": "foundation"}, {"id": "frontend"}]},
         )
-        prompt = run_local_pipeline.repair_plan_component_instructions(plan)["frontend"][0]
+        prompt = run_local_pipeline_impl.repair_plan_component_instructions(plan)["frontend"][0]
 
         self.assertIn("File-level repair mode", prompt)
         self.assertIn("Regenerate only src/app.js", prompt)
@@ -1265,8 +1267,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             pending = {"status": "pending", "raw_user_goal": "做任务看板", "provider_actions": [{"component": "frontend", "path": "src/app.js"}]}
-            run_local_pipeline.write_pending_repair_context(root / "run" / "artifacts" / "pending_repair_plan.json", pending)
-            diagnostics = run_local_pipeline.write_provider_transport_blocked_failure(
+            run_local_pipeline_impl.write_pending_repair_context(root / "run" / "artifacts" / "pending_repair_plan.json", pending)
+            diagnostics = run_local_pipeline_impl.write_provider_transport_blocked_failure(
                 root / "run",
                 root / "generated" / "project",
                 'provider_api_request_failed: HTTP 504: timeout [endpoint=https://api.gptsapi.net, retryable=true, provider_headers={"cf-ray":"ray-2","x-request-id":"req-2","server":"cloudflare"}]',
@@ -1283,7 +1285,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_transport_error_without_repair_plan_writes_unavailable_diagnostic(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            diagnostics = run_local_pipeline.write_provider_transport_blocked_failure(
+            diagnostics = run_local_pipeline_impl.write_provider_transport_blocked_failure(
                 root / "run",
                 root / "generated" / "project",
                 "component frontend provider_api_request_failed after transport attempts: 3: provider_api_request_failed: HTTP 504: timeout [endpoint=https://api.gptsapi.net, retryable=true]",
@@ -1292,7 +1294,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 root / "run" / "artifacts" / "provider_components",
             )
             pending_path = root / "run" / "artifacts" / "pending_repair_plan.json"
-            pending = run_local_pipeline.load_json(pending_path)
+            pending = run_local_pipeline_impl.load_json(pending_path)
 
             self.assertNotEqual({}, pending)
             self.assertEqual("pending_repair_plan_unavailable", pending["status"])
@@ -1300,11 +1302,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual(3, diagnostics["transport_attempts"])
 
     def test_resume_continues_file_level_frontend_repair_only(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         calls: list[tuple[str, list[str]]] = []
         pipeline = {"components": [{"id": "foundation"}, {"id": "backend"}, {"id": "frontend"}], "merge_policy": {"required_final_files": ["package.json", "backend/server.py", "src/app.js"]}}
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             ["component file conflict: src/app.js from foundation and frontend"],
             {"frontend": [{"path": "src/app.js", "content": "old\n"}, {"path": "src/helper.js", "content": "keep\n"}]},
             component_pipeline=pipeline,
@@ -1331,20 +1333,20 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 ("backend", [{"path": "backend/server.py", "content": "print('api')\n"}]),
                 ("frontend", [{"path": "src/app.js", "content": "old\n"}, {"path": "src/helper.js", "content": "keep\n"}]),
             ):
-                run_local_pipeline.write_provider_component_checkpoint(
+                run_local_pipeline_impl.write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
-                    spec_hash=run_local_pipeline.provider_component_spec_hash("做任务看板", pipeline, {"id": component_id}),
+                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash("做任务看板", pipeline, {"id": component_id}),
                     status="pass",
                     raw_output="{}",
                     parsed_result={"component_id": component_id, "files": files, "quality_gate": {"status": "pass"}, "self_test": {"status": "pass"}},
                     files=files,
                     semantic_review={"status": "pass"},
                 )
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -1355,7 +1357,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -1364,39 +1366,39 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     initial_repair_plan=plan,
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
 
             self.assertEqual("pass", result["status"])
             self.assertEqual([("frontend", ["src/app.js"])], calls)
-            _, files_path = run_local_pipeline.provider_component_checkpoint_paths(checkpoint_dir, "frontend")
-            files = run_local_pipeline.load_json(files_path)["files"]
+            _, files_path = run_local_pipeline_impl.provider_component_checkpoint_paths(checkpoint_dir, "frontend")
+            files = run_local_pipeline_impl.load_json(files_path)["files"]
             self.assertIn("src/helper.js", [item["path"] for item in files])
 
     def test_choose_provider_model_small_payload_uses_nano(self) -> None:
-        route = run_local_pipeline.choose_provider_model(
+        route = run_local_pipeline_impl.choose_provider_model(
             "component_generation",
             12000,
             "gpt-5.4-nano",
-            run_local_pipeline.ProviderModelRoutingPolicy(),
+            run_local_pipeline_impl.ProviderModelRoutingPolicy(),
         )
 
         self.assertEqual("gpt-5.4-nano", route["selected_model"])
 
     def test_choose_provider_model_large_payload_uses_large_model(self) -> None:
-        route = run_local_pipeline.choose_provider_model(
+        route = run_local_pipeline_impl.choose_provider_model(
             "component_generation",
             45000,
             "gpt-5.4-nano",
-            run_local_pipeline.ProviderModelRoutingPolicy(),
+            run_local_pipeline_impl.ProviderModelRoutingPolicy(),
         )
 
         self.assertEqual("gpt-5.5", route["selected_model"])
         self.assertEqual("large_payload", route["model_routing_reason"])
 
     def test_transport_error_upgrades_model_without_consuming_semantic_attempt(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         original_fast = os.environ.get("CGKN_PROVIDER_RETRY_FAST")
         os.environ["CGKN_PROVIDER_RETRY_FAST"] = "1"
         calls: list[str] = []
@@ -1423,10 +1425,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -1437,18 +1439,18 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
                     max_repair_attempts=2,
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                     initial_repair_plan=pending,
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
                 if original_fast is None:
                     os.environ.pop("CGKN_PROVIDER_RETRY_FAST", None)
                 else:
@@ -1459,9 +1461,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual([], result["attempted_repairs"])
 
     def test_provider_phase_log_records_selected_model(self) -> None:
-        original_creds = run_local_pipeline.check_connectivity._resolve_api_credentials
-        original_post = run_local_pipeline.check_connectivity._post_json
-        original_extract = run_local_pipeline.check_connectivity._extract_text
+        original_creds = run_local_pipeline_impl.check_connectivity._resolve_api_credentials
+        original_post = run_local_pipeline_impl.check_connectivity._post_json
+        original_extract = run_local_pipeline_impl.check_connectivity._extract_text
 
         def fake_creds():
             return {"api_key": "sk-secret-test-key", "base_url": "https://example.test/v1"}
@@ -1473,11 +1475,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
-            run_local_pipeline.check_connectivity._resolve_api_credentials = fake_creds
-            run_local_pipeline.check_connectivity._post_json = fake_post
-            run_local_pipeline.check_connectivity._extract_text = lambda doc: "ok"
+            run_local_pipeline_impl.check_connectivity._resolve_api_credentials = fake_creds
+            run_local_pipeline_impl.check_connectivity._post_json = fake_post
+            run_local_pipeline_impl.check_connectivity._extract_text = lambda doc: "ok"
             try:
-                text = run_local_pipeline.provider_text(
+                text = run_local_pipeline_impl.provider_text(
                     [{"role": "user", "content": "x" * 45000}],
                     "gpt-5.4-nano",
                     5,
@@ -1487,12 +1489,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     max_tokens=3000,
                     payload_mode="split_file",
                     phase_log_path=phase_log,
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                 )
             finally:
-                run_local_pipeline.check_connectivity._resolve_api_credentials = original_creds
-                run_local_pipeline.check_connectivity._post_json = original_post
-                run_local_pipeline.check_connectivity._extract_text = original_extract
+                run_local_pipeline_impl.check_connectivity._resolve_api_credentials = original_creds
+                run_local_pipeline_impl.check_connectivity._post_json = original_post
+                run_local_pipeline_impl.check_connectivity._extract_text = original_extract
 
             self.assertEqual("ok", text)
             log_text = phase_log.read_text(encoding="utf-8")
@@ -1506,7 +1508,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_pending_repair_plan_preserves_model_route(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            context = run_local_pipeline.build_pending_repair_context(
+            context = run_local_pipeline_impl.build_pending_repair_context(
                 run_dir=root / "run",
                 raw_user_goal="做任务看板",
                 model="gpt-5.4-nano",
@@ -1530,8 +1532,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("gpt-5.5", context["next_retry_model"])
 
     def test_resume_uses_next_retry_model_from_pending_plan(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_review = run_local_pipeline.provider_review_project
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_review = run_local_pipeline_impl.provider_review_project
         calls: list[str] = []
         pipeline = {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}}
         pending = {
@@ -1556,10 +1558,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -1570,24 +1572,24 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
                     max_repair_attempts=1,
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                     initial_repair_plan=pending,
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_review_project = original_review
 
             self.assertEqual("pass", result["status"])
             self.assertEqual(["gpt-5.5"], calls)
 
     def test_disable_model_routing_preserves_single_model_behavior(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
+        original_component = run_local_pipeline_impl.provider_generate_project_component
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         calls: list[str] = []
 
@@ -1601,11 +1603,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "self_test": {"status": "pass"},
             }
 
-        policy = run_local_pipeline.ProviderModelRoutingPolicy(enable_model_routing=False)
+        policy = run_local_pipeline_impl.ProviderModelRoutingPolicy(enable_model_routing=False)
         os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
-        run_local_pipeline.provider_generate_project_component = fake_component
+        run_local_pipeline_impl.provider_generate_project_component = fake_component
         try:
-            result = run_local_pipeline.provider_generate_project_by_components(
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
                 "build a project",
                 {"components": [{"id": "frontend"}, {"id": "backend"}], "merge_policy": {"required_final_files": ["frontend.py", "backend.py"]}},
                 {},
@@ -1618,7 +1620,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 routing_policy=policy,
             )
         finally:
-            run_local_pipeline.provider_generate_project_component = original_component
+            run_local_pipeline_impl.provider_generate_project_component = original_component
             if original_split is None:
                 os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
             else:
@@ -1628,7 +1630,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual(["gpt-custom", "gpt-custom"], calls)
 
     def test_component_generation_over_hard_limit_uses_split_before_provider_call(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
         calls: list[dict[str, object]] = []
 
         def fake_provider_text(messages, model, timeout, **kwargs):
@@ -1637,9 +1639,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "task board UI"}]})
             return json.dumps({"path": kwargs.get("target_file"), "content": "export function boot(){ return 'task-board'; }\n"})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            result = run_local_pipeline.provider_generate_project_by_components(
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
                 "做任务看板",
                 {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}},
                 {"pipeline_plan": {"payload": {"huge": "x" * 150000}}},
@@ -1651,7 +1653,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 30,
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertEqual(["src/app.js"], [item["path"] for item in result["files"]])
         self.assertNotIn("component_generation", [call["stage"] for call in calls])
@@ -1659,7 +1661,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("component_file_generation", [call["stage"] for call in calls])
 
     def test_frontend_component_uses_split_by_default(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
         calls: list[str] = []
 
         def fake_provider_text(messages, model, timeout, **kwargs):
@@ -1668,9 +1670,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
             return json.dumps({"path": "src/app.js", "content": "export const status = 'ready';\n"})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            run_local_pipeline.provider_generate_project_by_components(
+            run_local_pipeline_impl.provider_generate_project_by_components(
                 "做任务看板",
                 {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}},
                 {},
@@ -1682,12 +1684,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 30,
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertEqual(["component_file_manifest", "component_file_generation"], calls)
 
     def test_component_file_manifest_prompt_is_small(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
         manifest_prompt_chars: list[int] = []
 
         def fake_provider_text(messages, model, timeout, **kwargs):
@@ -1698,9 +1700,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
             return json.dumps({"path": "src/app.js", "content": "export const ok = true;\n"})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            run_local_pipeline.provider_generate_project_by_components(
+            run_local_pipeline_impl.provider_generate_project_by_components(
                 "做任务看板",
                 {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}},
                 {"pipeline_plan": {"payload": {"huge": "x" * 150000}}},
@@ -1712,13 +1714,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 30,
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertTrue(manifest_prompt_chars)
         self.assertLess(manifest_prompt_chars[0], 20000)
 
     def test_per_file_generation_requests_exactly_one_file(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
 
         def fake_provider_text(messages, model, timeout, **kwargs):
             prompt = "\n".join(message.get("content", "") for message in messages)
@@ -1728,9 +1730,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertIn("The only allowed path is src/app.js", prompt)
             return json.dumps({"path": "src/app.js", "content": "export const app = 'one-file';\n"})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            item, _raw = run_local_pipeline.provider_generate_component_file(
+            item, _raw = run_local_pipeline_impl.provider_generate_component_file(
                 goal="做任务看板",
                 component={"id": "frontend"},
                 component_pipeline={"components": [{"id": "frontend"}]},
@@ -1741,15 +1743,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 model="gpt-5.4-nano",
                 timeout=30,
                 phase_log_path="",
-                routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertEqual("src/app.js", item["path"])
 
     def test_split_file_checkpoint_and_resume(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
         original_attempts = os.environ.get("CGNK_PROVIDER_REPAIR_TRANSPORT_ATTEMPTS")
         os.environ["CGNK_PROVIDER_REPAIR_TRANSPORT_ATTEMPTS"] = "1"
         calls: list[str] = []
@@ -1764,10 +1766,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_text = failing_provider_text
+            run_local_pipeline_impl.provider_text = failing_provider_text
             try:
                 with self.assertRaises(RuntimeError):
-                    run_local_pipeline.provider_generate_project_component_split(
+                    run_local_pipeline_impl.provider_generate_project_component_split(
                         goal="做任务看板",
                         component={"id": "frontend"},
                         component_pipeline={"components": [{"id": "frontend"}]},
@@ -1775,16 +1777,16 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                         repair_errors=[],
                         model="gpt-5.4-nano",
                         timeout=30,
-                        deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                        deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                         checkpoint_dir=root / "run" / "artifacts" / "provider_components",
                         run_dir=root / "run",
                         spec_hash="spec",
                         phase_log_path=root / "run" / "provider_phase_log.jsonl",
-                        routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                        routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                         split_reason="test",
                         original_prompt_chars=150000,
                     )
-                pending = run_local_pipeline.load_json(root / "run" / "artifacts" / "pending_repair_plan.json")
+                pending = run_local_pipeline_impl.load_json(root / "run" / "artifacts" / "pending_repair_plan.json")
                 self.assertEqual("component_file_generation", pending["stage"])
                 self.assertEqual("src/app.js", pending["target_file"])
                 self.assertEqual([], pending["completed_files"])
@@ -1797,8 +1799,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                         return json.dumps({"path": "src/app.js", "content": "export const resumed = true;\n"})
                     return json.dumps({"path": "src/styles.css", "content": "body { color: #111; }\n"})
 
-                run_local_pipeline.provider_text = resume_provider_text
-                result = run_local_pipeline.provider_generate_project_component_split(
+                run_local_pipeline_impl.provider_text = resume_provider_text
+                result = run_local_pipeline_impl.provider_generate_project_component_split(
                     goal="做任务看板",
                     component={"id": "frontend"},
                     component_pipeline={"components": [{"id": "frontend"}]},
@@ -1806,18 +1808,18 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     repair_errors=[],
                     model="gpt-5.4-nano",
                     timeout=30,
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     checkpoint_dir=root / "run" / "artifacts" / "provider_components",
                     run_dir=root / "run",
                     spec_hash="spec",
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                     split_reason="pending_component_file_generation",
                     original_prompt_chars=150000,
                     pending_context=pending,
                 )
             finally:
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_text = original_provider_text
                 if original_attempts is None:
                     os.environ.pop("CGNK_PROVIDER_REPAIR_TRANSPORT_ATTEMPTS", None)
                 else:
@@ -1826,15 +1828,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual(["src/app.js", "src/styles.css"], [item["path"] for item in result["files"]])
 
     def test_split_file_ownership_validation_blocks_wrong_path(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
 
         def fake_provider_text(messages, model, timeout, **kwargs):
             return json.dumps({"path": "backend/server.py", "content": "print('wrong owner')\n"})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
             with self.assertRaisesRegex(RuntimeError, "wrong path|ownership violation"):
-                run_local_pipeline.provider_generate_component_file(
+                run_local_pipeline_impl.provider_generate_component_file(
                     goal="做任务看板",
                     component={"id": "frontend"},
                     component_pipeline={"components": [{"id": "frontend"}]},
@@ -1845,16 +1847,16 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     phase_log_path="",
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                 )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
     def test_provider_phase_log_never_records_oversized_component_request(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
 
         def fake_provider_text(messages, model, timeout, **kwargs):
-            run_local_pipeline.append_provider_event_log(
+            run_local_pipeline_impl.append_provider_event_log(
                 phase_log,
                 {
                     "event": "provider_request",
@@ -1873,9 +1875,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             phase_log = root / "provider_phase_log.jsonl"
-            run_local_pipeline.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_text = fake_provider_text
             try:
-                run_local_pipeline.provider_generate_project_by_components(
+                run_local_pipeline_impl.provider_generate_project_by_components(
                     "做任务看板",
                     {"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}},
                     {"pipeline_plan": {"payload": {"huge": "x" * 150000}}},
@@ -1888,7 +1890,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     run_dir=root,
                 )
             finally:
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_text = original_provider_text
 
             events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines() if line.strip()]
             oversized = [
@@ -1903,8 +1905,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertTrue(any(event.get("event") == "component_generation_split_started" for event in events))
 
     def test_completed_split_component_enters_semantic_review(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
-        original_review = run_local_pipeline.provider_review_project
+        original_provider_text = run_local_pipeline_impl.provider_text
+        original_review = run_local_pipeline_impl.provider_review_project
         review_called = {"value": False}
 
         def fake_provider_text(messages, model, timeout, **kwargs):
@@ -1920,10 +1922,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_text = fake_provider_text
-            run_local_pipeline.provider_review_project = fake_review
+            run_local_pipeline_impl.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_review_project = fake_review
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -1934,7 +1936,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -1942,14 +1944,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_text = original_provider_text
-                run_local_pipeline.provider_review_project = original_review
+                run_local_pipeline_impl.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_review_project = original_review
 
             self.assertEqual("pass", result["status"])
             self.assertTrue(review_called["value"])
 
     def test_oversized_semantic_review_uses_split_pipeline(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
         calls: list[tuple[str, int]] = []
 
         def fake_provider_text(messages, model, timeout, **kwargs):
@@ -1966,9 +1968,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             {"path": f"src/file{i}.js", "content": "x" * 10000}
             for i in range(8)
         ]
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            review = run_local_pipeline.provider_review_project(
+            review = run_local_pipeline_impl.provider_review_project(
                 "做任务看板",
                 {},
                 {},
@@ -1980,7 +1982,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 30,
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertEqual("pass", review["status"])
         self.assertNotIn("semantic_review", [stage for stage, _chars in calls])
@@ -1989,7 +1991,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("semantic_final_reducer", [stage for stage, _chars in calls])
 
     def test_component_self_review_prompt_under_budget(self) -> None:
-        payload = run_local_pipeline.semantic_component_review_payload(
+        payload = run_local_pipeline_impl.semantic_component_review_payload(
             goal="做任务看板",
             component_id="frontend",
             component_files=[
@@ -2006,7 +2008,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_cross_component_review_uses_summaries_not_full_source(self) -> None:
         sentinel = "FULL_SOURCE_SENTINEL_" * 1000
-        payload = run_local_pipeline.semantic_cross_review_payload(
+        payload = run_local_pipeline_impl.semantic_cross_review_payload(
             goal="做任务看板",
             files=[{"path": "src/app.js", "content": sentinel}, {"path": "server/index.js", "content": sentinel}],
             component_reviews=[{"component": "frontend", "verdict": "pass", "summary": "frontend ok", "blockers": []}],
@@ -2019,7 +2021,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("component_review_summaries", payload)
 
     def test_final_reducer_uses_review_json_not_full_files(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
 
         def fake_provider_text(messages, model, timeout, **kwargs):
             prompt = "\n".join(message.get("content", "") for message in messages)
@@ -2028,18 +2030,18 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertNotIn("function hugeSource", prompt)
             return json.dumps({"verdict": "fail", "blockers": [{"kind": "missing_entry_html", "component": "frontend", "files": ["index.html"], "message": "missing entry", "repair_hint": "add index"}]})
 
-        run_local_pipeline.provider_text = fake_provider_text
+        run_local_pipeline_impl.provider_text = fake_provider_text
         try:
-            doc = run_local_pipeline.provider_semantic_final_reducer(
+            doc = run_local_pipeline_impl.provider_semantic_final_reducer(
                 component_reviews=[{"component": "frontend", "summary": "review summary only"}],
                 cross_review={"component": "cross_component", "blockers": []},
                 model="gpt-5.4-nano",
                 timeout=30,
                 phase_log_path="",
-                routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
             )
         finally:
-            run_local_pipeline.provider_text = original_provider_text
+            run_local_pipeline_impl.provider_text = original_provider_text
 
         self.assertEqual("fail", doc["verdict"])
         self.assertEqual("missing_entry_html", doc["blockers"][0]["kind"])
@@ -2050,7 +2052,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             {"kind": "frontend_backend_mismatch", "files": ["src/app.js", "server/index.js"], "message": "status mismatch", "repair_hint": "align status enum"},
             {"kind": "inaccurate_test_report_claims", "component": "docs", "files": ["TEST_REPORT.md"], "message": "claims tests passed", "repair_hint": "remove false claims"},
         ]
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             blockers,
             {},
             component_pipeline={"components": [{"id": "frontend"}, {"id": "backend"}, {"id": "docs"}]},
@@ -2063,7 +2065,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn(("docs", "TEST_REPORT.md"), actions)
 
     def test_fake_zip_blocker_routes_to_docs_or_media_not_packager_delivery(self) -> None:
-        plan = run_local_pipeline.compile_repair_plan(
+        plan = run_local_pipeline_impl.compile_repair_plan(
             [{"kind": "fake_artifact_claim", "files": ["scripts/bundle.js", "TEST_REPORT.md"], "message": "fake zip behavior", "repair_hint": "remove fake zip claim"}],
             {},
             component_pipeline={"components": [{"id": "docs"}, {"id": "media"}]},
@@ -2076,10 +2078,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertNotIn("delivery", components)
 
     def test_semantic_review_log_records_split_and_budget(self) -> None:
-        original_provider_text = run_local_pipeline.provider_text
+        original_provider_text = run_local_pipeline_impl.provider_text
 
         def fake_provider_text(messages, model, timeout, **kwargs):
-            run_local_pipeline.append_provider_event_log(
+            run_local_pipeline_impl.append_provider_event_log(
                 phase_log,
                 {
                     "event": "provider_request",
@@ -2098,9 +2100,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
-            run_local_pipeline.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_text = fake_provider_text
             try:
-                run_local_pipeline.provider_review_project(
+                run_local_pipeline_impl.provider_review_project(
                     "做任务看板",
                     {},
                     {},
@@ -2116,7 +2118,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=phase_log,
                 )
             finally:
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_text = original_provider_text
 
             events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines() if line.strip()]
             self.assertTrue(any(event.get("event") == "semantic_review_split_started" for event in events))
@@ -2124,8 +2126,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual([], oversized)
 
     def test_split_semantic_review_repair_loop_rechecks_after_repair(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_provider_text = run_local_pipeline.provider_text
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_provider_text = run_local_pipeline_impl.provider_text
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
         state = {"review_calls": 0}
@@ -2160,10 +2162,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_text = fake_provider_text
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -2174,7 +2176,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -2182,8 +2184,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_text = original_provider_text
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
                 else:
@@ -2193,8 +2195,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertGreaterEqual(state["review_calls"], 2)
 
     def test_split_semantic_review_transport_block_writes_pending_route(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_provider_text = run_local_pipeline.provider_text
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_provider_text = run_local_pipeline_impl.provider_text
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
 
@@ -2211,7 +2213,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             }
 
         def fake_provider_text(messages, model, timeout, **kwargs):
-            run_local_pipeline.append_provider_event_log(
+            run_local_pipeline_impl.append_provider_event_log(
                 kwargs.get("phase_log_path"),
                 {
                     "event": "provider_request",
@@ -2228,10 +2230,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_text = fake_provider_text
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -2242,23 +2244,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
                     max_repair_attempts=2,
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
-                    routing_policy=run_local_pipeline.ProviderModelRoutingPolicy(),
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_text = original_provider_text
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
                 else:
                     os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = original_split
 
-            pending = run_local_pipeline.load_json(root / "run" / "artifacts" / "pending_repair_plan.json")
+            pending = run_local_pipeline_impl.load_json(root / "run" / "artifacts" / "pending_repair_plan.json")
             self.assertEqual("blocked", result["status"])
             self.assertEqual(0, result["diagnostics"]["semantic_repair_attempts"])
             self.assertEqual("semantic_component_review", pending["stage"])
@@ -2267,8 +2269,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("review_component", pending["payload_mode"])
 
     def test_non_json_semantic_review_preserves_files_for_candidate(self) -> None:
-        original_component = run_local_pipeline.provider_generate_project_component
-        original_provider_text = run_local_pipeline.provider_text
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_provider_text = run_local_pipeline_impl.provider_text
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
 
@@ -2285,10 +2287,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
-            run_local_pipeline.provider_generate_project_component = fake_component
-            run_local_pipeline.provider_text = fake_provider_text
+            run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_text = fake_provider_text
             try:
-                result = run_local_pipeline.run_provider_semantic_review_with_repair(
+                result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
                     user_goal="做任务看板",
                     plan_doc={},
                     blueprint={},
@@ -2299,7 +2301,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="gpt-5.4-nano",
                     timeout=30,
                     internal_context="",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     run_dir=root / "run",
                     out_dir=root / "generated" / "project",
                     result_path=root / "result.json",
@@ -2307,8 +2309,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     phase_log_path=root / "run" / "provider_phase_log.jsonl",
                 )
             finally:
-                run_local_pipeline.provider_generate_project_component = original_component
-                run_local_pipeline.provider_text = original_provider_text
+                run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_text = original_provider_text
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
                 else:
@@ -2317,18 +2319,18 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("blocked", result["status"])
             self.assertEqual([], result["attempted_repairs"])
             self.assertEqual("src/app.js", result["files"][0]["path"])
-            classes = run_local_pipeline.classify_semantic_blockers(result["provider_review"])
+            classes = run_local_pipeline_impl.classify_semantic_blockers(result["provider_review"])
             self.assertEqual([], classes["fatal_fact_blocker"])
             self.assertEqual("provider_review_format_error", classes["warning"][0]["kind"])
 
     def test_semantic_review_quality_blockers_do_not_prevent_candidate_materialization(self) -> None:
-        original_compose = run_local_pipeline.compose_local_pipeline.compose
-        original_blueprint = run_local_pipeline.requirement_blueprint.build_requirement_blueprint
-        original_online = run_local_pipeline.online_input_agent.collect_online_inputs
-        original_market = run_local_pipeline.market_research_agent.run_market_research
-        original_semantic = run_local_pipeline.run_provider_semantic_review_with_repair
-        original_examples = run_local_pipeline.make_example_outputs
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_compose = run_local_pipeline_impl.compose_local_pipeline.compose
+        original_blueprint = run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint
+        original_online = run_local_pipeline_impl.online_input_agent.collect_online_inputs
+        original_market = run_local_pipeline_impl.market_research_agent.run_market_research
+        original_semantic = run_local_pipeline_impl.run_provider_semantic_review_with_repair
+        original_examples = run_local_pipeline_impl.make_example_outputs
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
 
         def fake_semantic(**kwargs):
             return {
@@ -2341,19 +2343,19 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             }
 
         try:
-            run_local_pipeline.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
-            run_local_pipeline.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
-            run_local_pipeline.market_research_agent.run_market_research = lambda *args, **kwargs: {}
-            run_local_pipeline.run_provider_semantic_review_with_repair = fake_semantic
-            run_local_pipeline.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
-            run_local_pipeline.run_candidate_post_build_finalize = lambda **kwargs: {"status": "pass", "screenshots": ["shot.png"], "known_limits": [], "diagnostic_package": "candidate_diagnostic_bundle.zip"}
+            run_local_pipeline_impl.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.market_research_agent.run_market_research = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = fake_semantic
+            run_local_pipeline_impl.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
+            run_local_pipeline_impl.run_candidate_post_build_finalize = lambda **kwargs: {"status": "pass", "screenshots": ["shot.png"], "known_limits": [], "diagnostic_package": "candidate_diagnostic_bundle.zip"}
             with tempfile.TemporaryDirectory() as temp_dir:
                 root = pathlib.Path(temp_dir)
                 original_test_root = os.environ.get("CGNK_TEST_GENERATED_ROOT")
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = str(root / "generated")
                 try:
-                    result = run_local_pipeline.execute(
+                    result = run_local_pipeline_impl.execute(
                         type(
                             "Args",
                             (),
@@ -2384,28 +2386,28 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     else:
                         os.environ["CGNK_TEST_GENERATED_ROOT"] = original_test_root
         finally:
-            run_local_pipeline.compose_local_pipeline.compose = original_compose
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = original_blueprint
-            run_local_pipeline.online_input_agent.collect_online_inputs = original_online
-            run_local_pipeline.market_research_agent.run_market_research = original_market
-            run_local_pipeline.run_provider_semantic_review_with_repair = original_semantic
-            run_local_pipeline.make_example_outputs = original_examples
-            run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+            run_local_pipeline_impl.compose_local_pipeline.compose = original_compose
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = original_blueprint
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = original_online
+            run_local_pipeline_impl.market_research_agent.run_market_research = original_market
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = original_semantic
+            run_local_pipeline_impl.make_example_outputs = original_examples
+            run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
         self.assertTrue(result["candidate_materialized"])
         self.assertEqual("ASK_USER_REVIEW", result["final_verdict"])
         self.assertEqual("needs_rework", result["semantic_review_status"])
         self.assertTrue(result["candidate_only"])
-        self.assertNotEqual(str(run_local_pipeline.DEFAULT_CANDIDATE_DIR), result["candidate_project_dir"])
+        self.assertNotEqual(str(run_local_pipeline_impl.DEFAULT_CANDIDATE_DIR), result["candidate_project_dir"])
 
     def test_runtime_blockers_do_not_prevent_candidate_materialization(self) -> None:
-        original_compose = run_local_pipeline.compose_local_pipeline.compose
-        original_blueprint = run_local_pipeline.requirement_blueprint.build_requirement_blueprint
-        original_online = run_local_pipeline.online_input_agent.collect_online_inputs
-        original_market = run_local_pipeline.market_research_agent.run_market_research
-        original_semantic = run_local_pipeline.run_provider_semantic_review_with_repair
-        original_examples = run_local_pipeline.make_example_outputs
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_compose = run_local_pipeline_impl.compose_local_pipeline.compose
+        original_blueprint = run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint
+        original_online = run_local_pipeline_impl.online_input_agent.collect_online_inputs
+        original_market = run_local_pipeline_impl.market_research_agent.run_market_research
+        original_semantic = run_local_pipeline_impl.run_provider_semantic_review_with_repair
+        original_examples = run_local_pipeline_impl.make_example_outputs
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
 
         def fake_semantic(**kwargs):
             return {
@@ -2422,19 +2424,19 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             }
 
         try:
-            run_local_pipeline.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
-            run_local_pipeline.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
-            run_local_pipeline.market_research_agent.run_market_research = lambda *args, **kwargs: {}
-            run_local_pipeline.run_provider_semantic_review_with_repair = fake_semantic
-            run_local_pipeline.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
-            run_local_pipeline.run_candidate_post_build_finalize = lambda **kwargs: {"status": "needs_rework", "screenshots": [], "known_limits": ["runtime missing"], "diagnostic_package": "candidate_diagnostic_bundle.zip"}
+            run_local_pipeline_impl.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.market_research_agent.run_market_research = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = fake_semantic
+            run_local_pipeline_impl.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
+            run_local_pipeline_impl.run_candidate_post_build_finalize = lambda **kwargs: {"status": "needs_rework", "screenshots": [], "known_limits": ["runtime missing"], "diagnostic_package": "candidate_diagnostic_bundle.zip"}
             with tempfile.TemporaryDirectory() as temp_dir:
                 root = pathlib.Path(temp_dir)
                 original_test_root = os.environ.get("CGNK_TEST_GENERATED_ROOT")
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = str(root / "generated")
                 try:
-                    result = run_local_pipeline.execute(
+                    result = run_local_pipeline_impl.execute(
                         type(
                             "Args",
                             (),
@@ -2465,13 +2467,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     else:
                         os.environ["CGNK_TEST_GENERATED_ROOT"] = original_test_root
         finally:
-            run_local_pipeline.compose_local_pipeline.compose = original_compose
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = original_blueprint
-            run_local_pipeline.online_input_agent.collect_online_inputs = original_online
-            run_local_pipeline.market_research_agent.run_market_research = original_market
-            run_local_pipeline.run_provider_semantic_review_with_repair = original_semantic
-            run_local_pipeline.make_example_outputs = original_examples
-            run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+            run_local_pipeline_impl.compose_local_pipeline.compose = original_compose
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = original_blueprint
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = original_online
+            run_local_pipeline_impl.market_research_agent.run_market_research = original_market
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = original_semantic
+            run_local_pipeline_impl.make_example_outputs = original_examples
+            run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
         self.assertTrue(result["candidate_materialized"])
         self.assertTrue(result["runtime_blockers"])
@@ -2481,10 +2483,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("", result["delivery_manifest"])
 
     def test_fatal_unsafe_path_still_blocks_candidate(self) -> None:
-        blockers = run_local_pipeline.detect_provider_hard_fact_blockers(
+        blockers = run_local_pipeline_impl.detect_provider_hard_fact_blockers(
             [{"path": "../escape.js", "content": "console.log('escape')\n"}]
         )
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=False,
             hard_fact_blockers=blockers,
             runtime_blockers=[],
@@ -2503,7 +2505,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            run_local_pipeline.write_json(project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json", {"candidate_only": True})
+            run_local_pipeline_impl.write_json(project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json", {"candidate_only": True})
             (project / "README.md").write_text("# Candidate\n", encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "candidate-only"):
@@ -2517,7 +2519,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             project.mkdir(parents=True)
             (project / "package.json").write_text(json.dumps({"scripts": {"test": "node -e \"process.exit(0)\""}}), encoding="utf-8")
             (project / "README.md").write_text("# Candidate\n", encoding="utf-8")
-            result = run_local_pipeline.run_candidate_post_build_finalize(
+            result = run_local_pipeline_impl.run_candidate_post_build_finalize(
                 project_dir=project,
                 run_dir=run_dir,
                 user_goal="做任务看板",
@@ -2527,7 +2529,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 model="unused",
                 timeout=30,
                 phase_log_path=run_dir / "provider_phase_log.jsonl",
-                deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                 classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
             )
 
@@ -2538,12 +2540,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertIn(result["status"], {"pass", "needs_rework"})
 
     def test_focused_pytest_does_not_delete_formal_candidate_dir(self) -> None:
-        formal = run_local_pipeline.DEFAULT_CANDIDATE_DIR
+        formal = run_local_pipeline_impl.DEFAULT_CANDIDATE_DIR
         existed_before = formal.exists()
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             out_dir = root / "generated" / "project"
-            candidate = run_local_pipeline.candidate_project_dir_for(out_dir)
+            candidate = run_local_pipeline_impl.candidate_project_dir_for(out_dir)
             candidate.mkdir(parents=True)
             (candidate / "sentinel.txt").write_text("owned by focused test\n", encoding="utf-8")
             shutil.rmtree(candidate)
@@ -2551,7 +2553,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual(existed_before, formal.exists())
 
     def test_cleanup_only_removes_isolated_tmp_dirs(self) -> None:
-        formal = run_local_pipeline.DEFAULT_CANDIDATE_DIR
+        formal = run_local_pipeline_impl.DEFAULT_CANDIDATE_DIR
         existed_before = formal.exists()
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -2568,9 +2570,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temp_dir:
                 generated = pathlib.Path(temp_dir) / "generated"
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = str(generated)
-                candidate = run_local_pipeline.candidate_project_dir_for(generated / "cgnk_generated_project")
+                candidate = run_local_pipeline_impl.candidate_project_dir_for(generated / "cgnk_generated_project")
 
-            self.assertNotEqual(run_local_pipeline.DEFAULT_CANDIDATE_DIR.resolve(), candidate.resolve())
+            self.assertNotEqual(run_local_pipeline_impl.DEFAULT_CANDIDATE_DIR.resolve(), candidate.resolve())
             self.assertTrue(str(candidate).startswith(str(generated)))
         finally:
             if original is None:
@@ -2579,7 +2581,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = original
 
     def test_run_candidate_smoke_benchmark_read_only_on_existing_candidate(self) -> None:
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project = make_temp_candidate_project(root)
@@ -2596,11 +2598,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     "candidate_review_ready": False,
                 }
 
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             try:
                 report = run_candidate_smoke_benchmark.run_benchmark(project, root / "run")
             finally:
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
             self.assertTrue(sentinel.exists())
             self.assertFalse((project / "final_project_bundle.zip").exists())
@@ -2608,7 +2610,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("NEEDS_REWORK", report["verdict"])
 
     def test_candidate_screenshot_generated_after_tests_pass(self) -> None:
-        original_capture = run_local_pipeline.capture_candidate_screenshot
+        original_capture = run_local_pipeline_impl.capture_candidate_screenshot
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project = root / "candidate"
@@ -2623,9 +2625,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 screenshot.write_bytes(tiny_nonblank_png())
                 return {"status": "pass", "screenshots": [str(screenshot)], "screenshot_blocked": "", "attempts": []}
 
-            run_local_pipeline.capture_candidate_screenshot = fake_capture
+            run_local_pipeline_impl.capture_candidate_screenshot = fake_capture
             try:
-                result = run_local_pipeline.run_candidate_post_build_finalize(
+                result = run_local_pipeline_impl.run_candidate_post_build_finalize(
                     project_dir=project,
                     run_dir=run_dir,
                     user_goal="task board",
@@ -2635,18 +2637,18 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                 )
             finally:
-                run_local_pipeline.capture_candidate_screenshot = original_capture
+                run_local_pipeline_impl.capture_candidate_screenshot = original_capture
 
             self.assertEqual("pass", result["status"])
             self.assertTrue(result["screenshots"])
-            self.assertTrue(run_local_pipeline.real_image_file(pathlib.Path(result["screenshots"][0])))
+            self.assertTrue(visual_evidence.real_image_file(pathlib.Path(result["screenshots"][0])))
 
     def test_screenshot_blocked_written_when_browser_unavailable(self) -> None:
-        original_capture = run_local_pipeline.capture_candidate_screenshot
+        original_capture = run_local_pipeline_impl.capture_candidate_screenshot
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project = root / "candidate"
@@ -2655,12 +2657,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             (project / "package.json").write_text(json.dumps({"scripts": {"test": "node -e \"process.exit(0)\""}}), encoding="utf-8")
 
             def fake_capture(project_dir, run_dir, timeout=60):
-                blocked = run_local_pipeline.write_screenshot_blocked(project_dir, "playwright unavailable", failure_type="browser_unavailable")
+                blocked = run_local_pipeline_impl.write_screenshot_blocked(project_dir, "playwright unavailable", failure_type="browser_unavailable")
                 return {"status": "blocked", "screenshots": [], "screenshot_blocked": blocked, "attempts": []}
 
-            run_local_pipeline.capture_candidate_screenshot = fake_capture
+            run_local_pipeline_impl.capture_candidate_screenshot = fake_capture
             try:
-                result = run_local_pipeline.run_candidate_post_build_finalize(
+                result = run_local_pipeline_impl.run_candidate_post_build_finalize(
                     project_dir=project,
                     run_dir=run_dir,
                     user_goal="task board",
@@ -2670,11 +2672,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                 )
             finally:
-                run_local_pipeline.capture_candidate_screenshot = original_capture
+                run_local_pipeline_impl.capture_candidate_screenshot = original_capture
 
             blocked_doc = json.loads((project / "screenshot_blocked.json").read_text(encoding="utf-8"))
 
@@ -2687,8 +2689,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            blocked = run_local_pipeline.write_screenshot_blocked(project, "browser unavailable", failure_type="browser_unavailable")
-            summary = run_local_pipeline.write_candidate_review_summary(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(project, "browser unavailable", failure_type="browser_unavailable")
+            summary = run_local_pipeline_impl.write_candidate_review_summary(
                 project,
                 verdict="ASK_USER_REVIEW",
                 test_status="pass",
@@ -2696,7 +2698,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 video_blocked=blocked,
                 known_limits=["video blocked"],
             )
-            verdict = run_local_pipeline.decide_adaptive_final_verdict(
+            verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
                 candidate_materialized=True,
                 hard_fact_blockers=[],
                 runtime_blockers=[],
@@ -2720,8 +2722,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             project = root / "candidate"
             run_dir = root / "run"
             project.mkdir()
-            blocked = run_local_pipeline.write_screenshot_blocked(project, "browser unavailable", failure_type="browser_unavailable")
-            run_local_pipeline.write_candidate_review_summary(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(project, "browser unavailable", failure_type="browser_unavailable")
+            run_local_pipeline_impl.write_candidate_review_summary(
                 project,
                 verdict="ASK_USER_REVIEW",
                 test_status="pass",
@@ -2729,14 +2731,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 video_blocked=blocked,
                 known_limits=[],
             )
-            run_local_pipeline.write_json(project / "known_limits.json", {"known_limits": []})
-            run_local_pipeline.write_json(project / "repair_plan.json", {"stage": "post_build_repair"})
+            run_local_pipeline_impl.write_json(project / "known_limits.json", {"known_limits": []})
+            run_local_pipeline_impl.write_json(project / "repair_plan.json", {"stage": "post_build_repair"})
             invalid_shot = project / "artifacts" / "screenshots" / "blank.png"
             invalid_shot.parent.mkdir(parents=True)
             invalid_shot.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 200)
-            run_local_pipeline.write_json(run_dir / "artifacts" / "candidate_post_build_finalize.json", {"status": "needs_rework"})
+            run_local_pipeline_impl.write_json(run_dir / "artifacts" / "candidate_post_build_finalize.json", {"status": "needs_rework"})
 
-            bundle = run_local_pipeline.create_candidate_diagnostic_package(project, run_dir)
+            bundle = run_local_pipeline_impl.create_candidate_diagnostic_package(project, run_dir)
             with zipfile.ZipFile(bundle) as zf:
                 names = set(zf.namelist())
 
@@ -2751,7 +2753,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            run_local_pipeline.write_candidate_review_summary(
+            run_local_pipeline_impl.write_candidate_review_summary(
                 project,
                 verdict="ASK_USER_REVIEW",
                 test_status="pass",
@@ -2777,7 +2779,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshot_blocked": str(project / "screenshot_blocked.json"),
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("screenshot_failure", plan["failure_types"])
         self.assertIn("startup_failure", plan["failure_types"])
@@ -2788,7 +2790,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            blocked = run_local_pipeline.write_screenshot_blocked(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(
                 project,
                 "captured screenshot was missing or invalid",
                 failure_type="screenshot_failure",
@@ -2824,7 +2826,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 project = pathlib.Path(temp_dir) / "candidate"
                 project.mkdir()
                 (project / "index.html").write_text("<!doctype html><body></body>\n", encoding="utf-8")
-                result = run_local_pipeline.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
+                result = run_local_pipeline_impl.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
                 doc = json.loads((project / "screenshot_blocked.json").read_text(encoding="utf-8"))
         finally:
             restore_fake_playwright(old_modules)
@@ -2840,7 +2842,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
             (project / "index.html").write_text("<!doctype html><body>Task Board</body>\n", encoding="utf-8")
-            blocked = run_local_pipeline.write_screenshot_blocked(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(
                 project,
                 "playwright unavailable",
                 failure_type="browser_unavailable",
@@ -2853,7 +2855,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshot_blocked": blocked,
                 "screenshot_capture": {"status": "blocked", "screenshot_blocked": blocked, "failure_reason": "browser_unavailable"},
             }
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("browser_unavailable", plan["failure_types"])
         self.assertEqual([], plan["provider_actions"])
@@ -2872,7 +2874,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshot_capture": {"status": "blocked", "failure_reason": "startup_failed", "attempts": [{"reason": "startup URL did not become ready"}]},
                 "screenshot_blocked": str(project / "screenshot_blocked.json"),
             }
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("startup_failure", plan["failure_types"])
         self.assertTrue(plan["target_files"])
@@ -2887,7 +2889,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 project = pathlib.Path(temp_dir) / "candidate"
                 project.mkdir()
                 (project / "index.html").write_text("<!doctype html><body>Task Board</body>\n", encoding="utf-8")
-                result = run_local_pipeline.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
+                result = run_local_pipeline_impl.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
         finally:
             restore_fake_playwright(old_modules)
 
@@ -2900,8 +2902,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            blocked = run_local_pipeline.write_screenshot_blocked(project, "blank page", failure_type="screenshot_failure", details={"failure_reason": "page_blank"})
-            summary = run_local_pipeline.write_candidate_review_summary(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(project, "blank page", failure_type="screenshot_failure", details={"failure_reason": "page_blank"})
+            summary = run_local_pipeline_impl.write_candidate_review_summary(
                 project,
                 verdict="ASK_USER_REVIEW",
                 test_status="pass",
@@ -2937,7 +2939,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshot_blocked": str(project / "screenshot_blocked.json"),
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("page_blank", plan["failure_types"])
         self.assertIn("index.html loads but body has no visible content", plan["root_causes"])
@@ -2970,8 +2972,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             blank = pathlib.Path(temp_dir) / "blank.png"
             blank.write_bytes(tiny_blank_png())
 
-            self.assertFalse(run_local_pipeline.real_image_file(blank))
-            diag = run_local_pipeline.image_file_diagnostics(blank)
+            self.assertFalse(visual_evidence.real_image_file(blank))
+            diag = run_local_pipeline_impl.image_file_diagnostics(blank)
 
         self.assertEqual(1.0, diag["blank_score"])
         self.assertTrue(diag["is_blank_or_invalid"])
@@ -2984,7 +2986,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 project = pathlib.Path(temp_dir) / "candidate"
                 project.mkdir()
                 (project / "index.html").write_text("<!doctype html><title>Task Board</title><body><canvas></canvas></body>\n", encoding="utf-8")
-                result = run_local_pipeline.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
+                result = run_local_pipeline_impl.capture_candidate_screenshot(project, pathlib.Path(temp_dir) / "run", timeout=10)
                 doc = json.loads((project / "screenshot_blocked.json").read_text(encoding="utf-8"))
         finally:
             restore_fake_playwright(old_modules)
@@ -3031,7 +3033,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            blocked = run_local_pipeline.write_screenshot_blocked(
+            blocked = run_local_pipeline_impl.write_screenshot_blocked(
                 project,
                 "playwright unavailable",
                 failure_type="browser_unavailable",
@@ -3044,14 +3046,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshot_blocked": blocked,
                 "screenshot_capture": {"status": "blocked", "failure_reason": "browser_unavailable"},
             }
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertEqual([], plan["provider_actions"])
         self.assertIn("browser_unavailable", plan["failure_types"])
 
     def test_ui_smoke_requires_visible_task_board_text(self) -> None:
-        fail = run_local_pipeline.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 0, "body_text_sample": "", "console_errors": [], "network_errors": []})
-        ok = run_local_pipeline.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 120, "body_text_sample": "Task Board Add Task Todo Doing Done", "console_errors": [], "network_errors": []})
+        fail = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 0, "body_text_sample": "", "console_errors": [], "network_errors": []})
+        ok = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 120, "body_text_sample": "Task Board Add Task Todo Doing Done", "console_errors": [], "network_errors": []})
 
         self.assertEqual("fail", fail["status"])
         self.assertEqual("pass", ok["status"])
@@ -3061,9 +3063,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = pathlib.Path(temp_dir) / "shot.png"
             path.write_bytes(tiny_nonblank_png())
-            diag = run_local_pipeline.image_file_diagnostics(path)
-            smoke = run_local_pipeline.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 120, "body_text_sample": "Task Board Add Task Todo Doing Done", "console_errors": [], "network_errors": []})
-            is_real = run_local_pipeline.real_image_file(path)
+            diag = run_local_pipeline_impl.image_file_diagnostics(path)
+            smoke = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 120, "body_text_sample": "Task Board Add Task Todo Doing Done", "console_errors": [], "network_errors": []})
+            is_real = visual_evidence.real_image_file(path)
 
         self.assertTrue(is_real)
         self.assertFalse(diag["is_blank_or_invalid"])
@@ -3074,7 +3076,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            blocked = run_local_pipeline.write_video_blocked(project, "no video", failure_reason="ffmpeg_unavailable", environment={"ffmpeg": "", "playwright": "available"}, browser_used="chromium")
+            blocked = run_local_pipeline_impl.write_video_blocked(project, "no video", failure_reason="ffmpeg_unavailable", environment={"ffmpeg": "", "playwright": "available"}, browser_used="chromium")
             doc = json.loads(pathlib.Path(blocked).read_text(encoding="utf-8"))
 
         self.assertEqual("ffmpeg_unavailable", doc["failure_reason"])
@@ -3099,7 +3101,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             with zipfile.ZipFile(bundle, "w") as zf:
                 zf.writestr("delivery_manifest.json", "{}")
 
-            report = run_local_pipeline.validate_candidate_review_artifacts(project, run_dir)
+            report = run_local_pipeline_impl.validate_candidate_review_artifacts(project, run_dir)
 
         self.assertEqual("fail", report["status"])
         self.assertIn("bundle contains delivery_manifest.json", report["issues"])
@@ -3115,9 +3117,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             (project / "TEST_REPORT.md").write_text("commands_run:\n- npm test\n", encoding="utf-8")
             (project / "DELIVERY_NOTES.md").write_text("candidate_only: true\n", encoding="utf-8")
             (project / "video_blocked.json").write_text("{}", encoding="utf-8")
-            bundle = run_local_pipeline.create_candidate_diagnostic_package(project, run_dir)
+            bundle = run_local_pipeline_impl.create_candidate_diagnostic_package(project, run_dir)
 
-            report = run_local_pipeline.validate_candidate_review_artifacts(project, run_dir)
+            report = run_local_pipeline_impl.validate_candidate_review_artifacts(project, run_dir)
             bundle_exists = bundle.exists()
 
         self.assertTrue(bundle_exists)
@@ -3125,7 +3127,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("missing screenshot or screenshot_blocked", report["issues"])
 
     def test_candidate_smoke_benchmark_outputs_report(self) -> None:
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
@@ -3144,11 +3146,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     "candidate_review_ready": True,
                 }
 
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             try:
                 report = run_candidate_smoke_benchmark.run_benchmark(project, pathlib.Path(temp_dir) / "run")
             finally:
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
         self.assertEqual("ASK_USER_REVIEW", report["verdict"])
         self.assertEqual("pass", report["npm_test"]["status"])
@@ -3158,13 +3160,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            run_local_pipeline.write_json(project / "candidate_review_summary.json", {"verdict": "ASK_USER_REVIEW", "final_delivery": False})
+            run_local_pipeline_impl.write_json(project / "candidate_review_summary.json", {"verdict": "ASK_USER_REVIEW", "final_delivery": False})
 
             self.assertFalse((project / "final_project_bundle.zip").exists())
             self.assertFalse((project / "delivery_manifest.json").exists())
 
     def test_missing_zip_prevents_pass_final_but_allows_ask_user_review(self) -> None:
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=True,
             hard_fact_blockers=[],
             runtime_blockers=[],
@@ -3179,8 +3181,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("ASK_USER_REVIEW", verdict)
 
     def test_broken_runtime_becomes_needs_rework_not_fact_blocked(self) -> None:
-        classes = run_local_pipeline.classify_semantic_blockers({"status": "fail", "issues": [{"kind": "missing_backend_deps", "message": "missing express"}]})
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        classes = run_local_pipeline_impl.classify_semantic_blockers({"status": "fail", "issues": [{"kind": "missing_backend_deps", "message": "missing express"}]})
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=True,
             hard_fact_blockers=classes["hard_fact_blocker"],
             runtime_blockers=classes["runtime_blocker"],
@@ -3197,10 +3199,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("NEEDS_REWORK", verdict)
 
     def test_fake_zip_script_is_repairable_fact_blocker(self) -> None:
-        blockers = run_local_pipeline.detect_provider_repairable_fact_blockers(
+        blockers = run_local_pipeline_impl.detect_provider_repairable_fact_blockers(
             [{"path": "scripts/bundle.js", "content": "writeFileSync('final_project_bundle.zip', JSON.stringify({placeholder: true}))\n"}]
         )
-        hard = run_local_pipeline.detect_provider_hard_fact_blockers(
+        hard = run_local_pipeline_impl.detect_provider_hard_fact_blockers(
             [{"path": "scripts/bundle.js", "content": "writeFileSync('final_project_bundle.zip', JSON.stringify({placeholder: true}))\n"}]
         )
 
@@ -3213,7 +3215,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             {"path": "README.md", "content": "Run bundle to create final_project_bundle.zip before review.\n"},
         ]
 
-        result = run_local_pipeline.sanitize_candidate_files_before_materialization(files, ["fake final zip behavior claimed in scripts/util/bundle.js"])
+        result = run_local_pipeline_impl.sanitize_candidate_files_before_materialization(files, ["fake final zip behavior claimed in scripts/util/bundle.js"])
         by_path = {item["path"]: item["content"] for item in result["files"]}
 
         self.assertEqual("pass", result["status"])
@@ -3224,7 +3226,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("repair_plan.json", by_path)
 
     def test_sanitized_candidate_cannot_pass_final(self) -> None:
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=True,
             hard_fact_blockers=[],
             runtime_blockers=[],
@@ -3240,13 +3242,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("ASK_USER_REVIEW", verdict)
 
     def test_candidate_post_build_runs_after_repairable_fact_sanitizer(self) -> None:
-        original_compose = run_local_pipeline.compose_local_pipeline.compose
-        original_blueprint = run_local_pipeline.requirement_blueprint.build_requirement_blueprint
-        original_online = run_local_pipeline.online_input_agent.collect_online_inputs
-        original_market = run_local_pipeline.market_research_agent.run_market_research
-        original_semantic = run_local_pipeline.run_provider_semantic_review_with_repair
-        original_examples = run_local_pipeline.make_example_outputs
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_compose = run_local_pipeline_impl.compose_local_pipeline.compose
+        original_blueprint = run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint
+        original_online = run_local_pipeline_impl.online_input_agent.collect_online_inputs
+        original_market = run_local_pipeline_impl.market_research_agent.run_market_research
+        original_semantic = run_local_pipeline_impl.run_provider_semantic_review_with_repair
+        original_examples = run_local_pipeline_impl.make_example_outputs
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         seen = {"post_build": False}
 
         def fake_semantic(**kwargs):
@@ -3272,19 +3274,19 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             return {"status": "needs_rework", "screenshots": [], "known_limits": ["runtime broken"], "diagnostic_package": "candidate_diagnostic_bundle.zip"}
 
         try:
-            run_local_pipeline.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
-            run_local_pipeline.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
-            run_local_pipeline.market_research_agent.run_market_research = lambda *args, **kwargs: {}
-            run_local_pipeline.run_provider_semantic_review_with_repair = fake_semantic
-            run_local_pipeline.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.compose_local_pipeline.compose = lambda *args, **kwargs: {"original_requirement": args[0], "pipeline_plan": {"payload": {}}}
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.market_research_agent.run_market_research = lambda *args, **kwargs: {}
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = fake_semantic
+            run_local_pipeline_impl.make_example_outputs = lambda *args, **kwargs: {"status": "skipped"}
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             with tempfile.TemporaryDirectory() as temp_dir:
                 root = pathlib.Path(temp_dir)
                 original_test_root = os.environ.get("CGNK_TEST_GENERATED_ROOT")
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = str(root / "generated")
                 try:
-                    result = run_local_pipeline.execute(
+                    result = run_local_pipeline_impl.execute(
                         type(
                             "Args",
                             (),
@@ -3315,13 +3317,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     else:
                         os.environ["CGNK_TEST_GENERATED_ROOT"] = original_test_root
         finally:
-            run_local_pipeline.compose_local_pipeline.compose = original_compose
-            run_local_pipeline.requirement_blueprint.build_requirement_blueprint = original_blueprint
-            run_local_pipeline.online_input_agent.collect_online_inputs = original_online
-            run_local_pipeline.market_research_agent.run_market_research = original_market
-            run_local_pipeline.run_provider_semantic_review_with_repair = original_semantic
-            run_local_pipeline.make_example_outputs = original_examples
-            run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+            run_local_pipeline_impl.compose_local_pipeline.compose = original_compose
+            run_local_pipeline_impl.requirement_blueprint.build_requirement_blueprint = original_blueprint
+            run_local_pipeline_impl.online_input_agent.collect_online_inputs = original_online
+            run_local_pipeline_impl.market_research_agent.run_market_research = original_market
+            run_local_pipeline_impl.run_provider_semantic_review_with_repair = original_semantic
+            run_local_pipeline_impl.make_example_outputs = original_examples
+            run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
         self.assertTrue(seen["post_build"])
         self.assertTrue(result["candidate_materialized"])
@@ -3343,7 +3345,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "known_limits": ["tests did not pass"],
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertEqual("post_build_repair", plan["stage"])
         self.assertIn("test_failure", plan["failure_types"])
@@ -3364,7 +3366,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshots": [],
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("src/app.js", plan["target_files"])
         self.assertIn("scripts/test.js", plan["target_files"])
@@ -3372,7 +3374,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_missing_required_package_json_classified_specific(self) -> None:
         finalize = {"test_result": {"status": "failed", "stderr_tail": "[foundation:test] missing required file: package.json"}}
-        failures = run_local_pipeline.classify_post_build_failures(finalize)
+        failures = run_local_pipeline_impl.classify_post_build_failures(finalize)
 
         self.assertIn("missing_package_json", failures)
         self.assertIn("dependency_failure", failures)
@@ -3380,14 +3382,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_npm_enoent_package_json_classified_missing_package_json(self) -> None:
         finalize = {"test_result": {"status": "failed", "stderr_tail": "npm ERR! enoent Could not read package.json"}}
-        failures = run_local_pipeline.classify_post_build_failures(finalize)
+        failures = run_local_pipeline_impl.classify_post_build_failures(finalize)
 
         self.assertIn("missing_package_json", failures)
 
     def test_missing_package_json_targets_package_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = make_temp_candidate_project(pathlib.Path(temp_dir))
-            plan = run_local_pipeline.compile_post_build_repair_plan(
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(
                 project,
                 {"test_result": {"status": "failed", "stderr_tail": "missing required file: package.json"}, "screenshots": []},
             )
@@ -3399,7 +3401,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
-            plan = run_local_pipeline.compile_post_build_repair_plan(
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(
                 project,
                 {"test_result": {"status": "failed", "stderr_tail": "npm ERR! enoent package.json not found"}, "screenshots": []},
             )
@@ -3411,11 +3413,11 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_missing_package_json_can_generate_minimal_package_when_sources_exist(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project = make_temp_candidate_project(pathlib.Path(temp_dir))
-            plan = run_local_pipeline.compile_post_build_repair_plan(
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(
                 project,
                 {"test_result": {"status": "failed", "stderr_tail": "Could not read package.json"}, "screenshots": []},
             )
-            result = run_local_pipeline.apply_deterministic_post_build_repair(project, plan)
+            result = run_local_pipeline_impl.apply_deterministic_post_build_repair(project, plan)
             package_doc = json.loads((project / "package.json").read_text(encoding="utf-8"))
 
         self.assertIn("package.json", result["changed_files"])
@@ -3433,7 +3435,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             "screenshots": [],
         }
 
-        failures = run_local_pipeline.classify_post_build_failures(finalize)
+        failures = run_local_pipeline_impl.classify_post_build_failures(finalize)
 
         self.assertIn("module_system_failure", failures)
         self.assertIn("windows_esm_path_import", failures)
@@ -3453,7 +3455,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            changed = run_local_pipeline.repair_windows_esm_path_import_file(target)
+            changed = run_local_pipeline_impl.repair_windows_esm_path_import_file(target)
             updated = target.read_text(encoding="utf-8")
 
         self.assertTrue(changed)
@@ -3471,7 +3473,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             ]
         )
 
-        updated, changed = run_local_pipeline.rewrite_windows_esm_dynamic_imports(source)
+        updated, changed = run_local_pipeline_impl.rewrite_windows_esm_dynamic_imports(source)
 
         self.assertFalse(changed)
         self.assertEqual(source, updated)
@@ -3494,7 +3496,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshots": [],
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("windows_esm_path_import", plan["failure_types"])
         self.assertEqual([], plan["provider_actions"])
@@ -3502,8 +3504,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("scripts/run-tests.mjs", plan["target_files"])
 
     def test_windows_esm_repair_reruns_npm_test(self) -> None:
-        original_repair = run_local_pipeline.provider_post_build_file_repair
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_repair = run_local_pipeline_impl.provider_post_build_file_repair
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         calls = {"finalize": 0, "provider": 0}
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -3523,10 +3525,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 calls["finalize"] += 1
                 return {"status": "pass", "test_result": {"status": "pass", "argv": ["npm", "test"]}, "screenshots": ["shot.png"], "known_limits": []}
 
-            run_local_pipeline.provider_post_build_file_repair = fake_repair
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.provider_post_build_file_repair = fake_repair
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             try:
-                result = run_local_pipeline.run_candidate_post_build_repair_loop(
+                result = run_local_pipeline_impl.run_candidate_post_build_repair_loop(
                     candidate_dir=project,
                     run_dir=run_dir,
                     user_goal="修 Windows ESM import",
@@ -3536,7 +3538,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                     routing_policy=None,
                     initial_post_build={
@@ -3547,8 +3549,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     max_attempts=1,
                 )
             finally:
-                run_local_pipeline.provider_post_build_file_repair = original_repair
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.provider_post_build_file_repair = original_repair
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
             updated = (project / "scripts" / "run-tests.mjs").read_text(encoding="utf-8")
 
@@ -3567,7 +3569,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             "screenshots": [],
         }
 
-        failures = run_local_pipeline.classify_post_build_failures(finalize)
+        failures = run_local_pipeline_impl.classify_post_build_failures(finalize)
 
         self.assertIn("dependency_failure", failures)
         self.assertIn("missing_test_runner", failures)
@@ -3584,7 +3586,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "screenshots": [],
             }
 
-            plan = run_local_pipeline.compile_post_build_repair_plan(project, finalize)
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
 
         self.assertIn("missing_vitest", plan["failure_types"])
         self.assertEqual([], plan["provider_actions"])
@@ -3596,7 +3598,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             project.mkdir()
             (project / "package.json").write_text(json.dumps({"scripts": {"test": "vitest run"}}), encoding="utf-8")
 
-            changed = run_local_pipeline.repair_missing_vitest_with_node_runner(project)
+            changed = run_local_pipeline_impl.repair_missing_vitest_with_node_runner(project)
             package_doc = json.loads((project / "package.json").read_text(encoding="utf-8"))
 
         self.assertIn("package.json", changed)
@@ -3604,7 +3606,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("node scripts/test.js", package_doc["scripts"]["test"])
 
     def test_missing_vitest_repair_reruns_npm_test(self) -> None:
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         calls = {"finalize": 0}
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -3617,9 +3619,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 calls["finalize"] += 1
                 return {"status": "pass", "test_result": {"status": "pass", "argv": ["npm", "test"]}, "screenshots": ["shot.png"], "known_limits": []}
 
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             try:
-                result = run_local_pipeline.run_candidate_post_build_repair_loop(
+                result = run_local_pipeline_impl.run_candidate_post_build_repair_loop(
                     candidate_dir=project,
                     run_dir=run_dir,
                     user_goal="修 vitest",
@@ -3629,7 +3631,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                     routing_policy=None,
                     initial_post_build={
@@ -3640,7 +3642,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     max_attempts=1,
                 )
             finally:
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
             package_doc = json.loads((project / "package.json").read_text(encoding="utf-8"))
 
@@ -3651,7 +3653,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_tests_not_passed_writes_screenshot_blocked_and_review_summary(self) -> None:
         import scripts.post_build_finalize as post_build_finalize_module
 
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         with tempfile.TemporaryDirectory() as temp_dir:
             project = pathlib.Path(temp_dir) / "candidate"
             project.mkdir()
@@ -3665,7 +3667,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     "video_blocked": str(project / "video_blocked.json"),
                 }
 
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
             try:
                 result = post_build_finalize_module.run(
                     project_dir=project,
@@ -3677,12 +3679,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=pathlib.Path(temp_dir) / "phase.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={},
                     routing_policy=None,
                 )
             finally:
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
             self.assertEqual("needs_rework", result["status"])
             self.assertTrue((project / "screenshot_blocked.json").exists())
@@ -3697,21 +3699,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             project.mkdir()
 
             with self.assertRaisesRegex(RuntimeError, "binary artifact|non-target|fake delivery"):
-                run_local_pipeline.validate_post_build_repair_files(
+                run_local_pipeline_impl.validate_post_build_repair_files(
                     project,
                     [{"path": "final_project_bundle.zip", "content": "not real"}],
                     ["scripts/test.js"],
                 )
             with self.assertRaisesRegex(RuntimeError, "non-target|fake delivery|final delivery"):
-                run_local_pipeline.validate_post_build_repair_files(
+                run_local_pipeline_impl.validate_post_build_repair_files(
                     project,
                     [{"path": "delivery_manifest.json", "content": "{}"}],
                     ["delivery_manifest.json"],
                 )
 
     def test_post_build_repair_reruns_finalize(self) -> None:
-        original_repair = run_local_pipeline.provider_post_build_file_repair
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        import post_build_finalize as post_build_finalize_module
+
+        original_repair = run_local_pipeline_impl.provider_post_build_file_repair
+        original_finalize = post_build_finalize_module.run
         calls = {"finalize": 0}
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -3728,10 +3732,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 calls["finalize"] += 1
                 return {"status": "pass", "test_result": {"status": "pass", "argv": ["npm", "test"]}, "screenshots": ["shot.png"], "known_limits": []}
 
-            run_local_pipeline.provider_post_build_file_repair = fake_repair
-            run_local_pipeline.run_candidate_post_build_finalize = fake_finalize
+            run_local_pipeline_impl.provider_post_build_file_repair = fake_repair
+            post_build_finalize_module.run = fake_finalize
             try:
-                result = run_local_pipeline.run_candidate_post_build_repair_loop(
+                result = run_local_pipeline_impl.run_candidate_post_build_repair_loop(
                     candidate_dir=project,
                     run_dir=run_dir,
                     user_goal="做任务看板",
@@ -3741,22 +3745,22 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                     routing_policy=None,
                     initial_post_build={"status": "needs_rework", "test_result": {"status": "failed", "stderr_tail": "scripts/test.js AssertionError"}, "screenshots": []},
                     max_attempts=2,
                 )
             finally:
-                run_local_pipeline.provider_post_build_file_repair = original_repair
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.provider_post_build_file_repair = original_repair
+                post_build_finalize_module.run = original_finalize
 
         self.assertEqual(1, calls["finalize"])
         self.assertEqual("pass", result["status"])
         self.assertEqual("scripts/test.js", result["post_build_repair_result"]["provider"]["changed_files"][0])
 
     def test_post_build_repair_can_advance_needs_rework_to_ask_user_review(self) -> None:
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=True,
             hard_fact_blockers=[],
             runtime_blockers=[],
@@ -3771,8 +3775,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("ASK_USER_REVIEW", verdict)
 
     def test_post_build_repair_attempt_limit(self) -> None:
-        original_repair = run_local_pipeline.provider_post_build_file_repair
-        original_finalize = run_local_pipeline.run_candidate_post_build_finalize
+        original_repair = run_local_pipeline_impl.provider_post_build_file_repair
+        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project = root / "candidate"
@@ -3780,10 +3784,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             (project / "scripts").mkdir(parents=True)
             (project / "scripts" / "test.js").write_text("throw new Error('old')\n", encoding="utf-8")
 
-            run_local_pipeline.provider_post_build_file_repair = lambda **kwargs: {"status": "applied", "changed_files": ["scripts/test.js"]}
-            run_local_pipeline.run_candidate_post_build_finalize = lambda **kwargs: {"status": "needs_rework", "test_result": {"status": "failed", "stderr_tail": "scripts/test.js still failing"}, "screenshots": []}
+            run_local_pipeline_impl.provider_post_build_file_repair = lambda **kwargs: {"status": "applied", "changed_files": ["scripts/test.js"]}
+            run_local_pipeline_impl.run_candidate_post_build_finalize = lambda **kwargs: {"status": "needs_rework", "test_result": {"status": "failed", "stderr_tail": "scripts/test.js still failing"}, "screenshots": []}
             try:
-                result = run_local_pipeline.run_candidate_post_build_repair_loop(
+                result = run_local_pipeline_impl.run_candidate_post_build_repair_loop(
                     candidate_dir=project,
                     run_dir=run_dir,
                     user_goal="做任务看板",
@@ -3793,20 +3797,20 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     model="unused",
                     timeout=30,
                     phase_log_path=run_dir / "provider_phase_log.jsonl",
-                    deadline=run_local_pipeline.ProgressDeadline(time.time() + 60, extension_seconds=60),
+                    deadline=run_local_pipeline_impl.ProgressDeadline(time.time() + 60, extension_seconds=60),
                     classifications={"fatal_fact_blocker": [], "repairable_fact_blocker": [], "hard_fact_blocker": [], "runtime_blocker": [], "quality_blocker": [], "warning": []},
                     routing_policy=None,
                     initial_post_build={"status": "needs_rework", "test_result": {"status": "failed", "stderr_tail": "scripts/test.js failing"}, "screenshots": []},
                     max_attempts=1,
                 )
             finally:
-                run_local_pipeline.provider_post_build_file_repair = original_repair
-                run_local_pipeline.run_candidate_post_build_finalize = original_finalize
+                run_local_pipeline_impl.provider_post_build_file_repair = original_repair
+                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
 
         self.assertEqual(1, len(result["post_build_repair_history"]))
 
     def test_video_blocked_is_warning_not_fact_blocker(self) -> None:
-        classes = run_local_pipeline.classify_semantic_blockers({"status": "fail", "issues": ["video_blocked: demo video was not produced"]})
+        classes = run_local_pipeline_impl.classify_semantic_blockers({"status": "fail", "issues": ["video_blocked: demo video was not produced"]})
 
         self.assertEqual([], classes["fatal_fact_blocker"])
         self.assertEqual([], classes["repairable_fact_blocker"])
@@ -3814,7 +3818,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_provider_generated_final_bundle_never_counts_as_packager_zip(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "binary artifact"):
-            run_local_pipeline.validate_provider_files(
+            run_local_pipeline_impl.validate_provider_files(
                 {"files": [{"path": "final_project_bundle.zip", "content": "PK fake zip bytes"}]}
             )
 
@@ -3823,17 +3827,17 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             run_dir = pathlib.Path(temp_dir) / "run"
             checkpoint = run_dir / "artifacts" / "provider_components"
             checkpoint.mkdir(parents=True)
-            run_local_pipeline.write_json(
+            run_local_pipeline_impl.write_json(
                 checkpoint / "frontend_files.json",
                 {"component_id": "frontend", "files": [{"path": "src/app.js", "content": "console.log('ok')\n"}]},
             )
 
-            files = run_local_pipeline.recover_candidate_files_from_checkpoints(run_dir, [])
+            files = run_local_pipeline_impl.recover_candidate_files_from_checkpoints(run_dir, [])
 
         self.assertEqual([{"path": "src/app.js", "content": "console.log('ok')\n"}], files)
 
     def test_delivered_status_still_requires_actual_sent_artifacts(self) -> None:
-        verdict = run_local_pipeline.decide_adaptive_final_verdict(
+        verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(
             candidate_materialized=True,
             hard_fact_blockers=[],
             runtime_blockers=[],
@@ -3849,7 +3853,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("ASK_USER_REVIEW", verdict)
 
     def test_semantic_blockers_are_classified(self) -> None:
-        classes = run_local_pipeline.classify_semantic_blockers(
+        classes = run_local_pipeline_impl.classify_semantic_blockers(
             {
                 "status": "fail",
                 "issues": [

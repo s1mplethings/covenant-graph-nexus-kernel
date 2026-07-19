@@ -27,10 +27,13 @@ def _legacy() -> Any:
     top_level = sys.modules.get("run_local_pipeline")
     if top_level is not None and hasattr(top_level, "real_image_file"):
         return top_level
+    implementation = sys.modules.get("scripts.run_local_pipeline_impl")
+    if implementation is not None:
+        return implementation
     try:
-        return importlib.import_module("run_local_pipeline")
+        return importlib.import_module("scripts.run_local_pipeline_impl")
     except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
+        return importlib.import_module("run_local_pipeline_impl")
 
 
 def _legacy_call(name: str, *args: Any, **kwargs: Any) -> Any:

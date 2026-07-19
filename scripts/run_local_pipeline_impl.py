@@ -2261,6 +2261,8 @@ def provider_generate_project_by_components(
             cached = load_provider_component_checkpoint(checkpoint_dir, component_id=component_id, spec_hash=spec_hash)
         if cached is not None:
             result, files = cached
+            result = dict(result)
+            result["files"] = files
             prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
             component_results.append(result)
             completed_components.append(component_id)

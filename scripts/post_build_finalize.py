@@ -25,10 +25,13 @@ def _legacy() -> Any:
     top_level = sys.modules.get("run_local_pipeline")
     if top_level is not None and hasattr(top_level, "run_candidate_post_build_finalize"):
         return top_level
+    implementation = sys.modules.get("scripts.run_local_pipeline_impl")
+    if implementation is not None and hasattr(implementation, "run_candidate_post_build_finalize"):
+        return implementation
     try:
-        return importlib.import_module("run_local_pipeline")
+        return importlib.import_module("scripts.run_local_pipeline_impl")
     except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
+        return importlib.import_module("run_local_pipeline_impl")
 
 
 def run(**kwargs: Any) -> dict[str, Any]:
