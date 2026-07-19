@@ -101,7 +101,7 @@ def test_actionable_waiting_and_grounded_text_do_not_use_blocking_copy() -> None
     assert "交付重点是界面、文件导出、还是自动化流程" not in combined
 
 
-def test_public_delivery_judgment_turns_requested_asset_gaps_into_review_warnings() -> None:
+def test_public_delivery_judgment_blocks_requested_asset_gaps() -> None:
     session = bridge.default_session("chat-generic-gate")
     session["whiteboard"]["project_summary"] = "做一个本地素材处理工具，需要界面截图、生成图片、视频预览、报告和项目包"
     session["whiteboard"]["delivery_requirements"] = ["界面截图", "生成图片", "视频预览", "报告", "项目包"]
@@ -123,9 +123,9 @@ def test_public_delivery_judgment_turns_requested_asset_gaps_into_review_warning
 
         gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
 
-    assert gate["delivery_allowed"] is True
-    assert gate["verdict"] == "ASK_USER_REVIEW"
+    assert gate["delivery_allowed"] is False
+    assert gate["verdict"] == "NEEDS_REWORK"
     assert gate["is_final"] is False
-    for missing in ("delivery_zip", "screenshots", "generated_images", "videos"):
-        assert missing in gate["missing"]
-    assert gate["user_visible_warnings"]
+    assert gate["judgment_source"] == "canonical_evidence_gate"
+    assert gate["missing"]
+    assert gate["required_repairs"]

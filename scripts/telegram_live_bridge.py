@@ -2182,7 +2182,15 @@ def mark_public_delivery_rework(
     gate: dict[str, Any],
 ) -> None:
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    generation.update({"status": "rework_blocked", "delivery_allowed": False, "delivery_gate": gate, "project_dir": str(project_dir)})
+    generation.update(
+        {
+            "status": "rework_blocked",
+            "delivery_allowed": False,
+            "delivery_gate": gate,
+            "project_dir": str(project_dir),
+            "package_path": "",
+        }
+    )
     session["generation"] = generation
     update_active_run_status(session, "rework_blocked", delivery_allowed=False, delivery_gate=gate, project_dir=str(project_dir))
     record_public_delivery_gate(session_dir, session, gate, project_dir)
@@ -7129,7 +7137,7 @@ def run_provider_generation_job(
                 "agent_session_path": str(agent_session_path(session_dir, chat_id)),
                 "project_dir": str(project_dir),
                 "manifest_path": str(manifest.get("manifest_path", "")),
-                "package_path": str(manifest.get("package_path", "")),
+                "package_path": "",
                 "build_integrity_audit": artifact_audit,
                 "qa_integrity_audit": finalize.get("test_result", {}),
                 "post_build_finalize": finalize,

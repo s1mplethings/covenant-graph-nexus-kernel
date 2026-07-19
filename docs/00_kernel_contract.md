@@ -45,6 +45,8 @@ CGKN Kernel is fixed responsible for:
 
 Replaceable support-lane modules may be changed only through reviewed repository changes that preserve their declared `contract()` boundary. This includes directly modifying, generating, or deleting bounded modules. truth modules—canonical evidence producers, inspectors, package and delivery gates—are not replaceable support modules and cannot be bypassed by a candidate bundle or module stub. A candidate bundle remains non-final until the canonical mainline independently validates and promotes it.
 
+When the public delivery gate returns `rework_blocked`, Telegram session state must clear `generation.package_path`. A rejected or superseded package may remain on disk for diagnostics, but its path cannot remain advertised as a deliverable session artifact.
+
 ## Kernel Prohibitions
 
 CGKN Kernel must not:

@@ -32,6 +32,8 @@ DEFAULT_GENERATED_DIR = _impl.DEFAULT_GENERATED_DIR
 DEFAULT_RUN_DIR = _impl.DEFAULT_RUN_DIR
 DEFAULT_RESULT_PATH = _impl.DEFAULT_RESULT_PATH
 GENERATION_POLICY = _impl.GENERATION_POLICY
+# Stable source-visible contract marker used by mutation guards and reviewers.
+GENERATION_AUTHORITY = "api_provider_for_delivery_simulator_for_preflight_only"
 
 RUNNABLE_ENTRYPOINTS = {"app.py", "main.py", "package.json", "index.html"}
 SOURCE_SUFFIXES = {".py", ".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".vue", ".svelte"}

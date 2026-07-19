@@ -363,6 +363,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("dynamic_pipeline_runner", doc)
         self.assertIn("local_packager", doc)
 
+    def test_rework_blocked_clears_session_package_path(self) -> None:
+        doc = read_source("docs/00_kernel_contract.md")
+        bridge = read_source("scripts/telegram_live_bridge.py")
+        marker = function_body(bridge, "mark_public_delivery_rework")
+
+        self.assertIn("must clear `generation.package_path`", doc)
+        self.assertIn('"package_path": ""', marker)
+
     def test_malformed_agent_json_recovery_stays_inside_manifest_step(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         runner = read_source("scripts/dynamic_pipeline_runner.py")
