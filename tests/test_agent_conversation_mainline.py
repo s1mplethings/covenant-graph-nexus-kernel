@@ -125,9 +125,15 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
 
-            self.assertIn("chat-b", str(called["project_dir"]))
-            self.assertEqual([], client.documents)
             saved = bridge.load_session(session_dir, "chat-b")
+            provider_staging = pathlib.Path(str(called["project_dir"])).resolve()
+            final_candidate = pathlib.Path(
+                saved["generation"]["project_dir"]
+            ).resolve()
+            self.assertEqual("provider_response_staging", provider_staging.parent.name)
+            self.assertEqual(saved["generation"]["run_id"], provider_staging.name)
+            self.assertNotEqual(final_candidate, provider_staging)
+            self.assertEqual([], client.documents)
             self.assertNotIn(saved.get("generation", {}).get("status"), {"delivered", "delivered_with_warnings"})
             self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 

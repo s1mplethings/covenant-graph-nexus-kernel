@@ -199,6 +199,39 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Session/context booleans", contract)
         self.assertIn("short-circuits canonical evidence inspection", contract)
 
+    def test_provider_response_is_staged_and_causally_applied_before_evidence(self) -> None:
+        source = read_source("scripts/telegram_live_bridge.py")
+        provider_job = function_body(source, "run_provider_generation_job")
+        finalize = function_body(source, "post_build_finalize_provider_project")
+        contract = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("provider_response_staging", provider_job)
+        self.assertIn("out_dir=str(provider_staging_dir)", provider_job)
+        self.assertIn("provider_causal_trace.begin_provider_request", provider_job)
+        self.assertIn("provider_causal_trace.consume_provider_response", provider_job)
+        self.assertIn("provider_causal_trace.finalize", finalize)
+        self.assertLess(
+            provider_job.find("provider_causal_trace.begin_provider_request"),
+            provider_job.find("run_provider_execute_with_retries"),
+        )
+        self.assertLess(
+            provider_job.find("provider_causal_trace.consume_provider_response"),
+            provider_job.find("validate_provider_generation_output"),
+        )
+        self.assertIn("CGKNProviderCausalTrace", contract)
+        self.assertIn("direct provider writes to the final candidate cannot substitute", contract)
+
+    def test_candidate_hash_prunes_excluded_environment_directories(self) -> None:
+        source = read_source("scripts/canonical_evidence_hash.py")
+        contract = read_source("docs/00_kernel_contract.md")
+
+        iterator = function_body(source, "iter_candidate_source_files")
+        self.assertIn("os.walk(project, followlinks=False)", iterator)
+        self.assertIn("ROOT_TOOL_DIRS", iterator)
+        self.assertIn("ANY_DEPTH_CACHE_DIRS", iterator)
+        self.assertIn(".cgkn_test_env", contract)
+        self.assertIn("must not be recursively scanned", contract)
+
     def test_support_pipeline_manifest_required_before_dynamic_runner(self) -> None:
         body = function_body(read_source("scripts/telegram_live_bridge.py"), "run_agent_generation_job")
 

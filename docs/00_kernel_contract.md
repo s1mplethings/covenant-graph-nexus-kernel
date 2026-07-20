@@ -73,9 +73,11 @@ Telegram
 -> agent_session.jsonl
 -> whiteboard / backend_dialogue_loop
 -> API/provider project generation
+-> provider response staging
+-> canonical response -> decision -> patch -> production-candidate application
 -> provider output validation
--> provider project files written
 -> post_build_finalize
+-> production-candidate provenance + provider causal trace
 -> canonical test/runtime/visual evidence
 -> user review when required
 -> local_packager
@@ -92,6 +94,10 @@ The kernel is stable. The pipeline is agent-generated per project. The project i
 CGKN Telegram default generation uses API/provider project generation as the formal project-file generator. The provider route must write real project files, validate provider output, run post-build finalization, produce canonical test/runtime/visual evidence, record required user review, package through `local_packager`, pass public delivery gate, record delivery receipts, and write the canonical final verdict before claiming completion.
 
 Before canonical test/runtime/visual evidence, the formal provider route must freeze one `CGKNProductionCandidateProvenance` from `scripts.telegram_live_bridge.start_generation_from_income -> run_provider_generation_job -> provider validation -> source-changing post-build`. It binds a unique run and candidate, the repository commit, the real customer candidate path, ordered self-hashed stage receipts, provider artifacts, and the independently reproducible candidate source manifest/hash. `scripts.production_candidate_provenance.inspect` must reread disk and recompute the manifest and candidate hash. Session/context booleans, `source_inspection="PASS"`, adaptive judgment, fixture output, acceptance output, and repository commit hashes cannot authorize this provenance. A provenance failure short-circuits canonical evidence inspection and adaptive delivery judgment.
+
+Canonical source enumeration prunes the same root tool environments, caches, symlinks, and junctions that are excluded from the candidate hash before descending into them. Excluded dependency environments such as `.cgkn_test_env` cannot affect the hash and must not be recursively scanned during provenance or causal-trace inspection.
+
+The provider interface writes only to a run-unique response staging directory. `scripts.telegram_live_bridge.py` is the sole formal `CGKNProviderCausalTrace` producer: before invoking the provider it freezes the request plus the production candidate's pre-provider manifest/hash; after return it refuses any out-of-band candidate mutation, freezes canonical response content, deterministically extracts implementation decisions, builds per-file hunks with byte-exact before/after content and hashes, applies those hunks to the production candidate, records the application receipt, binds any subsequent post-build source delta, and finally binds the same production provenance identity. `scripts.provider_causal_trace.inspect` rereads every artifact and the candidate from disk, reconstructs response, decisions, hunks, patch application, post-build delta, source manifests and candidate hashes, and checks the ordered provider-generation, provider-validation and post-build receipts. Provider IDs, caller booleans, session state, adaptive judgment, acceptance output, and direct provider writes to the final candidate cannot substitute for this chain.
 
 API/provider detection remains required operational support. `CGKN_OPENAI_API_KEY` may be read from the environment, `gpt-4.1-mini` smoke tests may call `https://api.gptsapi.net/v1/chat/completions`, and retryable provider transport errors such as `SSLError`, `SSLV3_ALERT_BAD_RECORD_MAC`, timeouts, connection resets, 502, 503, 504, or empty responses must be retried before declaring NEEDS_REWORK. Provider support must not write API keys to logs or project files, and must not create fake delivery assets after retry exhaustion.
 

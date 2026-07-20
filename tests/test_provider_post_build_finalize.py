@@ -25,15 +25,33 @@ import scripts.telegram_live_bridge as bridge
 def production_post_build_context(root: pathlib.Path, project: pathlib.Path):
     provenance = bridge.production_candidate_provenance
     original_root = provenance.PRODUCTION_CANDIDATE_ROOT
+    causal_provenance = bridge.provider_causal_trace.production_candidate_provenance
+    original_causal_root = causal_provenance.PRODUCTION_CANDIDATE_ROOT
     provenance.PRODUCTION_CANDIDATE_ROOT = root.resolve()
+    causal_provenance.PRODUCTION_CANDIDATE_ROOT = root.resolve()
     run_dir = root / "production_run"
     run_dir.mkdir()
+    provider_staging = root / "provider_staging"
+    provider_staging.mkdir()
+    generated_files = []
+    for source in canonical_evidence_hash.iter_candidate_source_files(project):
+        try:
+            source.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        relative = source.relative_to(project)
+        staged = provider_staging / relative
+        staged.parent.mkdir(parents=True, exist_ok=True)
+        staged.write_bytes(source.read_bytes())
+        source.unlink()
+        generated_files.append(relative.as_posix())
     provider_result_path = run_dir / "provider_generation_result.json"
     provider_result_path.write_text(
         json.dumps(
             {
                 "status": "PASS",
                 "provider_semantic_review": {"status": "pass"},
+                "generated_files": sorted(generated_files),
             }
         )
         + "\n",
@@ -44,40 +62,104 @@ def production_post_build_context(root: pathlib.Path, project: pathlib.Path):
         "candidate_id": f"candidate-{project.name}",
         "commit_sha": "0123456789abcdef0123456789abcdef01234567",
     }
-    provider_ref = {
-        "role": "provider_generation_result",
-        "ref": str(provider_result_path.resolve()),
-        "hash": canonical_evidence_hash.sha256_file(provider_result_path),
-    }
-    times = (
-        ("2026-07-19T00:00:00+00:00", "2026-07-19T00:00:01+00:00"),
-        ("2026-07-19T00:00:02+00:00", "2026-07-19T00:00:03+00:00"),
-        ("2026-07-19T00:00:04+00:00", "2026-07-19T00:00:05+00:00"),
-    )
     receipts = {}
     try:
-        for index, stage in enumerate(provenance.STAGE_ORDER[:3]):
-            receipts[stage] = provenance.write_stage_receipt(
-                run_dir,
-                stage=stage,
-                run_id=identity["run_id"],
-                candidate_id=identity["candidate_id"],
-                commit_sha=identity["commit_sha"],
-                candidate_root=project,
-                started_at=times[index][0],
-                finished_at=times[index][1],
-                artifact_refs=[provider_ref]
-                if stage in {"provider_generation", "provider_validation"}
-                else [],
+        entry_started = bridge.now()
+        receipts["production_entry"] = provenance.write_stage_receipt(
+            run_dir,
+            stage="production_entry",
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=project,
+            started_at=entry_started,
+            finished_at=bridge.now(),
+        )
+        generation_started = bridge.now()
+        request_capture = bridge.provider_causal_trace.begin_provider_request(
+            candidate_dir=project,
+            production_run_dir=run_dir,
+            identity=identity,
+            goal="provider post-build integration fixture",
+            model="reproducible-provider",
+            request_started_at=generation_started,
+        )
+        capture = bridge.provider_causal_trace.consume_provider_response(
+            candidate_dir=project,
+            provider_staging_dir=provider_staging,
+            production_run_dir=run_dir,
+            provider_result_path=provider_result_path,
+            identity=identity,
+            provider_request_capture=request_capture,
+            response_received_at=bridge.now(),
+        )
+        provider_result = json.loads(provider_result_path.read_text(encoding="utf-8"))
+        provider_result.update(
+            {
+                "project_dir": str(project.resolve()),
+                "provider_staging_dir": str(provider_staging.resolve()),
+                "provider_causal_artifacts": {
+                    key: str(value) if isinstance(value, pathlib.Path) else value
+                    for key, value in capture.items()
+                },
+            }
+        )
+        provider_result_path.write_text(
+            json.dumps(provider_result, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        provider_ref = {
+            "role": "provider_generation_result",
+            "ref": str(provider_result_path.resolve()),
+            "hash": canonical_evidence_hash.sha256_file(provider_result_path),
+        }
+        causal_refs = [
+            {
+                "role": role,
+                "ref": str(pathlib.Path(capture[key]).resolve()),
+                "hash": canonical_evidence_hash.sha256_file(capture[key]),
+            }
+            for role, key in (
+                ("provider_request", "request_ref"),
+                ("provider_response", "response_ref"),
+                ("implementation_decision", "decision_ref"),
+                ("implementation_patch", "patch_ref"),
+                ("patch_application", "application_ref"),
             )
+        ]
+        receipts["provider_generation"] = provenance.write_stage_receipt(
+            run_dir,
+            stage="provider_generation",
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=project,
+            started_at=generation_started,
+            finished_at=bridge.now(),
+            artifact_refs=[provider_ref, *causal_refs],
+        )
+        validation_started = bridge.now()
+        receipts["provider_validation"] = provenance.write_stage_receipt(
+            run_dir,
+            stage="provider_validation",
+            run_id=identity["run_id"],
+            candidate_id=identity["candidate_id"],
+            commit_sha=identity["commit_sha"],
+            candidate_root=project,
+            started_at=validation_started,
+            finished_at=bridge.now(),
+            artifact_refs=[provider_ref, *causal_refs],
+        )
         yield {
             "production_identity": identity,
             "production_run_dir": run_dir,
             "stage_receipts": receipts,
             "provider_result_path": provider_result_path,
+            "provider_causal_capture": capture,
         }
     finally:
         provenance.PRODUCTION_CANDIDATE_ROOT = original_root
+        causal_provenance.PRODUCTION_CANDIDATE_ROOT = original_causal_root
 
 
 class ProviderPostBuildFinalizeTests(unittest.TestCase):

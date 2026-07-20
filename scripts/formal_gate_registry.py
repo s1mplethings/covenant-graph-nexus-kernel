@@ -12,6 +12,7 @@ from scripts import canonical_user_review
 from scripts import customer_runtime_runner
 from scripts import real_test_execution
 from scripts import production_candidate_provenance
+from scripts import provider_causal_trace
 
 FORMAL_GATE_STATUS_PRODUCER = "scripts/formal_mainline_acceptance.py"
 FORMAL_GATE_STATUS_KIND = "CGKNFormalGateStatus"
@@ -93,8 +94,8 @@ GATE_SPECS: dict[str, dict[str, Any]] = {
     "recovery": {"scope": "candidate", "producer": "", "inspector": "", "artifact": ""},
     "provider_causal_trace": {
         "scope": "candidate",
-        "producer": "scripts/agent_real_provider_leaf_builder.py",
-        "inspector": "",
+        "producer": "scripts/telegram_live_bridge.py",
+        "inspector": "scripts.provider_causal_trace.inspect",
         "artifact": "provider_causal_trace.json",
     },
     "collaboration_timing": {"scope": "candidate", "producer": "", "inspector": "", "artifact": ""},
@@ -298,6 +299,15 @@ def inspect_source(
             )
     elif gate == "full_all":
         inspection = inspect_full_all(path, commit_sha=expected_identity["commit_sha"])
+    elif gate == "provider_causal_trace":
+        inspection = provider_causal_trace.inspect(
+            path,
+            expected_production_run_dir=path.parent,
+            expected_run_id=expected_identity["run_id"],
+            expected_candidate_id=expected_identity["candidate_id"],
+            expected_candidate_hash=expected_identity["candidate_hash"],
+            expected_commit_sha=expected_identity["commit_sha"],
+        )
     else:
         inspection = {"status": "NOT_EVALUATED", "failures": ["formal_inspector_unavailable"]}
     inspection_status = str(inspection.get("status") or inspection.get("verdict") or "NOT_EVALUATED")

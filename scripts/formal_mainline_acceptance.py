@@ -107,7 +107,6 @@ def _candidate_identity(candidate_dir: pathlib.Path | None, commit_sha: str) -> 
             "user_review.json",
             "delivery_manifest.json",
             "delivery_receipt.json",
-            "provider_causal_trace.json",
         )
         if (candidate_dir / name).is_file()
     ]
@@ -145,6 +144,9 @@ def _source_for_gate(
     if gate == "full_all":
         return full_all_result
     artifact = str(spec.get("artifact", "")).strip()
+    if gate == "provider_causal_trace" and production_run_dir is not None:
+        run_source = production_run_dir / artifact
+        return run_source if run_source.is_file() else None
     if artifact and candidate_dir is not None:
         candidate_source = candidate_dir / artifact
         if candidate_source.is_file():
@@ -349,12 +351,16 @@ def build_acceptance(
             production_provenance_ref=str(
                 provenance.get("provenance_ref", "")
             )
-            if gate in formal_gate_registry.PROVENANCE_BOUND_GATES
+            if gate
+            in formal_gate_registry.PROVENANCE_BOUND_GATES
+            | {"provider_causal_trace"}
             else "",
             production_provenance_hash=str(
                 provenance.get("provenance_hash", "")
             )
-            if gate in formal_gate_registry.PROVENANCE_BOUND_GATES
+            if gate
+            in formal_gate_registry.PROVENANCE_BOUND_GATES
+            | {"provider_causal_trace"}
             else "",
             production_provenance_inspection=inspection.get(
                 "provenance_inspection", {}

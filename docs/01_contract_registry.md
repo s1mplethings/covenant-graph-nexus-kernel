@@ -70,6 +70,7 @@ final_delivered
 | Artifact kind | Schema | Producer | Formal consumers | Mainline | Status enum | Required fields | Legacy replacement |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `CGKNProductionCandidateProvenance` | `schemas/production_candidate_provenance_v1.schema.json` | `scripts/telegram_live_bridge.py` | canonical test/runtime/visual producers, public delivery gate, formal mainline acceptance | yes, frozen after provider validation and source-changing post-build work | canonical EvidenceStatus | envelope, production entrypoint and generation function, run/candidate/commit identity, canonical candidate path, independently reproducible source manifest/hash, ordered self-hashed production stage receipts, provider result ref/hash | replaces session booleans, wrapper declarations, provider diagnostics, repository commit hashes, and acceptance-created provenance claims |
+| `CGKNProviderCausalTrace` | `schemas/provider_causal_trace_v1.schema.json` | `scripts/telegram_live_bridge.py` | canonical test/runtime/visual gate ordering, public delivery gate, formal mainline acceptance | yes, provider response staging through final production candidate | canonical EvidenceStatus | request and response content identity/hash, deterministic decisions and decision hash, per-file patch hunks and hashes, byte-exact application receipt, before/patch-after/final source hashes, post-build delta, run/candidate/commit/root identity, production provenance | replaces request/response IDs, provider-consumed booleans, direct final-candidate provider writes, wrapper PASS, and post-hoc patch claims |
 | `CGKNTestExecutionEvidence` | `schemas/test_execution_v1.schema.json` | `scripts/real_test_execution.py` | post-build finalization, public delivery gate, final verdict | yes | canonical EvidenceStatus | envelope, argv, cwd, environment, run/candidate/commit IDs, timing, exit code, counts, categorized skips, stdout/stderr refs and hashes, result hash, profile | replaces ad hoc `ok`, `commands_run`, `exit_code`, and handwritten `TEST_REPORT.md` truth |
 | `CGKNCustomerRuntimeEvidence` | `schemas/customer_runtime_v1.schema.json` | `scripts/customer_runtime_runner.py` | runnable project contract, visual evidence, public delivery gate, final verdict | yes | canonical EvidenceStatus | envelope, startup argv, cwd, clean environment root, dependency setup, PID, URL, health probe, customer action, expected/observed result, observed hash, shutdown result | replaces hand-written `customer_runtime.json` PASS fixtures |
 | `CGKNVisualEvidence` | `schemas/visual_evidence_v1.schema.json` | `scripts/browser_visual_evidence.py` | runtime visual evidence collector, public delivery gate, final verdict | yes when GUI/visual output is required | canonical EvidenceStatus | envelope, customer runtime ref/hash, browser engine/version, URL, actions, DOM assertions, network observations, screenshot path/hash, viewport, `formal_evidence=true` | replaces static preview PNG/SVG and placeholder screenshot sidecars |
@@ -88,9 +89,13 @@ final_delivered
 ```text
 customer request
 -> API/provider project generation
+-> provider response staging
+-> response content -> implementation decisions -> patch hunks
+-> patch application to production candidate
 -> provider output validation
 -> source-changing post-build finalization
 -> canonical production-candidate provenance
+-> canonical provider causal trace
 -> canonical test/runtime/visual evidence
 -> user review when required
 -> local_packager
@@ -106,7 +111,7 @@ customer request
 
 `scripts/formal_mainline_acceptance.py` reads existing artifacts only. It never runs a project team, replan, recovery, provider, packager, Telegram sender, or provenance producer. `candidate_hash` is the canonical customer source hash; repository `commit_sha` is a separate repository-scoped identity.
 
-The Telegram production entry assigns a unique production `run_id` and `candidate_id`, and the provider job freezes ordered `production_entry`, `provider_generation`, `provider_validation`, and `post_build` receipts. After all source-changing repair work and before canonical tests, `scripts/production_candidate_provenance.py` writes `production_candidate_provenance.json` under that production run. Its inspector independently rereads every referenced artifact, validates time and identity continuity, rejects path escape and reparse links, and recomputes both the source manifest hash and the sole canonical candidate source hash. Test, runtime, and visual Gates cannot run their evidence inspector until this provenance inspector passes; a caller boolean or `source_inspection="PASS"` has no authority.
+The Telegram production entry assigns a unique production `run_id` and `candidate_id`, and the provider job freezes ordered `production_entry`, `provider_generation`, `provider_validation`, and `post_build` receipts. The provider writes response files to run-unique staging; the bridge freezes request/response content, derives decisions and hunks, and applies them to the production candidate before validation. After source-changing repair work and before canonical tests, `scripts/production_candidate_provenance.py` writes `production_candidate_provenance.json`, and the bridge finalizes `provider_causal_trace.json`, under that production run. Their inspectors independently reread every referenced artifact, validate time and identity continuity, reject path escape and reparse links, reconstruct patch application and post-build delta, and recompute the source manifest and sole canonical candidate source hash. Test, runtime, and visual Gates cannot run their evidence inspector until both provenance and causal trace pass; caller booleans or `source_inspection="PASS"` have no authority.
 
 | Gate | Scope | Authoritative producer | Inspector | Source artifact | Current formal availability |
 | --- | --- | --- | --- | --- | --- |
@@ -118,7 +123,7 @@ The Telegram production entry assigns a unique production `run_id` and `candidat
 | delivery manifest | candidate | `scripts/local_packager.py` | `scripts.canonical_delivery_manifest.inspect_canonical_delivery_manifest` | `delivery_manifest.json`, final ZIP, evidence refs | available |
 | delivery receipt | candidate | `scripts/canonical_delivery_receipt.py` | `scripts.canonical_delivery_receipt.inspect_canonical_delivery_receipt` | `delivery_receipt.json`, manifest, package, exact Telegram receipts | available with frozen send expectations |
 | full_all | repository | `scripts/run_test_profile.py` | `scripts.formal_gate_registry.inspect_full_all` | `full_all_result.json`, stdout/stderr hashes | available |
-| provider causal trace | candidate | `scripts/agent_real_provider_leaf_builder.py` | none registered | `provider_causal_trace.json` | `NOT_EVALUATED` |
+| provider causal trace | candidate | `scripts/telegram_live_bridge.py` | `scripts.provider_causal_trace.inspect` | `provider_causal_trace.json` plus bound request/response/decision/patch/application/provenance artifacts | available for a formal provider run; otherwise `NOT_EVALUATED` |
 | leaf profile | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
 | workspace truth | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |
 | replan | candidate | none registered | none registered | none registered | `NOT_EVALUATED` |

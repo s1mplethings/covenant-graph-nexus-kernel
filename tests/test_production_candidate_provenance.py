@@ -15,6 +15,7 @@ from scripts import canonical_evidence_hash
 from scripts import formal_gate_registry
 from scripts import formal_mainline_acceptance
 from scripts import production_candidate_provenance
+from scripts import provider_causal_trace
 from scripts import telegram_live_bridge
 
 
@@ -110,6 +111,33 @@ def _valid_provenance(tmp_path: pathlib.Path) -> dict:
         "provenance": provenance,
         "path": pathlib.Path(provenance["provenance_ref"]),
     }
+
+
+def test_candidate_source_hash_prunes_excluded_dependency_environment(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate = tmp_path / "candidate"
+    candidate.mkdir()
+    (candidate / "app.py").write_bytes(b"print('candidate')\n")
+    environment = candidate / ".cgkn_test_env"
+    (environment / "Lib" / "site-packages").mkdir(parents=True)
+    ignored = environment / "Lib" / "site-packages" / "large.py"
+    ignored.write_bytes(b"x = 1\n")
+    original_walk = canonical_evidence_hash.os.walk
+    visited: list[pathlib.Path] = []
+
+    def recording_walk(*args, **kwargs):
+        for directory, dirnames, filenames in original_walk(*args, **kwargs):
+            visited.append(pathlib.Path(directory).resolve())
+            yield directory, dirnames, filenames
+
+    monkeypatch.setattr(canonical_evidence_hash.os, "walk", recording_walk)
+    first = canonical_evidence_hash.candidate_source_hash(candidate)
+    ignored.write_bytes(b"x = 2\n")
+    second = canonical_evidence_hash.candidate_source_hash(candidate)
+
+    assert first == second
+    assert environment.resolve() not in visited
 
 
 def _inspect(case: dict, **overrides) -> dict:
@@ -600,8 +628,16 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
     )
     telegram_live_bridge.save_session(session_dir, session)
 
+    provider_out_dirs: list[pathlib.Path] = []
+
     def reproducible_provider(args):
         project = pathlib.Path(args.out_dir)
+        provider_out_dirs.append(project.resolve())
+        assert (
+            pathlib.Path(args.run_dir)
+            / provider_causal_trace.CAUSAL_DIR_NAME
+            / provider_causal_trace.REQUEST_FILE
+        ).is_file()
         project.mkdir(parents=True, exist_ok=True)
         (project / "README.md").write_text(
             "# Production candidate\n\nOpen index.html.\n", encoding="utf-8"
@@ -688,6 +724,38 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         )
         assert inspection["status"] == "PASS", inspection
         identity = inspection["identity"]
+        assert provider_out_dirs == [
+            (
+                telegram_live_bridge.ROOT
+                / "generated"
+                / "provider_response_staging"
+                / generation["run_id"]
+            ).resolve()
+        ]
+        assert provider_out_dirs[0] != candidate.resolve()
+        causal_ref = run_root / provider_causal_trace.FILE_NAME
+        causal_inspection = provider_causal_trace.inspect(
+            causal_ref,
+            expected_candidate_dir=candidate,
+            expected_production_run_dir=run_root,
+            expected_run_id=generation["run_id"],
+            expected_candidate_id=generation["candidate_id"],
+            expected_candidate_hash=identity["candidate_hash"],
+            expected_commit_sha=generation["commit_sha"],
+        )
+        assert causal_inspection["status"] == "PASS", causal_inspection
+        assert causal_inspection["identity"] == identity
+        assert causal_inspection["patch_hunk_count"] == 4
+        assert causal_inspection["response_content_hash_recomputed"].startswith(
+            "sha256:"
+        )
+        assert causal_inspection[
+            "patch_after_candidate_hash_recomputed"
+        ].startswith("sha256:")
+        assert (
+            causal_inspection["after_candidate_hash_recomputed"]
+            == identity["candidate_hash"]
+        )
         test_doc = json.loads(
             (candidate / "test_execution.json").read_text(encoding="utf-8")
         )
@@ -729,11 +797,13 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         assert {
             gate: acceptance["gates"][gate]["status"]
             for gate in (
+                "provider_causal_trace",
                 "test_execution",
                 "customer_runtime",
                 "visual_evidence",
             )
         } == {
+            "provider_causal_trace": "PASS",
             "test_execution": "PASS",
             "customer_runtime": "PASS",
             "visual_evidence": "PASS",

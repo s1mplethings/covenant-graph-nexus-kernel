@@ -50,6 +50,7 @@ import model_policy
 import project_revision_lane
 import real_test_execution
 import run_local_pipeline as provider_project_pipeline
+import provider_causal_trace
 import visual_evidence
 import pipeline_manifest as pipeline_manifest_module
 import pipeline_planner_agent
@@ -1999,6 +2000,39 @@ def evaluate_canonical_delivery_evidence(
         }
     identity = provenance_inspection["identity"]
     provenance_hash = str(provenance_inspection["provenance_hash"])
+    causal_trace_ref = (
+        pathlib.Path(str(provenance_inspection["production_run_root"]))
+        / provider_causal_trace.FILE_NAME
+    )
+    causal_trace_inspection = provider_causal_trace.inspect(
+        causal_trace_ref,
+        expected_candidate_dir=project,
+        expected_production_run_dir=provenance_inspection[
+            "production_run_root"
+        ],
+        expected_run_id=identity["run_id"],
+        expected_candidate_id=identity["candidate_id"],
+        expected_candidate_hash=identity["candidate_hash"],
+        expected_commit_sha=identity["commit_sha"],
+    )
+    if causal_trace_inspection.get("status") != "PASS":
+        return {
+            "status": "NEEDS_REWORK",
+            "production_provenance": provenance_inspection,
+            "provider_causal_trace": causal_trace_inspection,
+            "test_execution": {"status": "NOT_EVALUATED"},
+            "customer_runtime": {"status": "NOT_EVALUATED"},
+            "visual_evidence": {"status": "NOT_EVALUATED"},
+            "browser_visual_required": browser_visual_required,
+            "identity_consistent": False,
+            "missing": [],
+            "failures": sorted(
+                set(
+                    ["provider_causal_trace"]
+                    + list(causal_trace_inspection.get("failures", []))
+                )
+            ),
+        }
     test_result = real_test_execution.inspect_test_report(
         project,
         run_id=identity["run_id"],
@@ -2064,6 +2098,7 @@ def evaluate_canonical_delivery_evidence(
     return {
         "status": status,
         "production_provenance": provenance_inspection,
+        "provider_causal_trace": causal_trace_inspection,
         "test_execution": test_result,
         "customer_runtime": runtime_result,
         "visual_evidence": visual_result,
@@ -6778,6 +6813,7 @@ def post_build_finalize_provider_project(
     production_run_dir: pathlib.Path,
     stage_receipts: dict[str, pathlib.Path],
     provider_result_path: pathlib.Path,
+    provider_causal_capture: dict[str, Any],
 ) -> dict[str, Any]:
     post_build_started_at = now()
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
@@ -6878,6 +6914,13 @@ def post_build_finalize_provider_project(
     )
     provenance_ref = pathlib.Path(str(provenance["provenance_ref"])).resolve()
     provenance_hash = str(provenance["provenance_hash"])
+    causal_trace = provider_causal_trace.finalize(
+        candidate_dir=project_dir,
+        production_run_dir=production_run_dir,
+        identity=production_identity,
+        causal_capture=provider_causal_capture,
+        production_provenance_ref=provenance_ref,
+    )
     test_result = run_provider_project_tests(
         project_dir,
         timeout=240,
@@ -6983,6 +7026,7 @@ def post_build_finalize_provider_project(
         "browser_visual_required": browser_visual_required,
         "media_evidence_required": media_evidence_required,
         "production_provenance": provenance,
+        "provider_causal_trace": causal_trace,
         "manifest": manifest,
         "gate": gate,
         "ok": bool(gate.get("delivery_allowed")),
@@ -7338,6 +7382,12 @@ def run_provider_generation_job(
 
     result_path = run_dir / "provider_generation_result.json"
     phase_log_path = run_dir / "provider_phase_log.jsonl"
+    provider_staging_dir = (
+        ROOT
+        / "generated"
+        / "provider_response_staging"
+        / identity["run_id"]
+    ).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
     write_generation_context_snapshot(project_dir, snapshot)
     provider_result: dict[str, Any] = {}
@@ -7350,7 +7400,7 @@ def run_provider_generation_job(
         args = argparse.Namespace(
             plan="",
             goal=requirement,
-            out_dir=str(project_dir),
+            out_dir=str(provider_staging_dir),
             run_dir=str(run_dir),
             result=str(result_path),
             model=model,
@@ -7362,6 +7412,14 @@ def run_provider_generation_job(
             phase_log_path=str(phase_log_path),
         )
         provider_generation_started_at = now()
+        provider_request_capture = provider_causal_trace.begin_provider_request(
+            candidate_dir=project_dir,
+            production_run_dir=run_dir,
+            identity=identity,
+            goal=requirement,
+            model=model,
+            request_started_at=provider_generation_started_at,
+        )
         provider_result = run_provider_execute_with_retries(
             args,
             session_dir=session_dir,
@@ -7370,7 +7428,43 @@ def run_provider_generation_job(
         )
         if not result_path.is_file():
             write_json(result_path, provider_result)
+        provider_response_received_at = now()
+        causal_capture = provider_causal_trace.consume_provider_response(
+            candidate_dir=project_dir,
+            provider_staging_dir=provider_staging_dir,
+            production_run_dir=run_dir,
+            provider_result_path=result_path,
+            identity=identity,
+            provider_request_capture=provider_request_capture,
+            response_received_at=provider_response_received_at,
+        )
+        provider_result = dict(provider_result)
+        provider_result["project_dir"] = str(project_dir)
+        provider_result["provider_staging_dir"] = str(provider_staging_dir)
+        provider_result["provider_causal_artifacts"] = {
+            key: str(pathlib.Path(value).resolve())
+            if key.endswith("_ref")
+            else value
+            for key, value in causal_capture.items()
+        }
+        write_json(result_path, provider_result)
         provider_result_hash = canonical_evidence_hash.sha256_file(result_path)
+        causal_artifact_refs = [
+            {
+                "role": role,
+                "ref": str(pathlib.Path(causal_capture[key]).resolve()),
+                "hash": canonical_evidence_hash.sha256_file(
+                    causal_capture[key]
+                ),
+            }
+            for role, key in (
+                ("provider_request", "request_ref"),
+                ("provider_response", "response_ref"),
+                ("implementation_decision", "decision_ref"),
+                ("implementation_patch", "patch_ref"),
+                ("patch_application", "application_ref"),
+            )
+        ]
         generation_receipt = production_candidate_provenance.write_stage_receipt(
             run_dir,
             stage="provider_generation",
@@ -7385,7 +7479,8 @@ def run_provider_generation_job(
                     "role": "provider_generation_result",
                     "ref": str(result_path.resolve()),
                     "hash": provider_result_hash,
-                }
+                },
+                *causal_artifact_refs,
             ],
         )
         validation_started_at = now()
@@ -7424,6 +7519,7 @@ def run_provider_generation_job(
                         generation_receipt
                     ),
                 },
+                *causal_artifact_refs,
             ],
         )
         write_provider_phase_event(
@@ -7466,6 +7562,7 @@ def run_provider_generation_job(
                 "provider_validation": validation_receipt,
             },
             provider_result_path=result_path,
+            provider_causal_capture=causal_capture,
         )
         write_provider_phase_event(
             phase_log_path,

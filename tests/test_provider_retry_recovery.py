@@ -145,10 +145,12 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             chat_id = "chat-stage-resume"
             seed_session(session_dir, chat_id, "做一个本地任务工具")
             calls = {"count": 0}
+            provider_staging: list[pathlib.Path] = []
 
             def fake_execute(args):
                 calls["count"] += 1
                 project = pathlib.Path(args.out_dir)
+                provider_staging.append(project.resolve())
                 project.mkdir(parents=True, exist_ok=True)
                 if calls["count"] == 1:
                     (project / "README.md").write_text("# Existing README\n", encoding="utf-8")
@@ -169,8 +171,20 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
 
             project = ROOT / "generated" / "telegram_provider_projects" / bridge.safe_id(chat_id)
             self.assertEqual(2, calls["count"])
-            self.assertEqual("# Existing README\n", (project / "README.md").read_text(encoding="utf-8"))
-            self.assertEqual("print('existing')\n", (project / "app.py").read_text(encoding="utf-8"))
+            self.assertEqual(provider_staging[0], provider_staging[1])
+            self.assertEqual(
+                "# Existing README\n",
+                (provider_staging[-1] / "README.md").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                "print('existing')\n",
+                (provider_staging[-1] / "app.py").read_text(encoding="utf-8"),
+            )
+            self.assertNotEqual(
+                "# Existing README\n",
+                (project / "README.md").read_text(encoding="utf-8"),
+            )
+            self.assertFalse((project / "app.py").exists())
 
     def test_provider_exception_never_delivers_partial_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 from typing import Any, Iterable
 
@@ -94,7 +95,26 @@ def iter_candidate_source_files(project_dir: str | pathlib.Path) -> list[pathlib
     project = pathlib.Path(project_dir).resolve()
     if not project.exists():
         return []
-    return sorted(path for path in project.rglob("*") if path.is_file() and is_candidate_source_path(path, project))
+    files: list[pathlib.Path] = []
+    for directory, dirnames, filenames in os.walk(project, followlinks=False):
+        current = pathlib.Path(directory)
+        at_root = current == project
+        dirnames[:] = [
+            name
+            for name in dirnames
+            if name not in ANY_DEPTH_CACHE_DIRS
+            and not (at_root and name in ROOT_TOOL_DIRS)
+            and not (current / name).is_symlink()
+            and not (
+                hasattr(current / name, "is_junction")
+                and (current / name).is_junction()
+            )
+        ]
+        for name in filenames:
+            path = current / name
+            if path.is_file() and is_candidate_source_path(path, project):
+                files.append(path)
+    return sorted(files)
 
 
 def candidate_source_manifest(project_dir: str | pathlib.Path) -> dict[str, str]:

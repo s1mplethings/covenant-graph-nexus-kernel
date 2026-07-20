@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import subprocess
 import sys
@@ -20,6 +21,7 @@ import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
 import scripts.production_candidate_provenance as production_candidate_provenance
+import scripts.provider_causal_trace as provider_causal_trace
 import scripts.telegram_live_bridge as bridge
 
 
@@ -34,6 +36,11 @@ def _allow_test_production_candidate_root(
     )
     monkeypatch.setattr(
         bridge.production_candidate_provenance,
+        "PRODUCTION_CANDIDATE_ROOT",
+        temporary_root,
+    )
+    monkeypatch.setattr(
+        bridge.provider_causal_trace.production_candidate_provenance,
         "PRODUCTION_CANDIDATE_ROOT",
         temporary_root,
     )
@@ -54,9 +61,80 @@ def bind_test_production_provenance(
 ) -> dict:
     run_root = root / "production_run"
     run_root.mkdir(parents=True, exist_ok=True)
+    provider_staging = root / "provider_staging"
+    provider_staging.mkdir(parents=True, exist_ok=True)
+    generated_files = []
+    for source in canonical_evidence_hash.iter_candidate_source_files(project):
+        try:
+            source.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        relative = source.relative_to(project)
+        staged = provider_staging / relative
+        staged.parent.mkdir(parents=True, exist_ok=True)
+        staged.write_bytes(source.read_bytes())
+        source.unlink()
+        generated_files.append(relative.as_posix())
     provider_result = run_root / "provider_generation_result.json"
     provider_result.write_text(
-        '{"status":"PASS","provider_semantic_review":{"status":"pass"}}',
+        (
+            '{"status":"PASS","provider_semantic_review":{"status":"pass"},'
+            f'"generated_files":{json.dumps(sorted(generated_files))}'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+    identity = {
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "commit_sha": commit_sha,
+    }
+    receipts = {}
+    entry_started = provider_causal_trace.now()
+    receipts["production_entry"] = production_candidate_provenance.write_stage_receipt(
+        run_root,
+        stage="production_entry",
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+        candidate_root=project,
+        started_at=entry_started,
+        finished_at=provider_causal_trace.now(),
+    )
+    generation_started = provider_causal_trace.now()
+    request_capture = provider_causal_trace.begin_provider_request(
+        candidate_dir=project,
+        production_run_dir=run_root,
+        identity=identity,
+        goal="public delivery gate canonical provider fixture",
+        model="reproducible-provider",
+        request_started_at=generation_started,
+    )
+    capture = provider_causal_trace.consume_provider_response(
+        candidate_dir=project,
+        provider_staging_dir=provider_staging,
+        production_run_dir=run_root,
+        provider_result_path=provider_result,
+        identity=identity,
+        provider_request_capture=request_capture,
+        response_received_at=provider_causal_trace.now(),
+    )
+    provider_document = json.loads(
+        provider_result.read_text(encoding="utf-8")
+    )
+    provider_document.update(
+        {
+            "project_dir": str(project.resolve()),
+            "provider_staging_dir": str(provider_staging.resolve()),
+            "provider_causal_artifacts": {
+                key: str(value) if isinstance(value, pathlib.Path) else value
+                for key, value in capture.items()
+            },
+        }
+    )
+    provider_result.write_text(
+        json.dumps(provider_document, ensure_ascii=False, indent=2)
+        + "\n",
         encoding="utf-8",
     )
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project)
@@ -73,26 +151,57 @@ def bind_test_production_provenance(
         "ref": str(provider_result.resolve()),
         "hash": canonical_evidence_hash.sha256_file(provider_result),
     }
-    receipts = {}
-    for index, stage in enumerate(production_candidate_provenance.STAGE_ORDER):
-        receipts[stage] = production_candidate_provenance.write_stage_receipt(
-            run_root,
-            stage=stage,
-            run_id=run_id,
-            candidate_id=candidate_id,
-            commit_sha=commit_sha,
-            candidate_root=project,
-            started_at=f"2026-07-19T00:00:0{index * 2}+00:00",
-            finished_at=f"2026-07-19T00:00:0{index * 2 + 1}+00:00",
-            candidate_hash=candidate_hash if stage == "post_build" else "",
-            candidate_source_manifest_hash=manifest_hash
-            if stage == "post_build"
-            else "",
-            artifact_refs=[provider_ref]
-            if stage in {"provider_generation", "provider_validation"}
-            else [],
+    causal_refs = [
+        {
+            "role": role,
+            "ref": str(pathlib.Path(capture[key]).resolve()),
+            "hash": canonical_evidence_hash.sha256_file(capture[key]),
+        }
+        for role, key in (
+            ("provider_request", "request_ref"),
+            ("provider_response", "response_ref"),
+            ("implementation_decision", "decision_ref"),
+            ("implementation_patch", "patch_ref"),
+            ("patch_application", "application_ref"),
         )
-    return production_candidate_provenance.produce(
+    ]
+    receipts["provider_generation"] = production_candidate_provenance.write_stage_receipt(
+        run_root,
+        stage="provider_generation",
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+        candidate_root=project,
+        started_at=generation_started,
+        finished_at=provider_causal_trace.now(),
+        artifact_refs=[provider_ref, *causal_refs],
+    )
+    validation_started = provider_causal_trace.now()
+    receipts["provider_validation"] = production_candidate_provenance.write_stage_receipt(
+        run_root,
+        stage="provider_validation",
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+        candidate_root=project,
+        started_at=validation_started,
+        finished_at=provider_causal_trace.now(),
+        artifact_refs=[provider_ref, *causal_refs],
+    )
+    post_build_started = provider_causal_trace.now()
+    receipts["post_build"] = production_candidate_provenance.write_stage_receipt(
+        run_root,
+        stage="post_build",
+        run_id=run_id,
+        candidate_id=candidate_id,
+        commit_sha=commit_sha,
+        candidate_root=project,
+        started_at=post_build_started,
+        finished_at=provider_causal_trace.now(),
+        candidate_hash=candidate_hash,
+        candidate_source_manifest_hash=manifest_hash,
+    )
+    provenance = production_candidate_provenance.produce(
         project,
         run_root,
         run_id=run_id,
@@ -101,6 +210,14 @@ def bind_test_production_provenance(
         stage_receipts=receipts,
         provider_result_ref=provider_result,
     )
+    provider_causal_trace.finalize(
+        candidate_dir=project,
+        production_run_dir=run_root,
+        identity=identity,
+        causal_capture=capture,
+        production_provenance_ref=provenance["provenance_ref"],
+    )
+    return provenance
 
 
 def write_real_png(path: pathlib.Path, width: int = 160, height: int = 120) -> None:

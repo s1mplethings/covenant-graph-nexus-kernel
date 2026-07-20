@@ -537,7 +537,13 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 bridge.threading.Thread = original_thread
             session = bridge.load_session(session_dir, "chat-4")
             self.assertTrue(called["ran"])
-            self.assertIn("chat-4", called["project_dir"])
+            provider_staging = pathlib.Path(called["project_dir"]).resolve()
+            final_candidate = pathlib.Path(
+                session["generation"]["project_dir"]
+            ).resolve()
+            self.assertEqual("provider_response_staging", provider_staging.parent.name)
+            self.assertEqual(session["generation"]["run_id"], provider_staging.name)
+            self.assertNotEqual(final_candidate, provider_staging)
             self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
             self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assertEqual("rework_blocked", session["generation"]["status"])
