@@ -67,8 +67,33 @@ def list_from_contract(doc: dict[str, Any], key: str, fallback: list[str]) -> li
     return list(fallback)
 
 
+def stage_artifact_pairs(stages: list[str], artifacts: list[str]) -> list[tuple[str, str]]:
+    """Map stable artifact contracts to their semantic producer across stage-name revisions."""
+    aliases = {
+        "stage_plan.json": ("plan_pipeline", "ingest_video"),
+        "media_manifest.json": ("ingest_video",),
+        "audio_chunk_manifest.json": ("build_audio_chunk_manifest", "chunk_audio", "extract_audio"),
+        "transcript_merged.json": ("merge_transcript", "transcribe_chunks", "transcribe_audio"),
+        "segment_analysis.json": ("optional_analysis", "analyze_segments"),
+        "selected_segments.json": ("select_segments",),
+        "clip_manifest.json": ("build_clip_manifest", "render_clips", "render_clips_batch"),
+        "export_results.json": ("export_results",),
+    }
+    available = set(stages)
+    pairs: list[tuple[str, str]] = []
+    for index, artifact in enumerate(artifacts):
+        preferred = aliases.get(artifact, ())
+        stage = next((name for name in preferred if name in available), "")
+        if not stage:
+            stage = stages[min(index, len(stages) - 1)] if stages else f"stage_{index + 1}"
+        pairs.append((stage, artifact))
+    return pairs
+
+
 def write_core(project_dir: pathlib.Path, stages: list[str], artifacts: list[str]) -> None:
-    stage_pairs = ",\n    ".join(f'("{stage}", "{artifact}")' for stage, artifact in zip(stages, artifacts))
+    stage_pairs = ",\n    ".join(
+        f'("{stage}", "{artifact}")' for stage, artifact in stage_artifact_pairs(stages, artifacts)
+    )
     orchestrator = f'''from __future__ import annotations
 
 import local_media_adapter
@@ -236,18 +261,18 @@ def _stage_items(stage: str, fixture: dict, fixture_root: pathlib.Path, upstream
             for index, item in enumerate(files)
             if item.get("kind") in {{"video", "audio"}}
         ]
-    if stage == "chunk_audio":
+    if stage in {{"chunk_audio", "build_audio_chunk_manifest"}}:
         return [
             {{"id": str(segment.get("id", f"segment_{{index + 1}}")), "start": segment.get("start", 0), "end": segment.get("end", 0), "text": segment.get("text", "")}}
             for index, segment in enumerate(segments)
         ]
-    if stage == "transcribe_audio":
+    if stage in {{"transcribe_audio", "transcribe_chunks", "merge_transcript"}}:
         source = upstream_doc.get("items") or segments
         return [
             {{"id": item.get("id", f"transcript_{{index + 1}}"), "text": item.get("text", ""), "confidence": 1.0, "source_stage": upstream_doc.get("stage", "")}}
             for index, item in enumerate(source)
         ]
-    if stage == "analyze_segments":
+    if stage in {{"analyze_segments", "optional_analysis"}}:
         source = upstream_doc.get("items") or segments
         keywords = [str(item).lower() for item in fixture.get("candidate_keywords", [])]
         analyzed = []
@@ -258,7 +283,7 @@ def _stage_items(stage: str, fixture: dict, fixture_root: pathlib.Path, upstream
         return analyzed
     if stage == "select_segments":
         return [item for item in upstream_doc.get("items", []) if item.get("candidate")]
-    if stage == "render_clips":
+    if stage in {{"render_clips", "build_clip_manifest", "render_clips_batch"}}:
         return [
             {{"id": f"clip_{{index + 1}}", "source_segment_id": item.get("id"), "render_status": "degraded_fixture_clip", "text": item.get("text", "")}}
             for index, item in enumerate(upstream_doc.get("items", []))
@@ -469,7 +494,7 @@ def write_fixture_files(project_dir: pathlib.Path) -> dict[str, Any]:
 def write_stage_artifacts(project_dir: pathlib.Path, stages: list[str], artifacts: list[str]) -> list[str]:
     written: list[str] = []
     previous = ""
-    for stage, artifact_name in zip(stages, artifacts):
+    for stage, artifact_name in stage_artifact_pairs(stages, artifacts):
         path = project_dir / artifact_name
         doc = {
             "stage": stage,
@@ -495,9 +520,6 @@ def materialize(*, project_dir: pathlib.Path, run_dir: pathlib.Path) -> dict[str
     doc = contract(pathlib.Path(run_dir))
     stages = list_from_contract(doc, "required_pipeline_stages", DEFAULT_STAGES)
     artifacts = list_from_contract(doc, "required_stage_artifacts", DEFAULT_ARTIFACTS)
-    pair_count = min(len(stages), len(artifacts))
-    stages = stages[:pair_count]
-    artifacts = artifacts[:pair_count]
     write_core(project, stages, artifacts)
     fixture_manifest = write_fixture_files(project)
     written_artifacts = write_stage_artifacts(project, stages, artifacts)

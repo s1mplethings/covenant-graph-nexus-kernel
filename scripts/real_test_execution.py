@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -45,8 +46,44 @@ def current_commit_sha(project: pathlib.Path) -> str:
     return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unknown"
 
 
+def _declared_pytest_paths(project: pathlib.Path) -> list[str]:
+    config = project / "pyproject.toml"
+    if not config.is_file():
+        return []
+    try:
+        document = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+        return []
+    pytest_options = (
+        document.get("tool", {}).get("pytest", {}).get("ini_options", {})
+        if isinstance(document, dict)
+        else {}
+    )
+    declared = pytest_options.get("testpaths", []) if isinstance(pytest_options, dict) else []
+    if isinstance(declared, str):
+        declared = declared.split()
+    if not isinstance(declared, list):
+        return []
+    paths: list[str] = []
+    for item in declared:
+        value = str(item).strip().replace("\\", "/")
+        pure = pathlib.PurePosixPath(value)
+        if (
+            not value
+            or pure.is_absolute()
+            or ".." in pure.parts
+            or not (project / pathlib.Path(*pure.parts)).exists()
+        ):
+            continue
+        paths.append(value)
+    return paths
+
+
 def detect_commands(project_dir: str | pathlib.Path) -> list[list[str]]:
     project = pathlib.Path(project_dir)
+    declared_testpaths = _declared_pytest_paths(project)
+    if declared_testpaths:
+        return [["python", "-m", "pytest", *declared_testpaths]]
     if (project / "tests").exists() and any(path.is_file() for path in (project / "tests").rglob("test*.py")):
         return [["python", "-m", "pytest", "tests"]]
     if (project / "package.json").exists():
@@ -100,6 +137,7 @@ def run_tests(
     production_provenance_ref: str | pathlib.Path | None = None,
     production_provenance_hash: str = "",
     test_profile: str = "repo_default",
+    minimum_collected: int = 1,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     project.mkdir(parents=True, exist_ok=True)
@@ -145,7 +183,14 @@ def run_tests(
                 exit_code = 124
                 timed_out = True
         counts = _pytest_counts(stdout, stderr, int(exit_code))
-        status = "PASS" if exit_code == 0 and counts["failed"] == 0 and counts["collected"] > 0 else "FAIL"
+        minimum_collected = max(1, int(minimum_collected or 1))
+        status = (
+            "PASS"
+            if exit_code == 0
+            and counts["failed"] == 0
+            and counts["collected"] >= minimum_collected
+            else "FAIL"
+        )
 
     stdout_path = project / "test_stdout.txt"
     stderr_path = project / "test_stderr.txt"
@@ -189,6 +234,8 @@ def run_tests(
         "passed": counts["passed"],
         "failed": counts["failed"],
         "skipped": counts["skipped"],
+        "minimum_collected_required": max(1, int(minimum_collected or 1)),
+        "minimum_collected_met": counts["collected"] >= max(1, int(minimum_collected or 1)),
         "skip_reasons": _skip_reasons(stdout, stderr),
         "stdout_artifact": str(stdout_path),
         "stdout_hash": _sha256_file(stdout_path),
@@ -234,9 +281,19 @@ def write_test_report(project: pathlib.Path, evidence: dict[str, Any]) -> pathli
         f"commit_sha: {evidence.get('commit_sha', '')}",
         f"result_artifact_hash: {evidence.get('result_artifact_hash', '')}",
         "",
-        "argv:",
+        "commands_run:",
     ]
     argv = evidence.get("argv", []) if isinstance(evidence.get("argv"), list) else []
+    if argv:
+        lines.append("- " + " ".join(str(item) for item in argv))
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+        "argv:",
+        ]
+    )
     lines.extend(f"- {item}" for item in argv)
     lines.extend(
         [

@@ -84,6 +84,35 @@ final_delivered
 
 `scripts/final_internal_acceptance.py` and its `CGKNInternal*Evidence` files are diagnostic fixtures, not formal artifacts. The producer provenance denylist prevents them, `tests/*`, fixtures, examples, demos, and benchmark-only producers from authorizing a formal Gate PASS.
 
+## Project Management Support Artifacts
+
+These artifacts support CGKN self-hosting and generated-project planning. They
+are not formal delivery evidence and cannot authorize a formal gate.
+
+| Artifact kind | Schema | Producer | Consumers | State rules |
+| --- | --- | --- | --- | --- |
+| `CGKNAdaptiveProjectManagementPack` | `schemas/adaptive_project_management_pack.schema.json` | `scripts/pmp_agile_quality_manager.py` or an approved project-management agent | project lead, context librarian, provider planning context | `workflow_state` is not EvidenceStatus; `evidence_status` uses only canonical values |
+| `CGKNAdaptiveIteration` | `schemas/adaptive_iteration.schema.json` | approved `manage-pmp-agile-quality` workflow | implementation, QA, review, retrospective | iteration workflow state is separate from canonical evidence evaluation |
+| `CGKNEnterpriseExperiencePack` | `schemas/enterprise_experience_pack.schema.json` | approved project review and retrospective workflow | project lead and bounded librarian retrieval | `experience_state` is `candidate`, `validated`, `approved`, or `retired`, never EvidenceStatus |
+| `CGKNAdaptiveProjectManagementContext` | bounded inline projection of the three schemas above | `scripts/adaptive_project_management_context.py` | existing provider component and leaf context | support context only; selects no more than four validated/approved experience items and cannot authorize a formal gate |
+| `CGKNGeneratedComponentQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | provider component checkpoint reuse, downstream component feedforward, assembled-project validation | lower-case internal `pass`/`fail`; rechecks current files and cannot authorize formal delivery PASS |
+| `CGKNAssembledProjectQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | provider generation quality gate and post-build continuation | lower-case internal `pass`/`fail`; failure blocks generation success while canonical test/runtime/visual evidence remains separately required |
+| `CGKNDesignResearchManifest` | deterministic JSON plus Markdown support projection | `scripts/design_research_agent.py` | existing Provider planning context and generation-context librarian | `workflow_state` is not EvidenceStatus; source references, three directions, selected contract, tokens, and anti-copying boundaries cannot authorize formal delivery PASS |
+| `CGKNBoundedDesignContext` | bounded inline projection | `scripts/design_research_agent.py` | frontend, media, and docs leaf generation through the existing librarian | no more than six relevant references plus the selected direction and design contract; context hash is support identity only |
+| `CGKNGeneratedDesignQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | component and assembled-project quality validation | lower-case internal `pass`/`fail`; checks design source/docs traceability and implemented source constraints but cannot replace canonical browser visual evidence or user review |
+
+The support flow is:
+
+```text
+tailored management context
+-> existing provider component and leaf generation
+-> canonical quality evidence
+-> review and retrospective
+-> evidence-backed enterprise experience
+```
+
+It does not alter the formal Telegram mainline or the sole delivery exit.
+
 ## Formal Telegram Mainline
 
 ```text

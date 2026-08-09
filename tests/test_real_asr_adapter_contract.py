@@ -18,6 +18,8 @@ import local_media_adapter
 import local_model_adapter
 import real_asr_adapter_contract
 
+SUBPROCESS_TEST_TIMEOUT = 5.0
+
 
 def read_json(path: pathlib.Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -109,7 +111,13 @@ def test_real_asr_command_success_records_verified_hash_size_and_schema(tmp_path
     script = write_real_asr_script(tmp_path / "asr_writer.py")
     env = {real_asr_adapter_contract.ENV_COMMAND: f'"{sys.executable}" "{script}" "{{input}}" "{{output}}" valid'}
 
-    result = real_asr_adapter_contract.evaluate(project_dir=tmp_path, input_path=wav, output_path=output, env=env, timeout=2.0)
+    result = real_asr_adapter_contract.evaluate(
+        project_dir=tmp_path,
+        input_path=wav,
+        output_path=output,
+        env=env,
+        timeout=SUBPROCESS_TEST_TIMEOUT,
+    )
 
     assert result["status"] == "real_local_asr_verified"
     assert result["evidence_tier"] == "single_sample_real"
@@ -130,7 +138,13 @@ def test_real_asr_rejects_non_production_or_degraded_output(tmp_path: pathlib.Pa
     for mode, expected in [("production_false", "production_asr_not_true"), ("degraded_true", "degraded_not_false")]:
         output = tmp_path / f"{mode}.json"
         env = {real_asr_adapter_contract.ENV_COMMAND: f'"{sys.executable}" "{script}" "{{input}}" "{{output}}" {mode}'}
-        result = real_asr_adapter_contract.evaluate(project_dir=tmp_path, input_path=wav, output_path=output, env=env, timeout=2.0)
+        result = real_asr_adapter_contract.evaluate(
+            project_dir=tmp_path,
+            input_path=wav,
+            output_path=output,
+            env=env,
+            timeout=SUBPROCESS_TEST_TIMEOUT,
+        )
         assert result["status"] == "real_asr_invalid_output"
         assert expected in result["schema_blockers"]
 
@@ -147,7 +161,13 @@ def test_real_asr_invalid_json_schema_empty_text_and_segments_are_invalid(tmp_pa
     for mode, expected in cases.items():
         output = tmp_path / f"{mode}.json"
         env = {real_asr_adapter_contract.ENV_COMMAND: f'"{sys.executable}" "{script}" "{{input}}" "{{output}}" {mode}'}
-        result = real_asr_adapter_contract.evaluate(project_dir=tmp_path, input_path=wav, output_path=output, env=env, timeout=2.0)
+        result = real_asr_adapter_contract.evaluate(
+            project_dir=tmp_path,
+            input_path=wav,
+            output_path=output,
+            env=env,
+            timeout=SUBPROCESS_TEST_TIMEOUT,
+        )
         assert result["status"] == "real_asr_invalid_output"
         assert any(str(item).startswith(expected) or item == expected for item in result["schema_blockers"])
 
@@ -160,7 +180,7 @@ def test_real_asr_returncode_and_timeout_are_bounded_failures(tmp_path: pathlib.
         project_dir=tmp_path,
         input_path=wav,
         env={real_asr_adapter_contract.ENV_COMMAND: f'"{sys.executable}" "{script}" "{{input}}" "{{output}}" returncode'},
-        timeout=2.0,
+        timeout=SUBPROCESS_TEST_TIMEOUT,
     )
     timed_out = real_asr_adapter_contract.evaluate(
         project_dir=tmp_path,

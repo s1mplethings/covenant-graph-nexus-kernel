@@ -1,0 +1,96 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-010",
+  "project_id": "cgkn",
+  "goal": "Add independent language-aware component and assembled-project quality validation to the reviewed Provider generation route, revalidate cached modules, and reject the known broken CS Demo frontend before downstream integration or delivery.",
+  "backlog_item_ids": [
+    "PB-010"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "A separate component quality-validation receipt is produced after module assembly and before the component can feed downstream generation.",
+    "JavaScript and TypeScript local imports and re-exports record exact symbols and reject missing exports, missing local re-export bindings, missing modules, and unimported sibling helpers.",
+    "Previously passing component checkpoints are revalidated against the current quality contract before reuse.",
+    "Python syntax and implemented import interfaces plus JSON syntax are rechecked at component scope without relying on provider self-claims.",
+    "The fully merged project receives an assembly quality validation and generation cannot report a passing quality gate when it fails.",
+    "The known broken CS Demo frontend is rejected while a valid split-module frontend, existing provider contracts, and kernel route guards pass."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-MODULE-QUALITY",
+      "measure": "independent language-aware validation of generated component and merged-project interfaces",
+      "target": "all newly generated and reused components plus the merged project have passing quality-validation receipts; injected missing imports, invalid re-exports, missing modules, and unimported sibling helpers are rejected",
+      "method": "deterministic interface tests, cached-component revalidation tests, broken CS Demo regression fixture, and targeted provider/kernel regression profiles"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "Provider component files enter validate_generated_component_quality after semantic review and before checkpoint PASS or downstream feedforward.",
+    "Checkpoint-reused components are revalidated from current file content; a failed receipt invalidates reuse and routes the same component through regeneration.",
+    "The merged file set enters validate_assembled_project_quality before the provider generation quality gate can report pass.",
+    "Quality-validation receipts remain support artifacts and do not replace canonical test, runtime, visual, package, or public-delivery evidence."
+  ],
+  "evidence_refs": [
+    "docs/00_kernel_contract.md",
+    "docs/01_contract_registry.md",
+    "scripts/run_local_pipeline_impl.py",
+    "tests/test_complexity_formal_mainline_contract.py",
+    "tests/test_formal_provider_fallback.py",
+    "tests/test_kernel_contract.py"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "149 provider/interface/kernel regressions and 17 project-management quality tests passed.",
+      "Independent component and assembled-project quality validation now blocks invalid modules before downstream feedforward or generation success.",
+      "The historical CS Demo frontend is rejected for its missing facade binding and two unimported sibling helper calls."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-010"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A language-aware support receipt reused the existing Provider route and checkpoints without adding a generation or delivery path.",
+      "Exact JavaScript import/export bindings made the interface registry useful for both librarian feedforward and deterministic validation."
+    ],
+    "did_not_work": [
+      "The initial formal browser evidence had proven that screenshot-only quality was insufficient; module validation needed to become a blocking generation step rather than another advisory report."
+    ],
+    "experiments": [
+      "Extend the quality adapter registry to real compiler or linker probes for additional generated languages only when their toolchains are declared and available."
+    ]
+  }
+}

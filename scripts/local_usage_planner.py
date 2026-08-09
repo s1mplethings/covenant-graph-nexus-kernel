@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -17,6 +18,24 @@ def _exists(project_dir: pathlib.Path, name: str) -> bool:
 
 def _required_file_status(project_dir: pathlib.Path, names: list[str]) -> list[dict[str, Any]]:
     return [{"path": name, "exists": _exists(project_dir, name)} for name in names]
+
+
+def _declared_html_assets(project_dir: pathlib.Path) -> list[str]:
+    index_path = project_dir / "index.html"
+    try:
+        source = index_path.read_text(encoding="utf-8", errors="strict")
+    except (OSError, UnicodeError):
+        return []
+    assets: list[str] = []
+    for value in re.findall(r"(?:src|href)\s*=\s*['\"]([^'\"]+)['\"]", source, flags=re.I):
+        normalized = value.split("?", 1)[0].split("#", 1)[0].replace("\\", "/").lstrip("./")
+        if not normalized or "://" in normalized or normalized.startswith(("data:", "//")):
+            continue
+        if pathlib.PurePosixPath(normalized).suffix.lower() not in {".css", ".js", ".mjs"}:
+            continue
+        if normalized not in assets:
+            assets.append(normalized)
+    return assets
 
 
 def create_usage_plan(project_dir: pathlib.Path, project_type: str | None = None) -> dict[str, Any]:
@@ -39,7 +58,7 @@ def create_usage_plan(project_dir: pathlib.Path, project_type: str | None = None
         "reason": "",
     }
     if _exists(project_dir, "index.html"):
-        required = ["index.html", "styles.css", "app.js", "README.md"]
+        required = ["index.html", *_declared_html_assets(project_dir), "README.md"]
         plan.update(
             {
                 "status": "PARTIAL",

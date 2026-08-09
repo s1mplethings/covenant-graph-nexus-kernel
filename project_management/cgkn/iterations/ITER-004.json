@@ -1,0 +1,83 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-004",
+  "project_id": "cgkn",
+  "goal": "Identify the reproducible request-size, output-budget, concurrency, complexity, and gateway conditions that cause CGKN live Provider generation to return 504/520 or become transport-unstable.",
+  "backlog_item_ids": [
+    "PB-004"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Injected interface and quality defects route to affected work only.",
+    "Small, medium, and ACFV-scale trials use the same management contracts.",
+    "The final report distinguishes planning, implementation, quality, and delivery evidence."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-SCALE",
+      "measure": "bounded context and affected-work repair at increasing project scale",
+      "target": "context remains within configured budgets and unrelated checkpoints remain reusable",
+      "method": "generation scale ladder and ACFV-scale trial"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "artifacts/provider_failure_boundary_20260729/REPORT.md",
+    "artifacts/provider_failure_boundary_20260729/complex_8k_results.json",
+    "artifacts/provider_failure_boundary_20260729/concurrency_3_results.json",
+    "tests/test_provider_failure_boundary.py"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Live probes isolate the fault to a monolithic long-output Provider leaf near the upstream 60-second boundary; single samples establish an operational boundary, not an SLA."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-004"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Input-size isolation, output-budget ladder, exact-like complex reproduction, and bounded concurrency separated the causal variables."
+    ],
+    "did_not_work": [
+      "An 8,000-token complex single-file request crossed the gateway boundary and returned HTTP 520 with no usable content."
+    ],
+    "experiments": [
+      "Implement symbol-group leaf planning with a 4,000-5,000-token transport target, deterministic assembly, and section-level resume."
+    ]
+  }
+}

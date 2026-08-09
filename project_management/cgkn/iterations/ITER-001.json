@@ -1,0 +1,100 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-001",
+  "project_id": "cgkn",
+  "goal": "Bootstrap the self-hosted hybrid project-management method, built-in quality model, enterprise experience store, and approved project-local skill.",
+  "backlog_item_ids": [
+    "PB-001",
+    "PB-002"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "The method covers people and feedback, value delivery, governance, quality planning, assurance, control, and improvement.",
+    "Repository instructions require proportionate self-hosting for non-trivial CGKN work.",
+    "Management workflow states remain separate from formal evidence statuses.",
+    "Validated and approved experience requires evidence and applicability boundaries.",
+    "Retrieval excludes unrelated, candidate, and retired experience.",
+    "Each applied experience can record a project and iteration usage outcome."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+      "target": "all management, iteration, and experience artifacts validate",
+      "method": "jsonschema tests plus deterministic manager validation"
+    },
+    {
+      "id": "QM-SELFHOST",
+      "measure": "CGKN uses the same method it exposes",
+      "target": "active project pack and iteration exist and repository instructions reference the approved skill",
+      "method": "self-hosting contract test"
+    },
+    {
+      "id": "QM-RETRIEVAL",
+      "measure": "enterprise experience retrieval relevance and state safety",
+      "target": "only tag-relevant validated or approved items are selected within a maximum of 16",
+      "method": "unit tests with approved, candidate, retired, and unrelated items"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Keep management support artifacts separate from formal evidence and delivery authority.",
+      "Use registered schemas and one canonical evidence-status set.",
+      "Avoid editing already-modified formal mainline files for this bootstrap increment."
+    ],
+    "assurance": [
+      "Cross-review repository instructions, method documentation, schemas, skill instructions, and executable helper.",
+      "Confirm the skill preserves provider and local_packager boundaries."
+    ],
+    "control": [
+      "Run jsonschema validation for all self-hosting artifacts.",
+      "Run deterministic manager and retrieval tests.",
+      "Run skill quick validation and targeted kernel/knowledge tests."
+    ],
+    "improvement": [
+      "Record bootstrap limitations and use PB-003 as the next bounded integration experiment."
+    ]
+  },
+  "interface_expectations": [
+    "The skill invokes the shared cgkn_project_management module through the project CLI.",
+    "The project pack references only registered quality metric IDs.",
+    "Enterprise retrieval returns bounded selected and excluded receipts."
+  ],
+  "evidence_refs": [
+    "skills/manage-pmp-agile-quality/SKILL.md",
+    "tests/test_kernel_contract.py",
+    "tests/test_pmp_agile_quality_manager.py",
+    "tests/test_pmp_agile_quality_schemas.py"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "The method is now self-hosted as support artifacts and cannot authorize formal delivery PASS."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-001",
+      "PB-002"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Existing knowledge and librarian boundaries supported bounded enterprise learning without a parallel context system.",
+      "Schema, semantic, CLI lifecycle, and skill validation provided quality checks inside the increment."
+    ],
+    "did_not_work": [
+      "The first test pass contained two brittle assertions about field names and wording; the tests were corrected before closure.",
+      "Promoting the bootstrap experience after closure invalidated a candidate-state fixture and exposed a missing over-budget exclusion receipt; the fixture and retrieval audit were corrected before final handoff."
+    ],
+    "experiments": [
+      "In PB-003, feed only the selected backlog, quality, risk, and experience projection into the existing provider librarian and measure prompt size plus first-pass acceptance."
+    ]
+  }
+}

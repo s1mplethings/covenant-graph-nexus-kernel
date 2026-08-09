@@ -11,8 +11,10 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 try:
+    import check_connectivity
     from pipeline_contracts import base_result
 except ModuleNotFoundError:  # pragma: no cover - package import path
+    from scripts import check_connectivity
     from scripts.pipeline_contracts import base_result
 
 
@@ -166,7 +168,12 @@ def default_probe(provider: dict[str, Any]) -> ProviderProbe:
             return ProviderProbe(name=name, status=connectivity.status, reason=connectivity.reason, retryable=connectivity.retryable)
     quota_required = bool(provider.get("quota_required"))
     api_key_env = str(provider.get("api_key_env") or "OPENAI_API_KEY")
-    if quota_required and not os.environ.get(api_key_env):
+    credential_present = bool(os.environ.get(api_key_env))
+    if name == "primary" and api_key_env == "OPENAI_API_KEY":
+        credential_present = credential_present or bool(
+            check_connectivity._resolve_api_credentials().get("api_key")
+        )
+    if quota_required and not credential_present:
         return ProviderProbe(name=name, status=PROVIDER_UNAVAILABLE, reason=f"{api_key_env} missing")
     return ProviderProbe(name=name, status=PROVIDER_OK, reason="preflight ok")
 

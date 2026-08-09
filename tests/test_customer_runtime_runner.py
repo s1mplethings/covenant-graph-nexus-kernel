@@ -62,6 +62,23 @@ def test_static_project_runtime_passes_from_isolated_copy_and_shuts_down(
     assert result["status"] == "PASS"
 
 
+def test_long_runtime_body_hashes_the_stored_truncated_observation(
+    tmp_path: pathlib.Path,
+) -> None:
+    body = "<main>" + ("runtime evidence " * 500) + "</main>\n"
+    (tmp_path / "index.html").write_text(body, encoding="utf-8")
+
+    evidence = customer_runtime_runner.run(tmp_path)
+    result = customer_runtime_runner.inspect(tmp_path)
+
+    assert evidence["status"] == "PASS"
+    assert len(evidence["observed_result"]) == 4000
+    assert evidence["observed_result_hash"] == canonical_evidence_hash.sha256_bytes(
+        evidence["observed_result"].encode("utf-8")
+    )
+    assert result["status"] == "PASS"
+
+
 def test_handwritten_four_field_pass_runtime_fails(tmp_path: pathlib.Path) -> None:
     (tmp_path / "customer_runtime.json").write_text('{"status":"PASS","pid":1,"health_probe":{"status_code":200},"observed_result":"ok"}', encoding="utf-8")
     result = customer_runtime_runner.inspect(tmp_path)

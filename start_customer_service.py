@@ -17,6 +17,44 @@ SCRIPTS_DIR = ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+
+def telegram_model_environment(source_env=None):
+    """Build the explicit local/API responsibility contract for Telegram."""
+    import local_model_router
+
+    env = dict(source_env if source_env is not None else os.environ)
+    profile = str(env.get("CGNK_MODEL_ROUTING_PROFILE", "hybrid_safe")).strip().lower()
+    if profile not in local_model_router.MODEL_ROUTING_PROFILES:
+        raise RuntimeError(f"Unsupported CGNK_MODEL_ROUTING_PROFILE: {profile}")
+    env["CGNK_MODEL_ROUTING_PROFILE"] = profile
+    env["CGKN_TELEGRAM_GENERATION_MODE"] = "api"
+    env.setdefault("CGNK_AUTO_START_OLLAMA", "1")
+    if profile == "hybrid_safe":
+        tasks = set(local_model_router.HYBRID_SAFE_LOCAL_TASKS)
+        env["CGNK_USE_LOCAL_MODEL"] = "1"
+    elif profile == "local_first":
+        tasks = set(local_model_router.DEFAULT_LOCAL_TASKS | local_model_router.LOCAL_GENERATION_TASKS)
+        env["CGNK_USE_LOCAL_MODEL"] = "1"
+    elif profile == "api_only":
+        tasks = set()
+        env["CGNK_USE_LOCAL_MODEL"] = "0"
+    else:
+        tasks = {
+            item.strip().lower()
+            for item in env.get("CGNK_LOCAL_MODEL_TASKS", "").replace(";", ",").split(",")
+            if item.strip()
+        }
+        tasks = tasks or set(local_model_router.DEFAULT_LOCAL_TASKS)
+        env.setdefault("CGNK_USE_LOCAL_MODEL", "1")
+    env["CGNK_LOCAL_MODEL_TASKS"] = ",".join(sorted(tasks))
+    env.setdefault("CGNK_LOCAL_PROVIDER_ATTEMPTS", "1")
+    env.setdefault("CGNK_OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    env.setdefault("CGNK_OLLAMA_REASONING_MODEL", "qwen2.5:7b-instruct")
+    env.setdefault("CGNK_OLLAMA_CODE_MODEL", "qwen2.5-coder:7b")
+    env.setdefault("OLLAMA_HOST", "http://127.0.0.1:11434")
+    return env
+
+
 def run_backend_mode():
     """后端对话模式 - 直接调用后端接口"""
     print("\n" + "="*60)
@@ -91,19 +129,7 @@ def run_telegram_mode(token, chat_id=None):
 
     import subprocess
 
-    env = os.environ.copy()
-    env["CGKN_TELEGRAM_GENERATION_MODE"] = "api"
-    env.setdefault("CGNK_USE_LOCAL_MODEL", "1")
-    env.setdefault("CGNK_AUTO_START_OLLAMA", "1")
-    tasks = {
-        item.strip()
-        for item in env.get("CGNK_LOCAL_MODEL_TASKS", "").replace(";", ",").split(",")
-        if item.strip()
-    }
-    tasks.update({"customer_public_reply", "customer_status", "backend_dialogue"})
-    env["CGNK_LOCAL_MODEL_TASKS"] = ",".join(sorted(tasks))
-    env.setdefault("CGNK_OLLAMA_MODEL", "qwen2.5:7b-instruct")
-    env.setdefault("OLLAMA_HOST", "http://127.0.0.1:11434")
+    env = telegram_model_environment()
 
     args = [
         sys.executable,
@@ -117,6 +143,7 @@ def run_telegram_mode(token, chat_id=None):
         args.extend(["--chat-id", str(chat_id)])
 
     print("启动客服系统...")
+    print(f"模型路由: {env['CGNK_MODEL_ROUTING_PROFILE']}")
     print("Ctrl+C 停止\n")
 
     try:

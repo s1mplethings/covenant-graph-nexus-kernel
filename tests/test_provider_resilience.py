@@ -109,3 +109,17 @@ def test_provider_preflight_uses_live_connectivity_quota_report() -> None:
 
     assert result["verdict"] == provider_resilience.PROVIDER_QUOTA_EXCEEDED
     assert result["metadata"]["live_generation_allowed"] is False
+
+
+def test_primary_preflight_uses_canonical_provider_credentials(monkeypatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(
+        provider_resilience.check_connectivity,
+        "_resolve_api_credentials",
+        lambda: {"api_key": "configured-canonical-key", "base_url": "https://provider.example/v1"},
+    )
+
+    result = provider_resilience.provider_preflight(config())
+
+    assert result["verdict"] == provider_resilience.PROVIDER_OK
+    assert result["metadata"]["live_generation_allowed"] is True

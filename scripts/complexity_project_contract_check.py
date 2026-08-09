@@ -95,10 +95,16 @@ def validate_discovery(discovery_dir: pathlib.Path | None) -> tuple[dict[str, An
         blockers.append("selected_project_direction_missing")
     if contract.get("contract_id") != "complexity_project_contract_v1":
         blockers.append("complexity_project_contract_id_invalid")
-    for key in ("required_pipeline_stages", "required_stage_artifacts", "required_delivery_evidence"):
+    architecture_mode = str(contract.get("architecture_mode", "")).strip()
+    for key in ("required_pipeline_stages", "required_delivery_evidence"):
         value = contract.get(key)
         if not isinstance(value, list) or not value:
             blockers.append(f"contract_{key}_missing")
+    stage_artifacts = contract.get("required_stage_artifacts")
+    if not isinstance(stage_artifacts, list):
+        blockers.append("contract_required_stage_artifacts_missing")
+    elif architecture_mode != "browser_local_static" and not stage_artifacts:
+        blockers.append("contract_required_stage_artifacts_missing")
     return contract, blockers
 
 
@@ -125,7 +131,13 @@ def detect_cli_gui_shared(project_dir: pathlib.Path, files: list[pathlib.Path]) 
     return bool(cli), bool(gui), bool(core and cli_shared and gui_shared)
 
 
-def validate_project(project_dir: pathlib.Path | None, run_dir: pathlib.Path | None, contract: dict[str, Any]) -> list[str]:
+def validate_project(
+    project_dir: pathlib.Path | None,
+    run_dir: pathlib.Path | None,
+    contract: dict[str, Any],
+    *,
+    require_final_bundle: bool = True,
+) -> list[str]:
     blockers: list[str] = []
     if project_dir is None:
         return blockers
@@ -156,7 +168,7 @@ def validate_project(project_dir: pathlib.Path | None, run_dir: pathlib.Path | N
         blockers.append("run_dir_missing")
     if not any(path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and "screenshot" in path.as_posix().lower() for path in files):
         blockers.append("screenshot_missing")
-    if not (project / "final_project_bundle.zip").exists():
+    if require_final_bundle and not (project / "final_project_bundle.zip").exists():
         blockers.append("final_project_bundle.zip_missing")
     return blockers
 
@@ -166,14 +178,28 @@ def validate(
     discovery_dir: pathlib.Path | None = None,
     run_dir: pathlib.Path | None = None,
     project_dir: pathlib.Path | None = None,
+    require_final_bundle: bool = True,
 ) -> dict[str, Any]:
     resolved_discovery = discovery_dir or locate_discovery_dir(run_dir, project_dir)
     contract, blockers = validate_discovery(resolved_discovery)
-    blockers.extend(validate_project(project_dir, run_dir, contract))
+    blockers.extend(
+        validate_project(
+            project_dir,
+            run_dir,
+            contract,
+            require_final_bundle=require_final_bundle,
+        )
+    )
     status = "pass" if not blockers else "needs_rework"
     return {
         "status": status,
-        "recommendation": "PASS_FINAL" if status == "pass" else "NEEDS_REWORK",
+        "recommendation": (
+            "PASS_FINAL"
+            if status == "pass" and require_final_bundle
+            else "PASS_CANDIDATE"
+            if status == "pass"
+            else "NEEDS_REWORK"
+        ),
         "blockers": blockers,
         "metadata": {
             "discovery_dir": str(resolved_discovery) if resolved_discovery else "",
@@ -181,6 +207,7 @@ def validate(
             "run_dir": str(run_dir or ""),
             "contract_id": contract.get("contract_id", ""),
             "selected_project_id": contract.get("selected_project_id", ""),
+            "require_final_bundle": require_final_bundle,
         },
     }
 

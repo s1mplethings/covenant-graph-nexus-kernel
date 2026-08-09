@@ -430,6 +430,40 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertIn("需要继续修复", joined)
             self.assertNotIn("事实级问题", joined)
 
+    def test_finish_delivery_forwards_validated_provider_result_to_final_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project_dir = root / "project"
+            project_dir.mkdir()
+            session = bridge.default_session("chat-provider-result")
+            bridge.save_session(session_dir, session)
+            client = FakeTelegramClient()
+            result = {
+                "status": "PASS",
+                "driver": "api_provider_project_generation",
+                "manifest": {
+                    "status": "PASS",
+                    "project_dir": str(project_dir),
+                    "package_path": str(project_dir / "final_project_bundle.zip"),
+                    "manifest_path": str(project_dir / "delivery_manifest.json"),
+                },
+            }
+            captured: dict[str, object] = {}
+            original_send = bridge.send_delivery_from_manifest
+
+            def fake_send(_client, _chat_id, _session_dir, _session, _manifest, provider_result=None):
+                captured["provider_result"] = provider_result
+                return []
+
+            bridge.send_delivery_from_manifest = fake_send
+            try:
+                bridge.finish_agent_loop_delivery(client, "chat-provider-result", session_dir, project_dir, result)
+            finally:
+                bridge.send_delivery_from_manifest = original_send
+
+            self.assertIs(result, captured.get("provider_result"))
+
     def test_agent_pipeline_failure_becomes_rework_without_internal_public_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)

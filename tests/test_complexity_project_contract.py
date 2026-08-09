@@ -81,3 +81,28 @@ def test_contract_requires_planning_core_stages_artifacts_and_delivery_evidence(
     assert contract["required_stage_artifacts"]
     assert "final_project_bundle.zip" in contract["required_delivery_evidence"]
     assert "screenshot" in contract["required_delivery_evidence"]
+
+
+def test_candidate_phase_does_not_require_packager_output(tmp_path: pathlib.Path) -> None:
+    project = tmp_path / "project"
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    for name in ("README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
+        write(project / name, "# candidate\n")
+    write(project / "artifacts" / "screenshots" / "candidate.png", "png")
+    contract = {
+        "required_planning_docs": [],
+        "required_core_files": [],
+        "required_interfaces": [],
+        "required_stage_artifacts": [],
+    }
+
+    delivery_blockers = complexity_project_contract_check.validate_project(
+        project, run_dir, contract
+    )
+    candidate_blockers = complexity_project_contract_check.validate_project(
+        project, run_dir, contract, require_final_bundle=False
+    )
+
+    assert "final_project_bundle.zip_missing" in delivery_blockers
+    assert "final_project_bundle.zip_missing" not in candidate_blockers

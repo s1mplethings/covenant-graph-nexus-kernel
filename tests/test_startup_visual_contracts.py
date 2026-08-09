@@ -137,7 +137,7 @@ def test_no_tests_ran_uses_node_builtin_test_runner_repair() -> None:
     assert package_doc["scripts"]["test"] == "node scripts/test.js"
 
 
-def test_page_blank_routes_to_visual_evidence_and_post_build_repair() -> None:
+def test_page_blank_routes_to_provider_repair_without_fixed_domain_scaffold() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         project = pathlib.Path(temp_dir)
         (project / "index.html").write_text("<!doctype html><title>Task Board</title><body></body>", encoding="utf-8")
@@ -149,15 +149,17 @@ def test_page_blank_routes_to_visual_evidence_and_post_build_repair() -> None:
 
         plan = post_build_repair.compile_post_build_repair_plan(project, finalize)
         result = post_build_repair.apply_deterministic_post_build_repair(project, plan)
-        main = (project / "src" / "main.js").read_text(encoding="utf-8")
+        index = (project / "index.html").read_text(encoding="utf-8")
 
     assert "page_blank" in plan["failure_types"]
-    assert any(action["action"] == "repair_page_blank_demo_ui" for action in plan["deterministic_actions"])
-    assert "src/main.js" in result["changed_files"]
-    assert "Game Team Task and Bug Dashboard" in main
+    assert plan["deterministic_actions"] == []
+    assert [action["path"] for action in plan["provider_actions"]] == ["index.html"]
+    assert result["changed_files"] == []
+    assert index == "<!doctype html><title>Task Board</title><body></body>"
+    assert not (project / "src" / "main.js").exists()
 
 
-def test_frontend_backend_start_mismatch_uses_demo_data_for_static_preview() -> None:
+def test_frontend_backend_start_mismatch_routes_to_current_owner_repair() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         project = pathlib.Path(temp_dir)
         (project / "index.html").write_text("<!doctype html><html><head></head><body><div id='root'></div></body></html>", encoding="utf-8")
@@ -172,8 +174,9 @@ def test_frontend_backend_start_mismatch_uses_demo_data_for_static_preview() -> 
         index = (project / "index.html").read_text(encoding="utf-8")
 
     assert "frontend_backend_start_mismatch" in plan["failure_types"]
-    assert "index.html" in result["changed_files"]
-    assert "CGNK_STATIC_PREVIEW_DEMO_DATA" in index
+    assert [action["path"] for action in plan["provider_actions"]] == ["index.html"]
+    assert result["changed_files"] == []
+    assert "CGNK_STATIC_PREVIEW_DEMO_DATA" not in index
 
 
 def test_run_local_pipeline_does_not_grow_with_startup_repair() -> None:
@@ -285,6 +288,40 @@ def test_candidate_review_summary_includes_video_status(monkeypatch) -> None:
     assert doc["video_status"] == "blocked"
     assert doc["video_blocked_path"] == blocked
     assert doc["video_failure_reason"] == "startup_failed"
+
+
+def test_post_build_retries_pre_finalize_capture_failed_video(monkeypatch) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        project = pathlib.Path(temp_dir) / "candidate"
+        run_dir = pathlib.Path(temp_dir) / "run"
+        project.mkdir()
+        run_dir.mkdir()
+        blocked = visual_evidence.write_video_blocked(
+            project,
+            "provider supplied no video",
+            failure_reason="capture_failed",
+            video_requested_value=True,
+        )
+        video = project / "artifacts" / "videos" / "candidate_demo.webm"
+        video.parent.mkdir(parents=True)
+        video.write_bytes(b"real-video-produced-by-mocked-browser")
+        calls: list[str] = []
+
+        def fake_capture(*args, **kwargs):
+            calls.append("capture")
+            return {"status": "pass", "video": str(video), "video_blocked": "", "video_requested": True}
+
+        monkeypatch.setattr(post_build_finalize.visual_evidence, "capture_candidate_video", fake_capture)
+        monkeypatch.setattr(post_build_finalize, "update_candidate_review_video_status", lambda *args, **kwargs: None)
+        monkeypatch.setattr(post_build_finalize, "recreate_candidate_diagnostic_package", lambda *args, **kwargs: None)
+        monkeypatch.setattr(post_build_finalize, "write_post_build_result", lambda *args, **kwargs: None)
+        result = {"video": "", "video_blocked": blocked, "video_requested": True, "video_status": "blocked"}
+
+        post_build_finalize.ensure_video_evidence(project, run_dir, result, explicit_requested=True)
+
+    assert calls == ["capture"]
+    assert result["video_status"] == "pass"
+    assert result["video"] == str(video)
 
 
 def test_candidate_bundle_includes_video_or_video_blocked() -> None:

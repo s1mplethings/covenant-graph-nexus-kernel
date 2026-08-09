@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import subprocess
 import sys
 import tempfile
 
@@ -55,6 +56,31 @@ def test_complexity_scale_benchmark_report_written(monkeypatch) -> None:
     assert report["complexity_scale_benchmark"]["benchmark_spec"]["status"] == "pass"
     assert written["complexity_scale_benchmark"]["candidate_materialized"] is False
     assert written["fake_pass_protection"]["candidate_as_final_rejected"] is True
+
+
+def test_complexity_scale_benchmark_cli_dry_run_imports_project_contracts(tmp_path: pathlib.Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "run_complexity_scale_benchmark.py"),
+            "--spec",
+            str(ROOT / "benchmarks" / "complexity_scale_pipeline_benchmark.json"),
+            "--report",
+            str(tmp_path / "complexity_report.json"),
+            "--out-dir",
+            str(tmp_path / "candidate"),
+            "--run-dir",
+            str(tmp_path / "run"),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr
+    report = json.loads((tmp_path / "complexity_report.json").read_text(encoding="utf-8"))
+    assert report["complexity_scale_benchmark"]["benchmark_spec"]["status"] == "pass"
 
 
 def test_complexity_scale_final_gate_still_rejects_candidate_bundle() -> None:

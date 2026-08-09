@@ -67,3 +67,120 @@ def test_rejected_options_artifact_records_non_selected_directions() -> None:
     assert "Rejected Options" in rejected
     assert "single_page_status_demo" in rejected
     assert "cloud_ai_autopilot_suite" in rejected
+
+
+def test_media_review_phrase_selects_media_workbench() -> None:
+    candidates = discovery_selection_lane.generate_candidates(
+        "I need a local-first media review workbench with GUI, CLI, pipeline artifacts, and degraded mode.",
+        count=4,
+    )
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert selected is not None
+    assert selected["id"] == "local_video_workbench"
+
+
+def test_media_evidence_pipeline_selects_media_workbench() -> None:
+    goal = (
+        "Build a local 8-12 stage media evidence pipeline that imports local media, "
+        "extracts metadata, scores evidence, selects candidates, and packages exports."
+    )
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=4)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_media_product(goal) is True
+    assert selected is not None
+    assert selected["id"] == "local_video_workbench"
+
+
+def test_media_production_and_review_goal_selects_media_workbench() -> None:
+    goal = (
+        "I want a local-first media production and review workbench that imports "
+        "video and audio, analyzes clips, and exports a project package."
+    )
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=4)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_media_product(goal) is True
+    assert selected is not None
+    assert selected["id"] == "local_video_workbench"
+
+
+def test_delivery_video_does_not_select_video_workbench_for_task_board() -> None:
+    goal = (
+        "构建一个本地任务看板，支持新增、移动、筛选、删除和 localStorage。"
+        "验收时需要真实截图、演示视频、测试报告和最终 ZIP。"
+    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = discovery_selection_lane.run_discovery_selection(goal, pathlib.Path(temp_dir) / "discovery", candidate_count=5)
+
+    selected = result["selected_project_direction"]
+    contract = result["complexity_project_contract"]
+    assert selected["selected_id"] == "local_task_board"
+    assert selected["architecture_mode"] == "browser_local_static"
+    assert selected["required_complexity_floor"]["requires_cli"] is False
+    assert selected["required_complexity_floor"]["min_stage_artifacts"] == 0
+    assert contract["required_interfaces"] == ["web"]
+    assert contract["required_core_files"] == ["main.py", "index.html", "app.js", "styles.css"]
+    assert contract["architecture_mode"] == "browser_local_static"
+    assert contract["required_planning_docs"] == []
+    assert contract["required_stage_artifacts"] == []
+
+
+def test_chinese_video_slicing_goal_selects_video_workbench() -> None:
+    goal = "构建一个面向视频创作者的 AI 辅助切片工作台，把长视频转换成可筛选的候选片段。"
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=4)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_media_product(goal) is True
+    assert selected is not None
+    assert selected["id"] == "local_video_workbench"
+
+
+def test_visual_novel_goal_preserves_authoring_domain_instead_of_video_pipeline() -> None:
+    goal = "生成大型 VN 视觉小说工作室，支持剧情树、剧情分支、背景生成和人物立绘生成。"
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=5)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_visual_novel_product(goal) is True
+    assert discovery_selection_lane.goal_has_media_product(goal) is False
+    assert selected is not None
+    assert selected["id"] == "local_visual_novel_studio"
+    contract = discovery_selection_lane.build_contract(selected)
+    assert contract["architecture_mode"] == "modular_authoring_studio"
+    assert contract["required_interfaces"] == ["web"]
+    assert "story_graph.py" in contract["required_core_files"]
+    assert "generate_background_assets" in contract["required_pipeline_stages"]
+    assert "generate_sprite_assets" in contract["required_pipeline_stages"]
+
+
+def test_image_generation_terms_alone_do_not_select_video_processing() -> None:
+    goal = "做一个本地图像生成与角色立绘资产工具，不处理视频、音频、转录或剪辑。"
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=5)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_media_product(goal) is False
+    assert selected is not None
+    assert selected["id"] != "local_video_workbench"
+
+
+def test_cs_demo_analysis_goal_selects_goal_derived_specialized_workbench() -> None:
+    goal = (
+        "Build a CS2 demo integrity analysis project that discovers official platform acquisition "
+        "methods, downloads only authorized match demos, parses crosshair and player-position "
+        "relationships, and produces explainable anti-cheat review evidence."
+    )
+
+    candidates = discovery_selection_lane.generate_candidates(goal, count=5)
+    selected = discovery_selection_lane.select_candidate(candidates)
+
+    assert discovery_selection_lane.goal_has_specialized_analysis_product(goal) is True
+    assert selected is not None
+    assert selected["id"] == "goal_derived_specialized_analysis_workbench"
+    assert selected["pipeline_stages"][0] == "research_platform_sources"
+    assert "render_evidence_report" in selected["pipeline_stages"]

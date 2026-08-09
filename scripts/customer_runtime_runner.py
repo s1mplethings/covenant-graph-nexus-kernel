@@ -310,6 +310,7 @@ def run(
     finished = _now()
     health_body_hash = _sha256_text(health_body)
     copied_candidate_hash = str(copy_result.get("copied_candidate_hash") or "")
+    observed_result = observed[:4000]
     evidence: dict[str, Any] = {
         "kind": KIND,
         "schema_version": SCHEMA_VERSION,
@@ -347,8 +348,8 @@ def run(
         "health_probe": {"status_code": health_code, "response_hash": health_body_hash},
         "customer_action": f"GET {customer_path}",
         "expected_result": "non-empty HTTP response body",
-        "observed_result": observed[:4000],
-        "observed_result_hash": _sha256_text(observed),
+        "observed_result": observed_result,
+        "observed_result_hash": _sha256_text(observed_result),
         "shutdown_result": shutdown_result,
         "cleanup_result": cleanup_result,
         "browser_capture_required": bool(browser_capture_required),

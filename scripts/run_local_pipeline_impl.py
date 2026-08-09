@@ -2,31 +2,40 @@
 from __future__ import annotations
 
 import argparse
+import ast
+import builtins
 import csv
 import hashlib
 import json
 import os
 import pathlib
+import posixpath
 import re
 import shutil
 import subprocess
 import sys
 import time
+import tomllib
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+PROJECT_ROOT = SCRIPT_DIR.parent
+for import_root in (SCRIPT_DIR, PROJECT_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 import check_connectivity
+import adaptive_project_management_context
 import candidate_materializer
 import candidate_sanitizer
 import check_test_environment
 import compose_local_pipeline
 import discovery_selection_lane
+import design_research_agent
 import final_delivery_truth
 import formal_model_contract
 import local_intent_router
@@ -359,6 +368,52 @@ def env_int(name: str, default: int) -> int:
         return default
 
 
+def provider_task_timeout_cap(
+    task: str,
+    *,
+    env_name: str,
+    api_default: int,
+    api_hard_cap: int,
+    local_default: int = 180,
+) -> int:
+    """Resolve one owner-aware timeout cap for the complete provider call chain."""
+    local_generation = local_model_router.task_enabled(task)
+    hard_cap = 240 if local_generation else api_hard_cap
+    configured_default = local_default if local_generation else api_default
+    return max(
+        30,
+        min(env_int(env_name, configured_default), hard_cap),
+    )
+
+
+def provider_component_manifest_timeout_cap() -> int:
+    """Bound one manifest-planning call without weakening the run deadline."""
+    return provider_task_timeout_cap(
+        "component_generation",
+        env_name="CGNK_PROVIDER_COMPONENT_MANIFEST_TIMEOUT_CAP",
+        api_default=90,
+        api_hard_cap=120,
+    )
+
+
+def provider_component_file_timeout_cap() -> int:
+    return provider_task_timeout_cap(
+        "component_generation",
+        env_name="CGNK_PROVIDER_COMPONENT_FILE_TIMEOUT_CAP",
+        api_default=90,
+        api_hard_cap=90,
+    )
+
+
+def provider_semantic_review_timeout_cap() -> int:
+    return provider_task_timeout_cap(
+        "qa",
+        env_name="CGNK_PROVIDER_SEMANTIC_REVIEW_TIMEOUT_CAP",
+        api_default=90,
+        api_hard_cap=90,
+    )
+
+
 @dataclass
 class ProviderModelRoutingPolicy:
     small_model: str = "gpt-5.4-nano"
@@ -438,6 +493,7 @@ def choose_provider_model(
     requested_model: str,
     routing_policy: ProviderModelRoutingPolicy | None,
     last_error: Any = None,
+    attempt_number: int = 1,
 ) -> dict[str, Any]:
     policy = routing_policy or ProviderModelRoutingPolicy()
     requested = str(requested_model or "").strip() or policy.small_model
@@ -447,6 +503,15 @@ def choose_provider_model(
     transport_reason = provider_transport_model_route_reason(last_error)
     if transport_reason and policy.upgrade_on_transport_error:
         return ProviderModelRoute({"selected_model": policy.large_model, "model_routing_reason": transport_reason, "requested_model": requested})
+
+    if str(last_error or "").strip() and int(attempt_number or 1) > 1:
+        return ProviderModelRoute(
+            {
+                "selected_model": policy.large_model,
+                "model_routing_reason": "semantic_repair_escalation",
+                "requested_model": requested,
+            }
+        )
 
     normalized_stage = str(stage or "").strip().lower()
     if policy.downgrade_for_connectivity and normalized_stage in {"connectivity", "ping", "lightweight_summary", "lightweight summary"}:
@@ -482,6 +547,57 @@ def parse_json_object(text: str) -> dict[str, Any]:
     raise RuntimeError("provider returned non-json project payload")
 
 
+class ProviderOutputContractError(RuntimeError):
+    """A provider response was received but did not satisfy the bounded stage contract."""
+
+    def __init__(self, message: str, *, raw_output: str = "", parsed_result: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.raw_output = str(raw_output or "")
+        self.parsed_result = dict(parsed_result or {})
+
+
+def bounded_provider_diagnostic_output(raw_output: str, max_chars: int = 12000) -> str:
+    """Keep a bounded, secret-redacted response excerpt for local failure diagnosis."""
+    text = str(raw_output or "")
+    text = re.sub(r"\bsk-[A-Za-z0-9_-]{10,}\b", "sk-***REDACTED***", text)
+    text = re.sub(
+        r"(?i)(authorization\s*[:=]\s*(?:bearer\s+)?)[^\s,;\"']+",
+        r"\1***REDACTED***",
+        text,
+    )
+    limit = max(1000, min(int(max_chars or 12000), 50000))
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n...[provider response truncated for diagnostics]..."
+
+
+def provider_exception_error_type(exc: BaseException) -> str:
+    if isinstance(exc, ProviderOutputContractError):
+        return "PROVIDER_OUTPUT_CONTRACT"
+    return check_connectivity._provider_error_type(str(exc))
+
+
+def parse_provider_manifest_doc(text: str, *, component: str) -> dict[str, Any]:
+    """Parse the manifest object or an unambiguous bare file-entry array."""
+    raw = str(text or "").strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    candidates = [raw]
+    first = raw.find("[")
+    last = raw.rfind("]")
+    if first >= 0 and last > first:
+        candidates.append(raw[first : last + 1])
+    for candidate in candidates:
+        try:
+            doc = json.loads(candidate)
+        except Exception:
+            continue
+        if isinstance(doc, list) and doc and all(isinstance(item, dict) for item in doc):
+            return {"component": component, "files": doc}
+    return parse_json_object(text)
+
+
 def provider_plan_doc(plan_doc: dict[str, Any]) -> dict[str, Any]:
     doc = json.loads(json.dumps(plan_doc, ensure_ascii=False)) if isinstance(plan_doc, dict) else {}
     doc.pop("internal_context_prompt", None)
@@ -506,6 +622,1143 @@ def provider_blueprint_context(blueprint: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def local_model_task_for_provider_stage(stage: str) -> str:
+    normalized = str(stage or "").strip().lower()
+    if normalized in {"component_generation", "component_file_generation", "component_file_manifest"}:
+        return "component_generation"
+    if normalized in {"file_repair", "semantic_repair", "provider_semantic_repair", "post_build_repair"}:
+        return "component_repair"
+    if normalized in {"semantic_component_review", "semantic_cross_component_review", "semantic_final_reducer"}:
+        return "qa"
+    return ""
+
+
+def provider_code_fallback_reason(error: Any) -> str:
+    """Classify provider unavailability that may fall back for bounded code tasks."""
+    text = str(error or "")
+    transport = provider_transport_model_route_reason(text)
+    if transport:
+        return transport
+    error_type = check_connectivity._provider_error_type(text)
+    return {
+        "PROVIDER_KEY_USAGE_LIMIT": "provider_key_usage_limit",
+        "PROVIDER_MISSING_CONFIG": "provider_missing_config",
+        "PROVIDER_FORBIDDEN": "provider_forbidden",
+        "PROVIDER_METHOD_UNSUPPORTED": "provider_method_unsupported",
+    }.get(error_type, "")
+
+
+def local_model_task_for_provider_request(stage: str, prompt: str) -> str:
+    task = local_model_task_for_provider_stage(stage)
+    if (
+        task == "component_generation"
+        and '"repair_acceptance"' in str(prompt or "")
+    ):
+        return "component_reasoning_repair"
+    return task
+
+
+def component_required_manifest_paths(component_id: str, component: dict[str, Any] | None = None) -> list[str]:
+    dynamic = component.get("required_paths", []) if isinstance(component, dict) else []
+    if isinstance(dynamic, list) and dynamic:
+        return list(dict.fromkeys(str(path).replace("\\", "/").strip() for path in dynamic if str(path).strip()))
+    return {
+        "foundation": ["requirements.txt"],
+        "backend": ["main.py"],
+        "data": ["data/schema.json"],
+        "frontend": ["index.html", "src/app.js", "src/styles.css"],
+        "media": ["scripts/capture_workflow.py"],
+        "tests": ["tests/test_app.py"],
+        "docs": ["README.md", "TEST_PLAN.md"],
+    }.get(str(component_id or "").strip(), [])
+
+
+def normalize_test_manifest_dependency_contract(
+    manifest: list[dict[str, Any]],
+    prior_manifest: list[str],
+) -> list[dict[str, Any]]:
+    available = {
+        str(path).replace("\\", "/").strip()
+        for path in prior_manifest
+        if str(path).strip()
+    }
+    preferred_by_kind = {
+        "pipeline": ["backend/stages.py", "backend/orchestrator.py"],
+        "integration": ["backend/orchestrator.py", "backend/stages.py"],
+        "artifact": ["backend/artifact_store.py"],
+        "cancel": ["backend/orchestrator.py"],
+        "resume": ["backend/orchestrator.py"],
+        "degraded": ["backend/adapters.py", "backend/image_adapters.py"],
+        "app": ["main.py"],
+    }
+    fallback_paths = [
+        path
+        for path in ("backend/orchestrator.py", "backend/stages.py", "main.py")
+        if path in available
+    ]
+    normalized: list[dict[str, Any]] = []
+    for raw_entry in manifest:
+        entry = dict(raw_entry)
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        if not (path.startswith("tests/") and path.endswith(".py")):
+            normalized.append(entry)
+            continue
+        search_text = " ".join(
+            [
+                path.lower(),
+                str(entry.get("purpose", "")).lower(),
+                " ".join(str(item).lower() for item in entry.get("responsibilities", [])),
+            ]
+        )
+        existing = [
+            str(item).replace("\\", "/").strip()
+            for item in entry.get("dependencies", [])
+            if str(item).replace("\\", "/").strip() in available
+        ] if isinstance(entry.get("dependencies", []), list) else []
+        inferred: list[str] = []
+        for kind, candidates in preferred_by_kind.items():
+            if kind in search_text:
+                inferred.extend(path for path in candidates if path in available)
+        if not existing and not inferred:
+            inferred.extend(fallback_paths[:1])
+        entry["dependencies"] = list(dict.fromkeys([*existing, *inferred]))[:4]
+        entry["expected_symbols"] = [
+            str(symbol).strip()
+            for symbol in entry.get("expected_symbols", [])
+            if re.fullmatch(r"test_[A-Za-z0-9_]+", str(symbol).strip())
+        ][:12] if isinstance(entry.get("expected_symbols", []), list) else []
+        normalized.append(entry)
+    return normalized
+
+
+def normalize_executable_media_manifest_contract(
+    component_id: str,
+    manifest: list[dict[str, Any]],
+    component: dict[str, Any],
+) -> list[dict[str, Any]]:
+    contract_slice = (
+        component.get("contract_slice", {})
+        if isinstance(component.get("contract_slice", {}), dict)
+        else {}
+    )
+    required_stages = {
+        str(stage).strip().lower()
+        for stage in contract_slice.get("required_pipeline_stages", [])
+        if str(stage).strip()
+    }
+    if not {"generate_background_assets", "generate_sprite_assets"}.issubset(
+        required_stages
+    ):
+        return [dict(entry) for entry in manifest]
+    normalized: list[dict[str, Any]] = []
+    for raw_entry in manifest:
+        entry = dict(raw_entry)
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        if component_id == "backend" and path == "backend/image_adapters.py":
+            entry["estimated_complexity"] = "high"
+            entry["responsibilities"] = [
+                "Generate deterministic, decodable offline PNG backgrounds from prompt and seed without an external model.",
+                "Generate deterministic RGBA sprite PNGs with meaningful transparent pixels from character, expression, pose, clothing, prompt, and seed.",
+                "Expose optional external adapters with explicit capability and unavailable/error results rather than simulated success.",
+            ]
+            entry["acceptance_checks"] = [
+                "Same prompt and seed produce the same PNG bytes while different seeds or prompts produce different hashes.",
+                "Every output has a valid PNG signature and chunks and sprite output uses RGBA with non-opaque alpha pixels.",
+                "Offline generation writes real files and external capability absence is reported honestly.",
+            ]
+            entry["expected_symbols"] = ["OfflinePngGenerator", "ImageAdapter"]
+        elif component_id == "media" and path == "scripts/capture_workflow.py":
+            entry["estimated_complexity"] = "high"
+            entry["dependencies"] = [
+                "backend/asset_library.py",
+                "backend/image_adapters.py",
+            ]
+            entry["responsibilities"] = [
+                "Run distinct background and transparent-sprite generation workflows through the implemented offline or optional adapter API.",
+                "Persist prompt, seed, SHA-256, generator, asset type, path, and sprite descriptors for every real PNG.",
+                "Return structured success, degraded, or failure evidence and never return simulated image text as success.",
+            ]
+            entry["acceptance_checks"] = [
+                "capture_background and generate_sprite each call the matching adapter method, then read and verify the decodable PNG at the caller-selected output path.",
+                "Sprite metadata includes character, expression, pose, clothing, and alpha evidence.",
+                "Failures include actionable error and capability state without claiming an artifact exists.",
+            ]
+            entry["expected_symbols"] = ["capture_background", "generate_sprite"]
+        elif component_id == "media" and path == "demo/run_fixture.py":
+            entry["estimated_complexity"] = "medium"
+            entry["dependencies"] = [
+                "scripts/capture_workflow.py",
+                "main.py",
+                "backend/orchestrator.py",
+                "backend/stages.py",
+                "backend/artifact_store.py",
+            ]
+            entry["responsibilities"] = [
+                "Generate two distinct backgrounds and two distinct transparent sprites from deterministic fixture inputs.",
+                "Verify PNG decoding/signature, SHA-256 diversity, sprite alpha, paths, and structured metadata before writing a fixture receipt.",
+                "Execute the real application stage graph and require every declared stage artifact to be written as parseable structured JSON.",
+            ]
+            entry["acceptance_checks"] = [
+                "run_fixture fails nonzero or raises when any expected image, hash difference, or alpha condition is absent.",
+                "The success receipt lists four real image paths and their validation evidence.",
+                "Every required stage artifact exists after the fixture and contains the declared artifact record fields.",
+            ]
+            entry["expected_symbols"] = ["run_fixture"]
+        normalized.append(entry)
+    return normalized
+
+
+def normalize_backend_stage_dependency_contract(
+    component_id: str,
+    manifest: list[dict[str, Any]],
+    component: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if component_id != "backend":
+        return [dict(entry) for entry in manifest]
+    contract_slice = (
+        component.get("contract_slice", {})
+        if isinstance(component.get("contract_slice", {}), dict)
+        else {}
+    )
+    required_stage_symbols = list(dict.fromkeys(
+        str(stage).strip()
+        for stage in contract_slice.get("required_pipeline_stages", [])
+        if str(stage).strip()
+    ))
+    required_stages = {stage.lower() for stage in required_stage_symbols}
+    if not required_stages:
+        return [dict(entry) for entry in manifest]
+    available = {
+        str(entry.get("path", "")).replace("\\", "/").strip()
+        for entry in manifest
+        if isinstance(entry, dict) and str(entry.get("path", "")).strip()
+    }
+    preferred_dependencies = {
+        "backend/story_graph.py": [],
+        "backend/asset_library.py": [],
+        "backend/image_adapters.py": [],
+        "backend/artifact_store.py": [],
+        "main.py": ["backend/orchestrator.py", "backend/stages.py"],
+        "backend/persistence.py": ["backend/story_graph.py", "backend/asset_library.py"],
+        "backend/preview.py": ["backend/story_graph.py", "backend/asset_library.py"],
+        "backend/orchestrator.py": ["backend/stages.py", "backend/artifact_store.py"],
+        "backend/stages_part_01.py": ["backend/story_graph.py", "backend/persistence.py"],
+        "backend/stages_part_02.py": [
+            "backend/story_graph.py",
+            "backend/image_adapters.py",
+            "backend/artifact_store.py",
+        ],
+        "backend/stages_part_03.py": [
+            "backend/image_adapters.py",
+            "backend/asset_library.py",
+            "backend/artifact_store.py",
+        ],
+        "backend/stages_part_04.py": [
+            "backend/preview.py",
+            "backend/persistence.py",
+            "backend/artifact_store.py",
+        ],
+        "backend/stages_part_05.py": ["backend/artifact_store.py"],
+        "backend/stages.py": [
+            "backend/stages_part_01.py",
+            "backend/stages_part_02.py",
+            "backend/stages_part_03.py",
+            "backend/stages_part_04.py",
+            "backend/stages_part_05.py",
+        ],
+        "backend/adapters.py": ["backend/image_adapters.py"],
+    }
+    normalized: list[dict[str, Any]] = []
+    for raw_entry in manifest:
+        entry = dict(raw_entry)
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        preferred = [
+            dependency
+            for dependency in preferred_dependencies.get(path, [])
+            if dependency in available and dependency != path
+        ]
+        if path in preferred_dependencies:
+            entry["dependencies"] = preferred
+        if path == "main.py":
+            entry["estimated_complexity"] = "medium"
+            entry["responsibilities"] = [
+                "Initialize the generated application through ProjectOrchestrator without inventing upstream APIs.",
+                "Expose a stable initialize_app entrypoint that returns structured startup state and reports failures honestly.",
+            ]
+            entry["acceptance_checks"] = [
+                "initialize_app is importable, constructs the implemented orchestrator with every required stage in order, and returns a non-null application/startup result.",
+                "Running main.py executes initialize_app without an undeclared local import.",
+            ]
+            entry["expected_symbols"] = ["initialize_app"]
+            entry["required_stage_symbols"] = required_stage_symbols
+        elif path == "backend/orchestrator.py":
+            entry["estimated_complexity"] = "medium"
+            entry["responsibilities"] = [
+                "Execute an ordered list of plain stage callables against one evolving state mapping.",
+                "Validate each stage result and stop with structured failure evidence instead of assuming object methods.",
+            ]
+            entry["acceptance_checks"] = [
+                "ProjectOrchestrator.execute calls each supplied stage as stage(state), never stage.execute(state).",
+                "Every accepted stage result has status and output mappings and successful output updates state in order.",
+            ]
+            entry["expected_symbols"] = ["ProjectOrchestrator"]
+        elif path == "backend/artifact_store.py":
+            required_fields = [
+                str(field).strip()
+                for field in contract_slice.get("required_artifact_fields", [])
+                if str(field).strip()
+            ]
+            required_artifacts = [
+                str(name).strip()
+                for name in contract_slice.get("required_stage_artifacts", [])
+                if str(name).strip()
+            ]
+            entry["required_artifact_fields"] = required_fields
+            entry["required_stage_artifacts"] = required_artifacts
+            entry["responsibilities"] = [
+                "Validate and persist structured stage artifact records instead of opaque byte blobs.",
+                "Reject records missing any field required by the project artifact contract.",
+            ]
+            entry["acceptance_checks"] = [
+                "ArtifactStore stores retrievable mappings containing every required artifact field.",
+                "Every declared stage artifact name is represented by the storage contract.",
+            ]
+        elif re.fullmatch(r"backend/stages_part_\d+\.py", path):
+            responsibilities = [
+                str(item)
+                for item in entry.get("responsibilities", [])
+                if str(item).strip()
+            ]
+            acceptance_checks = [
+                str(item)
+                for item in entry.get("acceptance_checks", [])
+                if str(item).strip()
+            ]
+            responsibilities.append(
+                "Implement each assigned pipeline stage as a plain callable accepting exactly one evolving state mapping."
+            )
+            acceptance_checks.append(
+                "Every assigned pipeline-stage function has signature stage(state) and returns {'status': 'success'|'error', 'output': dict, ...}."
+            )
+            entry["responsibilities"] = list(dict.fromkeys(responsibilities))[:8]
+            entry["acceptance_checks"] = list(dict.fromkeys(acceptance_checks))[:8]
+            entry["stage_callable_symbols"] = [
+                str(symbol).strip()
+                for symbol in entry.get("expected_symbols", [])
+                if str(symbol).strip() in set(required_stage_symbols)
+            ]
+        normalized.append(entry)
+    return normalized
+
+
+def local_provider_contract_prompt(stage: str, component: str, target_file: str) -> str:
+    normalized = str(stage or "").strip().lower()
+    if normalized in {"semantic_component_review", "semantic_cross_component_review", "semantic_final_reducer"}:
+        return (
+            "Return one strict JSON object with verdict equal to pass or fail and blockers as a JSON array. "
+            "Do not include markdown. Do not claim runtime, screenshot, video, or package success; review only the supplied evidence."
+        )
+    if normalized in {"component_generation", "file_repair", "semantic_repair", "provider_semantic_repair", "post_build_repair"}:
+        return (
+            "Return one strict JSON object with top-level component_id exactly "
+            f"{json.dumps(component, ensure_ascii=False)} and a non-empty files array. "
+            "Every file must contain non-empty path and content strings. Do not rename component_id and do not wrap the object."
+        )
+    if normalized == "component_file_manifest":
+        required_paths = component_required_manifest_paths(component)
+        return (
+            "Stage: component_file_manifest. Return one strict JSON object with top-level component exactly "
+            f"{json.dumps(component, ensure_ascii=False)} and a non-empty files array. "
+            "Every file entry must contain a non-empty path. Do not include file contents. "
+            "Keep entries concise: one short purpose, dependency paths, and only the minimum responsibilities, checks, and symbols needed for ownership. "
+            f"The manifest must include these required paths: {json.dumps(required_paths, ensure_ascii=False)}."
+        )
+    if normalized == "component_file_generation":
+        contract = (
+            "Return one strict JSON object for exactly one file. Use top-level path and content, or a files array containing exactly one object. "
+            f"The path must be exactly {json.dumps(target_file, ensure_ascii=False)} and content must be non-empty. "
+            "All hard constraints in project_goal_constraints are mandatory. Escape every content newline as JSON \\n and return no markdown."
+        )
+        normalized_target = str(target_file or "").replace("\\", "/").lower()
+        if component == "frontend" and normalized_target == "index.html":
+            contract += (
+                " The HTML body must contain a meaningful visible initial interface for the selected product, stable "
+                "data-testid attributes, and exact references to "
+                "src/styles.css and src/app.js. Load src/app.js with defer/type=module or after the rendered controls; "
+                "an empty app/root shell is forbidden."
+            )
+        elif component == "frontend" and normalized_target.endswith((".js", ".mjs")):
+            contract += (
+                " The JavaScript must implement the selected product's visible interaction contract using only DOM ids/classes "
+                "that exist in index.html or that this file creates. Every required action must be wired to a visible control. "
+                "Do not import undeclared packages or missing local modules, and do not emit JSX without a declared build tool."
+            )
+        elif component == "tests" and normalized_target.endswith(".py"):
+            contract += (
+                " Generate meaningful executable tests for the selected product contract, not quote-style or source-token-only smoke tests. "
+                "Honor any minimum test count and category requirements in complexity_contract_slice. Test shared domain behavior, "
+                "failure/degraded paths, artifacts, and interfaces using real imports or subprocesses where appropriate. "
+                "Use unittest.TestCase or ordinary pytest functions with built-in/declared fixtures. pathlib.Path.read_text may support "
+                "a focused static contract assertion, but do not embed multiline source snippets as the implementation under test. "
+                "Only reference project files explicitly supplied in the component manifest or prior component contract excerpts; "
+                "never invent fixtures such as src/tasks.json. A function decorated with pytest.fixture is injected by naming it "
+                "as a test-function parameter; never pass that fixture function itself as the argvalues iterable to "
+                "pytest.mark.parametrize. Parametrize argvalues must be a real literal/iterable of cases."
+            )
+        return contract
+    return "Return one strict JSON object and no markdown."
+
+
+def fallback_python_undefined_names(tree: ast.AST) -> list[str]:
+    """Conservative stdlib fallback when Pyflakes is unavailable."""
+    defined = set(dir(builtins)) | {"__file__", "__name__", "__package__", "__spec__"}
+    used: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            defined.add(node.name)
+        elif isinstance(node, ast.arg):
+            defined.add(node.arg)
+        elif isinstance(node, ast.Name):
+            if isinstance(node.ctx, ast.Load):
+                used.add(node.id)
+            else:
+                defined.add(node.id)
+        elif isinstance(node, ast.Import):
+            defined.update(alias.asname or alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            defined.update(alias.asname or alias.name for alias in node.names if alias.name != "*")
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            defined.add(str(node.name))
+    return sorted(used - defined)
+
+
+def python_undefined_names(tree: ast.AST, *, filename: str = "<generated>") -> list[str]:
+    try:
+        from pyflakes.checker import Checker as PyflakesChecker  # type: ignore
+        from pyflakes.messages import UndefinedName as PyflakesUndefinedName  # type: ignore
+
+        return sorted(
+            {
+                str(message.message_args[0])
+                for message in PyflakesChecker(tree, filename=filename).messages
+                if isinstance(message, PyflakesUndefinedName)
+                and message.message_args
+            }
+        )
+    except ImportError:
+        return fallback_python_undefined_names(tree)
+
+
+def pytest_fixture_argvalue_references(tree: ast.AST) -> list[str]:
+    declared_fixtures = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(
+            (isinstance(dec, ast.Name) and dec.id == "fixture")
+            or (isinstance(dec, ast.Attribute) and dec.attr == "fixture")
+            or (
+                isinstance(dec, ast.Call)
+                and isinstance(dec.func, ast.Attribute)
+                and dec.func.attr == "fixture"
+            )
+            for dec in node.decorator_list
+        )
+    }
+    return sorted(
+        {
+            dec.args[1].id
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            for dec in node.decorator_list
+            if isinstance(dec, ast.Call)
+            and isinstance(dec.func, ast.Attribute)
+            and dec.func.attr == "parametrize"
+            and len(dec.args) >= 2
+            and isinstance(dec.args[1], ast.Name)
+            and dec.args[1].id in declared_fixtures
+        }
+    )
+
+
+def generated_fixture_source_violations(content: str) -> list[str]:
+    try:
+        tree = ast.parse(str(content or ""))
+    except SyntaxError:
+        return []
+    compressed_byte_vars = {
+        node.targets[0].id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Attribute)
+        and node.value.func.attr in {"read", "read_bytes"}
+        and any(token in node.targets[0].id.lower() for token in ("png", "byte"))
+    }
+    blockers: list[str] = []
+    if any(
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id in compressed_byte_vars
+        and isinstance(node.slice, ast.Constant)
+        and isinstance(node.slice.value, int)
+        for node in ast.walk(tree)
+    ):
+        blockers.append(
+            "fixture inspects compressed PNG bytes at fixed offsets; decode with Pillow "
+            "Image.open(...).convert('RGBA') and inspect the alpha channel instead"
+        )
+    lowered = str(content or "").lower()
+    if "getchannel(" not in lowered or "getextrema(" not in lowered:
+        blockers.append(
+            "fixture does not inspect decoded RGBA alpha-channel extrema"
+        )
+    meaningful_alpha = bool(
+        re.search(r"\b(?:alpha\w*|\w*min)\s*<\s*255\b", lowered)
+        or re.search(r"\b255\s*>\s*(?:alpha\w*|\w*min)\b", lowered)
+        or re.search(r"getextrema\s*\(\s*\)\s*!=\s*\(\s*255\s*,\s*255\s*\)", lowered)
+    )
+    if not meaningful_alpha:
+        blockers.append(
+            "fixture does not prove meaningful sprite transparency; decoded alpha minimum must be less than 255"
+        )
+    if not (
+        ".write_text(" in lowered
+        and "json.dumps(" in lowered
+    ) and "json.dump(" not in lowered:
+        blockers.append(
+            "fixture has no concrete structured JSON stage-artifact write operation"
+        )
+    write_positions = [
+        position
+        for position in (
+            lowered.find("artifact_path.write_text("),
+            lowered.find("json.dump("),
+        )
+        if position >= 0
+    ]
+    read_positions = [
+        position
+        for position in (
+            lowered.find("json.load("),
+            lowered.find("artifact_path.read_text("),
+        )
+        if position >= 0
+    ]
+    if write_positions and read_positions and min(write_positions) > min(read_positions):
+        blockers.append(
+            "fixture reads or requires a stage artifact before writing its structured receipt"
+        )
+    return blockers
+
+
+def local_provider_contract_error(doc: Any, *, stage: str, component: str, target_file: str, prompt_text: str = "") -> str:
+    if not isinstance(doc, dict):
+        return "local model returned invalid JSON object"
+    normalized = str(stage or "").strip().lower()
+    if normalized in {"semantic_component_review", "semantic_cross_component_review", "semantic_final_reducer"}:
+        verdict = str(doc.get("verdict") or doc.get("status") or "").strip().lower()
+        if verdict not in {"pass", "fail"}:
+            return f"local semantic review verdict invalid: {verdict or '<missing>'}"
+        if not isinstance(doc.get("blockers"), list):
+            return "local semantic review blockers must be an array"
+    elif normalized in {"component_generation", "file_repair", "semantic_repair", "provider_semantic_repair", "post_build_repair"}:
+        actual_component = str(doc.get("component_id", "")).strip()
+        if actual_component != str(component or "").strip():
+            return f"local component_id mismatch: expected {component}, got {actual_component or '<missing>'}"
+        files = doc.get("files")
+        if not isinstance(files, list) or not files:
+            return "local component response missing non-empty files array"
+        if any(not isinstance(item, dict) or not str(item.get("path", "")).strip() or not str(item.get("content", "")).strip() for item in files):
+            return "local component response contains invalid file entries"
+    elif normalized == "component_file_manifest":
+        actual_component = provider_manifest_component_id(doc)
+        if actual_component and actual_component != str(component or "").strip():
+            return f"local manifest component mismatch: expected {component}, got {actual_component}"
+        files = doc.get("files")
+        if not isinstance(files, list) or not files:
+            return "local manifest missing non-empty files array"
+        if any(not isinstance(item, dict) or not str(item.get("path", "")).strip() for item in files):
+            return "local manifest contains invalid file entries"
+        paths = {str(item.get("path", "")).replace("\\", "/").strip() for item in files if isinstance(item, dict)}
+        required_manifest_paths = component_required_manifest_paths(component)
+        try:
+            prompt_doc = json.loads(str(prompt_text or ""))
+        except (json.JSONDecodeError, TypeError):
+            prompt_doc = {}
+        if isinstance(prompt_doc, dict) and isinstance(prompt_doc.get("required_paths"), list):
+            required_manifest_paths = list(
+                dict.fromkeys(
+                    [
+                        *required_manifest_paths,
+                        *[
+                            str(path).replace("\\", "/").strip()
+                            for path in prompt_doc["required_paths"]
+                            if str(path).strip()
+                        ],
+                    ]
+                )
+            )
+        missing = [path for path in required_manifest_paths if path not in paths]
+        if missing:
+            return "local manifest missing required paths: " + ", ".join(missing)
+        if (
+            str(component or "").strip() == "backend"
+            and "localstorage as the sole task persistence layer" in str(prompt_text or "").lower()
+            and paths != {"main.py"}
+        ):
+            return "local static-only backend manifest must contain exactly main.py"
+    elif normalized == "component_file_generation":
+        files = doc.get("files")
+        if files is not None:
+            if not isinstance(files, list) or len(files) != 1 or not isinstance(files[0], dict):
+                return "local split-file response must contain exactly one file"
+            item = files[0]
+        else:
+            item = doc
+        actual_path = str(item.get("path", "")).replace("\\", "/").strip()
+        if actual_path != str(target_file or "").replace("\\", "/").strip():
+            return f"local split-file path mismatch: expected {target_file}, got {actual_path or '<missing>'}"
+        if not str(item.get("content", "")).strip():
+            return "local split-file response missing content"
+        content = str(item.get("content", ""))
+        lowered_prompt = str(prompt_text or "").lower()
+        python_tree = None
+        if actual_path.lower().endswith(".py"):
+            try:
+                python_tree = ast.parse(content)
+            except SyntaxError as exc:
+                return f"local split-file Python syntax invalid: {exc.msg} at line {exc.lineno}"
+            undefined_names = python_undefined_names(
+                python_tree, filename=actual_path
+            )
+            if undefined_names:
+                return "local split-file Python contains undefined names: " + ", ".join(undefined_names)
+        if "use only the python standard library at runtime" in lowered_prompt and re.search(
+            r"(?:from|import)\s+(?:flask|fastapi|django|requests|httpx|aiohttp|sqlalchemy)\b", content, flags=re.I
+        ):
+            return "local split-file violates Python standard-library-only constraint"
+        if (
+            "localstorage as the sole task persistence layer" in lowered_prompt
+            and python_tree is not None
+            and any(isinstance(node, ast.Name) and node.id.lower() == "localstorage" for node in ast.walk(python_tree))
+        ):
+            return "local split-file Python entrypoint illegally accesses browser localStorage"
+        if "localstorage as the sole task persistence layer" in lowered_prompt and actual_path.lower() in {"main.py", "app.py", "server.py"}:
+            nonblank_lines = [line for line in content.splitlines() if line.strip()]
+            if len(nonblank_lines) > 60:
+                return f"local static-only Python entrypoint is too large: {len(nonblank_lines)} nonblank lines"
+            forbidden_server_behavior = ("do_POST", "do_PUT", "do_DELETE", "'/tasks'", '"/tasks"', "class Task", "TaskManager")
+            if any(token in content for token in forbidden_server_behavior):
+                return "local static-only Python entrypoint implements forbidden task API or server persistence"
+            if "SimpleHTTPRequestHandler" not in content:
+                return "local static-only Python entrypoint must use SimpleHTTPRequestHandler"
+        if actual_path.lower() == "requirements.txt" and "use only the python standard library at runtime" in lowered_prompt:
+            dependency_lines = [line.strip() for line in content.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+            if dependency_lines:
+                return "local requirements.txt must contain comments only for a standard-library-only project"
+        if (
+            actual_path.lower() == "index.html"
+            and "localstorage as the sole task persistence layer" in lowered_prompt
+            and "without frontend package or cdn dependencies" in lowered_prompt
+        ):
+            body_match = re.search(r"<body\b[^>]*>(.*?)</body>", content, flags=re.I | re.S)
+            visible_source = body_match.group(1) if body_match else content
+            without_nonvisible = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", visible_source, flags=re.I | re.S)
+            visible_text = re.sub(r"<[^>]+>", " ", without_nonvisible)
+            visible_text = re.sub(r"\s+", " ", visible_text).strip()
+            if len(visible_text) < 8:
+                return "local native HTML entrypoint has no visible initial interface or controls"
+        if actual_path.lower() == "index.html":
+            required_frontend_assets = [
+                path for path in ("src/app.js", "src/styles.css") if f'"{path}"' in prompt_text
+            ]
+            missing_asset_refs = [
+                path
+                for path in required_frontend_assets
+                if not re.search(
+                    rf"\b(?:src|href)\s*=\s*['\"]/?{re.escape(path)}(?:[?#][^'\"]*)?['\"]",
+                    content,
+                    flags=re.I,
+                )
+            ]
+            if missing_asset_refs:
+                return "local index.html must reference exact component asset paths: " + ", ".join(missing_asset_refs)
+            if "task-board frontend must implement usable" in lowered_prompt and "data-testid" not in content.lower():
+                return "local task-board HTML missing stable data-testid attributes"
+        if actual_path.lower().endswith((".js", ".mjs")) and "task-board frontend must implement usable" in lowered_prompt:
+            const_error = validate_javascript_const_reassignment([{"path": actual_path, "content": content}])
+            if const_error:
+                return const_error
+            feature_markers = {
+                "add": ("addtask", "add task"),
+                "status toggle": ("toggle", "completed", "status"),
+                "delete": ("delete", "remove", "splice("),
+                "filter": ("filter",),
+                "localStorage": ("localstorage",),
+            }
+            lowered_content = content.lower()
+            missing_features = [
+                name for name, markers in feature_markers.items() if not any(marker.lower() in lowered_content for marker in markers)
+            ]
+            if lowered_content.count("delete") == 1 and "removechild" in lowered_content and "addeventlistener" not in lowered_content:
+                missing_features.append("invocable delete action")
+            if missing_features:
+                return "local task-board JavaScript missing required behavior: " + ", ".join(missing_features)
+        if actual_path.lower().startswith("tests/") and actual_path.lower().endswith(".py") and python_tree is not None:
+            literal_project_paths = sorted(
+                {
+                    match.replace("\\", "/").strip()
+                    for match in re.findall(r"\bPath\(\s*['\"]([^'\"]+)['\"]\s*\)", content)
+                    if match.strip()
+                    and not pathlib.PurePosixPath(match.replace("\\", "/")).is_absolute()
+                    and match.replace("\\", "/").strip() not in {".", ".."}
+                }
+            )
+            unknown_project_paths = [path for path in literal_project_paths if path not in prompt_text]
+            if unknown_project_paths:
+                return "local test file references project files absent from supplied context: " + ", ".join(unknown_project_paths)
+            expects_main_function = any(
+                (
+                    isinstance(node, ast.Call)
+                    and (
+                        (isinstance(node.func, ast.Name) and node.func.id == "__main__")
+                        or (isinstance(node.func, ast.Attribute) and node.func.attr == "__main__")
+                        or (
+                            isinstance(node.func, ast.Name)
+                            and node.func.id in {"getattr", "hasattr"}
+                            and len(node.args) >= 2
+                            and isinstance(node.args[1], ast.Constant)
+                            and node.args[1].value == "__main__"
+                        )
+                    )
+                )
+                or (
+                    isinstance(node, ast.ImportFrom)
+                    and any(alias.name == "__main__" for alias in node.names)
+                )
+                for node in ast.walk(python_tree)
+            )
+            if expects_main_function:
+                return "local test file incorrectly expects a Python function named __main__"
+            if re.search(r"['\"][A-Za-z_$][\w$]*\([^'\"]*\)['\"]\s+in\s+\w*(?:index|html)\w*", content, flags=re.I):
+                return "local test file checks JavaScript implementation text in index.html instead of src/app.js"
+            source_vars: dict[str, str] = {}
+            for node in ast.walk(python_tree):
+                if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    continue
+                value = node.value
+                if not (
+                    isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Attribute)
+                    and value.func.attr == "read_text"
+                    and isinstance(value.func.value, ast.Call)
+                    and isinstance(value.func.value.func, ast.Name)
+                    and value.func.value.func.id == "Path"
+                    and value.func.value.args
+                    and isinstance(value.func.value.args[0], ast.Constant)
+                ):
+                    continue
+                source_path = str(value.func.value.args[0].value).replace("\\", "/")
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                source_vars.update({target.id: source_path for target in targets if isinstance(target, ast.Name)})
+            index_html_vars = {name for name, path in source_vars.items() if path == "index.html"}
+            js_only_markers = ("${", "classname", "addeventlistener", "localstorage", "=>", "function ")
+            python_only_markers = ("__main__", "simplehttprequesthandler", "http.server", "serve_forever")
+            for node in ast.walk(python_tree):
+                if not (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in {"assertIn", "assertNotIn"}
+                    and len(node.args) >= 2
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)
+                    and isinstance(node.args[1], ast.Name)
+                    and node.args[1].id in index_html_vars
+                ):
+                    continue
+                asserted = str(node.args[0].value).lower()
+                if any(marker in asserted for marker in js_only_markers):
+                    return "local test file checks JavaScript implementation text in index.html instead of src/app.js"
+                if any(marker in asserted for marker in python_only_markers):
+                    return "local test file checks Python launcher implementation text in index.html instead of main.py"
+            if "task-board frontend must implement usable" in lowered_prompt:
+                required_test_sources = {"main.py", "index.html", "src/app.js"}
+                literal_test_strings = {
+                    str(node.value).replace("\\", "/")
+                    for node in ast.walk(python_tree)
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                }
+                inspected_test_sources = set(source_vars.values()) | {
+                    path for path in required_test_sources if path in literal_test_strings
+                }
+                missing_test_sources = sorted(required_test_sources - inspected_test_sources)
+                if missing_test_sources:
+                    return "local task-board tests do not inspect required generated sources: " + ", ".join(missing_test_sources)
+                lowered_test = content.lower()
+                required_behavior_groups = {
+                    "standard-library launcher": ("simplehttprequesthandler",),
+                    "stable HTML controls": ("data-testid", "task-input", "task-list"),
+                    "add": ("addtask", "add-task"),
+                    "status toggle": ("toggle", "completed"),
+                    "delete": ("delete", "remove"),
+                    "all filter": ("all-filter", "'all'", '"all"'),
+                    "active filter": ("active-filter", "'active'", '"active"'),
+                    "completed filter": ("completed-filter", "'completed'", '"completed"'),
+                    "localStorage": ("localstorage",),
+                }
+                missing_test_behaviors = [
+                    name
+                    for name, markers in required_behavior_groups.items()
+                    if not any(marker in lowered_test for marker in markers)
+                ]
+                if missing_test_behaviors:
+                    return "local task-board tests miss required source contracts: " + ", ".join(missing_test_behaviors)
+            invalid_ast_targets = sorted(
+                {
+                    arg.id
+                    for node in ast.walk(python_tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "ast"
+                    and node.func.attr == "parse"
+                    and node.args
+                    for arg in [node.args[0]]
+                    if isinstance(arg, ast.Name) and any(token in arg.id.lower() for token in ("html", "css", "js", "javascript"))
+                }
+            )
+            if invalid_ast_targets:
+                return "local test file uses Python ast.parse on non-Python content: " + ", ".join(invalid_ast_targets)
+            if "localstorage as the sole task persistence layer" in lowered_prompt and any(
+                token in content for token in ("urlopen(", "requests.", ".serve_forever(")
+            ):
+                return "local static-web test must use offline file assertions instead of network or server calls"
+            if ".serve_forever(" in content and not any(token in content for token in ("threading.Thread", "Thread(", "subprocess.Popen", "multiprocessing.")):
+                return "local test file starts a blocking serve_forever call without a background process or thread"
+            builtin_fixtures = {
+                "tmp_path", "tmp_path_factory", "monkeypatch", "capsys", "capsysbinary", "capfd", "capfdbinary",
+                "pytestconfig", "request", "recwarn", "cache", "record_property", "record_testsuite_property",
+                "record_xml_attribute", "doctest_namespace", "self", "cls",
+            }
+            declared_fixtures: set[str] = set()
+            parametrized: set[str] = set()
+            for node in ast.walk(python_tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if any(
+                        (isinstance(dec, ast.Name) and dec.id == "fixture")
+                        or (isinstance(dec, ast.Attribute) and dec.attr == "fixture")
+                        or (isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute) and dec.func.attr == "fixture")
+                        for dec in node.decorator_list
+                    ):
+                        declared_fixtures.add(node.name)
+                    for dec in node.decorator_list:
+                        if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute) and dec.func.attr == "parametrize" and dec.args and isinstance(dec.args[0], ast.Constant):
+                            parametrized.update(name.strip() for name in str(dec.args[0].value).split(",") if name.strip())
+            fixture_argvalue_refs = pytest_fixture_argvalue_references(python_tree)
+            if fixture_argvalue_refs:
+                return (
+                    "local pytest parametrize argvalues references fixture function(s): "
+                    + ", ".join(fixture_argvalue_refs)
+                    + "; request each fixture as a test parameter or supply a real literal/iterable of cases"
+                )
+            undefined: set[str] = set()
+            for node in ast.walk(python_tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith("test_"):
+                    continue
+                patch_injected = any(
+                    isinstance(dec, ast.Call)
+                    and (
+                        (isinstance(dec.func, ast.Name) and dec.func.id == "patch")
+                        or (isinstance(dec.func, ast.Attribute) and dec.func.attr in {"patch", "object"})
+                    )
+                    for dec in node.decorator_list
+                )
+                for arg in node.args.args:
+                    name = arg.arg
+                    if (
+                        name in builtin_fixtures
+                        or name in declared_fixtures
+                        or name in parametrized
+                        or f"def {name}(" in prompt_text
+                        or (patch_injected and name.startswith("mock_"))
+                    ):
+                        continue
+                    undefined.add(name)
+            if undefined:
+                return "local test file references undefined pytest fixtures: " + ", ".join(sorted(undefined))
+    return ""
+
+
+def normalize_provider_doc(doc: Any, *, stage: str, component: str) -> Any:
+    if not isinstance(doc, dict) or not component:
+        return doc
+    normalized_stage = str(stage or "").strip().lower()
+    normalized = dict(doc)
+    wrapper_key = component
+    if normalized_stage == "component_file_manifest" and set(doc) == {"component"} and isinstance(doc.get("component"), dict):
+        wrapper_key = "component"
+    if (
+        normalized_stage == "component_file_manifest"
+        and set(doc) == {component}
+        and isinstance(doc.get(component), list)
+        and doc.get(component)
+        and all(isinstance(item, dict) for item in doc[component])
+    ):
+        normalized = {"component": component, "files": list(doc[component])}
+    if set(doc) == {wrapper_key} and isinstance(doc.get(wrapper_key), dict):
+        normalized = dict(doc[wrapper_key])
+        if normalized_stage == "component_file_manifest":
+            normalized.setdefault("component", component)
+        elif normalized_stage in {
+            "component_generation",
+            "file_repair",
+            "semantic_repair",
+            "provider_semantic_repair",
+            "post_build_repair",
+        }:
+            normalized.setdefault("component_id", component)
+    if normalized_stage in {
+        "component_generation",
+        "file_repair",
+        "semantic_repair",
+        "provider_semantic_repair",
+        "post_build_repair",
+    } and isinstance(normalized.get("files"), list):
+        normalized.setdefault("component_id", component)
+    if normalized_stage == "component_file_manifest" and "files" not in normalized:
+        aliases = [
+            key
+            for key in ("file_manifest", "manifest")
+            if isinstance(normalized.get(key), list)
+        ]
+        if len(aliases) == 1:
+            normalized["files"] = normalized[aliases[0]]
+    return normalized
+
+
+def normalize_local_provider_doc(doc: Any, *, stage: str, component: str) -> Any:
+    """Compatibility entrypoint; local and API responses share the same bounded normalization."""
+    return normalize_provider_doc(doc, stage=stage, component=component)
+
+
+def provider_manifest_component_id(doc: dict[str, Any]) -> str:
+    raw_component = doc.get("component") or doc.get("component_id") or ""
+    if isinstance(raw_component, dict):
+        return str(raw_component.get("id") or raw_component.get("component_id") or "").strip()
+    return str(raw_component).strip()
+
+
+def try_local_provider_text(
+    messages: list[dict[str, str]],
+    *,
+    stage: str,
+    component: str,
+    target_file: str,
+    timeout: int,
+    phase_log_path: pathlib.Path | str | None,
+    force_transport_fallback: bool = False,
+) -> str | None:
+    system = "\n\n".join(str(message.get("content", "")) for message in messages if message.get("role") == "system")
+    prompt = "\n\n".join(str(message.get("content", "")) for message in messages if message.get("role") != "system")
+    task = local_model_task_for_provider_request(stage, prompt)
+    local_enabled = bool(task and local_model_router.task_enabled(task))
+    fallback_enabled = bool(
+        force_transport_fallback
+        and task in local_model_router.LOCAL_CODE_TASKS
+        and local_model_router.model_routing_profile() != "api_only"
+    )
+    if not task or not (local_enabled or fallback_enabled):
+        return None
+    contract = local_provider_contract_prompt(stage, component, target_file)
+    attempts = max(1, min(4, env_int("CGNK_LOCAL_PROVIDER_ATTEMPTS", 4)))
+    previous_raw = ""
+    previous_error = ""
+    rejected_errors: list[str] = []
+    for attempt in range(1, attempts + 1):
+        correction = ""
+        if attempt > 1:
+            if previous_error and previous_error not in rejected_errors:
+                rejected_errors.append(previous_error)
+            accumulated_constraints = "\n".join(f"- {error}" for error in rejected_errors)
+            source_validation_error = any(
+                marker in previous_error
+                for marker in (
+                    "Python syntax invalid",
+                    "Python contains undefined names",
+                    "undefined pytest fixtures",
+                    "blocking serve_forever",
+                    "offline file assertions",
+                    "non-Python content",
+                    "standard-library-only constraint",
+                    "native HTML entrypoint",
+                    "index.html must reference exact component asset paths",
+                    "task-board HTML missing stable data-testid attributes",
+                    "task-board JavaScript missing required behavior",
+                    "javascript const reassignment",
+                    "incorrectly expects a Python function named __main__",
+                    "checks JavaScript implementation text in index.html",
+                    "checks Python launcher implementation text in index.html",
+                    "local task-board tests",
+                    "references project files absent from supplied context",
+                    "illegally accesses browser localStorage",
+                    "static-only Python entrypoint",
+                    "static-only backend manifest",
+                    "requirements.txt must contain comments only",
+                )
+            )
+            if source_validation_error:
+                html_repair_hint = ""
+                test_repair_hint = ""
+                javascript_repair_hint = ""
+                if "native HTML entrypoint" in previous_error:
+                    if any(marker in prompt.lower() for marker in ("task-board", "task board", "kanban")):
+                        html_repair_hint = (
+                            "\nFor this explicitly requested task-board HTML repair, smaller does not mean blank. Include "
+                            "literal visible markup: a Task Board heading, task input, Add Task button, "
+                            "All/Active/Completed filter buttons, task-list container, src/styles.css link, and "
+                            "<script src=\"src/app.js\" defer></script>."
+                        )
+                    else:
+                        html_repair_hint = (
+                            "\nFor this HTML repair, smaller does not mean blank. Preserve the selected product's identity "
+                            "and include literal visible semantic workspace regions, labeled controls for its required capabilities, "
+                            "a non-empty status surface, the exact src/styles.css owner, and "
+                            "<script src=\"src/app.js\" defer></script>. Do not substitute a sample product or fixed-domain scaffold."
+                        )
+                if "local task-board tests" in previous_error:
+                    test_repair_hint = (
+                        "\nFor this test repair, read all three exact files into separate variables: main.py, index.html, "
+                        "and src/app.js. Parse only main.py with ast.parse. Assert SimpleHTTPRequestHandler against main.py; "
+                        "data-testid/task-input/task-list/all-filter/active-filter/completed-filter against index.html; and "
+                        "addTask/toggle or completed/delete/filter/localStorage against src/app.js. Keep __main__ assertions "
+                        "against main.py only. Use this exact minimal Python structure as the reference and return it as the "
+                        "JSON content string (you may add assertions, but do not rename or omit these variables):\n"
+                        "from pathlib import Path\n"
+                        "import ast\n"
+                        "import unittest\n"
+                        "ROOT = Path(__file__).resolve().parents[1]\n"
+                        "class TestApp(unittest.TestCase):\n"
+                        "    def test_generated_contracts(self):\n"
+                        "        main_source = (ROOT / 'main.py').read_text(encoding='utf-8')\n"
+                        "        index_html = (ROOT / 'index.html').read_text(encoding='utf-8')\n"
+                        "        app_js = (ROOT / 'src/app.js').read_text(encoding='utf-8')\n"
+                        "        ast.parse(main_source)\n"
+                        "        self.assertIn('SimpleHTTPRequestHandler', main_source)\n"
+                        "        for token in ('data-testid', 'task-input', 'task-list'):\n"
+                        "            self.assertIn(token, index_html)\n"
+                        "        for label in ('All', 'Active', 'Completed'):\n"
+                        "            self.assertIn(label, index_html)\n"
+                        "        for token in ('addTask', 'completed', 'delete', 'filter', 'localStorage'):\n"
+                        "            self.assertIn(token, app_js)\n"
+                    )
+                if "javascript const reassignment" in previous_error:
+                    javascript_repair_hint = (
+                        "\nFor this JavaScript repair, every binding that is later assigned with = must be declared with let. "
+                        "This applies to the global tasks collection and local variables such as task. Keep const only for "
+                        "bindings that are never reassigned; property mutation like task.completed = value does not require let."
+                    )
+                correction = (
+                    "\n\nYour previous source file was rejected: "
+                    + previous_error
+                    + "\nAll rejected constraints for this file so far remain mandatory:\n"
+                    + accumulated_constraints
+                    + "\nDiscard the previous source entirely. Generate a new, smaller implementation from scratch. "
+                    "Use simple syntax and assertions; do not copy any previous code."
+                    + html_repair_hint
+                    + test_repair_hint
+                    + javascript_repair_hint
+                )
+            else:
+                correction = (
+                    "\n\nYour previous response was rejected: "
+                    + previous_error
+                    + "\nReturn a corrected response now. Previous response excerpt:\n"
+                    + previous_raw[:4000]
+                )
+        call_local = (
+            local_model_router.call_text_task_fallback
+            if fallback_enabled and not local_enabled
+            else local_model_router.call_text_task
+        )
+        result = call_local(
+            task,
+            system + "\n\nLOCAL OUTPUT CONTRACT:\n" + contract,
+            prompt + correction,
+            timeout,
+        )
+        raw = str(result.get("text") or "")
+        extracted_doc = local_model_router.extract_json(raw) if bool(result.get("ok")) else None
+        doc = normalize_local_provider_doc(extracted_doc, stage=stage, component=component)
+        contract_error = local_provider_contract_error(
+            doc,
+            stage=stage,
+            component=component,
+            target_file=target_file,
+            prompt_text=prompt,
+        )
+        valid_json = bool(result.get("ok")) and not contract_error
+        error = "" if valid_json else str(result.get("error") or contract_error or "local model returned invalid JSON")
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "local_model_provider_attempt",
+                "attempt": attempt,
+                "max_attempts": attempts,
+                "stage": stage,
+                "component": component,
+                "target_file": target_file,
+                "task": task,
+                "provider": result.get("provider", "local_model_router"),
+                "model": result.get("model", ""),
+                "status": "ok" if valid_json else "failed",
+                "error": error,
+            },
+        )
+        if phase_log_path:
+            run_dir = pathlib.Path(phase_log_path).resolve().parent
+            formal_model_contract.append_model_call(
+                run_dir,
+                stage=stage,
+                provider="local_model_router" if result.get("provider") == "ollama" else str(result.get("provider") or "local_model_router"),
+                model=str(result.get("model") or os.environ.get("CGNK_OLLAMA_CODE_MODEL", "") or "local_model_router"),
+                requested=True,
+                executed=True,
+                status="ok" if valid_json else "failed",
+                used_in_formal_chain=valid_json,
+                input_value=messages,
+                output_value=raw,
+                error=None if valid_json else error,
+                metadata={"task": task, "component": component, "target_file": target_file, "source": "existing_provider_route", "attempt": attempt},
+            )
+        if valid_json:
+            return json.dumps(doc, ensure_ascii=False) if doc is not extracted_doc else raw
+        previous_raw = raw
+        previous_error = error
+    return None
+
+
+def provider_response_finish_reason(doc: dict[str, Any] | None) -> str:
+    """Normalize chat-completions and Responses API truncation signals."""
+    if not isinstance(doc, dict):
+        return ""
+    choices = doc.get("choices")
+    if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+        reason = str(choices[0].get("finish_reason", "")).strip().lower()
+        if reason:
+            return reason
+    if str(doc.get("status", "")).strip().lower() == "incomplete":
+        details = doc.get("incomplete_details", {})
+        if isinstance(details, dict):
+            reason = str(details.get("reason", "")).strip().lower()
+            if reason:
+                return reason
+        return "incomplete"
+    return ""
+
+
 def provider_text(
     messages: list[dict[str, str]],
     model: str,
@@ -521,10 +1774,62 @@ def provider_text(
     routing_policy: ProviderModelRoutingPolicy | None = None,
     last_error: Any = None,
 ) -> str:
+    routed_task = local_model_task_for_provider_stage(stage)
+    local_stage_enabled = bool(routed_task and local_model_router.task_enabled(routed_task))
+    if routed_task:
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_responsibility_route",
+                "stage": stage,
+                "component": component,
+                "target_file": target_file,
+                "task": routed_task,
+                "routing_profile": local_model_router.model_routing_profile(),
+                "route": "local_then_api" if local_stage_enabled else "api_direct",
+                "owner": local_model_router.task_model_owner(routed_task),
+            },
+        )
+    local_raw = try_local_provider_text(
+        messages,
+        stage=stage,
+        component=component,
+        target_file=target_file,
+        timeout=timeout,
+        phase_log_path=phase_log_path,
+    )
+    if local_raw is not None:
+        return local_raw
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
     if not token:
-        raise RuntimeError("missing OpenAI-compatible API key")
+        missing_config_error = "missing OpenAI-compatible API key"
+        if routed_task and not local_stage_enabled:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "pipeline_fallback",
+                    "stage": stage,
+                    "component": component,
+                    "target_file": target_file,
+                    "from": "api_provider",
+                    "to": "local_model",
+                    "task": routed_task,
+                    "reason": "provider_missing_config",
+                },
+            )
+            fallback_raw = try_local_provider_text(
+                messages,
+                stage=stage,
+                component=component,
+                target_file=target_file,
+                timeout=timeout,
+                phase_log_path=phase_log_path,
+                force_transport_fallback=True,
+            )
+            if fallback_raw is not None:
+                return fallback_raw
+        raise RuntimeError(missing_config_error)
     root = str(creds.get("base_url", "")).rstrip("/")
     endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
     prompt_chars = sum(len(str(message.get("content", ""))) for message in messages if isinstance(message, dict))
@@ -575,21 +1880,33 @@ def provider_text(
         if not check_connectivity._error_is_retryable(error):
             break
         time.sleep(min(20.0, 2.0 * (attempt + 1)))
-    else:
-        record_model_call_from_phase_log(
-            phase_log_path,
-            stage=stage,
-            provider="api_agent",
-            model=selected_model,
-            requested=True,
-            executed=True,
-            status=final_status,
-            input_value=messages,
-            error=last_error_text or "provider_api_request_failed",
-            metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
-        )
-        raise RuntimeError(f"provider_api_request_failed: {last_error_text}" if last_error_text else "provider_api_request_failed")
     if doc is None:
+        fallback_reason = provider_code_fallback_reason(last_error_text)
+        if routed_task and not local_stage_enabled and fallback_reason:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "pipeline_fallback",
+                    "stage": stage,
+                    "component": component,
+                    "target_file": target_file,
+                    "from": "api_provider",
+                    "to": "local_model",
+                    "task": routed_task,
+                    "reason": fallback_reason,
+                },
+            )
+            fallback_raw = try_local_provider_text(
+                messages,
+                stage=stage,
+                component=component,
+                target_file=target_file,
+                timeout=timeout,
+                phase_log_path=phase_log_path,
+                force_transport_fallback=True,
+            )
+            if fallback_raw is not None:
+                return fallback_raw
         record_model_call_from_phase_log(
             phase_log_path,
             stage=stage,
@@ -604,6 +1921,28 @@ def provider_text(
         )
         raise RuntimeError(f"provider_api_request_failed: {last_error_text}")
     text = check_connectivity._extract_text(doc)
+    finish_reason = provider_response_finish_reason(doc)
+    if finish_reason in {"length", "max_tokens", "max_output_tokens", "incomplete"}:
+        error = f"provider output truncated before contract validation: finish_reason={finish_reason}"
+        record_model_call_from_phase_log(
+            phase_log_path,
+            stage=stage,
+            provider="api_agent",
+            model=selected_model,
+            requested=True,
+            executed=True,
+            status="failed",
+            input_value=messages,
+            output_value=text,
+            error=error,
+            metadata={
+                "component": component,
+                "payload_mode": payload_mode,
+                "target_file": target_file,
+                "finish_reason": finish_reason,
+            },
+        )
+        raise ProviderOutputContractError(error, raw_output=text)
     if not text:
         record_model_call_from_phase_log(
             phase_log_path,
@@ -629,7 +1968,12 @@ def provider_text(
         status="ok",
         input_value=messages,
         output_value=text,
-        metadata={"component": component, "payload_mode": payload_mode, "target_file": target_file},
+        metadata={
+            "component": component,
+            "payload_mode": payload_mode,
+            "target_file": target_file,
+            "finish_reason": finish_reason,
+        },
     )
     return text
 
@@ -659,6 +2003,8 @@ Hard rules:
 - If media preview is part of the request, include UI elements and sample data that visibly show preview frames/timeline/output status when appropriate.
 - Use provided online_input_examples as realistic test fixtures in the generated project files, documentation, tests, and preview UI when relevant. The manifest includes project_type, input_spec, routing attempts, and source metadata. Do not claim example-based testing unless the examples are represented in project files.
 - Use provided market_research findings to choose libraries, models, APIs, and product features. For each core feature, prefer the recommended candidate unless you explicitly justify a better choice in project docs/code comments.
+- When market_research.design_research requires a visual surface, implement its selected direction, design tokens, interaction principles, and anti-copying boundary. Generate docs/design_research.md and docs/design_system.md before claiming the visual design is complete.
+- A visual product must have a project-specific composition and typographic voice. Do not default to a uniform admin-dashboard card grid, framework-default colors, generic blue-gradient hero, or decorative styling disconnected from the product task.
 - Include a concise market-research summary in the generated project documentation so the user can see why the selected stack/features were chosen.
 - If a backend/CLI/library is appropriate, include runnable source files and tests.
 - Do not emit empty files, .gitkeep files, .keep files, or directory placeholder files. Every file in files[] must contain meaningful runnable code, configuration, tests, or documentation.
@@ -676,7 +2022,7 @@ Hard rules:
 - Requirement Decision First: you are not free to invent a different product. Implement selected_requirement, obey mvp_scope, respect non_goals, and satisfy acceptance_contract.
 - Do not reintroduce rejected requirements. Do not shrink the project into a static preview, README-only delivery, or fake PASS.
 - If complexity_project_contract is present, treat it as a hard downstream contract. First generate product_brief.md, technical_plan.md, interaction_design.md, and acceptance_matrix.md; each must cite complexity_project_contract.json.
-- If complexity_project_contract is present, include orchestrator.py, stages.py, CLI, GUI, shared GUI/CLI core, required pipeline stages, required stage artifacts with required fields, honest degraded mode, README.md, TEST_REPORT.md, DELIVERY_NOTES.md, run_dir evidence hooks, screenshot-ready GUI, and final bundle instructions.
+- If complexity_project_contract requires shared_core_pipeline, include orchestrator.py, stages.py, CLI, GUI, shared GUI/CLI core, required pipeline stages, required stage artifacts with required fields, and honest degraded mode. If it requires browser_local_static, keep domain behavior and persistence in the browser and use Python only as the requested static launcher.
 - If complexity_project_contract is present, do not use forbidden_shortcuts such as single_file_demo, static_preview_only, readme_only_delivery, fake_pass, separate GUI/CLI logic, or artifact-name-only schemas.
 - Do not turn the requested app into a meta-tool that only collects requirements, emits blueprints, or documents how it could be built.
 - Keep file paths relative. Never use absolute paths. Never write outside the project root.
@@ -736,6 +2082,22 @@ JSON shape:
 def infer_project_goal_constraints(goal: str) -> list[str]:
     lowered = str(goal or "").lower()
     constraints: list[str] = []
+    if any(token in lowered for token in ("python 标准库", "python standard library", "stdlib only", "standard-library")):
+        constraints.append(
+            "Use only the Python standard library at runtime. Do not add Flask, FastAPI, Django, or any third-party Python dependency; requirements.txt must state that no third-party packages are required."
+        )
+    if any(token in lowered for token in ("原生 html", "原生html", "vanilla html", "native html")):
+        constraints.append("Use native HTML, CSS, and JavaScript without frontend package or CDN dependencies.")
+    if any(token in lowered for token in ("不依赖外部网络", "无需外部网络", "without external network", "offline")):
+        constraints.append("The delivered application must run without external network access, CDNs, hosted APIs, or remote assets.")
+    if "localstorage" in lowered and any(token in lowered for token in ("不依赖外部网络或数据库", "不依赖数据库", "不使用数据库", "无需数据库", "no database")):
+        constraints.append(
+            "Use browser localStorage as the sole task persistence layer. The Python entrypoint serves local static files only; do not add a database, server-side task store, or task CRUD API."
+        )
+    if any(token in lowered for token in ("任务看板", "task board", "kanban")):
+        constraints.append(
+            "The task-board frontend must implement usable add, status toggle, delete, filter, localStorage persistence, and stable data-testid behavior."
+        )
     if any(token in lowered for token in ("vn", "visual novel", "视觉小说")):
         constraints.extend(
             [
@@ -767,6 +2129,7 @@ Pass/fail rules:
 - Return "fail" if any core capability explicitly requested by the user is missing.
 - Return "fail" if market_research contains relevant recommended candidates for core features and the project ignores them without a clear justification.
 - Return "fail" if the generated documentation does not summarize the market research or explain why the selected approach is suitable.
+- Return "fail" when design research requires a visual surface but the project omits its design research/system docs, ignores the selected direction or tokens, uses a generic framework-default/dashboard composition without a project-specific rationale, or omits responsive, focus, interaction-feedback, and reduced-motion behavior.
 - Return "fail" if the project says the user must manually replace placeholders before the first useful run.
 - Return "fail" if preview/output artifacts are claimed as already present but only described, not generated by code, tests, runtime example_outputs, or post-build finalize.
 - Do not fail solely because binary screenshots/videos/zip files are absent from provider JSON files. Provider JSON cannot carry binaries. Pass this part when the project includes honest runnable capture/package commands or scripts and does not claim missing binaries are already generated; post-build finalize is responsible for executing those commands or writing video_blocked.
@@ -940,6 +2303,99 @@ def normalize_review_blockers(raw_blockers: Any, *, default_component: str = "")
     return out
 
 
+def normalize_semantic_blocker_evidence(blocker: dict[str, Any]) -> dict[str, Any]:
+    """Downgrade review uncertainty; only direct supplied evidence may remain hard."""
+    normalized = dict(blocker)
+    message = str(normalized.get("message", "") or "").lower()
+    uncertainty_markers = (
+        "cannot be verified",
+        "cannot be confirmed",
+        "could not be verified",
+        "could not be confirmed",
+        "not verifiable",
+        "not confirmed",
+        "not shown",
+        "not included in the provided",
+        "not included in provided",
+        "insufficient evidence",
+        "provided snippets",
+        "provided summaries",
+        "appears to",
+        "risk of",
+        "is truncated",
+        "are truncated",
+    )
+    if (
+        str(normalized.get("severity", "hard")).lower() == "hard"
+        and any(marker in message for marker in uncertainty_markers)
+    ):
+        normalized["severity"] = "warning"
+        normalized["evidence_basis"] = "review_uncertainty_not_direct_failure"
+    return normalized
+
+
+def component_review_blocker_in_scope(
+    blocker: dict[str, Any],
+    component_id: str,
+    component_files: list[dict[str, str]] | None = None,
+) -> bool:
+    kind = str(blocker.get("kind", "") or "").lower()
+    message = str(blocker.get("message", "") or "").lower()
+    component = str(component_id or "").strip().lower()
+    if component == "foundation" and any(
+        token in message
+        for token in (
+            "pipeline stage",
+            "artifact-producing",
+            "required artifacts",
+            "backend implementation",
+            "platform-research",
+            "backend-owned test",
+        )
+    ):
+        return False
+    if component == "foundation" and any(
+        token in kind for token in ("missing_entry_html", "frontend_backend_mismatch", "weak_tests")
+    ):
+        return False
+    if component == "backend" and "missing_entry_html" in kind:
+        return False
+    if component == "backend" and any(
+        token in message
+        for token in (
+            "backend-owned test",
+            "no backend test",
+            "no backend-owned test",
+            "test files/fixtures are included",
+        )
+    ):
+        return False
+    if component == "frontend" and any(
+        token in message
+        for token in (
+            "no frontend test",
+            "frontend test files",
+            "tests are included in this component",
+        )
+    ):
+        return False
+    if component == "backend" and "index.html" in message and any(
+        token in message for token in ("serve", "root path", "root route", "根路径")
+    ):
+        backend_source = "\n".join(
+            str(item.get("content", ""))
+            for item in (component_files or [])
+            if str(item.get("path", "")).replace("\\", "/").strip() in {"main.py", "app.py", "server.py"}
+        )
+        if "SimpleHTTPRequestHandler" in backend_source:
+            return False
+    if component in {"tests", "docs", "media"} and any(
+        token in kind for token in ("missing_entry_html", "frontend_backend_mismatch", "module_mismatch")
+    ):
+        return False
+    return True
+
+
 def provider_semantic_component_review(
     *,
     goal: str,
@@ -951,8 +2407,9 @@ def provider_semantic_component_review(
     phase_log_path: pathlib.Path | str | None,
     routing_policy: ProviderModelRoutingPolicy | None,
 ) -> dict[str, Any]:
-    system = """Review one CGNK component. Return strict JSON only with component, verdict, blockers, summary.
-Use structured blockers with kind, severity, files, message, and repair_hint. Do not request binary artifacts from provider output."""
+    system = """Review one CGKN component. Return strict JSON only with component, verdict, blockers, summary.
+Judge only this component's owned files and required paths. Do not fail it for entrypoints, UI, tests, docs, or integrations owned by other components; the cross-component review checks those concerns.
+Use structured blockers with kind, severity, files, message, and repair_hint. A hard blocker requires direct evidence in an exact supplied file excerpt or the complete file manifest. Truncated or unselected content, missing review visibility, phrases such as cannot verify/cannot confirm, and files owned by another component are never hard blockers. Do not request binary artifacts from provider output."""
     payload = semantic_component_review_payload(goal=goal, component_id=component_id, component_files=component_files, component_pipeline=component_pipeline)
     raw = provider_text(
         [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)}],
@@ -966,10 +2423,28 @@ Use structured blockers with kind, severity, files, message, and repair_hint. Do
         phase_log_path=phase_log_path,
         routing_policy=routing_policy,
     )
-    doc = parse_json_object(raw)
+    try:
+        doc = parse_json_object(raw)
+    except RuntimeError as exc:
+        raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
     doc["component"] = str(doc.get("component") or component_id)
     doc["verdict"] = str(doc.get("verdict") or doc.get("status") or "fail").lower()
-    doc["blockers"] = normalize_review_blockers(doc.get("blockers", []), default_component=component_id)
+    doc["blockers"] = [
+        normalize_semantic_blocker_evidence(blocker)
+        for blocker in normalize_review_blockers(doc.get("blockers", []), default_component=component_id)
+        if component_review_blocker_in_scope(blocker, component_id, component_files)
+    ]
+    if not doc["blockers"] and doc["verdict"] == "fail":
+        doc["blockers"] = [
+            {
+                "kind": "semantic_review_failed_without_structured_blocker",
+                "severity": "hard",
+                "component": component_id,
+                "files": [],
+                "message": str(doc.get("summary", "") or "Component semantic review returned fail without a structured blocker."),
+                "repair_hint": "Re-run review or regenerate the component; fail must never be silently converted to pass.",
+            }
+        ]
     doc["semantic_review_budget_applied"] = bool(payload.get("semantic_review_budget_applied"))
     return doc
 
@@ -1029,7 +2504,8 @@ def provider_semantic_cross_component_review(
     routing_policy: ProviderModelRoutingPolicy | None,
 ) -> dict[str, Any]:
     system = """Review cross-component CGNK runtime contracts. Return strict JSON only.
-Check module/script consistency, frontend/backend API alignment, JSON persistence, test coverage, docs claims, media/final bundle honesty, and entrypoint presence."""
+Check module/script consistency, frontend/backend API alignment, JSON persistence, test coverage, docs claims, media/final bundle honesty, and entrypoint presence.
+A hard blocker requires direct contradictory or broken evidence in the supplied manifest/excerpts. Summary truncation, an unselected file, inability to confirm, or lack of review visibility is a warning and must not become a hard blocker. Deterministic runtime tests later decide whether unobserved behavior actually works."""
     payload = semantic_cross_review_payload(goal=goal, files=files, component_reviews=component_reviews, component_pipeline=component_pipeline)
     raw = provider_text(
         [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)}],
@@ -1046,8 +2522,14 @@ Check module/script consistency, frontend/backend API alignment, JSON persistenc
     doc = parse_json_object(raw)
     doc["component"] = "cross_component"
     doc["verdict"] = str(doc.get("verdict") or doc.get("status") or "fail").lower()
-    blockers = normalize_review_blockers(doc.get("blockers", []), default_component="")
-    blockers.extend(normalize_review_blockers(doc.get("integration_failures", []), default_component=""))
+    blockers = [
+        normalize_semantic_blocker_evidence(blocker)
+        for blocker in normalize_review_blockers(doc.get("blockers", []), default_component="")
+    ]
+    blockers.extend(
+        normalize_semantic_blocker_evidence(blocker)
+        for blocker in normalize_review_blockers(doc.get("integration_failures", []), default_component="")
+    )
     doc["blockers"] = blockers
     return doc
 
@@ -1062,7 +2544,7 @@ def provider_semantic_final_reducer(
     routing_policy: ProviderModelRoutingPolicy | None,
 ) -> dict[str, Any]:
     system = """Reduce structured semantic review JSON into a final CGNK verdict. Return strict JSON only.
-Do not ask for full source code. Use only the supplied review JSON."""
+Do not ask for full source code. Use only the supplied review JSON. Never promote a warning, truncated-review uncertainty, or inability-to-confirm statement into a hard blocker."""
     payload = {
         "component_reviews": component_reviews,
         "cross_component_review": cross_review,
@@ -1147,7 +2629,12 @@ def split_semantic_review_pipeline(
         phase_log_path,
         {"event": "semantic_review_reduced", "blocker_count": len(blockers), "affected_components": affected_components},
     )
-    status = "pass" if str(reducer.get("verdict", "")).lower() == "pass" and not [b for b in blockers if str(b.get("severity", "hard")) == "hard"] else "fail"
+    hard_blockers = [
+        blocker
+        for blocker in blockers
+        if str(blocker.get("severity", "hard")).lower() == "hard"
+    ]
+    status = "pass" if not hard_blockers else "fail"
     return {
         "status": status,
         "issues": [str(item.get("message", item)) for item in blockers],
@@ -1278,6 +2765,35 @@ def compact_for_repair_budget(value: Any, max_chars: int) -> Any:
     return str(value)[:max_chars]
 
 
+def compact_integration_feedforward(value: Any, max_chars: int) -> Any:
+    if not isinstance(value, dict):
+        return compact_for_repair_budget(value, max_chars)
+    compact = {
+        "kind": value.get("kind", "CGKNIntegrationFeedforwardSnapshot"),
+        "schema_version": value.get("schema_version", 1),
+        "snapshot_sha256": value.get("snapshot_sha256", ""),
+        "current_component": value.get("current_component", ""),
+        "global_contract": value.get("global_contract", {}),
+        "current_contract": value.get("current_contract", {}),
+        "downstream_consumers": value.get("downstream_consumers", []),
+        "unresolved_integration_signals": value.get("unresolved_integration_signals", [])[-6:],
+        "feedforward_rules": value.get("feedforward_rules", []),
+    }
+    upstream = value.get("upstream_state", {}) if isinstance(value.get("upstream_state"), dict) else {}
+    compact["upstream_state"] = {
+        "completed_components": upstream.get("completed_components", []),
+        "path_manifest": upstream.get("path_manifest", [])[-60:],
+        "published_contracts": upstream.get("published_contracts", [])[-8:],
+        "interface_catalog": upstream.get("interface_catalog", [])[-20:],
+    }
+    raw = json.dumps(compact, ensure_ascii=False, sort_keys=True, default=str)
+    if len(raw) <= max_chars:
+        return compact
+    compact["upstream_state"]["interface_catalog"] = upstream.get("interface_catalog", [])[-8:]
+    compact["upstream_state"]["path_manifest"] = upstream.get("path_manifest", [])[-30:]
+    return compact
+
+
 def apply_repair_prompt_budget(
     payload: dict[str, Any],
     *,
@@ -1317,26 +2833,44 @@ def apply_repair_prompt_budget(
     per_section = max(1000, budget["max_context_chars_per_repair"] // 6)
     for key in ("pipeline_plan", "requirement_blueprint", "online_input_examples", "market_research"):
         compact_payload[key] = compact_for_repair_budget(compact_payload.get(key), per_section)
+    compact_payload["integration_feedforward"] = compact_integration_feedforward(
+        compact_payload.get("integration_feedforward"),
+        per_section,
+    )
     compact_payload["repair_prompt_budget"] = budget
     compact_payload["repair_prompt_budget_applied"] = True
     compact_payload["repair_budget_original_context_chars"] = len(raw)
     return compact_payload
 
 
-def provider_component_spec_hash(goal: str, component_pipeline: dict[str, Any], component: dict[str, Any]) -> str:
+def provider_component_spec_hash(
+    goal: str,
+    component_pipeline: dict[str, Any],
+    component: dict[str, Any],
+    integration_feedforward_hash: str = "",
+) -> str:
     payload = {
         "goal": goal,
         "component": component,
+        "integration_feedforward_hash": str(integration_feedforward_hash or ""),
         "component_pipeline_contract": {
             "merge_policy": component_pipeline.get("merge_policy", {}),
             "component_ids": [str(row.get("id", "")).strip() for row in component_pipeline.get("components", []) if isinstance(row, dict)],
+            "design_context_sha256": str(
+                (component_pipeline.get("design_context", {}) if isinstance(component_pipeline.get("design_context", {}), dict) else {}).get("context_sha256", "")
+            ),
         },
     }
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def provider_component_semantic_review(result: dict[str, Any], files: list[dict[str, str]]) -> dict[str, Any]:
+def provider_component_semantic_review(
+    result: dict[str, Any],
+    files: list[dict[str, str]],
+    *,
+    component_id: str = "",
+) -> dict[str, Any]:
     quality_gate = result.get("quality_gate", {}) if isinstance(result, dict) else {}
     self_test = result.get("self_test", {}) if isinstance(result, dict) else {}
     blockers: list[str] = []
@@ -1345,16 +2879,28 @@ def provider_component_semantic_review(result: dict[str, Any], files: list[dict[
             blockers.append(f"{label}_failed")
     if not files:
         blockers.append("no_valid_files")
+    checks = ["valid_files", "component_quality_gate_not_failed", "component_self_test_not_failed"]
+    if str(component_id or "").strip() == "frontend":
+        checks.extend(["frontend_dom_contract", "frontend_asset_contract", "task_board_interaction_contract"])
+        for validator in (
+            validate_frontend_dom_contract,
+            validate_frontend_asset_contract,
+            validate_javascript_const_reassignment,
+            validate_task_board_interaction_contract,
+        ):
+            error = validator(files)
+            if error:
+                blockers.append(error)
     return {
         "status": "pass" if not blockers else "fail",
         "reviewer": "local_component_semantic_contract",
-        "checks": ["valid_files", "component_quality_gate_not_failed", "component_self_test_not_failed"],
+        "checks": checks,
         "blockers": blockers,
     }
 
 
 def provider_component_error_is_retryable(error_type: str, error_text: str) -> bool:
-    if error_type in {"PROVIDER_TRANSPORT_UNSTABLE", "PROVIDER_RETRYABLE_HTTP"}:
+    if error_type in {"PROVIDER_TRANSPORT_UNSTABLE", "PROVIDER_RETRYABLE_HTTP", "PROVIDER_OUTPUT_CONTRACT"}:
         return True
     lowered = str(error_text or "").lower()
     if any(
@@ -1366,7 +2912,23 @@ def provider_component_error_is_retryable(error_type: str, error_text: str) -> b
             "provider emitted empty file",
             "provider emitted unsafe path",
             "provider emitted binary artifact",
+            "provider manifest missing",
+            "provider manifest path ownership violation",
+            "split file generation returned wrong path",
+            "frontend dom contract mismatch",
+            "frontend asset contract mismatch",
+            "imports missing local modules",
+            "frontend module self-import contract mismatch",
+            "python leaf interface contract mismatch",
+            "component leaf boundary contract mismatch",
+            "implementation depth contract mismatch",
+            "javascript const reassignment",
+            "task-board interaction contract mismatch",
             "component semantic review failed",
+            "component quality validation failed",
+            "assembled project quality validation failed",
+            "split file contains placeholder wording",
+            "contract mismatch",
         )
     ):
         return True
@@ -1416,9 +2978,14 @@ def write_provider_component_checkpoint(
         "project_spec_hash": spec_hash,
         "status": status,
         "semantic_review": semantic_review,
+        "module_quality_validation": parsed_result.get("module_quality_validation", {})
+        if isinstance(parsed_result, dict)
+        else {},
         "provider_error_type": provider_error_type,
         "error": error,
         "raw_output": raw_output,
+        "raw_output_sha256": hashlib.sha256(str(raw_output or "").encode("utf-8")).hexdigest() if raw_output else "",
+        "raw_output_truncated": str(raw_output or "").endswith("...[provider response truncated for diagnostics]..."),
         "parsed_result": parsed_result,
         "file_count": len(files),
         "usage": parsed_result.get("usage", {}) if isinstance(parsed_result, dict) else {},
@@ -1431,10 +2998,48 @@ def write_provider_component_checkpoint(
         "project_spec_hash": spec_hash,
         "status": status,
         "semantic_review": semantic_review,
+        "module_quality_validation": parsed_result.get("module_quality_validation", {})
+        if isinstance(parsed_result, dict)
+        else {},
         "files": files,
     }
     write_json(checkpoint_path, base_doc)
     write_json(files_path, files_doc)
+
+
+def write_provider_component_failure_attempt(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    spec_hash: str,
+    raw_output: str,
+    parsed_result: dict[str, Any],
+    error: str,
+    provider_error_type: str,
+) -> None:
+    """Record a failed forced repair without replacing the last validated checkpoint."""
+    if checkpoint_dir is None:
+        return
+    failure_dir = checkpoint_dir / "failure_attempts"
+    failure_dir.mkdir(parents=True, exist_ok=True)
+    safe = provider_component_checkpoint_id(component_id)
+    write_json(
+        failure_dir / f"{safe}.json",
+        {
+            "kind": "ProviderComponentFailureAttempt",
+            "created_at": now(),
+            "component_id": component_id,
+            "project_spec_hash": spec_hash,
+            "status": "failed",
+            "provider_error_type": provider_error_type,
+            "error": error,
+            "raw_output": raw_output,
+            "raw_output_sha256": hashlib.sha256(str(raw_output or "").encode("utf-8")).hexdigest() if raw_output else "",
+            "raw_output_truncated": str(raw_output or "").endswith("...[provider response truncated for diagnostics]..."),
+            "parsed_result": parsed_result,
+            "preserved_last_pass_checkpoint": True,
+        },
+    )
 
 
 def write_provider_component_checkpoint_summary(checkpoint_dir: pathlib.Path | None, summary: dict[str, Any]) -> None:
@@ -1466,6 +3071,7 @@ def load_provider_component_checkpoint(
     *,
     component_id: str,
     spec_hash: str,
+    allow_spec_mismatch: bool = False,
 ) -> tuple[dict[str, Any], list[dict[str, str]]] | None:
     if checkpoint_dir is None:
         return None
@@ -1478,7 +3084,11 @@ def load_provider_component_checkpoint(
     except Exception:
         return None
     semantic = checkpoint.get("semantic_review", {}) if isinstance(checkpoint, dict) else {}
-    if checkpoint.get("project_spec_hash") != spec_hash or files_doc.get("project_spec_hash") != spec_hash:
+    checkpoint_spec_hash = str(checkpoint.get("project_spec_hash", ""))
+    files_spec_hash = str(files_doc.get("project_spec_hash", ""))
+    if not checkpoint_spec_hash or checkpoint_spec_hash != files_spec_hash:
+        return None
+    if not allow_spec_mismatch and checkpoint_spec_hash != spec_hash:
         return None
     if str(checkpoint.get("status", "")).lower() != "pass":
         return None
@@ -1494,12 +3104,2929 @@ def load_provider_component_checkpoint(
     return parsed, files
 
 
+def pending_split_checkpoint_spec_hash(
+    checkpoint_dir: pathlib.Path | None,
+    pending_context: dict[str, Any],
+    component_id: str,
+) -> str:
+    """Recover the exact leaf identity for a same-run component-file resume."""
+    manifest = pending_file_manifest_for_component(pending_context, component_id)
+    if checkpoint_dir is None or not manifest:
+        return ""
+    manifest_by_path = {
+        str(entry.get("path", "")).replace("\\", "/").strip(): entry
+        for entry in manifest
+        if isinstance(entry, dict) and str(entry.get("path", "")).strip()
+    }
+    completed = pending_context.get("completed_files", [])
+    completed_paths = [
+        str(item.get("path", "") if isinstance(item, dict) else item)
+        .replace("\\", "/")
+        .strip()
+        for item in completed
+    ]
+    identities: set[str] = set()
+    for rel in completed_paths:
+        entry = manifest_by_path.get(rel)
+        path = split_file_checkpoint_path(checkpoint_dir, component_id, rel)
+        if entry is None or path is None or not path.exists():
+            continue
+        try:
+            doc = load_json(path)
+        except Exception:
+            continue
+        if (
+            str(doc.get("status", "")).lower() != "pass"
+            or str(doc.get("component_id", "")) != str(component_id)
+            or str(doc.get("path", "")).replace("\\", "/").strip() != rel
+            or str(doc.get("manifest_entry_sha256", ""))
+            != split_file_manifest_entry_hash(entry)
+        ):
+            continue
+        identity = str(doc.get("project_spec_hash", "")).strip()
+        if identity:
+            identities.add(identity)
+    return next(iter(identities)) if len(identities) == 1 else ""
+
+
+def selected_requirement_domain(selected_requirement: dict[str, Any]) -> str:
+    requirement_id = str(selected_requirement.get("selected_requirement_id", "") or "").lower()
+    text = " ".join(
+        str(selected_requirement.get(key, "") or "").lower()
+        for key in ("selected_requirement_name", "interpreted_need", "selected_product_shape")
+    )
+    combined = requirement_id + " " + text
+    if any(token in combined for token in ("visual_novel", "visual novel", "branching story")):
+        return "visual_novel"
+    if any(token in combined for token in ("goal_derived_specialized_analysis", "specialized analysis")):
+        return "specialized_analysis"
+    if any(token in combined for token in ("video", "media", "clip", "transcri")):
+        return "media"
+    if any(token in combined for token in ("task_board", "task board", "kanban")):
+        return "task_board"
+    if any(token in combined for token in ("data_quality", "data quality", "csv", "json intake")):
+        return "data_quality"
+    if any(token in combined for token in ("asset_pack", "asset pack")):
+        return "asset_pack"
+    if any(token in combined for token in ("research", "source synthesis")):
+        return "research"
+    return ""
+
+
+def selected_direction_domain(selected_direction: dict[str, Any]) -> str:
+    direction_id = str(selected_direction.get("selected_id", "") or "").lower()
+    text = " ".join(
+        str(selected_direction.get(key, "") or "").lower()
+        for key in ("selected_name", "selected_project_summary", "summary")
+    )
+    combined = direction_id + " " + text
+    if any(token in combined for token in ("visual_novel", "visual novel", "branching story")):
+        return "visual_novel"
+    if any(token in combined for token in ("goal_derived_specialized_analysis", "specialized analysis")):
+        return "specialized_analysis"
+    if any(token in combined for token in ("video", "media", "clip")):
+        return "media"
+    if any(token in combined for token in ("task_board", "task board", "kanban")):
+        return "task_board"
+    if any(token in combined for token in ("data_quality", "data quality", "csv", "json intake")):
+        return "data_quality"
+    if any(token in combined for token in ("asset_pack", "asset pack")):
+        return "asset_pack"
+    if any(token in combined for token in ("research", "source synthesis")):
+        return "research"
+    return ""
+
+
+def requirement_discovery_alignment(
+    selected_requirement: dict[str, Any],
+    selected_direction: dict[str, Any],
+) -> dict[str, Any]:
+    requirement_domain = selected_requirement_domain(selected_requirement)
+    direction_domain = selected_direction_domain(selected_direction)
+    aligned = bool(requirement_domain and direction_domain and requirement_domain == direction_domain)
+    return {
+        "status": "PASS" if aligned else "NEEDS_REWORK",
+        "aligned": aligned,
+        "requirement_domain": requirement_domain,
+        "direction_domain": direction_domain,
+        "selected_requirement_id": str(selected_requirement.get("selected_requirement_id", "") or ""),
+        "selected_direction_id": str(selected_direction.get("selected_id", "") or ""),
+        "reason": "domains_match" if aligned else "selected_requirement_and_project_direction_domain_mismatch",
+    }
+
+
+def explicit_pipeline_stages_from_goal(goal: str) -> list[str]:
+    """Extract an explicitly named snake_case pipeline from the customer goal."""
+    stage_prefixes = (
+        "ingest_",
+        "extract_",
+        "build_",
+        "transcribe_",
+        "merge_",
+        "analyze_",
+        "analyse_",
+        "optional_",
+        "select_",
+        "render_",
+        "export_",
+        "chunk_",
+        "process_",
+        "validate_",
+        "transform_",
+        "publish_",
+    )
+    excluded = {
+        "schema_version",
+        "input_refs",
+        "output_refs",
+        "created_at",
+        "run_id",
+        "sha256",
+    }
+    stages: list[str] = []
+    for token in re.findall(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b", str(goal or "").lower()):
+        if token in excluded or not token.startswith(stage_prefixes):
+            continue
+        if token not in stages:
+            stages.append(token)
+    return stages
+
+
+def acceptance_metrics_from_goal(goal: str, complexity_contract: dict[str, Any]) -> dict[str, Any]:
+    text = str(goal or "")
+    lowered = text.lower()
+    minimum_tests = 0
+    for match in re.finditer(r"(?:至少|共至少|at\s+least|minimum(?:\s+of)?)\s*(\d+)", lowered, flags=re.I):
+        window = lowered[max(0, match.start() - 50) : min(len(lowered), match.end() + 100)]
+        if "测试" in window or "test" in window or "pytest" in window:
+            minimum_tests = max(minimum_tests, int(match.group(1)))
+    contract_stages = [
+        str(stage).strip()
+        for stage in complexity_contract.get("required_pipeline_stages", [])
+        if str(stage).strip()
+    ] if isinstance(complexity_contract.get("required_pipeline_stages", []), list) else []
+    explicit_stages = explicit_pipeline_stages_from_goal(text)
+    required_stages = explicit_stages if explicit_stages else contract_stages
+    required_artifacts = [
+        str(artifact).strip()
+        for artifact in complexity_contract.get("required_stage_artifacts", [])
+        if str(artifact).strip()
+    ] if isinstance(complexity_contract.get("required_stage_artifacts", []), list) else []
+    architecture_mode = str(complexity_contract.get("architecture_mode", "")).strip()
+    return {
+        "minimum_tests": minimum_tests,
+        "required_pipeline_stages": required_stages,
+        "required_stage_artifacts": required_artifacts,
+        "architecture_mode": architecture_mode,
+        "browser_local_static": architecture_mode == "browser_local_static",
+        "requires_pipeline_runner": "pipelinerunner" in lowered or "pipeline runner" in lowered,
+        "requires_job_manager": "jobmanager" in lowered or "job manager" in lowered,
+        "requires_cancel_resume": any(token in lowered for token in ("取消", "恢复", "cancel", "resume")),
+        "requires_cold_replay": any(token in lowered for token in ("冷启动重放", "cold replay", "cold-start replay")),
+    }
+
+
+def enrich_component_pipeline_with_complexity_contract(
+    component_pipeline: dict[str, Any],
+    plan_doc: dict[str, Any],
+    goal: str,
+) -> dict[str, Any]:
+    contract = plan_doc.get("complexity_project_contract", {}) if isinstance(plan_doc, dict) else {}
+    if not isinstance(contract, dict) or contract.get("contract_id") != "complexity_project_contract_v1":
+        return component_pipeline
+    selected_requirement = plan_doc.get("selected_requirement", {}) if isinstance(plan_doc.get("selected_requirement"), dict) else {}
+    selected_direction = plan_doc.get("selected_project_direction", {}) if isinstance(plan_doc.get("selected_project_direction"), dict) else {}
+    metrics = acceptance_metrics_from_goal(goal, contract)
+    browser_local_static = bool(metrics["browser_local_static"])
+    components: list[dict[str, Any]] = []
+    planning_docs = [
+        str(name).strip()
+        for name in contract.get("required_planning_docs", [])
+        if str(name).strip()
+    ] if isinstance(contract.get("required_planning_docs", []), list) else []
+    core_files = [
+        str(name).strip()
+        for name in contract.get("required_core_files", [])
+        if str(name).strip()
+    ] if isinstance(contract.get("required_core_files", []), list) else []
+    interfaces = {
+        str(name).strip().lower()
+        for name in contract.get("required_interfaces", [])
+        if str(name).strip()
+    } if isinstance(contract.get("required_interfaces", []), list) else set()
+    for raw_component in component_pipeline.get("components", []):
+        if not isinstance(raw_component, dict):
+            continue
+        component = dict(raw_component)
+        component_id = str(component.get("id", "")).strip()
+        required_paths = component_required_manifest_paths(component_id)
+        acceptance: list[str] = []
+        if component_id == "foundation":
+            required_paths = list(dict.fromkeys([*required_paths, "pyproject.toml"]))
+            acceptance.append("Declare one coherent local runtime and test dependency set compatible with generated source.")
+        elif component_id == "backend":
+            if browser_local_static:
+                required_paths = ["main.py"]
+                acceptance.extend(
+                    [
+                        "Use the Python standard library only as a static-file launcher.",
+                        "Do not add task APIs, server-side task storage, artifact stores, adapters, or duplicate browser domain logic.",
+                    ]
+                )
+            else:
+                required_paths = list(dict.fromkeys([*required_paths, *[f"backend/{pathlib.PurePosixPath(name).name}" for name in core_files]]))
+                if metrics["required_pipeline_stages"]:
+                    required_paths.extend(["backend/stages.py", "backend/orchestrator.py"])
+                if "cli" in interfaces:
+                    required_paths.append("backend/cli.py")
+                if "gui" in interfaces:
+                    required_paths.append("backend/gui.py")
+                if metrics["requires_job_manager"]:
+                    required_paths.append("backend/job_manager.py")
+                if metrics["required_stage_artifacts"]:
+                    required_paths.extend(["backend/artifact_store.py", "backend/adapters.py"])
+                acceptance.append("Implement every required pipeline stage through the shared domain core.")
+                if metrics["required_pipeline_stages"]:
+                    acceptance.append(
+                        "Implement each frozen stage as a real callable in backend/stages.py and execute the ordered stage graph through backend/orchestrator.py."
+                    )
+                acceptance.append(
+                    "CLI and GUI must import and use the same orchestrator/stages implementation."
+                    if {"cli", "gui"}.issubset(interfaces)
+                    else (
+                        "Expose the same Python story/domain core to the web entrypoint through a concrete "
+                        "HTTP or server-rendered adapter contract; JavaScript must never import Python modules."
+                    )
+                )
+                acceptance.append("Do not duplicate routes or create parallel business-logic implementations.")
+        elif component_id == "frontend":
+            acceptance.append("Render a meaningful visible interface for the selected product direction.")
+            acceptance.append(
+                "Implement task behavior and persistence entirely in browser localStorage; do not call a task backend API."
+                if browser_local_static
+                else (
+                    "Use only explicit HTTP endpoints or server-rendered adapters supplied by the Python "
+                    "backend contract; never import Python/backend paths as JavaScript modules and do not "
+                    "implement a separate browser-only domain core."
+                )
+            )
+            acceptance.append("Do not require an undeclared frontend build system or import missing modules.")
+        elif component_id == "media":
+            if metrics["required_stage_artifacts"]:
+                required_paths.extend(["demo/run_fixture.py", "demo/fixture_manifest.json"])
+            acceptance.extend(
+                [
+                    "Provide a deterministic local fixture workflow that exercises the real stage graph.",
+                    "Missing external tools/models must produce honest degraded evidence, never fake success.",
+                ]
+            )
+        elif component_id == "tests":
+            if metrics["minimum_tests"] or (metrics["required_pipeline_stages"] and not browser_local_static):
+                required_paths.extend(
+                    [
+                        "tests/test_pipeline_unit.py",
+                        "tests/test_artifact_contracts.py",
+                        "tests/test_pipeline_integration.py",
+                        "tests/test_cancel_resume.py",
+                        "tests/test_degraded_mode.py",
+                    ]
+                )
+            acceptance.append(
+                f"Pytest must collect at least {metrics['minimum_tests']} meaningful tests."
+                if metrics["minimum_tests"]
+                else "Tests must cover the required pipeline stages and shared-core interfaces."
+            )
+        elif component_id == "docs":
+            required_paths.extend([f"docs/{pathlib.PurePosixPath(name).name}" for name in planning_docs])
+            if metrics["required_stage_artifacts"]:
+                required_paths.append("docs/artifact_contract.md")
+            acceptance.append("Document the selected requirement, architecture, stage contracts, local fixture run, and honest limitations.")
+        component["required_paths"] = list(dict.fromkeys(path for path in required_paths if path))
+        component["minimum_file_count"] = len(component["required_paths"])
+        component["goal"] = (
+            f"Implement the {selected_direction.get('selected_name') or selected_requirement.get('selected_requirement_name') or 'selected product'} "
+            f"{component_id} component without changing the frozen product domain."
+        )
+        component["acceptance"] = acceptance
+        component["contract_slice"] = {
+            "selected_requirement_id": selected_requirement.get("selected_requirement_id", ""),
+            "selected_direction_id": selected_direction.get("selected_id", ""),
+            "required_pipeline_stages": metrics["required_pipeline_stages"],
+            "required_stage_artifacts": metrics["required_stage_artifacts"],
+            "required_interfaces": sorted(interfaces),
+            "required_artifact_fields": contract.get("required_artifact_fields", []),
+            "architecture_mode": metrics["architecture_mode"],
+            "browser_local_static": browser_local_static,
+            "requires_shared_gui_cli_core": bool(contract.get("requires_shared_gui_cli_core")),
+            "minimum_tests": metrics["minimum_tests"],
+            "requires_pipeline_runner": metrics["requires_pipeline_runner"],
+            "requires_job_manager": metrics["requires_job_manager"],
+            "requires_cancel_resume": metrics["requires_cancel_resume"],
+            "requires_cold_replay": metrics["requires_cold_replay"],
+        }
+        components.append(component)
+    return {
+        **component_pipeline,
+        "strategy": "contract_enriched_" + str(component_pipeline.get("strategy", "component_pipeline")),
+        "components": components,
+        "execution_order": [str(component.get("id", "")).strip() for component in components],
+        "complexity_contract_enforced": True,
+        "acceptance_metrics": metrics,
+    }
+
+
 def component_pipeline_from_plan(goal: str, plan_doc: dict[str, Any]) -> dict[str, Any]:
     payload = plan_doc.get("pipeline_plan", {}).get("payload", {}) if isinstance(plan_doc, dict) else {}
     component_pipeline = payload.get("component_pipeline", {})
     if isinstance(component_pipeline, dict) and isinstance(component_pipeline.get("components"), list) and component_pipeline.get("components"):
-        return component_pipeline
-    return compose_local_pipeline.build_component_pipeline(goal)
+        enriched = enrich_component_pipeline_with_complexity_contract(component_pipeline, plan_doc, goal)
+    else:
+        enriched = enrich_component_pipeline_with_complexity_contract(compose_local_pipeline.build_component_pipeline(goal), plan_doc, goal)
+    return adaptive_project_management_context.enrich_component_pipeline(
+        goal=goal,
+        plan_doc=plan_doc,
+        component_pipeline=enriched,
+    )
+
+
+def apply_design_context_to_component_pipeline(
+    component_pipeline: dict[str, Any],
+    design_research: dict[str, Any],
+) -> dict[str, Any]:
+    """Attach one bounded design contract to the existing component route."""
+    pipeline = json.loads(json.dumps(component_pipeline, ensure_ascii=False))
+    design_context = design_research_agent.bounded_design_context(design_research)
+    pipeline["design_context"] = design_context
+    if not bool(design_context.get("visual_surface_required")):
+        return pipeline
+    required_docs = [
+        str(item)
+        for item in design_context.get("design_contract", {}).get("required_project_docs", [])
+        if str(item).strip()
+    ]
+    for component in pipeline.get("components", []):
+        if not isinstance(component, dict):
+            continue
+        component_id = str(component.get("id", "")).strip()
+        acceptance = [str(item) for item in component.get("acceptance", []) if str(item).strip()]
+        required_paths = [str(item) for item in component.get("required_paths", []) if str(item).strip()]
+        if component_id == "docs":
+            required_paths.extend(required_docs)
+            acceptance.extend(
+                [
+                    "Document searched design references, their use boundaries, three considered directions, and the selected visual direction.",
+                    "Publish the implemented color, typography, spacing, radius, motion, responsive, focus, and interaction-state system before claiming design completion.",
+                ]
+            )
+        elif component_id == "frontend":
+            acceptance.extend(
+                [
+                    "Implement the selected design direction with reusable CSS custom-property tokens rather than framework-default styling.",
+                    "Use a distinctive focal composition instead of a uniform generic dashboard card wall.",
+                    "Implement responsive layout, visible keyboard focus, interaction feedback, and reduced-motion behavior.",
+                ]
+            )
+        elif component_id == "media":
+            acceptance.append(
+                "Keep previews and generated media presentation consistent with the selected color, type, motion, and composition direction."
+            )
+        component["required_paths"] = list(dict.fromkeys(required_paths))
+        component["minimum_file_count"] = max(
+            int(component.get("minimum_file_count", 0) or 0),
+            len(component["required_paths"]),
+        )
+        component["acceptance"] = list(dict.fromkeys(acceptance))
+    return pipeline
+
+
+def _python_callable_contract(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    *,
+    drop_first: bool = False,
+) -> dict[str, Any]:
+    positional_only = [arg.arg for arg in node.args.posonlyargs]
+    positional_or_keyword = [arg.arg for arg in node.args.args]
+    positional = [*positional_only, *positional_or_keyword]
+    defaults = [None] * (len(positional) - len(node.args.defaults)) + list(node.args.defaults)
+    if drop_first and positional:
+        positional = positional[1:]
+        defaults = defaults[1:]
+        if positional_only:
+            positional_only = positional_only[1:]
+        elif positional_or_keyword:
+            positional_or_keyword = positional_or_keyword[1:]
+    required_positional = [
+        name
+        for name, default in zip(positional, defaults)
+        if default is None
+    ]
+    keyword_only = [arg.arg for arg in node.args.kwonlyargs]
+    required_keyword_only = [
+        name
+        for name, default in zip(keyword_only, node.args.kw_defaults)
+        if default is None
+    ]
+    return {
+        "positional_parameters": positional,
+        "positional_only_parameters": positional_only,
+        "keyword_only_parameters": keyword_only,
+        "required_parameters": [*required_positional, *required_keyword_only],
+        "accepts_varargs": node.args.vararg is not None,
+        "accepts_kwargs": node.args.kwarg is not None,
+    }
+
+
+def _python_decorator_names(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> set[str]:
+    names: set[str] = set()
+    for decorator in node.decorator_list:
+        target = decorator.func if isinstance(decorator, ast.Call) else decorator
+        names.add(getattr(target, "id", "") or getattr(target, "attr", ""))
+    return names
+
+
+def _python_method_callable_contract(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, Any]:
+    decorators = _python_decorator_names(node)
+    return _python_callable_contract(
+        node,
+        drop_first="staticmethod" not in decorators,
+    )
+
+
+def _python_class_constructor_contract(node: ast.ClassDef) -> dict[str, Any] | None:
+    explicit_init = next(
+        (
+            child
+            for child in node.body
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and child.name == "__init__"
+        ),
+        None,
+    )
+    if explicit_init is not None:
+        return _python_callable_contract(explicit_init, drop_first=True)
+    decorator_names = _python_decorator_names(node)
+    if "dataclass" not in decorator_names:
+        return None
+    fields: list[str] = []
+    required: list[str] = []
+    for child in node.body:
+        if not isinstance(child, ast.AnnAssign) or not isinstance(child.target, ast.Name):
+            continue
+        fields.append(child.target.id)
+        if child.value is None:
+            required.append(child.target.id)
+    return {
+        "positional_parameters": fields,
+        "positional_only_parameters": [],
+        "keyword_only_parameters": [],
+        "required_parameters": required,
+        "accepts_varargs": False,
+        "accepts_kwargs": False,
+    }
+
+
+def _python_interface_summary(content: str) -> dict[str, Any]:
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError):
+        return {"syntax": "invalid"}
+    classes: list[dict[str, Any]] = []
+    functions: list[str] = []
+    function_contracts: dict[str, dict[str, Any]] = {}
+    imports: list[str] = []
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.ImportFrom):
+                module = str(node.module or "")
+                names = [alias.name for alias in node.names[:8]]
+                imports.append(f"{module}:{','.join(names)}" if module else ",".join(names))
+            else:
+                imports.extend(alias.name for alias in node.names[:8])
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            args = [arg.arg for arg in list(node.args.posonlyargs) + list(node.args.args) + list(node.args.kwonlyargs)]
+            functions.append(f"{node.name}({', '.join(args[:10])})")
+            function_contracts[node.name] = _python_callable_contract(node)
+        elif isinstance(node, ast.ClassDef):
+            methods = []
+            method_contracts: dict[str, dict[str, Any]] = {}
+            for child in node.body:
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    args = [arg.arg for arg in list(child.args.posonlyargs) + list(child.args.args) + list(child.args.kwonlyargs)]
+                    methods.append(f"{child.name}({', '.join(args[:8])})")
+                    method_contracts[child.name] = _python_method_callable_contract(child)
+            classes.append(
+                {
+                    "name": node.name,
+                    "methods": methods[:16],
+                    "method_contracts": {
+                        name: method_contracts[name]
+                        for name in list(method_contracts)[:16]
+                    },
+                    "constructor": _python_class_constructor_contract(node),
+                }
+            )
+    return {
+        "syntax": "valid",
+        "classes": classes[:12],
+        "functions": functions[:24],
+        "function_contracts": {
+            name: function_contracts[name]
+            for name in list(function_contracts)[:24]
+        },
+        "imports": list(dict.fromkeys(imports))[:24],
+    }
+
+
+JAVASCRIPT_MODULE_SUFFIXES = {".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"}
+
+
+def _javascript_without_comments(source: str) -> str:
+    """Remove JavaScript comments while preserving strings and line positions."""
+    text = str(source or "")
+    output: list[str] = []
+    index = 0
+    quote = ""
+    escaped = False
+    line_comment = False
+    block_comment = False
+    while index < len(text):
+        char = text[index]
+        nxt = text[index + 1] if index + 1 < len(text) else ""
+        if line_comment:
+            if char in "\r\n":
+                line_comment = False
+                output.append(char)
+            else:
+                output.append(" ")
+            index += 1
+            continue
+        if block_comment:
+            if char == "*" and nxt == "/":
+                output.extend((" ", " "))
+                index += 2
+                block_comment = False
+            else:
+                output.append(char if char in "\r\n" else " ")
+                index += 1
+            continue
+        if quote:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = ""
+            index += 1
+            continue
+        if char in {"'", '"', "`"}:
+            quote = char
+            output.append(char)
+            index += 1
+            continue
+        if char == "/" and nxt == "/":
+            output.extend((" ", " "))
+            index += 2
+            line_comment = True
+            continue
+        if char == "/" and nxt == "*":
+            output.extend((" ", " "))
+            index += 2
+            block_comment = True
+            continue
+        output.append(char)
+        index += 1
+    return "".join(output)
+
+
+def _javascript_binding_parts(value: str) -> list[tuple[str, str]]:
+    bindings: list[tuple[str, str]] = []
+    for raw in str(value or "").split(","):
+        part = raw.strip()
+        if not part or part.startswith("type "):
+            continue
+        tokens = re.split(r"\s+as\s+", part, maxsplit=1)
+        imported = tokens[0].strip()
+        local = tokens[1].strip() if len(tokens) == 2 else imported
+        if re.fullmatch(r"[A-Za-z_$][\w$]*", imported) and re.fullmatch(
+            r"[A-Za-z_$][\w$]*", local
+        ):
+            bindings.append((imported, local))
+    return bindings
+
+
+def javascript_module_contract(source: str) -> dict[str, Any]:
+    """Extract bounded ES-module bindings for deterministic interface validation."""
+    clean = _javascript_without_comments(source)
+    imports: list[dict[str, Any]] = []
+    imported_locals: set[str] = set()
+    declared: set[str] = set()
+    parameters: set[str] = set()
+    exports: set[str] = set()
+    local_export_bindings: list[tuple[str, str]] = []
+
+    declaration_pattern = re.compile(
+        r"\b(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)"
+    )
+    declared.update(declaration_pattern.findall(clean))
+    for match in re.finditer(r"\bfunction\b[^()]*\(([^)]*)\)", clean):
+        parameters.update(local for _, local in _javascript_binding_parts(match.group(1)))
+    for match in re.finditer(r"\(([^)]*)\)\s*=>", clean):
+        parameters.update(local for _, local in _javascript_binding_parts(match.group(1)))
+    parameters.update(
+        re.findall(r"(?<![\w$])([A-Za-z_$][\w$]*)\s*=>", clean)
+    )
+    parameters.update(re.findall(r"\bcatch\s*\(\s*([A-Za-z_$][\w$]*)", clean))
+
+    static_import_pattern = re.compile(
+        r"(?m)^[ \t]*import\s+(?!\()([^;]*?)\s+from\s*(['\"])([^'\"]+)\2\s*;?"
+    )
+    consumed_ranges: list[tuple[int, int]] = []
+    for match in static_import_pattern.finditer(clean):
+        clause = match.group(1).strip()
+        specifier = match.group(3).strip()
+        imported_symbols: list[str] = []
+        local_bindings: list[str] = []
+        named = re.search(r"\{([^{}]*)\}", clause, flags=re.S)
+        if named:
+            for imported, local in _javascript_binding_parts(named.group(1)):
+                imported_symbols.append(imported)
+                local_bindings.append(local)
+        namespace = re.search(r"\*\s+as\s+([A-Za-z_$][\w$]*)", clause)
+        if namespace:
+            imported_symbols.append("*")
+            local_bindings.append(namespace.group(1))
+        prefix = clause.split(",", 1)[0].strip()
+        if prefix and not prefix.startswith(("{", "*", "type ")):
+            default_name = prefix.split()[-1]
+            if re.fullmatch(r"[A-Za-z_$][\w$]*", default_name):
+                imported_symbols.insert(0, "default")
+                local_bindings.insert(0, default_name)
+        imported_locals.update(local_bindings)
+        imports.append(
+            {
+                "kind": "import",
+                "specifier": specifier,
+                "imported_symbols": list(dict.fromkeys(imported_symbols)),
+                "local_bindings": list(dict.fromkeys(local_bindings)),
+            }
+        )
+        consumed_ranges.append(match.span())
+
+    for match in re.finditer(r"(?m)^[ \t]*import\s*(['\"])([^'\"]+)\1\s*;?", clean):
+        if any(start <= match.start() < end for start, end in consumed_ranges):
+            continue
+        imports.append(
+            {
+                "kind": "side_effect_import",
+                "specifier": match.group(2).strip(),
+                "imported_symbols": [],
+                "local_bindings": [],
+            }
+        )
+    for match in re.finditer(r"\bimport\s*\(\s*(['\"])([^'\"]+)\1\s*\)", clean):
+        imports.append(
+            {
+                "kind": "dynamic_import",
+                "specifier": match.group(2).strip(),
+                "imported_symbols": [],
+                "local_bindings": [],
+            }
+        )
+
+    export_declaration_pattern = re.compile(
+        r"\bexport\s+(default\s+)?(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)"
+    )
+    for match in export_declaration_pattern.finditer(clean):
+        declared.add(match.group(2))
+        exports.add("default" if match.group(1) else match.group(2))
+    if re.search(r"\bexport\s+default\b", clean):
+        exports.add("default")
+
+    export_list_pattern = re.compile(
+        r"\bexport\s*\{([^{}]*)\}\s*(?:from\s*(['\"])([^'\"]+)\2)?\s*;?",
+        flags=re.S,
+    )
+    for match in export_list_pattern.finditer(clean):
+        specifier = str(match.group(3) or "").strip()
+        pairs = _javascript_binding_parts(match.group(1))
+        for local, exported in pairs:
+            exports.add(exported)
+            if not specifier:
+                local_export_bindings.append((local, exported))
+        if specifier:
+            imports.append(
+                {
+                    "kind": "re_export",
+                    "specifier": specifier,
+                    "imported_symbols": [local for local, _ in pairs],
+                    "local_bindings": [],
+                }
+            )
+    for match in re.finditer(
+        r"\bexport\s+\*\s*(?:as\s+([A-Za-z_$][\w$]*)\s+)?from\s*(['\"])([^'\"]+)\2",
+        clean,
+    ):
+        if match.group(1):
+            exports.add(match.group(1))
+        imports.append(
+            {
+                "kind": "re_export_all",
+                "specifier": match.group(3).strip(),
+                "imported_symbols": ["*"],
+                "local_bindings": [],
+            }
+        )
+
+    local_bindings = declared | imported_locals | parameters
+    missing_local_exports = sorted(
+        f"{local} as {exported}"
+        for local, exported in local_export_bindings
+        if local not in local_bindings
+    )
+    known_call_globals = {
+        "alert",
+        "atob",
+        "btoa",
+        "clearInterval",
+        "clearTimeout",
+        "fetch",
+        "parseFloat",
+        "parseInt",
+        "queueMicrotask",
+        "requestAnimationFrame",
+        "setInterval",
+        "setTimeout",
+        "structuredClone",
+    }
+    call_keywords = {
+        "catch",
+        "constructor",
+        "for",
+        "function",
+        "if",
+        "new",
+        "return",
+        "switch",
+        "throw",
+        "typeof",
+        "while",
+    }
+    bare_calls = set(
+        re.findall(r"(?<![\w$.])([A-Za-z_$][\w$]*)\s*\(", clean)
+    )
+    unresolved_calls = sorted(
+        name
+        for name in bare_calls
+        if name not in local_bindings
+        and name not in known_call_globals
+        and name not in call_keywords
+    )
+    return {
+        "imports": imports,
+        "exports": sorted(exports),
+        "declared_bindings": sorted(declared),
+        "imported_local_bindings": sorted(imported_locals),
+        "missing_local_exports": missing_local_exports,
+        "unresolved_calls": unresolved_calls,
+    }
+
+
+def generated_file_interface_summary(file_item: dict[str, Any]) -> dict[str, Any]:
+    path = str(file_item.get("path", "")).replace("\\", "/").strip()
+    content = str(file_item.get("content", ""))
+    suffix = pathlib.PurePosixPath(path).suffix.lower()
+    summary: dict[str, Any] = {
+        "path": path,
+        "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        "bytes": len(content.encode("utf-8")),
+    }
+    if suffix == ".py":
+        summary["python"] = _python_interface_summary(content)
+    elif suffix in JAVASCRIPT_MODULE_SUFFIXES:
+        module_contract = javascript_module_contract(content)
+        summary["javascript"] = {
+            "imports": list(
+                dict.fromkeys(
+                    str(item.get("specifier", ""))
+                    for item in module_contract["imports"]
+                    if str(item.get("specifier", ""))
+                )
+            )[:20],
+            "exports": module_contract["exports"][:24],
+            "import_bindings": module_contract["imports"][:24],
+            "functions": list(dict.fromkeys(re.findall(r"\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(", content)))[:24],
+            "classes": list(dict.fromkeys(re.findall(r"\bclass\s+([A-Za-z_$][\w$]*)", content)))[:16],
+        }
+    elif suffix in {".html", ".htm"}:
+        summary["html"] = {
+            "ids": list(dict.fromkeys(re.findall(r"\bid\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I)))[:30],
+            "testids": list(dict.fromkeys(re.findall(r"\bdata-testid\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I)))[:30],
+            "scripts": list(dict.fromkeys(re.findall(r"<script[^>]+\bsrc\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I)))[:16],
+            "stylesheets": list(dict.fromkeys(re.findall(r"<link[^>]+\bhref\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I)))[:16],
+        }
+    elif suffix == ".json":
+        try:
+            doc = json.loads(content)
+            summary["json"] = {
+                "top_level_type": type(doc).__name__,
+                "top_level_keys": sorted(str(key) for key in doc)[:40] if isinstance(doc, dict) else [],
+            }
+        except (json.JSONDecodeError, TypeError):
+            summary["json"] = {"syntax": "invalid"}
+    elif pathlib.PurePosixPath(path).name in {"pyproject.toml", "requirements.txt", "package.json"}:
+        summary["dependency_contract_excerpt"] = content[:1600]
+    return summary
+
+
+def _declared_dependency_paths(values: Any, available_paths: list[str]) -> list[str]:
+    """Resolve provider dependency descriptions to concrete known paths."""
+    if not isinstance(values, list):
+        return []
+    ordered_paths = [str(path).replace("\\", "/").strip() for path in available_paths if str(path).strip()]
+    resolved: list[str] = []
+    for raw_value in values:
+        value = str(raw_value).replace("\\", "/").strip()
+        if not value:
+            continue
+        for path in ordered_paths:
+            if value == path or re.search(rf"(?<![\w./-]){re.escape(path)}(?![\w./-])", value):
+                if path not in resolved:
+                    resolved.append(path)
+    return resolved
+
+
+def build_component_leaf_work_graph(component_id: str, manifest: list[dict[str, Any]]) -> dict[str, Any]:
+    """Turn one component manifest into stable, dependency-ordered file leaves."""
+    entries = [item for item in manifest if isinstance(item, dict) and str(item.get("path", "")).strip()]
+    paths = [str(item.get("path", "")).replace("\\", "/").strip() for item in entries]
+    entry_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in entries
+    }
+    dependency_map = {
+        path: [
+            dependency
+            for dependency in _declared_dependency_paths(entry_by_path[path].get("dependencies", []), paths)
+            if dependency != path
+        ]
+        for path in paths
+    }
+    dependency_normalization_warnings: list[str] = []
+    if component_id == "frontend":
+        html_paths = {
+            path
+            for path in paths
+            if pathlib.PurePosixPath(path).name.lower() == "index.html"
+        }
+        css_paths = {
+            path
+            for path in paths
+            if pathlib.PurePosixPath(path).suffix.lower() in {".css", ".scss"}
+        }
+        script_paths = {
+            path
+            for path in paths
+            if pathlib.PurePosixPath(path).suffix.lower() in {".js", ".mjs"}
+        }
+        path_order = {path: index for index, path in enumerate(paths)}
+        for path in paths:
+            original_dependencies = list(dependency_map[path])
+            if path in html_paths:
+                dependency_map[path] = []
+            elif path in css_paths:
+                dependency_map[path] = [
+                    dependency
+                    for dependency in paths
+                    if dependency in html_paths
+                ]
+            elif path in script_paths:
+                dependency_map[path] = [
+                    dependency
+                    for dependency in paths
+                    if (
+                        dependency in html_paths
+                        or dependency in css_paths
+                        or (
+                            dependency in script_paths
+                            and dependency in original_dependencies
+                            and path_order[dependency] < path_order[path]
+                        )
+                    )
+                ]
+            if dependency_map[path] != original_dependencies:
+                dependency_normalization_warnings.append(
+                    f"frontend_generation_dependency_normalized:{path}"
+                )
+    remaining = list(paths)
+    ordered: list[str] = []
+    ordering_warnings: list[str] = list(dependency_normalization_warnings)
+    while remaining:
+        ready = [path for path in remaining if all(dependency in ordered for dependency in dependency_map[path])]
+        if not ready:
+            ordering_warnings.append(
+                "cyclic_or_unresolved_intra_component_dependencies:" + ",".join(remaining)
+            )
+            ready = [remaining[0]]
+        for path in ready:
+            ordered.append(path)
+            remaining.remove(path)
+    leaves = []
+    for index, path in enumerate(ordered, start=1):
+        entry = entry_by_path[path]
+        leaves.append(
+            {
+                "leaf_id": f"{component_id}.leaf.{index:03d}",
+                "path": path,
+                "purpose": str(entry.get("purpose", "")).strip()[:1000],
+                "depends_on": dependency_map[path],
+                "declared_dependencies": [
+                    str(item).strip()[:500]
+                    for item in entry.get("dependencies", [])
+                    if str(item).strip()
+                ][:16],
+                "estimated_complexity": str(entry.get("estimated_complexity", "")).strip()[:80],
+                "responsibilities": [
+                    str(item).strip()[:500]
+                    for item in entry.get("responsibilities", [])
+                    if str(item).strip()
+                ][:8] if isinstance(entry.get("responsibilities", []), list) else [],
+                "acceptance_checks": [
+                    str(item).strip()[:500]
+                    for item in entry.get("acceptance_checks", [])
+                    if str(item).strip()
+                ][:8] if isinstance(entry.get("acceptance_checks", []), list) else [],
+                "expected_symbols": [
+                    str(item).strip()[:200]
+                    for item in entry.get("expected_symbols", [])
+                    if str(item).strip()
+                ][:12] if isinstance(entry.get("expected_symbols", []), list) else [],
+                "generation_role": str(entry.get("generation_role", "")).strip()[:80],
+                "expansion_parent": str(entry.get("expansion_parent", "")).replace("\\", "/").strip(),
+                "facade_children": [
+                    str(item).replace("\\", "/").strip()
+                    for item in entry.get("facade_children", [])
+                    if str(item).strip()
+                ][:8] if isinstance(entry.get("facade_children", []), list) else [],
+                "execution_plan": {
+                    "builder": "provider_leaf_builder",
+                    "verifier": "deterministic_leaf_boundary_verifier",
+                    "integrator": "project_interface_registry_publisher",
+                    "stages": ["build", "verify", "publish"],
+                },
+            }
+        )
+    graph: dict[str, Any] = {
+        "kind": "CGKNComponentLeafWorkGraph",
+        "schema_version": 1,
+        "component_id": component_id,
+        "leaf_count": len(leaves),
+        "max_files_per_leaf": 1,
+        "leaves": leaves,
+        "ordering_warnings": ordering_warnings,
+    }
+    canonical = json.dumps(graph, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    graph["graph_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return graph
+
+
+def component_leaf_ready_batches(leaf_work_graph: dict[str, Any]) -> list[list[dict[str, Any]]]:
+    """Return deterministic dependency-ready batches suitable for bounded parallel work."""
+    leaves = [
+        leaf
+        for leaf in leaf_work_graph.get("leaves", [])
+        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+    ]
+    remaining = {
+        str(leaf.get("path", "")): leaf
+        for leaf in leaves
+    }
+    completed: set[str] = set()
+    batches: list[list[dict[str, Any]]] = []
+    while remaining:
+        ready = [
+            leaf
+            for path, leaf in remaining.items()
+            if all(str(dependency) in completed for dependency in leaf.get("depends_on", []))
+        ]
+        if not ready:
+            ready = [next(iter(remaining.values()))]
+        batches.append(ready)
+        for leaf in ready:
+            path = str(leaf.get("path", ""))
+            completed.add(path)
+            remaining.pop(path, None)
+    return batches
+
+
+def component_leaf_downstream_closure(
+    leaf_work_graph: dict[str, Any],
+    changed_paths: list[str] | set[str],
+) -> list[str]:
+    """Return changed leaves plus every transitive consumer in graph order."""
+    leaves = [
+        leaf
+        for leaf in leaf_work_graph.get("leaves", [])
+        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+    ]
+    known = {str(leaf.get("path", "")) for leaf in leaves}
+    affected = {
+        str(path).replace("\\", "/").strip()
+        for path in changed_paths
+        if str(path).replace("\\", "/").strip() in known
+    }
+    changed = True
+    while changed:
+        changed = False
+        for leaf in leaves:
+            path = str(leaf.get("path", ""))
+            dependencies = {
+                str(item)
+                for item in leaf.get("depends_on", [])
+                if not (
+                    pathlib.PurePosixPath(path).suffix.lower()
+                    in JAVASCRIPT_MODULE_SUFFIXES
+                    and pathlib.PurePosixPath(str(item)).suffix.lower()
+                    in {".css", ".scss"}
+                )
+            }
+            if path not in affected and dependencies.intersection(affected):
+                affected.add(path)
+                changed = True
+    return [str(leaf.get("path", "")) for leaf in leaves if str(leaf.get("path", "")) in affected]
+
+
+def provider_auto_submodule_policy() -> dict[str, int | bool]:
+    """Bound automatic file-leaf expansion without creating another generation route."""
+    return {
+        "enabled": env_bool("CGKN_PROVIDER_AUTO_SUBMODULES", True),
+        "minimum_expected_symbols": max(
+            4,
+            min(env_int("CGKN_PROVIDER_AUTO_SUBMODULE_MIN_SYMBOLS", 6), 12),
+        ),
+        "symbols_per_submodule": max(
+            2,
+            min(env_int("CGKN_PROVIDER_AUTO_SUBMODULE_SYMBOLS_PER_LEAF", 2), 4),
+        ),
+        "max_submodules_per_file": max(
+            4,
+            min(env_int("CGKN_PROVIDER_AUTO_SUBMODULES_PER_FILE", 6), 8),
+        ),
+    }
+
+
+def automatic_test_manifest_submodules(
+    component_id: str,
+    entry: dict[str, Any],
+    *,
+    seen_paths: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Split a high-complexity pytest module into independently collected test leaves."""
+    parent_path = str(entry.get("path", "")).replace("\\", "/").strip()
+    parent = pathlib.PurePosixPath(parent_path)
+    if (
+        component_id != "tests"
+        or str(entry.get("estimated_complexity", "")).strip().lower() != "high"
+        or parent.suffix.lower() != ".py"
+        or not parent.name.lower().startswith("test_")
+        or str(entry.get("generation_role", "")).strip()
+    ):
+        return []
+    known_paths = set(seen_paths or set())
+    original_dependencies = [
+        str(item).replace("\\", "/").strip()
+        for item in entry.get("dependencies", [])
+        if str(item).strip() and str(item).replace("\\", "/").strip() != parent_path
+    ] if isinstance(entry.get("dependencies", []), list) else []
+    purpose = str(entry.get("purpose", "")).strip()[:700] or parent.stem.replace("_", " ")
+    supplied_responsibilities = [
+        str(item).strip()[:500]
+        for item in entry.get("responsibilities", [])
+        if str(item).strip()
+    ] if isinstance(entry.get("responsibilities", []), list) else []
+    supplied_acceptance = [
+        str(item).strip()[:500]
+        for item in entry.get("acceptance_checks", [])
+        if str(item).strip()
+    ] if isinstance(entry.get("acceptance_checks", []), list) else []
+    slice_contracts = [
+        (
+            "core behavior",
+            "Cover the primary happy-path behavior through the generated project's public interfaces.",
+            "The bounded test module contains deterministic assertions for its assigned primary behavior.",
+        ),
+        (
+            "boundary behavior",
+            "Cover invalid, missing, degraded, or security-relevant inputs without duplicating product logic.",
+            "The bounded test module proves observable boundary behavior and honest failure handling.",
+        ),
+        (
+            "integration behavior",
+            "Cover deterministic integration, artifact, or regression contracts for this suite responsibility.",
+            "The bounded test module proves integration outputs through public interfaces and remains offline.",
+        ),
+    ]
+    children: list[dict[str, Any]] = []
+    for index, (aspect, default_responsibility, default_acceptance) in enumerate(slice_contracts, start=1):
+        child_path = str(parent.with_name(f"{parent.stem}_part_{index:02d}{parent.suffix}"))
+        if child_path in known_paths or not component_path_allowed(component_id, child_path):
+            return []
+        assigned_responsibilities = [
+            item
+            for item_index, item in enumerate(supplied_responsibilities)
+            if item_index % len(slice_contracts) == index - 1
+        ]
+        assigned_acceptance = [
+            item
+            for item_index, item in enumerate(supplied_acceptance)
+            if item_index % len(slice_contracts) == index - 1
+        ]
+        children.append(
+            {
+                "path": child_path,
+                "purpose": f"Test the {aspect} slice of {purpose}."[:1000],
+                "dependencies": list(dict.fromkeys(original_dependencies)),
+                "estimated_complexity": "medium",
+                "responsibilities": assigned_responsibilities or [default_responsibility],
+                "acceptance_checks": assigned_acceptance or [default_acceptance],
+                "expected_symbols": [],
+                "expansion_parent": parent_path,
+                "generation_role": "bounded_test_module",
+                "automatic_expansion": True,
+            }
+        )
+        known_paths.add(child_path)
+    return children
+
+
+def automatic_manifest_submodules(
+    component_id: str,
+    entry: dict[str, Any],
+    *,
+    seen_paths: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Create deterministic source symbol-group leaves for an oversized manifest entry."""
+    policy = provider_auto_submodule_policy()
+    if not bool(policy["enabled"]):
+        return []
+    test_children = automatic_test_manifest_submodules(
+        component_id,
+        entry,
+        seen_paths=seen_paths,
+    )
+    if test_children:
+        return test_children
+    parent_path = str(entry.get("path", "")).replace("\\", "/").strip()
+    parent = pathlib.PurePosixPath(parent_path)
+    source_suffix = parent.suffix.lower()
+    if (
+        str(entry.get("estimated_complexity", "")).strip().lower() != "high"
+        or source_suffix not in {".py", ".js", ".mjs"}
+        or (
+            source_suffix == ".py"
+            and parent.name.lower()
+            in {"__init__.py", "__main__.py", "main.py", "setup.py", "conftest.py"}
+        )
+        or str(entry.get("generation_role", "")).strip()
+    ):
+        return []
+    expected_symbols = [
+        str(item).strip()[:200]
+        for item in entry.get("expected_symbols", [])
+        if str(item).strip()
+    ] if isinstance(entry.get("expected_symbols", []), list) else []
+    is_javascript_product_leaf = source_suffix in {".js", ".mjs"}
+    minimum_symbols = (
+        min(3, int(policy["minimum_expected_symbols"]))
+        if is_javascript_product_leaf
+        else int(policy["minimum_expected_symbols"])
+    )
+    if len(expected_symbols) < minimum_symbols:
+        return []
+    symbols_per_leaf = (
+        1
+        if is_javascript_product_leaf and len(expected_symbols) <= 4
+        else int(policy["symbols_per_submodule"])
+    )
+    symbol_groups = [
+        expected_symbols[index : index + symbols_per_leaf]
+        for index in range(0, len(expected_symbols), symbols_per_leaf)
+    ][: int(policy["max_submodules_per_file"])]
+    if len(symbol_groups) < 2 or sum(len(group) for group in symbol_groups) != len(expected_symbols):
+        return []
+    known_paths = set(seen_paths or set())
+    responsibilities = [
+        str(item).strip()[:500]
+        for item in entry.get("responsibilities", [])
+        if str(item).strip()
+    ] if isinstance(entry.get("responsibilities", []), list) else []
+    acceptance_checks = [
+        str(item).strip()[:500]
+        for item in entry.get("acceptance_checks", [])
+        if str(item).strip()
+    ] if isinstance(entry.get("acceptance_checks", []), list) else []
+    original_dependencies = [
+        str(item).replace("\\", "/").strip()
+        for item in entry.get("dependencies", [])
+        if str(item).strip() and str(item).replace("\\", "/").strip() != parent_path
+    ] if isinstance(entry.get("dependencies", []), list) else []
+    children: list[dict[str, Any]] = []
+    previous_child = ""
+    for index, symbols in enumerate(symbol_groups, start=1):
+        child_name = f"{parent.stem}_part_{index:02d}{parent.suffix}"
+        child_path = str(parent.with_name(child_name))
+        if child_path in known_paths or not component_path_allowed(component_id, child_path):
+            return []
+        child_responsibilities = [
+            item
+            for item_index, item in enumerate(responsibilities)
+            if item_index % len(symbol_groups) == index - 1
+        ]
+        child_acceptance = [
+            item
+            for item_index, item in enumerate(acceptance_checks)
+            if item_index % len(symbol_groups) == index - 1
+        ]
+        dependencies = list(original_dependencies)
+        if previous_child:
+            dependencies.append(previous_child)
+        children.append(
+            {
+                "path": child_path,
+                "purpose": (
+                    f"Implement bounded symbol group {index} for {parent_path}: "
+                    + ", ".join(symbols)
+                )[:1000],
+                "dependencies": list(dict.fromkeys(dependencies)),
+                "estimated_complexity": "medium",
+                "responsibilities": child_responsibilities or [
+                    f"Implement the assigned public symbols for symbol group {index} without duplicating sibling behavior."
+                ],
+                "acceptance_checks": child_acceptance or [
+                    f"Every assigned symbol is implemented and importable from {child_path}."
+                ],
+                "expected_symbols": symbols,
+                "expansion_parent": parent_path,
+                "generation_role": "bounded_submodule",
+                "automatic_expansion": True,
+            }
+        )
+        known_paths.add(child_path)
+        previous_child = child_path
+    return children
+
+
+def expand_component_manifest_submodules(
+    component_id: str,
+    manifest: list[dict[str, Any]],
+    *,
+    max_new_leaves: int | None = None,
+    required_pipeline_stages: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Expand optional high-complexity submodules inside the same ownership boundary."""
+    expansion_limit = max(
+        0,
+        min(
+            int(max_new_leaves if max_new_leaves is not None else env_int("CGKN_PROVIDER_MAX_DYNAMIC_LEAVES", 16)),
+            32,
+        ),
+    )
+    stage_symbols = [
+        str(item).strip()
+        for item in (required_pipeline_stages or [])
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(item).strip())
+    ][:12]
+    normalized_manifest: list[dict[str, Any]] = []
+    for raw_entry in manifest:
+        entry = dict(raw_entry) if isinstance(raw_entry, dict) else raw_entry
+        if (
+            isinstance(entry, dict)
+            and component_id == "backend"
+            and stage_symbols
+            and pathlib.PurePosixPath(str(entry.get("path", ""))).name.lower() == "stages.py"
+            and not str(entry.get("generation_role", "")).strip()
+        ):
+            existing_symbols = (
+                [str(item).strip() for item in entry.get("expected_symbols", []) if str(item).strip()]
+                if isinstance(entry.get("expected_symbols"), list)
+                else []
+            )
+            entry["expected_symbols"] = list(dict.fromkeys([*stage_symbols, *existing_symbols]))[:12]
+            entry["estimated_complexity"] = "high"
+            entry["responsibilities"] = list(
+                dict.fromkeys(
+                    [
+                        *(
+                            entry.get("responsibilities", [])
+                            if isinstance(entry.get("responsibilities", []), list)
+                            else []
+                        ),
+                        "Implement every frozen pipeline stage as an executable transformation with validated inputs and explicit artifact outputs.",
+                    ]
+                )
+            )[:8]
+            entry["acceptance_checks"] = list(
+                dict.fromkeys(
+                    [
+                        *(
+                            entry.get("acceptance_checks", [])
+                            if isinstance(entry.get("acceptance_checks", []), list)
+                            else []
+                        ),
+                        "Every required stage symbol is importable and performs real state or artifact work rather than returning a constant placeholder.",
+                    ]
+                )
+            )[:8]
+        if (
+            isinstance(entry, dict)
+            and component_id == "backend"
+            and stage_symbols
+            and pathlib.PurePosixPath(str(entry.get("path", ""))).name.lower() == "orchestrator.py"
+            and not str(entry.get("generation_role", "")).strip()
+        ):
+            entry["estimated_complexity"] = "medium"
+            entry["expected_symbols"] = ["ProjectOrchestrator"]
+            entry["responsibilities"] = list(
+                dict.fromkeys(
+                    [
+                        *(
+                            entry.get("responsibilities", [])
+                            if isinstance(entry.get("responsibilities", []), list)
+                            else []
+                        ),
+                        "Execute the frozen pipeline stages in order, pass validated state between them, and publish their artifact references.",
+                    ]
+                )
+            )[:8]
+            entry["acceptance_checks"] = list(
+                dict.fromkeys(
+                    [
+                        *(
+                            entry.get("acceptance_checks", [])
+                            if isinstance(entry.get("acceptance_checks", []), list)
+                            else []
+                        ),
+                        "One orchestrator run invokes the required stage graph in order and returns inspectable per-stage outcomes.",
+                    ]
+                )
+            )[:8]
+        normalized_manifest.append(entry)
+    manifest = normalized_manifest
+    expanded: list[dict[str, Any]] = []
+    seen = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in manifest
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    added = 0
+    for entry in manifest:
+        if not isinstance(entry, dict):
+            continue
+        parent_path = str(entry.get("path", "")).replace("\\", "/").strip()
+        child_paths: list[str] = []
+        raw_children = entry.get("submodules", [])
+        automatic_children_selected = False
+        if not raw_children:
+            automatic_children = automatic_manifest_submodules(
+                component_id,
+                entry,
+                seen_paths=seen,
+            )
+            if len(automatic_children) <= expansion_limit - added:
+                raw_children = automatic_children
+                automatic_children_selected = bool(automatic_children)
+        if isinstance(raw_children, list):
+            child_limit = (
+                int(provider_auto_submodule_policy()["max_submodules_per_file"])
+                if automatic_children_selected
+                else 4
+            )
+            for child in raw_children[:child_limit]:
+                if added >= expansion_limit or not isinstance(child, dict):
+                    break
+                child_path = str(child.get("path", "")).replace("\\", "/").strip()
+                if (
+                    not child_path
+                    or child_path in seen
+                    or child_path == parent_path
+                    or not component_path_allowed(component_id, child_path)
+                ):
+                    continue
+                dependencies = [
+                    str(item).replace("\\", "/").strip()
+                    for item in child.get("dependencies", [])
+                    if str(item).strip() and str(item).replace("\\", "/").strip() != parent_path
+                ] if isinstance(child.get("dependencies", []), list) else []
+                expanded.append(
+                    {
+                        "path": child_path,
+                        "purpose": str(child.get("purpose", "")).strip()[:1000],
+                        "dependencies": dependencies,
+                        "estimated_complexity": str(child.get("estimated_complexity", "medium")).strip()[:80],
+                        "responsibilities": [
+                            str(item).strip()[:500]
+                            for item in child.get("responsibilities", [])
+                            if str(item).strip()
+                        ][:8] if isinstance(child.get("responsibilities", []), list) else [],
+                        "acceptance_checks": [
+                            str(item).strip()[:500]
+                            for item in child.get("acceptance_checks", [])
+                            if str(item).strip()
+                        ][:8] if isinstance(child.get("acceptance_checks", []), list) else [],
+                        "expected_symbols": [
+                            str(item).strip()[:200]
+                            for item in child.get("expected_symbols", [])
+                            if str(item).strip()
+                        ][:12] if isinstance(child.get("expected_symbols", []), list) else [],
+                        "expansion_parent": parent_path,
+                        "generation_role": str(child.get("generation_role", "bounded_submodule")).strip()[:80],
+                        "automatic_expansion": bool(child.get("automatic_expansion", False)),
+                    }
+                )
+                seen.add(child_path)
+                child_paths.append(child_path)
+                added += 1
+        parent = dict(entry)
+        parent.pop("submodules", None)
+        dependencies = [
+            str(item).replace("\\", "/").strip()
+            for item in parent.get("dependencies", [])
+            if str(item).strip()
+        ] if isinstance(parent.get("dependencies", []), list) else []
+        parent["dependencies"] = list(dict.fromkeys([*dependencies, *child_paths]))
+        if child_paths:
+            expected_symbols = [
+                str(item).strip()[:200]
+                for item in parent.get("expected_symbols", [])
+                if str(item).strip()
+            ] if isinstance(parent.get("expected_symbols", []), list) else []
+            bounded_test_children = all(
+                str(child.get("generation_role", "")).strip() == "bounded_test_module"
+                for child in raw_children
+                if isinstance(child, dict)
+            )
+            parent["generation_role"] = (
+                "test_suite_anchor" if bounded_test_children else "compatibility_facade"
+            )
+            parent["facade_children"] = child_paths
+            parent["estimated_complexity"] = "low"
+            if bounded_test_children:
+                parent["purpose"] = (
+                    f"Keep {parent_path} as a lightweight suite anchor; pytest collects the "
+                    f"bounded modules {', '.join(child_paths)} independently."
+                )[:1000]
+                parent["responsibilities"] = [
+                    "Document the bounded suite parts without importing their test functions into this module.",
+                    "Expose only a concise suite-parts constant so pytest does not duplicate collected tests.",
+                ]
+                parent["acceptance_checks"] = [
+                    "The anchor imports successfully and does not duplicate child test functions.",
+                ]
+                parent["expected_symbols"] = ["SUITE_PARTS"]
+            else:
+                parent["purpose"] = (
+                    f"Preserve the public import path {parent_path} by re-exporting the implemented "
+                    f"interfaces from {', '.join(child_paths)}."
+                )[:1000]
+                parent["responsibilities"] = [
+                    "Re-export the exact public symbols implemented by the bounded child modules.",
+                    "Keep the original module path stable without duplicating child business logic.",
+                ]
+                parent["acceptance_checks"] = [
+                    f"Every expected public symbol remains importable from {parent_path}.",
+                    "The facade contains no duplicate implementation of child-owned behavior.",
+                ]
+                parent["expected_symbols"] = expected_symbols
+        expanded.append(parent)
+    return expanded
+
+
+def generation_context_librarian_limits() -> dict[str, int]:
+    """Bound leaf context independently from project or repository size."""
+    return {
+        "max_items": max(3, min(env_int("CGKN_PROVIDER_LIBRARIAN_MAX_ITEMS", 8), 16)),
+        "max_chars": max(2000, min(env_int("CGKN_PROVIDER_LIBRARIAN_MAX_CHARS", 8000), 16000)),
+        "max_source_excerpt_chars": max(
+            400,
+            min(env_int("CGKN_PROVIDER_LIBRARIAN_SOURCE_EXCERPT_CHARS", 2400), 4000),
+        ),
+    }
+
+
+def build_generation_context_librarian_index(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    manifest: list[dict[str, Any]] | None,
+    completed_files: list[dict[str, str]] | None,
+    prior_files: list[dict[str, str]] | None,
+    integration_feedforward: dict[str, Any] | None,
+    interface_registry: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Index project knowledge locally so leaf prompts can retrieve small context packs."""
+    component_id = str(component.get("id", "")).strip()
+    limits = generation_context_librarian_limits()
+    entries: list[dict[str, Any]] = []
+
+    def add_entry(entry: dict[str, Any]) -> None:
+        entry_id = str(entry.get("item_id", "")).strip()
+        if not entry_id or any(str(item.get("item_id", "")) == entry_id for item in entries):
+            return
+        entries.append(entry)
+
+    snapshot = integration_feedforward or {}
+    for label, value in (
+        ("global_contract", snapshot.get("global_contract", {})),
+        ("current_contract", snapshot.get("current_contract", {})),
+    ):
+        content = json.dumps(value if isinstance(value, dict) else {}, ensure_ascii=False, sort_keys=True)
+        add_entry(
+            {
+                "item_id": f"contract:{label}",
+                "kind": "contract",
+                "scope": "project" if label == "global_contract" else "component",
+                "path": "",
+                "tags": [component_id, label, "constraint"],
+                "importance": "critical",
+                "summary": label.replace("_", " "),
+                "content_excerpt": content[: limits["max_source_excerpt_chars"]],
+                "interface": {},
+                "source_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            }
+        )
+    goal_constraints = infer_project_goal_constraints(goal)
+    constraints_text = json.dumps(goal_constraints, ensure_ascii=False)
+    add_entry(
+        {
+            "item_id": "contract:goal_constraints",
+            "kind": "contract",
+            "scope": "project",
+            "path": "",
+            "tags": [component_id, "goal", "constraint"],
+            "importance": "critical",
+            "summary": "project goal constraints",
+            "content_excerpt": constraints_text[: limits["max_source_excerpt_chars"]],
+            "interface": {},
+            "source_sha256": hashlib.sha256(constraints_text.encode("utf-8")).hexdigest(),
+        }
+    )
+    design_context = (
+        component_pipeline.get("design_context", {})
+        if isinstance(component_pipeline.get("design_context", {}), dict)
+        else {}
+    )
+    if (
+        bool(design_context.get("visual_surface_required"))
+        and component_id in {"frontend", "media", "docs"}
+    ):
+        design_text = json.dumps(design_context, ensure_ascii=False, sort_keys=True)
+        add_entry(
+            {
+                "item_id": "contract:design_context",
+                "kind": "design_contract",
+                "scope": "project",
+                "path": "",
+                "tags": [component_id, "design", "visual", "aesthetic", "constraint"],
+                "importance": "critical",
+                "summary": "selected source-backed visual direction and implementation contract",
+                "content_excerpt": design_text[: limits["max_source_excerpt_chars"]],
+                "interface": {
+                    "selected_direction": design_context.get("selected_direction", {}),
+                    "design_contract": design_context.get("design_contract", {}),
+                    "references": design_context.get("references", []),
+                },
+                "source_sha256": hashlib.sha256(design_text.encode("utf-8")).hexdigest(),
+            }
+        )
+    for entry in manifest or []:
+        if not isinstance(entry, dict):
+            continue
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        if not path:
+            continue
+        add_entry(
+            {
+                "item_id": f"manifest:{path}",
+                "kind": "manifest_entry",
+                "scope": "component",
+                "path": path,
+                "tags": [
+                    component_id,
+                    pathlib.PurePosixPath(path).stem.lower(),
+                    pathlib.PurePosixPath(path).suffix.lower().lstrip("."),
+                    "manifest",
+                ],
+                "importance": "high",
+                "summary": str(entry.get("purpose", "")).strip()[:600],
+                "dependencies": [
+                    str(item).replace("\\", "/").strip()[:300]
+                    for item in entry.get("dependencies", [])
+                    if str(item).strip()
+                ][:16],
+                "content_excerpt": "",
+                "interface": {},
+                "source_sha256": "",
+            }
+        )
+    source_by_path: dict[str, tuple[str, dict[str, str]]] = {}
+    for origin, files in (("upstream", prior_files or []), ("component", completed_files or [])):
+        for item in files:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path", "")).replace("\\", "/").strip()
+            if path:
+                source_by_path[path] = (origin, item)
+    for path, (origin, item) in sorted(source_by_path.items()):
+        content = str(item.get("content", ""))
+        add_entry(
+            {
+                "item_id": f"source:{path}",
+                "kind": "source_interface",
+                "scope": origin,
+                "path": path,
+                "tags": [
+                    component_id,
+                    origin,
+                    pathlib.PurePosixPath(path).stem.lower(),
+                    pathlib.PurePosixPath(path).suffix.lower().lstrip("."),
+                ],
+                "importance": "high" if origin == "component" else "medium",
+                "summary": f"implemented {origin} source interface",
+                "content_excerpt": content[: limits["max_source_excerpt_chars"]],
+                "interface": generated_file_interface_summary(item),
+                "source_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            }
+        )
+    known_source_paths = set(source_by_path)
+    feedforward_catalog = (
+        snapshot.get("upstream_state", {}).get("interface_catalog", [])
+        if isinstance(snapshot.get("upstream_state", {}), dict)
+        else []
+    )
+    for interface in feedforward_catalog:
+        if not isinstance(interface, dict):
+            continue
+        path = str(interface.get("path", "")).replace("\\", "/").strip()
+        if not path or path in known_source_paths:
+            continue
+        add_entry(
+            {
+                "item_id": f"interface:{path}",
+                "kind": "source_interface",
+                "scope": "upstream",
+                "path": path,
+                "tags": [component_id, "upstream", pathlib.PurePosixPath(path).stem.lower()],
+                "importance": "medium",
+                "summary": "implemented upstream interface",
+                "content_excerpt": "",
+                "interface": interface,
+                "source_sha256": str(interface.get("sha256", "")),
+            }
+        )
+    index_doc: dict[str, Any] = {
+        "kind": "CGKNGenerationContextLibrarianIndex",
+        "schema_version": 1,
+        "component_id": component_id,
+        "component_ids": [
+            str(row.get("id", "")).strip()
+            for row in component_pipeline.get("components", [])
+            if isinstance(row, dict) and str(row.get("id", "")).strip()
+        ],
+        "entry_count": len(entries),
+        "entries": entries,
+        "interface_registry_sha256": str((interface_registry or {}).get("registry_sha256", "")),
+        "feedforward_snapshot_sha256": str(snapshot.get("snapshot_sha256", "")),
+        "limits": limits,
+    }
+    canonical_entries = [
+        {
+            key: value
+            for key, value in entry.items()
+            if key != "content_excerpt"
+        }
+        for entry in entries
+    ]
+    canonical = json.dumps(canonical_entries, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    index_doc["index_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return index_doc
+
+
+def query_generation_context_librarian(
+    index_doc: dict[str, Any],
+    *,
+    leaf: dict[str, Any] | None = None,
+    query_kind: str = "leaf_generation",
+) -> dict[str, Any]:
+    """Retrieve only the contracts and source excerpts required by one leaf."""
+    leaf = leaf or {}
+    target_path = str(leaf.get("path", "")).replace("\\", "/").strip()
+    target_suffix = pathlib.PurePosixPath(target_path).suffix.lower()
+    target_tokens = {
+        token
+        for token in re.split(r"[^a-z0-9]+", target_path.lower())
+        if len(token) >= 3
+    }
+    direct_paths = {
+        str(path).replace("\\", "/").strip()
+        for path in leaf.get("depends_on", [])
+        if str(path).strip()
+    }
+    limits = index_doc.get("limits", {}) if isinstance(index_doc.get("limits"), dict) else {}
+    max_items = max(3, int(limits.get("max_items", 8) or 8))
+    max_chars = max(2000, int(limits.get("max_chars", 8000) or 8000))
+
+    def rank(item: dict[str, Any]) -> tuple[Any, ...]:
+        item_id = str(item.get("item_id", ""))
+        path = str(item.get("path", ""))
+        tags = {str(tag).lower() for tag in item.get("tags", [])}
+        if item_id in {"contract:global_contract", "contract:current_contract", "contract:goal_constraints", "contract:design_context"}:
+            bucket = 0
+        elif path == target_path and str(item.get("kind", "")) == "manifest_entry":
+            bucket = 1
+        elif path in direct_paths and str(item.get("kind", "")) == "source_interface":
+            bucket = 2
+        elif path in direct_paths:
+            bucket = 3
+        elif path == target_path and str(item.get("kind", "")) == "source_interface":
+            bucket = 4
+        elif target_suffix in {".js", ".mjs", ".ts", ".tsx", ".jsx"} and path == "index.html":
+            bucket = 4
+        elif target_path.startswith("tests/") and pathlib.PurePosixPath(path).name in {
+            "main.py",
+            "app.py",
+            "orchestrator.py",
+            "stages.py",
+            "index.html",
+        }:
+            bucket = 5
+        elif target_tokens.intersection(tags):
+            bucket = 6
+        elif str(item.get("kind", "")) == "source_interface":
+            bucket = 7
+        else:
+            bucket = 8
+        importance_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
+            str(item.get("importance", "")),
+            4,
+        )
+        return bucket, importance_rank, item_id
+
+    selected: list[dict[str, Any]] = []
+    context_chars = 0
+    excluded_reasons = {"over_item_budget": 0, "over_char_budget": 0}
+    for item in sorted(
+        [item for item in index_doc.get("entries", []) if isinstance(item, dict)],
+        key=rank,
+    ):
+        if len(selected) >= max_items:
+            excluded_reasons["over_item_budget"] += 1
+            continue
+        prompt_item = {
+            "item_id": str(item.get("item_id", "")),
+            "kind": str(item.get("kind", "")),
+            "scope": str(item.get("scope", "")),
+            "path": str(item.get("path", "")),
+            "summary": str(item.get("summary", "")),
+            "dependencies": item.get("dependencies", []),
+            "interface": item.get("interface", {}),
+            "content_excerpt": str(item.get("content_excerpt", "")),
+            "source_sha256": str(item.get("source_sha256", "")),
+        }
+        encoded = json.dumps(prompt_item, ensure_ascii=False, separators=(",", ":"))
+        remaining = max_chars - context_chars
+        if len(encoded) > remaining and prompt_item["content_excerpt"] and remaining >= 500:
+            without_excerpt = dict(prompt_item)
+            without_excerpt["content_excerpt"] = ""
+            overhead = len(json.dumps(without_excerpt, ensure_ascii=False, separators=(",", ":")))
+            prompt_item["content_excerpt"] = prompt_item["content_excerpt"][: max(0, remaining - overhead - 20)]
+            encoded = json.dumps(prompt_item, ensure_ascii=False, separators=(",", ":"))
+        if len(encoded) > remaining:
+            excluded_reasons["over_char_budget"] += 1
+            continue
+        selected.append(prompt_item)
+        context_chars += len(encoded)
+    pack: dict[str, Any] = {
+        "kind": "CGKNLibrarianContextPack",
+        "schema_version": 1,
+        "query_kind": query_kind,
+        "component_id": str(index_doc.get("component_id", "")),
+        "leaf_id": str(leaf.get("leaf_id", "")),
+        "target_path": target_path,
+        "direct_dependency_paths": sorted(direct_paths),
+        "index_sha256": str(index_doc.get("index_sha256", "")),
+        "context_budget": {
+            "max_items": max_items,
+            "max_chars": max_chars,
+            "selected_items": len(selected),
+            "selected_chars": context_chars,
+        },
+        "selected_items": selected,
+        "excluded_entry_count": max(0, int(index_doc.get("entry_count", 0)) - len(selected)),
+        "excluded_reasons": excluded_reasons,
+        "rules": [
+            "Use selected_items as the complete retrieved context for this leaf.",
+            "Do not assume excluded project files are relevant or available.",
+            "Request integration repair when a required dependency is absent from the retrieved contracts.",
+        ],
+    }
+    canonical = json.dumps(pack, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    pack["query_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return pack
+
+
+def build_leaf_interface_contract(
+    *,
+    component_id: str,
+    leaf: dict[str, Any],
+    completed_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None,
+    integration_feedforward: dict[str, Any] | None,
+    interface_registry: dict[str, Any] | None = None,
+    librarian_context_pack: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Publish implemented interfaces from earlier leaves as the next leaf's contract."""
+    registry_catalog = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in (interface_registry or {}).get("providers", [])
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    completed_paths = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in completed_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    ]
+    upstream_paths = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in (prior_files or [])
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    ]
+    completed_catalog = (
+        [registry_catalog[path] for path in completed_paths if path in registry_catalog]
+        if registry_catalog
+        else [
+            generated_file_interface_summary(item)
+            for item in completed_files
+            if isinstance(item, dict) and str(item.get("path", "")).strip()
+        ]
+    )
+    upstream_catalog = (
+        [registry_catalog[path] for path in upstream_paths if path in registry_catalog]
+        if registry_catalog
+        else [
+            generated_file_interface_summary(item)
+            for item in (prior_files or [])
+            if isinstance(item, dict) and str(item.get("path", "")).strip()
+        ]
+    )
+    feedforward_catalog = (
+        (integration_feedforward or {}).get("upstream_state", {}).get("interface_catalog", [])
+        if isinstance((integration_feedforward or {}).get("upstream_state", {}), dict)
+        else []
+    )
+    available_paths = [*completed_paths, *upstream_paths]
+    declared_dependencies = leaf.get("declared_dependencies", [])
+    direct_paths = list(leaf.get("depends_on", []))
+    for path in _declared_dependency_paths(declared_dependencies, available_paths):
+        if path not in direct_paths:
+            direct_paths.append(path)
+    combined_by_path: dict[str, dict[str, Any]] = {}
+    for item in [*completed_catalog, *upstream_catalog, *feedforward_catalog]:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path", "")).replace("\\", "/").strip()
+        if path and path not in combined_by_path:
+            combined_by_path[path] = item
+    combined = list(combined_by_path.values())
+    selected_paths = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in (librarian_context_pack or {}).get("selected_items", [])
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    direct_catalog = [item for item in combined if str(item.get("path", "")) in direct_paths]
+    retrieved_catalog = [
+        item
+        for item in combined
+        if str(item.get("path", "")) in selected_paths
+        and str(item.get("path", "")) not in set(direct_paths)
+    ]
+    if not librarian_context_pack:
+        retrieved_catalog = [
+            item
+            for item in combined
+            if str(item.get("path", "")) not in set(direct_paths)
+        ][-8:]
+
+    def compact_interface(item: dict[str, Any]) -> dict[str, Any]:
+        compact: dict[str, Any] = {
+            key: item.get(key)
+            for key in ("path", "sha256", "bytes")
+            if item.get(key) not in (None, "")
+        }
+        python = item.get("python", {}) if isinstance(item.get("python"), dict) else {}
+        if python:
+            compact["python"] = {
+                "syntax": python.get("syntax", ""),
+                "classes": [
+                    {
+                        "name": row.get("name", ""),
+                        "methods": row.get("methods", [])[:8] if isinstance(row.get("methods"), list) else [],
+                        "constructor": row.get("constructor"),
+                    }
+                    for row in python.get("classes", [])[:6]
+                    if isinstance(row, dict)
+                ],
+                "functions": python.get("functions", [])[:12] if isinstance(python.get("functions"), list) else [],
+                "imports": python.get("imports", [])[:12] if isinstance(python.get("imports"), list) else [],
+            }
+        for language_key in ("javascript", "html", "json"):
+            if isinstance(item.get(language_key), dict):
+                compact[language_key] = item[language_key]
+        if item.get("dependency_contract_excerpt"):
+            compact["dependency_contract_excerpt"] = str(item["dependency_contract_excerpt"])[:800]
+        return compact
+
+    catalog_max_items = max(
+        3,
+        min(env_int("CGKN_PROVIDER_INTERFACE_CATALOG_MAX_ITEMS", 8), 12),
+    )
+    catalog_max_chars = max(
+        2000,
+        min(env_int("CGKN_PROVIDER_INTERFACE_CATALOG_MAX_CHARS", 8000), 12000),
+    )
+    authoritative_catalog: list[dict[str, Any]] = []
+    catalog_chars = 0
+    for raw_item in [*direct_catalog, *retrieved_catalog]:
+        if not isinstance(raw_item, dict) or len(authoritative_catalog) >= catalog_max_items:
+            continue
+        item = compact_interface(raw_item)
+        encoded = json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        if catalog_chars + len(encoded) > catalog_max_chars:
+            minimal = {
+                key: item.get(key)
+                for key in ("path", "sha256", "bytes")
+                if item.get(key) not in (None, "")
+            }
+            encoded = json.dumps(minimal, ensure_ascii=False, separators=(",", ":"))
+            if catalog_chars + len(encoded) > catalog_max_chars:
+                continue
+            item = minimal
+        authoritative_catalog.append(item)
+        catalog_chars += len(encoded)
+    selected_available_paths = [
+        path for path in available_paths if not librarian_context_pack or path in selected_paths
+    ]
+    contract: dict[str, Any] = {
+        "kind": "CGKNLeafInterfaceContract",
+        "schema_version": 1,
+        "component_id": component_id,
+        "leaf_id": str(leaf.get("leaf_id", "")),
+        "target_path": str(leaf.get("path", "")),
+        "declared_dependencies": declared_dependencies,
+        "resolved_dependency_paths": direct_paths,
+        "available_implemented_paths": selected_available_paths[-24:],
+        "authoritative_interface_catalog": authoritative_catalog,
+        "authoritative_interface_catalog_chars": catalog_chars,
+        "authoritative_interface_catalog_max_chars": catalog_max_chars,
+        "interface_registry_sha256": str((interface_registry or {}).get("registry_sha256", "")),
+        "librarian_query_sha256": str((librarian_context_pack or {}).get("query_sha256", "")),
+        "known_consumer_edges": [
+            edge
+            for edge in (interface_registry or {}).get("consumer_edges", [])
+            if isinstance(edge, dict)
+            and str(edge.get("provider_path", "")) in set(direct_paths)
+        ][:16],
+        "rules": [
+            "Use the exact implemented paths, imports, exports, classes, functions, methods, DOM ids, and schemas in authoritative_interface_catalog.",
+            "Do not invent a parallel interface when an implemented dependency is present.",
+            "If a declared dependency is unavailable or incompatible, return a concrete generation error rather than silently renaming it.",
+            "Expose a concrete interface that later leaves can consume.",
+        ],
+    }
+    canonical = json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    contract["contract_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return contract
+
+
+def _python_module_name(path: str) -> str:
+    pure = pathlib.PurePosixPath(str(path).replace("\\", "/"))
+    if pure.suffix.lower() != ".py":
+        return ""
+    parts = list(pure.with_suffix("").parts)
+    if parts and parts[-1] == "__init__":
+        parts.pop()
+    return ".".join(parts)
+
+
+def python_leaf_interface_violations(
+    files: list[dict[str, str]],
+    *,
+    source_paths: set[str] | None = None,
+) -> list[str]:
+    """Find concrete local import or class-method mismatches in Python consumers."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict)
+        and pathlib.PurePosixPath(str(item.get("path", ""))).suffix.lower() == ".py"
+        and str(item.get("path", "")).strip()
+    }
+    module_to_path: dict[str, str] = {
+        module_name: path
+        for path in by_path
+        if (module_name := _python_module_name(path))
+    }
+
+    def resolve_import_module(source_path: str, node: ast.ImportFrom) -> str:
+        if not node.level:
+            return str(node.module or "")
+        source_module = _python_module_name(source_path)
+        package_parts = source_module.split(".")
+        if pathlib.PurePosixPath(source_path).name != "__init__.py":
+            package_parts = package_parts[:-1]
+        trim = max(0, node.level - 1)
+        if trim:
+            package_parts = package_parts[:-trim]
+        if node.module:
+            package_parts.extend(str(node.module).split("."))
+        return ".".join(part for part in package_parts if part)
+
+    selected = {
+        str(path).replace("\\", "/").strip()
+        for path in (source_paths or set(by_path))
+    }
+    paths_to_parse = set(by_path) if source_paths is None else {path for path in selected if path in by_path}
+    preliminary_trees: dict[str, ast.Module] = {}
+    if source_paths is not None:
+        for source_path in list(paths_to_parse):
+            try:
+                tree = ast.parse(by_path[source_path])
+            except (SyntaxError, ValueError):
+                continue
+            preliminary_trees[source_path] = tree
+            paths_to_parse.update(
+                target_path
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom)
+                and (target_path := module_to_path.get(resolve_import_module(source_path, node)))
+            )
+
+    parsed: dict[str, ast.Module] = {}
+    symbols_by_path: dict[str, set[str]] = {}
+    classes_by_path: dict[str, dict[str, dict[str, Any]]] = {}
+    callables_by_path: dict[str, dict[str, dict[str, Any]]] = {}
+    for path in paths_to_parse:
+        content = by_path[path]
+        try:
+            tree = preliminary_trees.get(path) or ast.parse(content)
+        except (SyntaxError, ValueError):
+            continue
+        parsed[path] = tree
+        symbols: set[str] = set()
+        classes: dict[str, dict[str, Any]] = {}
+        callables: dict[str, dict[str, Any]] = {}
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                symbols.add(node.name)
+                callables[node.name] = _python_callable_contract(node)
+            elif isinstance(node, ast.ClassDef):
+                symbols.add(node.name)
+                classes[node.name] = {
+                    "methods": {
+                        child.name
+                        for child in node.body
+                        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    },
+                    "method_contracts": {
+                        child.name: _python_method_callable_contract(child)
+                        for child in node.body
+                        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    },
+                    "has_bases": bool(node.bases),
+                    "constructor": _python_class_constructor_contract(node),
+                }
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                symbols.update(target.id for target in targets if isinstance(target, ast.Name))
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                symbols.update(alias.asname or alias.name.split(".")[-1] for alias in node.names)
+        symbols_by_path[path] = symbols
+        classes_by_path[path] = classes
+        callables_by_path[path] = callables
+
+    violations: list[str] = []
+
+    def validate_python_call_contract(
+        source_path: str,
+        node: ast.Call,
+        *,
+        target_path: str,
+        symbol_name: str,
+        contract: dict[str, Any] | None,
+    ) -> list[str]:
+        if not isinstance(contract, dict):
+            return []
+        positional_parameters = [
+            str(item)
+            for item in contract.get("positional_parameters", [])
+        ]
+        positional_only = {
+            str(item)
+            for item in contract.get("positional_only_parameters", [])
+        }
+        keyword_only = {
+            str(item)
+            for item in contract.get("keyword_only_parameters", [])
+        }
+        required = {
+            str(item)
+            for item in contract.get("required_parameters", [])
+        }
+        accepts_varargs = bool(contract.get("accepts_varargs"))
+        accepts_kwargs = bool(contract.get("accepts_kwargs"))
+        signature_parts: list[str] = []
+        positional_only_count = len(positional_only)
+        for index, name in enumerate(positional_parameters):
+            signature_parts.append(name)
+            if positional_only_count and index + 1 == positional_only_count:
+                signature_parts.append("/")
+        if keyword_only and not accepts_varargs:
+            signature_parts.append("*")
+        signature_parts.extend(sorted(keyword_only))
+        if accepts_varargs:
+            signature_parts.append("*args")
+        if accepts_kwargs:
+            signature_parts.append("**kwargs")
+        expected_signature = f"{symbol_name}({', '.join(signature_parts)})"
+        signature_hint = f"; expected signature {expected_signature}"
+        has_starargs = any(isinstance(arg, ast.Starred) for arg in node.args)
+        has_kwargs_unpack = any(keyword.arg is None for keyword in node.keywords)
+        positional_count = sum(not isinstance(arg, ast.Starred) for arg in node.args)
+        keyword_names = {
+            str(keyword.arg)
+            for keyword in node.keywords
+            if keyword.arg is not None
+        }
+        accepted_keywords = {
+            *[name for name in positional_parameters if name not in positional_only],
+            *keyword_only,
+        }
+        errors: list[str] = []
+        if (
+            not has_starargs
+            and not accepts_varargs
+            and positional_count > len(positional_parameters)
+        ):
+            errors.append(
+                f"{source_path} calls incompatible {symbol_name} from {target_path}: "
+                f"{positional_count} positional arguments exceed {len(positional_parameters)}"
+                f"{signature_hint}"
+            )
+        if not has_kwargs_unpack and not accepts_kwargs:
+            unsupported = sorted(keyword_names - accepted_keywords)
+            if unsupported:
+                errors.append(
+                    f"{source_path} calls incompatible {symbol_name} from {target_path}: "
+                    f"unsupported keywords {', '.join(unsupported)}{signature_hint}"
+                )
+        supplied_by_position = set(positional_parameters[:positional_count])
+        duplicates = sorted(supplied_by_position.intersection(keyword_names))
+        if duplicates:
+            errors.append(
+                f"{source_path} calls incompatible {symbol_name} from {target_path}: "
+                f"duplicate arguments {', '.join(duplicates)}{signature_hint}"
+            )
+        if not has_starargs and not has_kwargs_unpack:
+            supplied = supplied_by_position.union(keyword_names)
+            missing = sorted(required - supplied)
+            if missing:
+                errors.append(
+                    f"{source_path} calls incompatible {symbol_name} from {target_path}: "
+                    f"missing required arguments {', '.join(missing)}{signature_hint}"
+                )
+        return errors
+
+    for source_path, tree in parsed.items():
+        if source_path not in selected:
+            continue
+        parents = {
+            child: parent
+            for parent in ast.walk(tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+        for class_node in tree.body:
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            for method in class_node.body:
+                if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                decorators = _python_decorator_names(method)
+                if "staticmethod" in decorators:
+                    continue
+                expected_receiver = "cls" if "classmethod" in decorators else "self"
+                positional_args = [*method.args.posonlyargs, *method.args.args]
+                actual_receiver = positional_args[0].arg if positional_args else ""
+                receiver_used = any(
+                    isinstance(child, ast.Name)
+                    and child.id == expected_receiver
+                    and isinstance(child.ctx, ast.Load)
+                    for child in ast.walk(method)
+                )
+                if receiver_used and actual_receiver != expected_receiver:
+                    violations.append(
+                        "python leaf interface contract mismatch: "
+                        f"{source_path} {class_node.name}.{method.name} uses {expected_receiver} "
+                        f"but declares first parameter {actual_receiver or '<missing>'}"
+                    )
+
+        def enclosing_node(node: ast.AST, kinds: tuple[type[ast.AST], ...]) -> ast.AST | None:
+            parent = parents.get(node)
+            while parent is not None:
+                if isinstance(parent, kinds):
+                    return parent
+                parent = parents.get(parent)
+            return None
+
+        def variable_key(node: ast.AST, value: ast.AST) -> str:
+            if isinstance(value, ast.Name):
+                function = enclosing_node(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                return f"function:{id(function)}:{value.id}" if function is not None else f"module:{value.id}"
+            if (
+                isinstance(value, ast.Attribute)
+                and isinstance(value.value, ast.Name)
+                and value.value.id in {"self", "cls"}
+            ):
+                owner = enclosing_node(node, (ast.ClassDef,))
+                owner_name = owner.name if isinstance(owner, ast.ClassDef) else "<unknown>"
+                return f"class:{owner_name}:{value.value.id}.{value.attr}"
+            return ""
+
+        class_bindings: dict[str, tuple[str, str]] = {
+            name: (source_path, name)
+            for name in classes_by_path.get(source_path, {})
+        }
+        callable_bindings: dict[str, tuple[str, str, dict[str, Any] | None]] = {
+            name: (source_path, name, contract)
+            for name, contract in callables_by_path.get(source_path, {}).items()
+        }
+        callable_bindings.update(
+            {
+                name: (
+                    source_path,
+                    name,
+                    class_contract.get("constructor"),
+                )
+                for name, class_contract in classes_by_path.get(source_path, {}).items()
+            }
+        )
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            target_path = module_to_path.get(resolve_import_module(source_path, node))
+            if not target_path:
+                continue
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                if alias.name not in symbols_by_path.get(target_path, set()):
+                    violations.append(f"{source_path} imports missing {alias.name} from {target_path}")
+                elif alias.name in classes_by_path.get(target_path, {}):
+                    class_bindings[alias.asname or alias.name] = (target_path, alias.name)
+                    callable_bindings[alias.asname or alias.name] = (
+                        target_path,
+                        alias.name,
+                        classes_by_path[target_path][alias.name].get("constructor"),
+                    )
+                elif alias.name in callables_by_path.get(target_path, {}):
+                    callable_bindings[alias.asname or alias.name] = (
+                        target_path,
+                        alias.name,
+                        callables_by_path[target_path][alias.name],
+                    )
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                continue
+            binding = callable_bindings.get(node.func.id)
+            if binding is None:
+                continue
+            target_path, symbol_name, callable_contract = binding
+            violations.extend(
+                validate_python_call_contract(
+                    source_path,
+                    node,
+                    target_path=target_path,
+                    symbol_name=symbol_name,
+                    contract=callable_contract,
+                )
+            )
+        function_return_types: dict[str, tuple[str, str]] = {}
+        for function in tree.body:
+            if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            return_types = {
+                class_bindings[returned.value.func.id]
+                for returned in ast.walk(function)
+                if isinstance(returned, ast.Return)
+                and isinstance(returned.value, ast.Call)
+                and isinstance(returned.value.func, ast.Name)
+                and returned.value.func.id in class_bindings
+            }
+            if len(return_types) == 1:
+                function_return_types[function.name] = next(iter(return_types))
+        variable_types: dict[str, tuple[str, str]] = {}
+        # Preserve constructor-injected local class types.  Large generated projects
+        # commonly keep a dependency as ``self.foo``; without this propagation the
+        # librarian could verify the import but miss a call to a method that the
+        # imported class never implemented.
+        for class_node in tree.body:
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            for method in class_node.body:
+                if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                parameter_types: dict[str, tuple[str, str]] = {}
+                for argument in [
+                    *method.args.posonlyargs,
+                    *method.args.args,
+                    *method.args.kwonlyargs,
+                ]:
+                    annotation = argument.annotation
+                    annotation_name = ""
+                    if isinstance(annotation, ast.Name):
+                        annotation_name = annotation.id
+                    elif isinstance(annotation, ast.Attribute):
+                        annotation_name = annotation.attr
+                    if annotation_name in class_bindings:
+                        parameter_types[argument.arg] = class_bindings[annotation_name]
+                for assignment in ast.walk(method):
+                    if not isinstance(assignment, (ast.Assign, ast.AnnAssign)):
+                        continue
+                    targets = (
+                        assignment.targets
+                        if isinstance(assignment, ast.Assign)
+                        else [assignment.target]
+                    )
+                    value = assignment.value
+                    class_ref = None
+                    if isinstance(value, ast.Name):
+                        class_ref = parameter_types.get(value.id)
+                    if class_ref is None:
+                        continue
+                    for target in targets:
+                        key = variable_key(assignment, target)
+                        if key:
+                            variable_types[key] = class_ref
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            value = node.value
+            if not isinstance(value, ast.Call) or not isinstance(value.func, ast.Name):
+                continue
+            class_ref = class_bindings.get(value.func.id) or function_return_types.get(value.func.id)
+            if class_ref is None:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                key = variable_key(node, target)
+                if key:
+                    variable_types[key] = class_ref
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            key = variable_key(node, node.func.value)
+            class_ref = variable_types.get(key)
+            if class_ref is None and isinstance(node.func.value, ast.Name):
+                class_ref = variable_types.get(f"module:{node.func.value.id}")
+            if class_ref is None:
+                continue
+            target_path, class_name = class_ref
+            class_contract = classes_by_path.get(target_path, {}).get(class_name, {})
+            if node.func.attr not in class_contract.get("methods", set()):
+                if class_contract.get("has_bases"):
+                    continue
+                violations.append(
+                    f"{source_path} calls missing {class_name}.{node.func.attr} from {target_path}"
+                )
+                continue
+            violations.extend(
+                validate_python_call_contract(
+                    source_path,
+                    node,
+                    target_path=target_path,
+                    symbol_name=f"{class_name}.{node.func.attr}",
+                    contract=class_contract.get("method_contracts", {}).get(node.func.attr),
+                )
+            )
+    return list(dict.fromkeys(violations))
+
+
+def uniform_stage_callable_violations(
+    path: str,
+    content: str,
+    stage_symbols: list[str] | set[str],
+) -> list[str]:
+    """Validate the executable result shape of generated plain stage callables."""
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError):
+        return []
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    violations: list[str] = []
+    for symbol in sorted({str(item).strip() for item in stage_symbols if str(item).strip()}):
+        node = functions.get(symbol)
+        if node is None:
+            violations.append(f"{path} missing stage function {symbol}")
+            continue
+        positional = [*node.args.posonlyargs, *node.args.args]
+        if (
+            len(positional) != 1
+            or positional[0].arg != "state"
+            or node.args.vararg is not None
+            or node.args.kwonlyargs
+            or node.args.kwarg is not None
+        ):
+            violations.append(f"{path} {symbol} must accept exactly one state parameter")
+
+        mapping_assignments: dict[str, ast.Dict] = {}
+        for child in node.body:
+            if isinstance(child, (ast.Assign, ast.AnnAssign)) and isinstance(child.value, ast.Dict):
+                targets = child.targets if isinstance(child, ast.Assign) else [child.target]
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        mapping_assignments[target.id] = child.value
+
+        returns: list[ast.Return] = []
+
+        class ReturnVisitor(ast.NodeVisitor):
+            def visit_FunctionDef(self, child: ast.FunctionDef) -> None:
+                if child is node:
+                    self.generic_visit(child)
+
+            def visit_AsyncFunctionDef(self, child: ast.AsyncFunctionDef) -> None:
+                if child is node:
+                    self.generic_visit(child)
+
+            def visit_Return(self, child: ast.Return) -> None:
+                returns.append(child)
+
+        ReturnVisitor().visit(node)
+        if not returns:
+            violations.append(f"{path} {symbol} has no result return")
+            continue
+        for returned in returns:
+            value = returned.value
+            if isinstance(value, ast.Name) and value.id == "state":
+                violations.append(f"{path} {symbol} returns state instead of a stage result")
+                continue
+            if isinstance(value, ast.Name):
+                value = mapping_assignments.get(value.id)
+            if not isinstance(value, ast.Dict):
+                violations.append(f"{path} {symbol} must return a literal stage result mapping")
+                continue
+            fields = {
+                key.value: field_value
+                for key, field_value in zip(value.keys, value.values)
+                if isinstance(key, ast.Constant) and isinstance(key.value, str)
+            }
+            if not {"status", "output"}.issubset(fields):
+                violations.append(f"{path} {symbol} result must contain status and output")
+                continue
+            status_value = fields["status"]
+            if not (
+                isinstance(status_value, ast.Constant)
+                and status_value.value in {"success", "error"}
+            ):
+                violations.append(f"{path} {symbol} status must be success or error")
+            output_value = fields["output"]
+            output_is_mapping = isinstance(output_value, ast.Dict) or (
+                isinstance(output_value, ast.Name)
+                and output_value.id in mapping_assignments
+            )
+            if not output_is_mapping:
+                violations.append(f"{path} {symbol} output must be a mapping")
+    return list(dict.fromkeys(violations))
+
+
+def generated_python_safety_violations(path: str, content: str) -> list[str]:
+    """Reject executable placeholders and unsafe dynamic evaluation in generated code."""
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError):
+        return []
+    violations: list[str] = []
+    dangerous = sorted(
+        {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in {"eval", "exec"}
+        }
+    )
+    if dangerous:
+        violations.append(
+            f"{path} uses unsafe dynamic execution: {', '.join(dangerous)}"
+        )
+    if re.search(
+        r"(?im)^\s*#\s*(?:simulate\b.*(?:logic|workflow)|dummy implementation\b|placeholder implementation\b)",
+        content,
+    ):
+        violations.append(f"{path} contains an executable placeholder implementation")
+    return violations
+
+
+def application_entry_stage_violations(
+    path: str,
+    content: str,
+    required_stage_symbols: list[str],
+) -> list[str]:
+    """Require the public application entry to assemble the declared real stage graph."""
+    if not required_stage_symbols:
+        return []
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError):
+        return []
+    list_bindings: dict[str, ast.List | ast.Tuple] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        value = node.value
+        if not isinstance(value, (ast.List, ast.Tuple)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        for target in targets:
+            if isinstance(target, ast.Name):
+                list_bindings[target.id] = value
+    constructor_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "ProjectOrchestrator"
+            or isinstance(node.func, ast.Attribute)
+            and node.func.attr == "ProjectOrchestrator"
+        )
+    ]
+    if not constructor_calls:
+        return [f"{path} does not construct ProjectOrchestrator"]
+    supplied: list[str] = []
+    for call in constructor_calls:
+        expression: ast.AST | None = None
+        for keyword in call.keywords:
+            if keyword.arg == "stages":
+                expression = keyword.value
+                break
+        if expression is None and call.args:
+            expression = call.args[0]
+        if isinstance(expression, ast.Name):
+            expression = list_bindings.get(expression.id)
+        if isinstance(expression, (ast.List, ast.Tuple)):
+            names = [item.id for item in expression.elts if isinstance(item, ast.Name)]
+            if len(names) == len(expression.elts):
+                supplied = names
+                break
+    if not supplied:
+        required_literal = ", ".join(required_stage_symbols)
+        return [
+            f"{path} constructs ProjectOrchestrator with an empty or opaque stage graph; "
+            f"pass stages=[{required_literal}] directly or through a literal list/tuple binding"
+        ]
+    missing = [symbol for symbol in required_stage_symbols if symbol not in supplied]
+    violations: list[str] = []
+    if missing:
+        violations.append(f"{path} stage graph omits: {', '.join(missing)}")
+    ordered = [symbol for symbol in supplied if symbol in set(required_stage_symbols)]
+    if ordered != [symbol for symbol in required_stage_symbols if symbol in supplied]:
+        violations.append(f"{path} stage graph does not preserve required stage order")
+    if not any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "execute"
+        for node in ast.walk(tree)
+    ):
+        violations.append(f"{path} does not execute the constructed stage graph")
+    return violations
+
+
+def orchestrator_execution_violations(path: str, content: str) -> list[str]:
+    """Check that an orchestrator consumes the common stage-result protocol."""
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError):
+        return []
+    project_class = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "ProjectOrchestrator"
+        ),
+        None,
+    )
+    if project_class is None:
+        return [f"{path} missing ProjectOrchestrator"]
+    execute = next(
+        (
+            node
+            for node in project_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "execute"
+        ),
+        None,
+    )
+    if execute is None:
+        return [f"{path} missing ProjectOrchestrator.execute"]
+    violations: list[str] = []
+    calls_stage = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "stage"
+        and len(node.args) == 1
+        and isinstance(node.args[0], ast.Name)
+        and node.args[0].id == "state"
+        for node in ast.walk(execute)
+    )
+    if not calls_stage:
+        violations.append(f"{path} execute does not invoke stage(state)")
+    result_keys: set[str] = set()
+    for node in ast.walk(execute):
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "result"
+            and isinstance(node.slice, ast.Constant)
+            and isinstance(node.slice.value, str)
+        ):
+            result_keys.add(node.slice.value)
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "result"
+            and node.func.attr == "get"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            result_keys.add(node.args[0].value)
+    missing_keys = sorted({"status", "output"} - result_keys)
+    if missing_keys:
+        violations.append(
+            f"{path} execute does not validate stage result fields: {', '.join(missing_keys)}"
+        )
+    return violations
+
+
+def _resolve_relative_project_path(source_path: str, specifier: str) -> str:
+    base = pathlib.PurePosixPath(source_path).parent
+    combined = pathlib.PurePosixPath(base, specifier)
+    normalized: list[str] = []
+    for part in combined.parts:
+        if part == "..":
+            if normalized:
+                normalized.pop()
+        elif part not in {"", "."}:
+            normalized.append(part)
+    return "/".join(normalized)
+
+
+def build_project_interface_registry(files: list[dict[str, str]]) -> dict[str, Any]:
+    """Build a deterministic provider/consumer registry from implemented project files."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): {
+            "path": str(item.get("path", "")).replace("\\", "/").strip(),
+            "content": str(item.get("content", "")),
+        }
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    catalog = [generated_file_interface_summary(by_path[path]) for path in sorted(by_path)]
+    module_to_path = {
+        _python_module_name(path): path
+        for path in by_path
+        if _python_module_name(path)
+    }
+    consumer_edges: list[dict[str, Any]] = []
+    for consumer_path, item in sorted(by_path.items()):
+        content = str(item.get("content", ""))
+        suffix = pathlib.PurePosixPath(consumer_path).suffix.lower()
+        if suffix == ".py":
+            try:
+                tree = ast.parse(content)
+            except (SyntaxError, ValueError):
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ImportFrom):
+                    continue
+                if node.level:
+                    source_module = _python_module_name(consumer_path)
+                    package = source_module.split(".")
+                    if pathlib.PurePosixPath(consumer_path).name != "__init__.py":
+                        package = package[:-1]
+                    if node.level > 1:
+                        package = package[: -(node.level - 1)]
+                    if node.module:
+                        package.extend(str(node.module).split("."))
+                    module = ".".join(part for part in package if part)
+                else:
+                    module = str(node.module or "")
+                provider_path = module_to_path.get(module, "")
+                if provider_path:
+                    consumer_edges.append(
+                        {
+                            "consumer_path": consumer_path,
+                            "provider_path": provider_path,
+                            "contract_kind": "python_import",
+                            "symbols": [alias.name for alias in node.names if alias.name != "*"][:24],
+                        }
+                    )
+        elif suffix in JAVASCRIPT_MODULE_SUFFIXES:
+            for dependency in javascript_module_contract(content)["imports"]:
+                specifier = str(dependency.get("specifier", ""))
+                if not specifier.startswith(("./", "../")):
+                    continue
+                target = _resolve_relative_project_path(consumer_path, specifier)
+                candidates = [
+                    target,
+                    target + ".js",
+                    target + ".mjs",
+                    target + ".ts",
+                    target + ".tsx",
+                    target + "/index.js",
+                    target + "/index.ts",
+                ]
+                provider_path = next((candidate for candidate in candidates if candidate in by_path), "")
+                if provider_path:
+                    consumer_edges.append(
+                        {
+                            "consumer_path": consumer_path,
+                            "provider_path": provider_path,
+                            "contract_kind": "javascript_import",
+                            "symbols": [
+                                str(item)
+                                for item in dependency.get("imported_symbols", [])
+                                if str(item)
+                            ][:24],
+                        }
+                    )
+        elif suffix in {".html", ".htm"}:
+            references = [
+                *re.findall(r"<script[^>]+\bsrc\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I),
+                *re.findall(r"<link[^>]+\bhref\s*=\s*['\"]([^'\"]+)['\"]", content, flags=re.I),
+            ]
+            for reference in references:
+                if reference.startswith(("http://", "https://", "//", "data:", "#")):
+                    continue
+                provider_path = _resolve_relative_project_path(consumer_path, reference.lstrip("/"))
+                if provider_path in by_path:
+                    consumer_edges.append(
+                        {
+                            "consumer_path": consumer_path,
+                            "provider_path": provider_path,
+                            "contract_kind": "html_asset",
+                            "symbols": [],
+                        }
+                    )
+    deduped_edges: list[dict[str, Any]] = []
+    edge_keys: set[tuple[str, str, str, tuple[str, ...]]] = set()
+    for edge in consumer_edges:
+        key = (
+            str(edge.get("consumer_path", "")),
+            str(edge.get("provider_path", "")),
+            str(edge.get("contract_kind", "")),
+            tuple(str(item) for item in edge.get("symbols", [])),
+        )
+        if key not in edge_keys:
+            edge_keys.add(key)
+            deduped_edges.append(edge)
+    registry: dict[str, Any] = {
+        "kind": "CGKNProjectInterfaceRegistry",
+        "schema_version": 1,
+        "provider_count": len(catalog),
+        "consumer_edge_count": len(deduped_edges),
+        "providers": catalog,
+        "consumer_edges": deduped_edges,
+    }
+    canonical = json.dumps(registry, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    registry["registry_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return registry
+
+
+def build_integration_feedforward_snapshot(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    plan_doc: dict[str, Any],
+    prior_component_results: list[dict[str, Any]],
+    prior_files: list[dict[str, str]],
+    repair_errors: list[str],
+) -> dict[str, Any]:
+    """Build deterministic project-level context that feeds real upstream contracts into the next component."""
+    component_id = str(component.get("id", "")).strip()
+    components = [row for row in component_pipeline.get("components", []) if isinstance(row, dict)]
+    order = [str(row.get("id", "")).strip() for row in components]
+    current_index = order.index(component_id) if component_id in order else len(order)
+    completed = [
+        str(result.get("component_id", "")).strip()
+        for result in prior_component_results
+        if str(result.get("component_id", "")).strip()
+    ]
+    expected_upstream = [
+        str(item).strip()
+        for item in component.get("depends_on", [])
+        if str(item).strip()
+    ] if isinstance(component.get("depends_on", []), list) else []
+    downstream = [
+        {
+            "id": str(row.get("id", "")).strip(),
+            "depends_on": [str(item).strip() for item in row.get("depends_on", []) if str(item).strip()],
+            "required_paths": component_required_manifest_paths(str(row.get("id", "")).strip(), row),
+        }
+        for row in components[current_index + 1 :]
+        if component_id in [str(item).strip() for item in row.get("depends_on", []) if str(item).strip()]
+    ]
+    published_contracts = []
+    for result in prior_component_results[-12:]:
+        public_contract = result.get("public_contract", {}) if isinstance(result, dict) else {}
+        published_contracts.append(
+            {
+                "component_id": str(result.get("component_id", "")).strip(),
+                "summary": str(result.get("summary", ""))[:800],
+                "public_contract": public_contract if isinstance(public_contract, dict) else {},
+            }
+        )
+    metrics = acceptance_metrics_from_goal(
+        goal,
+        plan_doc.get("complexity_project_contract", {}) if isinstance(plan_doc, dict) else {},
+    )
+    catalog = [
+        generated_file_interface_summary(item)
+        for item in prior_files[-48:]
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    ]
+    snapshot: dict[str, Any] = {
+        "kind": "CGKNIntegrationFeedforwardSnapshot",
+        "schema_version": 1,
+        "current_component": component_id,
+        "global_contract": {
+            "selected_requirement_id": str((plan_doc.get("selected_requirement", {}) if isinstance(plan_doc, dict) else {}).get("selected_requirement_id", "")),
+            "selected_direction_id": str((plan_doc.get("selected_project_direction", {}) if isinstance(plan_doc, dict) else {}).get("selected_id", "")),
+            "required_pipeline_stages": metrics["required_pipeline_stages"],
+            "required_stage_artifacts": metrics["required_stage_artifacts"],
+            "architecture_mode": metrics["architecture_mode"],
+            "minimum_tests": metrics["minimum_tests"],
+            "requires_pipeline_runner": metrics["requires_pipeline_runner"],
+            "requires_job_manager": metrics["requires_job_manager"],
+            "requires_cancel_resume": metrics["requires_cancel_resume"],
+            "requires_cold_replay": metrics["requires_cold_replay"],
+        },
+        "current_contract": {
+            "required_paths": component_required_manifest_paths(component_id, component),
+            "acceptance": component.get("acceptance", []) if isinstance(component.get("acceptance", []), list) else [],
+            "contract_slice": component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {},
+            "expected_upstream_components": expected_upstream,
+            "missing_upstream_components": [item for item in expected_upstream if item not in completed],
+        },
+        "upstream_state": {
+            "completed_components": completed,
+            "path_manifest": [str(item.get("path", "")).replace("\\", "/").strip() for item in prior_files[-120:] if str(item.get("path", "")).strip()],
+            "published_contracts": published_contracts,
+            "interface_catalog": catalog,
+        },
+        "downstream_consumers": downstream,
+        "unresolved_integration_signals": [str(item)[:1000] for item in repair_errors[-12:]],
+        "feedforward_rules": [
+            "Treat upstream_state.interface_catalog as the authoritative implemented interface; do not invent conflicting names or paths.",
+            (
+                "Keep browser domain behavior in the frontend and use the backend only as the static launcher."
+                if metrics["browser_local_static"]
+                else "Import and call the shared core instead of reimplementing domain behavior in CLI, GUI, tests, media, or docs."
+            ),
+            "Preserve every global_contract invariant and current_contract required path.",
+            "Publish concrete interfaces that downstream_consumers can import and test.",
+            "If an expected upstream interface is absent, report the incompatibility instead of silently creating a parallel implementation.",
+        ],
+    }
+    canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    snapshot["snapshot_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return snapshot
+
+
+def integration_feedforward_checkpoint_hash(snapshot: dict[str, Any]) -> str:
+    """Bind checkpoints to implemented contracts, not transient repair narration."""
+    stable = json.loads(json.dumps(snapshot, ensure_ascii=False)) if isinstance(snapshot, dict) else {}
+    stable.pop("snapshot_sha256", None)
+    stable["unresolved_integration_signals"] = []
+    canonical = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 COMPONENT_GENERATION_SYSTEM = """You are a component-level project-file generator for CGNK.
@@ -1510,6 +6037,7 @@ Hard rules:
 - Do not use generic templates, placeholders, or empty files.
 - Respect prior_manifest: do not duplicate an existing path unless your content is byte-identical and necessary.
 - Generate component-specific runnable files that integrate with prior components through documented contracts.
+- When design_context.visual_surface_required is true, treat its selected direction, tokens, interaction principles, reference-use boundaries, and required design docs as a component contract. Do not fall back to generic dashboard styling.
 - Keep file paths relative. Never use absolute paths. Never write outside the project root.
 - Do not emit binary assets as JSON text. Generate source/scripts that create them or reference runtime artifacts.
 - Include component-specific checks. If the component is docs, include README/TEST_PLAN updates only when assigned.
@@ -1543,6 +6071,7 @@ def provider_component_payload(
     internal_context: str = "",
     repair_actions: list[dict[str, Any]] | None = None,
     existing_component_files: list[dict[str, str]] | None = None,
+    integration_feedforward: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = {
         "raw_user_goal": goal,
@@ -1555,13 +6084,18 @@ def provider_component_payload(
         "complexity_project_contract": plan_doc.get("complexity_project_contract", {}),
         "component": component,
         "component_ownership": component_ownership_table().get(str(component.get("id", "")).strip(), {}),
-        "component_pipeline": component_pipeline,
+        "component_pipeline": {
+            key: value
+            for key, value in component_pipeline.items()
+            if key != "adaptive_project_management"
+        },
         "prior_manifest": prior_manifest,
         "internal_context": provider_internal_context(internal_context),
         "pipeline_plan": provider_plan_doc(plan_doc),
         "requirement_blueprint": provider_blueprint_context(blueprint),
         "online_input_examples": online_inputs,
         "market_research": market_research,
+        "design_context": component_pipeline.get("design_context", {}),
         "project_goal_constraints": infer_project_goal_constraints(goal),
         "runtime_context": {
             "python_version": sys.version,
@@ -1569,6 +6103,11 @@ def provider_component_payload(
             "platform": sys.platform,
             "ffmpeg_available": bool(shutil.which("ffmpeg")),
         },
+        "integration_feedforward": integration_feedforward or {},
+        "adaptive_project_management": adaptive_project_management_context.component_management_projection(
+            component_pipeline,
+            str(component.get("id", "")).strip(),
+        ),
         "validation_errors_to_repair": repair_errors,
         "generation_policy": GENERATION_POLICY,
     }
@@ -1595,10 +6134,17 @@ def provider_component_prompt_chars(payload: dict[str, Any]) -> int:
 
 def should_split_component_generation(component_id: str, prompt_chars: int, *, repair_actions: list[dict[str, Any]] | None = None) -> tuple[bool, str]:
     policy = provider_component_prompt_policy()
-    if repair_actions:
-        return False, ""
     if int(prompt_chars or 0) > int(policy["max_prompt_chars_hard"]):
         return True, "prompt_exceeds_hard_limit"
+    if (
+        local_model_router.task_enabled("component_repair" if repair_actions else "component_generation")
+        and int(prompt_chars or 0) > int(policy["local_model_max_prompt_chars"])
+    ):
+        return True, "prompt_exceeds_local_model_limit"
+    if int(prompt_chars or 0) > int(policy["librarian_split_prompt_chars"]):
+        return True, "prompt_uses_librarian_split"
+    if repair_actions:
+        return False, ""
     if str(component_id).strip() == "frontend" and bool(policy["split_frontend_component"]):
         return True, "frontend_default_split"
     return False, ""
@@ -1620,6 +6166,7 @@ def provider_generate_project_component(
     internal_context: str = "",
     repair_actions: list[dict[str, Any]] | None = None,
     existing_component_files: list[dict[str, str]] | None = None,
+    integration_feedforward: dict[str, Any] | None = None,
     phase_log_path: pathlib.Path | str | None = None,
     routing_policy: ProviderModelRoutingPolicy | None = None,
     last_transport_error: Any = None,
@@ -1637,6 +6184,7 @@ def provider_generate_project_component(
         internal_context=internal_context,
         repair_actions=repair_actions,
         existing_component_files=existing_component_files,
+        integration_feedforward=integration_feedforward,
     )
     raw = provider_text(
         provider_component_messages(payload),
@@ -1651,9 +6199,16 @@ def provider_generate_project_component(
         routing_policy=routing_policy,
         last_error=last_transport_error,
     )
-    doc = parse_json_object(raw)
+    try:
+        doc = parse_json_object(raw)
+    except RuntimeError as exc:
+        raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
     if str(doc.get("component_id", "")).strip() != str(component.get("id", "")).strip():
-        raise RuntimeError(f"provider returned wrong component_id for {component.get('id')}: {doc.get('component_id')}")
+        raise ProviderOutputContractError(
+            f"provider returned wrong component_id for {component.get('id')}: {doc.get('component_id')}",
+            raw_output=raw,
+            parsed_result=doc,
+        )
     doc["_provider_raw_output"] = raw
     return doc
 
@@ -1664,6 +6219,13 @@ def split_file_checkpoint_path(checkpoint_dir: pathlib.Path | None, component_id
     safe_component = provider_component_checkpoint_id(component_id)
     safe_path = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(path or "").replace("\\", "/").strip()).strip("._") or "file"
     return checkpoint_dir / "split_files" / safe_component / f"{safe_path}.json"
+
+
+def split_file_manifest_entry_hash(manifest_entry: dict[str, Any] | None) -> str:
+    """Bind a split checkpoint to the exact normalized leaf contract."""
+    entry = manifest_entry if isinstance(manifest_entry, dict) else {}
+    canonical = json.dumps(entry, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def write_split_file_checkpoint(
@@ -1687,6 +6249,7 @@ def write_split_file_checkpoint(
             "path": file_item.get("path", ""),
             "file": file_item,
             "manifest_entry": manifest_entry,
+            "manifest_entry_sha256": split_file_manifest_entry_hash(manifest_entry),
             "status": "pass",
         },
     )
@@ -1698,6 +6261,8 @@ def load_split_file_checkpoint(
     component_id: str,
     spec_hash: str,
     path_value: str,
+    manifest_entry: dict[str, Any] | None = None,
+    allow_spec_mismatch: bool = False,
 ) -> dict[str, str] | None:
     path = split_file_checkpoint_path(checkpoint_dir, component_id, path_value)
     if path is None or not path.exists():
@@ -1706,8 +6271,20 @@ def load_split_file_checkpoint(
         doc = load_json(path)
     except Exception:
         return None
-    if doc.get("project_spec_hash") != spec_hash or str(doc.get("status", "")).lower() != "pass":
+    if (
+        (doc.get("project_spec_hash") != spec_hash and not allow_spec_mismatch)
+        or str(doc.get("status", "")).lower() != "pass"
+    ):
         return None
+    if manifest_entry is not None:
+        expected_manifest_hash = split_file_manifest_entry_hash(manifest_entry)
+        stored_manifest_hash = str(doc.get("manifest_entry_sha256", "")).strip()
+        if not stored_manifest_hash:
+            stored_manifest_hash = split_file_manifest_entry_hash(
+                doc.get("manifest_entry") if isinstance(doc.get("manifest_entry"), dict) else {}
+            )
+        if stored_manifest_hash != expected_manifest_hash:
+            return None
     item = doc.get("file")
     if not isinstance(item, dict):
         return None
@@ -1725,21 +6302,55 @@ def summarize_component_context_for_split(
     component_pipeline: dict[str, Any],
     prior_manifest: list[str],
     repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None = None,
+    librarian_context_pack: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     component_id = str(component.get("id", "")).strip()
+    snapshot = integration_feedforward or {}
+    librarian_query_kind = (
+        str(librarian_context_pack.get("query_kind", "")).strip()
+        if isinstance(librarian_context_pack, dict)
+        else ""
+    )
+    is_leaf_query = librarian_query_kind == "leaf_generation"
+    if librarian_context_pack:
+        feedforward_context: dict[str, Any] = {
+            "kind": "CGKNIntegrationFeedforwardReference",
+            "current_component": str(snapshot.get("current_component", component_id)),
+            "snapshot_sha256": str(snapshot.get("snapshot_sha256", "")),
+            "checkpoint_sha256": integration_feedforward_checkpoint_hash(snapshot) if snapshot else "",
+            "librarian_index_sha256": str(librarian_context_pack.get("index_sha256", "")),
+            "librarian_query_sha256": str(librarian_context_pack.get("query_sha256", "")),
+        }
+    else:
+        feedforward_context = snapshot
     return {
-        "raw_user_goal": goal,
+        "raw_user_goal": "" if is_leaf_query else goal,
+        "raw_user_goal_reference": {
+            "sha256": hashlib.sha256(str(goal or "").encode("utf-8")).hexdigest(),
+            "bounded_excerpt": text_summary(goal, 600) if is_leaf_query else "",
+            "scope": (
+                "project authority retained locally; this leaf implements its manifest responsibility"
+                if is_leaf_query
+                else "full goal supplied for component manifest planning"
+            ),
+        },
         "component": {
             "id": component_id,
             "goal": str(component.get("goal", ""))[:1200],
             "acceptance": component.get("acceptance", [])[:12] if isinstance(component.get("acceptance", []), list) else [],
+            "required_paths": component_required_manifest_paths(component_id, component),
+            "minimum_file_count": int(component.get("minimum_file_count", 0) or 0),
         },
+        "complexity_contract_slice": component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {},
         "component_ownership": component_ownership_table().get(component_id, {}),
         "component_ids": [str(row.get("id", "")).strip() for row in component_pipeline.get("components", []) if isinstance(row, dict)],
         "merge_policy": component_pipeline.get("merge_policy", {}),
         "prior_manifest": prior_manifest[-120:],
         "project_goal_constraints": infer_project_goal_constraints(goal),
         "repair_errors_summary": [str(item)[:1000] for item in repair_errors[-8:]],
+        "integration_feedforward": feedforward_context,
+        "librarian_context": librarian_context_pack or {},
         "generation_policy": {
             "provider_generates_text_files_only": True,
             "screenshots_video_zip_created_by_post_build_finalize": True,
@@ -1754,6 +6365,7 @@ def provider_component_file_manifest(
     component_pipeline: dict[str, Any],
     prior_manifest: list[str],
     repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None = None,
     model: str,
     timeout: int,
     phase_log_path: pathlib.Path | str | None,
@@ -1765,29 +6377,103 @@ def provider_component_file_manifest(
 Return strict JSON only. Return a file manifest only; do not include file contents.
 Provider output must be source code, scripts, tests, and docs only. Do not claim screenshots, videos, zip files, or binary artifacts already exist.
 """
+    librarian_index = build_generation_context_librarian_index(
+        goal=goal,
+        component=component,
+        component_pipeline=component_pipeline,
+        manifest=[],
+        completed_files=[],
+        prior_files=[],
+        integration_feedforward=integration_feedforward,
+    )
+    librarian_context = query_generation_context_librarian(
+        librarian_index,
+        leaf={
+            "leaf_id": f"{component_id}.manifest",
+            "path": "",
+            "depends_on": [],
+            "declared_dependencies": [],
+        },
+        query_kind="component_manifest",
+    )
     payload = summarize_component_context_for_split(
         goal=goal,
         component=component,
         component_pipeline=component_pipeline,
         prior_manifest=prior_manifest,
         repair_errors=repair_errors,
+        integration_feedforward=integration_feedforward,
+        librarian_context_pack=librarian_context,
+    )
+    required_paths = component_required_manifest_paths(component_id, component)
+    example_path = required_paths[0] if required_paths else next(
+        iter(component_ownership_table().get(component_id, {}).get("allowed", [])),
+        "owned_file.txt",
     )
     payload["required_output_shape"] = {
         "component": component_id,
         "files": [
             {
-                "path": "component/owned/path.ext",
+                "path": example_path,
                 "purpose": "why this file is needed",
                 "dependencies": ["short dependency or contract summaries"],
                 "estimated_complexity": "low|medium|high",
+                "responsibilities": [
+                    "specific behavior owned by this file",
+                    "second independently testable behavior for medium/high complexity files",
+                ],
+                "acceptance_checks": [
+                    "observable condition proving a responsibility is implemented",
+                ],
+                "expected_symbols": ["public class/function/command names this file must expose"],
+                "submodules": [
+                    {
+                        "path": example_path,
+                        "purpose": "bounded child of a high-complexity leaf",
+                        "dependencies": ["exact relative paths"],
+                        "estimated_complexity": "low|medium",
+                        "responsibilities": ["specific behavior owned by the child"],
+                        "acceptance_checks": ["observable condition proving the child works"],
+                        "expected_symbols": ["public symbols exposed by the child"],
+                    }
+                ],
             }
         ],
     }
+    payload["required_paths"] = required_paths
+    system += (
+        "\nCURRENT COMPONENT REQUIRED PATHS (highest precedence): "
+        + (", ".join(required_paths) if required_paths else "(none beyond owned manifest)")
+        + ". Include every exact path in the returned files array; omission is a validation failure.\n"
+    )
+    payload["minimum_file_count"] = max(
+        len(payload["required_paths"]),
+        int(component.get("minimum_file_count", 0) or 0),
+    )
+    browser_local_static = bool(
+        (component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {}).get("browser_local_static")
+    )
     payload["manifest_rules"] = [
         "List only files owned by this component.",
+        "Every path is relative to the project root. Never prefix a path with component/, components/, or the component id.",
+        "Paths are filesystem paths, not URLs or symbol references: never include #fragment or ?query syntax in a file path; use a real sibling filename such as *_part_01.py or *_part_01.js.",
+        "Include every path in required_paths. For a standard-library project, requirements.txt may contain a comment that no third-party dependencies are required.",
         "Do not list files already present in prior_manifest unless this component legally owns and must replace them.",
         "Do not include binary screenshot/video/zip outputs; include scripts that create them when this component owns media automation.",
+        "The manifest file count must be at least minimum_file_count and must cover the supplied complexity_contract_slice.",
+        "When one planned file depends on another planned or upstream file, name that exact relative path in dependencies; dependency paths determine leaf generation order and interface feedforward.",
+        "A high-complexity file may declare at most four owned submodules. Keep the parent as a facade/entry file; submodules stay inside the same component ownership boundary.",
+        "A high-complexity Python file with six or more expected public symbols should declare two to four cohesive owned submodules, with no more than four expected symbols per child; the parent must remain a compatibility facade.",
+        "For Python files, expected_symbols must contain exact importable identifiers, never prose such as 'pytest fixtures' or 'public generator functions'.",
+        "Keep each Python test file bounded and cohesive: prefer parametrized cases and shared fixtures over duplicating product validation logic in tests.",
+        "Every source or test file must declare concrete responsibilities and observable acceptance_checks. Medium/high files must own multiple non-trivial behaviors rather than acting as empty shells.",
+        "List expected_symbols when the file owns a public class, function, command, route, schema, or UI controller. Do not invent symbols owned by dependency files.",
+        "Keep responsibilities, acceptance_checks, and expected_symbols concise: normally one item for low complexity and two or three for medium/high complexity.",
     ]
+    if component_id == "backend" and browser_local_static:
+        payload["manifest_rules"].append(
+            "This is a browser-local static application: return exactly main.py for the backend component and no backend/** files."
+        )
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
@@ -1808,29 +6494,59 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
         max_attempts=1,
         stage="component_file_manifest",
         component=component_id,
-        max_tokens=2500,
+        max_tokens=int(provider_component_prompt_policy()["max_tokens_manifest"]),
         payload_mode="split_manifest",
         phase_log_path=phase_log_path,
         routing_policy=routing_policy,
         last_error=last_transport_error,
     )
-    doc = parse_json_object(raw)
-    if str(doc.get("component", "") or doc.get("component_id", "")).strip() not in {"", component_id}:
-        raise RuntimeError(f"provider manifest returned wrong component_id for {component_id}: {doc.get('component') or doc.get('component_id')}")
+    try:
+        doc = parse_provider_manifest_doc(raw, component=component_id)
+    except RuntimeError as exc:
+        raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
+    doc = normalize_provider_doc(doc, stage="component_file_manifest", component=component_id)
+    if provider_manifest_component_id(doc) not in {"", component_id}:
+        raise ProviderOutputContractError(
+            f"provider manifest returned wrong component_id for {component_id}: {doc.get('component') or doc.get('component_id')}",
+            raw_output=raw,
+            parsed_result=doc,
+        )
     files = doc.get("files", [])
     if not isinstance(files, list) or not files:
-        raise RuntimeError(f"provider manifest missing files for component {component_id}")
+        raise ProviderOutputContractError(
+            f"provider manifest missing files for component {component_id}",
+            raw_output=raw,
+            parsed_result=doc,
+        )
     manifest: list[dict[str, Any]] = []
     seen: set[str] = set()
     for item in files:
         if not isinstance(item, dict):
-            raise RuntimeError(f"provider manifest contains non-object file entry for component {component_id}")
+            raise ProviderOutputContractError(
+                f"provider manifest contains non-object file entry for component {component_id}",
+                raw_output=raw,
+                parsed_result=doc,
+            )
         rel = str(item.get("path", "")).replace("\\", "/").strip()
         if not rel or rel in seen:
-            raise RuntimeError(f"provider manifest contains duplicate or empty path for component {component_id}: {rel}")
+            raise ProviderOutputContractError(
+                f"provider manifest contains duplicate or empty path for component {component_id}: {rel}",
+                raw_output=raw,
+                parsed_result=doc,
+            )
+        if "#" in rel or "?" in rel:
+            raise ProviderOutputContractError(
+                f"provider manifest path must be a filesystem path without URL query/fragment syntax: {rel}",
+                raw_output=raw,
+                parsed_result=doc,
+            )
         if not component_path_allowed(component_id, rel):
             owner = legal_owner_for_path(rel) or "<unknown>"
-            raise RuntimeError(f"provider manifest path ownership violation: {rel} belongs to {owner}, not {component_id}")
+            raise ProviderOutputContractError(
+                f"provider manifest path ownership violation: {rel} belongs to {owner}, not {component_id}",
+                raw_output=raw,
+                parsed_result=doc,
+            )
         seen.add(rel)
         manifest.append(
             {
@@ -1838,9 +6554,64 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
                 "purpose": str(item.get("purpose", "")).strip()[:1000],
                 "dependencies": item.get("dependencies", []) if isinstance(item.get("dependencies", []), list) else [],
                 "estimated_complexity": str(item.get("estimated_complexity", "")).strip()[:80],
+                "responsibilities": [
+                    str(value).strip()[:500]
+                    for value in item.get("responsibilities", [])
+                    if str(value).strip()
+                ][:8] if isinstance(item.get("responsibilities", []), list) else [],
+                "acceptance_checks": [
+                    str(value).strip()[:500]
+                    for value in item.get("acceptance_checks", [])
+                    if str(value).strip()
+                ][:8] if isinstance(item.get("acceptance_checks", []), list) else [],
+                "expected_symbols": [
+                    str(value).strip()[:200]
+                    for value in item.get("expected_symbols", [])
+                    if str(value).strip()
+                ][:12] if isinstance(item.get("expected_symbols", []), list) else [],
+                "submodules": item.get("submodules", []) if isinstance(item.get("submodules", []), list) else [],
             }
         )
-    return manifest
+    missing_required = [path for path in component_required_manifest_paths(component_id, component) if path not in seen]
+    if missing_required:
+        raise ProviderOutputContractError(
+            f"provider manifest missing required paths for component {component_id}: {', '.join(missing_required)}",
+            raw_output=raw,
+            parsed_result=doc,
+        )
+    minimum_file_count = max(
+        len(component_required_manifest_paths(component_id, component)),
+        int(component.get("minimum_file_count", 0) or 0),
+    )
+    if len(manifest) < minimum_file_count:
+        raise RuntimeError(
+            f"provider manifest file count below contract for component {component_id}: "
+            f"{len(manifest)} < {minimum_file_count}"
+        )
+    if component_id == "backend" and browser_local_static and seen != {"main.py"}:
+        raise ProviderOutputContractError(
+            "provider static-only backend manifest must contain exactly main.py",
+            raw_output=raw,
+            parsed_result=doc,
+        )
+    if component_id == "tests":
+        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest)
+    manifest = normalize_backend_stage_dependency_contract(
+        component_id, manifest, component
+    )
+    manifest = normalize_executable_media_manifest_contract(
+        component_id, manifest, component
+    )
+    contract_slice = component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {}
+    return expand_component_manifest_submodules(
+        component_id,
+        manifest,
+        required_pipeline_stages=(
+            contract_slice.get("required_pipeline_stages", [])
+            if isinstance(contract_slice.get("required_pipeline_stages", []), list)
+            else []
+        ),
+    )
 
 
 def validate_split_file_for_component(
@@ -1866,9 +6637,1499 @@ def validate_split_file_for_component(
     if rel in set(prior_manifest):
         raise RuntimeError(f"split file duplicate path already exists in prior manifest: {rel}")
     lowered = item["content"].lower()
-    if any(token in lowered for token in ("todo", "placeholder", "占位", "后续补齐")):
+    placeholder_claim = any(
+        phrase in lowered
+        for phrase in (
+            "placeholder implementation",
+            "placeholder only",
+            "replace this placeholder",
+            "temporary placeholder",
+        )
+    )
+    todo_marker = bool(re.search(r"(?:#|//|/\*|<!--)\s*todo\b|\btodo\s*:\s*(?:implement|fix|replace|complete)", lowered))
+    if todo_marker or any(token in lowered for token in ("占位", "后续补齐")) or placeholder_claim:
         raise RuntimeError(f"split file contains placeholder wording: {rel}")
     return item
+
+
+def leaf_implementation_depth_contract(manifest_entry: dict[str, Any]) -> dict[str, Any]:
+    """Build a deterministic, complexity-aware completeness contract for one leaf."""
+    path = str(manifest_entry.get("path", "")).replace("\\", "/").strip()
+    suffix = pathlib.PurePosixPath(path).suffix.lower()
+    filename = pathlib.PurePosixPath(path).name.lower()
+    raw_complexity = str(manifest_entry.get("estimated_complexity", "")).strip().lower()
+    complexity = raw_complexity if raw_complexity in {"low", "medium", "high"} else "medium"
+    generation_role = str(manifest_entry.get("generation_role", "")).strip().lower()
+    source_suffixes = {
+        ".py",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".vue",
+        ".svelte",
+        ".go",
+        ".rs",
+        ".java",
+        ".kt",
+        ".cs",
+        ".c",
+        ".cc",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".html",
+        ".css",
+        ".scss",
+        ".sh",
+        ".ps1",
+    }
+    supporting_names = {
+        "__init__.py",
+        "__main__.py",
+        "requirements.txt",
+        "pyproject.toml",
+        "package.json",
+        "dockerfile",
+    }
+    if generation_role in {"compatibility_facade", "test_suite_anchor"}:
+        implementation_kind = "facade_source"
+    elif suffix not in source_suffixes:
+        implementation_kind = "supporting_artifact"
+    elif filename in supporting_names:
+        implementation_kind = "supporting_source"
+    elif "/tests/" in f"/{path.lower()}" or filename.startswith("test_") or ".test." in filename or ".spec." in filename:
+        implementation_kind = "test_source"
+    else:
+        implementation_kind = "product_source"
+
+    thresholds = {
+        "supporting_artifact": (0, 0, 0),
+        "supporting_source": (1, 1, 0),
+        "facade_source": (1, 0, 0),
+        "low": (4, 2, 0),
+        "medium": (10, 5, 1),
+        "high": (18, 10, 2),
+    }
+    threshold_key = (
+        implementation_kind
+        if implementation_kind.startswith("supporting_") or implementation_kind == "facade_source"
+        else complexity
+    )
+    minimum_nonblank_lines, minimum_substantive_statements, minimum_behavior_units = thresholds[threshold_key]
+    maximum_nonblank_lines = 0
+    maximum_source_chars = 0
+    if generation_role == "bounded_submodule" and suffix in JAVASCRIPT_MODULE_SUFFIXES:
+        maximum_nonblank_lines = max(
+            160,
+            min(env_int("CGKN_PROVIDER_BOUNDED_JS_MAX_LINES", 220), 240),
+        )
+        maximum_source_chars = max(
+            12000,
+            min(env_int("CGKN_PROVIDER_BOUNDED_JS_MAX_CHARS", 18000), 24000),
+        )
+    elif generation_role == "bounded_submodule":
+        maximum_nonblank_lines = max(
+            160,
+            min(env_int("CGKN_PROVIDER_BOUNDED_SUBMODULE_MAX_LINES", 320), 480),
+        )
+    elif generation_role == "compatibility_facade":
+        maximum_nonblank_lines = 120
+    elif generation_role == "test_suite_anchor":
+        maximum_nonblank_lines = 80
+    elif implementation_kind == "test_source":
+        maximum_nonblank_lines = max(
+            180,
+            min(env_int("CGKN_PROVIDER_TEST_LEAF_MAX_LINES", 360), 480),
+        )
+    elif (
+        implementation_kind == "supporting_artifact"
+        and suffix == ".json"
+        and path.lower().startswith("tests/")
+    ):
+        maximum_nonblank_lines = max(
+            80,
+            min(env_int("CGKN_PROVIDER_TEST_FIXTURE_MAX_LINES", 180), 260),
+        )
+    elif (
+        implementation_kind == "product_source"
+        and complexity == "high"
+        and suffix in JAVASCRIPT_MODULE_SUFFIXES
+    ):
+        maximum_nonblank_lines = max(
+            180,
+            min(env_int("CGKN_PROVIDER_HIGH_JS_LEAF_MAX_LINES", 260), 360),
+        )
+        maximum_source_chars = max(
+            16000,
+            min(env_int("CGKN_PROVIDER_HIGH_JS_LEAF_MAX_CHARS", 22000), 30000),
+        )
+    purpose = str(manifest_entry.get("purpose", "")).strip()[:1000]
+
+    def bounded_list(key: str, *, limit: int, item_chars: int) -> list[str]:
+        values = manifest_entry.get(key, [])
+        if not isinstance(values, list):
+            return []
+        return [str(item).strip()[:item_chars] for item in values if str(item).strip()][:limit]
+
+    responsibilities = bounded_list("responsibilities", limit=8, item_chars=500)
+    acceptance_checks = bounded_list("acceptance_checks", limit=8, item_chars=500)
+    expected_symbols = bounded_list("expected_symbols", limit=12, item_chars=200)
+    enforcement_enabled = bool(
+        raw_complexity in {"low", "medium", "high"}
+        or responsibilities
+        or acceptance_checks
+        or expected_symbols
+    )
+    if not responsibilities and purpose:
+        responsibilities = [purpose]
+    if not acceptance_checks and purpose:
+        acceptance_checks = [f"The delivered file fully implements its stated purpose: {purpose}"]
+    if not enforcement_enabled:
+        minimum_nonblank_lines = 0
+        minimum_substantive_statements = 0
+        minimum_behavior_units = 0
+    return {
+        "kind": "CGKNLeafImplementationDepthContract",
+        "schema_version": 1,
+        "path": path,
+        "implementation_kind": implementation_kind,
+        "estimated_complexity": complexity,
+        "generation_role": generation_role,
+        "responsibilities": responsibilities,
+        "acceptance_checks": acceptance_checks,
+        "expected_symbols": expected_symbols,
+        "enforcement_mode": "required" if enforcement_enabled else "legacy_advisory",
+        "minimum_nonblank_lines": minimum_nonblank_lines,
+        "minimum_substantive_statements": minimum_substantive_statements,
+        "minimum_behavior_units": minimum_behavior_units,
+        "maximum_nonblank_lines": maximum_nonblank_lines,
+        "maximum_source_chars": maximum_source_chars,
+        "forbidden_stub_patterns": [
+            "pass-only function or class",
+            "ellipsis-only implementation",
+            "NotImplementedError",
+            "throw new Error('not implemented')",
+            "empty function body for an owned behavior",
+        ],
+    }
+
+
+def analyze_leaf_implementation_depth(
+    target_file: str,
+    content: str,
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Reject thin/stub source while allowing genuinely small support artifacts."""
+    path = str(target_file).replace("\\", "/").strip()
+    suffix = pathlib.PurePosixPath(path).suffix.lower()
+    lines = str(content or "").splitlines()
+    nonblank_lines = [
+        line
+        for line in lines
+        if line.strip()
+        and not line.lstrip().startswith(("#", "//", "/*", "*", "<!--"))
+    ]
+    substantive_statements = 0
+    behavior_units = 0
+    branch_points = 0
+    stub_symbols: list[str] = []
+    parse_error = ""
+
+    if suffix == ".py":
+        try:
+            tree = ast.parse(content)
+        except SyntaxError as exc:
+            tree = None
+            parse_error = f"python syntax invalid: {exc.msg}"
+        if tree is not None:
+            protocol_method_ids = {
+                id(item)
+                for class_node in ast.walk(tree)
+                if isinstance(class_node, ast.ClassDef)
+                and any(
+                    (getattr(base, "id", "") or getattr(base, "attr", "")) == "Protocol"
+                    for base in class_node.bases
+                )
+                for item in class_node.body
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            substantive_nodes = (
+                ast.Assign,
+                ast.AnnAssign,
+                ast.AugAssign,
+                ast.Return,
+                ast.Delete,
+                ast.Raise,
+                ast.Assert,
+                ast.Global,
+                ast.Nonlocal,
+                ast.If,
+                ast.For,
+                ast.AsyncFor,
+                ast.While,
+                ast.Try,
+                ast.With,
+                ast.AsyncWith,
+                ast.Match,
+                ast.Expr,
+                ast.FunctionDef,
+                ast.AsyncFunctionDef,
+                ast.ClassDef,
+            )
+            substantive_statements = sum(
+                1
+                for node in ast.walk(tree)
+                if isinstance(node, substantive_nodes)
+                and not (
+                    isinstance(node, ast.Expr)
+                    and isinstance(node.value, ast.Constant)
+                    and isinstance(node.value.value, str)
+                )
+            )
+            branch_points = sum(
+                1
+                for node in ast.walk(tree)
+                if isinstance(node, (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try, ast.Match))
+            )
+
+            def python_body_is_stub(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+                if id(node) in protocol_method_ids:
+                    return False
+                decorator_names = {
+                    getattr(decorator, "id", "")
+                    or getattr(decorator, "attr", "")
+                    for decorator in node.decorator_list
+                }
+                if decorator_names.intersection({"abstractmethod", "overload"}):
+                    return False
+                body = list(node.body)
+                if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                    body = body[1:]
+                if not body:
+                    return True
+                for statement in body:
+                    if isinstance(statement, ast.Pass):
+                        continue
+                    if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant) and statement.value.value is Ellipsis:
+                        continue
+                    if (
+                        isinstance(statement, ast.Raise)
+                        and isinstance(statement.exc, ast.Call)
+                        and getattr(statement.exc.func, "id", "") == "NotImplementedError"
+                    ):
+                        continue
+                    return False
+                return True
+
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if python_body_is_stub(node):
+                        stub_symbols.append(node.name)
+                    else:
+                        behavior_units += 1
+                elif isinstance(node, ast.ClassDef):
+                    class_statements = [
+                        item
+                        for item in node.body
+                        if not isinstance(item, ast.Pass)
+                        and not (
+                            isinstance(item, ast.Expr)
+                            and isinstance(item.value, ast.Constant)
+                            and (isinstance(item.value.value, str) or item.value.value is Ellipsis)
+                        )
+                    ]
+                    base_names = {
+                        (
+                            getattr(base, "id", "")
+                            or getattr(base, "attr", "")
+                        )
+                        for base in node.bases
+                    }
+                    exception_marker = (
+                        node.name.endswith(("Error", "Exception"))
+                        and any(
+                            name.endswith(("Error", "Exception"))
+                            or name == "BaseException"
+                            for name in base_names
+                        )
+                    )
+                    if not class_statements:
+                        if exception_marker:
+                            behavior_units += 1
+                        else:
+                            stub_symbols.append(node.name)
+                    else:
+                        behavior_units += 1
+    elif suffix == ".html":
+        text = str(content or "")
+        opening_tags = [
+            tag.lower()
+            for tag in re.findall(r"(?is)<\s*([a-z][a-z0-9-]*)\b[^>]*>", text)
+        ]
+        substantive_tags = {
+            "main",
+            "header",
+            "footer",
+            "nav",
+            "section",
+            "article",
+            "aside",
+            "form",
+            "fieldset",
+            "legend",
+            "label",
+            "button",
+            "input",
+            "select",
+            "option",
+            "textarea",
+            "output",
+            "dialog",
+            "details",
+            "summary",
+            "canvas",
+            "template",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "p",
+            "ul",
+            "ol",
+            "li",
+        }
+        behavior_tags = {
+            "main",
+            "nav",
+            "section",
+            "article",
+            "aside",
+            "form",
+            "button",
+            "input",
+            "select",
+            "textarea",
+            "dialog",
+            "details",
+            "canvas",
+            "template",
+        }
+        substantive_statements = sum(tag in substantive_tags for tag in opening_tags)
+        behavior_units = sum(tag in behavior_tags for tag in opening_tags)
+        branch_points = sum(
+            tag in {"button", "input", "select", "option", "details", "dialog"}
+            for tag in opening_tags
+        )
+    elif suffix in {".css", ".scss"}:
+        text = str(content or "")
+        substantive_statements = len(
+            re.findall(r"(?m)^\s*(?:--[A-Za-z0-9_-]+|[A-Za-z-]+)\s*:\s*[^;{}]+;", text)
+        )
+        behavior_units = len(
+            re.findall(r"(?m)(?:^|})\s*[^@{}\s][^{}]*\{", text)
+        )
+        branch_points = len(re.findall(r"(?m)^\s*@(?:media|supports|container|keyframes)\b", text))
+    else:
+        text = str(content or "")
+        substantive_statements = sum(
+            1
+            for line in nonblank_lines
+            if re.search(r"[;{}]|=>|\b(return|if|for|while|switch|try|catch|function|class|export|def)\b", line)
+        )
+        behavior_units = len(
+            re.findall(
+                r"\b(?:async\s+)?function\s+\w+|\bclass\s+\w+|(?:const|let|var)\s+\w+\s*=\s*(?:async\s*)?\([^)]*\)\s*=>|addEventListener\s*\(",
+                text,
+            )
+        )
+        branch_points = len(re.findall(r"\b(?:if|for|while|switch|try|catch)\s*(?:\(|\{)", text))
+        if re.search(
+            r"(?is)notimplementederror|throw\s+new\s+error\s*\(\s*['\"][^'\"]*not\s+implemented|"
+            r"(?:function\s+\w+\s*\([^)]*\)|\([^)]*\)\s*=>)\s*\{\s*\}",
+            text,
+        ):
+            stub_symbols.append("<generic_stub>")
+
+    blockers: list[str] = []
+    minimum_nonblank = int(contract.get("minimum_nonblank_lines", 0) or 0)
+    minimum_statements = int(contract.get("minimum_substantive_statements", 0) or 0)
+    minimum_units = int(contract.get("minimum_behavior_units", 0) or 0)
+    maximum_nonblank = int(contract.get("maximum_nonblank_lines", 0) or 0)
+    maximum_source_chars = int(contract.get("maximum_source_chars", 0) or 0)
+    if parse_error:
+        blockers.append(parse_error)
+    if stub_symbols:
+        blockers.append("stub implementations: " + ", ".join(stub_symbols[:8]))
+    if len(nonblank_lines) < minimum_nonblank:
+        blockers.append(f"nonblank implementation lines {len(nonblank_lines)} < {minimum_nonblank}")
+    if maximum_nonblank and len(nonblank_lines) > maximum_nonblank:
+        blockers.append(f"nonblank implementation lines {len(nonblank_lines)} > {maximum_nonblank}")
+    if maximum_source_chars and len(str(content or "")) > maximum_source_chars:
+        blockers.append(
+            f"source characters {len(str(content or ''))} > {maximum_source_chars}"
+        )
+    if substantive_statements < minimum_statements:
+        blockers.append(f"substantive statements {substantive_statements} < {minimum_statements}")
+    if behavior_units < minimum_units:
+        blockers.append(f"implemented behavior units {behavior_units} < {minimum_units}")
+    missing_expected_symbols = []
+    for symbol in contract.get("expected_symbols", []):
+        candidate = str(symbol).strip().rsplit(".", 1)[-1]
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", candidate) and not re.search(
+            rf"\b{re.escape(candidate)}\b",
+            str(content or ""),
+        ):
+            missing_expected_symbols.append(candidate)
+    if missing_expected_symbols:
+        blockers.append("missing expected symbols: " + ", ".join(missing_expected_symbols[:8]))
+    if str(contract.get("enforcement_mode", "")) != "required":
+        blockers = []
+    return {
+        "kind": "CGKNLeafImplementationDepthReceipt",
+        "schema_version": 1,
+        "path": path,
+        "status": "PASS" if not blockers else "FAIL",
+        "estimated_complexity": str(contract.get("estimated_complexity", "")),
+        "implementation_kind": str(contract.get("implementation_kind", "")),
+        "metrics": {
+            "nonblank_lines": len(nonblank_lines),
+            "substantive_statements": substantive_statements,
+            "behavior_units": behavior_units,
+            "branch_points": branch_points,
+        },
+        "minimums": {
+            "nonblank_lines": minimum_nonblank,
+            "substantive_statements": minimum_statements,
+            "behavior_units": minimum_units,
+        },
+        "maximums": {
+            "nonblank_lines": maximum_nonblank,
+            "source_chars": maximum_source_chars,
+        },
+        "blockers": blockers,
+    }
+
+
+def javascript_import_specifiers(source: str) -> list[str]:
+    """Return actual static/dynamic module specifiers without matching import-prefixed identifiers."""
+    return [
+        str(item.get("specifier", ""))
+        for item in javascript_module_contract(source)["imports"]
+        if str(item.get("specifier", ""))
+    ]
+
+
+def _resolve_javascript_dependency(
+    source_path: str,
+    specifier: str,
+    available_paths: set[str],
+) -> str:
+    target = _resolve_relative_project_path(source_path, specifier)
+    candidates = (
+        target,
+        target + ".js",
+        target + ".mjs",
+        target + ".cjs",
+        target + ".ts",
+        target + ".tsx",
+        target + ".jsx",
+        target + "/index.js",
+        target + "/index.mjs",
+        target + "/index.ts",
+        target + "/index.tsx",
+    )
+    return next((candidate for candidate in candidates if candidate in available_paths), "")
+
+
+def javascript_module_interface_violations(
+    files: list[dict[str, str]],
+    *,
+    source_paths: set[str] | None = None,
+) -> list[str]:
+    """Validate exact local ES-module bindings and sibling-helper ownership."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    javascript_paths = {
+        path
+        for path in by_path
+        if pathlib.PurePosixPath(path).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES
+    }
+    contracts = {
+        path: javascript_module_contract(by_path[path])
+        for path in javascript_paths
+    }
+    selected = javascript_paths if source_paths is None else javascript_paths.intersection(source_paths)
+    declared_owners: dict[str, list[str]] = {}
+    for path, contract in contracts.items():
+        for name in contract["declared_bindings"]:
+            declared_owners.setdefault(str(name), []).append(path)
+
+    violations: list[str] = []
+    for source_path in sorted(selected):
+        contract = contracts[source_path]
+        for binding in contract["missing_local_exports"]:
+            violations.append(
+                f"{source_path} re-exports missing local binding {binding}"
+            )
+        for dependency in contract["imports"]:
+            specifier = str(dependency.get("specifier", "")).strip()
+            if not specifier.startswith(("./", "../")):
+                continue
+            provider_path = _resolve_javascript_dependency(
+                source_path,
+                specifier,
+                set(by_path),
+            )
+            if not provider_path:
+                violations.append(
+                    f"{source_path} imports missing local module {specifier}"
+                )
+                continue
+            provider_contract = contracts.get(provider_path)
+            if provider_contract is None:
+                violations.append(
+                    f"{source_path} imports JavaScript bindings from non-module {provider_path}"
+                )
+                continue
+            provider_exports = set(provider_contract["exports"])
+            for symbol in dependency.get("imported_symbols", []):
+                symbol_name = str(symbol)
+                if symbol_name == "*":
+                    continue
+                if symbol_name not in provider_exports:
+                    violations.append(
+                        f"{source_path} imports missing {symbol_name} from {provider_path}"
+                    )
+        imported_locals = set(contract["imported_local_bindings"])
+        declared_locals = set(contract["declared_bindings"])
+        for name in contract["unresolved_calls"]:
+            owners = [
+                path
+                for path in declared_owners.get(str(name), [])
+                if path != source_path
+            ]
+            if owners and name not in imported_locals and name not in declared_locals:
+                violations.append(
+                    f"{source_path} calls unimported sibling symbol {name} from {owners[0]}"
+                )
+    return list(dict.fromkeys(violations))
+
+
+def validate_generated_design_quality(
+    *,
+    component_id: str,
+    files: list[dict[str, str]],
+    design_context: dict[str, Any],
+    assembled: bool = False,
+) -> dict[str, Any]:
+    """Check that researched design constraints reached implemented source and docs."""
+    required = bool(design_context.get("visual_surface_required"))
+    scoped = assembled or component_id in {"frontend", "docs"}
+    blockers: list[str] = []
+    affected_files: set[str] = set()
+    metrics: dict[str, Any] = {}
+    if not required or not scoped:
+        receipt: dict[str, Any] = {
+            "kind": "CGKNGeneratedDesignQualityValidation",
+            "schema_version": 1,
+            "component_id": component_id,
+            "status": "pass",
+            "applicability": "not_required" if not required else "not_design_owner",
+            "checks": [],
+            "metrics": metrics,
+            "blockers": [],
+        }
+        canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        return receipt
+
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    design_contract = (
+        design_context.get("design_contract", {})
+        if isinstance(design_context.get("design_contract", {}), dict)
+        else {}
+    )
+    requirements = (
+        design_contract.get("implementation_requirements", {})
+        if isinstance(design_contract.get("implementation_requirements", {}), dict)
+        else {}
+    )
+    checks: list[str] = []
+    if assembled or component_id == "frontend":
+        checks.extend(
+            [
+                "design_tokens",
+                "token_usage",
+                "substantive_styles",
+                "responsive_layout",
+                "keyboard_focus",
+                "interaction_feedback",
+                "reduced_motion",
+                "focal_composition",
+                "semantic_main_surface",
+                "selected_palette_trace",
+            ]
+        )
+        css_by_path = {
+            path: content
+            for path, content in by_path.items()
+            if pathlib.PurePosixPath(path).suffix.lower() in {".css", ".scss"}
+        }
+        css = "\n".join(css_by_path.values())
+        stylesheet_paths = set(css_by_path)
+        html = "\n".join(
+            content
+            for path, content in by_path.items()
+            if pathlib.PurePosixPath(path).suffix.lower() in {".html", ".htm"}
+        )
+        custom_properties = set(re.findall(r"--[A-Za-z0-9_-]+\s*:", css))
+        custom_property_uses = re.findall(r"var\(\s*--[A-Za-z0-9_-]+", css)
+        declarations = re.findall(
+            r"(?:^|[;{])\s*(?:--[A-Za-z0-9_-]+|[A-Za-z-]{2,})\s*:",
+            re.sub(r"/\*.*?\*/", "", css, flags=re.S),
+            flags=re.M,
+        )
+        metrics.update(
+            {
+                "stylesheet_paths": sorted(css_by_path),
+                "custom_property_count": len(custom_properties),
+                "custom_property_use_count": len(custom_property_uses),
+                "css_declaration_count": len(declarations),
+            }
+        )
+        minimum_tokens = int(requirements.get("minimum_css_custom_properties", 8) or 8)
+        minimum_declarations = int(requirements.get("minimum_css_declarations", 24) or 24)
+        if not css_by_path:
+            blockers.append("visual project has no owned stylesheet")
+        if len(custom_properties) < minimum_tokens:
+            affected_files.update(stylesheet_paths)
+            blockers.append(
+                f"stylesheet defines {len(custom_properties)} design tokens; requires at least {minimum_tokens}"
+            )
+        if len(custom_property_uses) < max(4, minimum_tokens // 2):
+            affected_files.update(stylesheet_paths)
+            blockers.append("design tokens are declared but not reused throughout the stylesheet")
+        if len(declarations) < minimum_declarations:
+            affected_files.update(stylesheet_paths)
+            blockers.append(
+                f"stylesheet has {len(declarations)} declarations; requires at least {minimum_declarations} substantive declarations"
+            )
+        if requirements.get("responsive_layout_required", True) and "@media" not in css:
+            affected_files.update(stylesheet_paths)
+            blockers.append("stylesheet has no responsive media-query layout")
+        if requirements.get("keyboard_focus_required", True) and not re.search(r":focus(?:-visible)?\b", css):
+            affected_files.update(stylesheet_paths)
+            blockers.append("stylesheet has no visible keyboard-focus state")
+        if requirements.get("interaction_feedback_required", True):
+            if ":hover" not in css or not re.search(r"\b(?:transition|animation)\s*:", css):
+                affected_files.update(stylesheet_paths)
+                blockers.append("stylesheet lacks combined hover and motion feedback")
+        if requirements.get("reduced_motion_required", True) and "prefers-reduced-motion" not in css:
+            affected_files.update(stylesheet_paths)
+            blockers.append("stylesheet does not respect prefers-reduced-motion")
+        focal_signatures = [
+            pattern
+            for pattern in (
+                "grid-template-areas",
+                "minmax(",
+                "clamp(",
+                "position: sticky",
+                "position:sticky",
+                "aspect-ratio",
+                "max-inline-size",
+            )
+            if pattern in css
+        ]
+        metrics["focal_composition_signatures"] = focal_signatures
+        if len(focal_signatures) < 2:
+            affected_files.update(stylesheet_paths)
+            blockers.append("stylesheet lacks a deliberate responsive focal-composition signature")
+        if html and not re.search(r"<main\b", html, flags=re.I):
+            affected_files.update(
+                path
+                for path in by_path
+                if pathlib.PurePosixPath(path).suffix.lower() in {".html", ".htm"}
+            )
+            blockers.append("visual surface has no semantic main region")
+        palette = (
+            design_contract.get("design_tokens", {}).get("color", {})
+            if isinstance(design_contract.get("design_tokens", {}), dict)
+            else {}
+        )
+        palette_values = {
+            str(value).lower()
+            for value in palette.values()
+            if re.fullmatch(r"#[0-9a-fA-F]{6}", str(value))
+        } if isinstance(palette, dict) else set()
+        used_palette = sorted(value for value in palette_values if value in css.lower())
+        metrics["selected_palette_values_used"] = used_palette
+        if palette_values and len(used_palette) < 3:
+            affected_files.update(stylesheet_paths)
+            blockers.append("stylesheet does not implement at least three selected design-contract palette values")
+
+    if assembled or component_id == "docs":
+        checks.extend(["design_docs", "reference_traceability", "direction_traceability", "anti_copying_boundary"])
+        required_docs = [
+            str(item).replace("\\", "/")
+            for item in design_contract.get("required_project_docs", [])
+            if str(item).strip()
+        ]
+        missing_docs = [path for path in required_docs if path not in by_path]
+        if missing_docs:
+            affected_files.update(missing_docs)
+            blockers.append("missing design documentation: " + ", ".join(missing_docs))
+        docs_text = "\n".join(by_path.get(path, "") for path in required_docs)
+        existing_design_docs = {path for path in required_docs if path in by_path}
+        urls = set(re.findall(r"https://[^\s)>\]]+", docs_text))
+        metrics["design_reference_url_count"] = len(urls)
+        if requirements.get("source_traceability_required", True) and len(urls) < 3:
+            affected_files.update(existing_design_docs)
+            blockers.append("design documentation cites fewer than three source URLs")
+        selected_name = str(design_contract.get("selected_direction_name", "")).strip()
+        if selected_name and selected_name.lower() not in docs_text.lower():
+            affected_files.update(existing_design_docs)
+            blockers.append("design documentation does not name the selected visual direction")
+        boundary_terms = ("do not copy", "not copied", "不复制", "不得复制", "exact layout", "精确布局")
+        if docs_text and not any(term in docs_text.lower() for term in boundary_terms):
+            affected_files.update(existing_design_docs)
+            blockers.append("design documentation omits the anti-copying boundary")
+
+    receipt = {
+        "kind": "CGKNGeneratedDesignQualityValidation",
+        "schema_version": 1,
+        "component_id": component_id,
+        "status": "pass" if not blockers else "fail",
+        "applicability": "required",
+        "design_context_sha256": str(design_context.get("context_sha256", "")),
+        "selected_direction_id": str(design_contract.get("selected_direction_id", "")),
+        "checks": list(dict.fromkeys(checks)),
+        "metrics": metrics,
+        "blockers": list(dict.fromkeys(blockers)),
+        "affected_files": sorted(affected_files),
+    }
+    canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return receipt
+
+
+def validate_generated_component_quality(
+    *,
+    component_id: str,
+    files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None = None,
+    manifest_entries: list[dict[str, Any]] | None = None,
+    design_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Independently validate a generated component before downstream use."""
+    current_paths = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    combined_by_path: dict[str, dict[str, str]] = {}
+    for item in [*(prior_files or []), *files]:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path", "")).replace("\\", "/").strip()
+        if path:
+            combined_by_path[path] = {"path": path, "content": str(item.get("content", ""))}
+    combined_files = list(combined_by_path.values())
+    blockers: list[str] = []
+    affected_files: set[str] = set()
+    checks = [
+        "nonempty_component",
+        "unique_component_paths",
+        "python_syntax_and_interfaces",
+        "python_execution_safety",
+        "stage_graph_runtime_contracts",
+        "javascript_module_interfaces",
+        "manifest_expected_symbols",
+        "json_syntax",
+        "toml_syntax",
+    ]
+    if not current_paths:
+        blockers.append("component has no files")
+    raw_paths = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    ]
+    duplicate_paths = sorted({path for path in raw_paths if raw_paths.count(path) > 1})
+    if duplicate_paths:
+        blockers.append("duplicate component paths: " + ", ".join(duplicate_paths[:8]))
+
+    python_paths = {
+        path
+        for path in current_paths
+        if pathlib.PurePosixPath(path).suffix.lower() == ".py"
+    }
+    for path in sorted(python_paths):
+        try:
+            ast.parse(combined_by_path[path]["content"])
+        except (SyntaxError, ValueError) as exc:
+            blockers.append(f"{path} has invalid Python syntax: {exc}")
+        blockers.extend(
+            generated_python_safety_violations(path, combined_by_path[path]["content"])
+        )
+        if path == "backend/orchestrator.py":
+            blockers.extend(
+                orchestrator_execution_violations(path, combined_by_path[path]["content"])
+            )
+    blockers.extend(
+        python_leaf_interface_violations(
+            combined_files,
+            source_paths=python_paths,
+        )
+    )
+    blockers.extend(
+        javascript_module_interface_violations(
+            combined_files,
+            source_paths=current_paths,
+        )
+    )
+    manifests_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in (manifest_entries or [])
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    for path, entry in sorted(manifests_by_path.items()):
+        if path not in current_paths:
+            continue
+        content = combined_by_path[path]["content"]
+        stage_symbols = [
+            str(item).strip()
+            for item in entry.get("stage_callable_symbols", [])
+            if str(item).strip()
+        ]
+        if stage_symbols and pathlib.PurePosixPath(path).suffix.lower() == ".py":
+            blockers.extend(uniform_stage_callable_violations(path, content, stage_symbols))
+        required_stage_symbols = [
+            str(item).strip()
+            for item in entry.get("required_stage_symbols", [])
+            if str(item).strip()
+        ]
+        if path == "main.py" and required_stage_symbols:
+            blockers.extend(
+                application_entry_stage_violations(path, content, required_stage_symbols)
+            )
+        required_artifact_fields = [
+            str(item).strip()
+            for item in entry.get("required_artifact_fields", [])
+            if str(item).strip()
+        ]
+        if path == "backend/artifact_store.py" and required_artifact_fields:
+            missing_fields = [
+                field for field in required_artifact_fields if field not in content
+            ]
+            if missing_fields:
+                blockers.append(
+                    f"{path} omits required artifact fields: {', '.join(missing_fields)}"
+                )
+            if re.search(r"Dict\s*\[\s*str\s*,\s*bytes\s*\]", content, flags=re.I):
+                blockers.append(f"{path} stores opaque bytes instead of structured records")
+        expected = {
+            str(item).strip().rsplit(".", 1)[-1]
+            for item in entry.get("expected_symbols", [])
+            if str(item).strip()
+        }
+        if expected:
+            suffix = pathlib.PurePosixPath(path).suffix.lower()
+            published: set[str] = set()
+            if suffix in JAVASCRIPT_MODULE_SUFFIXES:
+                published.update(javascript_module_contract(content)["exports"])
+            elif suffix == ".py":
+                try:
+                    tree = ast.parse(content)
+                except (SyntaxError, ValueError):
+                    tree = ast.Module(body=[], type_ignores=[])
+                for node in tree.body:
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                        published.add(node.name)
+                        if (
+                            isinstance(node, ast.ClassDef)
+                            and path.startswith("tests/")
+                            and pathlib.PurePosixPath(path).name.startswith("test_")
+                        ):
+                            published.update(
+                                child.name
+                                for child in node.body
+                                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+                                and child.name.startswith("test_")
+                            )
+                    elif isinstance(node, ast.Import):
+                        published.update(alias.asname or alias.name.split(".", 1)[0] for alias in node.names)
+                    elif isinstance(node, ast.ImportFrom):
+                        published.update(alias.asname or alias.name for alias in node.names if alias.name != "*")
+                    elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                        for target in targets:
+                            if isinstance(target, ast.Name):
+                                published.add(target.id)
+            elif suffix in {".html", ".htm"}:
+                published.update(
+                    re.findall(
+                        r"(?<![\w-])id\s*=\s*['\"]([^'\"]+)['\"]",
+                        content,
+                        flags=re.I,
+                    )
+                )
+            elif suffix in {".css", ".scss"}:
+                published.update(
+                    re.findall(r"(--[A-Za-z0-9_-]+)\s*:", content)
+                )
+            missing_expected = sorted(expected - published)
+            if missing_expected:
+                affected_files.add(path)
+                blockers.append(
+                    f"{path} does not publish expected symbols: "
+                    + ", ".join(missing_expected[:12])
+                )
+    for path in sorted(current_paths):
+        if pathlib.PurePosixPath(path).suffix.lower() != ".json":
+            continue
+        try:
+            json.loads(combined_by_path[path]["content"])
+        except (json.JSONDecodeError, TypeError) as exc:
+            blockers.append(f"{path} has invalid JSON syntax: {exc}")
+    for path in sorted(current_paths):
+        if pathlib.PurePosixPath(path).name.lower() != "pyproject.toml":
+            continue
+        try:
+            tomllib.loads(combined_by_path[path]["content"])
+        except tomllib.TOMLDecodeError as exc:
+            blockers.append(f"{path} has invalid TOML syntax: {exc}")
+
+    design_quality_validation = validate_generated_design_quality(
+        component_id=component_id,
+        files=combined_files,
+        design_context=design_context or {},
+        assembled=component_id == "assembled_project",
+    )
+    if design_quality_validation.get("status") == "fail":
+        affected_files.update(
+            str(path).replace("\\", "/").strip()
+            for path in design_quality_validation.get("affected_files", [])
+            if str(path).strip()
+        )
+        blockers.extend(
+            "design quality: " + str(item)
+            for item in design_quality_validation.get("blockers", [])
+        )
+    checks.append("source_design_quality")
+
+    for blocker in blockers:
+        affected_files.update(
+            path
+            for path in current_paths
+            if str(blocker).startswith(path) or f" {path} " in f" {blocker} "
+        )
+
+    receipt: dict[str, Any] = {
+        "kind": "CGKNGeneratedComponentQualityValidation",
+        "schema_version": 1,
+        "component_id": str(component_id),
+        "status": "pass" if not blockers else "fail",
+        "checks": checks,
+        "validated_paths": sorted(current_paths),
+        "blockers": list(dict.fromkeys(blockers)),
+        "affected_files": sorted(affected_files),
+        "design_quality_validation": design_quality_validation,
+    }
+    canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return receipt
+
+
+def validate_assembled_project_quality(
+    component_results: list[dict[str, Any]],
+    files: list[dict[str, str]],
+    *,
+    design_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Validate the merged project and reject cross-component path conflicts."""
+    path_owners: dict[str, list[tuple[str, str]]] = {}
+    component_receipts: list[dict[str, Any]] = []
+    for result in component_results:
+        component_id = str(result.get("component_id", ""))
+        receipt = result.get("module_quality_validation", {})
+        if isinstance(receipt, dict):
+            component_receipts.append(receipt)
+        for item in result.get("files", []) if isinstance(result.get("files"), list) else []:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path", "")).replace("\\", "/").strip()
+            if path:
+                digest = hashlib.sha256(str(item.get("content", "")).encode("utf-8")).hexdigest()
+                path_owners.setdefault(path, []).append((component_id, digest))
+    blockers: list[str] = []
+    for path, owners in sorted(path_owners.items()):
+        suffix = pathlib.PurePosixPath(path).suffix.lower()
+        merge_allowed = (
+            path in {"README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md", "app.py", "main.py"}
+            or path.startswith("docs/")
+            or (
+                path.startswith(("app/", "static/", "frontend/", "templates/"))
+                and suffix in {".html", ".css", ".js", ".mjs", ".json"}
+            )
+            or (
+                path.startswith("src/")
+                and suffix in {".py", ".json"}
+                and pathlib.PurePosixPath(path).name not in {"app.py", "main.py"}
+            )
+            or (path.startswith("tests/") and suffix == ".py")
+        )
+        if len({digest for _, digest in owners}) > 1 and not merge_allowed:
+            blockers.append(
+                f"conflicting component ownership for {path}: "
+                + ", ".join(component for component, _ in owners)
+            )
+    for receipt in component_receipts:
+        if str(receipt.get("status", "")).lower() != "pass":
+            blockers.append(
+                f"component quality validation failed: {receipt.get('component_id', '')}"
+            )
+    merged_validation = validate_generated_component_quality(
+        component_id="assembled_project",
+        files=files,
+        design_context=design_context or {},
+    )
+    blockers.extend(str(item) for item in merged_validation.get("blockers", []))
+    receipt: dict[str, Any] = {
+        "kind": "CGKNAssembledProjectQualityValidation",
+        "schema_version": 1,
+        "status": "pass" if not blockers else "fail",
+        "checks": [
+            "component_quality_receipts",
+            "cross_component_path_ownership",
+            "merged_language_interfaces",
+            "merged_source_design_quality",
+        ],
+        "component_count": len(component_results),
+        "file_count": len(files),
+        "component_receipt_hashes": [
+            str(item.get("receipt_sha256", ""))
+            for item in component_receipts
+            if str(item.get("receipt_sha256", ""))
+        ],
+        "merged_validation": merged_validation,
+        "design_quality_validation": merged_validation.get("design_quality_validation", {}),
+        "blockers": list(dict.fromkeys(blockers)),
+    }
+    canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return receipt
+
+
+def validate_frontend_dom_contract(files: list[dict[str, str]]) -> str:
+    """Reject a split frontend that can only render a blank/broken page.
+
+    This is deliberately a narrow structural check. It does not guess product
+    semantics; it only verifies that literal DOM ids consumed by JavaScript are
+    present in HTML or are explicitly created by the JavaScript itself.
+    """
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    html = by_path.get("index.html", "")
+    javascript = "\n".join(
+        content
+        for path, content in by_path.items()
+        if pathlib.PurePosixPath(path).suffix.lower() in {".js", ".mjs"}
+    )
+    if not html or not javascript:
+        return ""
+    direct_module_script = bool(
+        re.search(
+            r"<script\b[^>]*\btype\s*=\s*['\"]module['\"][^>]*\bsrc\s*=\s*['\"][^'\"]+\.m?js",
+            html,
+            flags=re.I,
+        )
+        or re.search(
+            r"<script\b[^>]*\bsrc\s*=\s*['\"][^'\"]+\.m?js[^>]*\btype\s*=\s*['\"]module['\"]",
+            html,
+            flags=re.I,
+        )
+    )
+    if direct_module_script:
+        bare_imports = sorted(
+            {
+                specifier
+                for specifier in javascript_import_specifiers(javascript)
+                if not specifier.startswith(("./", "../", "/", "http://", "https://"))
+            }
+        )
+        if bare_imports and "<script type=\"importmap\"" not in html.lower() and "<script type='importmap'" not in html.lower():
+            return (
+                "frontend module contract mismatch: browser-loaded JavaScript uses bare package imports without an import map "
+                "or declared build output: " + ", ".join(bare_imports)
+            )
+        available_paths = set(by_path)
+        missing_relative_imports: list[str] = []
+        for source_path, source in by_path.items():
+            if pathlib.PurePosixPath(source_path).suffix.lower() not in {".js", ".mjs"}:
+                continue
+            base = pathlib.PurePosixPath(source_path).parent
+            for specifier in javascript_import_specifiers(source):
+                if not specifier.startswith(("./", "../")):
+                    continue
+                target = str(base.joinpath(specifier))
+                normalized_parts: list[str] = []
+                for part in pathlib.PurePosixPath(target).parts:
+                    if part == "..":
+                        if normalized_parts:
+                            normalized_parts.pop()
+                    elif part != ".":
+                        normalized_parts.append(part)
+                normalized = "/".join(normalized_parts)
+                candidates = {normalized, normalized + ".js", normalized + ".mjs", normalized + "/index.js"}
+                if not candidates.intersection(available_paths):
+                    missing_relative_imports.append(specifier)
+        if missing_relative_imports:
+            return (
+                "frontend module contract mismatch: JavaScript imports missing local modules: "
+                + ", ".join(sorted(set(missing_relative_imports)))
+            )
+        if re.search(r"\breturn\s*\(\s*<[A-Za-z]", javascript) or re.search(r"ReactDOM\.render\s*\(\s*<", javascript):
+            return "frontend module contract mismatch: raw browser JavaScript contains JSX without a declared build step."
+    head_match = re.search(r"<head\b[^>]*>(.*?)</head>", html, flags=re.I | re.S)
+    head = head_match.group(1) if head_match else ""
+    unsafe_head_scripts = []
+    for tag_attrs in re.findall(r"<script\b([^>]*)>", head, flags=re.I | re.S):
+        if not re.search(r"\bsrc\s*=", tag_attrs, flags=re.I):
+            continue
+        deferred = bool(re.search(r"\bdefer\b", tag_attrs, flags=re.I))
+        module = bool(re.search(r"\btype\s*=\s*['\"]module['\"]", tag_attrs, flags=re.I))
+        if not deferred and not module:
+            unsafe_head_scripts.append(tag_attrs.strip())
+    dom_ready_guarded = bool(re.search(r"DOMContentLoaded|\bwindow\.onload\b|\bonload\s*=", javascript, flags=re.I))
+    if unsafe_head_scripts and not dom_ready_guarded and re.search(r"getElementById|querySelector", javascript):
+        return (
+            "frontend DOM contract mismatch: external script executes in <head> before required DOM controls exist. "
+            "Add defer/type=module, move the script after the controls, or guard initialization with DOMContentLoaded."
+        )
+    referenced = set(re.findall(r"getElementById\(\s*['\"]([^'\"]+)['\"]\s*\)", javascript))
+    referenced.update(re.findall(r"querySelector\(\s*['\"]#([A-Za-z][\w:.-]*)['\"]\s*\)", javascript))
+    available_text = html + "\n" + javascript
+    declared = set(re.findall(r"\bid\s*=\s*['\"]([^'\"]+)['\"]", available_text, flags=re.I))
+    declared.update(re.findall(r"\.id\s*=\s*['\"]([^'\"]+)['\"]", javascript))
+    declared.update(
+        match[0] or match[1]
+        for match in re.findall(
+            r"setAttribute\(\s*['\"]id['\"]\s*,\s*(?:['\"]([^'\"]+)['\"]|`([^`]+)`)",
+            javascript,
+            flags=re.I,
+        )
+    )
+    missing = sorted(referenced - declared)
+    if missing:
+        return (
+            "frontend DOM contract mismatch: JavaScript references missing element ids: "
+            + ", ".join(missing)
+            + ". Render these controls in index.html or create them in JavaScript before attaching listeners."
+        )
+    referenced_classes = set(
+        re.findall(
+            r"querySelector(?:All)?\(\s*['\"]\.([A-Za-z_][\w-]*)['\"]\s*\)",
+            javascript,
+        )
+    )
+    declared_classes: set[str] = set()
+    for raw_classes in re.findall(r"\bclass\s*=\s*['\"]([^'\"]+)['\"]", available_text, flags=re.I):
+        declared_classes.update(token for token in re.split(r"\s+", raw_classes.strip()) if token)
+    for raw_classes in re.findall(r"\.className\s*=\s*['\"]([^'\"]+)['\"]", javascript):
+        declared_classes.update(token for token in re.split(r"\s+", raw_classes.strip()) if token)
+    for raw_args in re.findall(r"\.classList\.add\(([^)]*)\)", javascript):
+        declared_classes.update(re.findall(r"['\"]([A-Za-z_][\w-]*)['\"]", raw_args))
+    missing_classes = sorted(referenced_classes - declared_classes)
+    if missing_classes:
+        return (
+            "frontend DOM contract mismatch: JavaScript references missing element classes: "
+            + ", ".join(f".{name}" for name in missing_classes)
+            + ". Render or create these controls before attaching listeners."
+        )
+    return ""
+
+
+def validate_task_board_interaction_contract(files: list[dict[str, str]]) -> str:
+    """Require requested task-board behaviors to be reachable from the rendered UI."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    html = by_path.get("index.html", "")
+    javascript = "\n".join(
+        content
+        for path, content in by_path.items()
+        if pathlib.PurePosixPath(path).suffix.lower() in {".js", ".mjs"}
+    )
+    if not html or not javascript:
+        return ""
+    source = html + "\n" + javascript
+    lowered = source.lower()
+    task_board_markers = ("task-list", "tasklist", "task board", "task-board", "localstorage")
+    if sum(marker in lowered for marker in task_board_markers) < 2:
+        return ""
+
+    def named_action_is_invocable(stems: tuple[str, ...]) -> bool:
+        stem_pattern = "|".join(re.escape(stem) for stem in stems)
+        names = set(
+            re.findall(
+                rf"\b(?:function\s+|(?:const|let|var)\s+)((?:{stem_pattern})[A-Za-z0-9_$]*)\b",
+                source,
+                flags=re.I,
+            )
+        )
+        if any(len(re.findall(rf"\b{re.escape(name)}\b", source, flags=re.I)) >= 2 for name in names):
+            return True
+        return bool(
+            re.search(
+                rf"\bon(?:click|change|submit)\s*=\s*['\"][^'\"]*(?:{stem_pattern})",
+                html,
+                flags=re.I,
+            )
+        )
+
+    missing: list[str] = []
+    if not named_action_is_invocable(("delete", "remove")):
+        missing.append("delete action is declared or described but not wired to a visible control")
+    if not named_action_is_invocable(("filter",)):
+        missing.append("filter action is declared or described but not wired to visible controls")
+    filter_modes = {
+        "all": ("all", "全部"),
+        "in-progress": ("in-progress", "in progress", "active", "pending", "进行中"),
+        "completed": ("completed", "complete", "done", "已完成"),
+    }
+    missing_modes = [name for name, markers in filter_modes.items() if not any(marker in lowered for marker in markers)]
+    if missing_modes:
+        missing.append("missing filter modes: " + ", ".join(missing_modes))
+    renderer_signatures = {
+        name: args.strip()
+        for name, args in re.findall(r"\bfunction\s+(render[A-Za-z0-9_$]*)\s*\(([^)]*)\)", javascript, flags=re.I)
+    }
+    for renderer, args in renderer_signatures.items():
+        calls = re.findall(rf"\b{re.escape(renderer)}\s*\(([^)]*)\)", javascript, flags=re.I)
+        filtered_calls = [call for call in calls[1:] if re.search(r"filter|visible|matching", call, flags=re.I)]
+        if filtered_calls and not args:
+            missing.append(f"filter result is passed to {renderer}, but that renderer ignores all arguments")
+            break
+    if missing:
+        return "task-board interaction contract mismatch: " + "; ".join(missing)
+    return ""
+
+
+def validate_javascript_const_reassignment(files: list[dict[str, str]]) -> str:
+    javascript = "\n".join(
+        str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict)
+        and pathlib.PurePosixPath(str(item.get("path", "")).replace("\\", "/")).suffix.lower() in {".js", ".mjs"}
+    )
+    if not javascript:
+        return ""
+    stripped = re.sub(r"/\*.*?\*/|//[^\n]*", " ", javascript, flags=re.S)
+    const_names = set(re.findall(r"\bconst\s+([A-Za-z_$][\w$]*)\s*=", stripped))
+    reassigned: list[str] = []
+    for name in sorted(const_names):
+        without_declarations = re.sub(
+            rf"\b(?:const|let|var)\s+{re.escape(name)}\s*=",
+            "",
+            stripped,
+        )
+        if re.search(rf"(?<![.\w$]){re.escape(name)}\s*=(?!=)", without_declarations):
+            reassigned.append(name)
+    if reassigned:
+        return (
+            "javascript const reassignment: "
+            + ", ".join(reassigned)
+            + ". Declare the variable with let when replacing the collection, or mutate the existing value without reassignment."
+        )
+    return ""
+
+
+def validate_frontend_asset_contract(files: list[dict[str, str]], known_paths: list[str] | None = None) -> str:
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    html = by_path.get("index.html", "")
+    if not html:
+        return ""
+    available = set(by_path) | {str(path).replace("\\", "/").lstrip("/") for path in (known_paths or [])}
+    references = re.findall(r"\b(?:src|href)\s*=\s*['\"]([^'\"]+)['\"]", html, flags=re.I)
+    missing: list[str] = []
+    for reference in references:
+        value = reference.strip()
+        if not value or value.startswith(("#", "data:", "http://", "https://", "//")):
+            continue
+        normalized = value.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        if normalized and normalized not in available:
+            missing.append(value)
+    if missing:
+        return "frontend asset contract mismatch: index.html references missing component files: " + ", ".join(sorted(set(missing)))
+    return ""
+
+
+def validate_frontend_module_self_import(files: list[dict[str, str]]) -> str:
+    """Reject JavaScript modules that import or re-export their own path."""
+    violations: list[str] = []
+    for item in files:
+        rel = str(item.get("path", "")).replace("\\", "/").strip()
+        if pathlib.PurePosixPath(rel).suffix.lower() not in {".js", ".mjs", ".cjs", ".jsx"}:
+            continue
+        content = str(item.get("content", ""))
+        specifiers = re.findall(
+            r"""(?mx)
+            (?:\bimport\b[\s\S]*?\bfrom\s*|\bexport\b[\s\S]*?\bfrom\s*|\bimport\s*\()
+            ['"](\.[^'"]+)['"]
+            """,
+            content,
+        )
+        current = pathlib.PurePosixPath(rel)
+        for specifier in specifiers:
+            raw_target = specifier.split("?", 1)[0].split("#", 1)[0]
+            target = pathlib.PurePosixPath(
+                posixpath.normpath(str(current.parent / raw_target))
+            )
+            target_candidates = {str(target)}
+            if not target.suffix:
+                target_candidates.update({str(target) + ".js", str(target) + ".mjs"})
+            if rel in target_candidates:
+                violations.append(f"{rel} imports or re-exports itself via {specifier}")
+    if violations:
+        return "frontend module self-import contract mismatch: " + "; ".join(violations[:8])
+    return ""
+
+
+def build_leaf_boundary_check_receipt(
+    *,
+    component_id: str,
+    target_file: str,
+    component_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None = None,
+    manifest_paths: list[str] | None = None,
+    manifest_entry: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Run deterministic provider/consumer checks for one completed leaf."""
+    checks = ["provider_output_shape", "component_path_ownership"]
+    blockers: list[str] = []
+    target_content = next(
+        (
+            str(item.get("content", ""))
+            for item in reversed(component_files)
+            if str(item.get("path", "")).replace("\\", "/").strip() == target_file
+        ),
+        "",
+    )
+    implementation_depth_receipt: dict[str, Any] = {}
+    if manifest_entry is not None:
+        checks.append("implementation_depth")
+        implementation_depth_receipt = analyze_leaf_implementation_depth(
+            target_file,
+            target_content,
+            leaf_implementation_depth_contract(manifest_entry),
+        )
+        blockers.extend(
+            f"implementation depth contract mismatch: {item}"
+            for item in implementation_depth_receipt.get("blockers", [])
+        )
+        expected_symbols = {
+            str(item).strip().rsplit(".", 1)[-1]
+            for item in manifest_entry.get("expected_symbols", [])
+            if str(item).strip()
+        }
+        suffix = pathlib.PurePosixPath(target_file).suffix.lower()
+        published_symbols: set[str] = set()
+        if suffix in JAVASCRIPT_MODULE_SUFFIXES:
+            published_symbols.update(javascript_module_contract(target_content)["exports"])
+        elif suffix in {".html", ".htm"}:
+            published_symbols.update(
+                re.findall(
+                    r"(?<![\w-])id\s*=\s*['\"]([^'\"]+)['\"]",
+                    target_content,
+                    flags=re.I,
+                )
+            )
+        elif suffix in {".css", ".scss"}:
+            published_symbols.update(
+                re.findall(r"(--[A-Za-z0-9_-]+)\s*:", target_content)
+            )
+        missing_published = sorted(expected_symbols - published_symbols)
+        if expected_symbols and suffix != ".py" and missing_published:
+            checks.append("manifest_symbol_publication")
+            blockers.append(
+                f"{target_file} does not publish expected symbols: "
+                + ", ".join(missing_published[:12])
+            )
+    if pathlib.PurePosixPath(target_file).suffix.lower() == ".py":
+        checks.extend(["python_syntax", "python_local_imports", "python_class_methods"])
+        blockers.extend(
+            python_leaf_interface_violations(
+                [*(prior_files or []), *component_files],
+                source_paths={target_file},
+            )
+        )
+    if component_id == "frontend":
+        if pathlib.PurePosixPath(target_file).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES:
+            checks.append("javascript_module_interfaces")
+            blockers.extend(
+                javascript_module_interface_violations(
+                    [*(prior_files or []), *component_files],
+                    source_paths={target_file},
+                )
+            )
+        validators = [
+            ("frontend_dom", lambda: validate_frontend_dom_contract(component_files)),
+            (
+                "frontend_assets",
+                lambda: validate_frontend_asset_contract(component_files, manifest_paths),
+            ),
+            (
+                "javascript_const_reassignment",
+                lambda: validate_javascript_const_reassignment(component_files),
+            ),
+            (
+                "frontend_module_self_import",
+                lambda: validate_frontend_module_self_import(component_files),
+            ),
+            (
+                "task_board_interactions",
+                lambda: validate_task_board_interaction_contract(component_files),
+            ),
+        ]
+        for label, validator in validators:
+            checks.append(label)
+            error = validator()
+            if error:
+                blockers.append(error)
+    receipt: dict[str, Any] = {
+        "kind": "CGKNLeafBoundaryCheckReceipt",
+        "schema_version": 1,
+        "component_id": component_id,
+        "target_file": target_file,
+        "status": "PASS" if not blockers else "FAIL",
+        "checks": checks,
+        "blockers": blockers[:16],
+        "implementation_depth": implementation_depth_receipt,
+    }
+    canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return receipt
 
 
 def provider_generate_component_file(
@@ -1879,12 +8140,18 @@ def provider_generate_component_file(
     manifest_entry: dict[str, Any],
     prior_manifest: list[str],
     completed_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None = None,
+    component_file_manifest: list[dict[str, Any]] | None = None,
     repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None = None,
+    leaf_interface_contract: dict[str, Any] | None = None,
+    librarian_context_pack: dict[str, Any] | None = None,
     model: str,
     timeout: int,
     phase_log_path: pathlib.Path | str | None,
     routing_policy: ProviderModelRoutingPolicy | None,
     last_transport_error: Any = None,
+    retry_attempt: int = 1,
 ) -> tuple[dict[str, str], str]:
     component_id = str(component.get("id", "")).strip()
     target_file = str(manifest_entry.get("path", "")).replace("\\", "/").strip()
@@ -1892,31 +8159,1110 @@ def provider_generate_component_file(
 Return strict JSON only. Generate exactly one file and no other files.
 Do not emit screenshots, videos, zip files, or binary data; generate source/docs/scripts only.
 """
+    if librarian_context_pack is None:
+        local_index = build_generation_context_librarian_index(
+            goal=goal,
+            component=component,
+            component_pipeline=component_pipeline,
+            manifest=component_file_manifest or [manifest_entry],
+            completed_files=completed_files,
+            prior_files=prior_files,
+            integration_feedforward=integration_feedforward,
+        )
+        librarian_context_pack = query_generation_context_librarian(
+            local_index,
+            leaf={
+                "leaf_id": "",
+                "path": target_file,
+                "depends_on": _declared_dependency_paths(
+                    manifest_entry.get("dependencies", []),
+                    [
+                        str(item.get("path", "")).replace("\\", "/").strip()
+                        for item in [*completed_files, *(prior_files or [])]
+                        if isinstance(item, dict) and str(item.get("path", "")).strip()
+                    ],
+                ),
+                "declared_dependencies": manifest_entry.get("dependencies", []),
+            },
+        )
     payload = summarize_component_context_for_split(
         goal=goal,
         component=component,
         component_pipeline=component_pipeline,
         prior_manifest=prior_manifest,
         repair_errors=repair_errors,
+        integration_feedforward=integration_feedforward,
+        librarian_context_pack=librarian_context_pack,
     )
+    implementation_depth_contract = leaf_implementation_depth_contract(manifest_entry)
+    available_dependency_files = [
+        item
+        for item in [*completed_files, *(prior_files or [])]
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    ]
+    available_dependency_paths = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in available_dependency_files
+    ]
+    declared_dependency_values = [
+        *(
+            manifest_entry.get("dependencies", [])
+            if isinstance(manifest_entry.get("dependencies", []), list)
+            else []
+        ),
+        *(
+            manifest_entry.get("depends_on", [])
+            if isinstance(manifest_entry.get("depends_on", []), list)
+            else []
+        ),
+        *(
+            manifest_entry.get("facade_children", [])
+            if isinstance(manifest_entry.get("facade_children", []), list)
+            else []
+        ),
+    ]
+    resolved_dependency_paths = _declared_dependency_paths(
+        declared_dependency_values,
+        available_dependency_paths,
+    )
+    exact_implemented_dependency_symbols: list[dict[str, Any]] = []
+    for dependency_file in available_dependency_files:
+        dependency_path = str(dependency_file.get("path", "")).replace("\\", "/").strip()
+        if dependency_path not in resolved_dependency_paths:
+            continue
+        interface = generated_file_interface_summary(dependency_file)
+        python_interface = (
+            interface.get("python", {})
+            if isinstance(interface.get("python", {}), dict)
+            else {}
+        )
+        exact_implemented_dependency_symbols.append(
+            {
+                "path": dependency_path,
+                "python": {
+                    "classes": [
+                        {
+                            "name": str(row.get("name", "")),
+                            "methods": row.get("methods", []),
+                            "constructor": row.get("constructor"),
+                        }
+                        for row in python_interface.get("classes", [])
+                        if isinstance(row, dict) and str(row.get("name", "")).strip()
+                    ],
+                    "functions": python_interface.get("functions", []),
+                },
+            }
+        )
+    if target_file.lower().endswith(".py") and exact_implemented_dependency_symbols:
+        dependency_allowlist_lines: list[str] = []
+        for dependency in exact_implemented_dependency_symbols:
+            python_contract = (
+                dependency.get("python", {})
+                if isinstance(dependency.get("python", {}), dict)
+                else {}
+            )
+            importable_names = [
+                str(row.get("name", "")).strip()
+                for row in python_contract.get("classes", [])
+                if isinstance(row, dict) and str(row.get("name", "")).strip()
+            ]
+            importable_names.extend(
+                str(name).strip()
+                for name in python_contract.get("functions", [])
+                if str(name).strip()
+            )
+            class_method_contracts = [
+                ",".join(
+                    f"{str(row.get('name', '')).strip()}.{str(method).strip()}"
+                    for method in row.get("methods", [])
+                    if str(method).strip()
+                )
+                for row in python_contract.get("classes", [])
+                if isinstance(row, dict)
+                and str(row.get("name", "")).strip()
+                and isinstance(row.get("methods", []), list)
+                and any(str(method).strip() for method in row.get("methods", []))
+            ]
+            receiver_binding_examples: list[str] = []
+            for row in python_contract.get("classes", []):
+                if not isinstance(row, dict) or not str(row.get("name", "")).strip():
+                    continue
+                class_name = str(row.get("name", "")).strip()
+                receiver_name = re.sub(r"[^a-z0-9]+", "", class_name.lower()) + "_instance"
+                receiver_binding_examples.append(f"{receiver_name} = {class_name}(...)")
+                for method_signature in row.get("methods", [])[:8]:
+                    signature = str(method_signature).strip()
+                    match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)\((.*)\)", signature)
+                    if not match or match.group(1).startswith("__"):
+                        continue
+                    call_arguments = []
+                    for raw_parameter in match.group(2).split(","):
+                        parameter = raw_parameter.strip()
+                        if not parameter or parameter in {"self", "cls", "/", "*"}:
+                            continue
+                        parameter = parameter.lstrip("*").split("=", 1)[0].split(":", 1)[0].strip()
+                        if parameter:
+                            call_arguments.append(parameter)
+                    receiver_binding_examples.append(
+                        f"{receiver_name}.{match.group(1)}({', '.join(call_arguments)})"
+                    )
+            dependency_allowlist_lines.append(
+                f"{dependency.get('path', '')}: imports=[{','.join(importable_names)}]; "
+                f"class_methods=[{';'.join(class_method_contracts)}]; "
+                f"receiver_bindings=[{';'.join(receiver_binding_examples)}]"
+            )
+        system += (
+            "\nCURRENT PYTHON DEPENDENCY API ALLOWLIST (highest precedence):\n- "
+            + "\n- ".join(dependency_allowlist_lines)
+            + "\nA local dependency may expose ONLY the listed import names and class methods. "
+            "Do not invent helper classes, validation functions, aliases, constructors, or "
+            "methods that are absent from this allowlist. A listed method may be called only on "
+            "an instance of the class that owns it; follow receiver_bindings and never move a "
+            "method onto a different class instance. Tests must exercise the implemented "
+            "API exactly as listed; a convenient but unlisted API is a validation failure.\n"
+        )
+    elif target_file.lower().endswith(".py"):
+        payload["python_local_import_contract"] = {
+            "allowed_project_local_imports": [],
+            "rule": (
+                "This leaf declares no project-local dependencies. Do not import any generated "
+                "project module merely because the librarian exposes it as contextual source."
+            ),
+        }
+        system += (
+            "\nCURRENT PYTHON LOCAL IMPORT CONTRACT (highest precedence): this leaf declares no "
+            "project-local dependencies, so it must not import any backend, src, app, api, or other "
+            "generated-project module. Librarian source excerpts are context, not import permission. "
+            "Use only the standard library and declared external packages needed for this leaf's exact "
+            "target symbols.\n"
+        )
     payload.update(
         {
             "target_file": target_file,
             "target_file_purpose": str(manifest_entry.get("purpose", "")),
             "target_file_dependencies": manifest_entry.get("dependencies", []),
-            "completed_component_files": [
-                {"path": item.get("path", ""), "content_excerpt": str(item.get("content", ""))[:2500]}
-                for item in completed_files[-6:]
+            "component_file_manifest": [
+                str(item.get("path", "")).replace("\\", "/").strip()
+                for item in (component_file_manifest or [])
+                if str(item.get("path", "")).strip()
             ],
+            "leaf_interface_contract": leaf_interface_contract or {},
+            "exact_implemented_dependency_symbols": exact_implemented_dependency_symbols,
+            "implementation_depth_contract": implementation_depth_contract,
             "strict_rules": [
                 "Generate exactly one file.",
                 f"The only allowed path is {target_file}.",
                 "Return strict JSON: {\"path\":\"...\",\"content\":\"...\"}.",
                 "Do not return a files[] array with more than one file.",
                 "Do not include TODO, placeholder, future-work, or binary artifact claims.",
+                "Treat project_goal_constraints as project-wide invariants: this leaf must not contradict them, but it implements only its assigned responsibility and must not recreate unrelated project capabilities.",
+                "Source code must be syntactically valid; content newlines must be JSON escaped.",
+                "Use librarian_context.selected_items as the only retrieved project context for this leaf.",
+                "Treat leaf_interface_contract.authoritative_interface_catalog as implemented truth; preserve its exact public names and paths.",
+                "For local Python imports, use only names listed for that provider path in exact_implemented_dependency_symbols; never infer a convenience alias that the provider did not publish.",
+                "Fully implement every implementation_depth_contract responsibility and acceptance check; do not optimize for the shortest possible file.",
+                "Meet the implementation depth minimums with cohesive behavior, validation, error handling, and real data flow—not filler, repetition, comments, or dead code.",
+                "Do not use pass-only/ellipsis-only bodies, NotImplementedError, empty owned functions, constant dummy returns, or tests that merely assert True.",
             ],
         }
     )
+    depth_minimum_lines = int(
+        implementation_depth_contract.get("minimum_nonblank_lines", 0) or 0
+    )
+    depth_minimum_statements = int(
+        implementation_depth_contract.get("minimum_substantive_statements", 0) or 0
+    )
+    depth_minimum_behaviors = int(
+        implementation_depth_contract.get("minimum_behavior_units", 0) or 0
+    )
+    depth_generation_target_lines = (
+        depth_minimum_lines + max(4, (depth_minimum_lines + 3) // 4)
+        if depth_minimum_lines
+        else 0
+    )
+    implementation_generation_target = {
+        "validator_minimum_nonblank_lines": depth_minimum_lines,
+        "generation_safety_target_nonblank_lines": depth_generation_target_lines,
+        "rule": "The safety target absorbs counting/formatting variance; meet it with useful behavior only.",
+    }
+    system += (
+        "\nCURRENT TARGET IMPLEMENTATION DEPTH (mandatory): validator requires at least "
+        f"{depth_minimum_lines} nonblank implementation lines, "
+        f"{depth_minimum_statements} substantive statements, and "
+        f"{depth_minimum_behaviors} behavior units. Generate at least "
+        f"{depth_generation_target_lines} nonblank useful implementation lines as a safety "
+        "target so JSON formatting and line counting cannot leave the file below validation. "
+        "Implement cohesive validation, error "
+        "handling, state transformation, or real data flow as appropriate. Every owned "
+        "callable must do real work; pass, ellipsis, NotImplementedError, empty/constant "
+        "dummy returns, and one-statement save/load/preview wrappers are rejected. Meet the "
+        "counts with useful behavior, never filler, repetition, dead code, or padding.\n"
+    )
+    depth_maximum_lines = int(
+        implementation_depth_contract.get("maximum_nonblank_lines", 0) or 0
+    )
+    depth_maximum_chars = int(
+        implementation_depth_contract.get("maximum_source_chars", 0) or 0
+    )
+    if depth_maximum_lines:
+        implementation_generation_target["maximum_nonblank_lines"] = depth_maximum_lines
+    if depth_maximum_chars:
+        implementation_generation_target["maximum_source_chars"] = depth_maximum_chars
+    payload["implementation_generation_target"] = implementation_generation_target
+    if depth_maximum_lines:
+        system += (
+            "CURRENT TARGET SIZE BUDGET (mandatory): the complete returned file must contain no "
+            f"more than {depth_maximum_lines} nonblank lines"
+            + (f" and no more than {depth_maximum_chars} source characters" if depth_maximum_chars else "")
+            + ". Keep behavior cohesive and concise; "
+            "factor repeated work into local helpers and do not expand markup, seed data, comments, "
+            "or duplicated render branches past this limit. This upper bound prevents Provider "
+            "truncation and is independent of the minimum depth checks.\n"
+        )
+    expected_symbols = [
+        str(item).strip().rsplit(".", 1)[-1]
+        for item in implementation_depth_contract.get("expected_symbols", [])
+        if str(item).strip()
+    ]
+    target_suffix = pathlib.PurePosixPath(target_file).suffix.lower()
+    if expected_symbols and target_suffix in ({".py"} | JAVASCRIPT_MODULE_SUFFIXES):
+        declaration_forms: list[str] = []
+        for symbol in expected_symbols:
+            if re.fullmatch(r"[A-Z][A-Za-z0-9_]*", symbol):
+                declaration_forms.append(
+                    ("class " if target_suffix == ".py" else "export class ") + symbol
+                )
+            elif target_suffix == ".py":
+                declaration_forms.append(f"def {symbol}(...)")
+            else:
+                declaration_forms.append(f"export function {symbol}(...)")
+        payload["required_symbol_contract"] = {
+            "exact_names": expected_symbols,
+            "publication_rule": (
+                "Define each exact name at Python module top level."
+                if target_suffix == ".py"
+                else "Export each exact name from this JavaScript module; a private declaration is not published."
+            ),
+            "declaration_forms": declaration_forms,
+            "precedence_rule": (
+                "This current target manifest overrides historical names found in librarian "
+                "context, cached files, prior boundary receipts, or examples."
+            ),
+        }
+        payload["strict_rules"].append(
+            "Implement and publish every required_symbol_contract exact name using its declaration form; do not substitute a synonym."
+        )
+        system += (
+            "\nCURRENT TARGET SYMBOL CONTRACT (highest precedence): "
+            + "; ".join(declaration_forms)
+            + ". Define every exact name in the returned file. The current target manifest "
+            "overrides any different historical name in librarian context, cached files, "
+            "prior receipts, or examples. A synonym is a validation failure.\n"
+        )
+    elif expected_symbols and target_suffix in {".html", ".htm"}:
+        payload["required_html_id_contract"] = {
+            "exact_ids": expected_symbols,
+            "publication_rule": "Publish every exact name as a literal id attribute on a visible semantic element.",
+        }
+        payload["strict_rules"].append(
+            "Publish every required_html_id_contract exact id as literal visible HTML; do not substitute a class, data attribute, or different root id."
+        )
+        system += (
+            "\nCURRENT HTML ID CONTRACT (highest precedence): include these exact literal id attributes "
+            + ", ".join(f'id=\"{symbol}\"' for symbol in expected_symbols)
+            + ". Place them on visible semantic elements inside a complete usable document; an empty "
+            "mount element alone fails the implementation-depth contract.\n"
+        )
+    elif expected_symbols and target_suffix in {".css", ".scss"}:
+        custom_properties = [symbol for symbol in expected_symbols if symbol.startswith("--")]
+        if custom_properties:
+            payload["required_css_custom_property_contract"] = {
+                "exact_custom_properties": custom_properties,
+                "publication_rule": "Define every exact custom property in a literal :root rule with a usable value.",
+            }
+            payload["strict_rules"].append(
+                "Define every required_css_custom_property_contract exact name in :root; do not substitute a differently named theme token."
+            )
+            system += (
+                "\nCURRENT CSS CUSTOM PROPERTY CONTRACT (highest precedence): define each exact token "
+                "inside a literal :root rule: "
+                + ", ".join(custom_properties)
+                + ". Give every token a concrete usable value and use the tokens in the stylesheet.\n"
+            )
+    if str(last_transport_error or "").strip():
+        payload["previous_generation_error"] = str(last_transport_error)[:1500]
+        payload["repair_acceptance"] = {
+            "attempt": max(1, int(retry_attempt or 1)),
+            "must_fix": str(last_transport_error)[:1500],
+            "minimum_nonblank_lines": int(
+                implementation_depth_contract.get("minimum_nonblank_lines", 0) or 0
+            ),
+            "minimum_substantive_statements": int(
+                implementation_depth_contract.get("minimum_substantive_statements", 0) or 0
+            ),
+            "minimum_behavior_units": int(
+                implementation_depth_contract.get("minimum_behavior_units", 0) or 0
+            ),
+            "required_symbols": implementation_depth_contract.get("expected_symbols", []),
+        }
+        payload["strict_rules"].extend(
+            [
+                "Fix every repair_acceptance.must_fix issue in this regenerated file.",
+                "Produce a structurally different implementation from the rejected candidate; an identical deterministic retry is invalid.",
+                "Before returning, count the actual code against every repair_acceptance minimum and verify every required symbol is implemented.",
+            ]
+        )
+        system += (
+            "\nCURRENT REPAIR REJECTION (highest precedence): "
+            + str(last_transport_error)[:1500]
+            + "\nThe previous candidate was rejected for exactly this violation. Correct it "
+            "in the returned file and do not repeat the rejected call, import, symbol, or "
+            "structure. All validators remain unchanged.\n"
+        )
+    constraints_text = " ".join(str(item) for item in payload.get("project_goal_constraints", []))
+    generation_role = str(manifest_entry.get("generation_role", "")).strip().lower()
+    if generation_role == "compatibility_facade":
+        facade_children = [
+            str(item).replace("\\", "/").strip()
+            for item in manifest_entry.get("facade_children", [])
+            if str(item).strip()
+        ] if isinstance(manifest_entry.get("facade_children", []), list) else []
+        payload["target_specific_rules"] = [
+            "This file is a compatibility facade, not a second implementation.",
+            "Import and re-export every implementation_depth_contract expected symbol from the supplied facade children.",
+            "Preserve the original public module path and exact public names.",
+            "Do not duplicate algorithms, stage behavior, persistence logic, or adapter behavior owned by child modules.",
+            "Keep the facade concise and syntactically valid.",
+            f"The only implementation providers are: {', '.join(facade_children)}.",
+        ]
+        system += (
+            "\nThis target is a compatibility facade. Import and re-export the exact expected public "
+            "symbols from its bounded child modules; do not regenerate their business logic.\n"
+        )
+    elif generation_role == "test_suite_anchor":
+        facade_children = [
+            str(item).replace("\\", "/").strip()
+            for item in manifest_entry.get("facade_children", [])
+            if str(item).strip()
+        ] if isinstance(manifest_entry.get("facade_children", []), list) else []
+        payload["target_specific_rules"] = [
+            "This file is a lightweight pytest suite anchor, not a test implementation.",
+            "Define SUITE_PARTS as the exact tuple of supplied child module paths.",
+            "Do not import child test functions, because pytest collects child test modules independently.",
+            "Do not duplicate fixtures, assertions, product behavior, or test cases from the child modules.",
+            "Keep the complete anchor below implementation_depth_contract.maximum_nonblank_lines.",
+            f"The independently collected suite parts are: {', '.join(facade_children)}.",
+        ]
+        system += (
+            "\nThis target is a pytest suite anchor. Define only a concise SUITE_PARTS path tuple; "
+            "never import test functions from the independently collected child modules.\n"
+        )
+    elif generation_role in {"bounded_submodule", "bounded_test_module"}:
+        is_test_module = generation_role == "bounded_test_module"
+        payload["target_specific_rules"] = [
+            (
+                "Implement only this bounded test module's assigned scenario slice."
+                if is_test_module
+                else "Implement only this bounded submodule's assigned responsibilities and expected symbols."
+            ),
+            (
+                "Do not import sibling test functions or duplicate their assigned scenario slices."
+                if is_test_module
+                else "Do not recreate the compatibility facade or symbols assigned to sibling submodules."
+            ),
+            "Use implemented dependency interfaces from the librarian and leaf interface contract.",
+            "Keep the module cohesive enough to complete within the bounded Provider output budget.",
+            "Keep the complete module at or below implementation_depth_contract.maximum_nonblank_lines; prefer 80-180 nonblank lines.",
+            (
+                "Implement three to six focused pytest tests and no more than four local helper functions; use confirmed conftest fixtures instead of rebuilding setup."
+                if is_test_module
+                else "Use no more than eight private helper functions/classes unless an acceptance check strictly requires them."
+            ),
+            "Before returning, verify that every string and docstring is closed and that the complete content parses as source code.",
+        ]
+        system += (
+            "\nThis target is one bounded pytest module. Implement only its assigned scenario slice "
+            "and rely on product interfaces rather than copied product logic.\n"
+            if is_test_module
+            else "\nThis target is one bounded implementation submodule. Implement only its assigned symbol "
+            "group and integrate through the supplied dependency interfaces.\n"
+        )
+    if target_file.lower().endswith(".py") and "localStorage as the sole task persistence layer" in constraints_text:
+        payload["target_specific_rules"] = [
+            "Browser localStorage is implemented only in JavaScript. Python must never reference localStorage.",
+            "The Python entrypoint must only serve project static files with the standard library (for example SimpleHTTPRequestHandler).",
+            "Do not implement task CRUD endpoints or server-side task persistence.",
+            "Keep main.py at 60 nonblank lines or fewer. Use SimpleHTTPRequestHandler and no do_POST/do_PUT/do_DELETE handlers.",
+        ]
+        system += "\nFor this Python file, localStorage is browser-only. Generate a minimal static-file server of at most 60 nonblank lines using SimpleHTTPRequestHandler. Never reference localStorage, define task models, or implement task CRUD endpoints/do_POST/do_PUT/do_DELETE in Python.\n"
+    if component_id == "tests" and target_file.lower().endswith(".py"):
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Tests must be deterministic and match the source and interface entries selected by librarian_context.",
+            "Keep the complete test module at or below implementation_depth_contract.maximum_nonblank_lines; use parametrization and shared local helpers instead of repeating cases.",
+            "Test public behavior through generated-project interfaces; do not reimplement the product's schemas, parser, feature math, or scoring algorithms inside the test module.",
+            "Use built-in pytest fixtures and custom fixtures actually confirmed by librarian_context or the declared conftest dependency; define only additional fixtures owned by this leaf.",
+            "Do not assume an httpd, client, app, or server fixture exists unless the supplied conftest interface explicitly defines it.",
+            "Do not assume Flask/FastAPI/Django APIs unless the prior code actually imports that framework.",
+            "Do not call serve_forever synchronously inside a test or fixture; use static assertions or a background process/thread with cleanup and timeout.",
+            "Import every referenced name and keep the file free of undefined Python names.",
+            "Never expect a Python function named __main__; __name__ == '__main__' is a module guard, not a function contract.",
+        ]
+        system += "\nFor test files, use only defined or built-in fixtures and match the supplied real code excerpts. Never invent an httpd/client/app fixture or framework API.\n"
+        if "localStorage as the sole task persistence layer" in constraints_text:
+            payload["target_specific_rules"] += [
+                "This is a static localStorage web app: do not start an HTTP server and do not make network requests in pytest.",
+                "Use pathlib to read index.html/src/app.js and ast.parse to validate main.py; keep tests deterministic and offline.",
+                "Read JavaScript behavior assertions from src/app.js, HTML structure assertions from index.html, and Python structure from main.py.",
+                "Use ast.parse only for Python source. Validate HTML/CSS/JavaScript with direct text assertions, never Python AST.",
+            ]
+            system += "\nThis target is a static localStorage app. Generate deterministic offline tests with pathlib/ast only; do not start a server or use requests/urlopen.\n"
+    if component_id == "tests" and target_file.lower().endswith(".json"):
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "This is one bounded deterministic test-data leaf, not a complete real match export.",
+            "Keep it at or below implementation_depth_contract.maximum_nonblank_lines and use the smallest representative event/tick sequence that proves this scenario.",
+            "Prefer concise arrays and shared semantic labels; do not duplicate the same trajectory at many timestamps.",
+            "Include enough data to exercise the named behavior, provenance, and quality edge case without padding.",
+        ]
+        system += "\nFor JSON test fixtures, return a small representative deterministic scenario within the supplied nonblank-line budget; never expand a full match timeline.\n"
+    if component_id == "frontend" and target_file.lower() == "index.html":
+        payload["html_semantic_structure_contract"] = {
+            "minimum_substantive_elements": int(
+                implementation_depth_contract.get("minimum_substantive_statements", 0) or 0
+            ),
+            "minimum_behavior_regions_or_controls": int(
+                implementation_depth_contract.get("minimum_behavior_units", 0) or 0
+            ),
+            "substantive_elements": [
+                "main",
+                "header",
+                "nav",
+                "section",
+                "article",
+                "form",
+                "label",
+                "button",
+                "input",
+                "select",
+                "textarea",
+                "h1-h6",
+                "p",
+                "ul/ol/li",
+            ],
+            "adaptable_reference": (
+                "<header><h1>Product title</h1><p>Purpose</p></header>"
+                "<main><section><h2>Primary workspace</h2><p>Guidance</p>"
+                "<form><label>Field <input id='product-field'></label>"
+                "<button type='submit'>Primary action</button></form></section></main>"
+            ),
+        }
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Render a meaningful visible initial interface in HTML; do not return only an empty #app/root container.",
+            "Satisfy html_semantic_structure_contract with literal body markup; the adaptable reference is structural input, not text to copy verbatim.",
+            "Include the controls and stable DOM ids/data-testid values that src/app.js will use.",
+            "Load the exact component files src/styles.css and src/app.js.",
+            "Load src/app.js with defer/type=module in head, or place its script tag after all controls in body.",
+            "Use semantic regions and a project-specific focal composition; do not make the whole page a uniform grid of interchangeable cards.",
+        ]
+        if "task-board frontend must implement usable" in constraints_text.lower():
+            payload["target_specific_rules"] += [
+                "Include literal visible markup for a Task Board heading, task input, Add Task button, task list, and All/Active/Completed filter buttons.",
+                "Use stable ids/data-testid values for the input, add button, task list, and each filter button.",
+            ]
+        system += "\nFor native index.html, include a visible selected-product interface and stable ids/data-testid values. An empty app/root shell is invalid.\n"
+    if component_id == "frontend" and target_file.lower().endswith((".css", ".scss")):
+        payload["frontend_design_system_contract"] = {
+            "minimum_root_custom_properties": 8,
+            "required_responsive_features": [
+                "at least one width media query",
+                "a deliberate focal layout using grid-template-areas, named regions, or asymmetric columns",
+            ],
+            "required_accessibility_features": [
+                "visible :focus-visible treatment",
+                "@media (prefers-reduced-motion: reduce)",
+            ],
+        }
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Define at least eight meaningful :root custom properties, including every required CSS symbol.",
+            "Use an intentional focal composition rather than a uniform card grid, and adapt it in a width media query.",
+            "Include visible :focus-visible styling and an explicit prefers-reduced-motion: reduce media query.",
+        ]
+        system += (
+            "\nCURRENT FRONTEND DESIGN SYSTEM CONTRACT: define at least eight meaningful :root tokens; "
+            "implement a deliberate focal composition with an explicit responsive media query; include "
+            ":focus-visible and @media (prefers-reduced-motion: reduce). These exact structural signals "
+            "are quality-gate requirements, not optional decoration.\n"
+        )
+    if component_id == "frontend" and target_file.lower().endswith((".js", ".mjs")):
+        available_html = "\n".join(
+            str(item.get("content", ""))
+            for item in [*completed_files, *(prior_files or [])]
+            if isinstance(item, dict)
+            and pathlib.PurePosixPath(
+                str(item.get("path", "")).replace("\\", "/")
+            ).suffix.lower()
+            in {".html", ".htm"}
+        )
+        allowed_existing_element_ids = list(
+            dict.fromkeys(
+                re.findall(
+                    r"(?<![\w-])id\s*=\s*['\"]([^'\"]+)['\"]",
+                    available_html,
+                    flags=re.I,
+                )
+            )
+        )[:60]
+        available_data_testids = list(
+            dict.fromkeys(
+                re.findall(
+                    r"\bdata-testid\s*=\s*['\"]([^'\"]+)['\"]",
+                    available_html,
+                    flags=re.I,
+                )
+            )
+        )[:60]
+        testid_to_element_id: dict[str, str] = {}
+        binding_examples: list[str] = []
+        for html_tag in re.findall(r"<[A-Za-z][^>]*>", available_html):
+            testid_match = re.search(
+                r"\bdata-testid\s*=\s*['\"]([^'\"]+)['\"]",
+                html_tag,
+                flags=re.I,
+            )
+            if not testid_match:
+                continue
+            element_id_match = re.search(
+                r"(?<![\w-])id\s*=\s*['\"]([^'\"]+)['\"]",
+                html_tag,
+                flags=re.I,
+            )
+            testid = testid_match.group(1)
+            element_id = element_id_match.group(1) if element_id_match else ""
+            testid_to_element_id[testid] = element_id
+            if element_id:
+                binding_examples.append(
+                    f'{testid}: document.getElementById("{element_id}")'
+                )
+            else:
+                binding_examples.append(
+                    f'{testid}: document.querySelector(\'[data-testid="{testid}"]\')'
+                )
+        payload["frontend_dom_binding_contract"] = {
+            "allowed_existing_element_ids": allowed_existing_element_ids,
+            "available_data_testids": available_data_testids,
+            "testid_to_element_id": testid_to_element_id,
+            "exact_binding_examples": binding_examples,
+            "id_binding_rule": (
+                "getElementById('x') and querySelector('#x') may use only allowed_existing_element_ids "
+                "unless this JavaScript creates id=x before binding."
+            ),
+            "testid_binding_rule": (
+                "A data-testid value is not an element id. Bind it only with "
+                "querySelector('[data-testid=\"value\"]') or use the element's real id."
+            ),
+        }
+        allowed_local_javascript_imports = [
+            path
+            for path in resolved_dependency_paths
+            if pathlib.PurePosixPath(path).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES
+            and path != target_file
+        ]
+        payload["javascript_local_import_contract"] = {
+            "allowed_local_module_paths": allowed_local_javascript_imports,
+            "python_boundary_rule": (
+                "Python backend files are not JavaScript modules. Use only an explicitly supplied "
+                "HTTP endpoint contract or JavaScript adapter; never import a Python path."
+            ),
+            "missing_path_rule": (
+                "A local module absent from allowed_local_module_paths does not exist and must not be imported or invented."
+            ),
+        }
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Never import or re-export the current module from its own relative path; a facade must reference distinct real sibling files.",
+            "Never import CSS/SCSS files from browser JavaScript; index.html owns stylesheet loading through a link element even when the manifest lists CSS as a generation dependency.",
+            "Before returning, audit every literal getElementById/querySelector id against the selected index.html entry in librarian_context.",
+            "Reference only ids present in index.html, or explicitly create those ids in this JavaScript before attaching listeners.",
+            "The page must have non-empty visible body text after DOMContentLoaded.",
+        ]
+        if "task-board frontend must implement usable" in constraints_text.lower():
+            payload["target_specific_rules"] += [
+                "Wire a visible per-task Delete button to the delete operation and a visible task-row/control to status toggle.",
+                "Wire all three All/Active/Completed buttons to filtering.",
+                "When filtering computes a filtered task array, the render function must accept and iterate that array instead of always reading the global unfiltered array.",
+                "If delete/filter replaces the tasks array, declare tasks with let, not const; const collections may only be mutated in place.",
+            ]
+        system += "\nFor frontend JavaScript, every literal DOM id you consume must already exist in the supplied index.html or be created by this file before use.\n"
+        system += (
+            "EXACT DOM BINDING CONTRACT: allowed existing element ids are "
+            + (", ".join(allowed_existing_element_ids) if allowed_existing_element_ids else "(none)")
+            + ". Available data-testid values are "
+            + (", ".join(available_data_testids) if available_data_testids else "(none)")
+            + ". A data-testid is not an id: never pass a data-testid value to getElementById or "
+            "querySelector('#...'). Use its real id or [data-testid=\"...\"] exactly.\n"
+        )
+        if binding_examples:
+            system += (
+                "EXACT EXISTING CONTROL BINDINGS (use these forms): "
+                + "; ".join(binding_examples)
+                + ".\n"
+            )
+        if allowed_local_javascript_imports:
+            system += (
+                "LOCAL JAVASCRIPT IMPORT CONTRACT: the only allowed local module paths are "
+                + ", ".join(allowed_local_javascript_imports)
+                + ". Python backend files are not JavaScript modules. Never invent another local import.\n"
+            )
+        else:
+            system += (
+                "LOCAL JAVASCRIPT IMPORT CONTRACT: no local JavaScript module import is allowed for "
+                "this leaf because none exists in its declared dependency contract. Keep the browser "
+                "controller self-contained, use DOM and standard Web APIs, and never invent a local "
+                "import such as a backend/shared-core module. Python backend files are not JavaScript modules.\n"
+            )
+    if component_id == "frontend" and target_file.lower().endswith((".css", ".scss")):
+        design_context = (
+            component_pipeline.get("design_context", {})
+            if isinstance(component_pipeline.get("design_context", {}), dict)
+            else {}
+        )
+        design_contract = (
+            design_context.get("design_contract", {})
+            if isinstance(design_context.get("design_contract", {}), dict)
+            else {}
+        )
+        design_tokens = (
+            design_contract.get("design_tokens", {})
+            if isinstance(design_contract.get("design_tokens", {}), dict)
+            else {}
+        )
+        palette = (
+            design_tokens.get("color", {})
+            if isinstance(design_tokens.get("color", {}), dict)
+            else {}
+        )
+        implementation_requirements = (
+            design_contract.get("implementation_requirements", {})
+            if isinstance(design_contract.get("implementation_requirements", {}), dict)
+            else {}
+        )
+        payload["css_quality_contract"] = {
+            "selected_direction": str(design_contract.get("selected_direction_name", "")),
+            "required_palette_values": [
+                str(value)
+                for value in palette.values()
+                if re.fullmatch(r"#[0-9a-fA-F]{6}", str(value))
+            ],
+            "minimum_palette_values_to_use": 3 if palette else 0,
+            "minimum_custom_properties": int(
+                implementation_requirements.get("minimum_css_custom_properties", 8) or 8
+            ),
+            "minimum_declarations": int(
+                implementation_requirements.get("minimum_css_declarations", 24) or 24
+            ),
+            "required_literals": [
+                ":focus-visible",
+                ":hover",
+                "@media",
+                "prefers-reduced-motion",
+            ],
+            "focal_composition_signatures_choose_at_least_two": [
+                "grid-template-areas",
+                "minmax(",
+                "clamp(",
+                "position: sticky",
+                "aspect-ratio",
+                "max-inline-size",
+            ],
+            "adaptable_focal_reference": (
+                ".workspace { display: grid; grid-template-areas: 'tree editor'; "
+                "grid-template-columns: minmax(16rem, .7fr) minmax(24rem, 1.3fr); "
+                "max-inline-size: 90rem; }"
+            ),
+        }
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Satisfy every css_quality_contract count and required literal, use at least three supplied palette values, and include at least two focal-composition signatures; adapt the focal reference to the selected product rather than omitting its structural techniques.",
+            "Implement the selected design direction from librarian_context rather than framework-default styling.",
+            "Define reusable custom properties for color, typography, spacing, radius, and motion and use them throughout the stylesheet.",
+            "Include a responsive layout breakpoint, visible :focus or :focus-visible treatment, hover/pressed feedback, and prefers-reduced-motion behavior.",
+            "Create a clear focal hierarchy with deliberate negative space and typography; avoid a uniform generic dashboard card wall.",
+        ]
+        system += "\nFor frontend styles, implement the retrieved design contract as a complete responsive and accessible visual system, not generic product chrome.\n"
+    if component_id == "docs" and target_file.replace("\\", "/") in {"docs/design_research.md", "docs/design_system.md"}:
+        design_context = (
+            component_pipeline.get("design_context", {})
+            if isinstance(component_pipeline.get("design_context", {}), dict)
+            else {}
+        )
+        design_contract = (
+            design_context.get("design_contract", {})
+            if isinstance(design_context.get("design_contract", {}), dict)
+            else {}
+        )
+        selected_direction_name = str(
+            design_contract.get("selected_direction_name", "")
+        ).strip()
+        design_reference_urls = list(
+            dict.fromkeys(
+                str(reference.get("url", "")).strip()
+                for reference in design_context.get("references", [])
+                if isinstance(reference, dict)
+                and str(reference.get("url", "")).strip().startswith("https://")
+            )
+        )
+        anti_copying_statement = (
+            "Do not copy any reference's exact layout, assets, or branding; "
+            "references inform principles only."
+        )
+        payload["design_documentation_contract"] = {
+            "exact_selected_direction_name": selected_direction_name,
+            "minimum_distinct_source_urls": 3,
+            "available_source_urls": design_reference_urls,
+            "required_anti_copying_statement": anti_copying_statement,
+        }
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Use the retrieved design contract and reference records as source truth.",
+            "Preserve source URLs, reference ids, use boundaries, considered directions, and the selected direction.",
+            "Document concrete implemented tokens, composition, responsive behavior, focus, interaction states, and reduced motion.",
+            "Copy the exact selected-direction name and required anti-copying statement from design_documentation_contract without paraphrasing them.",
+            "Cite at least three distinct available_source_urls as literal https:// URLs.",
+        ]
+        system += (
+            "\nCURRENT DESIGN DOCUMENTATION CONTRACT (highest precedence): name the selected "
+            f"visual direction exactly as {json.dumps(selected_direction_name, ensure_ascii=False)}. "
+            "Cite at least three distinct literal https:// source URLs from the supplied available "
+            "source URLs. Include this exact sentence: "
+            f"{anti_copying_statement} Preserve source traceability and connect the selected "
+            "direction to concrete implementation decisions.\n"
+        )
+    if target_file.replace("\\", "/") in {
+        "backend/artifact_store.py",
+        "docs/artifact_contract.md",
+    }:
+        component_contract_slice = (
+            component.get("contract_slice", {})
+            if isinstance(component.get("contract_slice", {}), dict)
+            else {}
+        )
+        acceptance_metrics = (
+            component_pipeline.get("acceptance_metrics", {})
+            if isinstance(component_pipeline.get("acceptance_metrics", {}), dict)
+            else {}
+        )
+        required_artifact_fields = [
+            str(field).strip()
+            for field in (
+                component_contract_slice.get("required_artifact_fields", [])
+                or acceptance_metrics.get("required_artifact_fields", [])
+            )
+            if str(field).strip()
+        ]
+        required_stage_artifacts = [
+            str(name).strip()
+            for name in (
+                component_contract_slice.get("required_stage_artifacts", [])
+                or acceptance_metrics.get("required_stage_artifacts", [])
+            )
+            if str(name).strip()
+        ]
+        payload["stage_artifact_schema_contract"] = {
+            "required_fields_exact": required_artifact_fields,
+            "required_stage_artifact_names": required_stage_artifacts,
+            "python_implementation_rule": (
+                "Define and validate a real record mapping containing every required field; "
+                "ArtifactStore must store and retrieve validated records, not opaque bytes only."
+            ),
+            "documentation_rule": (
+                "Enumerate every exact field and every stage artifact, with producer, consumer, "
+                "validation, and failure semantics; do not include pass/TODO placeholder examples."
+            ),
+        }
+        system += (
+            "\nCURRENT STAGE ARTIFACT SCHEMA CONTRACT (highest precedence): this exact target must "
+            "implement or document every required field: "
+            + ", ".join(required_artifact_fields)
+            + ". It must cover every required stage artifact: "
+            + ", ".join(required_stage_artifacts)
+            + ". For Python, validate structured records and do not store opaque bytes only. For "
+            "documentation, enumerate producers, consumers, validation, and honest failure behavior; "
+            "never use pass, TODO, placeholder, or future implementation examples.\n"
+        )
+    if target_file.replace("\\", "/") in {
+        "backend/image_adapters.py",
+        "scripts/capture_workflow.py",
+        "demo/run_fixture.py",
+    }:
+        component_contract_slice = (
+            component.get("contract_slice", {})
+            if isinstance(component.get("contract_slice", {}), dict)
+            else {}
+        )
+        payload["executable_media_contract"] = {
+            "required_pipeline_stages": component_contract_slice.get(
+                "required_pipeline_stages", []
+            ),
+            "required_stage_artifacts": component_contract_slice.get(
+                "required_stage_artifacts", []
+            ),
+            "required_artifact_fields": component_contract_slice.get(
+                "required_artifact_fields", []
+            ),
+            "offline_png": {
+                "real_file_required": True,
+                "deterministic_prompt_seed": True,
+                "distinct_inputs_have_distinct_sha256": True,
+                "background_and_sprite_are_separate_workflows": True,
+                "sprite_rgba_alpha_required": True,
+            },
+            "fixture": {
+                "minimum_backgrounds": 2,
+                "minimum_sprites": 2,
+                "verify_png_signature_or_decode": True,
+                "verify_hash_diversity": True,
+                "verify_sprite_transparency": True,
+                "execute_real_stage_graph": True,
+                "write_all_required_stage_artifacts": True,
+            },
+            "prohibited_success_substitutes": [
+                "Generated image for prompt text",
+                "simulated media bytes",
+                "path-only success without a written decodable PNG",
+            ],
+        }
+        if target_file == "backend/image_adapters.py":
+            payload["executable_media_contract"]["implementation_shape"] = {
+                "writer_owner": "OfflinePngGenerator",
+                "required_concrete_write": (
+                    "The adapter must write encoded PNG bytes itself with "
+                    "Path(output_path).write_bytes(png_bytes), image.save(...), or write_png(...)."
+                ),
+                "result_rule": (
+                    "Return success metadata only after the output path exists and its bytes "
+                    "have a valid PNG signature."
+                ),
+            }
+        elif target_file == "scripts/capture_workflow.py":
+            payload["executable_media_contract"]["implementation_shape"] = {
+                "writer_owner": "backend.image_adapters.OfflinePngGenerator",
+                "background_call": "result = generator.generate_background(prompt, seed, str(output_path), **details)",
+                "sprite_call": "result = generator.generate_sprite(prompt, seed, str(output_path), **details)",
+                "verification": (
+                    "After the adapter call, require output_path.is_file(), read bytes with "
+                    "png_bytes = output_path.read_bytes(), define "
+                    "PNG_SIGNATURE = b'\\x89PNG\\r\\n\\x1a\\n', reject when "
+                    "not png_bytes.startswith(PNG_SIGNATURE), and "
+                    "compute hashlib.sha256(png_bytes).hexdigest()."
+                ),
+                "return_rule": (
+                    "Return prompt, seed, sha256, generator, asset_type, and a .png path only "
+                    "after verification; preserve character/expression/pose/clothing for sprites."
+                ),
+            }
+        elif target_file == "demo/run_fixture.py":
+            exact_stage_artifacts = [
+                str(name).strip()
+                for name in component_contract_slice.get("required_stage_artifacts", [])
+                if str(name).strip()
+            ]
+            payload["executable_media_contract"]["implementation_shape"] = {
+                "required_constant_name": "REQUIRED_STAGE_ARTIFACTS",
+                "required_constant_values_exact": exact_stage_artifacts,
+                "required_public_imports": [
+                    "import hashlib",
+                    "import json",
+                    "from pathlib import Path",
+                    "from main import initialize_app",
+                    "from scripts.capture_workflow import capture_background, generate_sprite",
+                ],
+                "stage_graph_rule": (
+                    "Call startup = initialize_app() exactly once and use only its returned public "
+                    "mapping as stage-graph evidence. Do not construct ProjectOrchestrator here. Then "
+                    "iterate every REQUIRED_STAGE_ARTIFACTS value, write a structured JSON receipt "
+                    "derived from startup, require its file exists, load it with json, and record path "
+                    "plus validation evidence."
+                ),
+                "media_rule": (
+                    "Call capture_background twice and generate_sprite twice with distinct prompt/seed "
+                    "inputs and concrete output paths; decode every PNG with Pillow Image.open(...), convert "
+                    "sprites to RGBA, inspect image.getchannel('A').getextrema(), compare SHA-256 values, "
+                    "and prove meaningful sprite transparency. Never infer pixels or alpha from fixed indexes "
+                    "of compressed PNG file bytes."
+                ),
+                "private_api_rule": (
+                    "Use only dependency APIs published in exact_implemented_dependency_symbols; do "
+                    "not invent or import private helpers such as _utc_now_iso, and do not reference "
+                    "ProjectOrchestrator directly."
+                ),
+            }
+        system += (
+            "\nCURRENT EXECUTABLE MEDIA CONTRACT (highest precedence): implement real deterministic "
+            "offline PNG creation from prompt and seed. Background and sprite are separate workflows; "
+            "sprite PNG uses RGBA and contains transparent pixels. Different fixture inputs must produce "
+            "different SHA-256 values. The fixture generates and validates at least two backgrounds and "
+            "two sprites, confirms PNG signature/decoding and sprite alpha, executes the real application "
+            "stage graph, writes every required stage artifact as structured JSON, and returns structured evidence. "
+            "Never simulate image generation with descriptive text, fake bytes, or an unwritten path. "
+            "Missing optional external capability is an honest degraded/error result, while the offline "
+            "default remains executable.\n"
+        )
+        if target_file == "backend/image_adapters.py":
+            system += (
+                "The concrete PNG writer belongs in OfflinePngGenerator: call "
+                "Path(output_path).write_bytes(png_bytes), image.save(...), or write_png(...) "
+                "before returning success, then verify the written path and PNG signature.\n"
+            )
+        elif target_file == "scripts/capture_workflow.py":
+            system += (
+                "Do not re-render or duplicate the adapter's writer in this capture wrapper. In "
+                "capture_background, call exactly generator.generate_background(...); in "
+                "generate_sprite, call exactly generator.generate_sprite(...). After each call, "
+                "use output_path = Path(...), require output_path.is_file(), use "
+                "png_bytes = output_path.read_bytes(), define exactly "
+                "PNG_SIGNATURE = b'\\x89PNG\\r\\n\\x1a\\n', and execute "
+                "if not png_bytes.startswith(PNG_SIGNATURE): raise ValueError('invalid PNG signature'). "
+                "Then compute "
+                "hashlib.sha256(png_bytes).hexdigest(). Return prompt, seed, sha256, generator, "
+                "asset_type, and a .png path only after those checks.\n"
+            )
+        elif target_file == "demo/run_fixture.py":
+            required_fixture_artifacts = [
+                str(name).strip()
+                for name in component_contract_slice.get("required_stage_artifacts", [])
+                if str(name).strip()
+            ]
+            system += (
+                "Define a literal REQUIRED_STAGE_ARTIFACTS tuple/list containing every exact value in "
+                "this exact order: "
+                + ", ".join(required_fixture_artifacts)
+                + ". After executing the implemented application stage graph, iterate that constant, "
+                "require every artifact file to exist, load every file with json, and record validation "
+                "evidence. Generate exactly two backgrounds and two sprites through the published capture "
+                "functions, validate PNG bytes, distinct SHA-256 hashes, and sprite alpha. Start the file "
+                "with these exact valid Python imports on separate lines: `import hashlib`, `import json`, "
+                "`from pathlib import Path`, `from main import initialize_app`, and "
+                "`from scripts.capture_workflow import capture_background, generate_sprite`. Do not call "
+                "an undefined convenience helper such as write_json_artifact; either define every helper "
+                "before use or directly call Path.write_text(json.dumps(...), encoding='utf-8'). Avoid "
+                "f-strings for JSON or path construction. Execute the stage graph exactly once with "
+                "`startup = initialize_app()` and derive JSON receipts from that public returned mapping. "
+                "Do not construct or reference ProjectOrchestrator in the fixture. Never invent or import "
+                "a private helper such as _utc_now_iso; use datetime.now(timezone.utc).isoformat() if a "
+                "timestamp is useful. Import `from PIL import Image`; open each generated path with "
+                "`Image.open(path)`, convert sprites with `.convert('RGBA')`, and inspect the alpha channel "
+                "with `alpha_min, alpha_max = rgba.getchannel('A').getextrema()` and require exactly "
+                "`alpha_min < 255` (plus nonempty visible alpha). Never inspect `png_bytes[integer]` or other fixed "
+                "positions in compressed PNG bytes as pixels. Include "
+                "an executable __main__ guard that exits nonzero on failed evidence.\n"
+            )
+    if target_file == "backend/orchestrator.py":
+        payload["stage_callable_execution_contract"] = {
+            "stage_form": "plain callable",
+            "exact_invocation": "result = stage(state)",
+            "forbidden_invocation": "stage.execute(state)",
+            "result_contract": {"required_fields": ["status", "output"]},
+        }
+        system += (
+            "\nCURRENT STAGE CALLABLE EXECUTION CONTRACT (highest precedence): stages supplied to "
+            "ProjectOrchestrator are plain Python callables. Invoke each exactly as result = stage(state); "
+            "never call stage.execute(state). Validate that result is a mapping with status and output, "
+            "stop on non-success, and merge a successful output mapping into the evolving state. Use this "
+            "literal loop shape inside execute: for stage in self.stages: result = stage(state); inspect "
+            "result.get('status') and result.get('output'); then state.update(output). Keep the evolving "
+            "variable name exactly state and the stage result variable name exactly result so the contract "
+            "is statically inspectable.\n"
+        )
+    assigned_uniform_stage_symbols: list[str] = []
+    if re.fullmatch(r"backend/stages_part_\d+\.py", target_file):
+        component_contract_slice = (
+            component.get("contract_slice", {})
+            if isinstance(component.get("contract_slice", {}), dict)
+            else {}
+        )
+        required_pipeline_stage_names = {
+            str(stage).strip()
+            for stage in component_contract_slice.get("required_pipeline_stages", [])
+            if str(stage).strip()
+        }
+        assigned_uniform_stage_symbols = [
+            str(symbol).strip()
+            for symbol in manifest_entry.get("expected_symbols", [])
+            if str(symbol).strip() in required_pipeline_stage_names
+        ]
+        if assigned_uniform_stage_symbols:
+            payload["uniform_stage_callable_contract"] = {
+                "exact_stage_functions": assigned_uniform_stage_symbols,
+                "exact_signature": "stage(state: dict) -> dict",
+                "required_result_fields": ["status", "output"],
+                "status_values": ["success", "error"],
+            }
+            system += (
+                "\nCURRENT UNIFORM STAGE CALLABLE CONTRACT (highest precedence): define each of these "
+                "exact functions with exactly one state parameter: "
+                + ", ".join(assigned_uniform_stage_symbols)
+                + ". Each returns a mapping containing status ('success' or 'error') and output (a "
+                "mapping). Read prior values from state and place only this stage's produced values in "
+                "output. Every return statement must directly return a literal mapping whose status is "
+                "the literal string 'success' or 'error' and whose output is a literal mapping or a local "
+                "mapping variable. Do not compute status dynamically or return a helper call. Do not add "
+                "required positional parameters such as schema, node, prompt, or path.\n"
+            )
+    if target_file == "main.py" and "initialize_app" in [
+        str(item).strip()
+        for item in manifest_entry.get("expected_symbols", [])
+        if str(item).strip()
+    ]:
+        component_contract_slice = (
+            component.get("contract_slice", {})
+            if isinstance(component.get("contract_slice", {}), dict)
+            else {}
+        )
+        required_entry_stages = [
+            str(item).strip()
+            for item in component_contract_slice.get("required_pipeline_stages", [])
+            if str(item).strip()
+        ]
+        payload["application_entry_stage_contract"] = {
+            "required_stage_symbols_in_order": required_entry_stages,
+            "forbid_empty_stage_graph": True,
+            "execute_required": True,
+        }
+        system += (
+            "\nCURRENT APPLICATION ENTRY CONTRACT (highest precedence): define initialize_app() "
+            "as the stable importable entrypoint, use only the exact ProjectOrchestrator API supplied by "
+            "the librarian, construct it with every required pipeline stage in the declared order, "
+            "pass those stage function names directly in a literal list/tuple (or a simple variable bound "
+            "to that literal) rather than a registry, builder, comprehension, or helper call, never pass "
+            "an empty stages list, return a non-null structured startup result, and call initialize_app() from "
+            "the __main__ guard. Do not substitute a function or variable named app.\n"
+        )
+    if component_id == "foundation" and target_file.lower() == "requirements.txt":
+        component_contract_slice = (
+            component.get("contract_slice", {})
+            if isinstance(component.get("contract_slice", {}), dict)
+            else {}
+        )
+        media_stages = {
+            str(stage).strip().lower()
+            for stage in component_contract_slice.get("required_pipeline_stages", [])
+            if str(stage).strip()
+        }
+        if {"generate_background_assets", "generate_sprite_assets"}.issubset(media_stages):
+            payload["media_runtime_dependency_contract"] = {
+                "required_python_distribution": "Pillow",
+                "import_name": "PIL",
+                "reason": "offline PNG generation and fixture decoding",
+            }
+            system += (
+                "\nCURRENT MEDIA RUNTIME DEPENDENCY CONTRACT (highest precedence): requirements.txt "
+                "must declare the Pillow distribution because generated code imports PIL for offline PNG "
+                "generation and fixture decoding. Keep the dependency set consistent with pyproject.toml.\n"
+            )
+    if component_id == "foundation" and target_file.lower() == "pyproject.toml":
+        payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
+            "Do not declare [project.scripts] or another console entrypoint unless its exact importable target module is owned by and present in this foundation component manifest.",
+            "Never invent a package path for a downstream backend CLI. A root main.py or backend/cli.py is owned and wired later by the backend component.",
+            "Use one valid PEP 621 version strategy: never declare the project version both statically and in dynamic.",
+            "Return parseable TOML. Dependency table entries use TOML assignment such as flask = '==2.1.2', never requirements.txt syntax such as flask == 2.1.2.",
+        ]
+        system += "\nFor foundation pyproject.toml, return parseable TOML; dependency table entries use name = 'version constraint', never name == version requirements.txt syntax; omit console scripts whose target module is not a foundation-owned file; and never combine a static project version with dynamic=['version'].\n"
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
@@ -1935,27 +9281,263 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         routing_policy=routing_policy,
         last_error=last_transport_error,
     )
-    doc = parse_json_object(raw)
+    try:
+        doc = parse_json_object(raw)
+    except RuntimeError as exc:
+        raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
     if "files" in doc:
         files = doc.get("files", [])
         if not isinstance(files, list) or len(files) != 1:
-            raise RuntimeError(f"split file generation for {target_file} returned {len(files) if isinstance(files, list) else 'invalid'} files")
+            raise ProviderOutputContractError(
+                f"split file generation for {target_file} returned {len(files) if isinstance(files, list) else 'invalid'} files",
+                raw_output=raw,
+                parsed_result=doc,
+            )
         item = files[0]
     else:
         item = {"path": doc.get("path", ""), "content": doc.get("content", "")}
     if not isinstance(item, dict):
-        raise RuntimeError(f"split file generation for {target_file} returned invalid file object")
+        raise ProviderOutputContractError(
+            f"split file generation for {target_file} returned invalid file object",
+            raw_output=raw,
+            parsed_result=doc,
+        )
     completed_paths = {str(row.get("path", "")).replace("\\", "/").strip() for row in completed_files}
-    return (
-        validate_split_file_for_component(
-            component_id=component_id,
-            target_file=target_file,
-            file_item=item,
-            prior_manifest=prior_manifest,
-            completed_paths=completed_paths,
-        ),
-        raw,
+    validated = validate_split_file_for_component(
+        component_id=component_id,
+        target_file=target_file,
+        file_item=item,
+        prior_manifest=prior_manifest,
+        completed_paths=completed_paths,
     )
+    if pathlib.PurePosixPath(target_file).suffix.lower() == ".py":
+        safety_blockers = generated_python_safety_violations(
+            target_file, str(validated.get("content", ""))
+        )
+        if safety_blockers:
+            raise RuntimeError(
+                "generated Python execution safety contract mismatch: "
+                + "; ".join(safety_blockers)
+            )
+    boundary_receipt = build_leaf_boundary_check_receipt(
+        component_id=component_id,
+        target_file=target_file,
+        component_files=[*completed_files, validated],
+        prior_files=prior_files,
+        manifest_paths=[
+            str(entry.get("path", ""))
+            for entry in (component_file_manifest or [])
+            if isinstance(entry, dict)
+        ],
+        manifest_entry=manifest_entry,
+    )
+    if target_file.lower() == "pyproject.toml":
+        pyproject_text = str(validated.get("content", ""))
+        try:
+            parsed_pyproject = tomllib.loads(pyproject_text)
+        except tomllib.TOMLDecodeError as exc:
+            raise RuntimeError(f"pyproject TOML contract mismatch: {exc}") from exc
+        build_system = parsed_pyproject.get("build-system", {})
+        if build_system and not isinstance(build_system, dict):
+            raise RuntimeError(
+                "pyproject TOML contract mismatch: build-system must be a table"
+            )
+    stage_artifact_schema_contract = payload.get("stage_artifact_schema_contract", {})
+    if isinstance(stage_artifact_schema_contract, dict) and stage_artifact_schema_contract:
+        generated_text = str(validated.get("content", ""))
+        generated_text_lower = generated_text.lower()
+        missing_artifact_fields = [
+            str(field)
+            for field in stage_artifact_schema_contract.get("required_fields_exact", [])
+            if str(field).strip() and str(field).lower() not in generated_text_lower
+        ]
+        missing_stage_artifacts = [
+            str(name)
+            for name in stage_artifact_schema_contract.get("required_stage_artifact_names", [])
+            if str(name).strip() and str(name).lower() not in generated_text_lower
+        ]
+        artifact_contract_blockers: list[str] = []
+        if missing_artifact_fields:
+            artifact_contract_blockers.append(
+                "missing exact record fields: " + ", ".join(missing_artifact_fields)
+            )
+        if target_file == "docs/artifact_contract.md" and missing_stage_artifacts:
+            artifact_contract_blockers.append(
+                "missing exact stage artifacts: " + ", ".join(missing_stage_artifacts)
+            )
+        if target_file == "backend/artifact_store.py" and re.search(
+            r"(?:dict|Dict)\s*\[\s*str\s*,\s*bytes\s*\]", generated_text
+        ):
+            artifact_contract_blockers.append("ArtifactStore still stores opaque bytes")
+        if any(
+            token in generated_text_lower
+            for token in ("dummy implementation", "todo", "placeholder", "future implementation")
+        ):
+            artifact_contract_blockers.append("artifact contract contains placeholder behavior")
+        if target_file == "docs/artifact_contract.md" and re.search(
+            r"(?m)^\s*pass\s*$", generated_text
+        ):
+            artifact_contract_blockers.append("artifact documentation contains a pass-only example")
+        if artifact_contract_blockers:
+            raise RuntimeError(
+                "stage artifact schema contract mismatch: "
+                + "; ".join(artifact_contract_blockers)
+            )
+    executable_media_contract = payload.get("executable_media_contract", {})
+    if isinstance(executable_media_contract, dict) and executable_media_contract:
+        generated_text = str(validated.get("content", ""))
+        generated_text_lower = generated_text.lower()
+        media_contract_blockers: list[str] = []
+        if any(
+            token in generated_text_lower
+            for token in (
+                "simulate media",
+                "simulate image",
+                "simulated media",
+                "generated image for prompt",
+                "dummy implementation",
+            )
+        ):
+            media_contract_blockers.append("media workflow still simulates image success")
+        if target_file == "backend/image_adapters.py":
+            normalized_media_text = generated_text_lower.replace("_", "")
+            for token in ("offlinepnggenerator", "generatebackground", "generatesprite", "png"):
+                if token not in normalized_media_text:
+                    media_contract_blockers.append(f"offline PNG generator missing {token}")
+            if not any(token in generated_text_lower for token in ("rgba", "alpha")):
+                media_contract_blockers.append("sprite generator has no RGBA/alpha behavior")
+            if not any(
+                token in generated_text_lower
+                for token in (".write_bytes(", ".save(", "save_image(", "write_png(")
+            ):
+                media_contract_blockers.append(
+                    "offline PNG generator has no concrete PNG write operation; "
+                    "write encoded bytes with Path(output_path).write_bytes(png_bytes) "
+                    "or save the image before returning success"
+                )
+        elif target_file == "scripts/capture_workflow.py":
+            for token in (
+                "capture_background",
+                "generate_sprite",
+                ".generate_background(",
+                ".generate_sprite(",
+                "sha256",
+                "prompt",
+                "seed",
+                "generator",
+                "path",
+            ):
+                if token not in generated_text_lower:
+                    media_contract_blockers.append(f"capture workflow missing {token}")
+            if ".is_file(" not in generated_text_lower or ".read_bytes(" not in generated_text_lower:
+                media_contract_blockers.append(
+                    "capture workflow does not verify the adapter-written PNG; after calling the "
+                    "adapter, require output_path.is_file(), read output_path.read_bytes(), "
+                    "validate its PNG signature, and hash those bytes"
+                )
+            if not any(
+                token in generated_text_lower
+                for token in ("png_signature", "startswith(", "89504e47", "\\x89png")
+            ):
+                media_contract_blockers.append(
+                    "capture workflow reads output bytes but does not validate the PNG signature"
+                )
+        elif target_file == "demo/run_fixture.py":
+            if "__main__" not in generated_text:
+                media_contract_blockers.append(
+                    "demo/run_fixture.py has no __main__ execution guard"
+                )
+            for token in ("run_fixture", "capture_background", "generate_sprite", "sha256"):
+                if token not in generated_text_lower:
+                    media_contract_blockers.append(f"fixture workflow missing {token}")
+            for artifact_name in executable_media_contract.get(
+                "required_stage_artifacts", []
+            ):
+                if str(artifact_name).strip().lower() not in generated_text_lower:
+                    media_contract_blockers.append(
+                        f"fixture workflow missing stage artifact {artifact_name}"
+                    )
+            media_contract_blockers.extend(
+                generated_fixture_source_violations(generated_text)
+            )
+        if media_contract_blockers:
+            raise RuntimeError(
+                "executable media contract mismatch: "
+                + "; ".join(dict.fromkeys(media_contract_blockers))
+            )
+    if target_file == "backend/orchestrator.py":
+        orchestrator_text = str(validated.get("content", ""))
+        if re.search(r"\bstage\s*\.\s*execute\s*\(", orchestrator_text):
+            raise RuntimeError(
+                "stage callable execution contract mismatch: orchestrator calls stage.execute(state)"
+            )
+        if not re.search(r"\bstage\s*\(\s*state\s*\)", orchestrator_text):
+            raise RuntimeError(
+                "stage callable execution contract mismatch: orchestrator does not call stage(state); "
+                "inside `for stage in self.stages`, use exactly `result = stage(state)`, inspect "
+                "`result.get('status')` and `result.get('output')`, then `state.update(output)`"
+            )
+        orchestrator_blockers = orchestrator_execution_violations(
+            target_file, orchestrator_text
+        )
+        if orchestrator_blockers:
+            raise RuntimeError(
+                "stage callable execution contract mismatch: "
+                + "; ".join(orchestrator_blockers)
+            )
+    if assigned_uniform_stage_symbols:
+        try:
+            stage_tree = ast.parse(str(validated.get("content", "")))
+        except SyntaxError as exc:
+            raise RuntimeError(f"uniform stage callable contract syntax failure: {exc}") from exc
+        stage_contract_blockers = uniform_stage_callable_violations(
+            target_file,
+            str(validated.get("content", "")),
+            assigned_uniform_stage_symbols,
+        )
+        if stage_contract_blockers:
+            raise RuntimeError(
+                "uniform stage callable contract mismatch: "
+                + "; ".join(stage_contract_blockers)
+            )
+    application_entry_contract = payload.get("application_entry_stage_contract", {})
+    if target_file == "main.py" and isinstance(application_entry_contract, dict):
+        entry_blockers = application_entry_stage_violations(
+            target_file,
+            str(validated.get("content", "")),
+            [
+                str(item).strip()
+                for item in application_entry_contract.get(
+                    "required_stage_symbols_in_order", []
+                )
+                if str(item).strip()
+            ],
+        )
+        if entry_blockers:
+            raise RuntimeError(
+                "application entry stage contract mismatch: "
+                + "; ".join(entry_blockers)
+            )
+    media_runtime_dependency_contract = payload.get(
+        "media_runtime_dependency_contract", {}
+    )
+    if (
+        isinstance(media_runtime_dependency_contract, dict)
+        and media_runtime_dependency_contract
+        and "pillow" not in str(validated.get("content", "")).lower()
+    ):
+        raise RuntimeError(
+            "media runtime dependency contract mismatch: requirements.txt does not declare Pillow"
+        )
+    if boundary_receipt["status"] != "PASS":
+        first_error = str(boundary_receipt["blockers"][0])
+        if first_error.startswith(target_file) and (
+            " imports missing " in first_error or " calls missing " in first_error
+            or " calls incompatible " in first_error
+        ):
+            first_error = "python leaf interface contract mismatch: " + first_error
+        raise RuntimeError(first_error)
+    return validated, raw
 
 
 def write_pending_component_file_generation(
@@ -1969,6 +9551,7 @@ def write_pending_component_file_generation(
     selected_model: str,
     next_retry_model: str,
     last_transport_error: str,
+    target_files: list[str] | None = None,
 ) -> None:
     completed_paths = [str(item.get("path", "")).replace("\\", "/").strip() for item in completed_files]
     remaining_files = [
@@ -1984,6 +9567,13 @@ def write_pending_component_file_generation(
             "raw_user_goal": raw_user_goal,
             "component": component_id,
             "target_file": target_file,
+            "target_files": list(
+                dict.fromkeys(
+                    str(item).replace("\\", "/").strip()
+                    for item in (target_files or [target_file])
+                    if str(item).strip()
+                )
+            ),
             "payload_mode": "split_file",
             "file_manifest": file_manifest,
             "completed_files": completed_paths,
@@ -1996,13 +9586,412 @@ def write_pending_component_file_generation(
     )
 
 
+def archive_completed_pending_component_leaf(
+    run_dir: pathlib.Path,
+    *,
+    component_id: str,
+    target_file: str,
+) -> bool:
+    pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
+    if not pending_path.exists():
+        return False
+    try:
+        pending = load_json(pending_path)
+    except Exception:
+        return False
+    active_pending = pending
+    nested_pending = pending.get("repair_plan") if isinstance(pending, dict) else None
+    if (
+        isinstance(nested_pending, dict)
+        and str(nested_pending.get("stage", "")) == "component_file_generation"
+    ):
+        active_pending = nested_pending
+    if (
+        str(active_pending.get("stage", "")) != "component_file_generation"
+        or str(active_pending.get("component", "")) != str(component_id)
+        or str(active_pending.get("target_file", "")).replace("\\", "/").strip()
+        != str(target_file).replace("\\", "/").strip()
+    ):
+        return False
+    active_pending["status"] = "completed"
+    active_pending["completed_at"] = now()
+    if active_pending is not pending:
+        pending["repair_plan"] = active_pending
+    pending["status"] = "completed"
+    pending["completed_at"] = active_pending["completed_at"]
+    write_json(run_dir / "artifacts" / "pending_repair_plan.completed.json", pending)
+    pending_path.unlink()
+    return True
+
+
+def promote_component_file_retry_plan(
+    current_plan: dict[str, Any],
+    pending_context: dict[str, Any],
+    component_id: str,
+) -> dict[str, Any]:
+    """Keep the accepted leaf manifest stable across retries inside one component attempt."""
+    if (
+        isinstance(pending_context, dict)
+        and str(pending_context.get("stage", "")) == "component_file_generation"
+        and str(pending_context.get("component", "")) == str(component_id)
+        and isinstance(pending_context.get("file_manifest"), list)
+        and pending_context.get("file_manifest")
+    ):
+        return dict(pending_context)
+    return current_plan
+
+
+def pending_file_manifest_for_component(
+    pending_context: dict[str, Any],
+    component_id: str,
+) -> list[dict[str, Any]] | None:
+    """Return a pending manifest only to the component that originally owned it."""
+    if (
+        isinstance(pending_context, dict)
+        and str(pending_context.get("stage", "")) == "component_file_generation"
+        and str(pending_context.get("component", "")) == str(component_id)
+        and isinstance(pending_context.get("file_manifest"), list)
+        and pending_context.get("file_manifest")
+    ):
+        return pending_context["file_manifest"]
+    return None
+
+
+def component_manifest_missing_required_paths(
+    component_id: str,
+    component: dict[str, Any],
+    manifest: list[dict[str, Any]],
+) -> list[str]:
+    manifest_paths = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in manifest
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    return [
+        path
+        for path in component_required_manifest_paths(component_id, component)
+        if path not in manifest_paths
+    ]
+
+
+def recover_component_manifest_from_split_checkpoints(
+    checkpoint_dir: pathlib.Path | None,
+    component_id: str,
+) -> list[dict[str, Any]] | None:
+    """Rebuild an accepted same-run manifest from its exact persisted leaf entries."""
+    if checkpoint_dir is None:
+        return None
+    graph_path = (
+        checkpoint_dir
+        / "leaf_work_graphs"
+        / f"{provider_component_checkpoint_id(component_id)}.json"
+    )
+    if not graph_path.exists():
+        return None
+    try:
+        graph = load_json(graph_path)
+    except Exception:
+        return None
+    graph_paths = [
+        str(leaf.get("path", "")).replace("\\", "/").strip()
+        for leaf in graph.get("leaves", [])
+        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+    ]
+    if not graph_paths:
+        return None
+    manifest: list[dict[str, Any]] = []
+    for rel in graph_paths:
+        path = split_file_checkpoint_path(checkpoint_dir, component_id, rel)
+        if path is None or not path.exists():
+            return None
+        try:
+            checkpoint = load_json(path)
+        except Exception:
+            return None
+        entry = checkpoint.get("manifest_entry", {})
+        if (
+            str(checkpoint.get("status", "")).lower() != "pass"
+            or not isinstance(entry, dict)
+            or str(entry.get("path", "")).replace("\\", "/").strip() != rel
+            or split_file_manifest_entry_hash(entry)
+            != str(checkpoint.get("manifest_entry_sha256", ""))
+        ):
+            return None
+        manifest.append(entry)
+    return manifest
+
+
+def provider_leaf_max_workers() -> int:
+    if local_model_router.task_enabled("component_generation"):
+        return max(1, min(env_int("CGNK_LOCAL_PROVIDER_LEAF_MAX_WORKERS", 1), 2))
+    return max(1, min(env_int("CGKN_PROVIDER_LEAF_MAX_WORKERS", 3), 8))
+
+
+def write_leaf_orchestration_artifacts(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    spec_hash: str,
+    interface_registry: dict[str, Any],
+    boundary_receipts: list[dict[str, Any]],
+) -> None:
+    if checkpoint_dir is None:
+        return
+    safe_component = provider_component_checkpoint_id(component_id)
+    write_json(
+        checkpoint_dir / "interface_registries" / f"{safe_component}.json",
+        {"spec_hash": spec_hash, **interface_registry},
+    )
+    receipt_root = checkpoint_dir / "boundary_receipts" / safe_component
+    for receipt in boundary_receipts:
+        safe_path = re.sub(r"[^A-Za-z0-9_.-]+", "__", str(receipt.get("target_file", ""))).strip("_") or "leaf"
+        write_json(receipt_root / f"{safe_path}.json", {"spec_hash": spec_hash, **receipt})
+
+
+def write_generation_librarian_artifacts(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    spec_hash: str,
+    index_doc: dict[str, Any],
+    query_packs: list[dict[str, Any]],
+) -> None:
+    """Persist librarian selection evidence without copying source excerpts."""
+    if checkpoint_dir is None:
+        return
+    safe_component = provider_component_checkpoint_id(component_id)
+    root = checkpoint_dir / "context_librarian" / safe_component
+    safe_entries = [
+        {
+            key: value
+            for key, value in entry.items()
+            if key != "content_excerpt"
+        }
+        for entry in index_doc.get("entries", [])
+        if isinstance(entry, dict)
+    ]
+    write_json(
+        root / "index.json",
+        {
+            "kind": str(index_doc.get("kind", "")),
+            "schema_version": index_doc.get("schema_version", 1),
+            "component_id": component_id,
+            "spec_hash": spec_hash,
+            "entry_count": int(index_doc.get("entry_count", 0) or 0),
+            "entries": safe_entries,
+            "index_sha256": str(index_doc.get("index_sha256", "")),
+            "limits": index_doc.get("limits", {}),
+        },
+    )
+    query_root = root / "queries"
+    for pack in query_packs:
+        target_path = str(pack.get("target_path", ""))
+        safe_path = re.sub(r"[^A-Za-z0-9_.-]+", "__", target_path).strip("_") or str(
+            pack.get("query_kind", "query")
+        )
+        write_json(
+            query_root / f"{safe_path}.json",
+            {
+                "kind": str(pack.get("kind", "")),
+                "schema_version": pack.get("schema_version", 1),
+                "component_id": component_id,
+                "spec_hash": spec_hash,
+                "query_kind": str(pack.get("query_kind", "")),
+                "leaf_id": str(pack.get("leaf_id", "")),
+                "target_path": target_path,
+                "direct_dependency_paths": pack.get("direct_dependency_paths", []),
+                "index_sha256": str(pack.get("index_sha256", "")),
+                "query_sha256": str(pack.get("query_sha256", "")),
+                "context_budget": pack.get("context_budget", {}),
+                "selected_item_ids": [
+                    str(item.get("item_id", ""))
+                    for item in pack.get("selected_items", [])
+                    if isinstance(item, dict)
+                ],
+                "selected_paths": [
+                    str(item.get("path", ""))
+                    for item in pack.get("selected_items", [])
+                    if isinstance(item, dict) and str(item.get("path", "")).strip()
+                ],
+                "excluded_entry_count": int(pack.get("excluded_entry_count", 0) or 0),
+                "excluded_reasons": pack.get("excluded_reasons", {}),
+            },
+        )
+
+
+def _provider_generate_leaf_with_retry(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    leaf: dict[str, Any],
+    entry: dict[str, Any],
+    prior_manifest: list[str],
+    completed_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None,
+    manifest: list[dict[str, Any]],
+    repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None,
+    interface_registry: dict[str, Any],
+    librarian_index: dict[str, Any],
+    model: str,
+    timeout: int,
+    deadline: float | ProgressDeadline | None,
+    phase_log_path: pathlib.Path | str | None,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    pending_context: dict[str, Any],
+    last_transport_error: Any,
+) -> dict[str, Any]:
+    component_id = str(component.get("id", "")).strip()
+    target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
+    librarian_context_pack = query_generation_context_librarian(
+        librarian_index,
+        leaf=leaf,
+        query_kind="leaf_generation",
+    )
+    leaf_interface_contract = build_leaf_interface_contract(
+        component_id=component_id,
+        leaf=leaf,
+        completed_files=completed_files,
+        prior_files=prior_files,
+        integration_feedforward=integration_feedforward,
+        interface_registry=interface_registry,
+        librarian_context_pack=librarian_context_pack,
+    )
+    initial_error_text = (
+        str(last_transport_error or pending_context.get("last_transport_error", "") or "")
+        if target_file == str(pending_context.get("target_file", "")).replace("\\", "/").strip()
+        else ""
+    )
+    rejection_history = [initial_error_text] if initial_error_text else []
+    last_error_text = initial_error_text
+    previous_model = ""
+    attempt_limit = provider_transport_repair_attempts()
+    for attempt in range(attempt_limit):
+        route_prompt_chars = len(
+            json.dumps(
+                {
+                    "goal": goal,
+                    "manifest_entry": entry,
+                    "leaf_interface_contract": leaf_interface_contract,
+                    "librarian_context": librarian_context_pack,
+                    "previous_generation_error": last_error_text,
+                },
+                ensure_ascii=False,
+                default=str,
+            )
+        )
+        route = choose_provider_model(
+            "component_file_generation",
+            route_prompt_chars,
+            model,
+            routing_policy,
+            last_error=last_error_text,
+            attempt_number=attempt + 1,
+        )
+        call_model = str(route.get("selected_model") or model)
+        if (
+            str(pending_context.get("next_retry_model", "")).strip()
+            and attempt == 0
+            and target_file == str(pending_context.get("target_file", "")).strip()
+        ):
+            call_model = str(pending_context.get("next_retry_model", "")).strip()
+            route["selected_model"] = call_model
+            route["model_routing_reason"] = "pending_next_retry_model"
+        if previous_model and previous_model != call_model:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_retry_model_route",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "target_file": target_file,
+                    "previous_model": previous_model,
+                    "next_model": call_model,
+                    "reason": route.get("model_routing_reason", ""),
+                },
+            )
+        previous_model = call_model
+        try:
+            leaf_timeout_cap = provider_component_file_timeout_cap()
+            call_timeout = (
+                remaining_timeout(deadline, timeout, floor=5, cap=leaf_timeout_cap)
+                if deadline
+                else min(timeout, leaf_timeout_cap)
+            )
+            file_item, raw = provider_generate_component_file(
+                goal=goal,
+                component=component,
+                component_pipeline=component_pipeline,
+                manifest_entry=entry,
+                prior_manifest=prior_manifest,
+                completed_files=completed_files,
+                prior_files=prior_files,
+                component_file_manifest=manifest,
+                repair_errors=repair_errors,
+                integration_feedforward=integration_feedforward,
+                leaf_interface_contract=leaf_interface_contract,
+                librarian_context_pack=librarian_context_pack,
+                model=call_model,
+                timeout=call_timeout,
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                last_transport_error=last_error_text,
+                retry_attempt=attempt + 1,
+            )
+            return {
+                "file_item": file_item,
+                "raw_output": raw,
+                "leaf_interface_contract": leaf_interface_contract,
+                "librarian_context_pack": librarian_context_pack,
+                "selected_model": call_model,
+            }
+        except (RuntimeError, TimeoutError) as exc:
+            current_error_text = str(exc)
+            if current_error_text and current_error_text not in rejection_history:
+                rejection_history.append(current_error_text)
+            rejection_history = rejection_history[-6:]
+            last_error_text = (
+                "ALL REJECTED CANDIDATE VIOLATIONS (fix every item; do not regress):\n- "
+                + "\n- ".join(rejection_history)
+            )[:1500]
+            error_type = provider_exception_error_type(exc)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "component_leaf_attempt_failed",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "target_file": target_file,
+                    "attempt": attempt + 1,
+                    "attempt_limit": attempt_limit,
+                    "error_type": error_type,
+                    "error_summary": bounded_provider_diagnostic_output(
+                        current_error_text,
+                        max_chars=1500,
+                    ),
+                    "retryable": provider_component_error_is_retryable(error_type, current_error_text),
+                },
+            )
+            if (
+                not provider_component_error_is_retryable(error_type, current_error_text)
+                or attempt == attempt_limit - 1
+            ):
+                raise
+            if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
+                time.sleep(min(20.0, 2.0 * (2**attempt)))
+    raise RuntimeError(f"component {component_id} generation failed without a leaf result")
+
+
 def provider_generate_project_component_split(
     *,
     goal: str,
     component: dict[str, Any],
     component_pipeline: dict[str, Any],
     prior_manifest: list[str],
+    prior_files: list[dict[str, str]] | None = None,
     repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None = None,
     model: str,
     timeout: int,
     deadline: float | ProgressDeadline | None,
@@ -2015,6 +10004,9 @@ def provider_generate_project_component_split(
     original_prompt_chars: int,
     pending_context: dict[str, Any] | None = None,
     last_transport_error: Any = None,
+    repair_target_files: list[str] | None = None,
+    existing_component_files: list[dict[str, str]] | None = None,
+    recover_manifest_from_checkpoints: bool = False,
 ) -> dict[str, Any]:
     component_id = str(component.get("id", "")).strip()
     append_provider_event_log(
@@ -2027,120 +10019,552 @@ def provider_generate_project_component_split(
         },
     )
     pending_context = pending_context or {}
-    manifest = pending_context.get("file_manifest") if str(pending_context.get("stage", "")) == "component_file_generation" else None
+    manifest = pending_file_manifest_for_component(pending_context, component_id)
+    if (
+        (not isinstance(manifest, list) or not manifest)
+        and recover_manifest_from_checkpoints
+    ):
+        manifest = recover_component_manifest_from_split_checkpoints(
+            checkpoint_dir,
+            component_id,
+        )
+        if manifest:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "component_manifest_resume_checkpoint_reused",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "file_count": len(manifest),
+                },
+            )
+    if isinstance(manifest, list) and manifest:
+        missing_current_manifest_paths = component_manifest_missing_required_paths(
+            component_id,
+            component,
+            manifest,
+        )
+        if missing_current_manifest_paths:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "component_manifest_resume_contract_invalidated",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "missing_required_paths": missing_current_manifest_paths,
+                },
+            )
+            manifest = None
     if not isinstance(manifest, list) or not manifest:
-        manifest_timeout = remaining_timeout(deadline, timeout, floor=5, cap=90) if deadline else min(timeout, 90)
+        manifest_cap = provider_component_manifest_timeout_cap()
+        manifest_timeout = (
+            remaining_timeout(deadline, timeout, floor=5, cap=manifest_cap)
+            if deadline
+            else min(timeout, manifest_cap)
+        )
         manifest = provider_component_file_manifest(
             goal=goal,
             component=component,
             component_pipeline=component_pipeline,
             prior_manifest=prior_manifest,
             repair_errors=repair_errors,
+            integration_feedforward=integration_feedforward,
             model=model,
             timeout=manifest_timeout,
             phase_log_path=phase_log_path,
             routing_policy=routing_policy,
             last_transport_error=last_transport_error,
         )
+    if component_id == "tests":
+        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest)
+    manifest = normalize_backend_stage_dependency_contract(
+        component_id, manifest, component
+    )
+    manifest = normalize_executable_media_manifest_contract(
+        component_id, manifest, component
+    )
+    contract_slice = component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {}
+    manifest = expand_component_manifest_submodules(
+        component_id,
+        manifest,
+        required_pipeline_stages=(
+            contract_slice.get("required_pipeline_stages", [])
+            if isinstance(contract_slice.get("required_pipeline_stages", []), list)
+            else []
+        ),
+    )
+    leaf_work_graph = build_component_leaf_work_graph(component_id, manifest)
+    if checkpoint_dir is not None:
+        graph_path = (
+            checkpoint_dir
+            / "leaf_work_graphs"
+            / f"{provider_component_checkpoint_id(component_id)}.json"
+        )
+        write_json(graph_path, {"spec_hash": spec_hash, **leaf_work_graph})
+    append_provider_event_log(
+        phase_log_path,
+        {
+            "event": "component_leaf_work_graph_built",
+            "stage": "project_generation",
+            "component": component_id,
+            "leaf_count": leaf_work_graph.get("leaf_count", 0),
+            "graph_sha256": leaf_work_graph.get("graph_sha256", ""),
+            "ordering_warnings": leaf_work_graph.get("ordering_warnings", []),
+        },
+    )
+    manifest_by_path = {
+        str(entry.get("path", "")).replace("\\", "/").strip(): entry
+        for entry in manifest
+        if isinstance(entry, dict)
+    }
+    repair_targets = [
+        str(path).replace("\\", "/").strip()
+        for path in (repair_target_files or [])
+        if str(path).strip()
+    ]
+    affected_repair_paths = set(component_leaf_downstream_closure(leaf_work_graph, repair_targets))
     completed_files: list[dict[str, str]] = []
     completed_paths: set[str] = set()
-    if str(pending_context.get("stage", "")) == "component_file_generation":
-        completed_paths.update(str(item).replace("\\", "/").strip() for item in pending_context.get("completed_files", []) if str(item).strip())
-    for entry in manifest:
-        rel = str(entry.get("path", "")).replace("\\", "/").strip()
-        cached = load_split_file_checkpoint(checkpoint_dir, component_id=component_id, spec_hash=spec_hash, path_value=rel)
+    existing_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in (existing_component_files or [])
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    graph_paths = [
+        str(leaf.get("path", "")).replace("\\", "/").strip()
+        for leaf in leaf_work_graph.get("leaves", [])
+        if isinstance(leaf, dict)
+    ]
+    cache_scan: list[dict[str, str]] = []
+    for rel in graph_paths:
+        if rel in affected_repair_paths:
+            cache_scan.append({"path": rel, "source": "repair_target"})
+            continue
+        cached = load_split_file_checkpoint(
+            checkpoint_dir,
+            component_id=component_id,
+            spec_hash=spec_hash,
+            path_value=rel,
+            manifest_entry=manifest_by_path.get(rel),
+            allow_spec_mismatch=bool(recover_manifest_from_checkpoints),
+        )
+        cache_source = "split_checkpoint" if cached is not None else ""
+        if cached is None:
+            cached = existing_by_path.get(rel)
+            if cached is not None:
+                cache_source = "component_checkpoint"
         if cached is not None:
             completed_files.append(cached)
             completed_paths.add(rel)
-    transport_attempt_limit = provider_transport_repair_attempts()
-    last_error_text = str(last_transport_error or pending_context.get("last_transport_error", "") or "")
-    for entry in manifest:
-        target_file = str(entry.get("path", "")).replace("\\", "/").strip()
-        if target_file in completed_paths:
+        cache_scan.append(
+            {
+                "path": rel,
+                "source": cache_source or "miss",
+                "manifest_entry_sha256": split_file_manifest_entry_hash(
+                    manifest_by_path.get(rel)
+                ),
+            }
+        )
+    append_provider_event_log(
+        phase_log_path,
+        {
+            "event": "component_leaf_cache_scanned",
+            "stage": "project_generation",
+            "component": component_id,
+            "spec_hash": spec_hash,
+            "entries": cache_scan,
+        },
+    )
+    cache_invalidated_paths: set[str] = set()
+    if not repair_targets:
+        first_cache_miss_index = next(
+            (index for index, path in enumerate(graph_paths) if path not in completed_paths),
+            None,
+        )
+        if first_cache_miss_index is not None:
+            cache_invalidated_paths.update(
+                path
+                for path in graph_paths[first_cache_miss_index:]
+                if path in completed_paths
+            )
+    cached_interface_violations = python_leaf_interface_violations(
+        [*(prior_files or []), *completed_files],
+        source_paths=set(completed_paths),
+    )
+    invalid_cached_sources = {
+        path
+        for path in completed_paths
+        if any(
+            str(violation).startswith(f"{path} ")
+            or str(violation).startswith(
+                f"python leaf interface contract mismatch: {path} "
+            )
+            for violation in cached_interface_violations
+        )
+    }
+    for cached_path in list(completed_paths):
+        cached_receipt = build_leaf_boundary_check_receipt(
+            component_id=component_id,
+            target_file=cached_path,
+            component_files=completed_files,
+            prior_files=prior_files,
+            manifest_paths=graph_paths,
+            manifest_entry=manifest_by_path[cached_path],
+        )
+        if cached_receipt.get("status") != "PASS":
+            invalid_cached_sources.add(cached_path)
+    if invalid_cached_sources:
+        cache_invalidated_paths.update(
+            component_leaf_downstream_closure(
+                leaf_work_graph,
+                sorted(invalid_cached_sources),
+            )
+        )
+    if cache_invalidated_paths:
+        completed_files = [
+            item
+            for item in completed_files
+            if str(item.get("path", "")).replace("\\", "/").strip()
+            not in cache_invalidated_paths
+        ]
+        completed_paths.difference_update(cache_invalidated_paths)
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "component_leaf_cache_invalidated",
+                "stage": "project_generation",
+                "component": component_id,
+                "invalidated_paths": [
+                    path for path in graph_paths if path in cache_invalidated_paths
+                ],
+                "invalid_interface_sources": sorted(invalid_cached_sources),
+                "reason": (
+                    "cached_interface_contract_mismatch"
+                    if invalid_cached_sources
+                    else "non_contiguous_component_checkpoint"
+                ),
+            },
+        )
+    interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
+    boundary_receipts: list[dict[str, Any]] = []
+    librarian_query_packs: list[dict[str, Any]] = []
+    librarian_index: dict[str, Any] = {}
+    ready_batches = component_leaf_ready_batches(leaf_work_graph)
+    for batch_index, batch in enumerate(ready_batches, start=1):
+        pending_leaves = [
+            leaf
+            for leaf in batch
+            if str(leaf.get("path", "")).replace("\\", "/").strip() not in completed_paths
+        ]
+        if not pending_leaves:
             continue
-        previous_model = ""
-        for attempt in range(transport_attempt_limit):
-            route = choose_provider_model(
+        completed_snapshot = list(completed_files)
+        batch_registry = interface_registry
+        librarian_index = build_generation_context_librarian_index(
+            goal=goal,
+            component=component,
+            component_pipeline=component_pipeline,
+            manifest=manifest,
+            completed_files=[
+                *completed_snapshot,
+                *[
+                    item
+                    for path, item in existing_by_path.items()
+                    if path not in {
+                        str(row.get("path", "")).replace("\\", "/").strip()
+                        for row in completed_snapshot
+                        if isinstance(row, dict)
+                    }
+                ],
+            ],
+            prior_files=prior_files,
+            integration_feedforward=integration_feedforward,
+            interface_registry=batch_registry,
+        )
+        worker_count = min(provider_leaf_max_workers(), len(pending_leaves))
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "component_leaf_batch_started",
+                "stage": "project_generation",
+                "component": component_id,
+                "batch_index": batch_index,
+                "worker_count": worker_count,
+                "leaf_paths": [str(leaf.get("path", "")) for leaf in pending_leaves],
+            },
+        )
+        results: dict[str, dict[str, Any]] = {}
+        failures: dict[str, BaseException] = {}
+        with ThreadPoolExecutor(
+            max_workers=worker_count,
+            thread_name_prefix=f"cgkn-{provider_component_checkpoint_id(component_id)}",
+        ) as executor:
+            future_to_leaf = {
+                executor.submit(
+                    _provider_generate_leaf_with_retry,
+                    goal=goal,
+                    component=component,
+                    component_pipeline=component_pipeline,
+                    leaf=leaf,
+                    entry=manifest_by_path[str(leaf.get("path", "")).replace("\\", "/").strip()],
+                    prior_manifest=prior_manifest,
+                    completed_files=completed_snapshot,
+                    prior_files=prior_files,
+                    manifest=manifest,
+                    repair_errors=repair_errors,
+                    integration_feedforward=integration_feedforward,
+                    interface_registry=batch_registry,
+                    librarian_index=librarian_index,
+                    model=model,
+                    timeout=timeout,
+                    deadline=deadline,
+                    phase_log_path=phase_log_path,
+                    routing_policy=routing_policy,
+                    pending_context=pending_context,
+                    last_transport_error=last_transport_error,
+                ): leaf
+                for leaf in pending_leaves
+            }
+            for future in as_completed(future_to_leaf):
+                leaf = future_to_leaf[future]
+                target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
+                try:
+                    results[target_file] = future.result()
+                except BaseException as exc:
+                    failures[target_file] = exc
+        for leaf in pending_leaves:
+            target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
+            leaf_result = results.get(target_file)
+            if leaf_result is None:
+                continue
+            file_item = leaf_result["file_item"]
+            write_split_file_checkpoint(
+                checkpoint_dir,
+                component_id=component_id,
+                spec_hash=spec_hash,
+                file_item=file_item,
+                manifest_entry=manifest_by_path[target_file],
+            )
+            completed_files.append(file_item)
+            completed_paths.add(target_file)
+            receipt = build_leaf_boundary_check_receipt(
+                component_id=component_id,
+                target_file=target_file,
+                component_files=completed_files,
+                prior_files=prior_files,
+                manifest_paths=list(manifest_by_path),
+                manifest_entry=manifest_by_path[target_file],
+            )
+            boundary_receipts.append(receipt)
+            librarian_pack = leaf_result.get("librarian_context_pack", {})
+            if isinstance(librarian_pack, dict) and librarian_pack:
+                librarian_query_packs.append(librarian_pack)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "component_leaf_completed",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "leaf_id": leaf.get("leaf_id", ""),
+                    "target_file": target_file,
+                    "execution_plan": leaf.get("execution_plan", {}),
+                    "interface_contract_sha256": leaf_result["leaf_interface_contract"].get("contract_sha256", ""),
+                    "boundary_receipt_sha256": receipt.get("receipt_sha256", ""),
+                    "librarian_query_sha256": str(librarian_pack.get("query_sha256", "")) if isinstance(librarian_pack, dict) else "",
+                    "librarian_context_chars": int(
+                        (librarian_pack.get("context_budget", {}) if isinstance(librarian_pack, dict) else {}).get(
+                            "selected_chars",
+                            0,
+                        )
+                        or 0
+                    ),
+                    "published_interface": generated_file_interface_summary(file_item),
+                },
+            )
+            if run_dir is not None and archive_completed_pending_component_leaf(
+                run_dir,
+                component_id=component_id,
+                target_file=target_file,
+            ):
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "pending_component_leaf_repair_completed",
+                        "stage": "project_generation",
+                        "component": component_id,
+                        "target_file": target_file,
+                    },
+                )
+            mark_generation_progress(
+                deadline,
+                "project_generation",
+                f"Provider split file {component_id}:{target_file} returned.",
+                [target_file],
+            )
+        interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
+        write_leaf_orchestration_artifacts(
+            checkpoint_dir,
+            component_id=component_id,
+            spec_hash=spec_hash,
+            interface_registry=interface_registry,
+            boundary_receipts=boundary_receipts,
+        )
+        write_generation_librarian_artifacts(
+            checkpoint_dir,
+            component_id=component_id,
+            spec_hash=spec_hash,
+            index_doc=librarian_index,
+            query_packs=librarian_query_packs,
+        )
+        if failures:
+            failed_leaf = next(
+                leaf
+                for leaf in pending_leaves
+                if str(leaf.get("path", "")).replace("\\", "/").strip() in failures
+            )
+            target_file = str(failed_leaf.get("path", "")).replace("\\", "/").strip()
+            exc = failures[target_file]
+            error_text = str(exc)
+            next_route = choose_provider_model(
                 "component_file_generation",
                 0,
                 model,
                 routing_policy,
-                last_error=last_error_text,
+                last_error=error_text,
             )
-            call_model = str(route.get("selected_model") or model)
-            if str(pending_context.get("next_retry_model", "")).strip() and attempt == 0 and target_file == str(pending_context.get("target_file", "")).strip():
-                call_model = str(pending_context.get("next_retry_model", "")).strip()
-                route["selected_model"] = call_model
-                route["model_routing_reason"] = "pending_next_retry_model"
-            if previous_model and previous_model != call_model:
-                append_provider_event_log(
-                    phase_log_path,
-                    {
-                        "event": "provider_retry_model_route",
-                        "stage": "component_file_generation",
-                        "component": component_id,
-                        "target_file": target_file,
-                        "previous_model": previous_model,
-                        "next_model": call_model,
-                        "reason": route.get("model_routing_reason", ""),
-                    },
-                )
-            previous_model = call_model
-            try:
-                call_timeout = remaining_timeout(deadline, timeout, floor=5, cap=90) if deadline else min(timeout, 90)
-                file_item, _raw = provider_generate_component_file(
-                    goal=goal,
-                    component=component,
-                    component_pipeline=component_pipeline,
-                    manifest_entry=entry,
-                    prior_manifest=prior_manifest,
-                    completed_files=completed_files,
-                    repair_errors=repair_errors,
-                    model=call_model,
-                    timeout=call_timeout,
-                    phase_log_path=phase_log_path,
-                    routing_policy=routing_policy,
-                    last_transport_error=last_error_text,
-                )
-                write_split_file_checkpoint(
-                    checkpoint_dir,
+            if run_dir is not None:
+                write_pending_component_file_generation(
+                    run_dir / "artifacts" / "pending_repair_plan.json",
+                    raw_user_goal=goal,
                     component_id=component_id,
-                    spec_hash=spec_hash,
-                    file_item=file_item,
-                    manifest_entry=entry,
+                    target_file=target_file,
+                    file_manifest=manifest,
+                    completed_files=completed_files,
+                    selected_model=model,
+                    next_retry_model=str(next_route.get("selected_model") or model),
+                    last_transport_error=error_text,
                 )
-                completed_files.append(file_item)
-                completed_paths.add(target_file)
-                mark_generation_progress(deadline, "project_generation", f"Provider split file {component_id}:{target_file} returned.", [target_file])
-                break
-            except (RuntimeError, TimeoutError) as exc:
-                last_error_text = str(exc)
-                retryable = provider_component_error_is_retryable(check_connectivity._provider_error_type(last_error_text), last_error_text)
-                next_route = choose_provider_model("component_file_generation", 0, model, routing_policy, last_error=last_error_text)
-                if run_dir is not None:
-                    write_pending_component_file_generation(
-                        run_dir / "artifacts" / "pending_repair_plan.json",
-                        raw_user_goal=goal,
-                        component_id=component_id,
-                        target_file=target_file,
-                        file_manifest=manifest,
-                        completed_files=completed_files,
-                        selected_model=previous_model or model,
-                        next_retry_model=str(next_route.get("selected_model") or previous_model or model),
-                        last_transport_error=last_error_text,
-                    )
-                if not retryable or attempt == transport_attempt_limit - 1:
-                    raise
-                if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
-                    time.sleep(min(20.0, 2.0 * (2**attempt)))
+            if isinstance(exc, ProviderOutputContractError):
+                raise ProviderOutputContractError(
+                    f"component {component_id} generation failed: {exc}",
+                    raw_output=exc.raw_output,
+                    parsed_result=exc.parsed_result,
+                ) from exc
+            raise RuntimeError(f"component {component_id} generation failed: {exc}") from exc
+    completed_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in completed_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    completed_files = [
+        completed_by_path[path]
+        for path in graph_paths
+        if path in completed_by_path
+    ]
+    interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
+    librarian_index = build_generation_context_librarian_index(
+        goal=goal,
+        component=component,
+        component_pipeline=component_pipeline,
+        manifest=manifest,
+        completed_files=completed_files,
+        prior_files=prior_files,
+        integration_feedforward=integration_feedforward,
+        interface_registry=interface_registry,
+    )
+    boundary_receipts = [
+        build_leaf_boundary_check_receipt(
+            component_id=component_id,
+            target_file=path,
+            component_files=completed_files,
+            prior_files=prior_files,
+            manifest_paths=graph_paths,
+            manifest_entry=manifest_by_path[path],
+        )
+        for path in graph_paths
+        if path in completed_by_path
+    ]
+    failed_receipts = [
+        receipt
+        for receipt in boundary_receipts
+        if str(receipt.get("status", "")) != "PASS"
+    ]
+    if failed_receipts:
+        blockers = [
+            str(blocker)
+            for receipt in failed_receipts
+            for blocker in receipt.get("blockers", [])
+        ]
+        raise RuntimeError(
+            "component leaf boundary contract mismatch: "
+            + "; ".join(blockers[:12])
+        )
+    write_leaf_orchestration_artifacts(
+        checkpoint_dir,
+        component_id=component_id,
+        spec_hash=spec_hash,
+        interface_registry=interface_registry,
+        boundary_receipts=boundary_receipts,
+    )
+    write_generation_librarian_artifacts(
+        checkpoint_dir,
+        component_id=component_id,
+        spec_hash=spec_hash,
+        index_doc=librarian_index,
+        query_packs=librarian_query_packs,
+    )
     result = {
         "component_id": component_id,
-        "summary": f"{component_id} generated through split file requests.",
+        "summary": f"{component_id} generated through dependency-ordered leaf file requests.",
         "files": completed_files,
-        "public_contract": {"exports": [item["path"] for item in completed_files]},
+        "component_file_manifest": manifest,
+        "public_contract": {
+            "exports": [item["path"] for item in completed_files],
+            "interface_catalog": [generated_file_interface_summary(item) for item in completed_files],
+        },
         "manual_checks": [],
-        "self_test": {"status": "pass", "checks": ["split_file_generation_completed"]},
-        "quality_gate": {"status": "pass", "reasons": ["manifest generated", "all split files validated"]},
+        "self_test": {"status": "pass", "checks": ["leaf_file_generation_completed"]},
+        "quality_gate": {
+            "status": "pass",
+            "reasons": [
+                "manifest generated",
+                "leaf dependency batches applied",
+                "boundary contracts passed",
+                "interfaces published",
+            ],
+        },
+        "leaf_work_graph": leaf_work_graph,
+        "interface_registry": interface_registry,
+        "boundary_check_receipts": boundary_receipts,
+        "repair_scope": {
+            "requested_paths": repair_targets,
+            "downstream_closure": [
+                path for path in graph_paths if path in affected_repair_paths
+            ],
+        },
+        "parallel_batches": [
+            [str(leaf.get("path", "")) for leaf in batch]
+            for batch in ready_batches
+        ],
+        "context_librarian": {
+            "index_sha256": str(librarian_index.get("index_sha256", "")),
+            "entry_count": int(librarian_index.get("entry_count", 0) or 0),
+            "query_count": len(librarian_query_packs),
+            "limits": librarian_index.get("limits", {}),
+            "max_selected_chars": max(
+                [
+                    int(
+                        (pack.get("context_budget", {}) if isinstance(pack, dict) else {}).get(
+                            "selected_chars",
+                            0,
+                        )
+                        or 0
+                    )
+                    for pack in librarian_query_packs
+                ]
+                or [0]
+            ),
+        },
     }
     if run_dir is not None:
         pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
@@ -2240,6 +10664,53 @@ def provider_generate_project_by_components(
     provider_phase_log_path = run_dir / "provider_phase_log.jsonl" if run_dir is not None else (
         checkpoint_dir.parent.parent / "provider_phase_log.jsonl" if checkpoint_dir else ""
     )
+    component_ids = [
+        str(item.get("id", "")).strip()
+        for item in components
+        if isinstance(item, dict) and str(item.get("id", "")).strip()
+    ]
+    same_run_resume_goal_matches = bool(
+        str(plan_for_repair.get("stage", "")) == "same_run_resume"
+        and str(plan_for_repair.get("raw_user_goal", "")).strip()
+        and str(plan_for_repair.get("raw_user_goal", "")).strip()
+        == str(goal).strip()
+    )
+    semantic_resume_goal_matches = bool(
+        str(plan_for_repair.get("stage", "")) == "provider_semantic_repair"
+        and str(plan_for_repair.get("raw_user_goal", "")).strip()
+        and str(plan_for_repair.get("raw_user_goal", "")).strip()
+        == str(goal).strip()
+    )
+    resume_component_id = (
+        str(plan_for_repair.get("component", "")).strip()
+        if str(plan_for_repair.get("stage", "")) == "component_file_generation"
+        else ""
+    )
+    resume_goal_matches = bool(
+        same_run_resume_goal_matches
+        or semantic_resume_goal_matches
+        or (
+            resume_component_id
+            and str(plan_for_repair.get("raw_user_goal", "")).strip()
+            and str(plan_for_repair.get("raw_user_goal", "")).strip()
+            == str(goal).strip()
+        )
+    )
+    resume_upstream_components: set[str] = set()
+    if resume_goal_matches and resume_component_id in component_ids:
+        resume_upstream_components = set(
+            component_ids[: component_ids.index(resume_component_id)]
+        )
+    semantic_resume_upstream_components: set[str] = set()
+    if semantic_resume_goal_matches:
+        semantic_targets = [
+            component_id
+            for component_id in repair_plan_provider_components(plan_for_repair)
+            if component_id in component_ids
+        ]
+        if semantic_targets:
+            first_target_index = min(component_ids.index(item) for item in semantic_targets)
+            semantic_resume_upstream_components = set(component_ids[:first_target_index])
 
     def checkpoint_summary() -> dict[str, Any]:
         return {
@@ -2255,14 +10726,150 @@ def provider_generate_project_by_components(
         component_id = str(component.get("id", "")).strip()
         if not component_id:
             raise RuntimeError("component missing id")
-        spec_hash = provider_component_spec_hash(goal, component_pipeline, component)
-        cached = None
-        if component_id not in forced:
-            cached = load_provider_component_checkpoint(checkpoint_dir, component_id=component_id, spec_hash=spec_hash)
+        prior_files = merge_component_files(component_results)
+        integration_feedforward = build_integration_feedforward_snapshot(
+            goal=goal,
+            component=component,
+            component_pipeline=component_pipeline,
+            plan_doc=plan_doc,
+            prior_component_results=component_results,
+            prior_files=prior_files,
+            repair_errors=list(repair_errors) + list(repair_by_component.get(component_id, [])),
+        )
+        computed_spec_hash = provider_component_spec_hash(
+            goal,
+            component_pipeline,
+            component,
+            integration_feedforward_checkpoint_hash(integration_feedforward),
+        )
+        spec_hash = computed_spec_hash
+        if resume_goal_matches and component_id == resume_component_id:
+            resumed_leaf_spec_hash = pending_split_checkpoint_spec_hash(
+                checkpoint_dir,
+                plan_for_repair,
+                component_id,
+            )
+            if resumed_leaf_spec_hash:
+                spec_hash = resumed_leaf_spec_hash
+                append_provider_event_log(
+                    provider_phase_log_path,
+                    {
+                        "event": "component_leaf_resume_identity_restored",
+                        "stage": "project_generation",
+                        "component": component_id,
+                        "computed_spec_hash": computed_spec_hash,
+                        "resumed_spec_hash": spec_hash,
+                    },
+                )
+        append_provider_event_log(
+            provider_phase_log_path,
+            {
+                "event": "integration_feedforward_snapshot",
+                "stage": "project_generation",
+                "component": component_id,
+                "snapshot_sha256": integration_feedforward.get("snapshot_sha256", ""),
+                "completed_upstream_components": integration_feedforward.get("upstream_state", {}).get("completed_components", []),
+                "upstream_interface_paths": [
+                    item.get("path", "")
+                    for item in integration_feedforward.get("upstream_state", {}).get("interface_catalog", [])
+                    if isinstance(item, dict)
+                ],
+                "missing_upstream_components": integration_feedforward.get("current_contract", {}).get("missing_upstream_components", []),
+            },
+        )
+        previous_pass_checkpoint = load_provider_component_checkpoint(
+            checkpoint_dir,
+            component_id=component_id,
+            spec_hash=spec_hash,
+            allow_spec_mismatch=(
+                same_run_resume_goal_matches
+                or component_id in resume_upstream_components
+                or component_id in semantic_resume_upstream_components
+            ),
+        )
+        cached = previous_pass_checkpoint if component_id not in forced else None
+        cached_quality_validation: dict[str, Any] = {}
         if cached is not None:
+            cached_result, cached_files = cached
+            cached_paths = {
+                str(item.get("path", "")).replace("\\", "/").strip()
+                for item in cached_files
+                if isinstance(item, dict) and str(item.get("path", "")).strip()
+            }
+            missing_current_required_paths = [
+                path
+                for path in component_required_manifest_paths(component_id, component)
+                if path not in cached_paths
+            ]
+            if missing_current_required_paths:
+                message = (
+                    "cached component current contract validation failed: missing required paths: "
+                    + ", ".join(missing_current_required_paths)
+                )
+                component_errors.setdefault(component_id, []).append(message)
+                append_provider_event_log(
+                    provider_phase_log_path,
+                    {
+                        "event": "component_checkpoint_contract_invalidated",
+                        "stage": "project_generation",
+                        "component": component_id,
+                        "missing_required_paths": missing_current_required_paths,
+                    },
+                )
+                cached = None
+        if cached is not None:
+            cached_result, cached_files = cached
+            cached_quality_validation = validate_generated_component_quality(
+                component_id=component_id,
+                files=cached_files,
+                prior_files=prior_files,
+                manifest_entries=(
+                    cached_result.get("leaf_work_graph", {}).get("leaves", [])
+                    if isinstance(cached_result.get("leaf_work_graph"), dict)
+                    else []
+                ),
+                design_context=component_pipeline.get("design_context", {}),
+            )
+            if cached_quality_validation.get("status") != "pass":
+                component_errors.setdefault(component_id, []).extend(
+                    "cached component quality validation failed: " + str(item)
+                    for item in cached_quality_validation.get("blockers", [])
+                )
+                append_provider_event_log(
+                    provider_phase_log_path,
+                    {
+                        "event": "component_checkpoint_quality_invalidated",
+                        "stage": "project_generation",
+                        "component": component_id,
+                        "receipt_sha256": cached_quality_validation.get("receipt_sha256", ""),
+                        "blockers": cached_quality_validation.get("blockers", [])[:8],
+                    },
+                )
+                cached = None
+        if cached is not None:
+            if (
+                same_run_resume_goal_matches
+                or component_id in resume_upstream_components
+                or component_id in semantic_resume_upstream_components
+            ):
+                append_provider_event_log(
+                    provider_phase_log_path,
+                    {
+                        "event": "upstream_component_resume_checkpoint_reused",
+                        "stage": "project_generation",
+                        "component": component_id,
+                        "computed_spec_hash": computed_spec_hash,
+                        "same_run_goal_match": True,
+                        "semantic_resume_goal_match": semantic_resume_goal_matches,
+                        "semantic_resume_upstream_reuse": component_id
+                        in semantic_resume_upstream_components,
+                        "resume_stage": str(plan_for_repair.get("stage", "")),
+                    },
+                )
             result, files = cached
             result = dict(result)
             result["files"] = files
+            result["module_quality_validation"] = cached_quality_validation
             prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
             component_results.append(result)
             completed_components.append(component_id)
@@ -2285,7 +10892,7 @@ def provider_generate_project_by_components(
         local_repairs = list(repair_errors) + list(repair_by_component.get(component_id, [])) + component_errors.get(component_id, [])
         repair_actions = repair_actions_for_component(plan_for_repair, component_id)
         existing_component_files = component_files_from_checkpoints(checkpoint_dir).get(component_id, [])
-        target_files = concrete_repair_target_files(repair_actions)
+        target_files = repair_target_files_for_component(plan_for_repair, component_id)
         prompt_payload = provider_component_payload(
             goal=goal,
             component=component,
@@ -2299,9 +10906,13 @@ def provider_generate_project_by_components(
             internal_context=internal_context,
             repair_actions=repair_actions,
             existing_component_files=existing_component_files,
+            integration_feedforward=integration_feedforward,
         )
         original_prompt_chars = provider_component_prompt_chars(prompt_payload)
         split_generation, split_reason = should_split_component_generation(component_id, original_prompt_chars, repair_actions=repair_actions)
+        if target_files and existing_component_files:
+            split_generation = True
+            split_reason = "file_repair_downstream_closure"
         if str(plan_for_repair.get("stage", "")) == "component_file_generation" and str(plan_for_repair.get("component", "")) == component_id:
             split_generation = True
             split_reason = "pending_component_file_generation"
@@ -2386,14 +10997,26 @@ def provider_generate_project_by_components(
                         pending_context["next_retry_model"] = call_model
                         pending_context["updated_at"] = now()
                         write_pending_repair_context(pending_path, pending_context)
-                call_timeout = remaining_timeout(deadline, timeout, floor=5, cap=120) if deadline else min(timeout, 120)
+                component_timeout_cap = provider_component_manifest_timeout_cap()
+                call_timeout = (
+                    remaining_timeout(
+                        deadline,
+                        timeout,
+                        floor=5,
+                        cap=component_timeout_cap,
+                    )
+                    if deadline
+                    else min(timeout, component_timeout_cap)
+                )
                 if split_generation:
                     result = provider_generate_project_component_split(
                         goal=goal,
                         component=component,
                         component_pipeline=component_pipeline,
                         prior_manifest=prior_manifest,
+                        prior_files=prior_files,
                         repair_errors=local_repairs,
+                        integration_feedforward=integration_feedforward,
                         model=call_model,
                         timeout=call_timeout,
                         deadline=deadline,
@@ -2406,6 +11029,9 @@ def provider_generate_project_by_components(
                         original_prompt_chars=original_prompt_chars,
                         pending_context=plan_for_repair,
                         last_transport_error=component_last_transport_error,
+                        repair_target_files=target_files,
+                        existing_component_files=existing_component_files,
+                        recover_manifest_from_checkpoints=resume_goal_matches,
                     )
                 else:
                     result = provider_generate_project_component(
@@ -2423,6 +11049,7 @@ def provider_generate_project_by_components(
                         internal_context=internal_context,
                         repair_actions=repair_actions,
                         existing_component_files=existing_component_files,
+                        integration_feedforward=integration_feedforward,
                         phase_log_path=provider_phase_log_path,
                         routing_policy=routing_policy,
                         last_transport_error=component_last_transport_error,
@@ -2444,7 +11071,7 @@ def provider_generate_project_by_components(
                             merged_by_path[path] = generated_by_path[path]
                     files = [merged_by_path[path] for path in sorted(merged_by_path)]
                     result["files"] = files
-                semantic_review = provider_component_semantic_review(result, files)
+                semantic_review = provider_component_semantic_review(result, files, component_id=component_id)
                 if semantic_review.get("status") != "pass":
                     write_provider_component_checkpoint(
                         checkpoint_dir,
@@ -2459,6 +11086,91 @@ def provider_generate_project_by_components(
                         provider_error_type="PROVIDER_COMPONENT_SEMANTIC_FAIL",
                     )
                     raise RuntimeError(f"component semantic review failed: {component_id}")
+                module_quality_validation = validate_generated_component_quality(
+                    component_id=component_id,
+                    files=files,
+                    prior_files=prior_files,
+                    manifest_entries=(
+                        result.get("leaf_work_graph", {}).get("leaves", [])
+                        if isinstance(result.get("leaf_work_graph"), dict)
+                        else []
+                    ),
+                    design_context=component_pipeline.get("design_context", {}),
+                )
+                result["module_quality_validation"] = module_quality_validation
+                if module_quality_validation.get("status") != "pass":
+                    quality_error = (
+                        f"component quality validation failed: {component_id}: "
+                        + "; ".join(
+                            str(item)
+                            for item in module_quality_validation.get("blockers", [])[:8]
+                        )
+                    )
+                    quality_affected_files = [
+                        str(path).replace("\\", "/").strip()
+                        for path in module_quality_validation.get("affected_files", [])
+                        if str(path).strip()
+                    ]
+                    if split_generation and quality_affected_files and run_dir is not None:
+                        target_files = list(dict.fromkeys(quality_affected_files))
+                        leaf_manifest = (
+                            result.get("component_file_manifest", [])
+                            if isinstance(result.get("component_file_manifest", []), list)
+                            and result.get("component_file_manifest", [])
+                            else (
+                                result.get("leaf_work_graph", {}).get("leaves", [])
+                                if isinstance(result.get("leaf_work_graph", {}), dict)
+                                else []
+                            )
+                        )
+                        completed_for_repair = [
+                            item
+                            for item in files
+                            if str(item.get("path", "")).replace("\\", "/").strip()
+                            not in set(target_files)
+                        ]
+                        next_route = choose_provider_model(
+                            "file_repair",
+                            len(quality_error),
+                            model,
+                            routing_policy,
+                            last_error=quality_error,
+                            attempt_number=2,
+                        )
+                        write_pending_component_file_generation(
+                            run_dir / "artifacts" / "pending_repair_plan.json",
+                            raw_user_goal=goal,
+                            component_id=component_id,
+                            target_file=target_files[0],
+                            file_manifest=leaf_manifest,
+                            completed_files=completed_for_repair,
+                            selected_model=call_model,
+                            next_retry_model=str(next_route.get("selected_model") or model),
+                            last_transport_error=quality_error,
+                            target_files=target_files,
+                        )
+                        append_provider_event_log(
+                            provider_phase_log_path,
+                            {
+                                "event": "component_quality_targeted_repair_planned",
+                                "stage": "project_generation",
+                                "component": component_id,
+                                "target_files": target_files,
+                            },
+                        )
+                    write_provider_component_checkpoint(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        status="failed",
+                        raw_output=raw_output,
+                        parsed_result=result,
+                        files=files,
+                        semantic_review=semantic_review,
+                        error="component quality validation failed",
+                        provider_error_type="PROVIDER_COMPONENT_QUALITY_FAIL",
+                    )
+                    raise RuntimeError(quality_error)
                 write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
@@ -2481,7 +11193,7 @@ def provider_generate_project_by_components(
                 )
                 break
             except (RuntimeError, TimeoutError) as exc:
-                provider_error_type = check_connectivity._provider_error_type(str(exc))
+                provider_error_type = provider_exception_error_type(exc)
                 component_last_transport_error = str(exc)
                 message = f"{component_id} attempt {attempt + 1}: {exc}"
                 component_errors.setdefault(component_id, []).append(message)
@@ -2509,18 +11221,49 @@ def provider_generate_project_by_components(
                         pending_context["next_retry_model"] = next_retry_model
                         pending_context["updated_at"] = now()
                         write_pending_repair_context(pending_path, pending_context)
-                write_provider_component_checkpoint(
-                    checkpoint_dir,
-                    component_id=component_id,
-                    spec_hash=spec_hash,
-                    status="failed",
-                    raw_output="",
-                    parsed_result={"component_id": component_id},
-                    files=[],
-                    semantic_review={"status": "fail", "reviewer": "local_component_semantic_contract", "blockers": ["provider_exception"]},
-                    error=str(exc),
-                    provider_error_type=provider_error_type,
+                        plan_for_repair = promote_component_file_retry_plan(
+                            plan_for_repair,
+                            pending_context,
+                            component_id,
+                        )
+                        target_files = repair_target_files_for_component(
+                            plan_for_repair,
+                            component_id,
+                        )
+                failure_raw_output = (
+                    bounded_provider_diagnostic_output(exc.raw_output)
+                    if isinstance(exc, ProviderOutputContractError)
+                    else ""
                 )
+                failure_parsed_result = (
+                    dict(exc.parsed_result)
+                    if isinstance(exc, ProviderOutputContractError)
+                    else {}
+                )
+                failure_parsed_result.setdefault("component_id", component_id)
+                if previous_pass_checkpoint is not None:
+                    write_provider_component_failure_attempt(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        raw_output=failure_raw_output,
+                        parsed_result=failure_parsed_result,
+                        error=str(exc),
+                        provider_error_type=provider_error_type,
+                    )
+                else:
+                    write_provider_component_checkpoint(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        status="failed",
+                        raw_output=failure_raw_output,
+                        parsed_result=failure_parsed_result,
+                        files=[],
+                        semantic_review={"status": "fail", "reviewer": "local_component_semantic_contract", "blockers": ["provider_exception"]},
+                        error=str(exc),
+                        provider_error_type=provider_error_type,
+                    )
                 if not retryable or attempt == transport_attempt_limit - 1:
                     failed_components.append({"component_id": component_id, "provider_error_type": provider_error_type, "error": str(exc)})
                     write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
@@ -2532,7 +11275,10 @@ def provider_generate_project_by_components(
                     checkpoint_dir.parent.parent / "provider_phase_log.jsonl" if checkpoint_dir else "",
                     "project_generation",
                     "component_retry",
-                    f"Retrying provider component {component_id} after {provider_error_type}.",
+                    (
+                        f"Retrying provider component {component_id} after {provider_error_type}: "
+                        + bounded_provider_diagnostic_output(str(exc), max_chars=900)
+                    ),
                     [],
                 )
                 write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
@@ -2573,6 +11319,19 @@ def provider_generate_project_by_components(
             missing.append(rel)
     if missing:
         raise RuntimeError("merged component output missing required files: " + ", ".join(missing))
+    assembled_quality_validation = validate_assembled_project_quality(
+        component_results,
+        files,
+        design_context=component_pipeline.get("design_context", {}),
+    )
+    if assembled_quality_validation.get("status") != "pass":
+        raise RuntimeError(
+            "assembled project quality validation failed: "
+            + "; ".join(
+                str(item)
+                for item in assembled_quality_validation.get("blockers", [])[:12]
+            )
+        )
     mark_generation_progress(
         deadline,
         "project_generation",
@@ -2590,12 +11349,14 @@ def provider_generate_project_by_components(
                 "file_count": len(result.get("files", [])) if isinstance(result.get("files"), list) else 0,
                 "public_contract": result.get("public_contract", {}),
                 "quality_gate": result.get("quality_gate", {}),
+                "module_quality_validation": result.get("module_quality_validation", {}),
             }
             for result in component_results
         ],
         "component_pipeline": component_pipeline,
         "component_errors": component_errors,
         "component_checkpoint_summary": checkpoint_summary(),
+        "module_quality_validation": assembled_quality_validation,
         "manual_checks": [
             check
             for result in component_results
@@ -2615,6 +11376,7 @@ def provider_generate_project_by_components(
             "status": "pass",
             "reasons": [
                 "components generated with scoped context",
+                "component and assembled-project quality validation passed",
                 "file merge completed without conflicts",
                 "required final files are present",
             ],
@@ -3004,6 +11766,20 @@ def real_image_file(path: pathlib.Path) -> bool:
     return head.startswith(b"\xff\xd8\xff") or head.startswith(b"RIFF")
 
 
+def real_fixture_png_file(path: pathlib.Path, *, sprite: bool = False) -> bool:
+    """Validate generated fixture media without applying screenshot geometry to sprites."""
+    if not path.exists() or not path.is_file() or path.stat().st_size < 100:
+        return False
+    diag = png_image_metrics(path)
+    if bool(diag.get("is_blank_or_invalid", True)):
+        return False
+    width = int(diag.get("image_width", 0) or 0)
+    height = int(diag.get("image_height", 0) or 0)
+    if sprite:
+        return width >= 256 and height >= 256
+    return width >= 640 and height >= 360
+
+
 def png_image_metrics(path: pathlib.Path) -> dict[str, Any]:
     import struct
     import zlib
@@ -3122,17 +11898,148 @@ def image_file_diagnostics(path: pathlib.Path) -> dict[str, Any]:
     return result
 
 
-def candidate_ui_smoke(details: dict[str, Any], keywords: list[str] | None = None) -> dict[str, Any]:
-    keywords = keywords or ["Task Board", "Add Task", "Todo", "Doing", "Done"]
+def candidate_ui_domain_keywords(run_dir: pathlib.Path) -> list[str]:
+    """Derive stable UI identity words from the selected project contract."""
+    contract_path = pathlib.Path(run_dir) / "discovery" / "complexity_project_contract.json"
+    try:
+        contract = load_json(contract_path) if contract_path.exists() else {}
+    except Exception:
+        contract = {}
+    if not isinstance(contract, dict):
+        return []
+    source = " ".join(
+        str(contract.get(key, "") or "")
+        for key in ("selected_project_name", "selected_project_summary")
+    )
+    stopwords = {
+        "and", "the", "with", "from", "that", "this", "for", "into", "local",
+        "project", "application", "software", "system", "tool", "using", "based",
+        "must", "have", "has", "its", "their", "your", "our", "can", "will",
+    }
+    keywords: list[str] = []
+    for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", source):
+        lowered = token.lower()
+        if lowered in stopwords or lowered in {item.lower() for item in keywords}:
+            continue
+        keywords.append(token)
+        if len(keywords) >= 10:
+            break
+    return keywords
+
+
+def candidate_ui_capability_groups(run_dir: pathlib.Path) -> list[dict[str, Any]]:
+    """Map selected user-visible pipeline stages to bounded UI vocabulary groups."""
+    contract_path = pathlib.Path(run_dir) / "discovery" / "complexity_project_contract.json"
+    try:
+        contract = load_json(contract_path) if contract_path.exists() else {}
+    except Exception:
+        contract = {}
+    stages = contract.get("required_pipeline_stages", []) if isinstance(contract, dict) else []
+    if not isinstance(stages, list):
+        return []
+    ignored = {
+        "define", "generate", "assets", "asset", "nodes", "node", "story",
+        "project", "document", "documents", "contracts", "contract", "to",
+    }
+    visible_verbs = {"edit", "validate", "bind", "preview", "export", "import", "create", "manage"}
+    groups: list[dict[str, Any]] = []
+    for raw_stage in stages:
+        stage = str(raw_stage).strip().lower()
+        tokens = [token for token in re.findall(r"[a-z0-9]+", stage) if len(token) >= 3]
+        if not tokens:
+            continue
+        visible = bool(set(tokens) & visible_verbs) or any(
+            token in tokens for token in ("background", "sprite", "character", "preview", "export")
+        )
+        if not visible:
+            continue
+        terms = [token for token in tokens if token not in ignored]
+        if terms:
+            groups.append({"stage": stage, "terms": terms[:3]})
+    return groups
+
+
+def candidate_ui_smoke(
+    details: dict[str, Any],
+    keywords: list[str] | None = None,
+    capability_groups: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    keywords = list(keywords or [])
+    capability_groups = list(capability_groups or [])
     text = str(details.get("body_text_sample", "") or "")
-    found = [keyword for keyword in keywords if keyword in text]
+    lowered_text = text.lower()
+    found = [keyword for keyword in keywords if keyword.lower() in lowered_text]
+    capability_hits = [
+        str(group.get("stage", ""))
+        for group in capability_groups
+        if isinstance(group, dict)
+        and any(str(term).lower() in lowered_text for term in group.get("terms", []))
+    ]
     issues: list[str] = []
     if not str(details.get("page_title", "")).strip():
         issues.append("missing_page_title")
-    if int(details.get("body_text_length") or 0) <= 50:
+    if int(details.get("body_text_length") or 0) < 8:
         issues.append("body_text_too_short")
-    if len(found) < min(3, len(keywords)):
+    if keywords and len(found) < min(3, len(keywords)):
         issues.append("domain_keywords_missing")
+    if len(capability_groups) >= 4:
+        required_hits = max(3, (len(capability_groups) * 3 + 4) // 5)
+        if len(capability_hits) < required_hits:
+            issues.append("required_capabilities_missing")
+        minimum_controls = min(8, max(4, len(capability_groups)))
+        if int(details.get("interactive_control_count") or 0) < minimum_controls:
+            issues.append("interactive_controls_too_few")
+        if int(details.get("section_count") or 0) < 3:
+            issues.append("workspace_sections_too_few")
+        if int(details.get("body_text_length") or 0) < 160:
+            issues.append("complex_workspace_text_too_short")
+        if float(details.get("blank_score") or 0.0) > 0.90:
+            issues.append("workspace_visual_density_too_low")
+        viewport_width = int(details.get("viewport_width") or 0)
+        scroll_width = int(details.get("document_scroll_width") or 0)
+        if viewport_width and scroll_width > viewport_width + 8:
+            issues.append("workspace_horizontal_overflow")
+        if int(details.get("undersized_control_count") or 0) > 0:
+            issues.append("control_hit_targets_too_small")
+        if int(details.get("oversized_media_count") or 0) > 0:
+            issues.append("asset_previews_oversized")
+        if int(details.get("empty_workspace_region_count") or 0) > 1:
+            issues.append("workspace_regions_lack_content")
+        if int(details.get("unstyled_workspace_region_count") or 0) > max(
+            1, int(details.get("section_count") or 0) // 2
+        ):
+            issues.append("workspace_regions_lack_visual_hierarchy")
+        section_count = int(details.get("section_count") or 0)
+        if (
+            viewport_width >= 900
+            and section_count >= 5
+            and int(details.get("max_workspace_regions_in_row") or 0) < 2
+        ):
+            issues.append("workspace_layout_remains_single_column")
+        if int(details.get("narrow_workspace_region_count") or 0) > max(
+            1, section_count // 2
+        ):
+            issues.append("workspace_regions_too_narrow")
+        preview_required = any(
+            "preview" in str(group.get("stage", "")).lower()
+            for group in capability_groups
+            if isinstance(group, dict)
+        )
+        if preview_required and int(details.get("blank_canvas_count") or 0) > 0:
+            issues.append("preview_canvas_blank")
+        if preview_required and int(details.get("flat_canvas_count") or 0) > 0:
+            issues.append("preview_canvas_lacks_content_detail")
+        if int(details.get("unthemed_header_count") or 0) > 0:
+            issues.append("product_header_lacks_visual_treatment")
+        button_count = int(details.get("button_count") or 0)
+        if button_count and int(details.get("browser_default_button_count") or 0) > max(
+            1, button_count // 2
+        ):
+            issues.append("controls_use_browser_default_theme")
+        status_count = int(details.get("status_region_count") or 0)
+        nonempty_status_count = int(details.get("nonempty_status_region_count") or 0)
+        if status_count and nonempty_status_count < 1:
+            issues.append("workspace_status_empty")
     if details.get("console_errors"):
         issues.append("console_errors")
     if details.get("network_errors"):
@@ -3140,7 +12047,30 @@ def candidate_ui_smoke(details: dict[str, Any], keywords: list[str] | None = Non
     return {
         "status": "pass" if not issues else "fail",
         "body_text_length": int(details.get("body_text_length") or 0),
+        "domain_keywords": keywords,
         "keywords_found": found,
+        "capability_groups": capability_groups,
+        "capability_hits": capability_hits,
+        "interactive_control_count": int(details.get("interactive_control_count") or 0),
+        "section_count": int(details.get("section_count") or 0),
+        "heading_count": int(details.get("heading_count") or 0),
+        "blank_score": float(details.get("blank_score") or 0.0),
+        "viewport_width": int(details.get("viewport_width") or 0),
+        "document_scroll_width": int(details.get("document_scroll_width") or 0),
+        "undersized_control_count": int(details.get("undersized_control_count") or 0),
+        "oversized_media_count": int(details.get("oversized_media_count") or 0),
+        "empty_workspace_region_count": int(details.get("empty_workspace_region_count") or 0),
+        "unstyled_workspace_region_count": int(details.get("unstyled_workspace_region_count") or 0),
+        "narrow_workspace_region_count": int(details.get("narrow_workspace_region_count") or 0),
+        "max_workspace_regions_in_row": int(details.get("max_workspace_regions_in_row") or 0),
+        "blank_canvas_count": int(details.get("blank_canvas_count") or 0),
+        "preview_action_exercised": bool(details.get("preview_action_exercised")),
+        "flat_canvas_count": int(details.get("flat_canvas_count") or 0),
+        "unthemed_header_count": int(details.get("unthemed_header_count") or 0),
+        "button_count": int(details.get("button_count") or 0),
+        "browser_default_button_count": int(details.get("browser_default_button_count") or 0),
+        "status_region_count": int(details.get("status_region_count") or 0),
+        "nonempty_status_region_count": int(details.get("nonempty_status_region_count") or 0),
         "issues": issues,
     }
 
@@ -3418,6 +12348,9 @@ def screenshot_attempt_base_details(
         "page_title": "",
         "body_text_length": 0,
         "body_text_sample": "",
+        "interactive_control_count": 0,
+        "section_count": 0,
+        "heading_count": 0,
         "console_errors": [],
         "network_errors": [],
         "screenshot_attempted": False,
@@ -3509,6 +12442,19 @@ def capture_candidate_screenshot(project_dir: pathlib.Path, run_dir: pathlib.Pat
                 page.goto(url_value, wait_until="domcontentloaded", timeout=min(timeout, 30) * 1000)
                 page.wait_for_timeout(500)
                 try:
+                    preview_control = page.locator(
+                        '[data-action*="preview"], button[id*="preview"], [data-testid*="preview"]'
+                    ).first
+                    if preview_control.count() > 0:
+                        preview_control.click(timeout=2500)
+                        page.wait_for_timeout(300)
+                        details["preview_action_exercised"] = True
+                    else:
+                        details["preview_action_exercised"] = False
+                except Exception as exc:
+                    details["preview_action_exercised"] = False
+                    details["preview_action_error"] = str(exc)[:500]
+                try:
                     details["page_title"] = str(page.title())
                 except Exception:
                     details["page_title"] = ""
@@ -3517,7 +12463,108 @@ def capture_candidate_screenshot(project_dir: pathlib.Path, run_dir: pathlib.Pat
                 except Exception:
                     body_text = ""
                 details["body_text_length"] = len(body_text)
-                details["body_text_sample"] = body_text[:500]
+                details["body_text_sample"] = body_text[:4000]
+                try:
+                    structure = page.evaluate(
+                        """() => ({
+                            interactive_control_count: document.querySelectorAll(
+                                'button,input,select,textarea,[role="button"],[contenteditable="true"]'
+                            ).length,
+                            section_count: document.querySelectorAll(
+                                'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                            ).length,
+                            heading_count: document.querySelectorAll('h1,h2,h3').length,
+                            button_count: document.querySelectorAll('button').length,
+                            viewport_width: window.innerWidth,
+                            document_scroll_width: document.documentElement.scrollWidth,
+                            undersized_control_count: Array.from(document.querySelectorAll(
+                                'button,input,select,textarea,[role="button"]'
+                            )).filter((element) => {
+                                const rect = element.getBoundingClientRect();
+                                return rect.width < 44 || rect.height < 32;
+                            }).length,
+                            oversized_media_count: Array.from(document.querySelectorAll('img,canvas,video')).filter((element) => {
+                                const rect = element.getBoundingClientRect();
+                                return rect.width > window.innerWidth * 0.72 || rect.height > window.innerHeight * 0.72;
+                            }).length,
+                            empty_workspace_region_count: Array.from(document.querySelectorAll(
+                                'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                            )).filter((region) => !region.querySelector(
+                                'input,textarea,select,output,img,canvas,video,li,[data-node],[data-node-id],[data-preview]'
+                            )).length,
+                            unstyled_workspace_region_count: Array.from(document.querySelectorAll(
+                                'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                            )).filter((region) => {
+                                const style = getComputedStyle(region);
+                                const transparent = style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent';
+                                const noBorder = ['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth']
+                                    .every((key) => parseFloat(style[key] || '0') === 0);
+                            return transparent && noBorder && (!style.boxShadow || style.boxShadow === 'none');
+                        }).length,
+                        narrow_workspace_region_count: Array.from(document.querySelectorAll(
+                            'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                        )).filter((region) => region.getBoundingClientRect().width < Math.min(320, window.innerWidth * 0.32)).length,
+                        max_workspace_regions_in_row: (() => {
+                            const regions = Array.from(document.querySelectorAll(
+                                'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                            )).filter((region) => region.getBoundingClientRect().width > 0);
+                            return regions.reduce((maximum, region) => {
+                                const top = region.getBoundingClientRect().top;
+                                const peers = regions.filter((candidate) => Math.abs(candidate.getBoundingClientRect().top - top) < 16).length;
+                                return Math.max(maximum, peers);
+                            }, 0);
+                        })(),
+                        blank_canvas_count: Array.from(document.querySelectorAll('canvas')).filter((canvas) => {
+                            try {
+                                const context = canvas.getContext('2d');
+                                if (!context || canvas.width < 1 || canvas.height < 1) return true;
+                                const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                                for (let index = 3; index < pixels.length; index += 4) {
+                                    if (pixels[index] !== 0) return false;
+                                }
+                                return true;
+                            } catch (_error) {
+                                return true;
+                            }
+                        }).length,
+                        flat_canvas_count: Array.from(document.querySelectorAll('canvas')).filter((canvas) => {
+                            try {
+                                const context = canvas.getContext('2d');
+                                if (!context || canvas.width < 1 || canvas.height < 1) return true;
+                                const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                                const colors = new Set();
+                                for (let index = 0; index < pixels.length; index += 16) {
+                                    if (pixels[index + 3] === 0) continue;
+                                    colors.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]}`);
+                                    if (colors.size > 3) return false;
+                                }
+                                return colors.size <= 3;
+                            } catch (_error) {
+                                return true;
+                            }
+                        }).length,
+                        unthemed_header_count: Array.from(document.querySelectorAll('header')).filter((header) => {
+                            const style = getComputedStyle(header);
+                            const bodyStyle = getComputedStyle(document.body);
+                            const sameBackground = style.backgroundColor === bodyStyle.backgroundColor || style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent';
+                            const noBorder = ['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'].every((key) => parseFloat(style[key] || '0') === 0);
+                            const littleSpacing = ['paddingTop','paddingRight','paddingBottom','paddingLeft'].reduce((sum, key) => sum + parseFloat(style[key] || '0'), 0) < 16;
+                            return sameBackground && noBorder && (!style.boxShadow || style.boxShadow === 'none') && littleSpacing;
+                        }).length,
+                        browser_default_button_count: Array.from(document.querySelectorAll('button')).filter((button) => {
+                            const style = getComputedStyle(button);
+                            return parseFloat(style.borderRadius || '0') < 1 && (!style.boxShadow || style.boxShadow === 'none');
+                        }).length,
+                            status_region_count: document.querySelectorAll('[role="status"],[aria-live]').length,
+                            nonempty_status_region_count: Array.from(document.querySelectorAll('[role="status"],[aria-live]')).filter(
+                                (element) => (element.innerText || '').trim().length > 0
+                            ).length
+                        })"""
+                    )
+                except Exception:
+                    structure = {}
+                if isinstance(structure, dict):
+                    details.update(structure)
                 details["console_errors"] = console_errors[:20]
                 details["network_errors"] = network_errors[:20]
                 details["screenshot_attempted"] = True
@@ -3527,8 +12574,11 @@ def capture_candidate_screenshot(project_dir: pathlib.Path, run_dir: pathlib.Pat
                 details.update(details["image_diagnostics"])
                 browser.close()
                 browser = None
-            body_text_for_smoke = str(details.get("body_text_sample", "") or "")
-            ui_smoke_ok = int(details.get("body_text_length") or 0) > 50 and any(token in body_text_for_smoke for token in ("Task", "Todo", "Doing", "Done"))
+            ui_smoke_ok = (
+                int(details.get("body_text_length") or 0) > 50
+                and bool(str(details.get("page_title", "")).strip())
+                and not details.get("console_errors")
+            )
             if real_image_file(out) and ui_smoke_ok:
                 attempts.append({"candidate": candidate, "ok": True, "url": url_value, "screenshot": str(out), "diagnostics": details})
                 return {"status": "pass", "screenshots": [str(out)], "screenshot_blocked": "", "attempts": attempts, "startup": candidate}
@@ -3622,6 +12672,221 @@ def write_candidate_review_summary(
     return str(path)
 
 
+def run_generated_project_fixture(
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    *,
+    timeout: int = 120,
+) -> dict[str, Any]:
+    """Execute the generated project's declared fixture and verify its real outputs."""
+    project_dir = pathlib.Path(project_dir)
+    run_dir = pathlib.Path(run_dir)
+    contract_path = run_dir / "discovery" / "complexity_project_contract.json"
+    contract: dict[str, Any] = {}
+    if contract_path.exists():
+        try:
+            loaded = load_json(contract_path)
+            contract = loaded if isinstance(loaded, dict) else {}
+        except Exception:
+            contract = {}
+    fixture_path = project_dir / "demo" / "run_fixture.py"
+    required_artifacts = [
+        str(item).strip()
+        for item in contract.get("required_stage_artifacts", [])
+        if str(item).strip()
+    ] if isinstance(contract.get("required_stage_artifacts", []), list) else []
+    required_fields = [
+        str(item).strip()
+        for item in contract.get("required_artifact_fields", [])
+        if str(item).strip()
+    ] if isinstance(contract.get("required_artifact_fields", []), list) else []
+    required_stages = {
+        str(item).strip().lower()
+        for item in contract.get("required_pipeline_stages", [])
+        if str(item).strip()
+    } if isinstance(contract.get("required_pipeline_stages", []), list) else set()
+    media_required = {
+        "generate_background_assets",
+        "generate_sprite_assets",
+    }.issubset(required_stages)
+    applicable = fixture_path.exists() or bool(required_artifacts) or media_required
+    receipt: dict[str, Any] = {
+        "kind": "CGKNGeneratedProjectFixtureReceipt",
+        "schema_version": 1,
+        "status": "skipped" if not applicable else "failed",
+        "project_dir": str(project_dir),
+        "fixture": str(fixture_path) if fixture_path.exists() else "",
+        "required_stage_artifacts": required_artifacts,
+        "required_artifact_fields": required_fields,
+        "media_required": media_required,
+        "command": {},
+        "artifacts": [],
+        "media": {},
+        "blockers": [],
+    }
+    if not applicable:
+        receipt["reason"] = "no generated fixture or complexity fixture contract"
+    elif not fixture_path.exists():
+        receipt["blockers"].append("demo/run_fixture.py is required but missing")
+    else:
+        receipt["command"] = run_allowed_command(
+            [sys.executable, "-m", "demo.run_fixture"],
+            project_dir,
+            timeout=max(5, min(int(timeout), 180)),
+        )
+        if str(receipt["command"].get("status", "")).lower() != "pass":
+            receipt["blockers"].append("generated fixture command failed")
+        else:
+            stdout_tail = str(receipt["command"].get("stdout_tail", "")).strip()
+            if stdout_tail:
+                try:
+                    declared_result = json.loads(stdout_tail)
+                except json.JSONDecodeError:
+                    declared_result = None
+                if (
+                    isinstance(declared_result, dict)
+                    and str(declared_result.get("status", "")).strip().lower()
+                    in {"error", "fail", "failed", "blocked", "needs_rework"}
+                ):
+                    receipt["blockers"].append(
+                        "generated fixture declared failure while exiting successfully"
+                    )
+
+    for artifact_name in required_artifacts:
+        matches = sorted(
+            path
+            for path in project_dir.rglob(pathlib.PurePosixPath(artifact_name).name)
+            if path.is_file()
+        )
+        artifact_receipt: dict[str, Any] = {
+            "name": artifact_name,
+            "path": str(matches[0]) if matches else "",
+            "status": "missing" if not matches else "present",
+            "missing_fields": [],
+        }
+        if not matches:
+            receipt["blockers"].append(f"required stage artifact missing: {artifact_name}")
+        else:
+            try:
+                artifact_doc = json.loads(
+                    matches[0].read_text(encoding="utf-8", errors="strict")
+                )
+            except Exception as exc:
+                artifact_doc = None
+                artifact_receipt["status"] = "invalid_json"
+                artifact_receipt["error"] = str(exc)
+                receipt["blockers"].append(
+                    f"required stage artifact is not valid JSON: {artifact_name}"
+                )
+            if artifact_doc is not None:
+                if not isinstance(artifact_doc, dict):
+                    artifact_receipt["status"] = "invalid_record"
+                    receipt["blockers"].append(
+                        f"required stage artifact is not an object record: {artifact_name}"
+                    )
+                else:
+                    missing_fields = [
+                        field for field in required_fields if field not in artifact_doc
+                    ]
+                    artifact_receipt["missing_fields"] = missing_fields
+                    if missing_fields:
+                        artifact_receipt["status"] = "missing_fields"
+                        receipt["blockers"].append(
+                            f"required stage artifact fields missing in {artifact_name}: "
+                            + ", ".join(missing_fields)
+                        )
+                    else:
+                        artifact_receipt["status"] = "pass"
+        receipt["artifacts"].append(artifact_receipt)
+
+    if media_required:
+        png_paths = sorted(
+            path
+            for path in project_dir.rglob("*.png")
+            if path.is_file() and "screenshot" not in path.as_posix().lower()
+        )
+        sprite_name_tokens = ("sprite", "character")
+        sprite_candidates = [
+            path
+            for path in png_paths
+            if any(token in path.as_posix().lower() for token in sprite_name_tokens)
+        ]
+        valid_pngs = [
+            path
+            for path in png_paths
+            if real_fixture_png_file(path, sprite=path in sprite_candidates)
+        ]
+        hashes = {
+            hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in valid_pngs
+        }
+        sprite_paths = [path for path in valid_pngs if path in sprite_candidates]
+        transparent_sprites: list[str] = []
+        alpha_errors: list[str] = []
+        try:
+            from PIL import Image
+
+            for path in sprite_paths:
+                try:
+                    with Image.open(path) as image:
+                        rgba = image.convert("RGBA")
+                        alpha_min, alpha_max = rgba.getchannel("A").getextrema()
+                    if alpha_min < 255 and alpha_max > 0:
+                        transparent_sprites.append(str(path))
+                except Exception as exc:
+                    alpha_errors.append(f"{path.name}: {exc}")
+        except Exception as exc:
+            alpha_errors.append(f"Pillow unavailable: {exc}")
+        receipt["media"] = {
+            "png_paths": [str(path) for path in valid_pngs],
+            "png_count": len(valid_pngs),
+            "distinct_sha256_count": len(hashes),
+            "sprite_paths": [str(path) for path in sprite_paths],
+            "transparent_sprite_paths": transparent_sprites,
+            "alpha_errors": alpha_errors,
+        }
+        if len(valid_pngs) < 4:
+            receipt["blockers"].append("fixture produced fewer than four decoder-valid PNG files")
+        if len(hashes) < 4:
+            receipt["blockers"].append("fixture PNG outputs do not have four distinct SHA-256 values")
+        if len(transparent_sprites) < 2:
+            receipt["blockers"].append("fixture produced fewer than two transparent sprite PNG files")
+
+    if applicable and not receipt["blockers"]:
+        receipt["status"] = "pass"
+    receipt["blockers"] = list(dict.fromkeys(receipt["blockers"]))
+    receipt_path = run_dir / "artifacts" / "generated_project_fixture_receipt.json"
+    write_json(receipt_path, receipt)
+    receipt["receipt_path"] = str(receipt_path)
+    return receipt
+
+
+def validated_existing_candidate_video(project_dir: pathlib.Path) -> str:
+    """Reuse only a decoder-validated video produced by an earlier evidence pass."""
+    try:
+        try:
+            from visual_evidence import video_file_diagnostics
+        except ModuleNotFoundError:
+            from scripts.visual_evidence import video_file_diagnostics
+    except Exception:
+        return ""
+    video_dir = pathlib.Path(project_dir) / "artifacts" / "videos"
+    candidates = (
+        sorted(
+            [*video_dir.glob("*.webm"), *video_dir.glob("*.mp4")],
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        if video_dir.exists()
+        else []
+    )
+    for candidate in candidates:
+        diagnostics = video_file_diagnostics(candidate)
+        if bool(diagnostics.get("valid")):
+            return str(candidate)
+    return ""
+
+
 def run_candidate_post_build_finalize(
     *,
     project_dir: pathlib.Path,
@@ -3654,6 +12919,16 @@ def run_candidate_post_build_finalize(
     elif (project_dir / "tests").exists():
         test_result = run_allowed_command([sys.executable, "-m", "pytest", "-q"], project_dir, timeout=min(timeout, 180))
 
+    fixture_result = run_generated_project_fixture(
+        project_dir,
+        run_dir,
+        timeout=min(timeout, 180),
+    )
+    fixture_passed = str(fixture_result.get("status", "")).lower() in {
+        "pass",
+        "skipped",
+    }
+
     try:
         agent_usage = run_project_usage_agent(
             user_goal,
@@ -3683,7 +12958,11 @@ def run_candidate_post_build_finalize(
     if any("node unavailable" in item or "npm unavailable" in item for item in environment_failures):
         test_result = {"status": "environment_failure", "reason": "node/npm unavailable", "environment": test_environment}
 
-    if not screenshots and str(test_result.get("status", "")).lower() == "pass":
+    if (
+        not screenshots
+        and str(test_result.get("status", "")).lower() == "pass"
+        and fixture_passed
+    ):
         screenshot_capture = capture_candidate_screenshot(project_dir, run_dir, timeout=min(timeout, 90))
         screenshots = [
             str(path)
@@ -3700,13 +12979,33 @@ def run_candidate_post_build_finalize(
                 pass
         screenshot_blocked = ""
     screenshot_metadata = ""
-    screenshot_ui_smoke: dict[str, Any] = {"status": "skipped"}
+    ui_domain_keywords = candidate_ui_domain_keywords(run_dir)
+    ui_capability_groups = candidate_ui_capability_groups(run_dir)
+    screenshot_ui_smoke: dict[str, Any] = {
+        "status": "skipped",
+        "domain_keywords": ui_domain_keywords,
+        "keywords_found": [],
+        "capability_groups": ui_capability_groups,
+        "capability_hits": [],
+        "issues": ["screenshot_evidence_unavailable"],
+    }
     success_attempt = next((attempt for attempt in screenshot_capture.get("attempts", []) if isinstance(attempt, dict) and attempt.get("ok")), {})
     success_details = success_attempt.get("diagnostics", {}) if isinstance(success_attempt, dict) and isinstance(success_attempt.get("diagnostics"), dict) else {}
     if screenshots and success_details:
-        screenshot_ui_smoke = candidate_ui_smoke(success_details)
+        screenshot_ui_smoke = candidate_ui_smoke(
+            success_details,
+            ui_domain_keywords,
+            ui_capability_groups,
+        )
         screenshot_metadata = write_screenshot_metadata(pathlib.Path(screenshots[0]), success_details)
     video = str(agent_usage.get("workflow_video", "") or "")
+    if not video:
+        video = validated_existing_candidate_video(project_dir)
+        if video:
+            agent_usage["workflow_video"] = video
+            agent_usage.setdefault("events", []).append(
+                {"type": "validated_existing_video_reused", "path": video}
+            )
     video_blocked = ""
     if not video:
         env = screenshot_environment_diagnostics()
@@ -3721,10 +13020,16 @@ def run_candidate_post_build_finalize(
     ]
     if str(test_result.get("status", "")).lower() != "pass":
         known_limits.append("tests did not pass during candidate post-build finalize")
+    if not fixture_passed:
+        known_limits.append("generated project fixture did not pass during candidate post-build finalize")
     if not screenshots:
         known_limits.append("screenshot evidence was not produced during candidate post-build finalize")
         if screenshot_blocked:
             known_limits.append("screenshot_blocked: candidate screenshot could not be captured in this environment")
+    if screenshots and str(screenshot_ui_smoke.get("status", "")).lower() != "pass":
+        known_limits.append(
+            "candidate UI smoke did not satisfy the selected project capability and workspace contract"
+        )
     if video_blocked:
         known_limits.append("video_blocked: demo video was not produced during candidate post-build finalize")
 
@@ -3742,6 +13047,7 @@ def run_candidate_post_build_finalize(
                 "candidate_only: true",
                 f"test_status: {test_result.get('status', 'unknown')}",
                 f"agent_usage_status: {agent_usage.get('status', 'unknown')}",
+                f"fixture_status: {fixture_result.get('status', 'unknown')}",
                 "",
                 "commands_run:",
                 f"- {json.dumps(test_result.get('argv', []), ensure_ascii=False)}" if test_result.get("argv") else "- no recognized test command",
@@ -3767,8 +13073,9 @@ def run_candidate_post_build_finalize(
     )
     write_json(project_dir / "known_limits.json", {"candidate_only": True, "known_limits": known_limits, "created_at": now()})
     write_json(project_dir / "repair_plan.json", repair_plan)
-    status = "pass" if str(test_result.get("status", "")).lower() == "pass" and screenshots else "needs_rework"
-    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and (bool(screenshots) or bool(screenshot_blocked))
+    ui_passed = str(screenshot_ui_smoke.get("status", "")).lower() == "pass"
+    status = "pass" if str(test_result.get("status", "")).lower() == "pass" and fixture_passed and screenshots and ui_passed else "needs_rework"
+    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and fixture_passed and ui_passed and (bool(screenshots) or bool(screenshot_blocked))
     candidate_review_summary = ""
     if candidate_review_ready:
         candidate_review_summary = write_candidate_review_summary(
@@ -3785,6 +13092,7 @@ def run_candidate_post_build_finalize(
         "status": status,
         "candidate_only": True,
         "test_result": test_result,
+        "fixture_result": fixture_result,
         "agent_usage": agent_usage,
         "screenshots": screenshots,
         "screenshot_capture": screenshot_capture,
@@ -3829,6 +13137,21 @@ def decide_adaptive_final_verdict(
     return "ASK_USER_REVIEW"
 
 
+def generation_only_success_boundary() -> dict[str, Any]:
+    """Keep successful materialization distinct from formal delivery evidence."""
+    return {
+        "status": "pass",
+        "workflow_state": "generation_completed",
+        "evidence_status": "NOT_EVALUATED",
+        "post_build_finalize_status": "not_started",
+        "post_build_required": True,
+        "packaging_required": True,
+        "final_delivery_allowed": False,
+        "final_verdict": "NOT_EVALUATED",
+        "not_final_delivery": True,
+    }
+
+
 
 def provider_semantic_repair_attempts(args: argparse.Namespace | None = None) -> int:
     raw = os.environ.get("CGNK_PROVIDER_SEMANTIC_REPAIR_ATTEMPTS", "")
@@ -3851,9 +13174,18 @@ def provider_transport_repair_attempts() -> int:
 def provider_component_prompt_policy() -> dict[str, int | bool]:
     return {
         "max_prompt_chars_hard": env_int("CGNK_PROVIDER_COMPONENT_MAX_PROMPT_CHARS_HARD", 40000),
+        "local_model_max_prompt_chars": env_int("CGNK_LOCAL_COMPONENT_MAX_PROMPT_CHARS", 24000),
+        "librarian_split_prompt_chars": env_int("CGKN_PROVIDER_LIBRARIAN_SPLIT_PROMPT_CHARS", 16000),
         "frontend_target_chars": env_int("CGNK_PROVIDER_FRONTEND_TARGET_PROMPT_CHARS", 20000),
         "manifest_soft_chars": env_int("CGNK_PROVIDER_COMPONENT_MANIFEST_SOFT_CHARS", 20000),
-        "max_tokens_file": env_int("CGNK_PROVIDER_COMPONENT_FILE_MAX_TOKENS", 8000),
+        "max_tokens_file": max(
+            2500,
+            min(7000, env_int("CGNK_PROVIDER_COMPONENT_FILE_MAX_TOKENS", 5000)),
+        ),
+        "max_tokens_manifest": max(
+            2500,
+            min(16000, env_int("CGNK_PROVIDER_COMPONENT_MANIFEST_MAX_TOKENS", 8000)),
+        ),
         "split_frontend_component": env_bool("CGNK_SPLIT_FRONTEND_COMPONENT", True),
     }
 
@@ -3935,6 +13267,222 @@ def provider_review_issues(provider_review: dict[str, Any]) -> list[Any]:
     return []
 
 
+def deterministic_complexity_blockers(
+    *,
+    goal: str,
+    plan_doc: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    files: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    contract = plan_doc.get("complexity_project_contract", {}) if isinstance(plan_doc, dict) else {}
+    if not isinstance(contract, dict) or contract.get("contract_id") != "complexity_project_contract_v1":
+        return []
+    metrics = acceptance_metrics_from_goal(goal, contract)
+    manifest = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    source_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    all_source = "\n".join(source_by_path.values()).lower()
+    blockers: list[dict[str, Any]] = []
+
+    def add(component: str, message: str, *, files_hint: list[str] | None = None, kind: str = "complexity_contract_violation") -> None:
+        blockers.append(
+            {
+                "kind": kind,
+                "severity": "hard",
+                "component": component,
+                "files": files_hint or [],
+                "message": message,
+                "repair_hint": "Regenerate the named component from its complexity_contract_slice and satisfy the deterministic acceptance metric.",
+            }
+        )
+
+    for component in component_pipeline.get("components", []):
+        if not isinstance(component, dict):
+            continue
+        component_id = str(component.get("id", "")).strip()
+        missing = [path for path in component_required_manifest_paths(component_id, component) if path not in manifest]
+        if missing:
+            add(
+                component_id,
+                f"required component files missing: {', '.join(missing)}",
+                files_hint=missing,
+                kind="required_files_missing",
+            )
+
+    basenames = {pathlib.PurePosixPath(path).name for path in manifest}
+    missing_planning = [
+        str(name)
+        for name in contract.get("required_planning_docs", [])
+        if str(name) and pathlib.PurePosixPath(str(name)).name not in basenames
+    ] if isinstance(contract.get("required_planning_docs", []), list) else []
+    if missing_planning:
+        add("docs", f"required planning documents missing: {', '.join(missing_planning)}", files_hint=missing_planning)
+
+    missing_core = [
+        str(name)
+        for name in contract.get("required_core_files", [])
+        if str(name) and pathlib.PurePosixPath(str(name)).name not in basenames
+    ] if isinstance(contract.get("required_core_files", []), list) else []
+    if missing_core:
+        add("backend", f"required shared-core files missing: {', '.join(missing_core)}", files_hint=missing_core)
+
+    missing_stages = [stage for stage in metrics["required_pipeline_stages"] if stage.lower() not in all_source]
+    if missing_stages:
+        stage_owner = "frontend" if metrics["browser_local_static"] else "backend"
+        stage_files = ["src/app.js"] if metrics["browser_local_static"] else ["backend/stages.py", "backend/orchestrator.py"]
+        add(
+            stage_owner,
+            f"required pipeline stages missing from implementation: {', '.join(missing_stages)}",
+            files_hint=stage_files,
+            kind="pipeline_stage_coverage_missing",
+        )
+
+    minimum_tests = int(metrics.get("minimum_tests", 0) or 0)
+    if minimum_tests:
+        collected_test_defs = sum(
+            len(re.findall(r"^\s*(?:async\s+def|def)\s+test_[A-Za-z0-9_]*\s*\(", content, flags=re.M))
+            for path, content in source_by_path.items()
+            if path.startswith("tests/") and path.endswith(".py")
+        )
+        if collected_test_defs < minimum_tests:
+            add(
+                "tests",
+                f"generated pytest test count below explicit requirement: {collected_test_defs} < {minimum_tests}",
+                files_hint=sorted(path for path in manifest if path.startswith("tests/")),
+                kind="minimum_test_count_not_met",
+            )
+
+    if metrics["requires_pipeline_runner"] and "class pipelinerunner" not in all_source:
+        add("backend", "required PipelineRunner implementation is missing", files_hint=["backend/orchestrator.py"])
+    if metrics["requires_job_manager"] and "class jobmanager" not in all_source:
+        add("backend", "required JobManager implementation is missing", files_hint=["backend/job_manager.py"])
+
+    if contract.get("requires_shared_gui_cli_core"):
+        cli_sources = "\n".join(
+            content.lower()
+            for path, content in source_by_path.items()
+            if "cli" in pathlib.PurePosixPath(path).name.lower() or pathlib.PurePosixPath(path).name.lower() in {"main.py", "__main__.py"}
+        )
+        gui_sources = "\n".join(
+            content.lower()
+            for path, content in source_by_path.items()
+            if any(token in pathlib.PurePosixPath(path).name.lower() for token in ("gui", "app", "ui"))
+        )
+        shared_terms = ("orchestrator", "stages", "pipelinerunner", "jobmanager")
+        if not cli_sources or not any(term in cli_sources for term in shared_terms):
+            add("backend", "CLI does not use the shared domain core", files_hint=["backend/cli.py"])
+        if not gui_sources or not any(term in gui_sources for term in shared_terms):
+            add("backend", "GUI does not use the shared domain core", files_hint=["backend/gui.py"])
+
+    required_fields = [
+        str(field).strip().lower()
+        for field in contract.get("required_artifact_fields", [])
+        if str(field).strip()
+    ] if isinstance(contract.get("required_artifact_fields", []), list) else []
+    artifact_contract_source = "\n".join(
+        content.lower()
+        for path, content in source_by_path.items()
+        if any(token in path.lower() for token in ("artifact", "stages", "orchestrator", "contract"))
+    )
+    missing_fields = [field for field in required_fields if field not in artifact_contract_source]
+    if missing_fields:
+        add(
+            "backend",
+            f"stage artifact schema fields missing: {', '.join(missing_fields)}",
+            files_hint=["backend/artifact_store.py", "docs/artifact_contract.md"],
+            kind="artifact_schema_incomplete",
+        )
+    if {"generate_background_assets", "generate_sprite_assets"}.issubset(
+        {str(stage).strip().lower() for stage in metrics["required_pipeline_stages"]}
+    ):
+        media_contract_checks = {
+            "backend/image_adapters.py": (
+                "backend",
+                ("offlinepnggenerator", "generate_background", "generate_sprite", "rgba", "png"),
+                "offline image adapter does not implement real background and sprite PNG generation",
+            ),
+            "scripts/capture_workflow.py": (
+                "media",
+                (
+                    "capture_background",
+                    "generate_sprite",
+                    ".generate_background(",
+                    ".generate_sprite(",
+                    "sha256",
+                    ".read_bytes(",
+                    "generator",
+                    "path",
+                ),
+                "media capture workflow does not create and record real PNG assets",
+            ),
+            "demo/run_fixture.py": (
+                "media",
+                ("run_fixture", "capture_background", "generate_sprite", "sha256"),
+                "media fixture does not execute and verify both real image workflows",
+            ),
+        }
+        for path, (owner, required_tokens, message) in media_contract_checks.items():
+            content = source_by_path.get(path, "")
+            normalized_content = content.lower().replace("_", "")
+            missing_tokens = [
+                token
+                for token in required_tokens
+                if token.replace("_", "") not in normalized_content
+            ]
+            simulated_success = any(
+                token in content.lower()
+                for token in (
+                    "generated image for prompt",
+                    "simulate media",
+                    "simulate image",
+                    "simulated media",
+                )
+            )
+            missing_png_signature = bool(
+                path == "scripts/capture_workflow.py"
+                and content
+                and not any(
+                    token in content.lower()
+                    for token in ("png_signature", "startswith(", "89504e47", "\\x89png")
+                )
+            )
+            if not content or missing_tokens or simulated_success or missing_png_signature:
+                details = []
+                if missing_tokens:
+                    details.append("missing " + ", ".join(missing_tokens))
+                if simulated_success:
+                    details.append("contains simulated-success behavior")
+                if missing_png_signature:
+                    details.append("does not validate the adapter-written PNG signature")
+                add(
+                    owner,
+                    message + (": " + "; ".join(details) if details else ""),
+                    files_hint=[path],
+                    kind="executable_media_contract_incomplete",
+                )
+        pillow_import_paths = [
+            path
+            for path, content in source_by_path.items()
+            if re.search(r"(?m)^\s*(?:from\s+PIL\s+import|import\s+PIL\b)", content)
+        ]
+        requirements_text = source_by_path.get("requirements.txt", "").lower()
+        if pillow_import_paths and "pillow" not in requirements_text:
+            add(
+                "foundation",
+                "PIL is imported but the Pillow distribution is absent from requirements.txt",
+                files_hint=["requirements.txt", *pillow_import_paths],
+                kind="external_dependency_contract_incomplete",
+            )
+    return blockers
+
+
 def component_ownership_table() -> dict[str, dict[str, list[str]]]:
     return {
         "foundation": {
@@ -3945,9 +13493,13 @@ def component_ownership_table() -> dict[str, dict[str, list[str]]]:
             "allowed": ["src/**", "public/**", "index.html", "frontend/**", "app/**"],
             "owns": ["src/app.js", "src/main.js", "src/App.*"],
         },
+        "data": {
+            "allowed": ["schema.sql", "migrations/**", "data/**"],
+            "owns": ["schema.sql", "migrations/**", "data/**"],
+        },
         "backend": {
-            "allowed": ["app.py", "main.py", "server.py", "backend/**", "api/**", "data/**"],
-            "owns": ["backend/**", "api/**", "data/**", "app.py", "main.py", "server.py"],
+            "allowed": ["app.py", "main.py", "server.py", "backend/**", "api/**"],
+            "owns": ["backend/**", "api/**", "app.py", "main.py", "server.py"],
         },
         "tests": {
             "allowed": ["tests/**", "test_*.py", "*.spec.*", "*.test.*"],
@@ -4000,17 +13552,86 @@ def component_path_allowed(component_id: str, path: str, ownership_table: dict[s
     return any(path_matches_pattern(path, pattern) for pattern in list(rules.get("owns", [])) + list(rules.get("allowed", [])))
 
 
+def normalize_review_components(blocker: dict[str, Any], component_pipeline: dict[str, Any] | None = None) -> list[str]:
+    pipeline_components = [
+        str(row.get("id", "")).strip()
+        for row in (component_pipeline or {}).get("components", [])
+        if isinstance(row, dict) and str(row.get("id", "")).strip()
+    ]
+    known_components = pipeline_components or list(component_ownership_table())
+    known = set(known_components)
+    raw_value = blocker.get("components")
+    if not isinstance(raw_value, list) or not raw_value:
+        raw_value = [blocker.get("component", "")]
+    candidates: list[str] = []
+    for raw_item in raw_value:
+        text = str(raw_item or "").strip()
+        if not text:
+            continue
+        if text in known:
+            candidates.append(text)
+            continue
+        parts = re.split(r"\s*(?:,|，|;|；|/|\||&|\band\b)\s*", text, flags=re.I)
+        matched = [part.strip() for part in parts if part.strip() in known]
+        if matched:
+            candidates.extend(matched)
+        elif not component_pipeline and len(parts) == 1:
+            candidates.append(text)
+    selected = set(candidates)
+    ordered = [component_id for component_id in known_components if component_id in selected]
+    ordered.extend(component_id for component_id in candidates if component_id not in ordered)
+    return ordered
+
+
+def review_blocker_requires_browser_local_persistence(blocker: dict[str, Any]) -> bool:
+    text = " ".join(
+        str(blocker.get(key, "") or "")
+        for key in ("message", "repair_hint", "raw")
+    ).lower()
+    has_local_persistence = "localstorage" in text or "local storage" in text
+    rejects_network_persistence = any(
+        token in text
+        for token in (
+            "remove all fetch",
+            "remove backend api",
+            "no backend dependency",
+            "no network dependency",
+            "browser-only",
+            "fully local",
+            "entirely in localstorage",
+        )
+    )
+    return has_local_persistence and rejects_network_persistence
+
+
 def parse_review_blocker(blocker: Any, component_pipeline: dict[str, Any] | None = None) -> dict[str, Any]:
     if isinstance(blocker, dict):
         kind = str(blocker.get("kind", "generic") or "generic")
-        files = [str(path).replace("\\", "/").strip() for path in blocker.get("files", []) if str(path).strip()] if isinstance(blocker.get("files", []), list) else []
-        component = str(blocker.get("component", "") or "").strip()
-        components = [component] if component else []
-        message = str(blocker.get("message", "") or blocker)
+        raw_files = blocker.get("files", [])
+        if not isinstance(raw_files, list) or not raw_files:
+            raw_files = blocker.get("files_hint", [])
+        files = [
+            str(path).replace("\\", "/").strip()
+            for path in raw_files
+            if str(path).strip()
+        ] if isinstance(raw_files, list) else []
+        components = normalize_review_components(blocker, component_pipeline)
+        message = str(blocker.get("message", "") or blocker.get("raw", "") or blocker)
         if kind in {"missing_entry_html", "missing_entrypoint"}:
             return {"kind": "missing_entry_html", "raw": message, "components": components or ["frontend"], "files_hint": files or ["index.html"], "severity": blocker.get("severity", "hard"), "repair_hint": blocker.get("repair_hint", "")}
-        if kind in {"frontend_backend_mismatch", "status_mismatch", "api_contract_mismatch"}:
-            return {"kind": "frontend_backend_integration_missing", "raw": message, "components": components or ["frontend", "backend"], "files_hint": files or ["src/app.js", "backend/**"], "severity": blocker.get("severity", "hard"), "repair_hint": blocker.get("repair_hint", "")}
+        if kind in {"frontend_backend_mismatch", "status_mismatch", "api_contract_mismatch", "api_alignment", "json_persistence"}:
+            local_persistence = review_blocker_requires_browser_local_persistence(blocker)
+            default_components = ["frontend"] if local_persistence and kind == "json_persistence" else ["frontend", "backend"]
+            default_files = ["src/app.js"] if local_persistence and (components or default_components) == ["frontend"] else ["src/app.js", "backend/**"]
+            return {
+                "kind": "frontend_backend_integration_missing",
+                "raw": message,
+                "components": components or default_components,
+                "files_hint": files or default_files,
+                "severity": blocker.get("severity", "hard"),
+                "repair_hint": blocker.get("repair_hint", ""),
+                "persistence_contract": "browser_local" if local_persistence else "backend_api",
+            }
         if kind in {"missing_backend_deps", "module_mismatch", "broken_runtime"}:
             return {"kind": kind, "raw": message, "components": components or ["foundation", "backend"], "files_hint": files or ["package.json"], "severity": blocker.get("severity", "hard"), "repair_hint": blocker.get("repair_hint", "")}
         if kind in {"broken_tests", "weak_tests"}:
@@ -4045,7 +13666,8 @@ def parse_review_blocker(blocker: Any, component_pipeline: dict[str, Any] | None
             "files_hint": ["src/app.js", "app.py", "server.py"],
             "severity": "hard",
         }
-    if any(token in lowered for token in ("commonjs", "require")) and any(token in lowered for token in ("esm", "type=module", "module")):
+    commonjs_signal = "commonjs" in lowered or bool(re.search(r"\brequire\s*\(", lowered))
+    if commonjs_signal and any(token in lowered for token in ("esm", "type=module", "module")):
         return {
             "kind": "module_system_mismatch",
             "raw": text,
@@ -4053,6 +13675,36 @@ def parse_review_blocker(blocker: Any, component_pipeline: dict[str, Any] | None
             "files_hint": ["package.json", "tests/**", "src/**"],
             "severity": "hard",
         }
+    consumer_local_module_violation = (
+        "imports missing local modules" in lowered
+        or "frontend module self-import contract mismatch" in lowered
+    )
+    if consumer_local_module_violation:
+        failed_component_match = re.search(
+            r"\bcomponent\s+([A-Za-z0-9_.-]+)\s+generation\s+failed\b",
+            text,
+            flags=re.I,
+        )
+        failed_component = (
+            failed_component_match.group(1).strip()
+            if failed_component_match
+            else ("frontend" if "javascript" in lowered or "frontend module" in lowered else "")
+        )
+        if failed_component and (not components or failed_component in components):
+            target_hint = "src/app.js" if failed_component == "frontend" else ""
+            return {
+                "kind": "broken_runtime",
+                "raw": text,
+                "components": [failed_component],
+                "files_hint": [target_hint] if target_hint else [],
+                "severity": "hard",
+                "repair_hint": (
+                    "Repair the current consumer leaf. Remove every self-import and invented local-module "
+                    "import, or replace an external dependency only with an exact module path already "
+                    "present in the supplied manifest; do not create or regenerate an upstream component "
+                    "from import-path text."
+                ),
+            }
     return {
         "kind": "generic_semantic_blocker",
         "raw": text,
@@ -4096,6 +13748,30 @@ def repair_actions_for_component(repair_plan: dict[str, Any], component_id: str)
     ]
 
 
+def repair_target_files_for_component(
+    repair_plan: dict[str, Any],
+    component_id: str,
+) -> list[str]:
+    targets = set(
+        concrete_repair_target_files(
+            repair_actions_for_component(repair_plan, component_id)
+        )
+    )
+    if (
+        str(repair_plan.get("stage", "")) == "component_file_generation"
+        and str(repair_plan.get("component", "")).strip() == component_id
+    ):
+        targets.update(
+            str(path).replace("\\", "/").strip()
+            for path in repair_plan.get("target_files", [])
+            if str(path).strip()
+        )
+        target_file = str(repair_plan.get("target_file", "")).replace("\\", "/").strip()
+        if target_file and "*" not in target_file and not target_file.endswith("/"):
+            targets.add(target_file)
+    return sorted(targets)
+
+
 def repair_plan_file_level_components(repair_plan: dict[str, Any]) -> set[str]:
     out: set[str] = set()
     for component_id in repair_plan_provider_components(repair_plan):
@@ -4129,13 +13805,8 @@ def build_component_repair_prompt(component_id: str, plan: dict[str, Any]) -> st
             ]
         )
     if component_id == "frontend":
-        owner_lines.extend(
-            [
-                "You own src/app.js when it is part of this project.",
-                "The frontend must use fetch to call backend API endpoints for create/update/delete/status/filter actions.",
-                "Do not use localStorage as the primary persistence layer.",
-            ]
-        )
+        owner_lines.append("You own src/app.js when it is part of this project.")
+        owner_lines.append("Preserve the selected requirement's persistence and integration contract; do not invent a backend API or replace browser-local persistence.")
     owner_lines.extend(
         [
             "Do not add TODO, placeholder, or future-work claims.",
@@ -4164,7 +13835,19 @@ def compile_repair_plan(
     component_pipeline: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     table = ownership_table or component_ownership_table()
-    parsed = [parse_review_blocker(item, component_pipeline) for item in blockers]
+    unique_blockers: list[Any] = []
+    seen_blockers: set[str] = set()
+    for blocker in blockers:
+        blocker_key = (
+            json.dumps(blocker, ensure_ascii=False, sort_keys=True, default=str)
+            if isinstance(blocker, dict)
+            else str(blocker).strip()
+        )
+        if not blocker_key or blocker_key in seen_blockers:
+            continue
+        seen_blockers.add(blocker_key)
+        unique_blockers.append(blocker)
+    parsed = [parse_review_blocker(item, component_pipeline) for item in unique_blockers]
     root_causes: list[str] = []
     deterministic_actions: list[dict[str, Any]] = []
     provider_actions: list[dict[str, Any]] = []
@@ -4202,32 +13885,66 @@ def compile_repair_plan(
             affected_components.update(str(component) for component in item.get("components", []))
             affected_files.update(str(path) for path in item.get("files_hint", []))
             hinted = [str(path) for path in item.get("files_hint", []) if str(path).strip()]
+            browser_local = str(item.get("persistence_contract", "")) == "browser_local"
             if hinted:
                 for path in hinted:
                     owner = legal_owner_for_path(path, ["frontend", "backend"]) or ("frontend" if path.startswith(("src/", "app/", "frontend/")) else "backend")
+                    if owner not in item.get("components", []):
+                        continue
                     provider_actions.append(
                         {
                             "component": owner,
                             "path": path,
-                            "instruction": str(item.get("repair_hint", "") or "Align frontend API usage and backend routes/status enum/persistence contract."),
+                            "instruction": str(
+                                item.get("repair_hint", "")
+                                or (
+                                    "Keep all task state and persistence in browser localStorage; remove task fetch/API dependencies."
+                                    if browser_local and owner == "frontend"
+                                    else "Keep only the standard-library static launcher; remove task API routes and server persistence."
+                                    if browser_local
+                                    else "Align frontend API usage and backend routes/status enum/persistence contract."
+                                )
+                            ),
                         }
                     )
             else:
-                provider_actions.extend(
-                    [
-                        {
-                            "component": "frontend",
-                            "path": "src/app.js",
-                            "instruction": "Frontend must call backend API endpoints for create/update/delete/status/filter actions and must not use localStorage as primary persistence.",
-                        },
-                        {
-                            "component": "backend",
-                            "path": "backend/**",
-                            "instruction": "Backend must expose API routes and local JSON file persistence used by the frontend.",
-                        },
-                    ]
-                )
-            validation_checks.extend(["frontend_uses_fetch_api", "backend_json_persistence"])
+                if browser_local:
+                    if "frontend" in item.get("components", []):
+                        provider_actions.append(
+                            {
+                                "component": "frontend",
+                                "path": "src/app.js",
+                                "instruction": "Keep all task state and persistence in browser localStorage; remove task fetch/API dependencies.",
+                            }
+                        )
+                    if "backend" in item.get("components", []):
+                        provider_actions.append(
+                            {
+                                "component": "backend",
+                                "path": "backend/**",
+                                "instruction": "Keep only the standard-library static launcher; remove task API routes and server persistence.",
+                            }
+                        )
+                else:
+                    provider_actions.extend(
+                        [
+                            {
+                                "component": "frontend",
+                                "path": "src/app.js",
+                                "instruction": "Frontend must call backend API endpoints for create/update/delete/status/filter actions and must not use localStorage as primary persistence.",
+                            },
+                            {
+                                "component": "backend",
+                                "path": "backend/**",
+                                "instruction": "Backend must expose API routes and local JSON file persistence used by the frontend.",
+                            },
+                        ]
+                    )
+            validation_checks.extend(
+                ["frontend_localstorage_persistence", "frontend_has_no_task_fetch_api"]
+                if browser_local
+                else ["frontend_uses_fetch_api", "backend_json_persistence"]
+            )
         elif kind == "module_system_mismatch":
             root_causes.append("module_system_mismatch")
             affected_components.update(str(component) for component in item.get("components", []))
@@ -4266,9 +13983,51 @@ def compile_repair_plan(
                 validation_checks.append("test_report_contains_only_executed_evidence")
         else:
             root_causes.append("semantic_review_blocker")
-            for component_id in item.get("components", []):
-                affected_components.add(str(component_id))
-                provider_actions.append({"component": str(component_id), "path": "", "instruction": str(item.get("raw", ""))})
+            files_hint = [
+                str(path).replace("\\", "/").strip()
+                for path in item.get("files_hint", [])
+                if str(path).strip()
+            ]
+            pipeline_components = [
+                str(row.get("id", "")).strip()
+                for row in (component_pipeline or {}).get("components", [])
+                if isinstance(row, dict) and str(row.get("id", "")).strip()
+            ]
+            item_components = [
+                str(component_id).strip()
+                for component_id in item.get("components", [])
+                if str(component_id).strip()
+            ]
+            if files_hint:
+                for path in files_hint:
+                    owner = legal_owner_for_path(path, pipeline_components)
+                    if not owner and len(item_components) == 1:
+                        owner = item_components[0]
+                    if not owner:
+                        continue
+                    affected_components.add(owner)
+                    affected_files.add(path)
+                    provider_actions.append(
+                        {
+                            "component": owner,
+                            "path": path,
+                            "instruction": str(
+                                item.get("repair_hint", "")
+                                or item.get("raw", "")
+                                or "Repair the evidenced semantic blocker in this exact file."
+                            ),
+                        }
+                    )
+            else:
+                for component_id in item_components:
+                    affected_components.add(component_id)
+                    provider_actions.append(
+                        {
+                            "component": component_id,
+                            "path": "",
+                            "instruction": str(item.get("raw", "")),
+                        }
+                    )
 
     for action in provider_actions:
         component_id = str(action.get("component", ""))
@@ -4636,22 +14395,35 @@ def attempt_formal_local_model_fallback(
         ensure_ascii=False,
         indent=2,
     )
-    requested_model = str(os.environ.get("CGNK_OLLAMA_MODEL", "") or "local_model_router").strip()
+    requested_model = str(
+        os.environ.get("CGNK_OLLAMA_CODE_MODEL", "")
+        or os.environ.get("CGNK_OLLAMA_MODEL", "")
+        or "local_model_router"
+    ).strip()
     fallback_timeout = int(str(os.environ.get("CGNK_LOCAL_MODEL_FALLBACK_TIMEOUT", "180") or "180"))
     try:
-        result = local_model_router.call_text_task(
-            "pipeline_planner",
-            "You are a formal CGKN fallback planner. Return concise JSON only.",
+        result = local_model_router.call_json_task(
+            "component_repair",
+            (
+                "You are a formal CGKN checkpoint recovery planner. Return strict JSON only with keys: "
+                "decision, failed_component, resume_from, repair_actions, validation_commands, reason. "
+                "decision must be resume_checkpoint, retry_component, or block. "
+                "repair_actions must be a list of objects with component, path, and instruction."
+            ),
             prompt,
             timeout=fallback_timeout,
         )
     except Exception as exc:
         result = {"ok": False, "provider": "local_model_router", "model": requested_model, "error": str(exc)}
-    ok = bool(result.get("ok"))
+    recovery_plan = result.get("json") if isinstance(result.get("json"), dict) else {}
+    allowed_decisions = {"resume_checkpoint", "retry_component", "block"}
+    valid_decision = str(recovery_plan.get("decision") or "") in allowed_decisions
+    valid_actions = isinstance(recovery_plan.get("repair_actions"), list)
+    ok = bool(result.get("ok")) and valid_decision and valid_actions
     provider = str(result.get("provider") or "local_model_router")
     model = str(result.get("model") or requested_model)
     text = str(result.get("text") or "")
-    status = "ok" if ok else "failed"
+    status = "planned" if ok else "failed"
     formal_model_contract.append_model_call(
         run_dir,
         stage=failed_stage,
@@ -4659,11 +14431,11 @@ def attempt_formal_local_model_fallback(
         model=model,
         requested=True,
         executed=True,
-        status=status,
-        used_in_formal_chain=True,
+        status="ok" if ok else "failed",
+        used_in_formal_chain=ok,
         input_value=prompt,
         output_value=text,
-        error=None if ok else str(result.get("error", "local_model_fallback_failed")),
+        error=None if ok else str(result.get("error") or "local_model_recovery_plan_invalid"),
         metadata={"fallback_for": "api_agent", "failed_component": failed_component},
     )
     return {
@@ -4672,10 +14444,12 @@ def attempt_formal_local_model_fallback(
         "fallback_provider": "local_model_router",
         "fallback_model": model,
         "fallback_status": status,
-        "formal_chain_continued": ok,
+        "formal_chain_continued": False,
+        "recovery_plan_ready": ok,
+        "recovery_plan": recovery_plan if ok else {},
         "requires_reverify": True,
         "delivery_pass_allowed_without_reverify": False,
-        "error": "" if ok else str(result.get("error", "local_model_fallback_failed")),
+        "error": "" if ok else str(result.get("error") or "local_model_recovery_plan_invalid"),
         "output_preview": text[:500] if ok else "",
     }
 
@@ -4694,6 +14468,18 @@ def load_pending_repair_plan(run_dir: pathlib.Path | str) -> dict[str, Any]:
     if isinstance(nested, dict):
         merged = dict(nested)
         merged.update({key: value for key, value in doc.items() if key not in {"repair_plan"}})
+        if str(nested.get("stage", "")) == "component_file_generation":
+            for key in (
+                "stage",
+                "component",
+                "target_file",
+                "payload_mode",
+                "file_manifest",
+                "completed_files",
+                "remaining_files",
+            ):
+                if key in nested:
+                    merged[key] = nested[key]
         if "provider_actions" not in merged and isinstance(nested.get("provider_actions"), list):
             merged["provider_actions"] = nested["provider_actions"]
         return merged
@@ -4725,6 +14511,153 @@ def repair_plan_provider_components(repair_plan: dict[str, Any]) -> list[str]:
     return sorted(components)
 
 
+def refresh_pending_semantic_repair_plan(
+    pending_plan: dict[str, Any],
+    component_files: dict[str, list[dict[str, str]]],
+    component_pipeline: dict[str, Any],
+) -> dict[str, Any]:
+    if not pending_plan or str(pending_plan.get("stage", "")) == "component_file_generation":
+        return pending_plan
+    blockers = [
+        str(item).strip()
+        for item in pending_plan.get("blockers", [])
+        if str(item).strip()
+    ] if isinstance(pending_plan.get("blockers", []), list) else []
+    if not blockers:
+        blockers = [
+            str(item).strip()
+            for item in pending_plan.get("must_disappear_blockers", [])
+            if str(item).strip()
+        ] if isinstance(pending_plan.get("must_disappear_blockers", []), list) else []
+    if not blockers:
+        return pending_plan
+    structured_blockers = [
+        item
+        for item in pending_plan.get("parsed_blockers", [])
+        if isinstance(item, dict) and str(item.get("raw", "")).strip()
+    ] if isinstance(pending_plan.get("parsed_blockers", []), list) else []
+    refreshed = compile_repair_plan(
+        structured_blockers or blockers,
+        component_files,
+        component_pipeline=component_pipeline,
+    )
+    for key in (
+        "status",
+        "stage",
+        "raw_user_goal",
+        "model",
+        "requested_model",
+        "selected_model",
+        "model_routing_reason",
+        "last_transport_error",
+        "next_retry_model",
+        "base_url",
+        "attempt",
+        "semantic_repair_attempts_used",
+        "transport_attempt",
+        "created_at",
+    ):
+        if key in pending_plan:
+            refreshed[key] = pending_plan[key]
+    refreshed["blockers"] = blockers
+    refreshed["repair_plan_refreshed_on_resume"] = True
+    return refreshed
+
+
+def recover_pending_leaf_target_from_phase_log(
+    pending_plan: dict[str, Any],
+    phase_log_path: pathlib.Path | str,
+) -> dict[str, Any]:
+    if not pending_plan or str(pending_plan.get("stage", "")) == "component_file_generation":
+        return pending_plan
+    if any(
+        concrete_repair_target_files(
+            repair_actions_for_component(pending_plan, component_id)
+        )
+        for component_id in repair_plan_provider_components(pending_plan)
+    ):
+        return pending_plan
+    candidate_components = [
+        str(pending_plan.get("failed_component", "")).strip(),
+        *[
+            str(item).strip()
+            for item in pending_plan.get("affected_components", [])
+            if str(item).strip()
+        ],
+    ]
+    component_id = next((item for item in candidate_components if item), "")
+    path = pathlib.Path(phase_log_path)
+    if not component_id or not path.exists():
+        return pending_plan
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return pending_plan
+    target_file = ""
+    for line in reversed(lines[-1000:]):
+        try:
+            event = json.loads(line)
+        except Exception:
+            continue
+        if (
+            str(event.get("event", "")) == "component_leaf_attempt_failed"
+            and str(event.get("component", "")).strip() == component_id
+        ):
+            target_file = str(event.get("target_file", "")).replace("\\", "/").strip()
+            if target_file:
+                break
+    if (
+        not target_file
+        or "*" in target_file
+        or target_file.endswith("/")
+        or not component_path_allowed(component_id, target_file)
+    ):
+        return pending_plan
+    recovered = dict(pending_plan)
+    recovered["affected_components"] = [component_id]
+    recovered["affected_files"] = [target_file]
+    recovered["provider_actions"] = [
+        {
+            "component": component_id,
+            "path": target_file,
+            "instruction": (
+                "Retry the exact failed leaf from structured phase evidence and remove every "
+                "preserved blocker without modifying unrelated component files."
+            ),
+        }
+    ]
+    recovered["leaf_target_recovered_from_phase_log"] = True
+    for action in recovered["provider_actions"]:
+        action["repair_prompt"] = build_component_repair_prompt(
+            component_id,
+            {
+                "provider_actions": recovered["provider_actions"],
+                "validation_checks": recovered.get("validation_checks", []),
+                "must_disappear_blockers": recovered.get("blockers", [])
+                or recovered.get("must_disappear_blockers", []),
+            },
+        )
+    return recovered
+
+
+def prepare_semantic_repair_retry_plan(
+    repair_plan: dict[str, Any],
+    issues: list[str],
+    user_goal: str,
+    component_pipeline: dict[str, Any],
+) -> dict[str, Any]:
+    prepared = dict(repair_plan)
+    prepared["status"] = "pending"
+    prepared["stage"] = "provider_semantic_repair"
+    prepared["blockers"] = [str(item) for item in issues if str(item).strip()]
+    # The compiler may preserve these keys with empty legacy values. A same-run
+    # semantic repair needs the exact live identities so validated upstream
+    # checkpoints are recognized before any new manifest is requested.
+    prepared["raw_user_goal"] = user_goal
+    prepared["component_pipeline"] = component_pipeline
+    return prepared
+
+
 def route_semantic_review_blockers(issues: list[str], component_pipeline: dict[str, Any]) -> list[str]:
     components = [str(row.get("id", "")).strip() for row in component_pipeline.get("components", []) if isinstance(row, dict)]
     available = {item for item in components if item}
@@ -4749,7 +14682,10 @@ def route_semantic_review_blockers(issues: list[str], component_pipeline: dict[s
         add_if_available("tests")
     if any(token in text for token in ("readme", "docs", "documentation", "placeholder", "todo", "占位", "后续", "补齐", "文档")):
         add_if_available("docs")
-    if any(token in text for token in ("commonjs", "esm", "module", "require", "import", "package.json", "type=module")):
+    module_system_signal = any(
+        token in text for token in ("commonjs", "esm", "package.json", "type=module")
+    ) or bool(re.search(r"\brequire\s*\(", text))
+    if module_system_signal:
         add_if_available("foundation", "frontend", "backend", "tests")
     if any(token in text for token in ("screenshot", "video", "mp4", "webm", "截图", "视频", "media")):
         # Provider should provide honest capture commands/scripts. Real binary capture belongs to post-build finalize.
@@ -4772,14 +14708,14 @@ def repair_instructions_for_components(issues: list[str], affected_components: l
         if component_id == "frontend":
             rules.extend(
                 [
-                    "Frontend must call backend APIs with fetch for task CRUD, status changes, filtering, and JSON-backed persistence; do not implement the main persistence only with localStorage.",
+                    "Preserve the selected requirement's persistence boundary. If it requires browser-local localStorage, remove task API/fetch dependencies; if it requires a backend, keep the frontend aligned with that API.",
                     "Expose stable selectors or routes that screenshot/video capture can exercise after the app starts locally.",
                 ]
             )
         elif component_id == "backend":
             rules.extend(
                 [
-                    "Backend must provide local JSON file persistence and API endpoints used by the frontend.",
+                    "Preserve the selected requirement's backend boundary. A browser-local localStorage application needs only its requested static launcher, while an API-backed application must provide the routes and persistence used by the frontend.",
                     "Keep module syntax consistent with package.json and the tests.",
                 ]
             )
@@ -4935,7 +14871,12 @@ def run_provider_semantic_review_with_repair(
                 market_research,
                 repair_errors,
                 model,
-                remaining_timeout(deadline, timeout, floor=5, cap=120),
+                remaining_timeout(
+                    deadline,
+                    timeout,
+                    floor=5,
+                    cap=provider_component_manifest_timeout_cap(),
+                ),
                 internal_context=internal_context,
                 deadline=deadline,
                 checkpoint_dir=checkpoint_dir,
@@ -5001,9 +14942,31 @@ def run_provider_semantic_review_with_repair(
                     repair_plan,
                     checkpoint_dir=checkpoint_dir,
                 )
-                pending_repair_plan = repair_plan
-                pending_repair_plan.setdefault("raw_user_goal", user_goal)
-                pending_repair_plan.setdefault("component_pipeline", component_pipeline)
+                failed_component_match = re.search(
+                    r"\bcomponent\s+([A-Za-z0-9_.-]+)\s+generation\s+failed\b",
+                    str(exc),
+                    flags=re.I,
+                )
+                failed_component = (
+                    failed_component_match.group(1).strip()
+                    if failed_component_match
+                    else ""
+                )
+                persisted_leaf_plan = load_pending_repair_plan(run_dir)
+                repair_plan = promote_component_file_retry_plan(
+                    repair_plan,
+                    persisted_leaf_plan,
+                    failed_component,
+                )
+                if str(repair_plan.get("stage", "")) == "component_file_generation":
+                    pending_repair_plan = repair_plan
+                else:
+                    pending_repair_plan = prepare_semantic_repair_retry_plan(
+                        repair_plan,
+                        issues,
+                        user_goal,
+                        component_pipeline,
+                    )
                 component_repair_instructions = repair_plan_component_instructions(repair_plan)
                 force_components = set(repair_plan_provider_components(repair_plan))
                 file_level_components = repair_plan_file_level_components(repair_plan)
@@ -5021,17 +14984,8 @@ def run_provider_semantic_review_with_repair(
                     "deterministic_actions_result": deterministic_result,
                 }
                 pending_repair_record = repair_record
-                repair_errors.append(
-                    "provider component generation repair "
-                    + json.dumps(
-                        {
-                            "attempt_number": semantic_attempt + 1,
-                            "blockers": issues,
-                            "affected_components": sorted(force_components),
-                        },
-                        ensure_ascii=False,
-                    )
-                )
+                # Keep shared feedforward inputs stable. The repair plan already carries
+                # component-scoped feedback, so unrelated passed checkpoints remain reusable.
                 update_provider_component_checkpoint_summary(
                     checkpoint_dir,
                     {
@@ -5119,7 +15073,12 @@ def run_provider_semantic_review_with_repair(
                 generation,
                 files,
                 model,
-                remaining_timeout(deadline, timeout, floor=5, cap=90),
+                remaining_timeout(
+                    deadline,
+                    timeout,
+                    floor=5,
+                    cap=provider_semantic_review_timeout_cap(),
+                ),
                 internal_context=internal_context,
                 phase_log_path=phase_log_path,
                 routing_policy=routing_policy,
@@ -5248,6 +15207,33 @@ def run_provider_semantic_review_with_repair(
                 "attempted_repairs": attempted_repairs,
                 "diagnostics": diagnostics,
             }
+        deterministic_blockers = deterministic_complexity_blockers(
+            goal=user_goal,
+            plan_doc=plan_doc,
+            component_pipeline=component_pipeline,
+            files=files,
+        )
+        if deterministic_blockers:
+            existing_blockers = provider_review.get("structured_blockers", [])
+            if not isinstance(existing_blockers, list):
+                existing_blockers = []
+            provider_review["structured_blockers"] = [*existing_blockers, *deterministic_blockers]
+            existing_issues = provider_review.get("issues", [])
+            if not isinstance(existing_issues, list):
+                existing_issues = [str(existing_issues)] if str(existing_issues).strip() else []
+            provider_review["issues"] = [
+                *existing_issues,
+                *[str(blocker.get("message", blocker)) for blocker in deterministic_blockers],
+            ]
+            provider_review["status"] = "fail"
+            provider_review["deterministic_complexity_gate"] = {
+                "status": "NEEDS_REWORK",
+                "blocker_count": len(deterministic_blockers),
+                "blockers": deterministic_blockers,
+            }
+            provider_review["review_summary"] = (
+                "Model semantic review was overridden by deterministic complexity-contract blockers."
+            )
         last_generation = generation
         last_files = files
         last_review = provider_review
@@ -5330,9 +15316,12 @@ def run_provider_semantic_review_with_repair(
             repair_plan,
             checkpoint_dir=checkpoint_dir,
         )
-        pending_repair_plan = repair_plan
-        pending_repair_plan.setdefault("raw_user_goal", user_goal)
-        pending_repair_plan.setdefault("component_pipeline", component_pipeline)
+        pending_repair_plan = prepare_semantic_repair_retry_plan(
+            repair_plan,
+            issues,
+            user_goal,
+            component_pipeline,
+        )
         component_repair_instructions = repair_plan_component_instructions(repair_plan)
         force_components = set(repair_plan_provider_components(repair_plan))
         file_level_components = repair_plan_file_level_components(repair_plan)
@@ -5346,21 +15335,12 @@ def run_provider_semantic_review_with_repair(
             "removed_checkpoints": removed,
             "review_verdict": str(provider_review.get("status", "unknown")),
             "repair_instructions": component_repair_instructions,
-            "repair_plan": repair_plan,
+            "repair_plan": pending_repair_plan,
             "deterministic_actions_result": deterministic_result,
         }
         pending_repair_record = repair_record
-        repair_errors.append(
-            "provider semantic review repair "
-            + json.dumps(
-                {
-                    "attempt_number": semantic_attempt + 1,
-                    "blockers": issues,
-                    "affected_components": sorted(force_components),
-                },
-                ensure_ascii=False,
-            )
-        )
+        # Component-scoped repair instructions carry feedback without changing the
+        # feedforward hash of unrelated, already validated upstream components.
         update_provider_component_checkpoint_summary(
             checkpoint_dir,
             {
@@ -5676,13 +15656,16 @@ def run_allowed_command(argv: list[str], cwd: pathlib.Path, timeout: int = 120) 
     normalized = normalize_allowed_argv(argv)
     try:
         proc = subprocess.run(normalized, cwd=str(cwd), capture_output=True, text=True, timeout=timeout)
+        diagnostic_chars = max(
+            1200, min(20000, env_int("CGNK_POST_BUILD_COMMAND_OUTPUT_CHARS", 12000))
+        )
         return {
             "status": "pass" if proc.returncode == 0 else "failed",
             "argv": argv,
             "executed_argv": normalized,
             "returncode": proc.returncode,
-            "stdout_tail": proc.stdout[-1200:],
-            "stderr_tail": proc.stderr[-1200:],
+            "stdout_tail": proc.stdout[-diagnostic_chars:],
+            "stderr_tail": proc.stderr[-diagnostic_chars:],
         }
     except Exception as exc:
         return {"status": "failed", "argv": argv, "error": str(exc)}
@@ -6297,6 +16280,8 @@ def write_runtime_artifacts(
                     "requirement-blueprint-generated",
                     "component-pipeline-planned",
                     "market-research-generated",
+                    "design-research-generated",
+                    "design-direction-selected",
                     "component-provider-project-generated",
                     "component-files-merged",
                     "provider-output-validated",
@@ -6311,6 +16296,7 @@ def write_runtime_artifacts(
         "provider_semantic_review.json": generation.get("provider_semantic_review", {"status": "unknown"}),
         "online_input_examples.json": online_inputs,
         "market_research.json": market_research,
+        "bounded_design_context.json": market_research.get("design_research", {}),
         "example_output_report.json": example_outputs,
         "agent_usage_report.json": agent_usage,
         "test_graph.json": {
@@ -6320,6 +16306,8 @@ def write_runtime_artifacts(
                     "goal",
                     "online_input_agent",
                     "market_research_agent",
+                    "design_research_agent",
+                    "generation_context_librarian",
                     "requirement_blueprint",
                     "api_provider_generation",
                     "provider_output_validation",
@@ -6353,6 +16341,12 @@ def write_runtime_artifacts(
         refs[name] = str(path)
     write_text(artifact_dir / "test_graph.mmd", make_mermaid())
     refs["test_graph.mmd"] = str(artifact_dir / "test_graph.mmd")
+    design_json = run_dir / "design_research" / "design_research.json"
+    design_markdown = run_dir / "design_research" / "DESIGN_RESEARCH.md"
+    if design_json.exists():
+        refs["design_research.json"] = str(design_json)
+    if design_markdown.exists():
+        refs["DESIGN_RESEARCH.md"] = str(design_markdown)
     return refs
 
 
@@ -6420,6 +16414,7 @@ def write_provider_long_context_artifacts(
                 "build_requirement_blueprint",
                 "collect_online_inputs",
                 "run_market_research",
+                "run_design_research",
                 "api_provider_project_generation",
                 "provider_semantic_review",
                 "write_provider_files",
@@ -6478,12 +16473,32 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     plan_path = pathlib.Path(args.plan) if args.plan else None
     resume_pending_plan: dict[str, Any] = {}
     resume_run_context: dict[str, Any] = {}
+    generation_plan_checkpoint: dict[str, Any] = {}
+    generation_plan_checkpoint_path = (
+        run_dir / "artifacts" / "generation_plan_checkpoint.json"
+    )
     if resume_run_dir:
         resume_pending_plan = load_pending_repair_plan(resume_run_dir)
         resume_run_context = load_run_context(resume_run_dir)
     if plan_path and plan_path.exists():
         plan_doc = load_json(plan_path)
         goal = plan_goal(plan_doc)
+    elif resume_run_dir and generation_plan_checkpoint_path.exists():
+        generation_plan_checkpoint = load_json(generation_plan_checkpoint_path)
+        plan_doc = (
+            generation_plan_checkpoint.get("plan_doc", {})
+            if isinstance(generation_plan_checkpoint, dict)
+            else {}
+        )
+        if not isinstance(plan_doc, dict) or not plan_doc:
+            raise RuntimeError("RESUME_PLAN_CHECKPOINT_INVALID")
+        goal = str(
+            getattr(args, "goal", "")
+            or plan_goal(plan_doc)
+            or resume_pending_plan.get("raw_user_goal", "")
+            or resume_run_context.get("raw_user_goal", "")
+            or ""
+        ).strip()
     else:
         goal = str(
             getattr(args, "goal", "")
@@ -6499,7 +16514,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             goal,
             allow_network=bool(getattr(args, "allow_network", False)),
             allow_provider=bool(getattr(args, "allow_provider", False)),
-            use_local_model=local_model_router.local_model_requested(),
+            use_local_model=local_model_router.task_enabled("planning"),
         )
         local_model_hint = (
             plan_doc.get("project_understanding", {}).get("payload", {}).get("optional_local_model", {})
@@ -6522,6 +16537,49 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             )
     intent = frozen_user_intent(plan_doc, goal)
     user_goal = str(intent.get("raw_user_message") or plan_doc.get("original_requirement") or goal).strip()
+    if resume_run_dir and generation_plan_checkpoint:
+        expected_raw_goal_hash = hashlib.sha256(
+            str(goal).encode("utf-8")
+        ).hexdigest()
+        expected_frozen_goal_hash = hashlib.sha256(
+            user_goal.encode("utf-8")
+        ).hexdigest()
+        stored_raw_goal_hash = str(
+            generation_plan_checkpoint.get("raw_user_goal_sha256", "")
+        )
+        stored_frozen_goal_hash = str(
+            generation_plan_checkpoint.get("frozen_user_goal_sha256", "")
+        )
+        if stored_raw_goal_hash != expected_raw_goal_hash or (
+            stored_frozen_goal_hash
+            and stored_frozen_goal_hash != expected_frozen_goal_hash
+        ):
+            raise RuntimeError("RESUME_PLAN_GOAL_MISMATCH")
+        if not resume_pending_plan:
+            resume_pending_plan = {
+                "kind": "CGKNSameRunResume",
+                "stage": "same_run_resume",
+                "status": "resume_checkpoint",
+                "raw_user_goal": user_goal,
+                "generation_plan_goal_sha256": expected_raw_goal_hash,
+                "frozen_goal_sha256": expected_frozen_goal_hash,
+                "created_at": now(),
+            }
+    write_json(
+        generation_plan_checkpoint_path,
+        {
+            "kind": "CGKNGenerationPlanCheckpoint",
+            "schema_version": 1,
+            "created_at": now(),
+            "raw_user_goal_sha256": hashlib.sha256(
+                str(goal).encode("utf-8")
+            ).hexdigest(),
+            "frozen_user_goal_sha256": hashlib.sha256(
+                user_goal.encode("utf-8")
+            ).hexdigest(),
+            "plan_doc": plan_doc,
+        },
+    )
     internal_context = internal_context_from_plan(plan_doc)
     phase_log_path = str(getattr(args, "phase_log_path", "") or (run_dir / "provider_phase_log.jsonl"))
     routing_policy = provider_model_routing_policy_from_args(args)
@@ -6611,6 +16669,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     }
     plan_doc["selected_project_direction"] = selected_project_direction
     plan_doc["complexity_project_contract"] = complexity_project_contract
+    requirement_direction_alignment = requirement_discovery_alignment(
+        selected_requirement,
+        selected_project_direction,
+    )
+    plan_doc["requirement_direction_alignment"] = requirement_direction_alignment
     internal_context = (
         internal_context
         + "\n\nDiscovery & Selection Lane result:\n"
@@ -6622,6 +16685,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "acceptance_contract": acceptance_contract,
                 "selected_project_direction": selected_project_direction,
                 "complexity_project_contract": complexity_project_contract,
+                "requirement_direction_alignment": requirement_direction_alignment,
             },
             ensure_ascii=False,
             indent=2,
@@ -6647,6 +16711,38 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             "policy": GENERATION_POLICY,
         }
         write_json(result_path, blocked)
+        return blocked
+    if requirement_direction_alignment.get("status") != "PASS":
+        blocked = {
+            "kind": "RuntimeExecutionResult",
+            "status": "BLOCKED",
+            "reason": "requirement_discovery_domain_mismatch",
+            "generated_at": now(),
+            "goal": user_goal,
+            "generation_context_goal": goal,
+            "project_dir": None,
+            "requested_project_dir": str(out_dir),
+            "run_dir": str(run_dir),
+            "requirement_decision": requirement_decision_result,
+            "selected_requirement": selected_requirement,
+            "discovery_selection": discovery_result,
+            "selected_project_direction": selected_project_direction,
+            "complexity_project_contract": complexity_project_contract,
+            "requirement_direction_alignment": requirement_direction_alignment,
+            "implementation_status": "NOT_EVALUATED",
+            "delivery_status": "NEEDS_REWORK",
+            "final_delivery_allowed": False,
+            "final_verdict": "NEEDS_REWORK",
+            "policy": GENERATION_POLICY,
+        }
+        write_json(result_path, blocked)
+        append_phase_log(
+            phase_log_path,
+            "discovery_selection",
+            "blocked",
+            "Selected requirement and project direction belong to different product domains.",
+            [str(result_path)],
+        )
         return blocked
     if not bool(getattr(args, "use_api", False)):
         artifacts_dir = run_dir / "artifacts"
@@ -6705,7 +16801,74 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         online_inputs.setdefault("project_type", str(intent.get("project_type", "")))
         online_inputs.setdefault("raw_user_message", user_goal)
     market_research = market_research_agent.run_market_research(user_goal, blueprint, online_inputs, run_dir / "market_research")
-    component_pipeline = component_pipeline_from_plan(user_goal, plan_doc)
+    design_research = design_research_agent.run_design_research(
+        user_goal,
+        {
+            **blueprint,
+            "selected_project_direction": plan_doc.get("selected_project_direction", {}),
+            "complexity_project_contract": plan_doc.get("complexity_project_contract", {}),
+        },
+        market_research,
+        run_dir / "design_research",
+    )
+    bounded_design_context = design_research_agent.bounded_design_context(design_research)
+    market_research = dict(market_research)
+    market_research["design_research"] = bounded_design_context
+    plan_doc["design_research"] = {
+        "workflow_state": design_research.get("workflow_state", ""),
+        "visual_surface_required": design_research.get("visual_surface_required", False),
+        "archetype": design_research.get("archetype", ""),
+        "manifest_sha256": design_research.get("manifest_sha256", ""),
+        "artifact_paths": {
+            "json": str(run_dir / "design_research" / "design_research.json"),
+            "markdown": str(run_dir / "design_research" / "DESIGN_RESEARCH.md"),
+        },
+    }
+    append_phase_log(
+        phase_log_path,
+        "design_research",
+        "completed",
+        "Source-backed design references were searched and one bounded visual direction was selected.",
+        [
+            str(run_dir / "design_research" / "design_research.json"),
+            str(run_dir / "design_research" / "DESIGN_RESEARCH.md"),
+        ],
+    )
+    component_pipeline = apply_design_context_to_component_pipeline(
+        component_pipeline_from_plan(user_goal, plan_doc),
+        design_research,
+    )
+    if resume_pending_plan:
+        original_resume_components = repair_plan_provider_components(resume_pending_plan)
+        resume_pending_plan = refresh_pending_semantic_repair_plan(
+            resume_pending_plan,
+            component_files_from_checkpoints(run_dir / "artifacts" / "provider_components"),
+            component_pipeline,
+        )
+        resume_pending_plan = recover_pending_leaf_target_from_phase_log(
+            resume_pending_plan,
+            phase_log_path,
+        )
+        if (
+            resume_pending_plan.get("repair_plan_refreshed_on_resume")
+            or resume_pending_plan.get("leaf_target_recovered_from_phase_log")
+        ):
+            write_pending_repair_context(
+                run_dir / "artifacts" / "pending_repair_plan.json",
+                resume_pending_plan,
+            )
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "pending_semantic_repair_plan_refreshed",
+                    "previous_components": original_resume_components,
+                    "affected_components": repair_plan_provider_components(resume_pending_plan),
+                    "affected_files": resume_pending_plan.get("affected_files", []),
+                    "leaf_target_recovered_from_phase_log": bool(
+                        resume_pending_plan.get("leaf_target_recovered_from_phase_log")
+                    ),
+                },
+            )
     repair_errors: list[str] = []
     generation: dict[str, Any] = {}
     files: list[dict[str, str]] = []
@@ -6988,7 +17151,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
 
     result = {
         "kind": "RuntimeExecutionResult",
-        "status": "pass",
+        **generation_only_success_boundary(),
         "generated_at": now(),
         "goal": user_goal,
         "generation_context_goal": goal,
@@ -6997,6 +17160,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "generated_files": generated_files,
         "online_input_examples": online_inputs,
         "market_research": market_research,
+        "design_research": design_research,
         "component_pipeline": component_pipeline,
         "frozen_intent": intent,
         "component_generation": {

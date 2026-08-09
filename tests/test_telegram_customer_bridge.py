@@ -1024,6 +1024,28 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
 
         self.assertNotEqual("generation_confirmation", classification["intent"])
 
+    def test_long_project_request_is_not_short_circuited_as_status_query(self) -> None:
+        session = bridge.default_session("chat-long-project-classify")
+        text = (
+            "请设计并实现一个视觉小说制作平台，角色支持表情或状态；没有真实资源时可以使用清楚标注的占位资源；"
+            "项目必须包含真实前端、后端、数据库、自动化测试、浏览器截图、视频演示和 RenPy 导出。"
+        )
+        original_enabled = bridge.local_model_router.task_enabled
+        original_call = bridge.local_model_router.call_json_task
+        try:
+            bridge.local_model_router.task_enabled = lambda task: task == "customer_classification"
+            bridge.local_model_router.call_json_task = lambda *args, **kwargs: {
+                "ok": True,
+                "json": {"intent": "status_query", "confidence": 0.51, "reason": "ambiguous status words"},
+            }
+            classification = bridge.classify_customer_message(text, session)
+        finally:
+            bridge.local_model_router.task_enabled = original_enabled
+            bridge.local_model_router.call_json_task = original_call
+
+        self.assertEqual("new_project_request", classification["intent"])
+        self.assertEqual("local_model", classification["source"])
+
     def test_generation_failure_facts_hide_internal_parameter_names(self) -> None:
         facts = bridge.safe_generation_failure_facts("做一个 VN 助手", AttributeError("'Namespace' object has no attribute 'prompt_max_chars'"))
         self.assertEqual("generation_bridge_configuration_error", facts["error_category"])

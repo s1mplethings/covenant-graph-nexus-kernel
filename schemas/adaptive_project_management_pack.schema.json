@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/adaptive_project_management_pack.schema.json",
+  "title": "CGKNAdaptiveProjectManagementPack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "project_id",
+    "project_name",
+    "goal",
+    "delivery_approach",
+    "tailoring",
+    "governance",
+    "product_backlog",
+    "quality_management",
+    "risks",
+    "iteration_refs",
+    "improvement_backlog",
+    "workflow_state",
+    "evidence_status",
+    "experience_query"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNAdaptiveProjectManagementPack"},
+    "schema_version": {"const": "1.0"},
+    "project_id": {"type": "string", "minLength": 1},
+    "project_name": {"type": "string", "minLength": 1},
+    "goal": {"type": "string", "minLength": 1},
+    "delivery_approach": {"enum": ["predictive", "adaptive", "hybrid"]},
+    "tailoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirements_uncertainty",
+        "technical_uncertainty",
+        "criticality",
+        "iteration_length_days",
+        "rationale"
+      ],
+      "properties": {
+        "requirements_uncertainty": {"enum": ["low", "medium", "high"]},
+        "technical_uncertainty": {"enum": ["low", "medium", "high"]},
+        "criticality": {"enum": ["low", "medium", "high"]},
+        "iteration_length_days": {"type": "integer", "minimum": 1, "maximum": 30},
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success_metrics", "fixed_constraints", "escalation_thresholds"],
+      "properties": {
+        "success_metrics": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "fixed_constraints": {"type": "array", "items": {"type": "string"}},
+        "escalation_thresholds": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "product_backlog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "outcome",
+          "priority",
+          "value_score",
+          "risk_reduction_score",
+          "state",
+          "dependencies",
+          "acceptance_criteria",
+          "quality_metric_ids"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^PB-[0-9]{3,}$"},
+          "title": {"type": "string", "minLength": 1},
+          "outcome": {"type": "string", "minLength": 1},
+          "priority": {"type": "integer", "minimum": 1},
+          "value_score": {"type": "integer", "minimum": 1, "maximum": 10},
+          "risk_reduction_score": {"type": "integer", "minimum": 0, "maximum": 10},
+          "state": {"enum": ["idea", "ready", "active", "done", "deferred", "cancelled"]},
+          "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+          "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "quality_metric_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    },
+    "quality_management": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition_of_done",
+        "metrics",
+        "assurance_activities",
+        "control_activities",
+        "improvement_policy"
+      ],
+      "properties": {
+        "definition_of_done": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "measure", "target", "method"],
+            "properties": {
+              "id": {"type": "string"},
+              "measure": {"type": "string"},
+              "target": {"type": "string"},
+              "method": {"type": "string"}
+            }
+          }
+        },
+        "assurance_activities": {"type": "array", "items": {"type": "string"}},
+        "control_activities": {"type": "array", "items": {"type": "string"}},
+        "improvement_policy": {"type": "string", "minLength": 1}
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description", "probability", "impact", "response", "owner", "state"],
+        "properties": {
+          "id": {"type": "string"},
+          "description": {"type": "string"},
+          "probability": {"enum": ["low", "medium", "high"]},
+          "impact": {"enum": ["low", "medium", "high"]},
+          "response": {"type": "string"},
+          "owner": {"type": "string"},
+          "state": {"enum": ["open", "monitoring", "realized", "closed"]}
+        }
+      }
+    },
+    "iteration_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "improvement_backlog": {"type": "array", "items": {"type": "string"}},
+    "workflow_state": {"enum": ["initiating", "planning", "delivering", "closing", "closed"]},
+    "evidence_status": {
+      "enum": [
+        "PASS",
+        "PASS_WITH_LIMITS",
+        "NOT_EVALUATED",
+        "BLOCKED",
+        "BLOCKED_PROVIDER",
+        "BLOCKED_LOCAL_MODEL",
+        "BLOCKED_ENVIRONMENT",
+        "NEEDS_REWORK",
+        "FAIL"
+      ]
+    },
+    "experience_query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "tags", "max_items"],
+      "properties": {
+        "phase": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "max_items": {"type": "integer", "minimum": 1, "maximum": 16}
+      }
+    }
+  }
+}

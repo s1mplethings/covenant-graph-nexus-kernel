@@ -26,3 +26,14 @@
 - Do not reintroduce fixed local pipeline generation.
 - Do not expose legacy internal jargon to users.
 - Move project/domain-specific generated-project compatibility patches into skills, adapters, or legacy modules instead of adding them to telegram_live_bridge.py.
+
+## CGKN self-hosted project management
+
+- CGKN uses the approved `skills/manage-pmp-agile-quality` method for its own non-trivial development and exposes the same tailored method to generated projects.
+- Tailor predictive, adaptive, or hybrid delivery from requirements uncertainty, technical uncertainty, criticality, and feedback needs; do not impose one fixed ceremony set.
+- Preserve stable governance and delivery contracts while implementing the smallest useful vertical increment through an ordered backlog.
+- Define measurable acceptance and quality metrics before implementation; build quality into each increment through prevention, assurance, control, and improvement.
+- Read relevant bounded enterprise experience before planning and record evidence-backed usage outcomes after review.
+- Keep `workflow_state` and `experience_state` separate from formal `EvidenceStatus`.
+- Management packs, iterations, retrospectives, and experience records are support artifacts and cannot authorize formal delivery PASS.
+- For non-trivial CGKN changes, update or create an applicable iteration record under `project_management/cgkn/` and close it with test/review evidence. Tailor this to a short record for small fixes.

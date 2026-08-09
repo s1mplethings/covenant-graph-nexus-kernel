@@ -39,7 +39,37 @@ def test_real_pytest_execution_passes(tmp_path: pathlib.Path) -> None:
     assert "run_id: run-a" in report
     assert f"candidate_hash: {result['candidate_hash']}" in report
     assert "commit_sha: commit-a" in report
+    assert "commands_run:" in report
+    assert "python" in report and "pytest" in report
     assert real_test_execution.inspect_test_report(tmp_path, run_id="run-a", candidate_hash=result["candidate_hash"], commit_sha="commit-a")["verdict"] == "PASS"
+
+
+def test_declared_pytest_testpaths_are_authoritative_over_legacy_tests(
+    tmp_path: pathlib.Path,
+) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\ntestpaths = ["quality_tests"]\n',
+        encoding="utf-8",
+    )
+    legacy = tmp_path / "tests"
+    legacy.mkdir()
+    (legacy / "test_legacy.py").write_text(
+        "def test_legacy_guess():\n    assert False\n",
+        encoding="utf-8",
+    )
+    quality = tmp_path / "quality_tests"
+    quality.mkdir()
+    (quality / "test_quality.py").write_text(
+        "def test_quality_contract():\n    assert True\n",
+        encoding="utf-8",
+    )
+
+    result = real_test_execution.run_tests(tmp_path)
+
+    assert result["status"] == "PASS"
+    assert result["collected"] == 1
+    assert result["argv"][-1] == "quality_tests"
+    assert "test_legacy_guess" not in (tmp_path / "test_stdout.txt").read_text(encoding="utf-8")
 
 
 def test_test_output_dir_is_cleaned_after_success(tmp_path: pathlib.Path) -> None:
@@ -318,3 +348,24 @@ def test_test_time_cache_and_evidence_outputs_do_not_trigger_candidate_mutation(
     result = real_test_execution.run_tests(tmp_path)
     assert result["status"] == "PASS"
     assert result["candidate_mutated_during_test"] is False
+
+
+def test_explicit_minimum_collected_tests_is_enforced(tmp_path: pathlib.Path) -> None:
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    (tests_dir / "test_small.py").write_text(
+        "def test_one():\n"
+        "    assert True\n"
+        "\n"
+        "def test_two():\n"
+        "    assert True\n",
+        encoding="utf-8",
+    )
+
+    result = real_test_execution.run_tests(tmp_path, minimum_collected=3)
+
+    assert result["exit_code"] == 0
+    assert result["collected"] == 2
+    assert result["status"] == "FAIL"
+    assert result["minimum_collected_required"] == 3
+    assert result["minimum_collected_met"] is False

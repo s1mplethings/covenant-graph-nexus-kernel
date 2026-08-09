@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/enterprise_experience_pack.schema.json",
+  "title": "CGKNEnterpriseExperiencePack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "organization", "items", "usage_receipts"],
+  "properties": {
+    "kind": {"const": "CGKNEnterpriseExperiencePack"},
+    "schema_version": {"const": "1.0"},
+    "organization": {"type": "string", "minLength": 1},
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "situation",
+          "action",
+          "outcome",
+          "applicable_when",
+          "not_applicable_when",
+          "tags",
+          "evidence_refs",
+          "experience_state",
+          "usage_count",
+          "successful_usage_count",
+          "owner",
+          "supersedes"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^EXP-[A-Z0-9-]+$"},
+          "title": {"type": "string", "minLength": 1},
+          "situation": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1},
+          "outcome": {"type": "string", "minLength": 1},
+          "applicable_when": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "not_applicable_when": {"type": "array", "items": {"type": "string"}},
+          "tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}},
+          "experience_state": {"enum": ["candidate", "validated", "approved", "retired"]},
+          "usage_count": {"type": "integer", "minimum": 0},
+          "successful_usage_count": {"type": "integer", "minimum": 0},
+          "owner": {"type": "string", "minLength": 1},
+          "supersedes": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+        }
+      }
+    },
+    "usage_receipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["experience_id", "project_id", "iteration_id", "applied", "outcome", "evidence_refs"],
+        "properties": {
+          "experience_id": {"type": "string"},
+          "project_id": {"type": "string"},
+          "iteration_id": {"type": "string"},
+          "applied": {"type": "boolean"},
+          "outcome": {"enum": ["pending", "successful", "unsuccessful", "inconclusive"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

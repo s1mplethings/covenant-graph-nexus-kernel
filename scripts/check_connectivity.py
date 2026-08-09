@@ -216,9 +216,6 @@ def _load_local_notes_defaults() -> dict[str, str]:
     match_url = re.search(r"`(https?://[^`\s]+)`", text)
     if match_url:
         out["base_url"] = match_url.group(1).strip()
-    match_key = re.search(r"`(sk-[^`\s]+)`", text)
-    if match_key:
-        out["api_key"] = match_key.group(1).strip()
     return out
 
 
@@ -250,12 +247,24 @@ def _first_credential(candidates: list[tuple[str, str]]) -> tuple[str, str]:
     return "", ""
 
 
+def _credential_conflict_sources(candidates: list[tuple[str, str]], selected_value: str) -> list[str]:
+    selected = str(selected_value or "").strip()
+    populated = [(source, str(value or "").strip()) for source, value in candidates if str(value or "").strip()]
+    if len({value for _, value in populated}) <= 1:
+        return []
+    return [source for source, value in populated if value != selected]
+
+
 def _resolve_api_credentials() -> dict[str, str]:
     defaults = _load_local_notes_defaults()
+    override_key = str(os.environ.get("CGKN_OPENAI_API_KEY_OVERRIDE", "")).strip()
+    override_base_url = str(os.environ.get("CGKN_OPENAI_BASE_URL_OVERRIDE", "")).strip()
     env_key = str(os.environ.get("OPENAI_API_KEY", "")).strip()
     env_base_url = str(os.environ.get("OPENAI_BASE_URL", "")).strip()
     compat_key = str(os.environ.get("CGKN_OPENAI_API_KEY", "")).strip()
     compat_base_url = str(os.environ.get("CGKN_OPENAI_BASE_URL", "")).strip()
+    legacy_key = str(os.environ.get("CGNK_OPENAI_API_KEY", "")).strip()
+    legacy_base_url = str(os.environ.get("CGNK_OPENAI_BASE_URL", "")).strip()
     user_env_key = _windows_env_value("OPENAI_API_KEY", "User")
     user_env_base_url = _windows_env_value("OPENAI_BASE_URL", "User")
     machine_env_key = _windows_env_value("OPENAI_API_KEY", "Machine")
@@ -264,33 +273,52 @@ def _resolve_api_credentials() -> dict[str, str]:
     user_compat_base_url = _windows_env_value("CGKN_OPENAI_BASE_URL", "User")
     machine_compat_key = _windows_env_value("CGKN_OPENAI_API_KEY", "Machine")
     machine_compat_base_url = _windows_env_value("CGKN_OPENAI_BASE_URL", "Machine")
-    notes_key = str(defaults.get("api_key", "")).strip()
+    user_legacy_key = _windows_env_value("CGNK_OPENAI_API_KEY", "User")
+    user_legacy_base_url = _windows_env_value("CGNK_OPENAI_BASE_URL", "User")
+    machine_legacy_key = _windows_env_value("CGNK_OPENAI_API_KEY", "Machine")
+    machine_legacy_base_url = _windows_env_value("CGNK_OPENAI_BASE_URL", "Machine")
     notes_base_url = str(defaults.get("base_url", "")).strip()
-    key, key_source = _first_credential(
-        [
-            ("CGKN_OPENAI_API_KEY", compat_key),
-            ("CGKN_OPENAI_API_KEY(User)", user_compat_key),
-            ("CGKN_OPENAI_API_KEY(Machine)", machine_compat_key),
-            ("local_notes", notes_key),
-            ("OPENAI_API_KEY(User)", user_env_key),
-            ("OPENAI_API_KEY(Machine)", machine_env_key),
-            ("OPENAI_API_KEY", env_key),
-        ]
-    )
-    raw_base_url, base_source = _first_credential(
-        [
-            ("CGKN_OPENAI_BASE_URL", compat_base_url),
-            ("CGKN_OPENAI_BASE_URL(User)", user_compat_base_url),
-            ("CGKN_OPENAI_BASE_URL(Machine)", machine_compat_base_url),
-            ("local_notes", notes_base_url),
-            ("OPENAI_BASE_URL(User)", user_env_base_url),
-            ("OPENAI_BASE_URL(Machine)", machine_env_base_url),
-            ("OPENAI_BASE_URL", env_base_url),
-            ("embedded_default", EMBEDDED_BASE_URL),
-        ]
-    )
+    key_candidates = [
+        ("CGKN_OPENAI_API_KEY_OVERRIDE", override_key),
+        ("CGKN_OPENAI_API_KEY(User)", user_compat_key),
+        ("CGKN_OPENAI_API_KEY(Machine)", machine_compat_key),
+        ("CGKN_OPENAI_API_KEY", compat_key),
+        ("OPENAI_API_KEY(User)", user_env_key),
+        ("OPENAI_API_KEY(Machine)", machine_env_key),
+        ("OPENAI_API_KEY", env_key),
+    ]
+    key, key_source = _first_credential(key_candidates)
+    conflict_candidates = key_candidates + [
+        ("CGNK_OPENAI_API_KEY(User)", user_legacy_key),
+        ("CGNK_OPENAI_API_KEY(Machine)", machine_legacy_key),
+        ("CGNK_OPENAI_API_KEY", legacy_key),
+    ]
+    base_candidates = [
+        ("CGKN_OPENAI_BASE_URL_OVERRIDE", override_base_url),
+        ("CGKN_OPENAI_BASE_URL(User)", user_compat_base_url),
+        ("CGKN_OPENAI_BASE_URL(Machine)", machine_compat_base_url),
+        ("CGKN_OPENAI_BASE_URL", compat_base_url),
+        ("OPENAI_BASE_URL(User)", user_env_base_url),
+        ("OPENAI_BASE_URL(Machine)", machine_env_base_url),
+        ("OPENAI_BASE_URL", env_base_url),
+        ("local_notes", notes_base_url),
+        ("embedded_default", EMBEDDED_BASE_URL),
+    ]
+    raw_base_url, base_source = _first_credential(base_candidates)
+    base_conflict_candidates = base_candidates[:-1] + [
+        ("CGNK_OPENAI_BASE_URL(User)", user_legacy_base_url),
+        ("CGNK_OPENAI_BASE_URL(Machine)", machine_legacy_base_url),
+        ("CGNK_OPENAI_BASE_URL", legacy_base_url),
+    ]
     base_url = _normalize_base_url(raw_base_url)
-    return {"api_key": key, "api_key_source": key_source, "base_url": base_url, "base_url_source": base_source}
+    return {
+        "api_key": key,
+        "api_key_source": key_source,
+        "api_key_conflict_sources": _credential_conflict_sources(conflict_candidates, key),
+        "base_url": base_url,
+        "base_url_source": base_source,
+        "base_url_conflict_sources": _credential_conflict_sources(base_conflict_candidates, raw_base_url),
+    }
 
 
 def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: int) -> tuple[dict[str, Any] | None, str]:
@@ -415,8 +443,10 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         "configured": bool(token),
         "api_key_source": creds["api_key_source"],
         "api_key_mask": _mask_secret(token),
+        "api_key_conflict_sources": creds.get("api_key_conflict_sources", []),
         "base_url": root,
         "base_url_source": creds["base_url_source"],
+        "base_url_conflict_sources": creds.get("base_url_conflict_sources", []),
         "live": live,
         "ok": False,
     }

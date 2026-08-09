@@ -57,6 +57,93 @@ FORBIDDEN_SHORTCUTS = [
     "artifact_name_only_without_schema",
 ]
 
+DELIVERY_EVIDENCE_TERMS = (
+    "截图",
+    "演示视频",
+    "demo video",
+    "screenshot",
+    "测试报告",
+    "test report",
+    "交付清单",
+    "delivery manifest",
+    "delivery_manifest",
+    "final_project_bundle",
+    "最终 zip",
+    "public delivery gate",
+)
+
+MEDIA_PRODUCT_TERMS = (
+    "视频处理",
+    "视频素材",
+    "视频创作者",
+    "素材处理",
+    "音频处理",
+    "视频剪辑",
+    "剪辑工作台",
+    "切片工作台",
+    "视频切片",
+    "长视频",
+    "候选片段",
+    "转录",
+    "video processing",
+    "video workbench",
+    "video slicer",
+    "video clip",
+    "media review",
+    "media production",
+    "media processing",
+    "media evidence",
+    "media pipeline",
+    "video material",
+    "transcribe",
+    "clip selection",
+)
+
+VISUAL_NOVEL_PRODUCT_TERMS = (
+    "视觉小说",
+    "剧情树",
+    "剧情分支",
+    "人物立绘",
+    "角色立绘",
+    "vn studio",
+    "visual novel",
+    "story tree",
+    "story graph",
+    "branching narrative",
+    "character sprite",
+)
+
+TASK_BOARD_PRODUCT_TERMS = ("任务看板", "个人看板", "task board", "kanban", "todo board", "待办看板")
+
+SPECIALIZED_ANALYSIS_PRODUCT_TERMS = (
+    "counter-strike",
+    "counter strike",
+    "cs2",
+    "steam",
+    "faceit",
+    "demo parser",
+    "demo download",
+    "match demo",
+    "crosshair",
+    "aim analysis",
+    "cheat detection",
+    "anti-cheat",
+    "反作弊",
+    "开挂",
+    "准星",
+)
+
+NEGATED_CAPABILITY_MARKERS = (
+    "不需要",
+    "不处理",
+    "不要",
+    "无需",
+    "排除",
+    "without ",
+    "no ",
+    "not ",
+)
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -83,6 +170,43 @@ def slug(text: str) -> str:
     value = re.sub(r"[^a-z0-9_]+", "_", str(text or "").lower())
     value = re.sub(r"_+", "_", value).strip("_")
     return value[:72] or "complex_project"
+
+
+def product_domain_goal(user_goal: str) -> str:
+    chunks = re.split(r"[\n。！？!?；;]+", str(user_goal or "").lower())
+    product_chunks = [
+        chunk.strip()
+        for chunk in chunks
+        if chunk.strip() and not any(term in chunk for term in DELIVERY_EVIDENCE_TERMS)
+    ]
+    return "\n".join(product_chunks) or str(user_goal or "").lower()
+
+
+def goal_has_positive_term(user_goal: str, terms: tuple[str, ...]) -> bool:
+    clauses = re.split(r"[\n。！？!?；;，,]+", product_domain_goal(user_goal))
+    for clause in clauses:
+        if not any(term in clause for term in terms):
+            continue
+        if any(marker in clause for marker in NEGATED_CAPABILITY_MARKERS):
+            continue
+        return True
+    return False
+
+
+def goal_has_media_product(user_goal: str) -> bool:
+    return goal_has_positive_term(user_goal, MEDIA_PRODUCT_TERMS)
+
+
+def goal_has_visual_novel_product(user_goal: str) -> bool:
+    return any(token in product_domain_goal(user_goal) for token in VISUAL_NOVEL_PRODUCT_TERMS)
+
+
+def goal_has_task_board_product(user_goal: str) -> bool:
+    return any(token in product_domain_goal(user_goal) for token in TASK_BOARD_PRODUCT_TERMS)
+
+
+def goal_has_specialized_analysis_product(user_goal: str) -> bool:
+    return any(token in product_domain_goal(user_goal) for token in SPECIALIZED_ANALYSIS_PRODUCT_TERMS)
 
 
 def risk_penalty(value: str) -> int:
@@ -127,11 +251,13 @@ def _video_candidate(user_goal: str) -> dict[str, Any]:
         "pipeline_stages": [
             "ingest_video",
             "extract_audio",
-            "chunk_audio",
-            "transcribe_audio",
-            "analyze_segments",
+            "build_audio_chunk_manifest",
+            "transcribe_chunks",
+            "merge_transcript",
+            "optional_analysis",
             "select_segments",
-            "render_clips",
+            "build_clip_manifest",
+            "render_clips_batch",
             "export_results",
         ],
         "expected_artifacts": [
@@ -152,6 +278,163 @@ def _video_candidate(user_goal: str) -> dict[str, Any]:
         "delivery_feasibility": 78,
         "testability_score": 82,
         "screenshot_feasibility": 84,
+        "external_dependency_risk": "medium",
+        "demo_degradation_risk": "low",
+        "fake_pass_risk": "low",
+        "honest_degraded_mode_available": True,
+    }
+
+
+def _visual_novel_candidate(user_goal: str) -> dict[str, Any]:
+    return {
+        "id": "local_visual_novel_studio",
+        "name": "Local Visual Novel Authoring Studio",
+        "summary": (
+            "A local visual-novel authoring studio with a typed branching story graph, separate background "
+            "and transparent character-sprite generators, an asset library, node binding, persistence, preview, and export."
+        ),
+        "target_user": "Visual-novel writers and small creative teams building branching stories locally.",
+        "core_workflow": [
+            "define story and asset schemas",
+            "create and connect story nodes",
+            "validate branches and cycles",
+            "generate background assets",
+            "generate transparent character sprites",
+            "bind assets to story nodes",
+            "preview alternate branches",
+            "save, reload, and export the project",
+        ],
+        "likely_pages": ["Story Tree", "Node Editor", "Characters", "Backgrounds", "Asset Library", "Preview", "Project"],
+        "likely_modules": [
+            "story_graph",
+            "story_schema",
+            "asset_library",
+            "image_adapters",
+            "persistence",
+            "preview_runtime",
+            "web_ui",
+            "tests",
+        ],
+        "pipeline_stages": [
+            "define_document_contracts",
+            "edit_story_graph",
+            "validate_story_graph",
+            "generate_background_assets",
+            "generate_sprite_assets",
+            "bind_assets_to_nodes",
+            "preview_story_branch",
+            "export_project",
+        ],
+        "expected_artifacts": [
+            "story.schema.json",
+            "project.json",
+            "asset_manifest.json",
+            "generation_capability.json",
+            "story_graph_validation.json",
+            "preview_trace.json",
+            "export_manifest.json",
+        ],
+        "local_first_feasibility": 91,
+        "complexity_score": 94,
+        "pipeline_clarity": 94,
+        "artifact_potential": 93,
+        "gui_cli_suitability": 91,
+        "delivery_feasibility": 88,
+        "testability_score": 94,
+        "screenshot_feasibility": 96,
+        "external_dependency_risk": "medium",
+        "demo_degradation_risk": "low",
+        "fake_pass_risk": "low",
+        "honest_degraded_mode_available": True,
+    }
+
+
+def _task_board_candidate(user_goal: str) -> dict[str, Any]:
+    return {
+        "id": "local_task_board",
+        "name": "Local Task Board",
+        "summary": "A local browser task board with native task interactions, filtering, and durable browser persistence.",
+        "target_user": "Individuals or small teams managing local work.",
+        "core_workflow": ["open board", "create task", "move task", "filter tasks", "reload persisted state", "delete task"],
+        "likely_pages": ["Task Board"],
+        "likely_modules": ["local_server", "board_state", "task_interactions", "styles", "tests"],
+        "pipeline_stages": ["serve_app", "load_state", "create_task", "update_task", "filter_board", "persist_state"],
+        "expected_artifacts": ["board_contract.json", "interaction_test_report.json", "persistence_test_report.json", "runtime_evidence.json"],
+        "local_first_feasibility": 98,
+        "complexity_score": 82,
+        "pipeline_clarity": 94,
+        "artifact_potential": 82,
+        "gui_cli_suitability": 80,
+        "delivery_feasibility": 96,
+        "testability_score": 96,
+        "screenshot_feasibility": 96,
+        "external_dependency_risk": "low",
+        "demo_degradation_risk": "low",
+        "fake_pass_risk": "low",
+        "honest_degraded_mode_available": True,
+    }
+
+
+def _specialized_analysis_candidate(user_goal: str) -> dict[str, Any]:
+    return {
+        "id": "goal_derived_specialized_analysis_workbench",
+        "name": "Goal-Derived Specialized Analysis Workbench",
+        "summary": (
+            "A local-first workbench that researches official sources, registers reviewed acquisition "
+            "capabilities, validates authorized inputs, normalizes evidence, runs explainable analysis, "
+            "and exports human-review reports for the domain stated in the goal."
+        ),
+        "target_user": "Analysts working in the specialized evidence domain named by the customer.",
+        "core_workflow": [
+            "research official platform sources",
+            "register reviewed acquisition capabilities",
+            "acquire authorized input",
+            "validate input and provenance",
+            "parse and normalize evidence",
+            "extract explainable features",
+            "score review priority",
+            "render cited evidence report",
+        ],
+        "likely_pages": ["Sources", "Acquisition", "Runs", "Evidence", "Review", "Reports"],
+        "likely_modules": [
+            "research",
+            "sources",
+            "parsers",
+            "models",
+            "features",
+            "scoring",
+            "reporting",
+            "cli",
+            "tests",
+        ],
+        "pipeline_stages": [
+            "research_platform_sources",
+            "acquire_authorized_input",
+            "validate_input",
+            "parse_evidence",
+            "normalize_evidence",
+            "extract_features",
+            "score_review_risk",
+            "render_evidence_report",
+        ],
+        "expected_artifacts": [
+            "source_registry.json",
+            "acquisition_manifest.json",
+            "input_validation.json",
+            "parsed_evidence.json",
+            "normalized_evidence.json",
+            "feature_report.json",
+            "risk_assessment.json",
+            "evidence_report.json",
+        ],
+        "local_first_feasibility": 88,
+        "complexity_score": 92,
+        "pipeline_clarity": 94,
+        "artifact_potential": 94,
+        "gui_cli_suitability": 88,
+        "delivery_feasibility": 84,
+        "testability_score": 94,
+        "screenshot_feasibility": 78,
         "external_dependency_risk": "medium",
         "demo_degradation_risk": "low",
         "fake_pass_risk": "low",
@@ -300,9 +583,14 @@ def _small_demo_candidate(user_goal: str) -> dict[str, Any]:
 
 
 def generate_candidates(user_goal: str, count: int = 4) -> list[dict[str, Any]]:
-    lowered = user_goal.lower()
     candidates: list[dict[str, Any]] = []
-    if any(token in lowered for token in ("video", "media", "clip", "audio", "transcribe", "视频", "音频", "素材")):
+    if goal_has_specialized_analysis_product(user_goal):
+        candidates.append(_specialized_analysis_candidate(user_goal))
+    if goal_has_task_board_product(user_goal):
+        candidates.append(_task_board_candidate(user_goal))
+    if goal_has_visual_novel_product(user_goal):
+        candidates.append(_visual_novel_candidate(user_goal))
+    if goal_has_media_product(user_goal):
         candidates.append(_video_candidate(user_goal))
     candidates.extend(
         [
@@ -312,8 +600,6 @@ def generate_candidates(user_goal: str, count: int = 4) -> list[dict[str, Any]]:
             _small_demo_candidate(user_goal),
         ]
     )
-    if not any(item["id"] == "local_video_workbench" for item in candidates):
-        candidates.insert(1, _video_candidate(user_goal))
     deduped: list[dict[str, Any]] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -389,21 +675,37 @@ def select_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
 def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
     stages = list(selected.get("pipeline_stages", []))
     artifacts = list(selected.get("expected_artifacts", []))
+    task_board = selected.get("id") == "local_task_board"
+    visual_novel = selected.get("id") == "local_visual_novel_studio"
+    architecture_mode = (
+        "browser_local_static"
+        if task_board
+        else "modular_authoring_studio"
+        if visual_novel
+        else "shared_core_pipeline"
+    )
     return {
         "selected_id": selected["id"],
         "selected_name": selected["name"],
         "selection_reason": "Best weighted fit across complexity, local-first feasibility, pipeline clarity, artifact potential, GUI/CLI suitability, delivery feasibility, and testability.",
-        "why_not_too_small": f"Requires {len(stages)} pipeline stages, {len(artifacts)} stage artifacts, planning docs, shared core, CLI, GUI, runtime evidence, screenshot, and final bundle.",
+        "architecture_mode": architecture_mode,
+        "why_not_too_small": (
+            "Requires complete browser interactions, local persistence, automated tests, runtime evidence, screenshot, video, and final bundle without inventing a server-side domain core."
+            if task_board
+            else "Requires a typed story graph, independent image-generation adapters, asset binding, persistence, branch preview, planning documents, runtime evidence, screenshot, and final bundle."
+            if visual_novel
+            else f"Requires {len(stages)} pipeline stages, {len(artifacts)} stage artifacts, planning docs, shared core, CLI, GUI, runtime evidence, screenshot, and final bundle."
+        ),
         "why_not_too_dependency_heavy": "External integrations are optional or degradable; the project can run locally with honest degraded mode.",
         "why_deliverable": "The selected shape has deterministic artifacts, local fixtures, shared core modules, and verifiable delivery evidence.",
         "required_complexity_floor": {
-            "min_pages": max(4, len(selected.get("likely_pages", []))),
-            "min_modules": max(6, len(selected.get("likely_modules", []))),
-            "min_pipeline_stages": max(6, len(stages)),
-            "min_stage_artifacts": max(6, len(artifacts)),
+            "min_pages": max(1 if task_board else 6 if visual_novel else 4, len(selected.get("likely_pages", []))),
+            "min_modules": max(4 if task_board else 8 if visual_novel else 6, len(selected.get("likely_modules", []))),
+            "min_pipeline_stages": len(stages),
+            "min_stage_artifacts": 0 if task_board else max(6, len(artifacts)),
             "requires_gui": True,
-            "requires_cli": True,
-            "requires_shared_core": True,
+            "requires_cli": not task_board and not visual_novel,
+            "requires_shared_core": not task_board,
             "requires_runtime_evidence": True,
             "requires_final_bundle": True,
             "requires_screenshot": True,
@@ -412,39 +714,68 @@ def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_contract(selected: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "contract_id": "complexity_project_contract_v1",
-        "selected_project_id": selected["id"],
-        "selected_project_name": selected["name"],
-        "selected_project_summary": selected["summary"],
-        "required_planning_docs": [
+    task_board = selected.get("id") == "local_task_board"
+    visual_novel = selected.get("id") == "local_visual_novel_studio"
+    planning_docs = (
+        []
+        if task_board
+        else [
+            "requirements.md",
+            "product_design.md",
+            "architecture.md",
+            "interaction_design.md",
+            "story_schema.md",
+            "image_generation.md",
+            "quality_plan.md",
+            "test_plan.md",
+        ]
+        if visual_novel
+        else [
             "product_brief.md",
             "technical_plan.md",
             "interaction_design.md",
             "acceptance_matrix.md",
-        ],
-        "required_core_files": [
-            "orchestrator.py",
-            "stages.py",
-        ],
-        "required_interfaces": [
-            "cli",
-            "gui",
-        ],
-        "requires_shared_gui_cli_core": True,
+        ]
+    )
+    return {
+        "contract_id": "complexity_project_contract_v1",
+        "architecture_mode": "browser_local_static" if task_board else "modular_authoring_studio" if visual_novel else "shared_core_pipeline",
+        "selected_project_id": selected["id"],
+        "selected_project_name": selected["name"],
+        "selected_project_summary": selected["summary"],
+        "required_planning_docs": planning_docs,
+        "required_core_files": (
+            ["main.py", "index.html", "app.js", "styles.css"]
+            if task_board
+            else ["story_graph.py", "asset_library.py", "image_adapters.py", "persistence.py", "preview.py"]
+            if visual_novel
+            else ["orchestrator.py", "stages.py"]
+        ),
+        "required_interfaces": ["web"] if task_board or visual_novel else ["cli", "gui"],
+        "requires_shared_gui_cli_core": not task_board and not visual_novel,
         "required_pipeline_stages": list(selected.get("pipeline_stages", [])),
-        "required_stage_artifacts": list(selected.get("expected_artifacts", [])),
-        "required_artifact_fields": DEFAULT_REQUIRED_ARTIFACT_FIELDS,
+        "required_stage_artifacts": [] if task_board else list(selected.get("expected_artifacts", [])),
+        "required_artifact_fields": [] if task_board else DEFAULT_REQUIRED_ARTIFACT_FIELDS,
         "required_delivery_evidence": DEFAULT_DELIVERY_EVIDENCE,
-        "honest_degraded_mode_required": True,
+        "honest_degraded_mode_required": not task_board,
         "forbidden_shortcuts": FORBIDDEN_SHORTCUTS,
-        "downstream_requirements": [
-            "product_brief.md must cite complexity_project_contract.json",
-            "technical_plan.md must cite complexity_project_contract.json",
-            "interaction_design.md must cite complexity_project_contract.json",
-            "acceptance_matrix.md must cite complexity_project_contract.json",
-            "provider generation must implement the selected direction, not a generic version of the raw prompt",
-        ],
+        "downstream_requirements": (
+            ["provider generation must implement the selected browser-local direction without inventing a backend domain core"]
+            if task_board
+            else [
+                *[f"{name} must cite complexity_project_contract.json" for name in planning_docs],
+                "provider generation must implement the selected visual-novel authoring domain, not a video-processing pipeline",
+                "background and transparent sprite generation must remain separate adapter workflows",
+            ]
+            if visual_novel
+            else [
+                "product_brief.md must cite complexity_project_contract.json",
+                "technical_plan.md must cite complexity_project_contract.json",
+                "interaction_design.md must cite complexity_project_contract.json",
+                "acceptance_matrix.md must cite complexity_project_contract.json",
+                "provider generation must implement the selected direction, not a generic version of the raw prompt",
+            ]
+        ),
     }
 
 

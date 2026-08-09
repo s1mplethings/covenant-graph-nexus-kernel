@@ -1034,6 +1034,17 @@ def looks_like_escalation_request(text: str) -> bool:
     return any(word in compact for word in ("升级", "人工介入", "交给agent", "调用api", "用provider"))
 
 
+def looks_like_substantive_project_request(text: str) -> bool:
+    compact = re.sub(r"[\s,.!?。！？~～]+", "", str(text or "").lower())
+    if len(compact) < 60:
+        return False
+    action_terms = ("实现", "开发", "设计", "创建", "生成", "搭建", "制作")
+    project_terms = ("项目", "平台", "系统", "应用", "网站", "前端", "后端", "数据库", "测试", "交付", "导出")
+    action_count = sum(1 for token in action_terms if token in compact)
+    project_count = sum(1 for token in project_terms if token in compact)
+    return action_count >= 1 and project_count >= 2
+
+
 def model_classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, Any] | None:
     stripped = str(text or "").strip()
     if not stripped or not local_model_router.task_enabled("customer_classification"):
@@ -1082,6 +1093,14 @@ def classify_customer_message(text: str, session: dict[str, Any]) -> dict[str, A
     elif is_smalltalk(stripped):
         intent = "greeting"
         reason = "smalltalk"
+    elif looks_like_substantive_project_request(stripped):
+        model_doc = model_classify_customer_message(stripped, session)
+        first_turn = substantive_user_turn_count(session) == 0
+        safe_model_intents = {"new_project_request", "project_update", "project_revision_request"}
+        model_intent = str((model_doc or {}).get("intent") or "")
+        intent = model_intent if model_intent in safe_model_intents else ("new_project_request" if first_turn else "project_update")
+        source = "local_model" if model_doc else "rule"
+        reason = str((model_doc or {}).get("reason") or "substantive_project_request")
     elif looks_like_status_question(stripped):
         intent = "status_query"
         reason = "status_question"
@@ -2950,10 +2969,17 @@ def send_delivery_from_manifest(
     session_dir: pathlib.Path,
     session: dict[str, Any],
     manifest: dict[str, Any],
+    provider_result: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     sent: list[dict[str, Any]] = []
     project_dir = pathlib.Path(str(manifest.get("project_dir", ""))).resolve()
-    gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+    gate = evaluate_public_delivery_gate(
+        project_dir,
+        manifest,
+        session,
+        phase="final",
+        provider_result=provider_result,
+    )
     if not gate.get("delivery_allowed"):
         mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
         return []
@@ -6534,6 +6560,16 @@ def deterministic_post_build_repair(project_dir: pathlib.Path, first_test_result
     }
 
 
+def infer_explicit_minimum_test_count(text: str) -> int:
+    lowered = str(text or "").lower()
+    minimum = 1
+    for match in re.finditer(r"(?:至少|共至少|at\s+least|minimum(?:\s+of)?)\s*(\d+)", lowered, flags=re.I):
+        window = lowered[max(0, match.start() - 50) : min(len(lowered), match.end() + 100)]
+        if "测试" in window or "test" in window or "pytest" in window:
+            minimum = max(minimum, int(match.group(1)))
+    return minimum
+
+
 def run_provider_project_tests(
     project_dir: pathlib.Path,
     *,
@@ -6547,6 +6583,7 @@ def run_provider_project_tests(
     dependency_setup: dict[str, Any] | None = None,
     production_provenance_ref: str | pathlib.Path | None = None,
     production_provenance_hash: str = "",
+    minimum_collected: int = 1,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     tests_dir = project / "tests"
@@ -6565,6 +6602,7 @@ def run_provider_project_tests(
             production_provenance_ref=production_provenance_ref,
             production_provenance_hash=production_provenance_hash,
             test_profile="provider_post_build",
+            minimum_collected=minimum_collected,
         )
         evidence.update(
             {
@@ -6590,6 +6628,7 @@ def run_provider_project_tests(
         production_provenance_ref=production_provenance_ref,
         production_provenance_hash=production_provenance_hash,
         test_profile="provider_post_build",
+        minimum_collected=minimum_collected,
     )
     stdout_path = pathlib.Path(str(evidence.get("stdout_artifact", "")))
     stderr_path = pathlib.Path(str(evidence.get("stderr_artifact", "")))
@@ -6842,16 +6881,35 @@ def post_build_finalize_provider_project(
         if not video_ok:
             image_missing.append("video")
     elif video_requested:
-        blocked_path = visual_evidence.write_video_blocked(
+        capture_result = visual_evidence.capture_candidate_video(
             project_dir,
-            "demo video was requested but no real video artifact was produced during provider post-build finalize",
-            failure_reason="capture_failed",
-            environment={"ffmpeg": "", "playwright": "not_checked"},
-            video_requested_value=True,
-            next_repair_hint="Produce a real workflow video artifact or remove the video delivery requirement.",
+            production_run_dir,
+            timeout=90,
+            explicit_requested=True,
         )
-        video_result.update({"blocked": True, "video_blocked": blocked_path, "failure_reason": "capture_failed"})
-        image_missing.append("video")
+        captured_video = str(capture_result.get("video", "")).strip()
+        video_validation = (
+            canonical_media_validation.validate_media(captured_video, project_dir, requested_role="video")
+            if captured_video
+            else {"status": "FAIL", "failure_reason": str(capture_result.get("failure_reason", "capture_failed"))}
+        )
+        video_ok = capture_result.get("status") == "pass" and video_validation.get("status") == "PASS"
+        video_result.update(
+            {
+                "blocked": not video_ok,
+                "video": captured_video if video_ok else "",
+                "video_blocked": "" if video_ok else str(capture_result.get("video_blocked", "")),
+                "failure_reason": "" if video_ok else str(capture_result.get("failure_reason", "capture_failed")),
+                "capture": capture_result,
+                "validation": video_validation,
+            }
+        )
+        if video_ok:
+            stale_blocked = project_dir / "video_blocked.json"
+            if stale_blocked.exists():
+                stale_blocked.unlink()
+        else:
+            image_missing.append("video")
     missing_config = required_image_backend_missing_config(session)
     image_missing.extend(f"missing_config:{item}" for item in missing_config)
     image_result["missing"] = sorted(set(image_missing))
@@ -6861,11 +6919,22 @@ def post_build_finalize_provider_project(
     image_result["video_blocked"] = video_result.get("video_blocked", "")
     image_result["video_result"] = video_result
     append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
+    minimum_test_count = infer_explicit_minimum_test_count(
+        "\n".join(
+            [
+                str(session.get("requirement", "") or ""),
+                str(session.get("goal", "") or ""),
+                str(provider_result.get("goal", "") or ""),
+                str(provider_result.get("generation_context_goal", "") or ""),
+            ]
+        )
+    )
     preseal_test_result = run_provider_project_tests(
         project_dir,
         run_id=f"preseal-diagnostic-{uuid.uuid4().hex}",
         candidate_id=production_identity["candidate_id"],
         commit_sha=production_identity["commit_sha"],
+        minimum_collected=minimum_test_count,
     )
     repair_result: dict[str, Any] = {}
     dependency_setup: dict[str, Any] = {}
@@ -6937,6 +7006,7 @@ def post_build_finalize_provider_project(
         dependency_setup=dependency_setup,
         production_provenance_ref=provenance_ref,
         production_provenance_hash=provenance_hash,
+        minimum_collected=minimum_test_count,
     )
     append_agent_session_event(
         session_dir,
@@ -7372,6 +7442,9 @@ def run_provider_generation_job(
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
     }
+    if formal_entry:
+        session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
+        session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
     update_active_run_status(session, "running", driver="api_provider_project_generation")
     snapshot = ensure_generation_context_snapshot(session_dir, chat_id, session, requirement)
     append_agent_session_event(session_dir, chat_id, {"kind": "provider_generation_started", "role": "system", "driver": "api_provider_project_generation", "requirement": requirement})
@@ -7611,6 +7684,9 @@ def run_provider_generation_job(
                 "delivery_allowed": False,
                 "delivery_gate": gate,
             }
+            if formal_entry:
+                session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
+                session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
             update_active_run_status(session, "rework_blocked", driver="api_provider_project_generation", delivery_allowed=False, delivery_gate=gate, project_dir=str(project_dir))
             append_memory_event(session, "provider_generation_rework_blocked", data={"delivery_gate": gate})
             save_session(session_dir, session)
@@ -7689,6 +7765,9 @@ def run_provider_generation_job(
             "delivery_allowed": False,
             "delivery_gate": gate,
         }
+        if formal_entry:
+            session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
+            session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
         update_active_run_status(
             session,
             "rework_blocked",
@@ -7983,6 +8062,7 @@ def finish_agent_loop_delivery(
         if isinstance(post_build.get("production_provenance"), dict)
         else {}
     )
+    prior_generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     session["generation"] = {
         "status": str(result.get("status", "unknown")),
         "driver": driver,
@@ -8003,6 +8083,9 @@ def finish_agent_loop_delivery(
             result.get("production_provenance_ref", "")
         ),
     }
+    for receipt_key in ("production_entry_receipt_ref", "production_entry_receipt_hash"):
+        if str(prior_generation.get(receipt_key, "")).strip():
+            session["generation"][receipt_key] = str(prior_generation[receipt_key])
     run = active_run(session)
     if run is not None:
         run["status"] = "delivered" if manifest and str(manifest.get("package_path", "")).strip() else str(result.get("status", "failed"))
@@ -8026,7 +8109,14 @@ def finish_agent_loop_delivery(
     append_memory_event(session, "agent_loop_finished", data={"result": result, "manifest": manifest})
     if manifest and str(manifest.get("package_path", "")).strip():
         save_session(session_dir, session)
-        send_delivery_from_manifest(client, chat_id, session_dir, session, manifest)
+        send_delivery_from_manifest(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            manifest,
+            provider_result=result,
+        )
     else:
         gate = evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
         if gate.get("delivery_allowed") and gate.get("verdict") == "ASK_USER_REVIEW":

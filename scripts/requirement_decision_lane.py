@@ -36,6 +36,89 @@ FORBIDDEN_SHORTCUTS = [
     "delivery_pass_without_zip_or_screenshot",
 ]
 
+DELIVERY_EVIDENCE_TERMS = (
+    "截图",
+    "演示视频",
+    "demo video",
+    "screenshot",
+    "测试报告",
+    "test report",
+    "交付清单",
+    "delivery manifest",
+    "delivery_manifest",
+    "final_project_bundle",
+    "最终 zip",
+    "public delivery gate",
+)
+
+MEDIA_PRODUCT_TERMS = (
+    "视频处理",
+    "视频素材",
+    "视频创作者",
+    "素材处理",
+    "音频处理",
+    "视频剪辑",
+    "剪辑工作台",
+    "切片工作台",
+    "视频切片",
+    "长视频",
+    "候选片段",
+    "转录",
+    "video processing",
+    "video workbench",
+    "video slicer",
+    "video clip",
+    "media processing",
+    "video material",
+    "transcribe",
+    "clip selection",
+)
+
+VISUAL_NOVEL_PRODUCT_TERMS = (
+    "视觉小说",
+    "剧情树",
+    "剧情分支",
+    "人物立绘",
+    "角色立绘",
+    "vn studio",
+    "visual novel",
+    "story tree",
+    "story graph",
+    "branching narrative",
+    "character sprite",
+)
+
+TASK_BOARD_PRODUCT_TERMS = ("任务看板", "个人看板", "task board", "kanban", "todo board", "待办看板")
+
+SPECIALIZED_ANALYSIS_PRODUCT_TERMS = (
+    "counter-strike",
+    "counter strike",
+    "cs2",
+    "steam",
+    "faceit",
+    "demo parser",
+    "demo download",
+    "match demo",
+    "crosshair",
+    "aim analysis",
+    "cheat detection",
+    "anti-cheat",
+    "反作弊",
+    "开挂",
+    "准星",
+)
+
+NEGATED_CAPABILITY_MARKERS = (
+    "不需要",
+    "不处理",
+    "不要",
+    "无需",
+    "排除",
+    "without ",
+    "no ",
+    "not ",
+)
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -64,6 +147,47 @@ def slug(text: str) -> str:
     return value[:72] or "customer_requirement"
 
 
+def product_domain_goal(raw_goal: str) -> str:
+    """Exclude delivery-evidence clauses before inferring the product domain."""
+    chunks = re.split(r"[\n。！？!?；;]+", str(raw_goal or "").lower())
+    product_chunks = [
+        chunk.strip()
+        for chunk in chunks
+        if chunk.strip() and not any(term in chunk for term in DELIVERY_EVIDENCE_TERMS)
+    ]
+    return "\n".join(product_chunks) or str(raw_goal or "").lower()
+
+
+def goal_has_positive_term(raw_goal: str, terms: tuple[str, ...]) -> bool:
+    clauses = re.split(r"[\n。！？!?；;，,]+", product_domain_goal(raw_goal))
+    for clause in clauses:
+        if not any(term in clause for term in terms):
+            continue
+        if any(marker in clause for marker in NEGATED_CAPABILITY_MARKERS):
+            continue
+        return True
+    return False
+
+
+def goal_has_media_product(raw_goal: str) -> bool:
+    return goal_has_positive_term(raw_goal, MEDIA_PRODUCT_TERMS)
+
+
+def goal_has_visual_novel_product(raw_goal: str) -> bool:
+    domain_goal = product_domain_goal(raw_goal)
+    return any(token in domain_goal for token in VISUAL_NOVEL_PRODUCT_TERMS)
+
+
+def goal_has_task_board_product(raw_goal: str) -> bool:
+    domain_goal = product_domain_goal(raw_goal)
+    return any(token in domain_goal for token in TASK_BOARD_PRODUCT_TERMS)
+
+
+def goal_has_specialized_analysis_product(raw_goal: str) -> bool:
+    domain_goal = product_domain_goal(raw_goal)
+    return any(token in domain_goal for token in SPECIALIZED_ANALYSIS_PRODUCT_TERMS)
+
+
 def goal_is_complex(raw_goal: str, context: dict[str, Any] | None = None) -> bool:
     lowered = raw_goal.lower()
     if context and str(context.get("reference_complexity_target", "")).strip():
@@ -79,7 +203,31 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
     goal = str(raw_goal or "").strip()
     lowered = goal.lower()
     interpreted: list[dict[str, Any]] = []
-    if any(token in lowered for token in ("video", "media", "clip", "audio", "视频", "音频", "素材")):
+    if goal_has_visual_novel_product(goal):
+        interpreted.append(
+            {
+                "id": "visual_novel_authoring_need",
+                "need": "A local visual-novel authoring studio for branching story editing, generated backgrounds and transparent character sprites, asset binding, preview, and export.",
+                "customer_problem": "The creator needs story structure and visual assets to remain editable and connected instead of becoming unrelated generated files.",
+                "target_user": "Visual-novel writers and small creative teams.",
+                "evidence_from_goal": product_domain_goal(goal)[:600],
+                "assumptions": ["Offline procedural illustration may be an honestly labelled fallback when no diffusion model is configured."],
+                "risk_if_wrong": "low",
+            }
+        )
+    if goal_has_task_board_product(goal):
+        interpreted.append(
+            {
+                "id": "task_board_need",
+                "need": "A local task board for creating, moving, filtering, and persisting work items.",
+                "customer_problem": "The customer needs a usable board workflow, while screenshots and demo video are delivery evidence rather than the product domain.",
+                "target_user": "Individuals or small teams managing local tasks.",
+                "evidence_from_goal": product_domain_goal(goal)[:600],
+                "assumptions": ["Local browser persistence is sufficient for the first version."],
+                "risk_if_wrong": "low",
+            }
+        )
+    if goal_has_media_product(goal):
         interpreted.append(
             {
                 "id": "media_workflow_need",
@@ -218,6 +366,102 @@ def _video_requirement() -> dict[str, Any]:
     )
 
 
+def _visual_novel_requirement() -> dict[str, Any]:
+    return _candidate(
+        candidate_id="local_visual_novel_studio_requirement",
+        name="Local visual novel authoring studio",
+        summary="A local visual-novel studio with a typed branching story graph, separate background and transparent sprite generation, asset binding, persistence, branch preview, and project export.",
+        target_user="Visual-novel writers and small creative teams.",
+        core_problem="Story branches, character variants, and scene art are difficult to keep consistent when authored in disconnected tools.",
+        product_shape="Responsive local web studio over a shared story, asset, generation-adapter, persistence, and preview core.",
+        mvp_features=[
+            "Create, edit, connect, merge, and delete story nodes",
+            "Validate branches, orphan nodes, and illegal cycles",
+            "Generate backgrounds and transparent character sprites through separate adapters",
+            "Store prompt, seed, hash, generator, and variant metadata in an asset library",
+            "Bind scene and character assets to story nodes",
+            "Save, reload, import, export, and preview alternate endings",
+        ],
+        non_goals=[
+            "Claiming diffusion-model output when no model or provider is configured",
+            "Cloud collaboration and user accounts",
+            "Automatic publication to game stores",
+        ],
+        core_workflow=[
+            "define story and asset contracts",
+            "edit and validate the story graph",
+            "generate background assets",
+            "generate transparent sprite variants",
+            "bind assets to nodes",
+            "preview branches",
+            "save and export project",
+        ],
+        pages=["Story Tree", "Node Editor", "Characters", "Backgrounds", "Asset Library", "Preview", "Project"],
+        modules=["story_graph", "story_schema", "asset_library", "image_adapters", "persistence", "preview_runtime", "web_ui", "tests"],
+        stages=[
+            "define_document_contracts",
+            "edit_story_graph",
+            "validate_story_graph",
+            "generate_background_assets",
+            "generate_sprite_assets",
+            "bind_assets_to_nodes",
+            "preview_story_branch",
+            "export_project",
+        ],
+        artifacts=[
+            "story.schema.json",
+            "project.json",
+            "asset_manifest.json",
+            "generation_capability.json",
+            "story_graph_validation.json",
+            "preview_trace.json",
+            "export_manifest.json",
+        ],
+        match="It preserves the explicitly requested visual-novel, branching-story, background-generation, and character-sprite domain.",
+        wrong="If the customer wanted only a linear script editor, the graph and asset-generation scope would be larger than necessary.",
+        complexity_level="production_scale",
+        customer_value_score=98,
+        clarity_score=97,
+        local_first_feasibility=90,
+        delivery_feasibility=88,
+        testability_score=95,
+        implementation_risk="medium",
+        demo_degradation_risk="low",
+        fake_pass_risk="low",
+        acceptance_summary="A creator can build and reload a branching story, generate distinct decoder-valid backgrounds and alpha sprites through honest capability-aware adapters, bind them to nodes, and preview different endings.",
+    )
+
+
+def _task_board_requirement() -> dict[str, Any]:
+    return _candidate(
+        candidate_id="local_task_board_requirement",
+        name="Local task board",
+        summary="A local browser task board with task creation, status movement, filtering, deletion, and durable browser persistence.",
+        target_user="Individuals or small teams managing local work.",
+        core_problem="Tasks become hard to operate when state changes and filters are not available in one persistent local board.",
+        product_shape="Single-page local web application with a Python standard-library launcher and native HTML/CSS/JavaScript.",
+        mvp_features=["Create tasks", "Move task status", "Delete tasks", "Filter board", "Persist with localStorage", "Responsive accessible interface"],
+        non_goals=["Cloud synchronization", "Multi-user authentication", "External database", "Hosted notification service"],
+        core_workflow=["open board", "create task", "move status", "filter tasks", "reload persisted state", "delete task"],
+        pages=["Task Board"],
+        modules=["local server", "board state", "task interactions", "styles", "tests"],
+        stages=["serve_app", "load_state", "create_task", "update_task", "filter_board", "persist_state"],
+        artifacts=["board_contract.json", "interaction_test_report.json", "persistence_test_report.json", "runtime_evidence.json"],
+        match="It directly implements the requested task board; screenshot and video remain acceptance evidence only.",
+        wrong="If the customer primarily wants media processing rather than task management, a media workflow would be more appropriate.",
+        complexity_level="complex",
+        customer_value_score=96,
+        clarity_score=96,
+        local_first_feasibility=98,
+        delivery_feasibility=96,
+        testability_score=96,
+        implementation_risk="low",
+        demo_degradation_risk="low",
+        fake_pass_risk="low",
+        acceptance_summary="The local board must support task CRUD, status movement, filtering, persistence, automated tests, and real browser evidence.",
+    )
+
+
 def _team_requirement() -> dict[str, Any]:
     return _candidate(
         candidate_id="indie_team_operating_console_requirement",
@@ -275,6 +519,83 @@ def _research_requirement() -> dict[str, Any]:
         demo_degradation_risk="low",
         fake_pass_risk="low",
         acceptance_summary="The output must preserve source-to-brief traceability and report degraded extraction honestly.",
+    )
+
+
+def _specialized_analysis_requirement(raw_goal: str) -> dict[str, Any]:
+    return _candidate(
+        candidate_id="goal_derived_specialized_analysis_requirement",
+        name="Goal-derived specialized analysis workbench",
+        summary=(
+            "A local-first, source-aware analysis workbench derived from the customer's stated "
+            "domain: research authorized inputs, acquire and validate them, normalize evidence, "
+            "run explainable analysis, and export human-review reports."
+        ),
+        target_user="Analysts who need a traceable workflow for the specialized domain named in the goal.",
+        core_problem=(
+            "A specialized analysis request loses its real product domain when it is forced into "
+            "an unrelated generic media, data-quality, or research template."
+        ),
+        product_shape="CLI and library interfaces over a shared, modular analysis pipeline.",
+        mvp_features=[
+            "Official-source research registry",
+            "Authorized input acquisition adapters",
+            "Input validation and provenance",
+            "Normalized evidence model",
+            "Explainable feature analysis",
+            "Human-review risk report",
+        ],
+        non_goals=[
+            "Credential bypass or hidden scraping",
+            "Automatic punitive decisions",
+            "Claiming live-platform validation without credentials and real inputs",
+        ],
+        core_workflow=[
+            "research official sources",
+            "register reviewed acquisition capabilities",
+            "acquire authorized input",
+            "validate and normalize evidence",
+            "extract explainable features",
+            "score review priority",
+            "export cited report",
+        ],
+        pages=["Sources", "Acquisition", "Runs", "Evidence", "Review", "Reports"],
+        modules=["research", "sources", "parsers", "models", "features", "scoring", "reporting", "cli", "tests"],
+        stages=[
+            "research_platform_sources",
+            "acquire_authorized_input",
+            "validate_input",
+            "parse_evidence",
+            "normalize_evidence",
+            "extract_features",
+            "score_review_risk",
+            "render_evidence_report",
+        ],
+        artifacts=[
+            "source_registry.json",
+            "acquisition_manifest.json",
+            "input_validation.json",
+            "parsed_evidence.json",
+            "normalized_evidence.json",
+            "feature_report.json",
+            "risk_assessment.json",
+            "evidence_report.json",
+        ],
+        match=f"It preserves the specialized product domain stated in the goal: {product_domain_goal(raw_goal)[:300]}",
+        wrong="If the goal is actually a generic data-cleaning or media-editing request, a dedicated generic direction may be simpler.",
+        complexity_level="production_scale",
+        customer_value_score=97,
+        clarity_score=94,
+        local_first_feasibility=86,
+        delivery_feasibility=82,
+        testability_score=92,
+        implementation_risk="medium",
+        demo_degradation_risk="low",
+        fake_pass_risk="low",
+        acceptance_summary=(
+            "Offline fixtures prove the complete research-to-report pipeline; live acquisition remains "
+            "explicitly limited until authorized credentials and real inputs are supplied."
+        ),
     )
 
 
@@ -342,7 +663,13 @@ def _cloud_requirement() -> dict[str, Any]:
 def generate_candidate_requirements(raw_goal: str, interpretations: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
     lowered = raw_goal.lower()
     candidates: list[dict[str, Any]] = []
-    if any(token in lowered for token in ("video", "media", "clip", "audio", "视频", "音频", "素材")):
+    if goal_has_specialized_analysis_product(raw_goal):
+        candidates.append(_specialized_analysis_requirement(raw_goal))
+    if goal_has_task_board_product(raw_goal):
+        candidates.append(_task_board_requirement())
+    if goal_has_visual_novel_product(raw_goal):
+        candidates.append(_visual_novel_requirement())
+    if goal_has_media_product(raw_goal):
         candidates.append(_video_requirement())
     if any(token in lowered for token in ("game", "studio", "team", "indie", "独立游戏", "团队", "管理")):
         candidates.append(_team_requirement())

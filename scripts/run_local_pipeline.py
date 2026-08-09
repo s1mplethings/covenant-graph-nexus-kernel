@@ -134,6 +134,7 @@ def main() -> int:
     parser.add_argument("--goal", default="")
     parser.add_argument("--out-dir", default=str(DEFAULT_GENERATED_DIR))
     parser.add_argument("--run-dir", default=str(DEFAULT_RUN_DIR))
+    parser.add_argument("--resume-run-dir", default="")
     parser.add_argument("--result", "--result-path", dest="result", default=str(DEFAULT_RESULT_PATH))
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--allow-provider", action="store_true")

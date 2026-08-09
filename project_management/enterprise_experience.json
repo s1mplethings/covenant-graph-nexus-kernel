@@ -1,0 +1,276 @@
+{
+  "kind": "CGKNEnterpriseExperiencePack",
+  "schema_version": "1.0",
+  "organization": "CGKN",
+  "items": [
+    {
+      "id": "EXP-CGKN-LIBRARIAN-001",
+      "title": "Use bounded librarian projections for large component and leaf generation",
+      "situation": "A generated project has enough files, interfaces, or upstream evidence that copying the entire context into every provider request would be noisy or oversized.",
+      "action": "Keep the complete feedforward snapshot and source catalog local, then retrieve only the current contract, direct dependency interfaces, and a bounded set of relevant source excerpts.",
+      "outcome": "Provider leaves receive traceable relevant context while prompt size remains bounded and unrelated passed checkpoints remain reusable.",
+      "applicable_when": [
+        "Large or interface-dense generated projects",
+        "Provider component or leaf prompts",
+        "Incremental repair with reusable upstream checkpoints"
+      ],
+      "not_applicable_when": [
+        "A tiny single-file change where the bounded pack would exceed the source itself"
+      ],
+      "tags": [
+        "cgkn",
+        "librarian",
+        "project-generation",
+        "large-project",
+        "context"
+      ],
+      "evidence_refs": [
+        "docs/00_kernel_contract.md",
+        "tests/test_generation_scale_ladder.py",
+        "tests/test_complexity_formal_mainline_contract.py"
+      ],
+      "experience_state": "approved",
+      "usage_count": 4,
+      "successful_usage_count": 4,
+      "owner": "context-librarian",
+      "supersedes": []
+    },
+    {
+      "id": "EXP-CGKN-QUALITY-001",
+      "title": "Separate planning, implementation, and delivery truth",
+      "situation": "Planning artifacts or generated files exist, but runtime, visual, test, review, or package evidence may still be incomplete.",
+      "action": "Evaluate each evidence layer independently and allow only canonical producers and inspectors to authorize formal gates.",
+      "outcome": "Planning progress and partial implementation remain visible without being promoted into a false public delivery PASS.",
+      "applicable_when": [
+        "All generated-project planning, implementation, acceptance, and delivery work"
+      ],
+      "not_applicable_when": [],
+      "tags": [
+        "cgkn",
+        "quality",
+        "evidence",
+        "governance",
+        "delivery"
+      ],
+      "evidence_refs": [
+        "docs/01_contract_registry.md",
+        "tests/test_kernel_contract.py"
+      ],
+      "experience_state": "approved",
+      "usage_count": 10,
+      "successful_usage_count": 10,
+      "owner": "quality-management",
+      "supersedes": []
+    },
+    {
+      "id": "EXP-CGKN-BOOTSTRAP-001",
+      "title": "Self-host the management method before provider integration",
+      "situation": "CGKN is adding a new project-management capability that must govern both its own work and generated projects.",
+      "action": "First stabilize schemas, deterministic validation, repository instructions, a project-local skill, and a real CGKN iteration; integrate provider planning context in a later bounded increment.",
+      "outcome": "The bootstrap and provider-integration increments passed schema, semantic, CLI lifecycle, skill, knowledge, kernel, provider, and execution-route checks without creating another generation or delivery route.",
+      "applicable_when": [
+        "Adding a cross-cutting CGKN governance or generation capability"
+      ],
+      "not_applicable_when": [
+        "The required contracts and integration are already stable and covered by evidence"
+      ],
+      "tags": [
+        "cgkn",
+        "hybrid",
+        "self-hosting",
+        "continuous-improvement"
+      ],
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-001.json",
+        "project_management/cgkn/iterations/ITER-002.json",
+        "tests/test_adaptive_project_management_context.py",
+        "tests/test_pmp_agile_quality_manager.py",
+        "tests/test_pmp_agile_quality_schemas.py"
+      ],
+      "experience_state": "approved",
+      "usage_count": 3,
+      "successful_usage_count": 3,
+      "owner": "project-lead",
+      "supersedes": []
+    }
+  ],
+  "usage_receipts": [
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-001",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-001.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-001",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-001.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-BOOTSTRAP-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-001",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-001.json",
+        "tests/test_pmp_agile_quality_manager.py",
+        "tests/test_pmp_agile_quality_schemas.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-BOOTSTRAP-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-002",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-002.json",
+        "tests/test_adaptive_project_management_context.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-002",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-002.json",
+        "tests/test_formal_provider_fallback.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-003",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/full_project_test_20260728/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-003",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/full_project_test_20260728/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-BOOTSTRAP-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-003",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/full_project_test_20260728/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-004",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/provider_failure_boundary_20260729/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-004",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/provider_failure_boundary_20260729/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-005",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/provider_symbol_split_fix_20260729/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-005",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/provider_symbol_split_fix_20260729/REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-008",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "generated/cs_demo_integrity_full_project_20260729/artifacts/auto_test_run/auto_test_report.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-009",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "generated/cs_demo_integrity_full_project_20260729/delivery_manifest.json",
+        "generated/cs_demo_integrity_full_project_20260729/test_execution.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-010",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-010.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-011",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "tests/test_design_research_quality.py",
+        "tests/test_kernel_contract.py",
+        "tests/test_run_local_pipeline_usage.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-013",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "tests/test_formal_provider_fallback.py"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-009",
+  "project_id": "cgkn",
+  "goal": "Add bounded public real-CS2-demo discovery, verified acquisition and safe extraction, prove real ticks and player states with demoparser2, then run the existing autonomous analysis and video workflow.",
+  "backlog_item_ids": [
+    "PB-009"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A downloaded input is classified as a real demo only after demoparser2 parses non-zero ticks and player states; a downloaded file alone cannot pass.",
+    "Automated tests, one actual public real-demo download and parse, canonical evidence, and local_packager inspection pass with limitations recorded honestly.",
+    "Downloaded archives are HTTPS-only, size-bounded, hash-verified, and safely extracted without path traversal or unbounded member expansion.",
+    "Network discovery is explicit, bounded, rate-limited, and restricted to reviewed public catalogs or official credentialed platform APIs; it does not bypass authentication or scrape arbitrary sites.",
+    "The public catalog adapter dynamically enumerates current CS2 demo candidates and records repository, license, commit or object hash, download size, and expected content hash before acquisition.",
+    "The real demo runs through the existing analysis and evidence-video interfaces, and failed candidates automatically fall through to the next discovered source."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CS-DEMO",
+      "measure": "complete authorized CS2 demo analysis workflow",
+      "target": "offline synthetic end-to-end workflow and generated-project tests pass, reports include signal-level evidence, confidence, limitations, and no unsupported accusation",
+      "method": "generated pytest suite, CLI runtime probe, artifact inspection, and source-adapter contract checks"
+    },
+    {
+      "id": "QM-AUTO-TEST",
+      "measure": "bounded autonomous input discovery, fitness selection, retry, and truthful fallback",
+      "target": "the highest-fitness usable authorized candidate completes analysis and media generation; injected candidate failure selects the next candidate; synthetic fallback is opt-in and always PASS_WITH_LIMITS",
+      "method": "candidate-scoring unit tests, bounded-discovery security tests, retry integration tests, real auto-test CLI execution, report inspection, and package inspection"
+    },
+    {
+      "id": "QM-REAL-DEMO-DISCOVERY",
+      "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+      "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+      "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "generated/cs_demo_integrity_full_project_20260729/artifacts/auto_test_real/auto_test_report.json",
+    "generated/cs_demo_integrity_full_project_20260729/artifacts/auto_test_real/candidate_runs/001-demoinfocs-public-regression-015a5b9fb58d/evidence.webm",
+    "generated/cs_demo_integrity_full_project_20260729/delivery_manifest.json",
+    "generated/cs_demo_integrity_full_project_20260729/test_execution.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "A verified public real CS2 Demo was discovered, acquired, parsed, analyzed, and rendered without synthetic fallback; 79 tests collected, 78 passed, 1 environment skip; canonical media and package inspection passed.",
+      "The regression corpus is not cheat-labeled and the bounded parser omits shots, visibility, and information provenance, so detection accuracy remains uncalibrated."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-009"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Hash-bound test, isolated runtime, browser, media, and package evidence all converged on one candidate source hash.",
+      "Separating catalog metadata discovery, verified cache acquisition, run-local staging, parser proof, and delivery evidence kept context bounded and interfaces reusable."
+    ],
+    "did_not_work": [
+      "The first archive path guard treated Windows root-relative paths as safe until a focused test exposed it.",
+      "The first package attempt correctly failed because stale runtime and visual evidence were bound to the previous candidate hash."
+    ],
+    "experiments": [
+      "Retain large reviewed archives in an external verified cache and stage only the selected input plus provenance into a candidate run."
+    ]
+  }
+}

@@ -19,10 +19,30 @@ DEFAULT_LOCAL_TASKS = {
     "customer_status",
 }
 
+HYBRID_SAFE_LOCAL_TASKS = {
+    *DEFAULT_LOCAL_TASKS,
+    "customer_classification",
+    "backend_dialogue",
+    "pipeline_planner",
+    "cfo_pipeline",
+    "context_support",
+    "risk_support",
+}
+
+HYBRID_SAFE_API_TASKS = {
+    "component_generation",
+    "component_repair",
+    "foundation",
+    "qa",
+}
+
 LOCAL_GENERATION_TASKS = {
     "customer_classification",
     "backend_dialogue",
     "pipeline_planner",
+    "component_generation",
+    "component_repair",
+    "component_reasoning_repair",
     "cfo_pipeline",
     "context_support",
     "risk_support",
@@ -30,9 +50,23 @@ LOCAL_GENERATION_TASKS = {
     "qa",
 }
 
+LOCAL_CODE_TASKS = {
+    "component_generation",
+    "component_repair",
+    "component_reasoning_repair",
+    "foundation",
+}
+
 PUBLIC_REPLY_TASKS = {
     "customer_public_reply",
     "customer_status",
+}
+
+MODEL_ROUTING_PROFILES = {
+    "api_only",
+    "custom",
+    "hybrid_safe",
+    "local_first",
 }
 
 
@@ -40,15 +74,31 @@ def env_truthy(name: str) -> bool:
     return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def model_routing_profile() -> str:
+    configured = str(os.environ.get("CGNK_MODEL_ROUTING_PROFILE", "custom")).strip().lower()
+    return configured if configured in MODEL_ROUTING_PROFILES else "custom"
+
+
 def local_model_requested() -> bool:
+    profile = model_routing_profile()
+    if profile == "api_only":
+        return False
     return (
-        env_truthy("CGNK_USE_LOCAL_MODEL")
+        profile in {"hybrid_safe", "local_first"}
+        or env_truthy("CGNK_USE_LOCAL_MODEL")
         or bool(str(os.environ.get("CGNK_LOCAL_MODEL_CMD", "")).strip())
         or bool(str(os.environ.get("CGNK_LOCAL_MODEL_TASKS", "")).strip())
     )
 
 
 def enabled_tasks() -> set[str]:
+    profile = model_routing_profile()
+    if profile == "api_only":
+        return set()
+    if profile == "hybrid_safe":
+        return set(HYBRID_SAFE_LOCAL_TASKS)
+    if profile == "local_first":
+        return set(DEFAULT_LOCAL_TASKS | LOCAL_GENERATION_TASKS)
     raw = str(os.environ.get("CGNK_LOCAL_MODEL_TASKS", "")).strip()
     if not raw:
         return set(DEFAULT_LOCAL_TASKS)
@@ -63,12 +113,46 @@ def task_enabled(task: str) -> bool:
     return "all" in tasks or str(task or "").strip().lower() in tasks
 
 
+def task_model_owner(task: str) -> str:
+    normalized = str(task or "").strip().lower()
+    if task_enabled(normalized):
+        return "local_model"
+    if normalized in HYBRID_SAFE_API_TASKS or normalized in LOCAL_CODE_TASKS:
+        return "api_provider"
+    return "deterministic_or_api"
+
+
+def routing_contract() -> dict[str, Any]:
+    profile = model_routing_profile()
+    return {
+        "profile": profile,
+        "local_tasks": sorted(enabled_tasks()),
+        "api_tasks": sorted(HYBRID_SAFE_API_TASKS if profile == "hybrid_safe" else set()),
+        "local_output_role": "supporting_context_only" if profile == "hybrid_safe" else "configured",
+        "formal_generation_owner": "api_provider" if profile in {"api_only", "hybrid_safe"} else "configured_provider_route",
+        "deterministic_evidence_owner": "local_runtime_tools",
+    }
+
+
 def task_affects_generation(task: str) -> bool:
     return str(task or "").strip().lower() in LOCAL_GENERATION_TASKS
 
 
 def task_is_public_reply_only(task: str) -> bool:
     return str(task or "").strip().lower() in PUBLIC_REPLY_TASKS
+
+
+def local_model_request_timeout(task: str, requested: int) -> int:
+    """Apply the local-runtime timeout policy once, at the transport boundary."""
+    generation_task = task_affects_generation(task)
+    hard_cap = 240 if generation_task else 120
+    configured = str(os.environ.get("CGNK_LOCAL_MODEL_REQUEST_TIMEOUT_CAP", "")).strip()
+    try:
+        configured_cap = int(configured) if configured else hard_cap
+    except ValueError:
+        configured_cap = hard_cap
+    effective_cap = max(5, min(configured_cap, hard_cap))
+    return max(5, min(int(requested), effective_cap))
 
 
 def extract_json(text: str) -> dict[str, Any] | None:
@@ -196,13 +280,20 @@ def ensure_ollama_running(host: str, wait_seconds: int = 20) -> dict[str, Any]:
     }
 
 
-def choose_ollama_model(host: str) -> str:
-    configured = str(os.environ.get("CGNK_OLLAMA_MODEL", "")).strip()
+def choose_ollama_model(host: str, task: str = "") -> str:
+    normalized_task = str(task or "").strip().lower()
+    task_specific_env = "CGNK_OLLAMA_CODE_MODEL" if normalized_task in LOCAL_CODE_TASKS else "CGNK_OLLAMA_REASONING_MODEL"
+    configured = str(os.environ.get(task_specific_env, "") or os.environ.get("CGNK_OLLAMA_MODEL", "")).strip()
     if configured:
         return configured
     tags = get_json(host.rstrip("/") + "/api/tags", timeout=5)
     models = [str(row.get("name", "")).strip() for row in tags.get("models", []) if isinstance(row, dict)]
-    for preferred in ("qwen2.5:7b-instruct", "qwen2.5:7b", "qwen2:7b", "llama3.1:8b"):
+    preferred_models = (
+        ("qwen2.5-coder:7b", "qwen2.5:7b-instruct", "qwen2.5:7b", "qwen2:7b")
+        if normalized_task in LOCAL_CODE_TASKS
+        else ("qwen2.5:7b-instruct", "qwen2.5:7b", "qwen2:7b", "llama3.1:8b")
+    )
+    for preferred in preferred_models:
         if preferred in models:
             return preferred
     return models[0] if models else ""
@@ -221,7 +312,7 @@ def _call_command(task: str, system: str, prompt: str, timeout: int) -> dict[str
             text=True,
             shell=True,
             cwd=str(ROOT),
-            timeout=max(5, min(int(timeout), 120)),
+            timeout=local_model_request_timeout(task, timeout),
         )
     except Exception as exc:
         return {"ok": False, "provider": "command", "error": str(exc)}
@@ -236,22 +327,29 @@ def _call_ollama(task: str, system: str, prompt: str, timeout: int) -> dict[str,
     if not runtime.get("ok"):
         return {"ok": False, "provider": "ollama", "error": f"ollama unavailable: {runtime.get('error')}", "runtime": runtime}
     try:
-        model = choose_ollama_model(host)
+        model = choose_ollama_model(host, task)
     except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, json.JSONDecodeError) as exc:
         return {"ok": False, "provider": "ollama", "error": f"ollama unavailable: {exc}"}
     if not model:
         return {"ok": False, "provider": "ollama", "error": "no ollama models installed"}
     full_prompt = f"{system}\n\nTask: {task}\n\n{prompt}"
     try:
+        request_payload = {
+            "model": model,
+            "prompt": full_prompt,
+            "stream": False,
+            "options": {
+                "temperature": local_model_temperature(task),
+                "num_predict": local_model_num_predict(task, system=system),
+                "num_ctx": local_model_context_window(task),
+            },
+        }
+        if str(task or "").strip().lower() in LOCAL_CODE_TASKS:
+            request_payload["format"] = "json"
         doc = post_json(
             host + "/api/generate",
-            {
-                "model": model,
-                "prompt": full_prompt,
-                "stream": False,
-                "options": {"temperature": local_model_temperature(task)},
-            },
-            timeout=max(5, min(int(timeout), 120)),
+            request_payload,
+            timeout=local_model_request_timeout(task, timeout),
         )
     except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, json.JSONDecodeError) as exc:
         return {"ok": False, "provider": "ollama", "model": model, "error": f"ollama request failed: {exc}"}
@@ -273,6 +371,41 @@ def local_model_temperature(task: str) -> float:
     return 0.1
 
 
+def local_model_num_predict(task: str, *, system: str = "") -> int:
+    if (
+        str(task or "").strip().lower() in LOCAL_CODE_TASKS
+        and "stage: component_file_manifest" in str(system or "").lower()
+    ):
+        manifest_raw = str(os.environ.get("CGNK_LOCAL_MODEL_MANIFEST_NUM_PREDICT", "")).strip()
+        if manifest_raw:
+            try:
+                return max(512, min(int(manifest_raw), 4096))
+            except ValueError:
+                pass
+    raw = str(os.environ.get("CGNK_LOCAL_MODEL_NUM_PREDICT", "")).strip()
+    if raw:
+        try:
+            return max(256, min(int(raw), 4096))
+        except ValueError:
+            pass
+    normalized = str(task or "").strip().lower()
+    if normalized in LOCAL_CODE_TASKS:
+        return 4096
+    if normalized == "qa":
+        return 1024
+    return 768
+
+
+def local_model_context_window(task: str) -> int:
+    raw = str(os.environ.get("CGNK_LOCAL_MODEL_CONTEXT_WINDOW", "")).strip()
+    if raw:
+        try:
+            return max(4096, min(int(raw), 16384))
+        except ValueError:
+            pass
+    return 16384 if str(task or "").strip().lower() in LOCAL_CODE_TASKS else 4096
+
+
 def call_text_task(task: str, system: str, prompt: str, timeout: int) -> dict[str, Any]:
     if not task_enabled(task):
         return {"ok": False, "provider": "none", "error": f"local model disabled for task: {task}"}
@@ -281,6 +414,26 @@ def call_text_task(task: str, system: str, prompt: str, timeout: int) -> dict[st
         if result.get("ok"):
             return result
     return _call_ollama(task, system, prompt, timeout)
+
+
+def call_text_task_fallback(
+    task: str, system: str, prompt: str, timeout: int
+) -> dict[str, Any]:
+    """Run an explicit API-transport fallback without changing configured task ownership."""
+    normalized = str(task or "").strip().lower()
+    if model_routing_profile() == "api_only":
+        return {"ok": False, "provider": "none", "error": "api_only profile forbids local fallback"}
+    if normalized not in LOCAL_CODE_TASKS:
+        return {
+            "ok": False,
+            "provider": "none",
+            "error": f"local fallback is not allowed for task: {task}",
+        }
+    if str(os.environ.get("CGNK_LOCAL_MODEL_CMD", "")).strip():
+        result = _call_command(normalized, system, prompt, timeout)
+        if result.get("ok"):
+            return result
+    return _call_ollama(normalized, system, prompt, timeout)
 
 
 def call_json_task(task: str, system: str, prompt: str, timeout: int) -> dict[str, Any]:

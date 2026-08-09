@@ -9,8 +9,10 @@ import sys
 from typing import Any
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+ROOT = SCRIPT_DIR.parent
+for import_root in (ROOT, SCRIPT_DIR):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 import final_delivery_truth
 import final_promotion
@@ -19,8 +21,6 @@ import provider_resilience
 import run_commercial_readiness
 import run_local_pipeline
 
-
-ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_SPEC = ROOT / "benchmarks" / "complexity_scale_pipeline_benchmark.json"
 DEFAULT_REPORT = ROOT / "examples" / "test_results" / "complexity_scale_benchmark_report.json"
 DEFAULT_OUT_DIR = ROOT / "generated" / "complexity_scale_pipeline_candidate"

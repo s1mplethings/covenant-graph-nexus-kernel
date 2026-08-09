@@ -1,0 +1,503 @@
+{
+  "kind": "CGKNAdaptiveProjectManagementPack",
+  "schema_version": "1.0",
+  "project_id": "cgkn",
+  "project_name": "CGKN",
+  "goal": "Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, and enterprise-learning method that CGKN offers to generated projects.",
+  "delivery_approach": "hybrid",
+  "tailoring": {
+    "requirements_uncertainty": "high",
+    "technical_uncertainty": "medium",
+    "criticality": "high",
+    "iteration_length_days": 7,
+    "rationale": "CGKN needs stable kernel, provider, evidence, and delivery governance while its product-management and generation capabilities evolve through tested increments."
+  },
+  "governance": {
+    "success_metrics": [
+      "CGKN self-hosting management artifacts validate against registered schemas.",
+      "The project-local skill can initialize, validate, and retrieve bounded project-management context.",
+      "No change creates a second Telegram generation route or delivery exit.",
+      "Every completed increment records measurable quality evidence and a retrospective."
+    ],
+    "fixed_constraints": [
+      "Preserve the reviewed API/provider Telegram generation route.",
+      "Preserve whiteboard and agent_session shared communication.",
+      "Preserve local_packager as the only delivery exit.",
+      "Use only canonical formal evidence statuses.",
+      "Do not expose internal management jargon in normal customer replies."
+    ],
+    "escalation_thresholds": [
+      "Escalate any proposed change to telegram_live_bridge.py that expands its responsibility.",
+      "Escalate any fallback that could become an unregistered generation path.",
+      "Return an increment for rework when required quality evidence is absent."
+    ]
+  },
+  "product_backlog": [
+    {
+      "id": "PB-001",
+      "title": "Define and self-host the tailored PMP, agile, and quality method",
+      "outcome": "CGKN contributors and agents use one registered, inspectable method for CGKN and generated projects.",
+      "priority": 1,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [],
+      "acceptance_criteria": [
+        "The method covers people and feedback, value delivery, governance, quality planning, assurance, control, and improvement.",
+        "Repository instructions require proportionate self-hosting for non-trivial CGKN work.",
+        "Management workflow states remain separate from formal evidence statuses."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-SELFHOST",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-002",
+      "title": "Maintain bounded enterprise experience with usage outcomes",
+      "outcome": "Projects retrieve relevant evidence-backed experience without receiving a large global context.",
+      "priority": 2,
+      "value_score": 9,
+      "risk_reduction_score": 8,
+      "state": "done",
+      "dependencies": [
+        "PB-001"
+      ],
+      "acceptance_criteria": [
+        "Validated and approved experience requires evidence and applicability boundaries.",
+        "Retrieval excludes unrelated, candidate, and retired experience.",
+        "Each applied experience can record a project and iteration usage outcome."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-RETRIEVAL",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-003",
+      "title": "Feed tailored management context into formal provider planning",
+      "outcome": "Generated projects receive relevant backlog, quality, risk, and experience context through the existing librarian.",
+      "priority": 3,
+      "value_score": 10,
+      "risk_reduction_score": 7,
+      "state": "done",
+      "dependencies": [
+        "PB-001",
+        "PB-002"
+      ],
+      "acceptance_criteria": [
+        "Management context enters the existing provider route without a second planner or delivery route.",
+        "Leaf prompts receive only bounded directly relevant context.",
+        "Provider and delivery contract tests remain green."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-004",
+      "title": "Prove the method on the ACFV-scale generation ladder",
+      "outcome": "The method demonstrates bounded context, incremental integration, and quality feedback at the requested project scale.",
+      "priority": 4,
+      "value_score": 9,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-003"
+      ],
+      "acceptance_criteria": [
+        "Small, medium, and ACFV-scale trials use the same management contracts.",
+        "Injected interface and quality defects route to affected work only.",
+        "The final report distinguishes planning, implementation, quality, and delivery evidence."
+      ],
+      "quality_metric_ids": [
+        "QM-SCALE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-005",
+      "title": "Bound large Provider file leaves below the gateway timeout",
+      "outcome": "High-complexity files are generated through deterministic owned submodules and a compatibility facade so each resumable Provider request remains inside the measured transport-safe region.",
+      "priority": 5,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-004"
+      ],
+      "acceptance_criteria": [
+        "High-complexity source entries with many public symbols expand deterministically into legal owned submodules plus a facade while preserving the original public path.",
+        "Provider file calls default to at most 5000 output tokens and explicitly reject length-truncated responses before publication.",
+        "Each generated submodule retains its own split-file checkpoint, interface feedforward, boundary receipt, and affected-only repair behavior.",
+        "The Telegram Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest route remains unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-SCALE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-006",
+      "title": "Generate and verify a complete CS2 demo integrity-analysis project",
+      "outcome": "CGKN proves the bounded-leaf route on a substantial real project that imports authorized CS2 demos, extracts player/crosshair/information-state features, and produces explainable human-review risk reports.",
+      "priority": 6,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-005"
+      ],
+      "acceptance_criteria": [
+        "The generated project follows a docs-first layout with architecture, source authorization, data contracts, detection rationale, calibration limits, model card, and test plan before src implementation.",
+        "A built-in platform researcher discovers and refreshes official platform documentation, records cited capability profiles with freshness and authorization requirements, and produces reviewable adapter proposals for unknown platforms.",
+        "Platform acquisition uses explicit adapters for local files, authorized HTTPS downloads, Steam match-history sharing codes, and FACEIT-authorized demo links without hidden scraping or embedded credentials.",
+        "The parser normalizes real demoparser2 output and deterministic fixture input into one tick/event schema covering view angles, player positions, teams, shots, visibility or information state, deaths, and rounds.",
+        "Detection combines crosshair angular dynamics, target alignment, reaction timing, tracking, target switching, pre-aim/prefire, visibility, occlusion uncertainty, and information-relation signals into explainable evidence rather than a definitive cheating accusation.",
+        "A CLI runs download/import, parse, analyze, and JSON/HTML report workflows; synthetic legitimate and suspicious trajectories exercise the complete offline pipeline.",
+        "Generated tests, runtime evidence, quality report, and packaging checks pass through the existing Provider and post-build route."
+      ],
+      "quality_metric_ids": [
+        "QM-CS-DEMO",
+        "QM-SCALE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-007",
+      "title": "Let the generated CS demo project create its own test video",
+      "outcome": "The generated project can create an honest, reproducible synthetic evidence visualization video or render one from an authorized parsed input without pretending it is gameplay footage.",
+      "priority": 7,
+      "value_score": 9,
+      "risk_reduction_score": 8,
+      "state": "done",
+      "dependencies": [
+        "PB-006"
+      ],
+      "acceptance_criteria": [
+        "A make-test-video CLI command produces WebM or MP4 from an internally generated synthetic scenario without requiring a demo download.",
+        "The renderer visualizes player positions, subject aim direction, target relationships, visibility or information state, shots, and timeline progression.",
+        "Every frame and sidecar manifest identify the output as synthetic evidence visualization rather than real gameplay or proof of cheating.",
+        "Authorized JSON or demoparser2-normalized inputs can be rendered through the same typed model; external inputs require an authorization assertion.",
+        "The command detects FFmpeg, validates the encoded media with FFprobe, records hashes and dimensions, and fails honestly when media tooling is unavailable.",
+        "Automated tests and one real generated video pass before local_packager rebuilds the canonical project bundle."
+      ],
+      "quality_metric_ids": [
+        "QM-TEST-VIDEO",
+        "QM-CS-DEMO",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-008",
+      "title": "Let the generated CS demo project discover and test suitable inputs",
+      "outcome": "The generated project autonomously finds bounded authorized candidates, ranks their evidence fitness, retries after failures, runs the full analysis and video workflow, and reports any synthetic fallback honestly.",
+      "priority": 8,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-007"
+      ],
+      "acceptance_criteria": [
+        "An auto-test CLI command discovers bounded local JSON, DEM, and safe ZIP candidates without crawling arbitrary locations.",
+        "Candidates are ranked using parseability, tick coverage, players, view angles, shots, visibility, information state, rounds, and map metadata.",
+        "A failed candidate is recorded and the next ranked candidate is attempted automatically.",
+        "The selected authorized real input runs the existing eight-stage pipeline and the existing evidence-video renderer without adding a generation or delivery route.",
+        "When no authorized real input succeeds, an explicitly enabled deterministic synthetic fallback runs the same workflow and is reported as PASS_WITH_LIMITS rather than a real-demo success.",
+        "The autonomous report redacts secrets, distinguishes discovery, execution, and evidence truth, and automated plus real CLI tests pass before local_packager rebuilds the bundle."
+      ],
+      "quality_metric_ids": [
+        "QM-AUTO-TEST",
+        "QM-TEST-VIDEO",
+        "QM-CS-DEMO",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-009",
+      "title": "Autonomously discover and verify a public real CS2 demo",
+      "outcome": "The generated project can opt into network discovery, enumerate a reviewed public demo catalog, verify current object identity and license provenance, download and safely extract a genuine CS2 demo, then prove it by parsing real ticks and player states through the existing workflow.",
+      "priority": 9,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-008"
+      ],
+      "acceptance_criteria": [
+        "Network discovery is explicit, bounded, rate-limited, and restricted to reviewed public catalogs or official credentialed platform APIs; it does not bypass authentication or scrape arbitrary sites.",
+        "The public catalog adapter dynamically enumerates current CS2 demo candidates and records repository, license, commit or object hash, download size, and expected content hash before acquisition.",
+        "Downloaded archives are HTTPS-only, size-bounded, hash-verified, and safely extracted without path traversal or unbounded member expansion.",
+        "A downloaded input is classified as a real demo only after demoparser2 parses non-zero ticks and player states; a downloaded file alone cannot pass.",
+        "The real demo runs through the existing analysis and evidence-video interfaces, and failed candidates automatically fall through to the next discovered source.",
+        "Automated tests, one actual public real-demo download and parse, canonical evidence, and local_packager inspection pass with limitations recorded honestly."
+      ],
+      "quality_metric_ids": [
+        "QM-REAL-DEMO-DISCOVERY",
+        "QM-AUTO-TEST",
+        "QM-CS-DEMO",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-010",
+      "title": "Validate generated modules before integration and delivery",
+      "outcome": "Every generated component receives an independent language-aware quality validation after assembly, cached components are revalidated before reuse, and invalid module interfaces cannot be promoted as a passing project.",
+      "priority": 10,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-006"
+      ],
+      "acceptance_criteria": [
+        "A separate component quality-validation receipt is produced after module assembly and before the component can feed downstream generation.",
+        "JavaScript and TypeScript local imports and re-exports record exact symbols and reject missing exports, missing local re-export bindings, missing modules, and unimported sibling helpers.",
+        "Python syntax and implemented import interfaces plus JSON syntax are rechecked at component scope without relying on provider self-claims.",
+        "Previously passing component checkpoints are revalidated against the current quality contract before reuse.",
+        "The fully merged project receives an assembly quality validation and generation cannot report a passing quality gate when it fails.",
+        "The known broken CS Demo frontend is rejected while a valid split-module frontend, existing provider contracts, and kernel route guards pass."
+      ],
+      "quality_metric_ids": [
+        "QM-MODULE-QUALITY",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-011",
+      "title": "Add design discovery and aesthetic quality to generated projects",
+      "outcome": "Visual projects search real design references, select a coherent visual direction, feed a bounded design contract through the librarian, and fail generation when the implemented interface lacks the required design system or usable visual states.",
+      "priority": 11,
+      "value_score": 10,
+      "risk_reduction_score": 8,
+      "state": "done",
+      "dependencies": [
+        "PB-010"
+      ],
+      "acceptance_criteria": [
+        "The existing Provider route runs a separate design-research stage after product and technical research for projects with a visual surface.",
+        "Design research records multiple source-backed references, three distinct directions, one selected direction, design tokens, interaction principles, accessibility constraints, and anti-copying boundaries.",
+        "Only a bounded design context enters frontend, media, and docs leaves through the existing generation-context librarian.",
+        "Design research artifacts are written before Provider source generation, and the generated project must include design_research.md and design_system.md before assembly can pass.",
+        "Frontend and assembled-project validation reject missing tokens, responsive behavior, focus treatment, interaction feedback, design documentation, or source-to-design traceability.",
+        "Design support receipts cannot authorize canonical visual evidence or public delivery PASS, and the Telegram Provider/local_packager route remains unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-DESIGN",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-012",
+      "title": "Prove large VN generation with self-generated art and story tree",
+      "outcome": "A full-scale Provider trial generates and verifies a runnable visual-novel studio that creates distinct backgrounds and character sprites, edits and persists a branching story tree, binds generated assets to story nodes, and reports model or credential limitations honestly.",
+      "priority": 12,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "active",
+      "dependencies": [
+        "PB-011"
+      ],
+      "acceptance_criteria": [
+        "The test uses the existing reviewed Provider component route with design research, bounded librarian context, module validation, post-build finalization, and no alternate generator.",
+        "The generated project contains docs-first product, architecture, interaction, image-generation, story-schema, quality, and test documentation plus a modular src and tests layout.",
+        "Users can create, edit, connect, branch, delete, persist, reload, and preview story nodes through one typed story-tree model.",
+        "Background and character-sprite generation are separate executable workflows that create distinct decodable image artifacts from user prompts and expose honest local-model or hosted-provider configuration checks.",
+        "Generated assets can be selected by characters or scenes and attached to story nodes without duplicating the story model in frontend and backend modules.",
+        "Generated-project unit, contract, integration, runtime, browser, accessibility, media-decoding, and design-quality checks pass or produce an evidence-backed canonical blocker rather than a false success."
+      ],
+      "quality_metric_ids": [
+        "QM-VN-LARGE",
+        "QM-DESIGN",
+        "QM-MODULE-QUALITY",
+        "QM-SCALE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    }
+  ],
+  "quality_management": {
+    "definition_of_done": [
+      "Selected acceptance criteria are evaluated with evidence.",
+      "New or changed schemas and deterministic scripts have automated tests.",
+      "Applicable contract and kernel guard tests pass.",
+      "No formal status is inferred from a workflow or experience state.",
+      "Known limitations and deferred backlog items are recorded.",
+      "The iteration review and retrospective are closed."
+    ],
+    "metrics": [
+      {
+        "id": "QM-CONTRACT",
+        "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+        "target": "all management, iteration, and experience artifacts validate",
+        "method": "jsonschema tests plus deterministic manager validation"
+      },
+      {
+        "id": "QM-SELFHOST",
+        "measure": "CGKN uses the same method it exposes",
+        "target": "active project pack and iteration exist and repository instructions reference the approved skill",
+        "method": "self-hosting contract test"
+      },
+      {
+        "id": "QM-RETRIEVAL",
+        "measure": "enterprise experience retrieval relevance and state safety",
+        "target": "only tag-relevant validated or approved items are selected within a maximum of 16",
+        "method": "unit tests with approved, candidate, retired, and unrelated items"
+      },
+      {
+        "id": "QM-INTEGRATION",
+        "measure": "formal provider and delivery route preservation",
+        "target": "kernel and provider contract tests pass without a new generation or delivery path",
+        "method": "existing kernel and formal provider test profiles"
+      },
+      {
+        "id": "QM-SCALE",
+        "measure": "bounded context and affected-work repair at increasing project scale",
+        "target": "context remains within configured budgets and unrelated checkpoints remain reusable",
+        "method": "generation scale ladder and ACFV-scale trial"
+      },
+      {
+        "id": "QM-REGRESSION",
+        "measure": "changed management capability tests",
+        "target": "all targeted tests pass",
+        "method": "pytest targeted profile"
+      },
+      {
+        "id": "QM-CS-DEMO",
+        "measure": "complete authorized CS2 demo analysis workflow",
+        "target": "offline synthetic end-to-end workflow and generated-project tests pass, reports include signal-level evidence, confidence, limitations, and no unsupported accusation",
+        "method": "generated pytest suite, CLI runtime probe, artifact inspection, and source-adapter contract checks"
+      },
+      {
+        "id": "QM-TEST-VIDEO",
+        "measure": "reproducible self-generated evidence visualization video",
+        "target": "CLI creates valid non-empty WebM or MP4 with a PASS FFprobe result, deterministic scenario metadata, visible synthetic disclaimer, and no gameplay claim",
+        "method": "unit rendering tests, CLI integration test, FFprobe inspection, sidecar-manifest hash verification, and browser/media review"
+      },
+      {
+        "id": "QM-AUTO-TEST",
+        "measure": "bounded autonomous input discovery, fitness selection, retry, and truthful fallback",
+        "target": "the highest-fitness usable authorized candidate completes analysis and media generation; injected candidate failure selects the next candidate; synthetic fallback is opt-in and always PASS_WITH_LIMITS",
+        "method": "candidate-scoring unit tests, bounded-discovery security tests, retry integration tests, real auto-test CLI execution, report inspection, and package inspection"
+      },
+      {
+        "id": "QM-REAL-DEMO-DISCOVERY",
+        "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+        "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+        "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+      },
+      {
+        "id": "QM-MODULE-QUALITY",
+        "measure": "independent language-aware validation of generated component and merged-project interfaces",
+        "target": "all newly generated and reused components plus the merged project have passing quality-validation receipts; injected missing imports, invalid re-exports, missing modules, and unimported sibling helpers are rejected",
+        "method": "deterministic interface tests, cached-component revalidation tests, broken CS Demo regression fixture, and targeted provider/kernel regression profiles"
+      },
+      {
+        "id": "QM-DESIGN",
+        "measure": "traceable design discovery and implemented visual-system quality for generated interfaces",
+        "target": "every visual project has at least three distinct source-backed references, a selected design direction, bounded librarian context, docs-first design artifacts, reusable CSS tokens, responsive behavior, keyboard focus treatment, and visible interaction feedback",
+        "method": "design-research adapter tests, librarian projection tests, deterministic source-quality validation, Provider prompt contract tests, and live browser visual review on a generated sample"
+      },
+      {
+        "id": "QM-VN-LARGE",
+        "measure": "end-to-end fitness of a Provider-generated visual-novel studio with branching narrative and self-generated visual assets",
+        "target": "one fresh large generation exposes a persistent editable story tree, produces at least two distinct decoder-valid background or sprite images through the declared generation route, binds those assets to story nodes, passes its generated test suite and browser interaction scenario, and records any external-model limitations without fake outputs",
+        "method": "Provider run receipts, generated source/interface inspection, generated pytest suite, clean runtime launch, browser story-editing flow, media decoder/hash comparison, and existing module/design quality receipts"
+      }
+    ],
+    "assurance_activities": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control_activities": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement_policy": "Use each iteration review and retrospective to add a bounded process experiment. Promote enterprise experience only after concrete evidence and applicability review."
+  },
+  "risks": [
+    {
+      "id": "RK-001",
+      "description": "Project management becomes documentation overhead instead of improving delivery.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Tailor artifacts by uncertainty and criticality; require each artifact to support a decision, quality check, or handoff.",
+      "owner": "project-lead",
+      "state": "monitoring"
+    },
+    {
+      "id": "RK-002",
+      "description": "A management helper accidentally becomes a second generation mainline.",
+      "probability": "low",
+      "impact": "high",
+      "response": "Keep management artifacts as bounded context inside the existing provider route and register them as non-formal support artifacts.",
+      "owner": "kernel-review",
+      "state": "monitoring"
+    },
+    {
+      "id": "RK-003",
+      "description": "Enterprise experience becomes an unsearchable or self-confirming archive.",
+      "probability": "medium",
+      "impact": "medium",
+      "response": "Require applicability, evidence, bounded retrieval, usage receipts, and retirement or supersession.",
+      "owner": "context-librarian",
+      "state": "monitoring"
+    }
+  ],
+  "iteration_refs": [
+    "iterations/ITER-001.json",
+    "iterations/ITER-002.json",
+    "iterations/ITER-003.json",
+    "iterations/ITER-004.json",
+    "iterations/ITER-005.json",
+    "iterations/ITER-006.json",
+    "iterations/ITER-007.json",
+    "iterations/ITER-008.json",
+    "iterations/ITER-009.json",
+    "iterations/ITER-010.json",
+    "iterations/ITER-011.json",
+    "iterations/ITER-012.json",
+    "iterations/ITER-013.json"
+  ],
+  "improvement_backlog": [
+    "Measure rework and first-pass acceptance only after two comparable iterations exist.",
+    "Add generated-project provider integration in PB-003 after the self-hosting contracts are stable.",
+    "In PB-003, feed only the selected backlog, quality, risk, and experience projection into the existing provider librarian and measure prompt size plus first-pass acceptance.",
+    "Run PB-004 across small, medium, and ACFV-scale projects and compare context size, first-pass acceptance, and affected-only repair.",
+    "Resume the preserved provider repair plan against a stable reviewed endpoint and compare completion rate without changing the canonical generation route.",
+    "Implement symbol-group leaf planning with a 4,000-5,000-token transport target, deterministic assembly, and section-level resume.",
+    "Extend the same measured bounded-leaf policy to TypeScript and JavaScript only after language-specific facade/import validation and a live scale probe.",
+    "Keep candidate context as scored receipts and attempt summaries; only load one selected input into the full pipeline, and record content truth independently from source type.",
+    "Retain large reviewed archives in an external verified cache and stage only the selected input plus provenance into a candidate run.",
+    "Extend the quality adapter registry to real compiler or linker probes for additional generated languages only when their toolchains are declared and available.",
+    "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings."
+  ],
+  "workflow_state": "delivering",
+  "evidence_status": "NOT_EVALUATED",
+  "experience_query": {
+    "phase": "implementation",
+    "tags": [
+      "cgkn",
+      "hybrid",
+      "quality",
+      "librarian",
+      "project-generation"
+    ],
+    "max_items": 8
+  }
+}

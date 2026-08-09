@@ -396,7 +396,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "components": [{"id": "foundation"}],
                 "merge_policy": {"required_final_files": ["app.py"]},
             }
-            spec_hash = run_local_pipeline_impl.provider_component_spec_hash("build a project", pipeline, pipeline["components"][0])
+            baseline_feedforward = run_local_pipeline_impl.build_integration_feedforward_snapshot(
+                goal="build a project",
+                component=pipeline["components"][0],
+                component_pipeline=pipeline,
+                plan_doc={},
+                prior_component_results=[],
+                prior_files=[],
+                repair_errors=[],
+            )
+            spec_hash = run_local_pipeline_impl.provider_component_spec_hash(
+                "build a project",
+                pipeline,
+                pipeline["components"][0],
+                run_local_pipeline_impl.integration_feedforward_checkpoint_hash(
+                    baseline_feedforward
+                ),
+            )
             run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="foundation",
@@ -640,6 +656,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_provider_semantic_review_retry_on_frontend_backend_mismatch(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_component_split = run_local_pipeline_impl.provider_generate_project_component_split
         original_review = run_local_pipeline_impl.provider_review_project
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         calls: list[str] = []
@@ -679,6 +696,20 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 "self_test": {"status": "pass", "checks": ["docs ok"]},
             }
 
+        def fake_component_split(**kwargs):
+            forwarded = dict(kwargs)
+            forwarded["repair_actions"] = [
+                {"path": path} for path in kwargs.get("repair_target_files", [])
+            ]
+            result = fake_component(**forwarded)
+            merged = {
+                item["path"]: dict(item)
+                for item in kwargs.get("existing_component_files", [])
+            }
+            merged.update({item["path"]: dict(item) for item in result["files"]})
+            result["files"] = list(merged.values())
+            return result
+
         def fake_review(*args, **kwargs):
             files = {item["path"]: item["content"] for item in args[6]}
             if "fetch('/api/tasks')" not in files.get("frontend/app.js", ""):
@@ -694,6 +725,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
             run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component_split = fake_component_split
             run_local_pipeline_impl.provider_review_project = fake_review
             try:
                 result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
@@ -719,6 +751,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
             finally:
                 run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component_split = original_component_split
                 run_local_pipeline_impl.provider_review_project = original_review
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
@@ -896,10 +929,13 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         self.assertIn("regenerating frontend_files only", prompt)
         self.assertIn("You own src/app.js", prompt)
-        self.assertIn("Do not use localStorage as the primary persistence layer", prompt)
+        self.assertIn("Preserve the selected requirement's persistence", prompt)
+        self.assertNotIn("must use fetch", prompt)
+        self.assertNotIn("Do not use localStorage", prompt)
 
     def test_repair_invariant_failed_on_repeated_blocker(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_component_split = run_local_pipeline_impl.provider_generate_project_component_split
         original_review = run_local_pipeline_impl.provider_review_project
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
 
@@ -915,10 +951,14 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_review(*args, **kwargs):
             return {"status": "fail", "issues": ["前端只用 localStorage，未调用后端 API"], "review_summary": "same blocker"}
 
+        def fake_component_split(**kwargs):
+            return fake_component(**kwargs)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
             run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component_split = fake_component_split
             run_local_pipeline_impl.provider_review_project = fake_review
             try:
                 result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
@@ -941,6 +981,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
             finally:
                 run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component_split = original_component_split
                 run_local_pipeline_impl.provider_review_project = original_review
                 if original_split is None:
                     os.environ.pop("CGNK_SPLIT_FRONTEND_COMPONENT", None)
@@ -997,6 +1038,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_resume_continues_pending_frontend_repair(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_component_split = run_local_pipeline_impl.provider_generate_project_component_split
         original_review = run_local_pipeline_impl.provider_review_project
         calls: list[str] = []
         pending = run_local_pipeline_impl.compile_repair_plan(
@@ -1018,6 +1060,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_review(*args, **kwargs):
             return {"status": "pass", "issues": [], "review_summary": "ok"}
 
+        def fake_component_split(**kwargs):
+            return fake_component(**kwargs)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             run_dir = root / "run"
@@ -1026,20 +1071,43 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             loaded = run_local_pipeline_impl.load_pending_repair_plan(run_dir)
             pipeline = {"components": [{"id": "foundation"}, {"id": "backend"}, {"id": "frontend"}], "merge_policy": {"required_final_files": ["package.json", "backend/server.py", "src/app.js"]}}
             checkpoint_dir = run_dir / "artifacts" / "provider_components"
+            prior_results = []
             for component_id, rel in (("foundation", "package.json"), ("backend", "backend/server.py")):
                 component = {"id": component_id}
                 files = [{"path": rel, "content": "{}\n" if rel == "package.json" else "print('api')\n"}]
+                parsed_result = {
+                    "component_id": component_id,
+                    "files": files,
+                    "quality_gate": {"status": "pass"},
+                    "self_test": {"status": "pass"},
+                }
+                feedforward = run_local_pipeline_impl.build_integration_feedforward_snapshot(
+                    goal="做任务看板",
+                    component=component,
+                    component_pipeline=pipeline,
+                    plan_doc={},
+                    prior_component_results=prior_results,
+                    prior_files=run_local_pipeline_impl.merge_component_files(prior_results),
+                    repair_errors=[],
+                )
                 run_local_pipeline_impl.write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
-                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash("做任务看板", pipeline, component),
+                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash(
+                        "做任务看板",
+                        pipeline,
+                        component,
+                        run_local_pipeline_impl.integration_feedforward_checkpoint_hash(feedforward),
+                    ),
                     status="pass",
                     raw_output="{}",
-                    parsed_result={"component_id": component_id, "files": files, "quality_gate": {"status": "pass"}, "self_test": {"status": "pass"}},
+                    parsed_result=parsed_result,
                     files=files,
                     semantic_review={"status": "pass"},
                 )
+                prior_results.append(parsed_result)
             run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component_split = fake_component_split
             run_local_pipeline_impl.provider_review_project = fake_review
             try:
                 result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
@@ -1063,6 +1131,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
             finally:
                 run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component_split = original_component_split
                 run_local_pipeline_impl.provider_review_project = original_review
 
         self.assertEqual("pass", result["status"])
@@ -1092,6 +1161,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             checkpoint_dir = root / "run" / "artifacts" / "provider_components"
+            foundation_feedforward = run_local_pipeline_impl.build_integration_feedforward_snapshot(
+                goal="做任务看板",
+                component={"id": "foundation"},
+                component_pipeline=pipeline,
+                plan_doc={},
+                prior_component_results=[],
+                prior_files=[],
+                repair_errors=[],
+            )
             run_local_pipeline_impl.write_provider_component_checkpoint(
                 checkpoint_dir,
                 component_id="foundation",
@@ -1099,6 +1177,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     "做任务看板",
                     pipeline,
                     {"id": "foundation"},
+                    run_local_pipeline_impl.integration_feedforward_checkpoint_hash(foundation_feedforward),
                 ),
                 status="pass",
                 raw_output="{}",
@@ -1303,6 +1382,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
     def test_resume_continues_file_level_frontend_repair_only(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
+        original_component_split = run_local_pipeline_impl.provider_generate_project_component_split
         original_review = run_local_pipeline_impl.provider_review_project
         calls: list[tuple[str, list[str]]] = []
         pipeline = {"components": [{"id": "foundation"}, {"id": "backend"}, {"id": "frontend"}], "merge_policy": {"required_final_files": ["package.json", "backend/server.py", "src/app.js"]}}
@@ -1325,25 +1405,63 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_review(*args, **kwargs):
             return {"status": "pass", "issues": [], "review_summary": "ok"}
 
+        def fake_component_split(**kwargs):
+            forwarded = dict(kwargs)
+            forwarded["repair_actions"] = [
+                {"path": path} for path in kwargs.get("repair_target_files", [])
+            ]
+            result = fake_component(**forwarded)
+            merged = {
+                item["path"]: dict(item)
+                for item in kwargs.get("existing_component_files", [])
+            }
+            merged.update({item["path"]: dict(item) for item in result["files"]})
+            result["files"] = list(merged.values())
+            return result
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             checkpoint_dir = root / "run" / "artifacts" / "provider_components"
+            prior_results = []
             for component_id, files in (
                 ("foundation", [{"path": "package.json", "content": "{}\n"}]),
                 ("backend", [{"path": "backend/server.py", "content": "print('api')\n"}]),
                 ("frontend", [{"path": "src/app.js", "content": "old\n"}, {"path": "src/helper.js", "content": "keep\n"}]),
             ):
+                component = {"id": component_id}
+                parsed_result = {
+                    "component_id": component_id,
+                    "files": files,
+                    "quality_gate": {"status": "pass"},
+                    "self_test": {"status": "pass"},
+                }
+                feedforward = run_local_pipeline_impl.build_integration_feedforward_snapshot(
+                    goal="做任务看板",
+                    component=component,
+                    component_pipeline=pipeline,
+                    plan_doc={},
+                    prior_component_results=prior_results,
+                    prior_files=run_local_pipeline_impl.merge_component_files(prior_results),
+                    repair_errors=[],
+                )
                 run_local_pipeline_impl.write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
-                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash("做任务看板", pipeline, {"id": component_id}),
+                    spec_hash=run_local_pipeline_impl.provider_component_spec_hash(
+                        "做任务看板",
+                        pipeline,
+                        component,
+                        run_local_pipeline_impl.integration_feedforward_checkpoint_hash(feedforward),
+                    ),
                     status="pass",
                     raw_output="{}",
-                    parsed_result={"component_id": component_id, "files": files, "quality_gate": {"status": "pass"}, "self_test": {"status": "pass"}},
+                    parsed_result=parsed_result,
                     files=files,
                     semantic_review={"status": "pass"},
                 )
+                prior_results.append(parsed_result)
             run_local_pipeline_impl.provider_generate_project_component = fake_component
+            run_local_pipeline_impl.provider_generate_project_component_split = fake_component_split
             run_local_pipeline_impl.provider_review_project = fake_review
             try:
                 result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
@@ -1367,6 +1485,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
             finally:
                 run_local_pipeline_impl.provider_generate_project_component = original_component
+                run_local_pipeline_impl.provider_generate_project_component_split = original_component_split
                 run_local_pipeline_impl.provider_review_project = original_review
 
             self.assertEqual("pass", result["status"])
@@ -1636,8 +1755,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_provider_text(messages, model, timeout, **kwargs):
             calls.append({"stage": kwargs.get("stage"), "payload_mode": kwargs.get("payload_mode"), "prompt_chars": sum(len(m.get("content", "")) for m in messages)})
             if kwargs.get("stage") == "component_file_manifest":
-                return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "task board UI"}]})
-            return json.dumps({"path": kwargs.get("target_file"), "content": "export function boot(){ return 'task-board'; }\n"})
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "index.html", "purpose": "page shell"},
+                            {"path": "src/app.js", "purpose": "task board UI"},
+                            {"path": "src/styles.css", "purpose": "page styles"},
+                        ],
+                    }
+                )
+            target = str(kwargs.get("target_file"))
+            content = {
+                "index.html": '<!doctype html><html><head><link rel="stylesheet" href="src/styles.css"><script defer src="src/app.js"></script></head><body><main>Ready</main></body></html>\n',
+                "src/app.js": "export function boot(){ return 'ready'; }\n",
+                "src/styles.css": "body { margin: 0; }\n",
+            }[target]
+            return json.dumps({"path": target, "content": content})
 
         run_local_pipeline_impl.provider_text = fake_provider_text
         try:
@@ -1655,7 +1789,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         finally:
             run_local_pipeline_impl.provider_text = original_provider_text
 
-        self.assertEqual(["src/app.js"], [item["path"] for item in result["files"]])
+        self.assertEqual(["index.html", "src/app.js", "src/styles.css"], [item["path"] for item in result["files"]])
         self.assertNotIn("component_generation", [call["stage"] for call in calls])
         self.assertIn("component_file_manifest", [call["stage"] for call in calls])
         self.assertIn("component_file_generation", [call["stage"] for call in calls])
@@ -1667,8 +1801,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_provider_text(messages, model, timeout, **kwargs):
             calls.append(str(kwargs.get("stage")))
             if kwargs.get("stage") == "component_file_manifest":
-                return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
-            return json.dumps({"path": "src/app.js", "content": "export const status = 'ready';\n"})
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "index.html", "purpose": "page shell"},
+                            {"path": "src/app.js", "purpose": "UI"},
+                            {"path": "src/styles.css", "purpose": "styles"},
+                        ],
+                    }
+                )
+            target = str(kwargs.get("target_file"))
+            content = {
+                "index.html": '<!doctype html><html><head><link rel="stylesheet" href="src/styles.css"><script defer src="src/app.js"></script></head><body><main>Ready</main></body></html>\n',
+                "src/app.js": "export const status = 'ready';\n",
+                "src/styles.css": "body { margin: 0; }\n",
+            }[target]
+            return json.dumps({"path": target, "content": content})
 
         run_local_pipeline_impl.provider_text = fake_provider_text
         try:
@@ -1686,7 +1835,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         finally:
             run_local_pipeline_impl.provider_text = original_provider_text
 
-        self.assertEqual(["component_file_manifest", "component_file_generation"], calls)
+        self.assertEqual("component_file_manifest", calls[0])
+        self.assertEqual(3, calls.count("component_file_generation"))
 
     def test_component_file_manifest_prompt_is_small(self) -> None:
         original_provider_text = run_local_pipeline_impl.provider_text
@@ -1697,8 +1847,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 text = "\n".join(message.get("content", "") for message in messages)
                 manifest_prompt_chars.append(len(text))
                 self.assertNotIn("x" * 1000, text)
-                return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
-            return json.dumps({"path": "src/app.js", "content": "export const ok = true;\n"})
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "index.html", "purpose": "page shell"},
+                            {"path": "src/app.js", "purpose": "UI"},
+                            {"path": "src/styles.css", "purpose": "styles"},
+                        ],
+                    }
+                )
+            target = str(kwargs.get("target_file"))
+            content = {
+                "index.html": '<!doctype html><html><head><link rel="stylesheet" href="src/styles.css"><script defer src="src/app.js"></script></head><body><main>Ready</main></body></html>\n',
+                "src/app.js": "export const ok = true;\n",
+                "src/styles.css": "body { margin: 0; }\n",
+            }[target]
+            return json.dumps({"path": target, "content": content})
 
         run_local_pipeline_impl.provider_text = fake_provider_text
         try:
@@ -1728,6 +1893,9 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             self.assertEqual("src/app.js", kwargs.get("target_file"))
             self.assertIn("Generate exactly one file", prompt)
             self.assertIn("The only allowed path is src/app.js", prompt)
+            self.assertIn("main.py", prompt)
+            self.assertIn("HTTPServer", prompt)
+            self.assertIn("src/styles.css", prompt)
             return json.dumps({"path": "src/app.js", "content": "export const app = 'one-file';\n"})
 
         run_local_pipeline_impl.provider_text = fake_provider_text
@@ -1739,6 +1907,12 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 manifest_entry={"path": "src/app.js", "purpose": "main UI"},
                 prior_manifest=[],
                 completed_files=[],
+                prior_files=[{"path": "main.py", "content": "from http.server import HTTPServer\n"}],
+                component_file_manifest=[
+                    {"path": "index.html"},
+                    {"path": "src/app.js"},
+                    {"path": "src/styles.css"},
+                ],
                 repair_errors=[],
                 model="gpt-5.4-nano",
                 timeout=30,
@@ -1759,7 +1933,20 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def failing_provider_text(messages, model, timeout, **kwargs):
             calls.append(str(kwargs.get("stage")))
             if kwargs.get("stage") == "component_file_manifest":
-                return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}, {"path": "src/styles.css", "purpose": "styles"}]})
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "src/app.js", "purpose": "UI"},
+                            {"path": "src/styles.css", "purpose": "styles"},
+                            {
+                                "path": "index.html",
+                                "purpose": "entry",
+                                "dependencies": ["src/app.js", "src/styles.css"],
+                            },
+                        ],
+                    }
+                )
             if kwargs.get("target_file") == "src/app.js":
                 raise RuntimeError("provider_api_request_failed: HTTP 504: timeout [retryable=true]")
             return json.dumps({"path": kwargs.get("target_file"), "content": "body { color: #111; }\n"})
@@ -1789,15 +1976,28 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 pending = run_local_pipeline_impl.load_json(root / "run" / "artifacts" / "pending_repair_plan.json")
                 self.assertEqual("component_file_generation", pending["stage"])
                 self.assertEqual("src/app.js", pending["target_file"])
-                self.assertEqual([], pending["completed_files"])
+                self.assertEqual(["index.html", "src/styles.css"], pending["completed_files"])
                 self.assertIn("src/app.js", pending["remaining_files"])
+                self.assertNotIn("src/styles.css", pending["remaining_files"])
 
                 def resume_provider_text(messages, model, timeout, **kwargs):
                     calls.append(str(kwargs.get("stage")))
                     self.assertNotEqual("component_file_manifest", kwargs.get("stage"))
                     if kwargs.get("target_file") == "src/app.js":
                         return json.dumps({"path": "src/app.js", "content": "export const resumed = true;\n"})
-                    return json.dumps({"path": "src/styles.css", "content": "body { color: #111; }\n"})
+                    if kwargs.get("target_file") == "src/styles.css":
+                        return json.dumps({"path": "src/styles.css", "content": "body { color: #111; }\n"})
+                    return json.dumps(
+                        {
+                            "path": "index.html",
+                            "content": (
+                                "<!doctype html><html><head>"
+                                '<link rel="stylesheet" href="src/styles.css">'
+                                '<script type="module" src="src/app.js"></script>'
+                                "</head><body><h1>Task Board</h1></body></html>"
+                            ),
+                        }
+                    )
 
                 run_local_pipeline_impl.provider_text = resume_provider_text
                 result = run_local_pipeline_impl.provider_generate_project_component_split(
@@ -1825,7 +2025,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 else:
                     os.environ["CGNK_PROVIDER_REPAIR_TRANSPORT_ATTEMPTS"] = original_attempts
 
-            self.assertEqual(["src/app.js", "src/styles.css"], [item["path"] for item in result["files"]])
+            self.assertEqual(
+                ["index.html", "src/styles.css", "src/app.js"],
+                [item["path"] for item in result["files"]],
+            )
+            phase_events = [
+                json.loads(line)
+                for line in (
+                    root / "run" / "provider_phase_log.jsonl"
+                ).read_text(encoding="utf-8").splitlines()
+                if line.strip().startswith("{")
+            ]
+            cache_events = [
+                event
+                for event in phase_events
+                if event.get("event") == "component_leaf_cache_invalidated"
+            ]
+            self.assertFalse(cache_events)
 
     def test_split_file_ownership_validation_blocks_wrong_path(self) -> None:
         original_provider_text = run_local_pipeline_impl.provider_text
@@ -1869,8 +2085,23 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 },
             )
             if kwargs.get("stage") == "component_file_manifest":
-                return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
-            return json.dumps({"path": "src/app.js", "content": "export const safe = true;\n"})
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "index.html", "purpose": "page shell"},
+                            {"path": "src/app.js", "purpose": "UI"},
+                            {"path": "src/styles.css", "purpose": "styles"},
+                        ],
+                    }
+                )
+            target = str(kwargs.get("target_file"))
+            content = {
+                "index.html": '<!doctype html><html><head><link rel="stylesheet" href="src/styles.css"><script defer src="src/app.js"></script></head><body><main>Ready</main></body></html>\n',
+                "src/app.js": "export const safe = true;\n",
+                "src/styles.css": "body { margin: 0; }\n",
+            }[target]
+            return json.dumps({"path": target, "content": content})
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -1912,6 +2143,15 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         def fake_provider_text(messages, model, timeout, **kwargs):
             if kwargs.get("stage") == "component_file_manifest":
                 return json.dumps({"component": "frontend", "files": [{"path": "src/app.js", "purpose": "UI"}]})
+            if kwargs.get("stage") == "semantic_component_review":
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "verdict": "pass",
+                        "blockers": [],
+                        "summary": "component ok",
+                    }
+                )
             return json.dumps({"path": "src/app.js", "content": "export const app = 'ready';\n"})
 
         def fake_review(*args, **kwargs):
@@ -1931,7 +2171,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     blueprint={},
                     online_inputs={},
                     market_research={},
-                    component_pipeline={"components": [{"id": "frontend"}], "merge_policy": {"required_final_files": ["src/app.js"]}},
+                    component_pipeline={
+                        "components": [{"id": "frontend", "required_paths": ["src/app.js"]}],
+                        "merge_policy": {"required_final_files": ["src/app.js"]},
+                    },
                     repair_errors=[],
                     model="gpt-5.4-nano",
                     timeout=30,
@@ -2130,7 +2373,7 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         original_provider_text = run_local_pipeline_impl.provider_text
         original_split = os.environ.get("CGNK_SPLIT_FRONTEND_COMPONENT")
         os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = "0"
-        state = {"review_calls": 0}
+        state = {"review_calls": 0, "full_review_calls": 0}
 
         def fake_component(**kwargs):
             repairs = "\n".join(kwargs.get("repair_errors", []))
@@ -2147,6 +2390,41 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             }
 
         def fake_provider_text(messages, model, timeout, **kwargs):
+            if kwargs.get("stage") == "component_file_manifest":
+                return json.dumps(
+                    {
+                        "component": "frontend",
+                        "files": [
+                            {"path": "src/app.js", "purpose": "app", "dependencies": []},
+                            {"path": "src/styles.css", "purpose": "styles", "dependencies": []},
+                            *[
+                                {
+                                    "path": f"src/file{i}.js",
+                                    "purpose": "module",
+                                    "dependencies": [],
+                                }
+                                for i in range(8)
+                            ],
+                            {
+                                "path": "index.html",
+                                "purpose": "entry",
+                                "dependencies": ["src/app.js", "src/styles.css"],
+                            },
+                        ],
+                    }
+                )
+            if kwargs.get("stage") == "component_file_generation":
+                target = str(kwargs.get("target_file"))
+                if target == "index.html":
+                    return json.dumps(
+                        {
+                            "path": target,
+                            "content": "<!doctype html><html><body><div>fixed</div></body></html>\n",
+                        }
+                    )
+                if target == "src/styles.css":
+                    return json.dumps({"path": target, "content": "body { color: #111; }\n"})
+                return json.dumps({"path": target, "content": "export const fixed = true;\n"})
             if kwargs.get("stage") == "semantic_component_review":
                 return json.dumps({"component": kwargs.get("component"), "verdict": "pass", "blockers": [], "summary": "ok"})
             if kwargs.get("stage") == "semantic_cross_component_review":
@@ -2158,6 +2436,17 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 if state["review_calls"] == 1:
                     return json.dumps({"verdict": "fail", "blockers": [{"kind": "missing_entry_html", "component": "frontend", "files": ["index.html"], "message": "missing entry HTML", "repair_hint": "generate index.html"}], "affected_components": ["frontend"], "affected_files": ["index.html"]})
                 return json.dumps({"verdict": "pass", "blockers": [], "affected_components": [], "affected_files": []})
+            if kwargs.get("stage") == "semantic_review":
+                state["full_review_calls"] += 1
+                return json.dumps(
+                    {
+                        "status": "pass",
+                        "issues": [],
+                        "strengths": ["repair completed"],
+                        "expected_artifacts": ["index.html"],
+                        "review_summary": "ok",
+                    }
+                )
             raise AssertionError(f"unexpected provider stage {kwargs.get('stage')}")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2192,7 +2481,8 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                     os.environ["CGNK_SPLIT_FRONTEND_COMPONENT"] = original_split
 
             self.assertEqual("pass", result["status"])
-            self.assertGreaterEqual(state["review_calls"], 2)
+            self.assertGreaterEqual(state["review_calls"], 1)
+            self.assertGreaterEqual(state["full_review_calls"], 1)
 
     def test_split_semantic_review_transport_block_writes_pending_route(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
@@ -3054,10 +3344,83 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
     def test_ui_smoke_requires_visible_task_board_text(self) -> None:
         fail = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 0, "body_text_sample": "", "console_errors": [], "network_errors": []})
         ok = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 120, "body_text_sample": "Task Board Add Task Todo Doing Done", "console_errors": [], "network_errors": []})
+        concise = run_local_pipeline_impl.candidate_ui_smoke({"page_title": "Task Board", "body_text_length": 41, "body_text_sample": "Task Board Todo Doing Done Add task", "console_errors": [], "network_errors": []})
 
         self.assertEqual("fail", fail["status"])
         self.assertEqual("pass", ok["status"])
+        self.assertEqual("pass", concise["status"])
         self.assertIn("Todo", ok["keywords_found"])
+
+    def test_complex_ui_smoke_rejects_unstyled_semantic_regions(self) -> None:
+        groups = [
+            {"stage": "edit", "terms": ["edit"]},
+            {"stage": "validate", "terms": ["validate"]},
+            {"stage": "preview", "terms": ["preview"]},
+            {"stage": "export", "terms": ["export"]},
+        ]
+        smoke = run_local_pipeline_impl.candidate_ui_smoke(
+            {
+                "page_title": "Studio",
+                "body_text_length": 200,
+                "body_text_sample": "edit validate preview export " * 10,
+                "interactive_control_count": 8,
+                "section_count": 4,
+                "blank_score": 0.5,
+                "unstyled_workspace_region_count": 3,
+                "status_region_count": 1,
+                "nonempty_status_region_count": 1,
+                "console_errors": [],
+                "network_errors": [],
+            },
+            capability_groups=groups,
+        )
+
+        self.assertEqual("fail", smoke["status"])
+        self.assertIn("workspace_regions_lack_visual_hierarchy", smoke["issues"])
+
+    def test_complex_ui_smoke_rejects_single_column_and_blank_canvas(self) -> None:
+        groups = [
+            {"stage": "edit", "terms": ["edit"]},
+            {"stage": "validate", "terms": ["validate"]},
+            {"stage": "assets", "terms": ["assets"]},
+            {"stage": "preview", "terms": ["preview"]},
+            {"stage": "export", "terms": ["export"]},
+        ]
+        smoke = run_local_pipeline_impl.candidate_ui_smoke(
+            {
+                "page_title": "Studio",
+                "body_text_length": 240,
+                "body_text_sample": "edit validate assets preview export " * 10,
+                "interactive_control_count": 8,
+                "section_count": 5,
+                "blank_score": 0.5,
+                "unstyled_workspace_region_count": 0,
+                "narrow_workspace_region_count": 3,
+                "max_workspace_regions_in_row": 1,
+                "blank_canvas_count": 1,
+                "flat_canvas_count": 1,
+                "unthemed_header_count": 1,
+                "button_count": 5,
+                "browser_default_button_count": 4,
+                "viewport_width": 1280,
+                "status_region_count": 1,
+                "nonempty_status_region_count": 1,
+                "console_errors": [],
+                "network_errors": [],
+            },
+            capability_groups=groups,
+        )
+
+        self.assertEqual("fail", smoke["status"])
+        self.assertIn("workspace_layout_remains_single_column", smoke["issues"])
+        self.assertIn("workspace_regions_too_narrow", smoke["issues"])
+        self.assertIn("preview_canvas_blank", smoke["issues"])
+        self.assertIn("preview_canvas_lacks_content_detail", smoke["issues"])
+        self.assertIn("product_header_lacks_visual_treatment", smoke["issues"])
+        self.assertIn("controls_use_browser_default_theme", smoke["issues"])
+        self.assertEqual(1, smoke["max_workspace_regions_in_row"])
+        self.assertEqual(1, smoke["blank_canvas_count"])
+        self.assertEqual(1, smoke["flat_canvas_count"])
 
     def test_valid_screenshot_requires_non_blank_image_and_body_text(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

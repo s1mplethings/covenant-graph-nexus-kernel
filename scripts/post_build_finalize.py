@@ -8,10 +8,11 @@ import sys
 from typing import Any
 
 try:
+    import complexity_project_contract_check
     import visual_evidence
     from pipeline_contracts import base_result
 except ModuleNotFoundError:  # pragma: no cover - package import path
-    from scripts import visual_evidence
+    from scripts import complexity_project_contract_check, visual_evidence
     from scripts.pipeline_contracts import base_result
 
 
@@ -36,12 +37,72 @@ def _legacy() -> Any:
 
 def run(**kwargs: Any) -> dict[str, Any]:
     legacy = _legacy()
-    result = legacy.run_candidate_post_build_finalize(**kwargs)
+    explicit_video_requested = (
+        kwargs.get("video_requested")
+        if isinstance(kwargs.get("video_requested"), bool)
+        else None
+    )
+    legacy_kwargs = dict(kwargs)
+    legacy_kwargs.pop("video_requested", None)
+    result = legacy.run_candidate_post_build_finalize(**legacy_kwargs)
     project_dir = pathlib.Path(str(kwargs.get("project_dir", "")))
     if str(project_dir):
         ensure_candidate_review_artifacts(project_dir, result)
-        ensure_video_evidence(project_dir, pathlib.Path(str(kwargs.get("run_dir", project_dir))), result, explicit_requested=kwargs.get("video_requested") if isinstance(kwargs.get("video_requested"), bool) else None, timeout=int(kwargs.get("timeout", 60) or 60))
+        run_dir = pathlib.Path(str(kwargs.get("run_dir", project_dir)))
+        ensure_video_evidence(
+            project_dir,
+            run_dir,
+            result,
+            explicit_requested=explicit_video_requested,
+            timeout=int(kwargs.get("timeout", 60) or 60),
+        )
+        apply_complexity_contract_gate(project_dir, run_dir, result)
     return result
+
+
+def apply_complexity_contract_gate(
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    result: dict[str, Any],
+) -> None:
+    contract_path = pathlib.Path(run_dir) / "discovery" / "complexity_project_contract.json"
+    if not contract_path.exists():
+        return
+    check = complexity_project_contract_check.validate(
+        run_dir=pathlib.Path(run_dir),
+        project_dir=pathlib.Path(project_dir),
+        require_final_bundle=False,
+    )
+    result["complexity_project_contract_check"] = check
+    if check.get("status") == "pass":
+        return
+    blockers = [str(item) for item in check.get("blockers", []) if str(item).strip()]
+    result["status"] = "needs_rework"
+    result["candidate_review_ready"] = False
+    result["complexity_contract_blockers"] = blockers
+    known_limits = result.get("known_limits", []) if isinstance(result.get("known_limits"), list) else []
+    for blocker in blockers:
+        note = f"complexity_contract: {blocker}"
+        if note not in known_limits:
+            known_limits.append(note)
+    result["known_limits"] = known_limits
+    manifest_path = pathlib.Path(project_dir) / "delivery_manifest.json"
+    if manifest_path.exists():
+        manifest = _read_json(manifest_path)
+        manifest["status"] = "NEEDS_REWORK"
+        failures = manifest.get("failures", []) if isinstance(manifest.get("failures"), list) else []
+        if "complexity_project_contract_not_passed" not in failures:
+            failures.append("complexity_project_contract_not_passed")
+        manifest["failures"] = failures
+        manifest_limits = manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else []
+        for blocker in blockers:
+            note = f"complexity_contract: {blocker}"
+            if note not in manifest_limits:
+                manifest_limits.append(note)
+        manifest["known_limits"] = manifest_limits
+        manifest["complexity_project_contract_check"] = check
+        _write_json(manifest_path, manifest)
+    write_post_build_result(run_dir, result)
 
 
 def ensure_candidate_review_artifacts(project_dir: pathlib.Path, result: dict[str, Any]) -> None:
@@ -149,9 +210,10 @@ def ensure_video_evidence(
         recreate_candidate_diagnostic_package(project, run_dir, result)
         return
 
-    # Legacy finalize wrote not_requested when no external usage-agent video existed.
-    # Default formal projects now attempt browser video evidence instead.
-    if old_reason == "not_requested" or not old_blocked or not old_blocked.exists():
+    # The Telegram pre-finalize stage can only report that no provider-supplied
+    # video exists; capture_failed at that point is not a browser capture attempt.
+    # The formal post-build stage must still try the pipeline-owned browser recorder.
+    if old_reason in {"not_requested", "capture_failed"} or not old_blocked or not old_blocked.exists():
         video_result = visual_evidence.capture_candidate_video(project, run_dir, timeout=min(timeout, 90), explicit_requested=True)
         result["video_requested"] = True
         if video_result.get("status") == "pass" and video_result.get("video"):
