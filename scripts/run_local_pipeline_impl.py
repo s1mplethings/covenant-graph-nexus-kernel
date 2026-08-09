@@ -3150,6 +3150,10 @@ def pending_split_checkpoint_spec_hash(
 
 
 def selected_requirement_domain(selected_requirement: dict[str, Any]) -> str:
+    goal_spec = selected_requirement.get("goal_spec") if isinstance(selected_requirement.get("goal_spec"), dict) else {}
+    canonical_domain = str(goal_spec.get("domain", "") or "")
+    if canonical_domain:
+        return canonical_domain
     requirement_id = str(selected_requirement.get("selected_requirement_id", "") or "").lower()
     text = " ".join(
         str(selected_requirement.get(key, "") or "").lower()
@@ -3174,6 +3178,9 @@ def selected_requirement_domain(selected_requirement: dict[str, Any]) -> str:
 
 
 def selected_direction_domain(selected_direction: dict[str, Any]) -> str:
+    canonical_domain = str(selected_direction.get("goal_spec_domain", "") or "")
+    if canonical_domain:
+        return canonical_domain
     direction_id = str(selected_direction.get("selected_id", "") or "").lower()
     text = " ".join(
         str(selected_direction.get(key, "") or "").lower()
@@ -3435,6 +3442,71 @@ def enrich_component_pipeline_with_complexity_contract(
     }
 
 
+def enrich_component_pipeline_with_goal_plan(
+    component_pipeline: dict[str, Any],
+    goal_spec: dict[str, Any],
+    project_plan: dict[str, Any],
+) -> dict[str, Any]:
+    """Project canonical goal scope into the existing Provider component route."""
+    if goal_spec.get("status") != "PASS" or project_plan.get("status") != "PASS":
+        return component_pipeline
+    pipeline = json.loads(json.dumps(component_pipeline, ensure_ascii=False))
+    workstreams = [
+        row for row in project_plan.get("workstreams", []) if isinstance(row, dict)
+    ]
+    leaves = [row for row in project_plan.get("leaves", []) if isinstance(row, dict)]
+    assignments: dict[str, list[dict[str, Any]]] = {
+        "foundation": [], "backend": [], "frontend": [], "tests": [], "docs": []
+    }
+    for workstream in workstreams:
+        workstream_id = str(workstream.get("id", ""))
+        searchable = f"{workstream_id} {workstream.get('scope', '')}".lower()
+        if workstream_id == "foundation":
+            owner = "foundation"
+        elif workstream_id == "delivery":
+            owner = "docs"
+        elif "test" in workstream_id:
+            owner = "tests"
+        elif any(term in searchable for term in (" ui", "view", "preview", "editor", "interface", "timeline")):
+            owner = "frontend"
+        else:
+            owner = "backend"
+        assignments[owner].append(workstream)
+    components = [row for row in pipeline.get("components", []) if isinstance(row, dict)]
+    for component in components:
+        component_id = str(component.get("id", ""))
+        assigned = assignments.get(component_id, [])
+        component["canonical_goal_spec"] = {
+            key: goal_spec.get(key)
+            for key in (
+                "goal", "domain", "capabilities", "user_flows", "entities",
+                "interfaces", "constraints", "acceptance_behaviors",
+            )
+        }
+        component["business_workstreams"] = assigned
+        assigned_ids = {str(row.get("id", "")) for row in assigned}
+        component["leaf_scopes"] = [
+            leaf for leaf in leaves if str(leaf.get("workstream_id", "")) in assigned_ids
+        ]
+        component["responsibilities"] = [str(row.get("scope", "")) for row in assigned]
+        component["business_outputs"] = [
+            str(path)
+            for row in assigned
+            for path in row.get("expected_outputs", [])
+            if str(path).strip()
+        ]
+        component["test_intents"] = (
+            list(project_plan.get("test_intents", [])) if component_id == "tests" else []
+        )
+    pipeline["canonical_goal_spec"] = goal_spec
+    pipeline["canonical_project_plan"] = project_plan
+    pipeline["business_workstreams"] = [
+        row for row in workstreams if row.get("id") not in {"foundation", "delivery"}
+    ]
+    pipeline["strategy"] = "goal_driven_" + str(pipeline.get("strategy", "component_pipeline"))
+    return pipeline
+
+
 def component_pipeline_from_plan(goal: str, plan_doc: dict[str, Any]) -> dict[str, Any]:
     payload = plan_doc.get("pipeline_plan", {}).get("payload", {}) if isinstance(plan_doc, dict) else {}
     component_pipeline = payload.get("component_pipeline", {})
@@ -3442,11 +3514,14 @@ def component_pipeline_from_plan(goal: str, plan_doc: dict[str, Any]) -> dict[st
         enriched = enrich_component_pipeline_with_complexity_contract(component_pipeline, plan_doc, goal)
     else:
         enriched = enrich_component_pipeline_with_complexity_contract(compose_local_pipeline.build_component_pipeline(goal), plan_doc, goal)
-    return adaptive_project_management_context.enrich_component_pipeline(
+    managed = adaptive_project_management_context.enrich_component_pipeline(
         goal=goal,
         plan_doc=plan_doc,
         component_pipeline=enriched,
     )
+    goal_spec = plan_doc.get("goal_spec", {}) if isinstance(plan_doc.get("goal_spec"), dict) else {}
+    project_plan = plan_doc.get("project_plan", {}) if isinstance(plan_doc.get("project_plan"), dict) else {}
+    return enrich_component_pipeline_with_goal_plan(managed, goal_spec, project_plan)
 
 
 def apply_design_context_to_component_pipeline(
@@ -16599,6 +16674,16 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         if isinstance(requirement_decision_result.get("acceptance_contract"), dict)
         else {}
     )
+    goal_spec = (
+        requirement_decision_result.get("goal_spec", {})
+        if isinstance(requirement_decision_result.get("goal_spec"), dict)
+        else {}
+    )
+    project_plan = (
+        requirement_decision_result.get("project_plan", {})
+        if isinstance(requirement_decision_result.get("project_plan"), dict)
+        else {}
+    )
     requirement_paths = requirement_decision_result.get("paths", {}) if isinstance(requirement_decision_result.get("paths"), dict) else {}
     mvp_scope_doc = safe_read_text(pathlib.Path(str(requirement_paths.get("mvp_scope", "")))) if requirement_paths.get("mvp_scope") else ""
     non_goals_doc = safe_read_text(pathlib.Path(str(requirement_paths.get("non_goals", "")))) if requirement_paths.get("non_goals") else ""
@@ -16614,6 +16699,19 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     plan_doc["mvp_scope"] = {"path": requirement_paths.get("mvp_scope", ""), "text": mvp_scope_doc}
     plan_doc["non_goals"] = {"path": requirement_paths.get("non_goals", ""), "text": non_goals_doc}
     plan_doc["acceptance_contract"] = acceptance_contract
+    plan_doc["goal_spec"] = goal_spec
+    plan_doc["project_plan"] = project_plan
+    write_json(
+        generation_plan_checkpoint_path,
+        {
+            "kind": "CGKNGenerationPlanCheckpoint",
+            "schema_version": 1,
+            "created_at": now(),
+            "raw_user_goal_sha256": hashlib.sha256(str(goal).encode("utf-8")).hexdigest(),
+            "frozen_user_goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+            "plan_doc": plan_doc,
+        },
+    )
     internal_context = (
         internal_context
         + "\n\nRequirement Decision Lane result:\n"
@@ -16623,6 +16721,8 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "mvp_scope": mvp_scope_doc[:4000],
                 "non_goals": non_goals_doc[:4000],
                 "acceptance_contract": acceptance_contract,
+                "goal_spec": goal_spec,
+                "project_plan": project_plan,
             },
             ensure_ascii=False,
             indent=2,
@@ -16651,7 +16751,12 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         write_json(result_path, blocked)
         return blocked
 
-    discovery_result = discovery_selection_lane.run_discovery_selection(user_goal, run_dir / "discovery")
+    discovery_result = discovery_selection_lane.run_discovery_selection(
+        user_goal,
+        run_dir / "discovery",
+        goal_spec=goal_spec,
+        project_plan=project_plan,
+    )
     selected_project_direction = (
         discovery_result.get("selected_project_direction", {})
         if isinstance(discovery_result.get("selected_project_direction"), dict)
@@ -16795,7 +16900,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         generation_mode=str(os.environ.get("CGNK_GENERATION_MODE", "api") or "api"),
         requested_project_dir=out_dir,
     )
-    blueprint = requirement_blueprint.build_requirement_blueprint(user_goal, [], assume_defaults=False)
+    blueprint = requirement_blueprint.build_requirement_blueprint(
+        user_goal,
+        [],
+        assume_defaults=False,
+        goal_spec=goal_spec,
+        project_plan=project_plan,
+    )
     online_inputs = online_input_agent.collect_online_inputs(user_goal, run_dir / "input_examples")
     if isinstance(online_inputs, dict):
         online_inputs.setdefault("project_type", str(intent.get("project_type", "")))

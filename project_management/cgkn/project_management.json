@@ -326,6 +326,28 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-013",
+      "title": "Make canonical project planning goal-driven",
+      "outcome": "Requirement decision emits one canonical GoalSpec and dynamic project plan that production Provider leaves and the controlled Agent Tree consume without generic Knowledge Studio fallback.",
+      "priority": 13,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [],
+      "acceptance_criteria": [
+        "Pomodoro, CSV cleaning, and visual-novel editor goals produce distinct capabilities, user flows, entities, business workstreams, leaf scopes, outputs, and test intents.",
+        "Unknown but sufficiently explicit goals receive a goal-derived plan or an explicit NEEDS_REWORK result, never an unrelated Knowledge Studio plan.",
+        "Knowledge Studio capabilities appear only when the user goal explicitly requests that product domain.",
+        "The Telegram Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
+        "Existing test, runtime, visual, review, packaging, and delivery truth semantics remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-SCALE"
+      ]
     }
   ],
   "quality_management": {
@@ -472,7 +494,8 @@
     "iterations/ITER-010.json",
     "iterations/ITER-011.json",
     "iterations/ITER-012.json",
-    "iterations/ITER-013.json"
+    "iterations/ITER-013.json",
+    "iterations/ITER-014.json"
   ],
   "improvement_backlog": [
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
@@ -485,7 +508,8 @@
     "Keep candidate context as scored receipts and attempt summaries; only load one selected input into the full pipeline, and record content truth independently from source type.",
     "Retain large reviewed archives in an external verified cache and stage only the selected input plus provenance into a candidate run.",
     "Extend the quality adapter registry to real compiler or linker probes for additional generated languages only when their toolchains are declared and available.",
-    "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings."
+    "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings.",
+    "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

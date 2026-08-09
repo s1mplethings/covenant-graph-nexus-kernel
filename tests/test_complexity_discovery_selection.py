@@ -36,13 +36,10 @@ def test_rough_goal_generates_candidates_scorecard_selection_and_contract() -> N
     assert selected["selected_id"]
     assert "Local Video" in selected["selected_name"]
     assert contract["contract_id"] == "complexity_project_contract_v1"
-    assert contract["required_planning_docs"] == [
-        "product_brief.md",
-        "technical_plan.md",
-        "interaction_design.md",
-        "acceptance_matrix.md",
-    ]
-    assert contract["required_core_files"] == ["orchestrator.py", "stages.py"]
+    assert contract["architecture_mode"] == "goal_driven_local_application"
+    assert contract["goal_spec_domain"] == "local_media_workbench"
+    assert {"goal_spec.json", "project_plan.json", "acceptance_matrix.md"}.issubset(contract["required_planning_docs"])
+    assert "app/main.py" in contract["required_core_files"]
     assert len(contract["required_pipeline_stages"]) >= 6
     assert len(contract["required_stage_artifacts"]) >= 6
 
@@ -51,8 +48,7 @@ def test_low_complexity_and_high_dependency_candidates_are_not_selected() -> Non
     candidates = discovery_selection_lane.generate_candidates("make something useful with local files", count=5)
     selected = discovery_selection_lane.select_candidate(candidates)
 
-    assert selected is not None
-    assert selected["id"] not in {"single_page_status_demo", "cloud_ai_autopilot_suite"}
+    assert selected is None
     rejected = {candidate["id"]: discovery_selection_lane.rejection_reasons(candidate) for candidate in candidates}
     assert "complexity_score_lt_60" in rejected["single_page_status_demo"]
     assert "external_dependency_high_without_honest_degraded_mode" in rejected["cloud_ai_autopilot_suite"]
@@ -121,12 +117,11 @@ def test_delivery_video_does_not_select_video_workbench_for_task_board() -> None
     assert selected["selected_id"] == "local_task_board"
     assert selected["architecture_mode"] == "browser_local_static"
     assert selected["required_complexity_floor"]["requires_cli"] is False
-    assert selected["required_complexity_floor"]["min_stage_artifacts"] == 0
-    assert contract["required_interfaces"] == ["web"]
-    assert contract["required_core_files"] == ["main.py", "index.html", "app.js", "styles.css"]
+    assert selected["required_complexity_floor"]["min_stage_artifacts"] > 0
+    assert "task_board" in contract["required_interfaces"]
+    assert "app/main.py" in contract["required_core_files"]
     assert contract["architecture_mode"] == "browser_local_static"
-    assert contract["required_planning_docs"] == []
-    assert contract["required_stage_artifacts"] == []
+    assert contract["canonical_goal_spec"]["domain"] == "local_task_board"
 
 
 def test_chinese_video_slicing_goal_selects_video_workbench() -> None:
@@ -152,10 +147,10 @@ def test_visual_novel_goal_preserves_authoring_domain_instead_of_video_pipeline(
     assert selected["id"] == "local_visual_novel_studio"
     contract = discovery_selection_lane.build_contract(selected)
     assert contract["architecture_mode"] == "modular_authoring_studio"
-    assert contract["required_interfaces"] == ["web"]
-    assert "story_graph.py" in contract["required_core_files"]
-    assert "generate_background_assets" in contract["required_pipeline_stages"]
-    assert "generate_sprite_assets" in contract["required_pipeline_stages"]
+    assert "story_tree" in contract["required_interfaces"]
+    assert "src/story_model.py" in contract["required_core_files"]
+    assert "scene_editor" in contract["required_pipeline_stages"]
+    assert "branch_editor" in contract["required_pipeline_stages"]
 
 
 def test_image_generation_terms_alone_do_not_select_video_processing() -> None:
@@ -182,5 +177,6 @@ def test_cs_demo_analysis_goal_selects_goal_derived_specialized_workbench() -> N
     assert discovery_selection_lane.goal_has_specialized_analysis_product(goal) is True
     assert selected is not None
     assert selected["id"] == "goal_derived_specialized_analysis_workbench"
-    assert selected["pipeline_stages"][0] == "research_platform_sources"
+    assert selected["pipeline_stages"][0] == "foundation"
+    assert "analyze_explainable_features" in selected["pipeline_stages"]
     assert "render_evidence_report" in selected["pipeline_stages"]

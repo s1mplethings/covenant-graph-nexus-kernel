@@ -106,3 +106,17 @@ def test_candidate_phase_does_not_require_packager_output(tmp_path: pathlib.Path
 
     assert "final_project_bundle.zip_missing" in delivery_blockers
     assert "final_project_bundle.zip_missing" not in candidate_blockers
+
+
+def test_goal_derived_contract_paths_are_matched_as_relative_paths(tmp_path: pathlib.Path) -> None:
+    expected = tmp_path / "src" / "timer_state.py"
+    wrong_location = tmp_path / "other" / "timer_state.py"
+    write(expected, "def start_timer():\n    return True\n")
+    write(wrong_location, "def unrelated():\n    return True\n")
+
+    matches = complexity_project_contract_check.find_by_name(
+        [expected, wrong_location],
+        "src/timer_state.py",
+    )
+
+    assert matches == [expected]

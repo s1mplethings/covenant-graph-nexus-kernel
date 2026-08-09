@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Knowledge Studio reference benchmark; not arbitrary-project planning proof."""
+
 import argparse
 import json
 import os
@@ -48,6 +50,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 DEFAULT_OUT_ROOT = ROOT / "generated" / "full_dynamic_real_project_eval"
 DEFAULT_GOAL = "做一个本地 AI 知识工作台，用于导入资料、建立本地知识库、检索、总结、任务化跟踪、生成报告，并支持本地模型适配层"
+REFERENCE_BENCHMARK = "local_ai_knowledge_studio"
 MODEL_SEMANTICS = {
     "target_project_model": {"mode": "local_model", "adapter_required": True, "config_needed": True},
     "cgkn_backend": {"mode": "api"},
@@ -741,7 +744,7 @@ def run_full_dynamic_real_project_eval(
     save_all_scope_contracts(out)
     readiness = readiness_override if isinstance(readiness_override, dict) else provider_readiness(out_dir=out, model=model)
     if not readiness.get("provider_ready") and not provider_output_overrides:
-        final = {"classification": "provider_unavailable", "verdict": "BLOCKED", "not_proven": True, "provider_ready": False, "telegram_mainline": "telegram_mainline_not_connected", "created_at": now()}
+        final = {"classification": "provider_unavailable", "verdict": "BLOCKED", "not_proven": True, "provider_ready": False, "reference_benchmark": REFERENCE_BENCHMARK, "generic_planner_proof": False, "telegram_mainline": "telegram_mainline_not_connected", "created_at": now()}
         write_json(out / "final_verdict.json", final)
         return final
     readiness_for_leaves = readiness if readiness.get("provider_ready") else {"provider_ready": True, "override_mode": True}
@@ -785,6 +788,8 @@ def run_full_dynamic_real_project_eval(
         "verdict": verdict,
         "provider_ready": bool(readiness_for_leaves.get("provider_ready")),
         "provider_output_overrides_used": bool(provider_output_overrides),
+        "reference_benchmark": REFERENCE_BENCHMARK,
+        "generic_planner_proof": False,
         "real_provider_leaves": BACKEND_LEAF_ORDER + FRONTEND_LEAF_ORDER + TEST_LEAF_ORDER,
         "branch_merges": {key: value.get("merge_verdict") for key, value in branch_merges.items()},
         "integration": integration.get("verdict"),

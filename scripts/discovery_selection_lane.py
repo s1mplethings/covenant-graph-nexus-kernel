@@ -8,6 +8,11 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+try:
+    import requirement_decision_lane
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import requirement_decision_lane
+
 
 RISK_VALUES = {"low", "medium", "high"}
 
@@ -232,304 +237,6 @@ def weighted_total(candidate: dict[str, Any]) -> int:
     return max(0, min(100, round(score - penalty)))
 
 
-def _video_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "local_video_workbench",
-        "name": "Local Video Material Workbench",
-        "summary": "Local-first workbench for importing media, extracting or simulating audio, segmenting transcripts, scoring clips, selecting outputs, and exporting evidence.",
-        "target_user": "Editors and operators who need a repeatable local media processing workflow.",
-        "core_workflow": [
-            "import local video",
-            "extract audio with honest degraded fallback",
-            "chunk and transcribe",
-            "analyze and score segments",
-            "select candidate clips",
-            "render/export reports and manifests",
-        ],
-        "likely_pages": ["Import", "Pipeline Run", "Segments", "Clip Review", "Exports", "Settings"],
-        "likely_modules": ["orchestrator", "stages", "artifact_store", "cli", "gui", "degraded_runtime", "tests"],
-        "pipeline_stages": [
-            "ingest_video",
-            "extract_audio",
-            "build_audio_chunk_manifest",
-            "transcribe_chunks",
-            "merge_transcript",
-            "optional_analysis",
-            "select_segments",
-            "build_clip_manifest",
-            "render_clips_batch",
-            "export_results",
-        ],
-        "expected_artifacts": [
-            "stage_plan.json",
-            "media_manifest.json",
-            "audio_chunk_manifest.json",
-            "transcript_merged.json",
-            "segment_analysis.json",
-            "selected_segments.json",
-            "clip_manifest.json",
-            "export_results.json",
-        ],
-        "local_first_feasibility": 86,
-        "complexity_score": 88,
-        "pipeline_clarity": 92,
-        "artifact_potential": 94,
-        "gui_cli_suitability": 89,
-        "delivery_feasibility": 78,
-        "testability_score": 82,
-        "screenshot_feasibility": 84,
-        "external_dependency_risk": "medium",
-        "demo_degradation_risk": "low",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
-def _visual_novel_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "local_visual_novel_studio",
-        "name": "Local Visual Novel Authoring Studio",
-        "summary": (
-            "A local visual-novel authoring studio with a typed branching story graph, separate background "
-            "and transparent character-sprite generators, an asset library, node binding, persistence, preview, and export."
-        ),
-        "target_user": "Visual-novel writers and small creative teams building branching stories locally.",
-        "core_workflow": [
-            "define story and asset schemas",
-            "create and connect story nodes",
-            "validate branches and cycles",
-            "generate background assets",
-            "generate transparent character sprites",
-            "bind assets to story nodes",
-            "preview alternate branches",
-            "save, reload, and export the project",
-        ],
-        "likely_pages": ["Story Tree", "Node Editor", "Characters", "Backgrounds", "Asset Library", "Preview", "Project"],
-        "likely_modules": [
-            "story_graph",
-            "story_schema",
-            "asset_library",
-            "image_adapters",
-            "persistence",
-            "preview_runtime",
-            "web_ui",
-            "tests",
-        ],
-        "pipeline_stages": [
-            "define_document_contracts",
-            "edit_story_graph",
-            "validate_story_graph",
-            "generate_background_assets",
-            "generate_sprite_assets",
-            "bind_assets_to_nodes",
-            "preview_story_branch",
-            "export_project",
-        ],
-        "expected_artifacts": [
-            "story.schema.json",
-            "project.json",
-            "asset_manifest.json",
-            "generation_capability.json",
-            "story_graph_validation.json",
-            "preview_trace.json",
-            "export_manifest.json",
-        ],
-        "local_first_feasibility": 91,
-        "complexity_score": 94,
-        "pipeline_clarity": 94,
-        "artifact_potential": 93,
-        "gui_cli_suitability": 91,
-        "delivery_feasibility": 88,
-        "testability_score": 94,
-        "screenshot_feasibility": 96,
-        "external_dependency_risk": "medium",
-        "demo_degradation_risk": "low",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
-def _task_board_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "local_task_board",
-        "name": "Local Task Board",
-        "summary": "A local browser task board with native task interactions, filtering, and durable browser persistence.",
-        "target_user": "Individuals or small teams managing local work.",
-        "core_workflow": ["open board", "create task", "move task", "filter tasks", "reload persisted state", "delete task"],
-        "likely_pages": ["Task Board"],
-        "likely_modules": ["local_server", "board_state", "task_interactions", "styles", "tests"],
-        "pipeline_stages": ["serve_app", "load_state", "create_task", "update_task", "filter_board", "persist_state"],
-        "expected_artifacts": ["board_contract.json", "interaction_test_report.json", "persistence_test_report.json", "runtime_evidence.json"],
-        "local_first_feasibility": 98,
-        "complexity_score": 82,
-        "pipeline_clarity": 94,
-        "artifact_potential": 82,
-        "gui_cli_suitability": 80,
-        "delivery_feasibility": 96,
-        "testability_score": 96,
-        "screenshot_feasibility": 96,
-        "external_dependency_risk": "low",
-        "demo_degradation_risk": "low",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
-def _specialized_analysis_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "goal_derived_specialized_analysis_workbench",
-        "name": "Goal-Derived Specialized Analysis Workbench",
-        "summary": (
-            "A local-first workbench that researches official sources, registers reviewed acquisition "
-            "capabilities, validates authorized inputs, normalizes evidence, runs explainable analysis, "
-            "and exports human-review reports for the domain stated in the goal."
-        ),
-        "target_user": "Analysts working in the specialized evidence domain named by the customer.",
-        "core_workflow": [
-            "research official platform sources",
-            "register reviewed acquisition capabilities",
-            "acquire authorized input",
-            "validate input and provenance",
-            "parse and normalize evidence",
-            "extract explainable features",
-            "score review priority",
-            "render cited evidence report",
-        ],
-        "likely_pages": ["Sources", "Acquisition", "Runs", "Evidence", "Review", "Reports"],
-        "likely_modules": [
-            "research",
-            "sources",
-            "parsers",
-            "models",
-            "features",
-            "scoring",
-            "reporting",
-            "cli",
-            "tests",
-        ],
-        "pipeline_stages": [
-            "research_platform_sources",
-            "acquire_authorized_input",
-            "validate_input",
-            "parse_evidence",
-            "normalize_evidence",
-            "extract_features",
-            "score_review_risk",
-            "render_evidence_report",
-        ],
-        "expected_artifacts": [
-            "source_registry.json",
-            "acquisition_manifest.json",
-            "input_validation.json",
-            "parsed_evidence.json",
-            "normalized_evidence.json",
-            "feature_report.json",
-            "risk_assessment.json",
-            "evidence_report.json",
-        ],
-        "local_first_feasibility": 88,
-        "complexity_score": 92,
-        "pipeline_clarity": 94,
-        "artifact_potential": 94,
-        "gui_cli_suitability": 88,
-        "delivery_feasibility": 84,
-        "testability_score": 94,
-        "screenshot_feasibility": 78,
-        "external_dependency_risk": "medium",
-        "demo_degradation_risk": "low",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
-def _data_ops_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "local_data_quality_studio",
-        "name": "Local Data Quality Studio",
-        "summary": "A local CSV/JSON intake, profiling, rule validation, repair suggestion, export, and audit-report product.",
-        "target_user": "Operations teams cleaning files before upload into business systems.",
-        "core_workflow": ["import files", "profile columns", "infer rules", "validate rows", "review fixes", "export clean data"],
-        "likely_pages": ["Sources", "Profile", "Rules", "Issues", "Fix Review", "Exports"],
-        "likely_modules": ["orchestrator", "stages", "rules", "artifact_store", "cli", "gui", "tests"],
-        "pipeline_stages": [
-            "load_sources",
-            "profile_schema",
-            "infer_rules",
-            "validate_records",
-            "cluster_issues",
-            "suggest_repairs",
-            "export_clean_dataset",
-            "write_audit_report",
-        ],
-        "expected_artifacts": [
-            "source_manifest.json",
-            "schema_profile.json",
-            "rule_catalog.json",
-            "validation_report.json",
-            "issue_clusters.json",
-            "repair_suggestions.json",
-            "export_manifest.json",
-            "audit_report.json",
-        ],
-        "local_first_feasibility": 94,
-        "complexity_score": 80,
-        "pipeline_clarity": 86,
-        "artifact_potential": 88,
-        "gui_cli_suitability": 84,
-        "delivery_feasibility": 88,
-        "testability_score": 90,
-        "screenshot_feasibility": 82,
-        "external_dependency_risk": "low",
-        "demo_degradation_risk": "medium",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
-def _asset_pack_candidate(user_goal: str) -> dict[str, Any]:
-    return {
-        "id": "local_asset_pack_planner",
-        "name": "Local Asset Pack Planner",
-        "summary": "A structured asset intake, tagging, license check, dependency mapping, packaging, and release-note workbench.",
-        "target_user": "Small product teams assembling local deliverable asset packs.",
-        "core_workflow": ["import assets", "tag metadata", "check licenses", "map dependencies", "build package", "write release report"],
-        "likely_pages": ["Library", "Metadata", "Dependency Map", "Validation", "Package", "Release Notes"],
-        "likely_modules": ["orchestrator", "stages", "metadata", "packager", "cli", "gui", "tests"],
-        "pipeline_stages": [
-            "discover_assets",
-            "classify_assets",
-            "extract_metadata",
-            "validate_license_notes",
-            "map_dependencies",
-            "build_release_manifest",
-            "package_assets",
-            "write_delivery_report",
-        ],
-        "expected_artifacts": [
-            "asset_manifest.json",
-            "classification_report.json",
-            "metadata_index.json",
-            "license_review.json",
-            "dependency_map.json",
-            "release_manifest.json",
-            "package_manifest.json",
-            "delivery_report.json",
-        ],
-        "local_first_feasibility": 90,
-        "complexity_score": 76,
-        "pipeline_clarity": 83,
-        "artifact_potential": 84,
-        "gui_cli_suitability": 80,
-        "delivery_feasibility": 86,
-        "testability_score": 84,
-        "screenshot_feasibility": 80,
-        "external_dependency_risk": "low",
-        "demo_degradation_risk": "medium",
-        "fake_pass_risk": "low",
-        "honest_degraded_mode_available": True,
-    }
-
-
 def _cloud_ai_candidate(user_goal: str) -> dict[str, Any]:
     return {
         "id": "cloud_ai_autopilot_suite",
@@ -582,24 +289,75 @@ def _small_demo_candidate(user_goal: str) -> dict[str, Any]:
     }
 
 
-def generate_candidates(user_goal: str, count: int = 4) -> list[dict[str, Any]]:
+def _goal_candidate_id(domain: str) -> str:
+    return {
+        "local_media_workbench": "local_video_workbench",
+        "local_task_board": "local_task_board",
+        "visual_novel_editor": "local_visual_novel_studio",
+        "specialized_analysis_workbench": "goal_derived_specialized_analysis_workbench",
+    }.get(domain, f"goal_driven_{re.sub(r'[^a-z0-9]+', '_', domain.lower()).strip('_')}")
+
+
+def _goal_plan_candidate(
+    user_goal: str,
+    goal_spec: dict[str, Any],
+    project_plan: dict[str, Any],
+) -> dict[str, Any]:
+    domain = str(goal_spec.get("domain", "custom_local_application"))
+    workstreams = [
+        row
+        for row in project_plan.get("workstreams", [])
+        if isinstance(row, dict) and row.get("id") not in {"foundation", "delivery"}
+    ]
+    stages = [str(row.get("id", "")) for row in project_plan.get("workstreams", []) if isinstance(row, dict)]
+    artifacts = [str(item) for item in project_plan.get("business_outputs", [])]
+    names = {
+        "local_media_workbench": "Local Video Workbench",
+        "visual_novel_editor": "Local Visual Novel Studio",
+        "local_task_board": "Local Task Board",
+        "specialized_analysis_workbench": "Goal-Derived Specialized Analysis Workbench",
+    }
+    return {
+        "id": _goal_candidate_id(domain),
+        "name": names.get(domain, domain.replace("_", " ").title()),
+        "summary": str(goal_spec.get("goal", user_goal)),
+        "target_user": "The user described by the current goal.",
+        "core_workflow": [str(item) for item in goal_spec.get("user_flows", [])],
+        "likely_pages": [str(item) for item in goal_spec.get("interfaces", [])],
+        "likely_modules": [str(row.get("id", "")) for row in workstreams],
+        "pipeline_stages": stages,
+        "expected_artifacts": artifacts,
+        "local_first_feasibility": 96,
+        "complexity_score": 88,
+        "pipeline_clarity": 96,
+        "artifact_potential": 94,
+        "gui_cli_suitability": 90,
+        "delivery_feasibility": 94,
+        "testability_score": 98,
+        "screenshot_feasibility": 90,
+        "external_dependency_risk": "low",
+        "demo_degradation_risk": "low",
+        "fake_pass_risk": "low",
+        "honest_degraded_mode_available": True,
+        "goal_spec_domain": domain,
+        "canonical_goal_spec": goal_spec,
+        "canonical_project_plan": project_plan,
+    }
+
+
+def generate_candidates(
+    user_goal: str,
+    count: int = 4,
+    *,
+    goal_spec: dict[str, Any] | None = None,
+    project_plan: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    canonical_goal_spec = goal_spec or requirement_decision_lane.build_goal_spec(user_goal)
+    canonical_project_plan = project_plan or requirement_decision_lane.build_goal_project_plan(canonical_goal_spec)
     candidates: list[dict[str, Any]] = []
-    if goal_has_specialized_analysis_product(user_goal):
-        candidates.append(_specialized_analysis_candidate(user_goal))
-    if goal_has_task_board_product(user_goal):
-        candidates.append(_task_board_candidate(user_goal))
-    if goal_has_visual_novel_product(user_goal):
-        candidates.append(_visual_novel_candidate(user_goal))
-    if goal_has_media_product(user_goal):
-        candidates.append(_video_candidate(user_goal))
-    candidates.extend(
-        [
-            _data_ops_candidate(user_goal),
-            _asset_pack_candidate(user_goal),
-            _cloud_ai_candidate(user_goal),
-            _small_demo_candidate(user_goal),
-        ]
-    )
+    if canonical_goal_spec.get("status") == "PASS" and canonical_project_plan.get("status") == "PASS":
+        candidates.append(_goal_plan_candidate(user_goal, canonical_goal_spec, canonical_project_plan))
+    candidates.extend([_cloud_ai_candidate(user_goal), _small_demo_candidate(user_goal)])
     deduped: list[dict[str, Any]] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -675,6 +433,42 @@ def select_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
 def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
     stages = list(selected.get("pipeline_stages", []))
     artifacts = list(selected.get("expected_artifacts", []))
+    goal_spec = selected.get("canonical_goal_spec") if isinstance(selected.get("canonical_goal_spec"), dict) else {}
+    project_plan = selected.get("canonical_project_plan") if isinstance(selected.get("canonical_project_plan"), dict) else {}
+    if goal_spec:
+        domain = str(goal_spec.get("domain", ""))
+        architecture_mode = (
+            "browser_local_static"
+            if domain == "local_task_board"
+            else "modular_authoring_studio"
+            if domain == "visual_novel_editor"
+            else "goal_driven_local_application"
+        )
+        return {
+            "selected_id": selected["id"],
+            "selected_name": selected["name"],
+            "selection_reason": "Direct projection of the canonical GoalSpec and GoalDrivenProjectPlan for this request.",
+            "architecture_mode": architecture_mode,
+            "goal_spec_domain": str(goal_spec.get("domain", "")),
+            "canonical_goal_spec": goal_spec,
+            "canonical_project_plan": project_plan,
+            "selected_project_summary": selected.get("summary", ""),
+            "why_not_too_small": f"Requires {len(stages)} goal-derived workstreams and {len(artifacts)} business outputs with behavior tests.",
+            "why_not_too_dependency_heavy": "Unrequested external integrations are excluded by the canonical goal constraints.",
+            "why_deliverable": "The direction has explicit capabilities, workstreams, outputs, dependencies, and test intents.",
+            "required_complexity_floor": {
+                "min_pages": len(goal_spec.get("interfaces", [])),
+                "min_modules": len(selected.get("likely_modules", [])),
+                "min_pipeline_stages": len(stages),
+                "min_stage_artifacts": len(artifacts),
+                "requires_gui": bool(goal_spec.get("interfaces")),
+                "requires_cli": "cli" in goal_spec.get("interfaces", []),
+                "requires_shared_core": True,
+                "requires_runtime_evidence": True,
+                "requires_final_bundle": True,
+                "requires_screenshot": True,
+            },
+        }
     task_board = selected.get("id") == "local_task_board"
     visual_novel = selected.get("id") == "local_visual_novel_studio"
     architecture_mode = (
@@ -714,6 +508,41 @@ def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_contract(selected: dict[str, Any]) -> dict[str, Any]:
+    goal_spec = selected.get("canonical_goal_spec") if isinstance(selected.get("canonical_goal_spec"), dict) else {}
+    project_plan = selected.get("canonical_project_plan") if isinstance(selected.get("canonical_project_plan"), dict) else {}
+    if goal_spec:
+        structure = [str(item) for item in project_plan.get("expected_project_structure", [])]
+        runtime_artifacts = [str(item) for item in project_plan.get("runtime_artifacts", project_plan.get("business_outputs", []))]
+        task_board = str(goal_spec.get("domain", "")) == "local_task_board"
+        visual_novel = str(goal_spec.get("domain", "")) == "visual_novel_editor"
+        architecture_mode = "browser_local_static" if task_board else "modular_authoring_studio" if visual_novel else "goal_driven_local_application"
+        governance_core = [] if task_board or visual_novel else ["orchestrator.py", "stages.py"]
+        governance_interfaces = [] if task_board or visual_novel else ["cli", "gui"]
+        return {
+            "contract_id": "complexity_project_contract_v1",
+            "architecture_mode": architecture_mode,
+            "selected_project_id": selected["id"],
+            "selected_project_name": selected["name"],
+            "selected_project_summary": selected["summary"],
+            "goal_spec_domain": str(goal_spec.get("domain", "")),
+            "canonical_goal_spec": goal_spec,
+            "canonical_project_plan": project_plan,
+            "required_planning_docs": ["goal_spec.json", "project_plan.json", "product_brief.md", "technical_plan.md", "interaction_design.md", "acceptance_matrix.md"],
+            "required_core_files": list(dict.fromkeys(governance_core + [path for path in structure if path.endswith(".py") and not path.startswith("tests/")])),
+            "required_interfaces": list(dict.fromkeys(governance_interfaces + [str(item) for item in goal_spec.get("interfaces", [])])),
+            "requires_shared_gui_cli_core": not task_board and not visual_novel,
+            "required_pipeline_stages": [str(row.get("id", "")) for row in project_plan.get("workstreams", []) if isinstance(row, dict)],
+            "required_stage_artifacts": runtime_artifacts,
+            "required_artifact_fields": DEFAULT_REQUIRED_ARTIFACT_FIELDS if runtime_artifacts and all(path.endswith(".json") for path in runtime_artifacts) else [],
+            "required_delivery_evidence": DEFAULT_DELIVERY_EVIDENCE,
+            "honest_degraded_mode_required": True,
+            "forbidden_shortcuts": FORBIDDEN_SHORTCUTS,
+            "downstream_requirements": [
+                "provider generation must implement the canonical GoalSpec capabilities and user flows",
+                "component leaves must cite the canonical project plan workstreams and test intents",
+                "unrelated product templates must not be introduced",
+            ],
+        }
     task_board = selected.get("id") == "local_task_board"
     visual_novel = selected.get("id") == "local_visual_novel_studio"
     planning_docs = (
@@ -821,9 +650,23 @@ def discovery_brief_markdown(user_goal: str, candidates: list[dict[str, Any]], s
     ) + "\n"
 
 
-def run_discovery_selection(user_goal: str, discovery_dir: pathlib.Path, *, candidate_count: int = 4) -> dict[str, Any]:
+def run_discovery_selection(
+    user_goal: str,
+    discovery_dir: pathlib.Path,
+    *,
+    candidate_count: int = 4,
+    goal_spec: dict[str, Any] | None = None,
+    project_plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     discovery = pathlib.Path(discovery_dir)
-    candidates = generate_candidates(user_goal, candidate_count)
+    canonical_goal_spec = goal_spec or requirement_decision_lane.build_goal_spec(user_goal)
+    canonical_project_plan = project_plan or requirement_decision_lane.build_goal_project_plan(canonical_goal_spec)
+    candidates = generate_candidates(
+        user_goal,
+        candidate_count,
+        goal_spec=canonical_goal_spec,
+        project_plan=canonical_project_plan,
+    )
     selected = select_candidate(candidates)
     status = "PASS" if selected else "NEEDS_REWORK"
     scorecard = build_scorecard(candidates)
@@ -839,7 +682,13 @@ def run_discovery_selection(user_goal: str, discovery_dir: pathlib.Path, *, cand
         "status": "NEEDS_REWORK",
         "reason": "No selected direction; downstream generation must not start.",
     }
-    candidate_doc = {"user_goal": user_goal, "generated_at": now(), "candidates": candidates}
+    candidate_doc = {
+        "user_goal": user_goal,
+        "generated_at": now(),
+        "goal_spec": canonical_goal_spec,
+        "project_plan": canonical_project_plan,
+        "candidates": candidates,
+    }
     paths = {
         "discovery_brief": str(discovery / "discovery_brief.md"),
         "candidate_directions": str(discovery / "candidate_directions.json"),
@@ -858,6 +707,8 @@ def run_discovery_selection(user_goal: str, discovery_dir: pathlib.Path, *, cand
         "status": status,
         "user_goal": user_goal,
         "candidate_count": len(candidates),
+        "goal_spec": canonical_goal_spec,
+        "project_plan": canonical_project_plan,
         "selected_project_direction": selected_doc,
         "complexity_project_contract": contract,
         "paths": paths,

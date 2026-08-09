@@ -15,6 +15,7 @@ def test_context_reducer_removes_legacy_project_pollution() -> None:
         "Local AI Knowledge Studio",
         "document import knowledge base search reports tasks local model adapter",
     )
+    context["forbidden_context_terms"].extend(["视频素材", "鉴挂判别", "背景立绘", "鼠标键盘动作"])
     local = reduce_context(
         context,
         agent_id="backend_leaf",

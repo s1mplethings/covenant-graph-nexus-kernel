@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import sys
 from typing import Any
@@ -77,7 +78,13 @@ def run_controlled_agent_tree(
     shared_context = create_shared_context(project_name, goal)
     save_shared_context(shared_context, out)
 
-    clean_plan = "document import + knowledge base + search + reports + tasks + local model adapter"
+    clean_plan = json.dumps(
+        {
+            "goal_spec": shared_context.get("goal_spec", {}),
+            "project_plan": shared_context.get("project_plan", {}),
+        },
+        ensure_ascii=False,
+    )
     alignment = evaluate_goal_alignment(shared_context, clean_plan)
     write_json(out / "goal_alignment.json", alignment)
     if alignment["verdict"] != "PASS":
@@ -92,7 +99,7 @@ def run_controlled_agent_tree(
     checkpoints: dict[str, dict[str, Any]] = {}
     stage_results: list[dict[str, Any]] = []
 
-    raw_context = goal + " + 视频素材 + 鉴挂判别 + 背景立绘 + 鼠标键盘动作"
+    raw_context = goal
     for stage in dag["stages"]:
         stage_id = str(stage["id"])
         if not can_execute_stage(dag, checkpoints, stage_id):

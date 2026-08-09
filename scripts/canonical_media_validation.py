@@ -210,8 +210,8 @@ def validate_image(path: str | pathlib.Path, project_dir: str | pathlib.Path, *,
             rgb = sample.convert("RGB")
             extrema = rgb.getextrema()
             varied_channels = sum(1 for low, high in extrema if high - low > 8)
-            solid = Image.new("RGBA", sample.size, sample.getpixel((0, 0)))
-            bbox = ImageChops.difference(sample, solid).getbbox()
+            solid = Image.new("RGB", rgb.size, rgb.getpixel((0, 0)))
+            bbox = ImageChops.difference(rgb, solid).getbbox()
             blank_or_solid = fully_transparent or bbox is None or varied_channels < 2 or len(colors) < 16
     except Exception as exc:
         return _fail(result, f"image_decode_failed:{exc}")

@@ -24,7 +24,7 @@ def test_goal_alignment_accepts_knowledge_studio_plan() -> None:
 
     result = evaluate_goal_alignment(
         context,
-        "document import + knowledge base + search + reports + tasks + local model adapter",
+        " + ".join(context["goal_spec"]["capabilities"]),
     )
 
     assert result["verdict"] == "PASS"
@@ -39,7 +39,7 @@ def test_goal_alignment_uses_studio_operations_terms_for_studio_goal() -> None:
 
     result = evaluate_goal_alignment(
         context,
-        "dashboard production tasks asset library bugs releases team roles search import export tests screenshots bundle",
+        " + ".join(context["goal_spec"]["capabilities"]),
     )
 
     assert result["verdict"] == "PASS"

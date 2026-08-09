@@ -32,7 +32,13 @@ def iter_files(project_dir: pathlib.Path) -> list[pathlib.Path]:
 
 
 def find_by_name(files: list[pathlib.Path], name: str) -> list[pathlib.Path]:
-    target = name.lower()
+    target = name.replace("\\", "/").strip("/").lower()
+    if "/" in target:
+        return [
+            path
+            for path in files
+            if path.as_posix().lower() == target or path.as_posix().lower().endswith("/" + target)
+        ]
     return [path for path in files if path.name.lower() == target]
 
 

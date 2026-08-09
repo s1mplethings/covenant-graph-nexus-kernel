@@ -12,24 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover
 
 STAGE_DEFAULTS: dict[str, dict[str, list[str]]] = {
     "backend_services": {
-        "required_files": [
-            "app/services/document_service.py",
-            "app/services/search_service.py",
-            "app/services/model_adapter.py",
-            "app/services/task_service.py",
-            "app/services/report_service.py",
-        ],
+        "required_files": [],
         "verification": ["service_files_exist", "python_import_smoke"],
     },
     "frontend_views": {
-        "required_files": [
-            "app/templates/dashboard.html",
-            "app/templates/documents.html",
-            "app/templates/search.html",
-            "app/templates/tasks.html",
-            "app/templates/reports.html",
-            "app/templates/settings.html",
-        ],
+        "required_files": [],
         "verification": ["view_count_ge_5", "frontend_entrypoint_exists"],
     },
 }
@@ -37,8 +24,6 @@ STAGE_DEFAULTS: dict[str, dict[str, list[str]]] = {
 
 def sanitize_context_text(text: str, forbidden_terms: list[str]) -> str:
     cleaned = text
-    for phrase in ("视频素材", "鉴挂判别", "背景立绘", "video material workbench", "image generation demo"):
-        cleaned = re.sub(re.escape(phrase), "", cleaned, flags=re.IGNORECASE)
     for term in forbidden_terms:
         cleaned = re.sub(re.escape(term), "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"(\+\s*){2,}", "+ ", cleaned)

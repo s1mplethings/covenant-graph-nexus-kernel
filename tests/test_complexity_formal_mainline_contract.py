@@ -31,9 +31,11 @@ def video_plan() -> dict:
         "selected_id": "local_video_workbench",
         "selected_name": "Local Video Material Workbench",
     }
-    contract = discovery_selection_lane.build_contract(
-        discovery_selection_lane._video_candidate(GOAL)
+    selected = discovery_selection_lane.select_candidate(
+        discovery_selection_lane.generate_candidates(GOAL)
     )
+    assert selected is not None
+    contract = discovery_selection_lane.build_contract(selected)
     return {
         "selected_requirement": selected_requirement,
         "selected_project_direction": selected_direction,
@@ -1101,7 +1103,7 @@ def test_complexity_contract_enriches_canonical_component_manifests() -> None:
         "render_clips_batch",
         "export_results",
     ]
-    assert components["backend"]["contract_slice"]["required_interfaces"] == ["cli", "gui"]
+    assert {"cli", "gui"}.issubset(components["backend"]["contract_slice"]["required_interfaces"])
 
 
 def test_deterministic_complexity_gate_overrides_small_skeleton() -> None:

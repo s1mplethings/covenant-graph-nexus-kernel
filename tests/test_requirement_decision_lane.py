@@ -24,6 +24,8 @@ def test_rough_goal_generates_requirement_decision_artifacts() -> None:
         assert result["status"] == "PASS"
         for name in [
             "customer_goal_brief.md",
+            "goal_spec.json",
+            "project_plan.json",
             "need_interpretations.json",
             "candidate_requirements.json",
             "requirement_scorecard.json",

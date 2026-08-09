@@ -23,6 +23,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-010` [done] Validate generated modules before integration and delivery
 - `PB-011` [done] Add design discovery and aesthetic quality to generated projects
 - `PB-012` [active] Prove large VN generation with self-generated art and story tree
+- `PB-013` [done] Make canonical project planning goal-driven
 
 ## Definition of done
 

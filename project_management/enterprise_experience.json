@@ -30,8 +30,8 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 4,
-      "successful_usage_count": 4,
+      "usage_count": 5,
+      "successful_usage_count": 5,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -270,6 +270,16 @@
       "outcome": "successful",
       "evidence_refs": [
         "tests/test_formal_provider_fallback.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-014",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-014.json"
       ]
     }
   ]

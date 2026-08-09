@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import sys
 from typing import Any
@@ -25,7 +26,13 @@ def _write(path: pathlib.Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _record(recorder: AgentActionRecorder, stage: dict[str, Any], local_context: dict[str, Any], action: str, reason: str) -> None:
+def _record(
+    recorder: AgentActionRecorder,
+    stage: dict[str, Any],
+    local_context: dict[str, Any],
+    action: str,
+    reason: str,
+) -> None:
     recorder.record(
         agent_id=str(stage["agent"]),
         agent_role="LeafBuilder" if str(stage["agent"]).endswith("_leaf") else "SpecialistAgent",
@@ -37,6 +44,56 @@ def _record(recorder: AgentActionRecorder, stage: dict[str, Any], local_context:
         input_context_id=str(local_context.get("context_id", "")),
         expected_verification=list(stage.get("verify", [])),
         claimed_complete=False,
+    )
+
+
+def _foundation_source(shared_context: dict[str, Any]) -> str:
+    goal_spec = shared_context.get("goal_spec", {})
+    return (
+        "from __future__ import annotations\n\n"
+        f"GOAL_SPEC = {goal_spec!r}\n\n"
+        "def project_summary() -> dict:\n"
+        "    return {\n"
+        "        'goal': GOAL_SPEC.get('goal', ''),\n"
+        "        'domain': GOAL_SPEC.get('domain', ''),\n"
+        "        'capabilities': list(GOAL_SPEC.get('capabilities', [])),\n"
+        "        'interfaces': list(GOAL_SPEC.get('interfaces', [])),\n"
+        "        'acceptance_behaviors': list(GOAL_SPEC.get('acceptance_behaviors', [])),\n"
+        "    }\n\n"
+        "if __name__ == '__main__':\n"
+        "    print(project_summary())\n"
+    )
+
+
+def _business_leaf_source(stage: dict[str, Any], shared_context: dict[str, Any]) -> str:
+    goal_spec = shared_context.get("goal_spec", {})
+    payload = {
+        "workstream": stage.get("id", ""),
+        "scope": stage.get("scope", ""),
+        "domain": goal_spec.get("domain", ""),
+        "capabilities": goal_spec.get("capabilities", []),
+        "test_intents": stage.get("test_intents", []),
+    }
+    return (
+        "from __future__ import annotations\n\n"
+        f"WORKSTREAM = {payload!r}\n\n"
+        "def describe_scope() -> dict:\n"
+        "    return {key: value[:] if isinstance(value, list) else value for key, value in WORKSTREAM.items()}\n"
+    )
+
+
+def _test_source(shared_context: dict[str, Any]) -> str:
+    goal_spec = shared_context.get("goal_spec", {})
+    return (
+        "from app.main import project_summary\n\n"
+        f"EXPECTED_DOMAIN = {str(goal_spec.get('domain', ''))!r}\n"
+        f"EXPECTED_CAPABILITIES = {list(goal_spec.get('capabilities', []))!r}\n"
+        f"EXPECTED_BEHAVIORS = {list(goal_spec.get('acceptance_behaviors', []))!r}\n\n"
+        "def test_project_summary_tracks_canonical_goal_spec():\n"
+        "    summary = project_summary()\n"
+        "    assert summary['domain'] == EXPECTED_DOMAIN\n"
+        "    assert summary['capabilities'] == EXPECTED_CAPABILITIES\n"
+        "    assert summary['acceptance_behaviors'] == EXPECTED_BEHAVIORS\n"
     )
 
 
@@ -52,12 +109,16 @@ def build_controlled_stage(
     project = pathlib.Path(project_dir)
     out = pathlib.Path(out_dir)
     stage_id = str(stage["id"])
-    if stage_id == "requirement_freeze":
-        _record(recorder, stage, local_context, "freeze_requirements", "Required by requirement_freeze stage in build DAG")
+    stage_type = str(stage.get("stage_type", ""))
+
+    if stage_type == "requirement":
+        _record(recorder, stage, local_context, "freeze_requirements", "Freeze the canonical GoalSpec and Project Plan before controlled work.")
         frozen = {
             "kind": "AgentTreeFrozenRequirement",
             "project_name": shared_context["project_name"],
             "user_goal": shared_context["user_goal"],
+            "goal_spec": shared_context.get("goal_spec", {}),
+            "project_plan": shared_context.get("project_plan", {}),
             "requirements": list(shared_context["acceptance_contract"]),
             "allowed_context_terms": list(shared_context["allowed_context_terms"]),
             "forbidden_context_terms": list(shared_context["forbidden_context_terms"]),
@@ -67,138 +128,57 @@ def build_controlled_stage(
         write_json(out / "frozen_requirement.json", frozen)
         return {"status": "ok", "outputs": ["frozen_requirement.json"]}
 
-    if stage_id == "foundation":
-        _record(recorder, stage, local_context, "create_foundation_files", "Required by foundation stage in build DAG")
+    if stage_type == "foundation":
+        _record(recorder, stage, local_context, "create_foundation_files", "Create the goal-bound runnable project foundation.")
+        goal_spec = shared_context.get("goal_spec", {})
         _write(
             project / "README.md",
-            "# Local AI Knowledge Studio\n\n"
-            "A local-first knowledge workspace for document import, knowledge base search, summaries, tasks, reports, and local model adapter configuration.\n\n"
-            "## Run\n\n```bash\npython app/main.py\n```\n\n"
-            "Set `LOCAL_MODEL_ENDPOINT` or `MODEL_PATH` before enabling real local inference. If a model file or endpoint is missing, the app must not claim real inference.\n",
+            f"# {shared_context.get('project_name', 'Goal-driven local project')}\n\n"
+            f"Goal: {shared_context.get('user_goal', '')}\n\n"
+            f"Domain: {goal_spec.get('domain', '')}\n\n"
+            "## Run\n\n```bash\npython app/main.py\n```\n",
         )
-        _write(project / "requirements.txt", "pytest\n")
+        _write(project / "pyproject.toml", "[project]\nname = \"goal-driven-controlled-project\"\nversion = \"0.1.0\"\n\n[tool.pytest.ini_options]\ntestpaths = [\"tests\"]\n")
+        _write(project / "src" / "__init__.py", "")
         _write(project / "app" / "__init__.py", "")
-        _write(
-            project / "app" / "main.py",
-            "from __future__ import annotations\n\n"
-            "from app.services.document_service import import_document\n"
-            "from app.services.search_service import search_documents\n"
-            "from app.services.task_service import create_task\n"
-            "from app.services.report_service import build_report\n\n"
-            "def application_summary() -> dict:\n"
-            "    doc = import_document('Welcome', 'Local knowledge base content')\n"
-            "    task = create_task('Review imported material')\n"
-            "    return {\n"
-            "        'document': doc,\n"
-            "        'search': search_documents('knowledge'),\n"
-            "        'task': task,\n"
-            "        'report': build_report([doc], [task]),\n"
-            "    }\n\n"
-            "if __name__ == '__main__':\n"
-            "    print(application_summary())\n",
-        )
-        _write(project / "api_contract.json", '{"routes": ["/documents", "/search", "/tasks", "/reports", "/settings"]}\n')
-        _write(project / "config" / "settings.example.env", "LOCAL_MODEL_ENDPOINT=http://localhost:11434\nMODEL_PATH=\n")
+        _write(project / "app" / "main.py", _foundation_source(shared_context))
         return {"status": "ok"}
 
-    if stage_id == "backend_services":
-        _record(recorder, stage, local_context, "create_backend_services", "Required by backend_services stage in build DAG")
-        _write(project / "app" / "services" / "__init__.py", "")
-        _write(project / "app" / "services" / "storage.py", "DOCUMENTS = []\nTASKS = []\n")
-        _write(
-            project / "app" / "services" / "document_service.py",
-            "from __future__ import annotations\n\nfrom app.services.storage import DOCUMENTS\n\n"
-            "def import_document(title: str, content: str) -> dict:\n"
-            "    item = {'id': len(DOCUMENTS) + 1, 'title': title, 'content': content}\n"
-            "    DOCUMENTS.append(item)\n"
-            "    return item\n",
-        )
-        _write(
-            project / "app" / "services" / "search_service.py",
-            "from __future__ import annotations\n\nfrom app.services.storage import DOCUMENTS\n\n"
-            "def search_documents(query: str) -> list[dict]:\n"
-            "    lowered = query.lower()\n"
-            "    return [item for item in DOCUMENTS if lowered in item['content'].lower() or lowered in item['title'].lower()]\n",
-        )
-        _write(
-            project / "app" / "services" / "model_adapter.py",
-            "from __future__ import annotations\n\n"
-            "def adapter_status(config: dict | None = None) -> dict:\n"
-            "    config = config or {}\n"
-            "    endpoint = config.get('LOCAL_MODEL_ENDPOINT') or config.get('MODEL_PATH') or ''\n"
-            "    return {'configured': bool(endpoint), 'limit': '' if endpoint else 'missing model file or endpoint; cannot claim real inference'}\n",
-        )
-        _write(
-            project / "app" / "services" / "task_service.py",
-            "from __future__ import annotations\n\nfrom app.services.storage import TASKS\n\n"
-            "def create_task(title: str) -> dict:\n"
-            "    task = {'id': len(TASKS) + 1, 'title': title, 'status': 'open'}\n"
-            "    TASKS.append(task)\n"
-            "    return task\n",
-        )
-        _write(
-            project / "app" / "services" / "report_service.py",
-            "from __future__ import annotations\n\n"
-            "def build_report(documents: list[dict], tasks: list[dict]) -> dict:\n"
-            "    return {'document_count': len(documents), 'task_count': len(tasks), 'sections': ['summary', 'tasks', 'next steps']}\n",
-        )
+    if stage_type == "business":
+        _record(recorder, stage, local_context, "create_goal_scoped_leaf", "Materialize only this Project Plan leaf scope.")
+        for relative in stage.get("expected_files", []):
+            target = project / str(relative)
+            if target.suffix.lower() == ".py":
+                _write(target, _business_leaf_source(stage, shared_context))
+            else:
+                _write(target, json.dumps({"stage": stage_id, "scope": stage.get("scope", "")}, ensure_ascii=False, indent=2) + "\n")
         return {"status": "ok"}
 
-    if stage_id == "frontend_views":
-        _record(recorder, stage, local_context, "create_frontend_views", "Required by frontend_views stage in build DAG")
-        pages = {
-            "dashboard": "Dashboard",
-            "documents": "Document Import",
-            "search": "Knowledge Search",
-            "tasks": "Tasks",
-            "reports": "Reports",
-            "settings": "Local Model Settings",
-        }
-        for name, title in pages.items():
-            _write(
-                project / "app" / "templates" / f"{name}.html",
-                f"<!doctype html><html><head><title>{title}</title></head><body><main><h1>{title}</h1><p>Local AI Knowledge Studio {title.lower()} view.</p></main></body></html>\n",
-            )
-        _write(
-            project / "index.html",
-            "<!doctype html><html><head><title>Local AI Knowledge Studio</title></head><body><nav>Dashboard Documents Search Tasks Reports Settings</nav><main>Local AI Knowledge Studio</main></body></html>\n",
-        )
-        return {"status": "ok"}
-
-    if stage_id == "tests":
-        _record(recorder, stage, local_context, "create_and_run_tests", "Required by tests stage in build DAG")
-        _write(
-            project / "tests" / "test_smoke.py",
-            "from app.main import application_summary\n"
-            "from app.services.model_adapter import adapter_status\n\n"
-            "def test_application_summary_contains_core_sections():\n"
-            "    summary = application_summary()\n"
-            "    assert summary['document']['title'] == 'Welcome'\n"
-            "    assert summary['search']\n"
-            "    assert summary['report']['document_count'] >= 1\n\n"
-            "def test_local_model_adapter_documents_missing_config_limit():\n"
-            "    status = adapter_status({})\n"
-            "    assert status['configured'] is False\n"
-            "    assert 'missing model' in status['limit']\n",
-        )
+    if stage_type == "tests":
+        _record(recorder, stage, local_context, "create_and_run_goal_tests", "Materialize GoalSpec-derived test intent inputs in the controlled lane.")
+        expected_files = list(stage.get("expected_files", [])) or ["tests/test_goal_behaviors.py"]
+        for relative in expected_files:
+            _write(project / str(relative), _test_source(shared_context))
         result = real_test_execution.run_tests(project, timeout=60)
         return {"status": "ok" if result.get("verdict") == "PASS" else "fail", "test_result": result}
 
-    if stage_id == "visual":
-        _record(recorder, stage, local_context, "create_visual_evidence", "Required by visual stage in build DAG")
-        for name in ("app_home", "search_results", "report_preview"):
+    if stage_type == "visual":
+        _record(recorder, stage, local_context, "create_visual_evidence", "Collect controlled synthetic previews without promoting them to formal evidence.")
+        interface_names = [str(item) for item in shared_context.get("goal_spec", {}).get("interfaces", [])]
+        preview_names = list(dict.fromkeys([*interface_names, "overview", "primary_action", "result_state"]))[:3]
+        for name in preview_names:
             runtime_visual_evidence.write_runtime_preview_png(project / "screenshots" / f"{name}.png", title=name)
         result = runtime_visual_evidence.collect_visual_evidence(project)
         return {"status": "ok" if result.get("verdict") == "PASS" else "fail", "visual_result": result}
 
-    if stage_id == "delivery":
-        _record(recorder, stage, local_context, "package_delivery", "Required by delivery stage in build DAG")
+    if stage_type == "delivery":
+        _record(recorder, stage, local_context, "package_delivery", "Exercise the existing packager and public gate in the controlled reference lane.")
         _write(project / "DELIVERY_NOTES.md", "# Delivery Notes\n\ncontrolled_agent_tree_lane: PASS\nnot_real_provider_proof: true\n")
         manifest = local_packager.package_project(
             project,
             output_dir=project,
             startup_command="python app/main.py",
-            screenshot_path=project / "screenshots" / "app_home.png",
+            screenshot_path=next(iter(sorted((project / "screenshots").glob("*.png"))), None),
         )
         return {"status": "ok", "manifest": manifest}
 

@@ -6915,7 +6915,10 @@ def test_browser_local_complexity_contract_does_not_invent_backend_pipeline() ->
         "Build a fully local task board with Python standard-library launcher, native HTML/CSS/JavaScript, "
         "localStorage persistence, and no database."
     )
-    selected = run_local_pipeline_impl.discovery_selection_lane._task_board_candidate(goal)
+    selected = run_local_pipeline_impl.discovery_selection_lane.select_candidate(
+        run_local_pipeline_impl.discovery_selection_lane.generate_candidates(goal)
+    )
+    assert selected is not None
     contract = run_local_pipeline_impl.discovery_selection_lane.build_contract(selected)
     plan = {
         "selected_requirement": {
@@ -6941,7 +6944,10 @@ def test_browser_local_complexity_contract_does_not_invent_backend_pipeline() ->
 
 def test_web_python_architecture_uses_explicit_runtime_boundary_not_js_import() -> None:
     goal = "Build a local visual novel studio with a Python story core and browser editor."
-    selected = run_local_pipeline_impl.discovery_selection_lane._visual_novel_candidate(goal)
+    selected = run_local_pipeline_impl.discovery_selection_lane.select_candidate(
+        run_local_pipeline_impl.discovery_selection_lane.generate_candidates(goal)
+    )
+    assert selected is not None
     contract = run_local_pipeline_impl.discovery_selection_lane.build_contract(selected)
     plan = {
         "selected_requirement": {

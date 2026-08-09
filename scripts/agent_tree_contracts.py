@@ -8,17 +8,14 @@ from typing import Any
 
 
 DEFAULT_EVAL_DIR = pathlib.Path("generated/agent_tree_rebuild_eval")
-DEFAULT_PROJECT_ID = "local-ai-knowledge-studio"
+DEFAULT_PROJECT_ID = "goal-driven-local-project"
 DEFAULT_ALLOWED_CONTEXT_TERMS = [
-    "document import",
-    "knowledge base",
-    "search",
-    "summary",
-    "tasks",
-    "reports",
-    "local model adapter",
-    "settings",
-    "dashboard",
+    "local first",
+    "runnable application",
+    "goal specific behavior",
+    "tests",
+    "readme",
+    "delivery bundle",
 ]
 DEFAULT_FORBIDDEN_CONTEXT_TERMS = [
     "视频",
@@ -29,6 +26,8 @@ DEFAULT_FORBIDDEN_CONTEXT_TERMS = [
     "sprite",
     "video material",
     "image generation demo",
+    "unrelated product template",
+    "placeholder-only implementation",
 ]
 
 

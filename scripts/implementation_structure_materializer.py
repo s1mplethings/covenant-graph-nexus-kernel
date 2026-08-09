@@ -496,6 +496,7 @@ def write_stage_artifacts(project_dir: pathlib.Path, stages: list[str], artifact
     previous = ""
     for stage, artifact_name in stage_artifact_pairs(stages, artifacts):
         path = project_dir / artifact_name
+        path.parent.mkdir(parents=True, exist_ok=True)
         doc = {
             "stage": stage,
             "status": "degraded",

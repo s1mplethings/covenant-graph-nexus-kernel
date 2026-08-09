@@ -221,9 +221,13 @@ def run_controlled_dynamic_growth(
 
     shared_context = create_shared_context(project_name, goal)
     save_shared_context(shared_context, out)
-    local_context = reduce_context(shared_context, agent_id="main_agent", stage="dynamic_growth", raw_context=goal + " 视频素材 鉴挂判别 背景立绘 鼠标键盘动作")
+    local_context = reduce_context(shared_context, agent_id="main_agent", stage="dynamic_growth", raw_context=goal)
     save_local_context(local_context, out)
-    alignment = evaluate_goal_alignment(shared_context, "document import + knowledge base + search + reports + tasks + local model adapter")
+    alignment_plan = " + ".join(
+        str(item).replace("_", " ")
+        for item in shared_context.get("goal_spec", {}).get("capabilities", [])
+    )
+    alignment = evaluate_goal_alignment(shared_context, alignment_plan)
     write_json(out / "goal_alignment.json", alignment)
     if alignment["verdict"] != "PASS":
         final = {"verdict": "FAIL", "reason": "goal_alignment_failed"}

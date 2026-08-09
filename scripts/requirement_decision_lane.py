@@ -18,6 +18,8 @@ STATUS_LAYERS = [
 ]
 REQUIREMENT_ARTIFACTS = [
     "customer_goal_brief.md",
+    "goal_spec.json",
+    "project_plan.json",
     "need_interpretations.json",
     "candidate_requirements.json",
     "requirement_scorecard.json",
@@ -68,7 +70,11 @@ MEDIA_PRODUCT_TERMS = (
     "video workbench",
     "video slicer",
     "video clip",
+    "media review",
+    "media production",
     "media processing",
+    "media evidence",
+    "media pipeline",
     "video material",
     "transcribe",
     "clip selection",
@@ -186,6 +192,388 @@ def goal_has_task_board_product(raw_goal: str) -> bool:
 def goal_has_specialized_analysis_product(raw_goal: str) -> bool:
     domain_goal = product_domain_goal(raw_goal)
     return any(token in domain_goal for token in SPECIALIZED_ANALYSIS_PRODUCT_TERMS)
+
+
+def _contains_goal_term(goal: str, terms: tuple[str, ...]) -> bool:
+    lowered = product_domain_goal(goal)
+    return any(term in lowered for term in terms)
+
+
+def _goal_profile(raw_goal: str) -> dict[str, Any] | None:
+    goal = str(raw_goal or "").strip()
+    lowered = product_domain_goal(goal)
+    if not goal:
+        return None
+    if goal_has_visual_novel_product(goal):
+        return {
+            "domain": "visual_novel_editor",
+            "capabilities": ["create_scenes", "manage_characters", "link_story_branches", "edit_dialogue", "preview_story_flow", "export_story_project"],
+            "user_flows": ["create scenes and characters", "edit dialogue and connect story branches", "preview alternate story flow", "export and reload the story project"],
+            "entities": ["StoryProject", "Scene", "Character", "Dialogue", "StoryBranch"],
+            "interfaces": ["story_tree", "scene_editor", "character_editor", "branch_editor", "story_preview", "project_export"],
+            "constraints": ["local_first", "persistent_project_state", "no_cloud_required"],
+            "acceptance_behaviors": ["a scene can be created and edited", "a character can be created and assigned dialogue", "a branch can be linked to another scene", "edited dialogue survives save and export", "the user can preview and export the story flow"],
+        }
+    if _contains_goal_term(goal, ("pomodoro", "番茄钟", "work and break", "work/break")):
+        return {
+            "domain": "productivity_timer",
+            "capabilities": ["start_timer", "pause_resume_timer", "reset_timer", "switch_work_break_cycle", "show_remaining_time"],
+            "user_flows": ["start a configured work timer", "pause and resume the countdown", "reset the current session", "reach zero and switch between work and break phases"],
+            "entities": ["TimerSession", "TimerSettings", "TimerPhase"],
+            "interfaces": ["timer_view", "timer_controls", "phase_indicator", "timer_settings"],
+            "constraints": ["local_first", "no_cloud_required", "countdown_state_is_deterministic"],
+            "acceptance_behaviors": ["starting the timer decreases remaining time", "pausing the timer freezes the countdown", "resuming continues from the paused value", "reset restores the configured duration", "reaching zero switches the work or break phase"],
+        }
+    if "csv" in lowered and _contains_goal_term(goal, ("clean", "cleaning", "missing", "清洗", "缺失")):
+        return {
+            "domain": "csv_cleaning_tool",
+            "capabilities": ["import_csv", "detect_missing_values", "configure_cleaning_rules", "apply_cleaning_rules", "preview_cleaned_result", "export_cleaned_csv"],
+            "user_flows": ["import a local CSV file", "inspect missing values and choose cleaning rules", "preview the cleaned result", "export a new CSV file"],
+            "entities": ["CsvDataset", "CsvColumn", "MissingValueFinding", "CleaningRule", "CleaningResult"],
+            "interfaces": ["csv_import", "cleaning_rule_editor", "result_preview", "csv_export"],
+            "constraints": ["local_first", "preserve_source_file", "no_cloud_required"],
+            "acceptance_behaviors": ["a valid CSV parses into rows and columns", "missing values are detected", "selected cleaning rules transform matching values", "the preview reflects the cleaned result", "the cleaned dataset exports as a new CSV"],
+        }
+    if _contains_goal_term(goal, ("choreography", "dance sequence", "舞蹈编排", "舞谱")):
+        return {
+            "domain": "choreography_notation_editor",
+            "capabilities": ["create_dance_sequence", "add_movement_notation", "arrange_sequence_timing", "edit_transition", "preview_choreography", "export_notation_project"],
+            "user_flows": ["create a dance sequence", "add movements and timing", "edit transitions between movements", "preview and export the notation plan"],
+            "entities": ["ChoreographyProject", "DanceSequence", "Movement", "Transition", "TimingCue"],
+            "interfaces": ["sequence_editor", "movement_palette", "timing_track", "choreography_preview", "project_export"],
+            "constraints": ["local_first", "editable_sequence_order", "no_cloud_required"],
+            "acceptance_behaviors": ["a movement can be added to a sequence", "movement timing can be changed", "transitions preserve their linked movements", "the sequence can be previewed and exported"],
+        }
+    studio_operations_requested = (
+        _contains_goal_term(goal, ("studio operations", "studio hub"))
+        and _contains_goal_term(goal, ("asset", "production task", "bug", "release"))
+    )
+    if studio_operations_requested:
+        return {
+            "domain": "local_studio_operations_hub",
+            "capabilities": ["show_project_dashboard", "track_production_tasks", "manage_asset_library", "track_bugs_and_issues", "record_build_and_release_history", "manage_release_checklist", "manage_team_roles", "search_operational_records", "import_export_workspace"],
+            "user_flows": ["review project and production progress", "update tasks, assets, bugs, and release state", "search operational records", "import or export the local workspace"],
+            "entities": ["StudioProject", "ProductionTask", "Asset", "Issue", "Build", "ReleaseChecklist", "TeamMember"],
+            "interfaces": ["project_dashboard", "production_board", "asset_library", "issue_tracker", "release_view", "team_roles", "workspace_import_export"],
+            "constraints": ["local_first", "no_external_saas_required"],
+            "acceptance_behaviors": ["production progress is visible", "tasks, assets, issues, and releases retain their state", "operational records can be searched", "the workspace can be imported and exported"],
+        }
+    knowledge_requested = (
+        _contains_goal_term(goal, ("knowledge studio", "knowledge workspace", "知识工作台", "知识库"))
+        and _contains_goal_term(goal, ("document", "资料", "文档", "knowledge", "知识"))
+    )
+    if knowledge_requested:
+        return {
+            "domain": "local_ai_knowledge_studio",
+            "capabilities": ["import_documents", "search_knowledge_base", "track_knowledge_tasks", "generate_reports", "configure_local_model_adapter"],
+            "user_flows": ["import local documents", "search the indexed knowledge base", "create tasks from findings", "generate a report", "configure or inspect the local model adapter"],
+            "entities": ["Document", "KnowledgeEntry", "KnowledgeTask", "Report", "ModelConfiguration"],
+            "interfaces": ["document_import", "knowledge_search", "task_workspace", "report_view", "model_settings"],
+            "constraints": ["local_first", "honest_model_capability", "no_cloud_required"],
+            "acceptance_behaviors": ["an imported document becomes searchable", "knowledge search returns matching source content", "a task can be created from knowledge work", "a report summarizes selected sources and tasks", "missing model configuration is reported without claiming inference"],
+        }
+    if goal_has_task_board_product(goal):
+        return {
+            "domain": "local_task_board",
+            "capabilities": ["create_task", "move_task_status", "delete_task", "filter_tasks", "persist_board_state"],
+            "user_flows": ["create a task", "move it between board states", "filter visible tasks", "reload persisted board state", "delete a task"],
+            "entities": ["Task", "TaskStatus", "BoardFilter"],
+            "interfaces": ["task_board", "task_editor", "board_filters"],
+            "constraints": ["local_first", "no_cloud_required"],
+            "acceptance_behaviors": ["a task can be created", "task status can be changed", "filters change the visible task set", "board state survives reload", "a task can be deleted"],
+        }
+    if goal_has_media_product(goal):
+        return {
+            "domain": "local_media_workbench",
+            "capabilities": ["import_media", "process_media_pipeline", "review_segments", "select_clips", "export_media_artifacts"],
+            "user_flows": ["import local media", "run the processing stages", "review segments", "select clips", "export traceable artifacts"],
+            "entities": ["MediaAsset", "PipelineRun", "Segment", "ClipSelection", "ExportManifest"],
+            "interfaces": ["media_import", "pipeline_run", "segment_review", "clip_export"],
+            "constraints": ["local_first", "honest_degraded_mode"],
+            "acceptance_behaviors": ["imported media enters a traceable run", "stage results remain linked to the run", "segments can be reviewed and selected", "selected clips export with a manifest"],
+        }
+    if goal_has_specialized_analysis_product(goal):
+        return {
+            "domain": "specialized_analysis_workbench",
+            "capabilities": ["register_authorized_sources", "acquire_authorized_input", "validate_input_provenance", "normalize_evidence", "analyze_explainable_features", "export_review_report"],
+            "user_flows": ["register a reviewed source", "acquire authorized input", "validate and normalize evidence", "analyze explainable features", "export a human-review report"],
+            "entities": ["SourceRegistry", "AcquisitionRecord", "EvidenceRecord", "FeatureFinding", "ReviewReport"],
+            "interfaces": ["source_registry", "analysis_runs", "evidence_review", "report_export"],
+            "constraints": ["authorized_inputs_only", "source_traceability", "no_automatic_punitive_decision"],
+            "acceptance_behaviors": ["input provenance is retained", "invalid input is rejected", "analysis findings cite normalized evidence", "the exported report states limitations"],
+        }
+    if _contains_goal_term(goal, ("studio operations", "team operating", "团队管理", "indie team")):
+        return {
+            "domain": "team_operations_console",
+            "capabilities": ["plan_milestones", "track_team_tasks", "link_project_assets", "record_decisions", "assess_risks", "export_release_status"],
+            "user_flows": ["create a milestone", "assign and track work", "link assets and decisions", "review risks", "export release status"],
+            "entities": ["Milestone", "TeamTask", "ProjectAsset", "Decision", "Risk", "ReleaseStatus"],
+            "interfaces": ["team_dashboard", "milestone_board", "asset_links", "decision_log", "risk_review", "release_export"],
+            "constraints": ["local_first", "traceable_status_changes"],
+            "acceptance_behaviors": ["milestones retain linked tasks", "assets remain linked to work", "decisions and risks are reviewable", "release status can be exported"],
+        }
+    if _contains_goal_term(goal, ("research", "资料整理", "研究工作台")):
+        return {
+            "domain": "local_research_workspace",
+            "capabilities": ["import_sources", "extract_source_metadata", "create_evidence_notes", "cluster_topics", "draft_traceable_brief", "export_evidence_pack"],
+            "user_flows": ["import research sources", "create source-linked notes", "organize topics", "draft a brief", "export an evidence pack"],
+            "entities": ["Source", "EvidenceNote", "TopicCluster", "ResearchBrief"],
+            "interfaces": ["source_import", "notes_workspace", "topic_board", "brief_editor", "evidence_export"],
+            "constraints": ["local_first", "source_traceability"],
+            "acceptance_behaviors": ["an imported source retains provenance", "notes remain linked to sources", "topics group related notes", "the exported brief cites its evidence"],
+        }
+    words = re.findall(r"[a-z][a-z0-9_-]+|[\u4e00-\u9fff]{2,}", lowered)
+    capability_rules = (
+        ("create", "create_domain_record"), ("edit", "edit_domain_record"),
+        ("plan", "plan_domain_workflow"), ("manage", "manage_domain_state"),
+        ("track", "track_domain_state"), ("import", "import_domain_data"),
+        ("export", "export_domain_result"), ("preview", "preview_domain_result"),
+        ("analy", "analyze_domain_data"),
+    )
+    capabilities = [capability for marker, capability in capability_rules if marker in lowered]
+    capabilities = list(dict.fromkeys(capabilities))
+    if len(words) < 4 or len(capabilities) < 2:
+        return None
+    return {
+        "domain": "custom_local_application",
+        "capabilities": capabilities,
+        "user_flows": ["provide domain input", "perform the requested domain workflow", "review and save the domain result"],
+        "entities": ["DomainRecord", "ProjectState"],
+        "interfaces": ["primary_workspace", "domain_editor", "result_view"],
+        "constraints": ["local_first", "no_unrequested_external_service"],
+        "acceptance_behaviors": [capability.replace("_", " ") + " behaves on user-provided data" for capability in capabilities],
+    }
+
+
+def build_goal_spec(raw_goal: str) -> dict[str, Any]:
+    profile = _goal_profile(raw_goal)
+    if profile is None:
+        return {
+            "kind": "GoalSpec",
+            "status": "NEEDS_REWORK",
+            "reason": "INSUFFICIENT_GOAL_PLAN",
+            "goal": str(raw_goal or "").strip(),
+            "domain": "generic_custom",
+            "capabilities": [],
+            "user_flows": [],
+            "entities": [],
+            "interfaces": [],
+            "constraints": [],
+            "acceptance_behaviors": [],
+        }
+    return {
+        "kind": "GoalSpec",
+        "status": "PASS",
+        "goal": str(raw_goal or "").strip(),
+        **profile,
+    }
+
+
+DOMAIN_WORKSTREAMS: dict[str, list[tuple[str, str]]] = {
+    "productivity_timer": [
+        ("timer_domain", "Model timer sessions, settings, phases, and valid transitions."),
+        ("timer_state", "Implement start, pause, resume, reset, countdown, and work/break state changes."),
+        ("timer_ui", "Expose remaining time, phase state, controls, and settings in the local interface."),
+        ("timer_behavior_tests", "Verify countdown, pause, reset, and phase-switch behavior."),
+    ],
+    "csv_cleaning_tool": [
+        ("csv_import", "Parse local CSV input and preserve source data and column shape."),
+        ("cleaning_engine", "Detect missing values and apply explicit cleaning rules."),
+        ("result_preview", "Present findings and the cleaned row/column result before export."),
+        ("csv_export", "Write a new CSV without overwriting the source file."),
+        ("cleaning_tests", "Verify parsing, missing-value transformation, preview, and export."),
+    ],
+    "visual_novel_editor": [
+        ("story_model", "Model scenes, characters, dialogue, links, and branching story state."),
+        ("scene_editor", "Create and edit scenes and dialogue."),
+        ("character_editor", "Create characters and assign character dialogue and metadata."),
+        ("branch_editor", "Connect scenes into validated branches and alternate paths."),
+        ("preview_export", "Preview story flow and save or export the project."),
+        ("story_behavior_tests", "Verify scene, character, branch, dialogue persistence, preview, and export behavior."),
+    ],
+    "choreography_notation_editor": [
+        ("sequence_model", "Model dance sequences, movements, transitions, and timing cues."),
+        ("notation_editor", "Create and edit movement notation."),
+        ("movement_timeline", "Arrange movement order, timing, and transitions."),
+        ("sequence_preview_export", "Preview choreography and export the notation project."),
+        ("choreography_tests", "Verify movement editing, timing, transition integrity, preview, and export."),
+    ],
+    "local_ai_knowledge_studio": [
+        ("document_import", "Import local documents and retain source metadata."),
+        ("knowledge_search", "Index and search imported knowledge content."),
+        ("task_reporting", "Create knowledge-work tasks and generate source-linked reports."),
+        ("model_adapter", "Configure a local model adapter and report missing capability honestly."),
+        ("knowledge_behavior_tests", "Verify import, search, task, report, and adapter-limit behavior."),
+    ],
+    "local_media_workbench": [
+        ("ingest_video", "Import local media and record a traceable media manifest."),
+        ("extract_audio", "Extract usable audio or record an honest degraded result."),
+        ("build_audio_chunk_manifest", "Split audio into traceable chunks for transcription."),
+        ("transcribe_chunks", "Transcribe available chunks through the configured capability."),
+        ("merge_transcript", "Merge chunk transcripts while retaining source timing."),
+        ("optional_analysis", "Analyze and score reviewable media segments."),
+        ("select_segments", "Select candidate segments using explicit review criteria."),
+        ("build_clip_manifest", "Build a clip manifest linked to selected segments."),
+        ("render_clips_batch", "Render or honestly degrade the selected clip batch."),
+        ("export_results", "Export reports, manifests, and selected media artifacts."),
+        ("media_behavior_tests", "Verify import, traceability, review, selection, degraded-mode, and export behavior."),
+    ],
+    "specialized_analysis_workbench": [
+        ("research_platform_sources", "Research and record reviewed official source capabilities and limitations."),
+        ("acquire_authorized_input", "Acquire only authorized input while retaining provenance."),
+        ("validate_and_normalize_evidence", "Validate input integrity and normalize traceable evidence records."),
+        ("analyze_explainable_features", "Compute explainable features without making automatic punitive decisions."),
+        ("render_evidence_report", "Export a human-review report that cites evidence and limitations."),
+        ("specialized_analysis_tests", "Verify authorization, provenance, normalization, explainability, and report behavior."),
+    ],
+}
+
+DOMAIN_RUNTIME_ARTIFACTS: dict[str, list[str]] = {
+    "local_media_workbench": [
+        "stage_plan.json",
+        "media_manifest.json",
+        "audio_chunk_manifest.json",
+        "transcript_merged.json",
+        "segment_analysis.json",
+        "selected_segments.json",
+        "clip_manifest.json",
+        "export_results.json",
+    ],
+}
+
+
+def _workstream_output(workstream_id: str) -> str:
+    if workstream_id.endswith("_tests") or "behavior_tests" in workstream_id:
+        return f"tests/test_{workstream_id}.py"
+    return f"src/{workstream_id}.py"
+
+
+def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
+    if goal_spec.get("status") != "PASS":
+        return {
+            "kind": "GoalDrivenProjectPlan",
+            "status": "NEEDS_REWORK",
+            "reason": goal_spec.get("reason", "INSUFFICIENT_GOAL_PLAN"),
+            "workstreams": [],
+            "leaves": [],
+            "dependencies": [],
+            "expected_project_structure": [],
+            "business_outputs": [],
+            "runtime_artifacts": [],
+            "test_intents": [],
+        }
+    domain = str(goal_spec.get("domain", "custom_local_application"))
+    definitions = DOMAIN_WORKSTREAMS.get(domain)
+    if not definitions:
+        definitions = [
+            (str(capability), f"Implement and verify {str(capability).replace('_', ' ')} for the stated goal.")
+            for capability in goal_spec.get("capabilities", [])
+        ]
+        definitions.append(("goal_behavior_tests", "Verify every acceptance behavior from the GoalSpec."))
+    workstreams: list[dict[str, Any]] = []
+    prior_ids: list[str] = []
+    foundation = {
+        "id": "foundation",
+        "scope": "Create the runnable local project shell, dependency metadata, and shared domain contracts.",
+        "depends_on": [],
+        "expected_outputs": ["README.md", "pyproject.toml", "src/__init__.py", "app/main.py"],
+        "test_intents": [],
+    }
+    workstreams.append(foundation)
+    prior_ids.append("foundation")
+    acceptance_behaviors = [str(item) for item in goal_spec.get("acceptance_behaviors", [])]
+    for workstream_id, scope in definitions:
+        is_test = workstream_id.endswith("_tests") or "behavior_tests" in workstream_id
+        dependencies = list(prior_ids if is_test else ["foundation"])
+        test_intents = acceptance_behaviors if is_test else []
+        workstream = {
+            "id": workstream_id,
+            "scope": scope,
+            "depends_on": dependencies,
+            "expected_outputs": [_workstream_output(workstream_id)],
+            "test_intents": test_intents,
+        }
+        workstreams.append(workstream)
+        prior_ids.append(workstream_id)
+    delivery_dependencies = [workstreams[-1]["id"]] if workstreams else ["foundation"]
+    workstreams.append({
+        "id": "delivery",
+        "scope": "Document local startup, known constraints, and expected project contents for the existing delivery path.",
+        "depends_on": delivery_dependencies,
+        "expected_outputs": ["TEST_PLAN.md", "DELIVERY_NOTES.md"],
+        "test_intents": [],
+    })
+    leaves = [
+        {
+            "leaf_id": f"{workstream['id']}_leaf",
+            "workstream_id": workstream["id"],
+            "scope": workstream["scope"],
+            "depends_on": [f"{item}_leaf" for item in workstream["depends_on"]],
+            "expected_outputs": list(workstream["expected_outputs"]),
+            "test_intents": list(workstream["test_intents"]),
+        }
+        for workstream in workstreams
+    ]
+    expected_structure = list(dict.fromkeys(path for row in workstreams for path in row["expected_outputs"]))
+    business_outputs = [path for path in expected_structure if path not in {"README.md", "pyproject.toml", "src/__init__.py", "app/main.py", "TEST_PLAN.md", "DELIVERY_NOTES.md"}]
+    return {
+        "kind": "GoalDrivenProjectPlan",
+        "status": "PASS",
+        "goal": goal_spec.get("goal", ""),
+        "domain": domain,
+        "workstreams": workstreams,
+        "leaves": leaves,
+        "dependencies": [{"from": dependency, "to": row["id"]} for row in workstreams for dependency in row["depends_on"]],
+        "expected_project_structure": expected_structure,
+        "business_outputs": business_outputs,
+        "runtime_artifacts": list(DOMAIN_RUNTIME_ARTIFACTS.get(domain, business_outputs)),
+        "test_intents": acceptance_behaviors,
+    }
+
+
+def _goal_candidate_id(domain: str) -> str:
+    return {
+        "local_media_workbench": "local_video_material_workbench_requirement",
+        "local_task_board": "local_task_board_requirement",
+        "visual_novel_editor": "local_visual_novel_studio_requirement",
+        "local_research_workspace": "local_research_workspace_requirement",
+        "local_ai_knowledge_studio": "local_ai_knowledge_studio_requirement",
+        "specialized_analysis_workbench": "goal_derived_specialized_analysis_requirement",
+        "team_operations_console": "indie_team_operating_console_requirement",
+    }.get(domain, f"goal_derived_{slug(domain)}_requirement")
+
+
+def candidate_from_goal_spec(goal_spec: dict[str, Any], project_plan: dict[str, Any]) -> dict[str, Any]:
+    domain = str(goal_spec.get("domain", "custom_local_application"))
+    title = domain.replace("_", " ").title()
+    return _candidate(
+        candidate_id=_goal_candidate_id(domain),
+        name=title,
+        summary=f"Goal-derived local product plan for: {goal_spec.get('goal', '')}",
+        target_user="The user described by the current goal.",
+        core_problem=f"Implement the requested {title} behavior without substituting an unrelated product template.",
+        product_shape="Local-first application shaped by the declared interfaces and constraints.",
+        mvp_features=[str(item).replace("_", " ") for item in goal_spec.get("capabilities", [])],
+        non_goals=["Unrequested external services", "Unrelated product-domain capabilities"],
+        core_workflow=[str(item) for item in goal_spec.get("user_flows", [])],
+        pages=[str(item).replace("_", " ") for item in goal_spec.get("interfaces", [])],
+        modules=[str(item.get("id", "")) for item in project_plan.get("workstreams", []) if item.get("id") not in {"foundation", "delivery"}],
+        stages=[str(item.get("id", "")) for item in project_plan.get("workstreams", [])],
+        artifacts=[str(item) for item in project_plan.get("business_outputs", [])],
+        match="It is derived directly from the canonical GoalSpec for the current user goal.",
+        wrong="The plan requires revision if the user changes the stated capabilities, flows, entities, or constraints.",
+        complexity_level="complex",
+        customer_value_score=99,
+        clarity_score=98,
+        local_first_feasibility=96,
+        delivery_feasibility=94,
+        testability_score=98,
+        implementation_risk="low",
+        demo_degradation_risk="low",
+        fake_pass_risk="low",
+        acceptance_summary="; ".join(str(item) for item in goal_spec.get("acceptance_behaviors", [])),
+        degraded_mode=False,
+    ) | {"goal_spec": goal_spec, "project_plan": project_plan}
 
 
 def goal_is_complex(raw_goal: str, context: dict[str, Any] | None = None) -> bool:
@@ -336,269 +724,6 @@ def _candidate(
     }
 
 
-def _video_requirement() -> dict[str, Any]:
-    return _candidate(
-        candidate_id="local_video_material_workbench_requirement",
-        name="Local video material processing workbench",
-        summary="A local-first workbench for ingesting video, extracting or simulating audio, chunking/transcribing, analyzing segments, selecting clips, and exporting reviewable artifacts.",
-        target_user="Creators or operators who need repeatable local media processing.",
-        core_problem="Raw media work becomes untraceable and hard to evaluate when it is reduced to a single preview.",
-        product_shape="Desktop/web GUI plus CLI over a shared orchestration core.",
-        mvp_features=["Local media import", "Pipeline run view", "Segment review", "Clip selection", "Artifact export", "Honest degraded mode"],
-        non_goals=["Cloud rendering farm", "Guaranteed real speech recognition without configured model", "Public media publishing"],
-        core_workflow=["import media", "extract audio", "chunk input", "transcribe or degrade honestly", "score segments", "select clips", "export manifests"],
-        pages=["Import", "Pipeline", "Segments", "Review", "Exports", "Settings"],
-        modules=["orchestrator", "stages", "artifact_store", "cli", "gui", "degraded_runtime", "tests"],
-        stages=["ingest_video", "extract_audio", "chunk_audio", "transcribe_audio", "analyze_segments", "select_segments", "render_clips", "export_results"],
-        artifacts=["stage_plan.json", "media_manifest.json", "audio_chunk_manifest.json", "transcript_merged.json", "segment_analysis.json", "selected_segments.json", "clip_manifest.json", "export_results.json"],
-        match="It turns the rough video-tool goal into a concrete local product with testable artifacts.",
-        wrong="If the customer only wanted a tiny converter, this is larger than needed.",
-        complexity_level="production_scale",
-        customer_value_score=94,
-        clarity_score=92,
-        local_first_feasibility=84,
-        delivery_feasibility=82,
-        testability_score=86,
-        implementation_risk="medium",
-        demo_degradation_risk="low",
-        fake_pass_risk="low",
-        acceptance_summary="A run creates stage artifacts, GUI/CLI share the same core, and missing models are reported as degraded instead of success.",
-    )
-
-
-def _visual_novel_requirement() -> dict[str, Any]:
-    return _candidate(
-        candidate_id="local_visual_novel_studio_requirement",
-        name="Local visual novel authoring studio",
-        summary="A local visual-novel studio with a typed branching story graph, separate background and transparent sprite generation, asset binding, persistence, branch preview, and project export.",
-        target_user="Visual-novel writers and small creative teams.",
-        core_problem="Story branches, character variants, and scene art are difficult to keep consistent when authored in disconnected tools.",
-        product_shape="Responsive local web studio over a shared story, asset, generation-adapter, persistence, and preview core.",
-        mvp_features=[
-            "Create, edit, connect, merge, and delete story nodes",
-            "Validate branches, orphan nodes, and illegal cycles",
-            "Generate backgrounds and transparent character sprites through separate adapters",
-            "Store prompt, seed, hash, generator, and variant metadata in an asset library",
-            "Bind scene and character assets to story nodes",
-            "Save, reload, import, export, and preview alternate endings",
-        ],
-        non_goals=[
-            "Claiming diffusion-model output when no model or provider is configured",
-            "Cloud collaboration and user accounts",
-            "Automatic publication to game stores",
-        ],
-        core_workflow=[
-            "define story and asset contracts",
-            "edit and validate the story graph",
-            "generate background assets",
-            "generate transparent sprite variants",
-            "bind assets to nodes",
-            "preview branches",
-            "save and export project",
-        ],
-        pages=["Story Tree", "Node Editor", "Characters", "Backgrounds", "Asset Library", "Preview", "Project"],
-        modules=["story_graph", "story_schema", "asset_library", "image_adapters", "persistence", "preview_runtime", "web_ui", "tests"],
-        stages=[
-            "define_document_contracts",
-            "edit_story_graph",
-            "validate_story_graph",
-            "generate_background_assets",
-            "generate_sprite_assets",
-            "bind_assets_to_nodes",
-            "preview_story_branch",
-            "export_project",
-        ],
-        artifacts=[
-            "story.schema.json",
-            "project.json",
-            "asset_manifest.json",
-            "generation_capability.json",
-            "story_graph_validation.json",
-            "preview_trace.json",
-            "export_manifest.json",
-        ],
-        match="It preserves the explicitly requested visual-novel, branching-story, background-generation, and character-sprite domain.",
-        wrong="If the customer wanted only a linear script editor, the graph and asset-generation scope would be larger than necessary.",
-        complexity_level="production_scale",
-        customer_value_score=98,
-        clarity_score=97,
-        local_first_feasibility=90,
-        delivery_feasibility=88,
-        testability_score=95,
-        implementation_risk="medium",
-        demo_degradation_risk="low",
-        fake_pass_risk="low",
-        acceptance_summary="A creator can build and reload a branching story, generate distinct decoder-valid backgrounds and alpha sprites through honest capability-aware adapters, bind them to nodes, and preview different endings.",
-    )
-
-
-def _task_board_requirement() -> dict[str, Any]:
-    return _candidate(
-        candidate_id="local_task_board_requirement",
-        name="Local task board",
-        summary="A local browser task board with task creation, status movement, filtering, deletion, and durable browser persistence.",
-        target_user="Individuals or small teams managing local work.",
-        core_problem="Tasks become hard to operate when state changes and filters are not available in one persistent local board.",
-        product_shape="Single-page local web application with a Python standard-library launcher and native HTML/CSS/JavaScript.",
-        mvp_features=["Create tasks", "Move task status", "Delete tasks", "Filter board", "Persist with localStorage", "Responsive accessible interface"],
-        non_goals=["Cloud synchronization", "Multi-user authentication", "External database", "Hosted notification service"],
-        core_workflow=["open board", "create task", "move status", "filter tasks", "reload persisted state", "delete task"],
-        pages=["Task Board"],
-        modules=["local server", "board state", "task interactions", "styles", "tests"],
-        stages=["serve_app", "load_state", "create_task", "update_task", "filter_board", "persist_state"],
-        artifacts=["board_contract.json", "interaction_test_report.json", "persistence_test_report.json", "runtime_evidence.json"],
-        match="It directly implements the requested task board; screenshot and video remain acceptance evidence only.",
-        wrong="If the customer primarily wants media processing rather than task management, a media workflow would be more appropriate.",
-        complexity_level="complex",
-        customer_value_score=96,
-        clarity_score=96,
-        local_first_feasibility=98,
-        delivery_feasibility=96,
-        testability_score=96,
-        implementation_risk="low",
-        demo_degradation_risk="low",
-        fake_pass_risk="low",
-        acceptance_summary="The local board must support task CRUD, status movement, filtering, persistence, automated tests, and real browser evidence.",
-    )
-
-
-def _team_requirement() -> dict[str, Any]:
-    return _candidate(
-        candidate_id="indie_team_operating_console_requirement",
-        name="Independent team operating console",
-        summary="A local team management product for milestones, tasks, assets, decisions, risks, playtest notes, and release-readiness evidence.",
-        target_user="Small independent teams that need lightweight operational discipline.",
-        core_problem="Team context gets scattered across task lists, asset folders, and decisions with no shared acceptance view.",
-        product_shape="Project dashboard with CLI import/export and structured local storage.",
-        mvp_features=["Milestone board", "Decision log", "Risk register", "Asset/task links", "Acceptance checklist", "Exportable status report"],
-        non_goals=["Full HR/payroll", "Real-time multiplayer collaboration", "Enterprise permission system"],
-        core_workflow=["create project", "define milestone", "link tasks and assets", "record decisions", "review risks", "export release report"],
-        pages=["Dashboard", "Milestones", "Tasks", "Assets", "Decisions", "Risks", "Release"],
-        modules=["orchestrator", "stages", "storage", "cli", "gui", "reporting", "tests"],
-        stages=["load_workspace", "plan_milestones", "link_assets", "record_decisions", "assess_risks", "review_acceptance", "export_status"],
-        artifacts=["workspace_manifest.json", "milestone_plan.json", "asset_links.json", "decision_log.json", "risk_register.json", "acceptance_status.json", "release_report.json"],
-        match="It interprets a team-tool goal as a decision and delivery coordination product.",
-        wrong="If the customer wants only a generic kanban, this has more product structure than needed.",
-        complexity_level="complex",
-        customer_value_score=84,
-        clarity_score=82,
-        local_first_feasibility=90,
-        delivery_feasibility=86,
-        testability_score=88,
-        implementation_risk="low",
-        demo_degradation_risk="medium",
-        fake_pass_risk="low",
-        acceptance_summary="The product must prove that team artifacts, decisions, risks, and release status are connected and exportable.",
-    )
-
-
-def _research_requirement() -> dict[str, Any]:
-    return _candidate(
-        candidate_id="local_research_workspace_requirement",
-        name="Local research and source synthesis workspace",
-        summary="A local research workspace for importing documents, extracting notes, linking source evidence, clustering topics, and producing traceable briefs.",
-        target_user="Researchers or operators organizing local materials.",
-        core_problem="Research notes lose provenance and cannot be reviewed when reduced to a static notes page.",
-        product_shape="Local knowledge workbench with document intake, evidence graph, synthesis board, CLI batch run, and GUI review.",
-        mvp_features=["Document import", "Metadata extraction", "Evidence notes", "Topic clustering", "Brief generation", "Source traceability"],
-        non_goals=["Cloud knowledge base sync", "Guaranteed OCR/model extraction without configured dependency", "Legal/medical claims verification"],
-        core_workflow=["import sources", "extract metadata", "create notes", "cluster topics", "draft brief", "export evidence pack"],
-        pages=["Sources", "Notes", "Topics", "Evidence", "Brief", "Exports"],
-        modules=["orchestrator", "stages", "source_store", "cli", "gui", "synthesis", "tests"],
-        stages=["load_sources", "extract_metadata", "create_notes", "cluster_topics", "link_evidence", "draft_brief", "export_pack"],
-        artifacts=["source_manifest.json", "metadata_index.json", "notes.json", "topic_clusters.json", "evidence_links.json", "brief_draft.json", "export_manifest.json"],
-        match="It makes a vague research-workbench goal concrete and locally testable.",
-        wrong="If the customer needs live web research, local-first mode is only the first version.",
-        complexity_level="complex",
-        customer_value_score=86,
-        clarity_score=84,
-        local_first_feasibility=92,
-        delivery_feasibility=84,
-        testability_score=88,
-        implementation_risk="low",
-        demo_degradation_risk="low",
-        fake_pass_risk="low",
-        acceptance_summary="The output must preserve source-to-brief traceability and report degraded extraction honestly.",
-    )
-
-
-def _specialized_analysis_requirement(raw_goal: str) -> dict[str, Any]:
-    return _candidate(
-        candidate_id="goal_derived_specialized_analysis_requirement",
-        name="Goal-derived specialized analysis workbench",
-        summary=(
-            "A local-first, source-aware analysis workbench derived from the customer's stated "
-            "domain: research authorized inputs, acquire and validate them, normalize evidence, "
-            "run explainable analysis, and export human-review reports."
-        ),
-        target_user="Analysts who need a traceable workflow for the specialized domain named in the goal.",
-        core_problem=(
-            "A specialized analysis request loses its real product domain when it is forced into "
-            "an unrelated generic media, data-quality, or research template."
-        ),
-        product_shape="CLI and library interfaces over a shared, modular analysis pipeline.",
-        mvp_features=[
-            "Official-source research registry",
-            "Authorized input acquisition adapters",
-            "Input validation and provenance",
-            "Normalized evidence model",
-            "Explainable feature analysis",
-            "Human-review risk report",
-        ],
-        non_goals=[
-            "Credential bypass or hidden scraping",
-            "Automatic punitive decisions",
-            "Claiming live-platform validation without credentials and real inputs",
-        ],
-        core_workflow=[
-            "research official sources",
-            "register reviewed acquisition capabilities",
-            "acquire authorized input",
-            "validate and normalize evidence",
-            "extract explainable features",
-            "score review priority",
-            "export cited report",
-        ],
-        pages=["Sources", "Acquisition", "Runs", "Evidence", "Review", "Reports"],
-        modules=["research", "sources", "parsers", "models", "features", "scoring", "reporting", "cli", "tests"],
-        stages=[
-            "research_platform_sources",
-            "acquire_authorized_input",
-            "validate_input",
-            "parse_evidence",
-            "normalize_evidence",
-            "extract_features",
-            "score_review_risk",
-            "render_evidence_report",
-        ],
-        artifacts=[
-            "source_registry.json",
-            "acquisition_manifest.json",
-            "input_validation.json",
-            "parsed_evidence.json",
-            "normalized_evidence.json",
-            "feature_report.json",
-            "risk_assessment.json",
-            "evidence_report.json",
-        ],
-        match=f"It preserves the specialized product domain stated in the goal: {product_domain_goal(raw_goal)[:300]}",
-        wrong="If the goal is actually a generic data-cleaning or media-editing request, a dedicated generic direction may be simpler.",
-        complexity_level="production_scale",
-        customer_value_score=97,
-        clarity_score=94,
-        local_first_feasibility=86,
-        delivery_feasibility=82,
-        testability_score=92,
-        implementation_risk="medium",
-        demo_degradation_risk="low",
-        fake_pass_risk="low",
-        acceptance_summary=(
-            "Offline fixtures prove the complete research-to-report pipeline; live acquisition remains "
-            "explicitly limited until authorized credentials and real inputs are supplied."
-        ),
-    )
-
-
 def _small_demo_requirement() -> dict[str, Any]:
     return _candidate(
         candidate_id="single_static_page_demo_requirement",
@@ -661,24 +786,31 @@ def _cloud_requirement() -> dict[str, Any]:
 
 
 def generate_candidate_requirements(raw_goal: str, interpretations: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
-    lowered = raw_goal.lower()
     candidates: list[dict[str, Any]] = []
-    if goal_has_specialized_analysis_product(raw_goal):
-        candidates.append(_specialized_analysis_requirement(raw_goal))
-    if goal_has_task_board_product(raw_goal):
-        candidates.append(_task_board_requirement())
-    if goal_has_visual_novel_product(raw_goal):
-        candidates.append(_visual_novel_requirement())
-    if goal_has_media_product(raw_goal):
-        candidates.append(_video_requirement())
-    if any(token in lowered for token in ("game", "studio", "team", "indie", "独立游戏", "团队", "管理")):
-        candidates.append(_team_requirement())
-    if any(token in lowered for token in ("research", "资料", "整理", "knowledge", "文档", "工作台")):
-        candidates.append(_research_requirement())
-    for candidate in (_video_requirement(), _team_requirement(), _research_requirement(), _cloud_requirement(), _small_demo_requirement()):
+    goal_spec = build_goal_spec(raw_goal)
+    project_plan = build_goal_project_plan(goal_spec)
+    if goal_spec.get("status") == "PASS" and project_plan.get("status") == "PASS":
+        candidates.append(candidate_from_goal_spec(goal_spec, project_plan))
+    # Keep only domain-neutral rejected alternatives. Domain-specific fixed candidates
+    # must never leak into a different user's planning output.
+    for candidate in (_cloud_requirement(), _small_demo_requirement()):
         if not any(existing["id"] == candidate["id"] for existing in candidates):
             candidates.append(candidate)
-    return {"customer_goal": raw_goal, "generated_at": now(), "candidates": candidates[:5]}
+    unique_candidates: list[dict[str, Any]] = []
+    seen_candidate_ids: set[str] = set()
+    for candidate in candidates:
+        candidate_id = str(candidate.get("id", ""))
+        if not candidate_id or candidate_id in seen_candidate_ids:
+            continue
+        seen_candidate_ids.add(candidate_id)
+        unique_candidates.append(candidate)
+    return {
+        "customer_goal": raw_goal,
+        "generated_at": now(),
+        "goal_spec": goal_spec,
+        "project_plan": project_plan,
+        "candidates": unique_candidates[:5],
+    }
 
 
 def rejection_reasons(candidate: dict[str, Any], *, complex_goal: bool = False) -> list[str]:
@@ -800,10 +932,14 @@ def select_requirement(candidates: dict[str, Any] | list[dict[str, Any]], scorec
         "known_assumptions": ["The selected MVP can be revised if the customer rejects the chosen direction."],
         "open_questions_not_blocking": ["Confirm exact runtime platform and preferred UI style before final polish."],
         "decision_confidence": "high" if int(best.get("total_score", 0)) >= 80 else "medium",
+        "goal_spec": candidate.get("goal_spec", {}),
+        "project_plan": candidate.get("project_plan", {}),
     }
 
 
 def build_acceptance_contract(selected: dict[str, Any]) -> dict[str, Any]:
+    goal_spec = selected.get("goal_spec", {}) if isinstance(selected.get("goal_spec"), dict) else {}
+    project_plan = selected.get("project_plan", {}) if isinstance(selected.get("project_plan"), dict) else {}
     return {
         "contract_id": "requirement_acceptance_contract_v1",
         "selected_requirement_id": selected.get("selected_requirement_id", ""),
@@ -813,6 +949,8 @@ def build_acceptance_contract(selected: dict[str, Any]) -> dict[str, Any]:
         "required_product_outputs": [],
         "required_delivery_evidence": ["README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md", "run_dir"],
         "implementation_delivery_evidence": ["final_project_bundle.zip", "screenshot"],
+        "acceptance_behaviors": list(goal_spec.get("acceptance_behaviors", [])),
+        "test_intents": list(project_plan.get("test_intents", [])),
         "status_layers": STATUS_LAYERS,
         "forbidden_shortcuts": FORBIDDEN_SHORTCUTS,
     }
@@ -940,8 +1078,12 @@ def write_requirement_decision_artifacts(result: dict[str, Any], run_dir: pathli
     scorecard = result.get("requirement_scorecard", {})
     selected = result.get("selected_requirement", {})
     contract = result.get("acceptance_contract", {})
+    goal_spec = result.get("goal_spec", {})
+    project_plan = result.get("project_plan", {})
     paths = {
         "customer_goal_brief": str(base / "customer_goal_brief.md"),
+        "goal_spec": str(base / "goal_spec.json"),
+        "project_plan": str(base / "project_plan.json"),
         "need_interpretations": str(base / "need_interpretations.json"),
         "candidate_requirements": str(base / "candidate_requirements.json"),
         "requirement_scorecard": str(base / "requirement_scorecard.json"),
@@ -953,6 +1095,8 @@ def write_requirement_decision_artifacts(result: dict[str, Any], run_dir: pathli
         "customer_decision_summary": str(base / "customer_decision_summary.md"),
     }
     write_text(pathlib.Path(paths["customer_goal_brief"]), customer_goal_brief(str(result.get("raw_goal", "")), interpretations))
+    write_json(pathlib.Path(paths["goal_spec"]), goal_spec)
+    write_json(pathlib.Path(paths["project_plan"]), project_plan)
     write_json(pathlib.Path(paths["need_interpretations"]), interpretations)
     write_json(pathlib.Path(paths["candidate_requirements"]), candidate_doc)
     write_json(pathlib.Path(paths["requirement_scorecard"]), scorecard)
@@ -972,10 +1116,23 @@ def load_requirement_acceptance_contract(run_dir: pathlib.Path) -> dict[str, Any
 def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict[str, Any] | None = None) -> dict[str, Any]:
     context = dict(context or {})
     context.setdefault("complex_goal", goal_is_complex(raw_goal, context))
+    goal_spec = build_goal_spec(raw_goal)
+    project_plan = build_goal_project_plan(goal_spec)
     interpretations = generate_need_interpretations(raw_goal, context)
     candidates = generate_candidate_requirements(raw_goal, interpretations, context)
-    scorecard = score_candidate_requirements(candidates, context)
-    selected = select_requirement(candidates, scorecard, context)
+    if goal_spec.get("status") == "PASS" and project_plan.get("status") == "PASS":
+        scorecard = score_candidate_requirements(candidates, context)
+        selected = select_requirement(candidates, scorecard, context)
+    else:
+        scorecard = {"scores": [], "status": "NEEDS_REWORK", "reason": "INSUFFICIENT_GOAL_PLAN"}
+        selected = {
+            "status": "NEEDS_REWORK",
+            "selected_requirement_id": "",
+            "selected_requirement_name": "",
+            "reason": "INSUFFICIENT_GOAL_PLAN",
+            "goal_spec": goal_spec,
+            "project_plan": project_plan,
+        }
     status = "PASS" if selected.get("selected_requirement_id") else "NEEDS_REWORK"
     contract = build_acceptance_contract(selected) if status == "PASS" else {
         "contract_id": "requirement_acceptance_contract_v1",
@@ -987,6 +1144,8 @@ def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict
     result = {
         "status": status,
         "raw_goal": raw_goal,
+        "goal_spec": goal_spec,
+        "project_plan": project_plan,
         "need_interpretations": interpretations,
         "candidate_requirements": candidates,
         "requirement_scorecard": scorecard,

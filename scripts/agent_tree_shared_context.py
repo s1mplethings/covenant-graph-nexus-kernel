@@ -23,93 +23,29 @@ except ModuleNotFoundError:  # pragma: no cover
         write_json,
     )
 
-
-LOCAL_AI_KNOWLEDGE_CONTRACT = [
-    "import documents into a local knowledge base",
-    "search knowledge base content",
-    "summarize source material",
-    "track tasks created from knowledge work",
-    "generate reports",
-    "document local model adapter configuration and limits",
-]
-
-LOCAL_STUDIO_OPERATIONS_CONTRACT = [
-    "show a dashboard with project overview and production progress",
-    "track production tasks with status, owner, priority, and due dates",
-    "manage an asset library for local studio files and metadata",
-    "track bugs and issues with severity and resolution state",
-    "record build and release history",
-    "provide docs or production guideline pages",
-    "manage a release checklist",
-    "manage team members and roles",
-    "support search and filtering across operational records",
-    "support local import and export workflows",
-    "run locally without external SaaS dependencies",
-    "include a runnable entry point",
-    "include README instructions",
-    "include tests for core workflows",
-    "include screenshots and final bundle evidence",
-]
-
-LOCAL_STUDIO_ALLOWED_CONTEXT_TERMS = [
-    "studio operations",
-    "dashboard",
-    "project overview",
-    "production tasks",
-    "asset library",
-    "bugs",
-    "issues",
-    "builds",
-    "releases",
-    "docs",
-    "production guidelines",
-    "release checklist",
-    "team roles",
-    "search",
-    "filter",
-    "import",
-    "export",
-    "local-first",
-]
+try:
+    import requirement_decision_lane
+except ModuleNotFoundError:  # pragma: no cover
+    from scripts import requirement_decision_lane
 
 
 def build_goal_specific_acceptance_contract(project_name: str, user_goal: str) -> dict[str, Any]:
-    goal_text = f"{project_name} {user_goal}".lower()
-    if all(term in goal_text for term in ("studio", "operations")) or "local studio operations hub" in goal_text:
-        return {
-            "kind": "GoalSpecificAcceptanceContract",
-            "domain": "local_studio_operations_hub",
-            "required_capabilities": list(LOCAL_STUDIO_OPERATIONS_CONTRACT),
-            "forbidden_scope": [
-                "external SaaS dependency",
-                "simple task-board-only output",
-                "placeholder-only screenshot",
-                "missing runnable entry point",
-                "output without tests",
-                "output without final bundle",
-            ],
-        }
-    if any(term in goal_text for term in ("knowledge", "知识", "document", "文档", "资料")):
-        domain = "local_ai_knowledge_studio"
-        capabilities = LOCAL_AI_KNOWLEDGE_CONTRACT
-    else:
-        domain = "goal_specific_local_application"
-        capabilities = [
-            "implement the current user goal as the primary product scope",
-            "provide local-first runnable application behavior",
-            "include domain-specific dashboard or overview",
-            "include CRUD or workflow actions required by the goal",
-            "include README instructions",
-            "include tests for core workflows",
-            "include screenshots and final bundle evidence",
-        ]
+    goal_spec = requirement_decision_lane.build_goal_spec(user_goal or project_name)
+    project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
     return {
         "kind": "GoalSpecificAcceptanceContract",
-        "domain": domain,
-        "required_capabilities": list(capabilities),
+        "status": goal_spec.get("status", "NEEDS_REWORK"),
+        "domain": goal_spec.get("domain", "generic_custom"),
+        "required_capabilities": [
+            str(item).replace("_", " ") for item in goal_spec.get("capabilities", [])
+        ],
+        "acceptance_behaviors": list(goal_spec.get("acceptance_behaviors", [])),
+        "goal_spec": goal_spec,
+        "project_plan": project_plan,
         "forbidden_scope": [
             "drift to an unrelated product domain",
             "placeholder-only implementation",
+            "silent fallback to an unrelated product template",
             "missing runnable entry point",
             "output without tests",
             "output without final bundle",
@@ -125,20 +61,25 @@ def create_shared_context(
     current_stage: str = "intake",
 ) -> dict[str, Any]:
     goal_contract = build_goal_specific_acceptance_contract(project_name, user_goal)
-    allowed_context_terms = (
-        list(LOCAL_STUDIO_ALLOWED_CONTEXT_TERMS)
-        if goal_contract["domain"] == "local_studio_operations_hub"
-        else list(DEFAULT_ALLOWED_CONTEXT_TERMS)
-    )
+    goal_spec = goal_contract["goal_spec"]
+    project_plan = goal_contract["project_plan"]
+    allowed_context_terms = list(
+        dict.fromkeys(
+            [str(item).replace("_", " ") for item in goal_spec.get("capabilities", [])]
+            + [str(item).replace("_", " ") for item in goal_spec.get("interfaces", [])]
+            + [str(item) for item in goal_spec.get("entities", [])]
+        )
+    ) or list(DEFAULT_ALLOWED_CONTEXT_TERMS)
+    model_adapter_required = "configure_local_model_adapter" in goal_spec.get("capabilities", [])
     return {
         "kind": "AgentTreeSharedContext",
         "project_id": project_id or slugify(project_name),
         "project_name": project_name,
         "user_goal": user_goal,
         "target_project_model": {
-            "mode": "local_model",
-            "config_needed": True,
-            "adapter_required": True,
+            "mode": "local_model" if model_adapter_required else "local_application",
+            "config_needed": model_adapter_required,
+            "adapter_required": model_adapter_required,
         },
         "cgkn_backend": {
             "mode": "api",
@@ -146,6 +87,8 @@ def create_shared_context(
         "frozen_requirements": [],
         "acceptance_contract": list(goal_contract["required_capabilities"]),
         "goal_specific_acceptance_contract": goal_contract,
+        "goal_spec": goal_spec,
+        "project_plan": project_plan,
         "allowed_context_terms": allowed_context_terms,
         "forbidden_context_terms": list(DEFAULT_FORBIDDEN_CONTEXT_TERMS),
         "current_stage": current_stage,

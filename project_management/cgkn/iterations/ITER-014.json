@@ -1,0 +1,89 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-014",
+  "project_id": "cgkn",
+  "goal": "Make production project planning consume one goal-driven GoalSpec and dynamic Project Plan without Knowledge Studio fallback or delivery-gate changes.",
+  "backlog_item_ids": [
+    "PB-013"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "Existing test, runtime, visual, review, packaging, and delivery truth semantics remain unchanged.",
+    "Knowledge Studio capabilities appear only when the user goal explicitly requests that product domain.",
+    "Pomodoro, CSV cleaning, and visual-novel editor goals produce distinct capabilities, user flows, entities, business workstreams, leaf scopes, outputs, and test intents.",
+    "The Telegram Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
+    "Unknown but sufficiently explicit goals receive a goal-derived plan or an explicit NEEDS_REWORK result, never an unrelated Knowledge Studio plan."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-SCALE",
+      "measure": "bounded context and affected-work repair at increasing project scale",
+      "target": "context remains within configured budgets and unrelated checkpoints remain reusable",
+      "method": "generation scale ladder and ACFV-scale trial"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "requirement decision is the sole owner of canonical GoalSpec and GoalDrivenProjectPlan creation",
+    "discovery, requirement blueprint, Provider component leaves, and controlled Agent Tree receive the same canonical goal and plan values",
+    "existing Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest contracts remain authoritative",
+    "unsupported or insufficient goals return NEEDS_REWORK rather than an unrelated product template"
+  ],
+  "evidence_refs": [
+    "generated/dynamic_agent_tree_fix_eval/test_profiles/quick_result.json (PASS: 1197 passed, 383 deselected)",
+    "pytest goal-driven targeted (PASS: 69 passed, 2 skipped)",
+    "pytest provider and delivery gates (PASS: 210 passed, 41 skipped)"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "Canonical GoalSpec and GoalDrivenProjectPlan now drive discovery, requirement blueprint, Provider component leaves, and controlled Agent Tree projections."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-013"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Centralizing planning in requirement decision exposed and removed the downstream fixed-candidate mismatch."
+    ],
+    "did_not_work": [
+      "The official quick profile default 300-second wall-clock limit expired before the unchanged test set completed."
+    ],
+    "experiments": [
+      "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures."
+    ]
+  }
+}

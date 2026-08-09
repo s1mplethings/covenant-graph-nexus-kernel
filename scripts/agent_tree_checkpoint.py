@@ -26,11 +26,10 @@ def _expected_paths(project_dir: pathlib.Path, expected_files: list[str]) -> tup
 
 
 def _python_import_smoke(project_dir: pathlib.Path) -> bool:
-    py_files = [project_dir / "app" / "main.py"]
-    services_dir = project_dir / "app" / "services"
-    if services_dir.exists():
-        py_files.extend(sorted(services_dir.glob("*.py")))
-    py_files = [path for path in py_files if path.exists()]
+    py_files = [
+        path for path in sorted(project_dir.rglob("*.py"))
+        if "tests" not in path.relative_to(project_dir).parts
+    ]
     if not py_files:
         return False
     proc = subprocess.run(
@@ -62,8 +61,21 @@ def _verify(
 ) -> bool:
     if gate == "goal_terms_present":
         frozen = out_dir / "frozen_requirement.json"
-        text = frozen.read_text(encoding="utf-8", errors="replace").lower() if frozen.exists() else ""
-        return all(term in text for term in ("document", "knowledge", "search", "reports", "tasks"))
+        if not frozen.exists():
+            return False
+        try:
+            doc = json.loads(frozen.read_text(encoding="utf-8", errors="replace"))
+        except Exception:
+            return False
+        goal_spec = doc.get("goal_spec", {}) if isinstance(doc, dict) else {}
+        return bool(
+            isinstance(goal_spec, dict)
+            and goal_spec.get("status") == "PASS"
+            and str(goal_spec.get("goal", "")).strip()
+            and str(goal_spec.get("domain", "")).strip()
+            and goal_spec.get("capabilities")
+            and goal_spec.get("acceptance_behaviors")
+        )
     if gate == "no_forbidden_context":
         forbidden = list((shared_context or {}).get("forbidden_context_terms") or [])
         targets = [out_dir / "frozen_requirement.json", project_dir / "README.md"]
