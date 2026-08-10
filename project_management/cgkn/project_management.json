@@ -348,6 +348,30 @@
         "QM-REGRESSION",
         "QM-SCALE"
       ]
+    },
+    {
+      "id": "PB-014",
+      "title": "Bind dynamic project plans to goal acceptance",
+      "outcome": "The existing post-build route evaluates every canonical goal test intent against an exact executable test and real passing test execution before a candidate can become review-ready.",
+      "priority": 14,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-013"
+      ],
+      "acceptance_criteria": [
+        "Each GoalDrivenProjectPlan assigns a stable exact test symbol to every acceptance behavior without changing the canonical GoalSpec truth.",
+        "The existing Provider tests component receives and implements those exact goal-test symbols through its current manifest and leaf route.",
+        "Post-build goal acceptance independently verifies plan identity, substantive executable tests, and a real passing test result before candidate review readiness.",
+        "Missing, trivial, mismatched, or failed goal tests produce NEEDS_REWORK and cannot be hidden by UI, fixture, packaging, or planning support artifacts.",
+        "Goal acceptance remains a support receipt and cannot authorize canonical final verdict, packaging, delivery receipt, or public delivery PASS."
+      ],
+      "quality_metric_ids": [
+        "QM-GOAL-ACCEPTANCE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -437,6 +461,12 @@
         "measure": "end-to-end fitness of a Provider-generated visual-novel studio with branching narrative and self-generated visual assets",
         "target": "one fresh large generation exposes a persistent editable story tree, produces at least two distinct decoder-valid background or sprite images through the declared generation route, binds those assets to story nodes, passes its generated test suite and browser interaction scenario, and records any external-model limitations without fake outputs",
         "method": "Provider run receipts, generated source/interface inspection, generated pytest suite, clean runtime launch, browser story-editing flow, media decoder/hash comparison, and existing module/design quality receipts"
+      },
+      {
+        "id": "QM-GOAL-ACCEPTANCE",
+        "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+        "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+        "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
       }
     ],
     "assurance_activities": [
@@ -495,7 +525,8 @@
     "iterations/ITER-011.json",
     "iterations/ITER-012.json",
     "iterations/ITER-013.json",
-    "iterations/ITER-014.json"
+    "iterations/ITER-014.json",
+    "iterations/ITER-015.json"
   ],
   "improvement_backlog": [
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
@@ -509,7 +540,8 @@
     "Retain large reviewed archives in an external verified cache and stage only the selected input plus provenance into a candidate run.",
     "Extend the quality adapter registry to real compiler or linker probes for additional generated languages only when their toolchains are declared and available.",
     "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings.",
-    "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures."
+    "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures.",
+    "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; defer any CGKNFinalVerdict consumption to its dedicated next increment."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

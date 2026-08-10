@@ -676,6 +676,7 @@ def component_required_manifest_paths(component_id: str, component: dict[str, An
 def normalize_test_manifest_dependency_contract(
     manifest: list[dict[str, Any]],
     prior_manifest: list[str],
+    component: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     available = {
         str(path).replace("\\", "/").strip()
@@ -696,8 +697,33 @@ def normalize_test_manifest_dependency_contract(
         for path in ("backend/orchestrator.py", "backend/stages.py", "main.py")
         if path in available
     ]
+    goal_tests = [
+        item
+        for item in (
+            component.get("goal_acceptance_tests", [])
+            if isinstance(component, dict)
+            else []
+        )
+        if isinstance(item, dict)
+        and str(item.get("intent", "")).strip()
+        and re.fullmatch(r"test_[A-Za-z0-9_]+", str(item.get("test_symbol", "")).strip())
+    ]
+    goal_test_symbols = {str(item["test_symbol"]) for item in goal_tests}
+    test_entry_indexes = [
+        index
+        for index, entry in enumerate(manifest)
+        if str(entry.get("path", "")).replace("\\", "/").startswith("tests/")
+        and str(entry.get("path", "")).endswith(".py")
+    ]
+    assignments: dict[int, list[dict[str, Any]]] = {
+        index: [] for index in test_entry_indexes
+    }
+    for offset, goal_test in enumerate(goal_tests):
+        if test_entry_indexes:
+            assignments[test_entry_indexes[offset % len(test_entry_indexes)]].append(goal_test)
+
     normalized: list[dict[str, Any]] = []
-    for raw_entry in manifest:
+    for entry_index, raw_entry in enumerate(manifest):
         entry = dict(raw_entry)
         path = str(entry.get("path", "")).replace("\\", "/").strip()
         if not (path.startswith("tests/") and path.endswith(".py")):
@@ -722,11 +748,36 @@ def normalize_test_manifest_dependency_contract(
         if not existing and not inferred:
             inferred.extend(fallback_paths[:1])
         entry["dependencies"] = list(dict.fromkeys([*existing, *inferred]))[:4]
-        entry["expected_symbols"] = [
+        existing_symbols = [
             str(symbol).strip()
             for symbol in entry.get("expected_symbols", [])
             if re.fullmatch(r"test_[A-Za-z0-9_]+", str(symbol).strip())
+            and str(symbol).strip() not in goal_test_symbols
         ][:12] if isinstance(entry.get("expected_symbols", []), list) else []
+        assigned_goal_tests = assignments.get(entry_index, [])
+        required_symbols = [str(item["test_symbol"]) for item in assigned_goal_tests]
+        entry["expected_symbols"] = list(dict.fromkeys([*required_symbols, *existing_symbols]))[:12]
+        responsibilities = [
+            str(item).strip()
+            for item in entry.get("responsibilities", [])
+            if str(item).strip()
+            and not any(symbol in str(item) for symbol in goal_test_symbols)
+        ] if isinstance(entry.get("responsibilities", []), list) else []
+        acceptance_checks = [
+            str(item).strip()
+            for item in entry.get("acceptance_checks", [])
+            if str(item).strip()
+            and not any(symbol in str(item) for symbol in goal_test_symbols)
+        ] if isinstance(entry.get("acceptance_checks", []), list) else []
+        for goal_test in assigned_goal_tests:
+            responsibilities.append(
+                f"Implement {goal_test['test_symbol']} as a substantive executable test for: {goal_test['intent']}"
+            )
+            acceptance_checks.append(
+                f"{goal_test['test_symbol']} contains a non-trivial assertion and passes in the real project test run."
+            )
+        entry["responsibilities"] = list(dict.fromkeys(responsibilities))[:8]
+        entry["acceptance_checks"] = list(dict.fromkeys(acceptance_checks))[:8]
         normalized.append(entry)
     return normalized
 
@@ -3497,6 +3548,9 @@ def enrich_component_pipeline_with_goal_plan(
         ]
         component["test_intents"] = (
             list(project_plan.get("test_intents", [])) if component_id == "tests" else []
+        )
+        component["goal_acceptance_tests"] = (
+            list(project_plan.get("goal_acceptance_tests", [])) if component_id == "tests" else []
         )
     pipeline["canonical_goal_spec"] = goal_spec
     pipeline["canonical_project_plan"] = project_plan
@@ -6670,7 +6724,7 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
             parsed_result=doc,
         )
     if component_id == "tests":
-        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest)
+        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest, component)
     manifest = normalize_backend_stage_dependency_contract(
         component_id, manifest, component
     )
@@ -10151,7 +10205,7 @@ def provider_generate_project_component_split(
             last_transport_error=last_transport_error,
         )
     if component_id == "tests":
-        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest)
+        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest, component)
     manifest = normalize_backend_stage_dependency_contract(
         component_id, manifest, component
     )

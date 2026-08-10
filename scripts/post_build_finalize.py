@@ -9,10 +9,11 @@ from typing import Any
 
 try:
     import complexity_project_contract_check
+    import goal_acceptance
     import visual_evidence
     from pipeline_contracts import base_result
 except ModuleNotFoundError:  # pragma: no cover - package import path
-    from scripts import complexity_project_contract_check, visual_evidence
+    from scripts import complexity_project_contract_check, goal_acceptance, visual_evidence
     from scripts.pipeline_contracts import base_result
 
 
@@ -47,8 +48,14 @@ def run(**kwargs: Any) -> dict[str, Any]:
     result = legacy.run_candidate_post_build_finalize(**legacy_kwargs)
     project_dir = pathlib.Path(str(kwargs.get("project_dir", "")))
     if str(project_dir):
-        ensure_candidate_review_artifacts(project_dir, result)
         run_dir = pathlib.Path(str(kwargs.get("run_dir", project_dir)))
+        apply_goal_acceptance_gate(
+            project_dir,
+            run_dir,
+            result,
+            timeout=min(int(kwargs.get("timeout", 180) or 180), 180),
+        )
+        ensure_candidate_review_artifacts(project_dir, result)
         ensure_video_evidence(
             project_dir,
             run_dir,
@@ -58,6 +65,65 @@ def run(**kwargs: Any) -> dict[str, Any]:
         )
         apply_complexity_contract_gate(project_dir, run_dir, result)
     return result
+
+
+def apply_goal_acceptance_gate(
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    result: dict[str, Any],
+    *,
+    timeout: int = 180,
+) -> None:
+    test_result = (
+        result.get("test_result", {})
+        if isinstance(result.get("test_result", {}), dict)
+        else {}
+    )
+    test_argv = test_result.get("argv", []) if isinstance(test_result.get("argv", []), list) else []
+    if (
+        "pytest" not in " ".join(str(item).lower() for item in test_argv)
+        and (pathlib.Path(project_dir) / "tests").is_dir()
+        and (pathlib.Path(run_dir) / "requirement_decision").is_dir()
+    ):
+        test_result = _legacy().run_allowed_command(
+            [sys.executable, "-m", "pytest", "-q"],
+            pathlib.Path(project_dir),
+            timeout=max(1, min(int(timeout), 180)),
+        )
+        result["goal_test_result"] = test_result
+    receipt = goal_acceptance.evaluate_goal_acceptance(
+        project_dir=project_dir,
+        run_dir=run_dir,
+        test_result=test_result,
+    )
+    artifact_path = pathlib.Path(run_dir) / "artifacts" / "goal_acceptance.json"
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(artifact_path, receipt)
+    result["goal_acceptance"] = receipt
+    result["goal_acceptance_ref"] = str(artifact_path.resolve())
+    if not receipt.get("applicable") or receipt.get("status") == "PASS":
+        write_post_build_result(run_dir, result)
+        return
+
+    result["status"] = "needs_rework"
+    result["candidate_review_ready"] = False
+    result["candidate_review_summary"] = ""
+    blockers = [str(item) for item in receipt.get("blockers", []) if str(item).strip()]
+    result["goal_acceptance_blockers"] = blockers
+    known_limits = result.get("known_limits", []) if isinstance(result.get("known_limits"), list) else []
+    for blocker in blockers:
+        note = f"goal_acceptance: {blocker}"
+        if note not in known_limits:
+            known_limits.append(note)
+    result["known_limits"] = known_limits
+    limits_path = pathlib.Path(project_dir) / "known_limits.json"
+    limits_doc = _read_json(limits_path)
+    limits_doc.update({"candidate_only": True, "known_limits": known_limits})
+    _write_json(limits_path, limits_doc)
+    summary_path = pathlib.Path(project_dir) / "candidate_review_summary.json"
+    if summary_path.exists():
+        summary_path.unlink()
+    write_post_build_result(run_dir, result)
 
 
 def apply_complexity_contract_gate(
@@ -134,7 +200,10 @@ def ensure_candidate_review_artifacts(project_dir: pathlib.Path, result: dict[st
         result["screenshot_capture"] = {"status": "skipped", "reason": "tests did not pass yet"}
     if result.get("screenshot_blocked"):
         ensure_startup_diagnostics(pathlib.Path(str(result.get("screenshot_blocked"))), project)
-    if not (project / "candidate_review_summary.json").exists():
+    if (
+        result.get("candidate_review_ready") is not False
+        and not (project / "candidate_review_summary.json").exists()
+    ):
         verdict = "ASK_USER_REVIEW" if test_status.lower() == "pass" else "NEEDS_REWORK"
         known_limits = result.get("known_limits", []) if isinstance(result.get("known_limits"), list) else []
         summary = legacy.write_candidate_review_summary(
@@ -346,8 +415,9 @@ def contract() -> dict[str, Any]:
                 "DELIVERY_NOTES",
                 "known_limits",
                 "repair_plan",
+                "goal acceptance support receipt",
                 "video_blocked/screenshot_blocked",
             ],
-            "forbidden": ["final package", "delivery manifest", "fake PASS"],
+            "forbidden": ["final package", "delivery manifest", "final verdict promotion", "fake PASS"],
         },
     )

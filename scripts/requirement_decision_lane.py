@@ -448,6 +448,22 @@ def _workstream_output(workstream_id: str) -> str:
     return f"src/{workstream_id}.py"
 
 
+def goal_acceptance_test_contract(acceptance_behaviors: list[Any]) -> list[dict[str, str]]:
+    """Assign an exact executable test identity to every canonical behavior."""
+    contract: list[dict[str, str]] = []
+    for index, raw_behavior in enumerate(acceptance_behaviors, start=1):
+        behavior = str(raw_behavior).strip()
+        if not behavior:
+            continue
+        contract.append(
+            {
+                "intent": behavior,
+                "test_symbol": f"test_goal_{index:02d}_{slug(behavior)}",
+            }
+        )
+    return contract
+
+
 def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
     if goal_spec.get("status") != "PASS":
         return {
@@ -461,6 +477,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
             "business_outputs": [],
             "runtime_artifacts": [],
             "test_intents": [],
+            "goal_acceptance_tests": [],
         }
     domain = str(goal_spec.get("domain", "custom_local_application"))
     definitions = DOMAIN_WORKSTREAMS.get(domain)
@@ -482,6 +499,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
     workstreams.append(foundation)
     prior_ids.append("foundation")
     acceptance_behaviors = [str(item) for item in goal_spec.get("acceptance_behaviors", [])]
+    goal_tests = goal_acceptance_test_contract(acceptance_behaviors)
     for workstream_id, scope in definitions:
         is_test = workstream_id.endswith("_tests") or "behavior_tests" in workstream_id
         dependencies = list(prior_ids if is_test else ["foundation"])
@@ -528,6 +546,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         "business_outputs": business_outputs,
         "runtime_artifacts": list(DOMAIN_RUNTIME_ARTIFACTS.get(domain, business_outputs)),
         "test_intents": acceptance_behaviors,
+        "goal_acceptance_tests": goal_tests,
     }
 
 

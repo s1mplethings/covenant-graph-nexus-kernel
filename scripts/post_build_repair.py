@@ -112,6 +112,7 @@ def post_build_repair_attempts(args: Any | None = None) -> int:
 
 def post_build_failure_log(finalize_result: dict[str, Any]) -> str:
     test_result = finalize_result.get("test_result", {}) if isinstance(finalize_result.get("test_result"), dict) else {}
+    goal_test_result = finalize_result.get("goal_test_result", {}) if isinstance(finalize_result.get("goal_test_result"), dict) else {}
     agent_usage = finalize_result.get("agent_usage", {}) if isinstance(finalize_result.get("agent_usage"), dict) else {}
     chunks = [
         "test_status=" + str(test_result.get("status", "")),
@@ -119,6 +120,11 @@ def post_build_failure_log(finalize_result: dict[str, Any]) -> str:
         str(test_result.get("error", "")),
         str(test_result.get("stdout_tail", "")),
         str(test_result.get("stderr_tail", "")),
+        "goal_test_status=" + str(goal_test_result.get("status", "")),
+        "goal_test_argv=" + json.dumps(goal_test_result.get("argv", []), ensure_ascii=False),
+        str(goal_test_result.get("stdout_tail", "")),
+        str(goal_test_result.get("stderr_tail", "")),
+        json.dumps(finalize_result.get("goal_acceptance", {}), ensure_ascii=False, default=str),
         "agent_usage_status=" + str(agent_usage.get("status", "")),
         json.dumps(agent_usage.get("failure_summary", ""), ensure_ascii=False, default=str),
         json.dumps(agent_usage.get("events", [])[-6:] if isinstance(agent_usage.get("events", []), list) else [], ensure_ascii=False, default=str),
@@ -139,8 +145,14 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     test_result = finalize_result.get("test_result", {}) if isinstance(finalize_result.get("test_result"), dict) else {}
     agent_usage = finalize_result.get("agent_usage", {}) if isinstance(finalize_result.get("agent_usage"), dict) else {}
     fixture_result = finalize_result.get("fixture_result", {}) if isinstance(finalize_result.get("fixture_result"), dict) else {}
+    goal_acceptance = finalize_result.get("goal_acceptance", {}) if isinstance(finalize_result.get("goal_acceptance"), dict) else {}
+    goal_test_result = finalize_result.get("goal_test_result", {}) if isinstance(finalize_result.get("goal_test_result"), dict) else {}
     log = post_build_failure_log(finalize_result).lower()
     if str(test_result.get("status", "")).lower() == "failed":
+        failures.add("test_failure")
+    if goal_acceptance.get("applicable") and goal_acceptance.get("status") != "PASS":
+        failures.add("goal_acceptance_failure")
+    if goal_test_result and str(goal_test_result.get("status", "")).lower() != "pass":
         failures.add("test_failure")
     if fixture_result and str(fixture_result.get("status", "")).lower() != "pass":
         failures.add("fixture_failure")
@@ -340,6 +352,11 @@ def default_post_build_targets(candidate_dir: pathlib.Path, failures: list[str])
     if "test_failure" in failures:
         for rel in ("scripts/test.js", "scripts/run-tests.mjs", "scripts/util/testRunner.js", "tests/smoke_test.mjs", "tests/frontend_smoke_check.mjs"):
             add(rel)
+    if "goal_acceptance_failure" in failures:
+        tests_dir = candidate_dir / "tests"
+        if tests_dir.is_dir():
+            for path in sorted(tests_dir.rglob("test_*.py")):
+                add(path.relative_to(candidate_dir).as_posix())
     if "windows_esm_path_import" in failures:
         for rel in ("scripts/run-tests.mjs", "tests/api_contract_test.mjs", "tests/smoke_test.mjs"):
             add(rel)

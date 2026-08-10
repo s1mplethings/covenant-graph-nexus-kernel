@@ -65,6 +65,8 @@ def test_goal_spec_and_project_plan_follow_product_goal(case: dict[str, object])
     assert goal_spec["entities"]
     assert goal_spec["interfaces"]
     assert goal_spec["acceptance_behaviors"] == project_plan["test_intents"]
+    assert [item["intent"] for item in project_plan["goal_acceptance_tests"]] == project_plan["test_intents"]
+    assert len({item["test_symbol"] for item in project_plan["goal_acceptance_tests"]}) == len(project_plan["test_intents"])
     for term in case["required"]:
         assert str(term) in combined
     stage_ids = {str(row["id"]) for row in project_plan["workstreams"]}
@@ -120,6 +122,7 @@ def test_production_component_route_consumes_canonical_goal_plan() -> None:
         assert expected.issubset(assigned)
         tests_component = next(row for row in component_pipeline["components"] if row["id"] == "tests")
         assert tests_component["test_intents"] == spec["acceptance_behaviors"]
+        assert tests_component["goal_acceptance_tests"] == plan["goal_acceptance_tests"]
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case["name"] for case in CASES])
