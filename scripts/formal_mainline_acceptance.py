@@ -313,6 +313,8 @@ def build_acceptance(
     gate_results: dict[str, dict[str, Any]] = {}
     context = {
         "production_provenance_ref": str(provenance.get("provenance_ref", "")),
+        "candidate_dir": str(candidate) if candidate else "",
+        "production_run_dir": str(production_run) if production_run else "",
         **(
             {"delivery_receipt_expectations": receipt_expectations}
             if receipt_expectations

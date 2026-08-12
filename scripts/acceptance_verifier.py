@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 
 from scripts import canonical_evidence_hash
 from scripts import formal_gate_registry
+from scripts import goal_acceptance
 
 
 KIND = "CGKNFinalVerdict"
@@ -101,6 +102,34 @@ def _aggregate_status(gates: dict[str, Any]) -> tuple[str, list[str], list[str]]
     return overall, sorted(set(internal_failures)), sorted(set(blockers))
 
 
+def _inspect_goal_support(context: dict[str, Any] | None) -> dict[str, Any]:
+    values = context or {}
+    run_value = str(values.get("production_run_dir", "")).strip()
+    project_value = str(values.get("candidate_dir", "")).strip()
+    run = pathlib.Path(run_value).resolve() if run_value else None
+    receipt = run / "artifacts" / goal_acceptance.FILE_NAME if run else None
+    inspection = goal_acceptance.inspect_goal_acceptance(
+        receipt,
+        project_dir=project_value or None,
+        run_dir=run,
+        canonical_test_evidence_ref=(
+            pathlib.Path(project_value).resolve() / "test_execution.json"
+            if project_value
+            else None
+        ),
+    )
+    applicable = bool(inspection.get("applicable"))
+    readable = bool(receipt and receipt.is_file() and not receipt.is_symlink())
+    return {
+        "status": str(inspection.get("status", "NEEDS_REWORK")).upper(),
+        "applicable": applicable,
+        "ref": str(receipt) if applicable and receipt else "",
+        "file_hash": canonical_evidence_hash.sha256_file(receipt) if applicable and readable else "",
+        "formal_delivery_authority": False,
+        "inspection": inspection,
+    }
+
+
 def produce_canonical_final_verdict(
     acceptance_dir: str | pathlib.Path,
     *,
@@ -159,6 +188,11 @@ def produce_canonical_final_verdict(
             if str(document.get(field, "")) != str(expected):
                 failures.append(f"gate_identity_mismatch:{name}:{field}")
     overall, internal_failures, blockers = _aggregate_status(gates)
+    goal_support = _inspect_goal_support(inspection_context)
+    if goal_support["applicable"] and goal_support["status"] != PASS:
+        failures.append(f"goal_acceptance_not_pass:{goal_support['status']}")
+        if overall != "FAIL":
+            overall = "NEEDS_REWORK"
     if failures and overall == PASS:
         overall = "NEEDS_REWORK"
     verdict: dict[str, Any] = {
@@ -174,6 +208,7 @@ def produce_canonical_final_verdict(
         "artifact_hash": "",
         "required_gates": list(REQUIRED_GATES),
         "upstream_gates": gates,
+        "support_prerequisites": {"goal_acceptance": goal_support},
         "overall_status": overall,
         "failures": sorted(set(failures)),
         "internal_failures": internal_failures,
@@ -265,6 +300,19 @@ def inspect_canonical_final_verdict(
             if str(upstream.get(field, "")) != str(expected):
                 failures.append(f"upstream_identity_mismatch:{name}:{field}")
     claimed = str(document.get("overall_status", ""))
+    support = document.get("support_prerequisites", {})
+    goal_support = support.get("goal_acceptance", {}) if isinstance(support, dict) else {}
+    if not isinstance(goal_support, dict):
+        goal_support = {}
+    actual_goal_support = _inspect_goal_support(inspection_context)
+    for field in ("status", "applicable", "ref", "file_hash", "formal_delivery_authority"):
+        if goal_support.get(field) != actual_goal_support.get(field):
+            failures.append(f"goal_acceptance_support_mismatch:{field}")
+    if goal_support.get("inspection") != actual_goal_support.get("inspection"):
+        failures.append("goal_acceptance_support_mismatch:inspection")
+    nonpass_support: list[str] = []
+    if actual_goal_support["applicable"] and actual_goal_support["status"] != PASS:
+        nonpass_support.append("goal_acceptance")
     if claimed != document.get("status"):
         failures.append("overall_status_mismatch")
     if claimed == PASS and (failures or nonpass):
@@ -282,19 +330,22 @@ def inspect_canonical_final_verdict(
             for name in REQUIRED_GATES
         }
     )
+    if nonpass_support and recomputed != "FAIL":
+        recomputed = "NEEDS_REWORK"
     if claimed != recomputed:
         failures.append("status_priority_mismatch")
     if document.get("internal_failures", []) != internal_failures:
         failures.append("internal_failures_mismatch")
     if document.get("blockers", []) != blockers:
         failures.append("blockers_mismatch")
-    inspection_status = PASS if not failures and not nonpass and claimed == PASS else (
-        claimed if not failures and nonpass and claimed in {"NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else "NEEDS_REWORK"
+    inspection_status = PASS if not failures and not nonpass and not nonpass_support and claimed == PASS else (
+        claimed if not failures and (nonpass or nonpass_support) and claimed in {"NEEDS_REWORK", "BLOCKED", "BLOCKED_PROVIDER"} else "NEEDS_REWORK"
     )
     return {
         "status": inspection_status,
         "failures": sorted(set(failures)),
         "nonpass_gates": sorted(set(nonpass)),
+        "nonpass_support": sorted(set(nonpass_support)),
         "verdict_path": str(path),
         "verdict": document,
     }

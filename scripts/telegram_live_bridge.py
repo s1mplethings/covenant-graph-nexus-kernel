@@ -42,6 +42,7 @@ import canonical_user_review
 import customer_runtime_runner
 import dynamic_pipeline_runner
 import frontdesk_team_lead_agent
+import goal_acceptance
 import local_packager
 import local_image_model_discovery
 import local_model_router
@@ -7008,6 +7009,11 @@ def post_build_finalize_provider_project(
         production_provenance_hash=provenance_hash,
         minimum_collected=minimum_test_count,
     )
+    goal_receipt, goal_receipt_path = goal_acceptance.produce_from_canonical_test_evidence(
+        project_dir=project_dir,
+        run_dir=production_run_dir,
+        test_evidence=test_result,
+    )
     append_agent_session_event(
         session_dir,
         chat_id,
@@ -7019,6 +7025,8 @@ def post_build_finalize_provider_project(
                 preseal_test_result.get("status", "NOT_EVALUATED")
             ),
             "production_provenance_ref": str(provenance_ref),
+            "goal_acceptance_ref": str(goal_receipt_path),
+            "goal_acceptance_status": str(goal_receipt.get("status", "NOT_EVALUATED")),
         },
     )
     browser_visual_required = bool(req.get("screenshot"))
@@ -7088,6 +7096,8 @@ def post_build_finalize_provider_project(
     gate["missing_config"] = missing_config
     return {
         "test_result": test_result,
+        "goal_acceptance": goal_receipt,
+        "goal_acceptance_ref": str(goal_receipt_path),
         "preseal_test_result": preseal_test_result,
         "runtime_result": runtime_result,
         "visual_evidence_result": visual_evidence_result,

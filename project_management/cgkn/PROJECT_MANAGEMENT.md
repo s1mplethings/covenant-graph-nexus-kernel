@@ -25,6 +25,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-012` [active] Prove large VN generation with self-generated art and story tree
 - `PB-013` [done] Make canonical project planning goal-driven
 - `PB-014` [done] Bind dynamic project plans to goal acceptance
+- `PB-015` [done] Bind goal acceptance to canonical final verdict
 
 ## Definition of done
 

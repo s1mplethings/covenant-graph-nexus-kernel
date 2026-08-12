@@ -97,6 +97,43 @@ def test_goal_acceptance_passes_only_with_exact_executable_goal_tests(
     assert all(item["accepted"] for item in receipt["mapped_tests"])
 
 
+def test_canonical_test_evidence_writes_reinspectable_production_receipt(
+    tmp_path: pathlib.Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    project = tmp_path / "project"
+    _, plan = _goal_plan(run_dir)
+    _write_behavior_owner(project)
+    tests_path = project / "tests" / "test_goal_acceptance.py"
+    tests_path.parent.mkdir(parents=True)
+    tests_path.write_text(_test_source(plan), encoding="utf-8")
+    receipt, receipt_path = goal_acceptance.produce_from_canonical_test_evidence(
+        project_dir=project,
+        run_dir=run_dir,
+        test_evidence={
+            "status": "PASS",
+            "argv": ["python", "-m", "pytest", "tests"],
+            "exit_code": 0,
+            "skipped": 0,
+        },
+    )
+    inspection = goal_acceptance.inspect_goal_acceptance(
+        receipt_path,
+        project_dir=project,
+        run_dir=run_dir,
+    )
+    assert receipt["status"] == "PASS"
+    assert inspection["status"] == "PASS"
+    tests_path.write_text(tests_path.read_text(encoding="utf-8") + "\n# changed\n", encoding="utf-8")
+    changed = goal_acceptance.inspect_goal_acceptance(
+        receipt_path,
+        project_dir=project,
+        run_dir=run_dir,
+    )
+    assert changed["status"] == "NEEDS_REWORK"
+    assert "goal_acceptance_recomputed_mismatch:mapped_tests" in changed["failures"]
+
+
 def test_goal_acceptance_rejects_missing_and_trivial_tests(tmp_path: pathlib.Path) -> None:
     run_dir = tmp_path / "run"
     project = tmp_path / "project"

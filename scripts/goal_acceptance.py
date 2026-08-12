@@ -9,6 +9,7 @@ from typing import Any
 
 
 KIND = "CGKNGoalAcceptance"
+FILE_NAME = "goal_acceptance.json"
 
 
 def _read_json(path: pathlib.Path) -> dict[str, Any]:
@@ -116,7 +117,7 @@ def evaluate_goal_acceptance(
     requirement_dir = run / "requirement_decision"
     goal_spec_path = requirement_dir / "goal_spec.json"
     project_plan_path = requirement_dir / "project_plan.json"
-    applicable = requirement_dir.exists() or goal_spec_path.exists() or project_plan_path.exists()
+    applicable = goal_spec_path.exists() or project_plan_path.exists()
     if not applicable:
         receipt = {
             "kind": KIND,
@@ -234,3 +235,154 @@ def evaluate_goal_acceptance(
     }
     receipt["receipt_sha256"] = _canonical_hash(receipt)
     return receipt
+
+
+def inspect_goal_acceptance(
+    receipt_ref: str | pathlib.Path | None,
+    *,
+    project_dir: str | pathlib.Path | None,
+    run_dir: str | pathlib.Path | None,
+    canonical_test_evidence_ref: str | pathlib.Path | None = None,
+) -> dict[str, Any]:
+    """Independently recheck a veto-only goal-acceptance support receipt."""
+    project = pathlib.Path(project_dir).resolve() if project_dir else pathlib.Path()
+    run = pathlib.Path(run_dir).resolve() if run_dir else pathlib.Path()
+    requirement_dir = run / "requirement_decision" if run_dir else pathlib.Path()
+    applicable = bool(
+        run_dir
+        and (
+            (requirement_dir / "goal_spec.json").is_file()
+            or (requirement_dir / "project_plan.json").is_file()
+        )
+    )
+    if not applicable:
+        return {
+            "status": "PASS",
+            "applicable": False,
+            "failures": [],
+            "reason": "goal_plan_artifacts_not_present",
+        }
+
+    expected_path = run / "artifacts" / FILE_NAME
+    path = pathlib.Path(receipt_ref).resolve() if receipt_ref else expected_path
+    failures: list[str] = []
+    if path != expected_path:
+        failures.append("goal_acceptance_ref_mismatch")
+    if not path.is_file() or path.is_symlink():
+        return {
+            "status": "NEEDS_REWORK",
+            "applicable": True,
+            "failures": sorted(set(failures + ["goal_acceptance_receipt_missing"])),
+            "receipt_ref": str(path),
+        }
+    receipt = _read_json(path)
+    if receipt.get("kind") != KIND or receipt.get("schema_version") != 1:
+        failures.append("goal_acceptance_contract")
+    if receipt.get("applicable") is not True:
+        failures.append("goal_acceptance_applicability_mismatch")
+    if receipt.get("formal_delivery_authority") is not False:
+        failures.append("goal_acceptance_claims_formal_authority")
+    claimed_hash = str(receipt.get("receipt_sha256", ""))
+    unhashed = dict(receipt)
+    unhashed.pop("receipt_sha256", None)
+    if claimed_hash != _canonical_hash(unhashed):
+        failures.append("goal_acceptance_receipt_hash_mismatch")
+
+    execution = receipt.get("test_execution", {}) if isinstance(receipt.get("test_execution"), dict) else {}
+    canonical_test_evidence: dict[str, Any] = {}
+    canonical_test_path = (
+        pathlib.Path(canonical_test_evidence_ref).resolve()
+        if canonical_test_evidence_ref
+        else None
+    )
+    if canonical_test_path is not None:
+        expected_test_path = project / "test_execution.json"
+        if canonical_test_path != expected_test_path:
+            failures.append("canonical_test_evidence_ref_mismatch")
+        if not canonical_test_path.is_file() or canonical_test_path.is_symlink():
+            failures.append("canonical_test_evidence_missing")
+        else:
+            canonical_test_evidence = _read_json(canonical_test_path)
+            if (
+                canonical_test_evidence.get("kind") != "CGKNTestExecutionEvidence"
+                or canonical_test_evidence.get("producer") != "scripts/real_test_execution.py"
+                or canonical_test_evidence.get("status") != "PASS"
+            ):
+                failures.append("canonical_test_evidence_contract")
+            execution = {
+                "status": "pass" if canonical_test_evidence.get("status") == "PASS" else "fail",
+                "argv": canonical_test_evidence.get("argv", []),
+                "returncode": canonical_test_evidence.get("exit_code"),
+                "skipped": bool(canonical_test_evidence.get("skipped", 0)),
+            }
+    recomputed = evaluate_goal_acceptance(
+        project_dir=project,
+        run_dir=run,
+        test_result={
+            "status": execution.get("status"),
+            "argv": execution.get("argv", []),
+            "returncode": execution.get("returncode"),
+            "skipped": execution.get("skipped", not bool(execution.get("passed"))),
+        },
+    )
+    for field in (
+        "kind",
+        "schema_version",
+        "status",
+        "applicable",
+        "formal_delivery_authority",
+        "goal",
+        "domain",
+        "goal_spec_ref",
+        "goal_spec_sha256",
+        "project_plan_ref",
+        "project_plan_sha256",
+        "acceptance_behaviors",
+        "test_intents",
+        "required_test_symbols",
+        "mapped_tests",
+        "test_execution",
+        "blockers",
+    ):
+        if receipt.get(field) != recomputed.get(field):
+            failures.append(f"goal_acceptance_recomputed_mismatch:{field}")
+    if receipt.get("status") != "PASS" or recomputed.get("status") != "PASS":
+        failures.append("goal_acceptance_not_pass")
+    return {
+        "status": "PASS" if not failures else "NEEDS_REWORK",
+        "applicable": True,
+        "failures": sorted(set(failures)),
+        "receipt_ref": str(path),
+        "receipt_hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "canonical_test_evidence_ref": str(canonical_test_path) if canonical_test_path else "",
+        "canonical_test_evidence_hash": (
+            hashlib.sha256(canonical_test_path.read_bytes()).hexdigest()
+            if canonical_test_path and canonical_test_path.is_file() and not canonical_test_path.is_symlink()
+            else ""
+        ),
+        "receipt": receipt,
+    }
+
+
+def produce_from_canonical_test_evidence(
+    *,
+    project_dir: str | pathlib.Path,
+    run_dir: str | pathlib.Path,
+    test_evidence: dict[str, Any],
+) -> tuple[dict[str, Any], pathlib.Path]:
+    """Write support truth beside the production run after canonical tests."""
+    run = pathlib.Path(run_dir)
+    receipt = evaluate_goal_acceptance(
+        project_dir=pathlib.Path(project_dir),
+        run_dir=run,
+        test_result={
+            "status": "pass" if test_evidence.get("status") == "PASS" else "fail",
+            "argv": test_evidence.get("argv", []),
+            "returncode": test_evidence.get("exit_code"),
+            "skipped": bool(test_evidence.get("skipped", 0)),
+        },
+    )
+    path = run / "artifacts" / FILE_NAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return receipt, path.resolve()

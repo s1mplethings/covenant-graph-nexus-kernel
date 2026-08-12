@@ -372,6 +372,30 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-015",
+      "title": "Bind goal acceptance to canonical final verdict",
+      "outcome": "Canonical final verdict independently checks applicable goal acceptance as a veto-only support prerequisite while every existing formal gate remains necessary for PASS.",
+      "priority": 15,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-014"
+      ],
+      "acceptance_criteria": [
+        "A production run with a frozen GoalDrivenProjectPlan requires a readable, self-consistent PASS CGKNGoalAcceptance receipt before Canonical Final Verdict can PASS.",
+        "Canonical Final Verdict independently rereads the goal specification, project plan, mapped candidate test sources, and receipt hashes instead of trusting the receipt status.",
+        "Missing, non-PASS, mismatched, or tampered applicable goal acceptance produces NEEDS_REWORK even when every formal gate reports PASS.",
+        "A passing goal-acceptance support receipt cannot replace any formal gate or promote a non-PASS formal-gate aggregate.",
+        "Legacy production runs without goal-plan artifacts preserve the existing final-verdict behavior, and Provider generation plus local_packager delivery routes remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-GOAL-ACCEPTANCE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -526,7 +550,8 @@
     "iterations/ITER-012.json",
     "iterations/ITER-013.json",
     "iterations/ITER-014.json",
-    "iterations/ITER-015.json"
+    "iterations/ITER-015.json",
+    "iterations/ITER-016.json"
   ],
   "improvement_backlog": [
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
@@ -541,7 +566,8 @@
     "Extend the quality adapter registry to real compiler or linker probes for additional generated languages only when their toolchains are declared and available.",
     "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings.",
     "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures.",
-    "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; defer any CGKNFinalVerdict consumption to its dedicated next increment."
+    "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; consume it in CGKNFinalVerdict only as an independently inspected veto-only support prerequisite.",
+    "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

@@ -15,6 +15,7 @@
     "artifact_hash",
     "required_gates",
     "upstream_gates",
+    "support_prerequisites",
     "overall_status"
   ],
   "properties": {
@@ -35,6 +36,26 @@
         },
         "additionalProperties": false
       }
+    },
+    "support_prerequisites": {
+      "type": "object",
+      "required": ["goal_acceptance"],
+      "properties": {
+        "goal_acceptance": {
+          "type": "object",
+          "required": ["status", "applicable", "ref", "file_hash", "formal_delivery_authority", "inspection"],
+          "properties": {
+            "status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" },
+            "applicable": { "type": "boolean" },
+            "ref": { "type": "string" },
+            "file_hash": { "type": "string" },
+            "formal_delivery_authority": { "const": false },
+            "inspection": { "type": "object" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "overall_status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" }
   },

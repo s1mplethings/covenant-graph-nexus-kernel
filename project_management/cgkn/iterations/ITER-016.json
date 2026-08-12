@@ -1,0 +1,89 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-016",
+  "project_id": "cgkn",
+  "goal": "Bind applicable goal acceptance to Canonical Final Verdict as an independently inspected veto-only support prerequisite.",
+  "backlog_item_ids": [
+    "PB-015"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "A passing goal-acceptance support receipt cannot replace any formal gate or promote a non-PASS formal-gate aggregate.",
+    "A production run with a frozen GoalDrivenProjectPlan requires a readable, self-consistent PASS CGKNGoalAcceptance receipt before Canonical Final Verdict can PASS.",
+    "Canonical Final Verdict independently rereads the goal specification, project plan, mapped candidate test sources, and receipt hashes instead of trusting the receipt status.",
+    "Legacy production runs without goal-plan artifacts preserve the existing final-verdict behavior, and Provider generation plus local_packager delivery routes remain unchanged.",
+    "Missing, non-PASS, mismatched, or tampered applicable goal acceptance produces NEEDS_REWORK even when every formal gate reports PASS."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "acceptance_verifier keeps every existing formal required gate necessary for PASS and records goal acceptance separately as support",
+    "goal_acceptance independently rereads the frozen goal, plan, and candidate test sources but never calls the final-verdict producer",
+    "formal_mainline_acceptance passes only the existing production candidate and production run roots into the final-verdict inspection context",
+    "legacy runs without goal-plan artifacts remain not applicable and preserve prior final-verdict aggregation"
+  ],
+  "evidence_refs": [
+    "generated/dynamic_agent_tree_fix_eval/test_profiles/quick_result.json (PASS: 1215 passed, 383 deselected, artifact sha256:b805c09ad5486ff0f30d2362961869a145de5b107c0489cbc8658d6839e782cb)",
+    "management/schema validation and git diff check (PASS)",
+    "pytest goal acceptance, final verdict, provider, Telegram, delivery, scale, and kernel regression (PASS: 286 passed, 195 skipped)"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "Applicable goal acceptance is now independently rechecked by Canonical Final Verdict as a veto-only support prerequisite bound to canonical test execution; legacy runs remain compatible."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-015"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Keeping goal acceptance outside required_gates preserved formal authority while allowing independent veto semantics."
+    ],
+    "did_not_work": [
+      "The first official quick invocation supplied a result-file path where the runner expected an output directory; it exited before collecting tests and was rerun correctly."
+    ],
+    "experiments": [
+      "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize."
+    ]
+  }
+}

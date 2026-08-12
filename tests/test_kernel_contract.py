@@ -880,6 +880,8 @@ class KernelContractTests(unittest.TestCase):
         complexity_check = read_source("scripts/complexity_project_contract_check.py")
         goal_acceptance = read_source("scripts/goal_acceptance.py")
         post_build = read_source("scripts/post_build_finalize.py")
+        final_verdict = read_source("scripts/acceptance_verifier.py")
+        telegram = read_source("scripts/telegram_live_bridge.py")
 
         self.assertIn("one canonical `GoalSpec`", doc)
         self.assertIn("`INSUFFICIENT_GOAL_PLAN`", doc)
@@ -908,9 +910,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('ImageChops.difference(rgb, solid)', media_validation)
         self.assertIn('path.as_posix().lower().endswith("/" + target)', complexity_check)
         self.assertIn("def evaluate_goal_acceptance", goal_acceptance)
+        self.assertIn("def inspect_goal_acceptance", goal_acceptance)
+        self.assertIn("def produce_from_canonical_test_evidence", goal_acceptance)
         self.assertIn('"formal_delivery_authority": False', goal_acceptance)
         self.assertIn("apply_goal_acceptance_gate", post_build)
         self.assertNotIn("produce_canonical_final_verdict", goal_acceptance)
+        self.assertIn('"support_prerequisites": {"goal_acceptance": goal_support}', final_verdict)
+        self.assertIn("goal_acceptance.inspect_goal_acceptance", final_verdict)
+        self.assertIn("goal_acceptance.produce_from_canonical_test_evidence", telegram)
 
     def test_ollama_auto_start_can_be_disabled_without_enabling_generation_tasks(self) -> None:
         original_auto_start = os.environ.get("CGNK_AUTO_START_OLLAMA")
