@@ -396,6 +396,36 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-016",
+      "title": "Rebuild the CS2 demo anomaly lab with autonomous public-sample testing",
+      "outcome": "A fresh generated project can discover reviewed public CS2 demo candidates online, verify and safely acquire one, parse real gameplay telemetry, and emit explainable player-level anomaly evidence for human review.",
+      "priority": 16,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-015"
+      ],
+      "acceptance_criteria": [
+        "The retired generated project, bundle, source cache, and runtime output are not reused; the replacement is created through the reviewed Provider generation route.",
+        "The project dynamically enumerates multiple candidates from a reviewed public HTTPS catalog and records public visibility, repository license, immutable commit, object identity, expected size, expected SHA-256, and every candidate attempt.",
+        "Acquisition is opt-in, bounded by requests, candidates, elapsed time, compressed and expanded bytes, and safe archive-member rules; authentication bypass, arbitrary-site crawling, traversal, symlinks, and unverified payloads are rejected.",
+        "A real input passes parser proof only when demoparser2 yields non-zero ticks and player states with positions and view angles; weapon_fire events are joined when present, and absent visibility or hearing telemetry remains unknown rather than inferred.",
+        "Analysis labels yaw and pitch deltas as a view-angle movement proxy rather than raw mouse input and reports player relationships, angular error, snap-before-shot, tracking, switching, and information-timing evidence only where source coverage supports each signal.",
+        "The CLI performs one real online discovery, download, extraction, parse, analysis, and JSON or HTML report run with synthetic fallback disabled, while unit and security tests prove candidate failover and acquisition boundaries.",
+        "Reports provide signal windows, coverage, confidence, provenance, limitations, and human-review guidance without automatic bans or definitive cheating accusations; unlabeled public demos cannot establish detection accuracy.",
+        "The generated project passes its tests and runtime checks, and only local_packager creates the canonical delivery bundle through the existing delivery route."
+      ],
+      "quality_metric_ids": [
+        "QM-REAL-DEMO-DISCOVERY",
+        "QM-AUTO-TEST",
+        "QM-CS-DEMO",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -551,7 +581,8 @@
     "iterations/ITER-013.json",
     "iterations/ITER-014.json",
     "iterations/ITER-015.json",
-    "iterations/ITER-016.json"
+    "iterations/ITER-016.json",
+    "iterations/ITER-017.json"
   ],
   "improvement_backlog": [
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
@@ -567,7 +598,8 @@
     "Measure first-pass visual acceptance on the next three real Provider-generated interfaces and tune only thresholds that correlate with browser and user review findings.",
     "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures.",
     "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; consume it in CGKNFinalVerdict only as an independently inspected veto-only support prerequisite.",
-    "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize."
+    "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize.",
+    "Keep discovery cheap but rank extracted demos by goal-relevant event coverage before full parsing; retain large verified inputs outside the delivery tree and keep accuracy separate from pipeline execution."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

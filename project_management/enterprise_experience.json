@@ -30,7 +30,7 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 6,
+      "usage_count": 7,
       "successful_usage_count": 6,
       "owner": "context-librarian",
       "supersedes": []
@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 12,
-      "successful_usage_count": 12,
+      "usage_count": 13,
+      "successful_usage_count": 13,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -310,6 +310,26 @@
       "outcome": "successful",
       "evidence_refs": [
         "project_management/cgkn/iterations/ITER-016.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-017",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "generated/cs2_demo_anomaly_lab_20260814/TEST_REPORT.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-017",
+      "applied": true,
+      "outcome": "inconclusive",
+      "evidence_refs": [
+        "artifacts/cs2_demo_anomaly_lab_20260814/provider_run/provider_phase_log.jsonl"
       ]
     }
   ]

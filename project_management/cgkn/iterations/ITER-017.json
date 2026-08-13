@@ -1,0 +1,111 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-017",
+  "project_id": "cgkn",
+  "goal": "Build a fresh CS2 demo anomaly lab that autonomously discovers reviewed public samples online and proves a real parse-to-report run.",
+  "backlog_item_ids": [
+    "PB-016"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A real input passes parser proof only when demoparser2 yields non-zero ticks and player states with positions and view angles; weapon_fire events are joined when present, and absent visibility or hearing telemetry remains unknown rather than inferred.",
+    "Acquisition is opt-in, bounded by requests, candidates, elapsed time, compressed and expanded bytes, and safe archive-member rules; authentication bypass, arbitrary-site crawling, traversal, symlinks, and unverified payloads are rejected.",
+    "Analysis labels yaw and pitch deltas as a view-angle movement proxy rather than raw mouse input and reports player relationships, angular error, snap-before-shot, tracking, switching, and information-timing evidence only where source coverage supports each signal.",
+    "Reports provide signal windows, coverage, confidence, provenance, limitations, and human-review guidance without automatic bans or definitive cheating accusations; unlabeled public demos cannot establish detection accuracy.",
+    "The CLI performs one real online discovery, download, extraction, parse, analysis, and JSON or HTML report run with synthetic fallback disabled, while unit and security tests prove candidate failover and acquisition boundaries.",
+    "The generated project passes its tests and runtime checks, and only local_packager creates the canonical delivery bundle through the existing delivery route.",
+    "The project dynamically enumerates multiple candidates from a reviewed public HTTPS catalog and records public visibility, repository license, immutable commit, object identity, expected size, expected SHA-256, and every candidate attempt.",
+    "The retired generated project, bundle, source cache, and runtime output are not reused; the replacement is created through the reviewed Provider generation route."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CS-DEMO",
+      "measure": "complete authorized CS2 demo analysis workflow",
+      "target": "offline synthetic end-to-end workflow and generated-project tests pass, reports include signal-level evidence, confidence, limitations, and no unsupported accusation",
+      "method": "generated pytest suite, CLI runtime probe, artifact inspection, and source-adapter contract checks"
+    },
+    {
+      "id": "QM-AUTO-TEST",
+      "measure": "bounded autonomous input discovery, fitness selection, retry, and truthful fallback",
+      "target": "the highest-fitness usable authorized candidate completes analysis and media generation; injected candidate failure selects the next candidate; synthetic fallback is opt-in and always PASS_WITH_LIMITS",
+      "method": "candidate-scoring unit tests, bounded-discovery security tests, retry integration tests, real auto-test CLI execution, report inspection, and package inspection"
+    },
+    {
+      "id": "QM-REAL-DEMO-DISCOVERY",
+      "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+      "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+      "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "The replacement remains a generated-project implementation and does not add or reconnect a CGKN generation route.",
+    "Reviewed public catalog discovery is explicit, bounded, provenance-recording, and independent from formal delivery authority.",
+    "Full parser proof, bounded analysis coverage, heuristic signal evidence, accuracy truth, and canonical delivery truth remain separate.",
+    "Only local_packager may create a canonical delivery bundle, and its NEEDS_REWORK result must not be bypassed when Provider identity is absent."
+  ],
+  "evidence_refs": [
+    "artifacts/cs2_demo_anomaly_lab_20260814/delivery/delivery_manifest.json (NEEDS_REWORK: canonical Provider identity and receipts absent; no final bundle emitted)",
+    "artifacts/cs2_demo_anomaly_lab_20260814/provider_run/provider_phase_log.jsonl (API usage limit and local model timeouts; formal generation incomplete)",
+    "generated/cs2_demo_anomaly_lab_20260814/TEST_REPORT.md (PASS_WITH_LIMITS: 27 passed; real public parse 369414 rows, 39949 ticks, 10 players, 2764 raw shots, 2189 attributable shots)",
+    "pytest CGKN management/kernel/delivery/post-build regression (PASS: 52 passed, 9 skipped, 14 subtests)"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Fresh project autonomously discovered, verified, downloaded, parsed and analyzed a genuine public CS2 demo with truthful signal and information-coverage limits; formal Provider generation and canonical packaging remain incomplete."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-016"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Real candidate failures drove source-format selection, path normalization, bounded analysis, evidence-fit Demo ranking and attributable shot provenance without weakening parser proof."
+    ],
+    "did_not_work": [
+      "The reviewed Provider route hit the configured API usage limit and its registered local-model fallback repeatedly timed out on the backend manifest, so canonical production identity was never created."
+    ],
+    "experiments": [
+      "Keep discovery cheap but rank extracted demos by goal-relevant event coverage before full parsing; retain large verified inputs outside the delivery tree and keep accuracy separate from pipeline execution."
+    ]
+  }
+}
