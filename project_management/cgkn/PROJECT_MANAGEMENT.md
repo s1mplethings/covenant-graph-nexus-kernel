@@ -27,6 +27,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-014` [done] Bind dynamic project plans to goal acceptance
 - `PB-015` [done] Bind goal acceptance to canonical final verdict
 - `PB-016` [done] Rebuild the CS2 demo anomaly lab with autonomous public-sample testing
+- `PB-017` [done] Verify and configure the hybrid local-model and API provider runtime
 
 ## Definition of done
 

@@ -426,6 +426,29 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-017",
+      "title": "Verify and configure the hybrid local-model and API provider runtime",
+      "outcome": "CGKN uses a verified API provider for formal generation and a measured Ollama configuration for bounded local support and registered fallback tasks without exposing credentials or adding a provider route.",
+      "priority": 17,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-016"
+      ],
+      "acceptance_criteria": [
+        "The installed Ollama service and selected code model complete strict-JSON small, medium, and component-manifest-scale requests through local_model_router with measured elapsed time.",
+        "The supplied API credential passes the existing provider smoke route with TLS verification and the configured formal-generation model, and a non-trivial structured request confirms usable quota.",
+        "Credentials are stored only in the supported current-user environment configuration, never in repository files, generated artifacts, logs, or commits.",
+        "Hybrid-safe routing keeps the reviewed API/provider route as formal generation owner while local support and registered fallback tasks use measured model, context, output, and timeout limits.",
+        "Provider, local-model routing, kernel, and credential-redaction tests pass after configuration, with any restart requirement documented."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -582,7 +605,8 @@
     "iterations/ITER-014.json",
     "iterations/ITER-015.json",
     "iterations/ITER-016.json",
-    "iterations/ITER-017.json"
+    "iterations/ITER-017.json",
+    "iterations/ITER-018.json"
   ],
   "improvement_backlog": [
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
@@ -599,7 +623,8 @@
     "Retain the same quick selection but allow a 900-second CI wall-clock budget; the final suite completed in 691.055 seconds with zero failures.",
     "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; consume it in CGKNFinalVerdict only as an independently inspected veto-only support prerequisite.",
     "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize.",
-    "Keep discovery cheap but rank extracted demos by goal-relevant event coverage before full parsing; retain large verified inputs outside the delivery tree and keep accuracy separate from pipeline execution."
+    "Keep discovery cheap but rank extracted demos by goal-relevant event coverage before full parsing; retain large verified inputs outside the delivery tree and keep accuracy separate from pipeline execution.",
+    "Pre-warm the selected local model before long component work, cap local manifest output at 1024 tokens, allow 180 seconds, and keep API manifest budgets high enough for contract-complete JSON."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

@@ -1,0 +1,82 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-018",
+  "project_id": "cgkn",
+  "goal": "Verify and configure CGKN hybrid API and Ollama operation with bounded latency, strict JSON, credential redaction, and no provider-route changes.",
+  "backlog_item_ids": [
+    "PB-017"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "Credentials are stored only in the supported current-user environment configuration, never in repository files, generated artifacts, logs, or commits.",
+    "Hybrid-safe routing keeps the reviewed API/provider route as formal generation owner while local support and registered fallback tasks use measured model, context, output, and timeout limits.",
+    "Provider, local-model routing, kernel, and credential-redaction tests pass after configuration, with any restart requirement documented.",
+    "The installed Ollama service and selected code model complete strict-JSON small, medium, and component-manifest-scale requests through local_model_router with measured elapsed time.",
+    "The supplied API credential passes the existing provider smoke route with TLS verification and the configured formal-generation model, and a non-trivial structured request confirms usable quota."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "hybrid_safe routing keeps api_provider as formal generation owner and local_model_router as bounded support or registered fallback",
+    "Windows current-user environment is the credential and runtime-configuration boundary; repository files and evidence contain no credential value",
+    "component manifest requests use bounded output and timeout settings measured against the installed 7B models",
+    "provider readiness, routing, kernel, and credential-redaction contracts remain authoritative"
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-018_RUNTIME_EVIDENCE.md (local and API live diagnostics PASS; no credential value recorded)",
+    "pytest provider credentials, local model, hybrid routing, provider guard, and kernel regression (PASS: 61 passed)"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "API and both installed Ollama roles completed real structured tasks; hybrid_safe preserves API formal ownership while measured local support settings avoid the prior cold-start and oversized-output timeout pattern."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-017"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Testing progressively from minimal JSON to a 21.7k-character manifest separated service availability, cold start, context size, output budget, and timeout effects."
+    ],
+    "did_not_work": [
+      "A deliberately low 700-token API manifest budget produced finish_reason=length and was correctly rejected; the current parent process also retains a stale pre-update credential until restart."
+    ],
+    "experiments": [
+      "Pre-warm the selected local model before long component work, cap local manifest output at 1024 tokens, allow 180 seconds, and keep API manifest budgets high enough for contract-complete JSON."
+    ]
+  }
+}
