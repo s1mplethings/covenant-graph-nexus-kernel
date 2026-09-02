@@ -7,12 +7,12 @@
   "backlog_item_ids": [
     "PB-040"
   ],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "A recoverable local commit records the reviewed CGKN Codex Edition source snapshot and excludes runtime/generated state.",
     "D:\\CGKN is checked out on a dedicated API-only branch.",
-    "D:\\CGKN-Codex-Edition is a Git worktree on codex/cgkn-codex-edition.",
+    "D:\\CGKN\\.service_worktree\\codex-edition is a Git worktree on codex/cgkn-codex-edition.",
     "No remote push, Provider generation, packaging, or public delivery is performed.",
     "The Codex Edition worktree passes kernel, supervisor, and documentation checks.",
     "The two directories resolve to distinct branches and independent working trees while sharing Git object history."
@@ -64,20 +64,32 @@
   },
   "interface_expectations": [
     "git -C D:\\CGKN branch --show-current returns codex/cgkn-api-only after the split.",
-    "git -C D:\\CGKN-Codex-Edition branch --show-current returns codex/cgkn-codex-edition.",
+    "git -C D:\\CGKN\\.service_worktree\\codex-edition branch --show-current returns codex/cgkn-codex-edition.",
     "git worktree list records both absolute directories and their distinct branch refs.",
     "The edition snapshot excludes .cgkn, examples runtime memory, workspaces, benchmarks, generated outputs, and secrets.",
     "CGKN Codex Edition retains scripts/start_cgkn_codex_edition.ps1 and the registered Provider/local_packager route."
   ],
-  "evidence_refs": [],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-050_RUNTIME_EVIDENCE.md"
+  ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "API-only and CGKN Codex Edition now run from distinct branch-bound worktrees; the requested D:\\\\ root sibling path was unavailable, so the existing ignored service-worktree container was used."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-040"
+    ]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
-    "experiments": []
+    "worked": [
+      "A source-only snapshot commit made the Codex Edition worktree reproducible while preserving all existing runtime and generated data outside the commit."
+    ],
+    "did_not_work": [
+      "The host denied creation of D:\\\\CGKN-Codex-Edition at the drive root."
+    ],
+    "experiments": [
+      "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history."
+    ]
   }
 }

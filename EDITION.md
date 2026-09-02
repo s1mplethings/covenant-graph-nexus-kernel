@@ -12,6 +12,8 @@ skills, and plugin surfaces in this repository.
 - Primary launcher: `scripts/start_cgkn_codex_edition.ps1`
 - Runtime data: `generated/cgkn_editions/codex/`
 - Supervisor state: `.cgkn/editions/codex/`
+- Local worktree: `D:\CGKN\.service_worktree\codex-edition`
+- API-only sibling worktree: `D:\CGKN` on `codex/cgkn-api-only`
 
 The edition name does not create another Provider author, evidence authority,
 packager, or delivery path. Project generation still uses the registered

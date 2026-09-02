@@ -1026,14 +1026,14 @@
       "priority": 40,
       "value_score": 10,
       "risk_reduction_score": 10,
-      "state": "active",
+      "state": "done",
       "dependencies": [
         "PB-039"
       ],
       "acceptance_criteria": [
         "A recoverable local commit records the reviewed CGKN Codex Edition source snapshot and excludes runtime/generated state.",
         "D:\\CGKN is checked out on a dedicated API-only branch.",
-        "D:\\CGKN-Codex-Edition is a Git worktree on codex/cgkn-codex-edition.",
+        "D:\\CGKN\\.service_worktree\\codex-edition is a Git worktree on codex/cgkn-codex-edition.",
         "The two directories resolve to distinct branches and independent working trees while sharing Git object history.",
         "The Codex Edition worktree passes kernel, supervisor, and documentation checks.",
         "No remote push, Provider generation, packaging, or public delivery is performed."
@@ -1282,7 +1282,8 @@
     "Return all leaf test-contract violations together and revalidate frozen test contracts on cached components before reuse.",
     "Probe a documented alternate model's independent quota before resuming the identity-bound pending leaf.",
     "Run one private-chat smoke in each profile and compare process trees plus profile directories before considering live operations evaluated.",
-    "After the existing working tree is reviewed and committed, publish the branch and run one private-chat supervisor smoke from the edition launcher."
+    "After the existing working tree is reviewed and committed, publish the branch and run one private-chat supervisor smoke from the edition launcher.",
+    "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

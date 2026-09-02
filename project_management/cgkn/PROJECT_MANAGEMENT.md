@@ -50,7 +50,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-037` [done] Implement the persistent Codex runtime supervisor host
 - `PB-038` [done] Separate API-only and Codex-supervised runtime profiles
 - `PB-039` [done] Establish the CGKN Codex Edition branch identity
-- `PB-040` [active] Split API-only and CGKN Codex Edition into separate worktrees
+- `PB-040` [done] Split API-only and CGKN Codex Edition into separate worktrees
 
 ## Definition of done
 
