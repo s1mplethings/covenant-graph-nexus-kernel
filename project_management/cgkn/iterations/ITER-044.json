@@ -1,0 +1,95 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-044",
+  "project_id": "cgkn",
+  "goal": "Generate and verify a real postgraduate-exam assistant whose independent typed business features are built as parallel leaves and integrated through one thin JSON CLI without persistence, networking, frameworks, GUI, or unrelated architecture.",
+  "backlog_item_ids": [
+    "PB-034"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A fresh reviewed Qwen run records leaf batches, repair scope, semantic-review metrics, and zero undeclared architecture.",
+    "At least two independent feature leaves share no owned paths and are scheduled in the same dependency-ready parallel batch.",
+    "One thin JSON CLI adapter depends on the independent feature leaves without redefining their business logic.",
+    "The generated project contains only standard-library source, one JSON CLI adapter, focused pytest tests, packaging metadata, and requested documentation.",
+    "The goal freezes at least three explicit business feature contracts with exact typed inputs, outputs, errors, side effects, dependencies, owned paths, and acceptance checks.",
+    "The supported generated-project test profile passes while formal delivery remains separately evaluated."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+      "target": "all management, iteration, and experience artifacts validate",
+      "method": "jsonschema tests plus deterministic manager validation"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-FEATURE-UNIT",
+      "measure": "short-request planning fidelity and safe feature concurrency",
+      "target": "one explicit operation yields one public feature, zero invented persistence or generic workflows, frozen input/output/error/side-effect/file-ownership interfaces, and deterministic conflict-free parallel batches",
+      "method": "requirement-decision contract tests, feature-DAG scheduling tests, Provider leaf-context tests, negative scope-expansion fixtures, and a fresh reviewed Qwen acceptance run"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "allocate_subject_hours(subject_weights_json: str, weekly_hours: float) -> str parses a JSON object of positive subject weights and returns a JSON object whose nonnegative hours sum to weekly_hours.",
+    "rank_review_topics(topics_json: str) -> str parses topic records and returns deterministic highest-priority-first JSON without mutating input.",
+    "build_revision_calendar(start_date: str, exam_date: str, daily_hours: float) -> str returns deterministic foundation, intensive, and sprint phase dates and hours.",
+    "The package CLI accepts exactly one JSON request naming one operation and payload, then prints exactly one JSON result object.",
+    "All three business leaves have no side effects, no feature dependencies, distinct owned paths, and one shared dependency-ready batch."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-044_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "qwen3.8-flash used its independent available quota to complete the reviewed resume; generation PASS and generated-project tests 22/22 passed. Packaging and public delivery remain NOT_EVALUATED."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-034"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Switching from exhausted qwen3.8-max quota to connected qwen3.8-flash preserved the safe checkpoint and completed only the remaining Provider repair."
+    ],
+    "did_not_work": [
+      "qwen3.8-max free quota remained exhausted; earlier local fallback candidates were rejected and not materialized."
+    ],
+    "experiments": [
+      "Probe a documented alternate model's independent quota before resuming the identity-bound pending leaf."
+    ]
+  }
+}

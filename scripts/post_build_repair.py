@@ -125,6 +125,7 @@ def post_build_failure_log(finalize_result: dict[str, Any]) -> str:
         str(goal_test_result.get("stdout_tail", "")),
         str(goal_test_result.get("stderr_tail", "")),
         json.dumps(finalize_result.get("goal_acceptance", {}), ensure_ascii=False, default=str),
+        json.dumps(finalize_result.get("candidate_contract_issues", []), ensure_ascii=False, default=str),
         "agent_usage_status=" + str(agent_usage.get("status", "")),
         json.dumps(agent_usage.get("failure_summary", ""), ensure_ascii=False, default=str),
         json.dumps(agent_usage.get("events", [])[-6:] if isinstance(agent_usage.get("events", []), list) else [], ensure_ascii=False, default=str),
@@ -142,6 +143,9 @@ def post_build_failure_log(finalize_result: dict[str, Any]) -> str:
 
 def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     failures: set[str] = set()
+    visual_surface_required = bool(
+        finalize_result.get("visual_surface_required", True)
+    )
     test_result = finalize_result.get("test_result", {}) if isinstance(finalize_result.get("test_result"), dict) else {}
     agent_usage = finalize_result.get("agent_usage", {}) if isinstance(finalize_result.get("agent_usage"), dict) else {}
     fixture_result = finalize_result.get("fixture_result", {}) if isinstance(finalize_result.get("fixture_result"), dict) else {}
@@ -150,6 +154,8 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     log = post_build_failure_log(finalize_result).lower()
     if str(test_result.get("status", "")).lower() == "failed":
         failures.add("test_failure")
+    if isinstance(finalize_result.get("candidate_contract_issues"), list) and finalize_result.get("candidate_contract_issues"):
+        failures.add("candidate_contract_failure")
     if goal_acceptance.get("applicable") and goal_acceptance.get("status") != "PASS":
         failures.add("goal_acceptance_failure")
     if goal_test_result and str(goal_test_result.get("status", "")).lower() != "pass":
@@ -167,7 +173,7 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     ):
         failures.add("fixture_failure")
         failures.add("stage_artifact_failure")
-    if any(
+    if visual_surface_required and any(
         token in log
         for token in (
             "image generation adapter not available",
@@ -207,7 +213,7 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     if windows_esm_path_import_error(log):
         failures.add("module_system_failure")
         failures.add("windows_esm_path_import")
-    if any(
+    if visual_surface_required and any(
         token in log
         for token in (
             "missing script",
@@ -219,29 +225,33 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
         )
     ):
         failures.add("missing_entrypoint")
-    if any(token in log for token in ("missing script: start", "missing script start", "no start script", "missing_start_script")):
+    if visual_surface_required and any(token in log for token in ("missing script: start", "missing script start", "no start script", "missing_start_script")):
         failures.add("missing_start_script")
         failures.add("startup_failure")
-    if str(agent_usage.get("status", "")).lower() == "failed" or "start command" in log or "eaddrinuse" in log:
+    if visual_surface_required and (
+        str(agent_usage.get("status", "")).lower() == "failed"
+        or "start command" in log
+        or "eaddrinuse" in log
+    ):
         failures.add("startup_failure")
-    if not finalize_result.get("screenshots"):
+    if visual_surface_required and not finalize_result.get("screenshots"):
         failures.add("screenshot_failure")
-    if "browser_unavailable" in log or "playwright install" in log or "executable doesn't exist" in log:
+    if visual_surface_required and ("browser_unavailable" in log or "playwright install" in log or "executable doesn't exist" in log):
         failures.add("browser_unavailable")
-    if "startup url did not become ready" in log or "start_failed" in log or "startup_failed" in log:
+    if visual_surface_required and ("startup url did not become ready" in log or "start_failed" in log or "startup_failed" in log):
         failures.add("startup_failure")
         failures.add("port_not_ready")
-    if "startup_returncode" in log and ("startup_stderr_tail" in log or "startup_stdout_tail" in log):
+    if visual_surface_required and "startup_returncode" in log and ("startup_stderr_tail" in log or "startup_stdout_tail" in log):
         failures.add("startup_command_failed")
-    if "entrypoint_missing" in log:
+    if visual_surface_required and "entrypoint_missing" in log:
         failures.add("missing_entrypoint")
-    if "static_entry_not_served" in log:
+    if visual_surface_required and "static_entry_not_served" in log:
         failures.add("static_entry_not_served")
-    if "missing_static_entry" in log or ("src/main.js" in log and "index.html" in log and "not found" in log):
+    if visual_surface_required and ("missing_static_entry" in log or ("src/main.js" in log and "index.html" in log and "not found" in log)):
         failures.add("missing_static_entry")
-    if "page_blank" in log or "invalid_screenshot" in log:
+    if visual_surface_required and ("page_blank" in log or "invalid_screenshot" in log):
         failures.add("page_blank")
-    if any(
+    if visual_surface_required and any(
         token in log
         for token in (
             "required_capabilities_missing",
@@ -265,7 +275,7 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
         )
     ):
         failures.add("ui_quality_failure")
-    if any(token in log for token in ("requestfailed", "/api", "api unavailable", "failed to fetch", "net::err_connection_refused")):
+    if visual_surface_required and any(token in log for token in ("requestfailed", "/api", "api unavailable", "failed to fetch", "net::err_connection_refused")):
         failures.add("frontend_backend_start_mismatch")
     if any(token in log for token in ("todo", "doing", "done", "filter", "local json", "persistence", "assertionerror", "expected")):
         failures.add("runtime_feature_failure")
@@ -305,6 +315,81 @@ def extract_post_build_target_files(candidate_dir: pathlib.Path, text: str) -> l
         if rel in known and rel not in found:
             found.append(rel)
     return found
+
+
+def python_test_implementation_owners(
+    candidate_dir: pathlib.Path,
+    test_files: list[str],
+    diagnostics: str,
+    *,
+    max_owners: int = 3,
+) -> list[str]:
+    """Resolve direct generated-project owners imported by evidenced failing tests."""
+    known = set(existing_candidate_files(candidate_dir))
+    lowered_log = str(diagnostics or "").lower()
+    scored: dict[str, int] = {}
+    preferred_per_test: list[str] = []
+
+    def resolve_module(module_name: str) -> str:
+        module_path = module_name.replace(".", "/").strip("/")
+        candidates = [
+            f"{module_path}.py",
+            f"{module_path}/__init__.py",
+            f"src/{module_path}.py",
+            f"src/{module_path}/__init__.py",
+        ]
+        return next((candidate for candidate in candidates if candidate in known), "")
+
+    for test_file in test_files:
+        test_scored: dict[str, int] = {}
+        path = candidate_dir / test_file
+        if not path.exists() or path.suffix.lower() != ".py":
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        except (OSError, SyntaxError, ValueError):
+            continue
+        for node in ast.walk(tree):
+            module_name = ""
+            imported_names: list[str] = []
+            if isinstance(node, ast.ImportFrom) and node.level == 0:
+                module_name = str(node.module or "")
+                imported_names = [str(alias.name) for alias in node.names]
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    owner = resolve_module(str(alias.name))
+                    if owner and not owner.startswith("tests/"):
+                        score = 1 + (2 if str(alias.name).lower() in lowered_log else 0)
+                        scored[owner] = max(scored.get(owner, 0), score)
+                        test_scored[owner] = max(test_scored.get(owner, 0), score)
+                continue
+            if not module_name:
+                continue
+            owner = resolve_module(module_name)
+            if not owner or owner.startswith("tests/"):
+                continue
+            score = 1
+            if module_name.lower() in lowered_log or owner.lower() in lowered_log:
+                score += 2
+            symbol_hits = sum(
+                lowered_log.count(name.lower())
+                for name in imported_names
+                if name != "*" and name
+            )
+            score += min(6, symbol_hits)
+            scored[owner] = max(scored.get(owner, 0), score)
+            test_scored[owner] = max(test_scored.get(owner, 0), score)
+        if test_scored:
+            preferred_per_test.append(
+                sorted(test_scored.items(), key=lambda item: (-item[1], item[0]))[0][0]
+            )
+    ordered = list(dict.fromkeys(preferred_per_test))
+    ordered.extend(
+        path
+        for path, _score in sorted(scored.items(), key=lambda item: (-item[1], item[0]))
+        if path not in ordered
+    )
+    return ordered[:max_owners]
 
 
 def focused_failure_excerpt(text: str, target_file: str, *, max_chars: int = 6000) -> str:
@@ -412,8 +497,32 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
     fixture_result = finalize_result.get("fixture_result", {}) if isinstance(finalize_result.get("fixture_result"), dict) else {}
     test_passed = str(test_result.get("status", "")).lower() == "pass"
     extracted_target_files = extract_post_build_target_files(candidate_dir, log)
+    contract_target_files = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in finalize_result.get("candidate_contract_issues", [])
+        if isinstance(item, dict)
+        and str(item.get("path", "")).replace("\\", "/").strip()
+    ]
+    evidenced_test_targets = [
+        rel for rel in extracted_target_files if rel.startswith("tests/") and rel.endswith(".py")
+    ]
+    implementation_owner_targets = (
+        python_test_implementation_owners(
+            candidate_dir,
+            evidenced_test_targets,
+            log,
+        )
+        if "test_failure" in failures
+        else []
+    )
     target_files: list[str] = []
-    for rel in extracted_target_files + default_post_build_targets(candidate_dir, failures):
+    owner_ordered_targets = [
+        *contract_target_files,
+        *implementation_owner_targets,
+        *evidenced_test_targets,
+        *[rel for rel in extracted_target_files if rel not in evidenced_test_targets],
+    ]
+    for rel in owner_ordered_targets + default_post_build_targets(candidate_dir, failures):
         if rel not in target_files:
             target_files.append(rel)
     if "windows_esm_path_import" in failures:
@@ -468,7 +577,12 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
             for rel in extracted_target_files
             if rel.startswith("backend/") and rel != "backend/stages.py"
         ]
-        preferred = ["demo/run_fixture.py", *evidenced_tests, *evidenced_backend]
+        preferred = [
+            "demo/run_fixture.py",
+            *implementation_owner_targets,
+            *evidenced_tests,
+            *evidenced_backend,
+        ]
         if "media_generation_failure" in failures and not fixture_traceback_self:
             preferred.extend(
                 ["backend/image_adapters.py", "scripts/capture_workflow.py"]
@@ -486,7 +600,15 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         target_files.insert(0, "index.html")
     if "missing_static_entry" in failures and "index.html" not in target_files:
         target_files.insert(0, "index.html")
-    target_limit = 5 if any(
+    split_direct_cli_atomic_set = (
+        len(implementation_owner_targets) >= 3
+        and len(evidenced_test_targets) >= 3
+        and all(
+            re.fullmatch(r"tests/test_[A-Za-z0-9_]+_part_\d+\.py", rel)
+            for rel in evidenced_test_targets[:3]
+        )
+    )
+    target_limit = 6 if split_direct_cli_atomic_set else 5 if implementation_owner_targets or any(
         kind in failures
         for kind in ("fixture_failure", "stage_artifact_failure", "media_generation_failure")
     ) else 3
@@ -502,6 +624,7 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
             "page_blank",
             "fixture_failure",
             "stage_artifact_failure",
+            "candidate_contract_failure",
         )
     )
     if "screenshot_failure" in failures and test_passed and not screenshot_runtime_actionable:
@@ -550,6 +673,10 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         deterministic_actions.append({"action": "allow_main_js_entry", "path": "scripts/util/buildAll.js"})
         if "scripts/util/buildAll.js" not in target_files:
             target_files.append("scripts/util/buildAll.js")
+    target_files = list(dict.fromkeys([
+        *contract_target_files,
+        *target_files,
+    ]))
     target_files = target_files[:target_limit]
 
     deterministic_failure_types = {
@@ -565,13 +692,32 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         "media_generation_failure",
         "test_failure",
         "runtime_feature_failure",
+        "candidate_contract_failure",
     }
     deterministic_only = bool(deterministic_failure_types & set(failures)) and not bool(
         provider_required_failure_types & set(failures)
     )
     if target_files and not executable_missing and not deterministic_only and "candidate_not_runnable" not in failures:
         for rel in target_files:
-            provider_actions.append({"path": rel, "instruction": "Repair this file only for the observed post-build failure. Preserve candidate-only delivery boundaries."})
+            if rel in implementation_owner_targets:
+                instruction = (
+                    "Repair this implementation owner to match its current public interface and the evidenced dependent tests. "
+                    "Do not add a compatibility shim that preserves a contradictory result, constructor, method, or schema."
+                )
+            elif rel in evidenced_test_targets:
+                instruction = (
+                    "Repair this dependent test only when its expectation contradicts the implemented public contract; "
+                    "keep substantive behavior coverage and use the exact supplied implementation signatures/result shapes."
+                )
+            else:
+                instruction = "Repair this file only for the observed post-build failure. Preserve candidate-only delivery boundaries."
+            provider_actions.append(
+                {
+                    "path": rel,
+                    "instruction": instruction,
+                    "atomic_repair_group": "implementation_and_dependent_tests",
+                }
+            )
 
     if "screenshot_failure" in failures and screenshot_runtime_actionable:
         root_causes.append("screenshot_blocked_by_runtime")
@@ -613,6 +759,14 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         "failure_types": failures,
         "root_causes": sorted(set(root_causes)),
         "target_files": target_files,
+        "implementation_owner_targets": [
+            rel for rel in target_files if rel in implementation_owner_targets
+        ],
+        "dependent_test_targets": [
+            rel for rel in target_files if rel in evidenced_test_targets
+        ],
+        "atomic_repair_required": bool(implementation_owner_targets and evidenced_test_targets),
+        "atomic_repair_target_limit": target_limit,
         "provider_actions": provider_actions[:target_limit],
         "deterministic_actions": deterministic_actions,
         "validation_commands": validation_commands,
@@ -1193,6 +1347,49 @@ def frontend_repair_validation_distance(error: str) -> int:
     return distance
 
 
+def post_build_leaf_repair_base_selection(
+    target_file: str,
+    validation_error: str,
+    baseline_content: str,
+    best_rejected_content: str,
+    last_rejected_content: str,
+    best_rejected_distance: int,
+) -> dict[str, Any]:
+    """Never make a truncated Python syntax failure the next turn's only source."""
+    if (
+        str(target_file).replace("\\", "/").endswith(".py")
+        and "python syntax failure" in str(validation_error).lower()
+        and str(baseline_content).strip()
+    ):
+        return {
+            "content": baseline_content,
+            "source": "last_syntax_valid_candidate",
+            "validation_distance": best_rejected_distance,
+            "rule": "This complete syntax-valid target is the only source base. Repair the reported syntax defect without copying or completing the truncated rejected output.",
+        }
+    if (
+        str(target_file).replace("\\", "/").endswith(".py")
+        and str(last_rejected_content).strip()
+    ):
+        try:
+            ast.parse(last_rejected_content)
+        except SyntaxError:
+            pass
+        else:
+            return {
+                "content": last_rejected_content,
+                "source": "latest_syntax_valid_rejected_candidate",
+                "validation_distance": best_rejected_distance,
+                "rule": "This latest syntax-valid rejected target is the only source base. Preserve its validated progress and repair the latest reported boundary error; frontend validation-distance ranking does not apply to Python leaves.",
+            }
+    return {
+        "content": best_rejected_content or last_rejected_content,
+        "source": "closest_rejected_candidate",
+        "validation_distance": best_rejected_distance,
+        "rule": "This target_file_contents row is the only source base for the repair turn; do not restart from the production candidate's older leaf.",
+    }
+
+
 def frontend_dom_action_contract(html: str) -> dict[str, Any]:
     """Project accepted HTML into a bounded JavaScript interface contract."""
     id_tags = {
@@ -1390,6 +1587,28 @@ def frontend_stagnation_escape_contract(
             "replacement against stagnation_escape_contract.required_region_content and every "
             "previous_validation_errors item while preserving already-valid visible regions. "
             "Return the full corrected HTML file."
+        )
+    if target_file.startswith("tests/") and target_file.endswith(".py"):
+        return {
+            "forbidden_module_scope_assignments": ["tmp_path"],
+            "forbidden_runtime_name_placeholders": [
+                "datetime = None",
+                "json = None",
+                "pytest = None",
+                "Path = None",
+            ],
+            "required_tmp_path_usage": "declare tmp_path as a parameter on every test or fixture that uses it",
+            "forbidden_cli_argv_prefix": "projectpulse",
+            "required_cli_argv_prefix": "--data-file or an actual subcommand",
+            "versioned_storage_task_path": "document['tasks']",
+        }, (
+            "The last two rejected pytest replacements were identical. Start from the supplied "
+            "single target_file_contents row, delete the complete module-level `tmp_path = ...` "
+            "statement and every runtime-name placeholder such as `datetime = None`, retain "
+            "tmp_path only as a function parameter, remove `projectpulse` from "
+            "the beginning of every main([...]) argv list, and inspect versioned persisted tasks "
+            "through document['tasks']. Reparse the full module mentally and return one complete "
+            "replacement; do not reproduce the identical rejected source."
         )
     return {}, (
         "The last two rejected replacements were identical. Regenerate this target leaf from "
@@ -1709,6 +1928,7 @@ def validate_post_build_repair_files(
     target_files: list[str],
     *,
     ui_acceptance_contract: dict[str, Any] | None = None,
+    direct_cli_leaf_contract: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     targets = {str(path).replace("\\", "/").strip() for path in target_files if str(path).strip()}
     supplied_normalization_actions = {
@@ -1761,6 +1981,27 @@ def validate_post_build_repair_files(
                 raise RuntimeError(
                     f"post-build repaired Python syntax failure in {rel}: {exc}"
                 ) from exc
+            safety_blockers = _legacy_call(
+                "generated_python_safety_violations", rel, item["content"]
+            )
+            if safety_blockers:
+                raise RuntimeError(
+                    "post-build repaired Python execution safety contract mismatch: "
+                    + "; ".join(safety_blockers)
+                )
+            if direct_cli_leaf_contract:
+                direct_cli_error = _legacy_call(
+                    "named_direct_cli_leaf_contract_error",
+                    rel,
+                    item["content"],
+                    python_tree,
+                    direct_cli_leaf_contract,
+                )
+                if direct_cli_error:
+                    raise RuntimeError(
+                        "post-build repaired direct CLI contract mismatch: "
+                        + direct_cli_error
+                    )
             undefined_names = _legacy_call(
                 "python_undefined_names", python_tree, filename=rel
             )
@@ -1768,6 +2009,27 @@ def validate_post_build_repair_files(
                 raise RuntimeError(
                     f"post-build repaired Python leaf contains undefined names in {rel}: "
                     + ", ".join(undefined_names)
+                )
+        if rel == "pyproject.toml" and direct_cli_leaf_contract:
+            pyproject_error = _legacy_call(
+                "named_direct_cli_pyproject_contract_error",
+                item["content"],
+            )
+            if pyproject_error:
+                raise RuntimeError(
+                    "post-build repaired direct CLI pyproject contract mismatch: "
+                    + pyproject_error
+                )
+        if rel == "README.md" and direct_cli_leaf_contract:
+            readme_error = _legacy_call(
+                "named_direct_cli_readme_contract_error",
+                item["content"],
+                str(direct_cli_leaf_contract.get("package_name", "")),
+            )
+            if readme_error:
+                raise RuntimeError(
+                    "post-build repaired direct CLI README contract mismatch: "
+                    + readme_error
                 )
         if rel.startswith("tests/") and rel.endswith(".py"):
             fixture_argvalues = _legacy_call(
@@ -1796,6 +2058,99 @@ def validate_post_build_repair_files(
                 + "; ".join(frontend_blockers)
             )
     return cleaned
+
+
+def post_build_direct_cli_leaf_contract(
+    phase_log_path: pathlib.Path | str,
+    target_file: str,
+) -> dict[str, Any]:
+    """Recover the frozen component contract for the current post-build leaf."""
+    pending_path = (
+        pathlib.Path(phase_log_path).resolve().parent
+        / "artifacts"
+        / "pending_repair_plan.json"
+    )
+    try:
+        pending = json.loads(pending_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError):
+        return {}
+    pipeline = pending.get("component_pipeline", {})
+    components = pipeline.get("components", []) if isinstance(pipeline, dict) else []
+    normalized_target = str(target_file or "").replace("\\", "/")
+    for component in components:
+        if not isinstance(component, dict):
+            continue
+        required_paths = {
+            str(path).replace("\\", "/")
+            for path in component.get("required_paths", [])
+            if str(path).strip()
+        }
+        is_test_leaf = (
+            normalized_target.startswith("tests/")
+            and str(component.get("id", "")) == "tests"
+        )
+        if normalized_target not in required_paths and not is_test_leaf:
+            continue
+        contract = _legacy_call(
+            "direct_cli_leaf_contract", component, normalized_target
+        )
+        return contract if isinstance(contract, dict) else {}
+    return {}
+
+
+def direct_cli_runtime_coherence_repair_rules(
+    target_file: str,
+    contract: dict[str, Any],
+) -> list[str]:
+    """Translate the frozen API into unambiguous leaf-local correction rules."""
+    if not contract:
+        return []
+    basename = pathlib.PurePosixPath(str(target_file).replace("\\", "/")).name
+    model_name = str(contract.get("architecture", "")).split(" model", 1)[0].strip() or "Record"
+    if basename == "repository.py":
+        return [
+            "Delete every module-level placeholder assignment such as `datetime = None`, `json = None`, `os = None`, or `Path = None`; runtime standard-library names must never be shadowed by constants.",
+            "At the start of save(tasks), call the repository duplicate-ID validator before opening the temporary file.",
+            f"load() must construct {model_name}(...) records and save() must serialize task.to_dict() into a versioned tasks object before os.replace.",
+        ]
+    if basename == "service.py":
+        return [
+            "Write complete(self, task_id: str) and delete(self, task_id: str); remove every int annotation for task identifiers.",
+            "In add(), compute the next numeric value from existing string IDs, convert the new ID with str(...), and pass datetime.now().isoformat() rather than a datetime object to the record constructor.",
+            "Inside the merge loop, replace `if task_id: continue` with `if task_id is not None: raise ValueError('Duplicate task ID')`; never continue, skip, or silently accept a duplicate.",
+            "Malformed import JSON and invalid import data must raise ValueError to the CLI boundary. Never catch a data error and return an integer exit code from TaskService.import_from(); only CLI main() maps exceptions to exit code 2.",
+        ]
+    if basename == "cli.py":
+        return [
+            "Every success branch must call print() with json.dumps(...) as its direct first argument. Use these exact shapes: add -> `print(json.dumps(service.add(args.title).to_dict()))`; list -> `print(json.dumps([task.to_dict() for task in service.list(args.status)]))`; complete -> `print(json.dumps(service.complete(args.task_id).to_dict()))`.",
+            "Use these exact remaining success shapes: delete -> `print(json.dumps(service.delete(args.task_id).to_dict()))`; summary -> `print(json.dumps(service.summary()))`; import -> `result = service.import_from(args.path, args.mode)` then `print(json.dumps({'imported': result, 'mode': args.mode}))`; export -> call service.export_to(args.path) then `print(json.dumps({'exported_to': args.path}))`.",
+            "Delete every plain success print such as `print(result)`, `print(summary)`, `print('Import successful')`, or an export f-string. Do not print an intermediate Python object or success sentence; the AST boundary requires json.dumps(...) directly inside every success print call.",
+            "main(argv) receives arguments after the executable name and must dispatch string task IDs to the service.",
+        ]
+    if basename == "README.md":
+        package_name = str(contract.get("package_name", "")).strip() or "projectpulse"
+        prefix = f"{package_name} --data-file tasks.json"
+        return [
+            f"Document both `{prefix} summary` and `python -m {package_name} --data-file tasks.json summary` so the console and module entries are copyable.",
+            f"Include copyable examples `{prefix} add \"Example task\"`, `{prefix} list --status open`, `{prefix} complete 1`, `{prefix} delete 1`, and `{prefix} export export.json`.",
+            f"Include both `{prefix} import import.json --mode merge` and `{prefix} import import.json --mode replace`. Keep --data-file before the subcommand because it is a global argparse option.",
+        ]
+    if str(target_file).replace("\\", "/").startswith("tests/"):
+        return [
+            "Delete every module-level assignment to tmp_path, including `tmp_path = Path(...)`. Every test that uses tmp_path must declare it in its own signature, for example `def test_name(tmp_path):`; use no hard-coded /tmp directory.",
+            "Delete every module-level placeholder assignment `datetime = None`, `json = None`, `pytest = None`, or `Path = None`; imported runtime names must never be shadowed by constants.",
+            "Replace every `main(['projectpulse', ...])` call with `main([...])` whose first item is `--data-file` or the actual subcommand expected by build_parser(); main(argv) never receives the console program name.",
+            "Read versioned storage through repository/service APIs or load the JSON object and inspect `document['tasks']`; never treat the versioned document itself as a top-level task list.",
+            "Call the bound TaskService API with these exact argument counts: add(title), list() or list(status), complete(task_id), delete(task_id), summary(), export_to(path), and import_from(path, mode). The data-file path is bound by JSONRepository(data_file) and must never be passed as a second argument to add().",
+            "Task identifiers are strings. In successful complete/delete tests, capture `created = service.add(title)` and pass `created.id`; never pass an integer literal such as complete(1), delete(1), or the returned Task object itself.",
+            "A title or guessed string is not an identifier: outside an explicit pytest.raises not-found check, never call complete('Task title') or delete('Task title') after add(); use the returned Task .id.",
+            "Every test module that requests task_service must define that pytest fixture in the same module (or a generated conftest.py); a fixture in a sibling test module is not visible.",
+            "TaskService.list() returns Task objects: assert `result[0].title`, `result[0].id`, and other attributes, never mapping subscripts such as `result[0]['title']`.",
+            "TaskService methods return values and never print. Direct service-layer tests assert those values and must not request capsys/readouterr or expect stdout; capsys is valid only when the test actually calls CLI main().",
+            "A corrupt-storage pytest.raises block must execute repository.load() or a service read that parses storage; constructing TaskService alone is lazy and cannot prove malformed JSON handling.",
+            "Request every other pytest fixture as a test parameter, never call a fixture function directly, keep all tmp_path-derived paths inside tests/fixtures, and pass tmp_path-backed JSON file paths to import_from/export_to.",
+        ]
+    return []
 
 
 def ensure_path_to_file_url_import(text: str) -> str:
@@ -2209,11 +2564,18 @@ def provider_post_build_file_repair(
     failure_types = {
         str(item).strip() for item in repair_plan.get("failure_types", []) if str(item).strip()
     }
-    target_limit = 5 if failure_types & {
-        "fixture_failure",
-        "stage_artifact_failure",
-        "media_generation_failure",
-    } else 3
+    planned_target_limit = repair_plan.get("atomic_repair_target_limit")
+    target_limit = (
+        max(1, min(6, int(planned_target_limit)))
+        if isinstance(planned_target_limit, int)
+        else 5
+        if repair_plan.get("atomic_repair_required") or failure_types & {
+            "fixture_failure",
+            "stage_artifact_failure",
+            "media_generation_failure",
+        }
+        else 3
+    )
     target_files = [rel for rel in target_files if rel][:target_limit]
     if not target_files:
         return {"status": "skipped", "reason": "no provider file-level repair targets", "changed_files": []}
@@ -2244,16 +2606,16 @@ Keep the project candidate-only; final packaging is local_packager-only after va
     total_attempts = 0
     raw_chars = 0
     cleaned: list[dict[str, str]] = []
-    repair_set_context = [
-        {
-            "path": rel,
-            "content": (candidate_dir / rel).read_text(
-                encoding="utf-8", errors="replace"
-            )[:8000],
-        }
-        for rel in target_files
-        if (candidate_dir / rel).is_file()
-    ]
+    repair_set_context: list[dict[str, str]] = []
+    repair_set_context_chars = 0
+    for rel in target_files:
+        path = candidate_dir / rel
+        if not path.is_file() or repair_set_context_chars >= 8000:
+            continue
+        excerpt = path.read_text(encoding="utf-8", errors="replace")[:2500]
+        excerpt = excerpt[: max(0, 8000 - repair_set_context_chars)]
+        repair_set_context.append({"path": rel, "content": excerpt, "bounded_excerpt": True})
+        repair_set_context_chars += len(excerpt)
 
     def record_semantic_fallbacks(items: list[dict[str, Any]], target: str) -> None:
         semantic_actions = [
@@ -2319,19 +2681,30 @@ Keep the project candidate-only; final packaging is local_packager-only after va
         )
 
     for target_file in target_files:
+        direct_cli_contract = post_build_direct_cli_leaf_contract(
+            phase_log_path, target_file
+        )
         staged_path = accepted_leaf_path(target_file)
-        if target_file in {"index.html", "src/app.js", "src/main.js", "src/styles.css"} and staged_path.is_file():
+        frontend_repair_leaf = target_file in {
+            "index.html",
+            "src/app.js",
+            "src/main.js",
+            "src/styles.css",
+        }
+        if (frontend_repair_leaf or direct_cli_contract) and staged_path.is_file():
             try:
                 staged_record = json.loads(staged_path.read_text(encoding="utf-8"))
-                staged_source_items = normalize_frontend_repair_against_accepted_html(
-                    [
-                        {
-                            "path": target_file,
-                            "content": str(staged_record.get("content", "")),
-                        }
-                    ],
-                    cleaned,
-                )
+                staged_source_items = [
+                    {
+                        "path": target_file,
+                        "content": str(staged_record.get("content", "")),
+                    }
+                ]
+                if frontend_repair_leaf:
+                    staged_source_items = normalize_frontend_repair_against_accepted_html(
+                        staged_source_items,
+                        cleaned,
+                    )
                 staged_items = validate_post_build_repair_files(
                     candidate_dir,
                     staged_source_items,
@@ -2339,11 +2712,16 @@ Keep the project candidate-only; final packaging is local_packager-only after va
                     ui_acceptance_contract=repair_plan.get(
                         "ui_acceptance_contract", {}
                     ),
+                    direct_cli_leaf_contract=direct_cli_contract,
                 )
-                staged_set_violations = frontend_repair_set_violations(
-                    candidate_dir,
-                    cleaned + staged_items,
-                    repair_plan.get("ui_acceptance_contract", {}),
+                staged_set_violations = (
+                    frontend_repair_set_violations(
+                        candidate_dir,
+                        cleaned + staged_items,
+                        repair_plan.get("ui_acceptance_contract", {}),
+                    )
+                    if frontend_repair_leaf
+                    else []
                 )
                 if (
                     staged_record.get("candidate_only") is not True
@@ -2352,7 +2730,7 @@ Keep the project candidate-only; final packaging is local_packager-only after va
                     or staged_set_violations
                 ):
                     raise RuntimeError(
-                        "staged leaf no longer satisfies current frontend set: "
+                        "staged leaf no longer satisfies current repair contract: "
                         + "; ".join(staged_set_violations)
                     )
             except Exception:
@@ -2382,6 +2760,12 @@ Keep the project candidate-only; final packaging is local_packager-only after va
         }
         payload = dict(base_payload)
         payload["target_file"] = target_file
+        if direct_cli_contract:
+            payload["direct_cli_leaf_contract"] = direct_cli_contract
+            coherence_rules = direct_cli_runtime_coherence_repair_rules(
+                target_file, direct_cli_contract
+            )
+            payload["direct_cli_runtime_coherence_repair"] = coherence_rules
         payload["target_file_contents"] = [existing]
         payload["repair_set_context"] = repair_set_context
         payload["accepted_sibling_replacements"] = [
@@ -2391,6 +2775,10 @@ Keep the project candidate-only; final packaging is local_packager-only after va
             (repair_plan.get("target_diagnostics", {}) or {}).get(target_file, "")
         )[:6000]
         payload["strict_rules"] = list(base_payload["strict_rules"])
+        if direct_cli_contract:
+            payload["strict_rules"].extend(
+                payload.get("direct_cli_runtime_coherence_repair", [])
+            )
         if target_file.endswith(".py"):
             payload["strict_rules"].append(
                 "Every referenced Python name must be defined or imported in this file; preserve required imports when replacing the leaf."
@@ -2691,6 +3079,15 @@ Keep the project candidate-only; final packaging is local_packager-only after va
             else {}
         )
         leaf_errors: list[str] = []
+        baseline_target_content = next(
+            (
+                str(item.get("content", ""))
+                for item in payload.get("target_file_contents", [])
+                if isinstance(item, dict)
+                and str(item.get("path", "")).replace("\\", "/") == target_file
+            ),
+            "",
+        )
         last_rejected_content = str(prior_feedback.get("content", ""))
         best_rejected_content = last_rejected_content
         best_rejected_error = str(prior_feedback.get("validation_error", ""))
@@ -2720,6 +3117,7 @@ Keep the project candidate-only; final packaging is local_packager-only after va
                     ui_acceptance_contract=repair_plan.get(
                         "ui_acceptance_contract", {}
                     ),
+                    direct_cli_leaf_contract=direct_cli_contract,
                 )
                 revalidated_set_violations = frontend_repair_set_violations(
                     candidate_dir,
@@ -2767,8 +3165,20 @@ Keep the project candidate-only; final packaging is local_packager-only after va
             total_attempts += 1
             attempt_payload = dict(payload)
             if leaf_errors:
-                repair_base_content = best_rejected_content or last_rejected_content
-                repair_base_error = best_rejected_error or leaf_errors[-1]
+                base_selection = post_build_leaf_repair_base_selection(
+                    target_file,
+                    leaf_errors[-1],
+                    baseline_target_content,
+                    best_rejected_content,
+                    last_rejected_content,
+                    best_rejected_distance,
+                )
+                repair_base_content = str(base_selection.get("content", ""))
+                repair_base_error = (
+                    leaf_errors[-1]
+                    if "syntax_valid" in str(base_selection.get("source", ""))
+                    else best_rejected_error or leaf_errors[-1]
+                )
                 attempt_payload["previous_validation_errors"] = [repair_base_error]
                 attempt_payload["validation_error_history"] = list(leaf_errors[-3:])
                 if repair_base_content:
@@ -2776,22 +3186,25 @@ Keep the project candidate-only; final packaging is local_packager-only after va
                         {
                             "path": target_file,
                             "content": repair_base_content[:18000],
-                            "source": "closest_rejected_candidate",
+                            "source": base_selection["source"],
                             "candidate_only": True,
                         }
                     ]
                     attempt_payload["repair_base_selection"] = {
-                        "source": "closest_rejected_candidate",
-                        "validation_distance": best_rejected_distance,
+                        "source": base_selection["source"],
+                        "validation_distance": base_selection["validation_distance"],
                         "single_source": True,
-                        "rule": "This target_file_contents row is the only source base for the repair turn; do not restart from the production candidate's older leaf.",
+                        "rule": base_selection["rule"],
                     }
                 stagnated = (
                     len(rejected_content_history) >= 2
                     and rejected_content_history[-1].strip()
                     == rejected_content_history[-2].strip()
                 )
-                if repair_base_content:
+                if (
+                    repair_base_content
+                    and base_selection.get("source") != "last_syntax_valid_candidate"
+                ):
                     if target_file in {
                         "index.html",
                         "src/app.js",
@@ -2874,6 +3287,7 @@ Keep the project candidate-only; final packaging is local_packager-only after va
                     ui_acceptance_contract=repair_plan.get(
                         "ui_acceptance_contract", {}
                     ),
+                    direct_cli_leaf_contract=direct_cli_contract,
                 )
                 set_violations = frontend_repair_set_violations(
                     candidate_dir,
@@ -2986,14 +3400,20 @@ def post_build_candidate_review_ready(result: dict[str, Any]) -> bool:
     test_result = result.get("test_result", {})
     fixture_result = result.get("fixture_result", {})
     ui_smoke = result.get("ui_smoke", {})
+    visual_surface_required = result.get("visual_surface_required") is not False
     return (
         isinstance(test_result, dict)
         and str(test_result.get("status", "")).lower() == "pass"
         and isinstance(fixture_result, dict)
         and str(fixture_result.get("status", "")).lower() == "pass"
-        and isinstance(ui_smoke, dict)
-        and str(ui_smoke.get("status", "")).lower() == "pass"
-        and (bool(result.get("screenshots")) or bool(result.get("screenshot_blocked")))
+        and (
+            not visual_surface_required
+            or (
+                isinstance(ui_smoke, dict)
+                and str(ui_smoke.get("status", "")).lower() == "pass"
+                and (bool(result.get("screenshots")) or bool(result.get("screenshot_blocked")))
+            )
+        )
     )
 
 
@@ -3013,6 +3433,7 @@ def run_candidate_post_build_repair_loop(
     routing_policy: Any | None,
     initial_post_build: dict[str, Any],
     max_attempts: int,
+    component_pipeline: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     current = initial_post_build
@@ -3057,6 +3478,7 @@ def run_candidate_post_build_repair_loop(
                     deadline=deadline,
                     classifications=classifications,
                     routing_policy=routing_policy,
+                    component_pipeline=component_pipeline,
                 )
                 current["post_build_repair_attempt"] = attempt
                 current["post_build_repair_plan"] = plan
@@ -3095,6 +3517,7 @@ def run_candidate_post_build_repair_loop(
                     deadline=deadline,
                     classifications=classifications,
                     routing_policy=routing_policy,
+                    component_pipeline=component_pipeline,
                 )
                 current["post_build_repair_attempt"] = attempt
                 current["post_build_repair_plan"] = plan
@@ -3117,6 +3540,7 @@ def run_candidate_post_build_repair_loop(
             deadline=deadline,
             classifications=classifications,
             routing_policy=routing_policy,
+            component_pipeline=component_pipeline,
         )
         current["post_build_repair_attempt"] = attempt
         current["post_build_repair_plan"] = plan

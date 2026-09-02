@@ -1,0 +1,98 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-025",
+  "project_id": "cgkn",
+  "goal": "Convert the existing CS2 Demo Anomaly Lab into a durable project vision, retire the old working source, and rebuild a fresh candidate through the reviewed Provider route under bounded Codex supervision.",
+  "backlog_item_ids": [
+    "PB-021"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "BLOCKED_PROVIDER",
+  "acceptance_criteria": [
+    "A Markdown and machine-readable vision preserve required capabilities, prohibited claims, and acceptance boundaries before the old generated directory is removed.",
+    "Only generated/cs2_demo_anomaly_lab_20260814 is retired; artifacts and formal candidates remain preserved.",
+    "A validated capability-supervisor brief guides a fresh reviewed-Provider run without authorizing source writes or delivery itself.",
+    "The fresh output uses a new isolated identity, does not reuse retired source, and stops within the bounded Provider request budget.",
+    "Generated tests, cached-real-Demo runtime, packaging, and delivery are evaluated only if a candidate materializes."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CS2-EXECUTION",
+      "measure": "fresh Provider source executes from parser through report",
+      "target": "a new candidate passes tests and one cached real Demo produces a valid report",
+      "method": "reviewed Provider generation, isolated pytest, and local CLI runtime probe"
+    },
+    {
+      "id": "QM-CS2-TRUTH",
+      "measure": "defensive conclusion and uncertainty integrity",
+      "target": "no cheating verdict or ban authorization without labels and corroborating information telemetry",
+      "method": "independent report assertions"
+    },
+    {
+      "id": "QM-CS2-ISOLATION",
+      "measure": "generation and delivery boundary preservation",
+      "target": "only the reviewed Provider writes candidate source and only local_packager may deliver after gates pass",
+      "method": "Provider phase log, source identity, and delivery evidence review"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Seal the product vision and exact retired-source hashes before deletion.",
+      "Use a four-item librarian packet instead of loading all historical CS2 runs.",
+      "Freeze typed interfaces, truth assertions, a 24-request ceiling, and no-retired-source reuse before generation."
+    ],
+    "assurance": [
+      "Validate the capability-supervisor request, response, brief, and authority boundaries.",
+      "Keep vision, generation, runtime, and delivery evidence independent."
+    ],
+    "control": [
+      "Verify the exact deletion target and preserve a recoverable retirement receipt.",
+      "Start a fresh Provider run with one worker and monitor Provider requests.",
+      "Stop when a hard Provider allowance blocker makes further local fallback work non-authoritative."
+    ],
+    "improvement": [
+      "Resume the same frozen run only after a reviewed credential has usable Provider allowance."
+    ]
+  },
+  "interface_expectations": [
+    "The durable vision is product memory; retired source structure is not generation authority.",
+    "The Codex supervisor may diagnose and define acceptance but does not write the Provider candidate.",
+    "Only authorized Demo files may be analyzed and no unlabeled sample authorizes a cheating verdict or ban.",
+    "No management or supervisor artifact authorizes formal delivery PASS."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/CS2_DEMO_ANOMALY_LAB_PROJECT_VISION.md",
+    "project_management/cgkn/iterations/ITER-025_PROJECT_VISION.json",
+    "project_management/cgkn/iterations/ITER-025_RETIREMENT_RECEIPT.json",
+    "project_management/cgkn/iterations/ITER-025_REBUILD_CODEX_BRIEF.json",
+    "artifacts/cs2_demo_anomaly_lab_rebuild_20260820/run/provider_phase_log.jsonl",
+    "artifacts/cs2_demo_anomaly_lab_rebuild_20260820/provider_result.json",
+    "project_management/cgkn/iterations/ITER-025_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The old 101-file working project was converted into validated Markdown and JSON vision artifacts, then removed to the Windows recycle bin; historical artifacts and formal candidates were preserved.",
+      "The bounded supervisor handoff completed and a fresh output identity entered the reviewed Provider route without retired-source reuse or candidate edits.",
+      "The initial 180-second total deadline expired before a Provider request; the same frozen checkpoint was then resumed with a corrected total deadline.",
+      "The explicit resume issued three Provider requests and all three returned provider_key_usage_limit. Zero component leaves completed, no candidate materialized, and packaging and delivery were not invoked.",
+      "PB-021 remains active because a usable reviewed Provider credential is required to continue the same frozen run."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Durable vision and hash-bound retirement evidence separated product intent from disposable generated source.",
+      "Single-worker monitoring exposed the hard Provider allowance blocker after only three requests and prevented indefinite local fallback work.",
+      "No candidate, package, delivery manifest, or unsupported anti-cheat conclusion was fabricated."
+    ],
+    "did_not_work": [
+      "The first command treated 180 seconds as the whole generation deadline rather than a per-request timeout and produced only planning artifacts.",
+      "The configured Provider credential immediately returned provider_key_usage_limit on every resumed request, so no generation leaf completed."
+    ],
+    "experiments": [
+      "After a reviewed credential has allowance, resume artifacts/cs2_demo_anomaly_lab_rebuild_20260820/run with the same frozen plan, retain single-worker monitoring, and compare completed leaves and prompt characters before increasing the 24-request ceiling."
+    ]
+  }
+}

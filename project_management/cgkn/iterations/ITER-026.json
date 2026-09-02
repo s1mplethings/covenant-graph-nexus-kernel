@@ -1,0 +1,97 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-026",
+  "project_id": "cgkn",
+  "goal": "Resume the fresh CS2 Demo Anomaly Lab rebuild with the user-selected working Provider credential injected only into the child process, then inspect what CGKN actually generates within the bounded request budget.",
+  "backlog_item_ids": [
+    "PB-021"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
+  "acceptance_criteria": [
+    "The selected credential passes one TLS-verified minimal Provider probe without being persisted or written to repository artifacts.",
+    "The exact ITER-025 frozen run resumes through current checkpoint validation with no retired-source reuse and one Provider worker.",
+    "The cumulative fresh-run Provider request count is stopped at 24 unless a candidate completes earlier.",
+    "Any generated candidate is evaluated by source/interface inspection and generated tests before a cached authorized real-Demo run.",
+    "No manual generated-source edit, alternate generator, package, or delivery claim bypasses canonical CGKN authorities."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-SELECTED-CREDENTIAL",
+      "measure": "selected Provider credential usability and secrecy",
+      "target": "minimal probe succeeds and the secret remains absent from repository files and reported output",
+      "method": "redacted connectivity receipt and repository secret scan"
+    },
+    {
+      "id": "QM-BOUNDED-REBUILD",
+      "measure": "fresh candidate progress per Provider request",
+      "target": "at most 24 cumulative requests with completed leaf and candidate evidence recorded",
+      "method": "provider phase-log inspection"
+    },
+    {
+      "id": "QM-CS2-FITNESS",
+      "measure": "generated project behavior and truth boundaries",
+      "target": "tests and cached-real-Demo acceptance pass without unsupported cheating or accuracy claims",
+      "method": "generated pytest, local runtime, and report assertions"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Inject the selected credential only through hidden input into the child process.",
+      "Reuse the validated vision, supervisor brief, and same-run planning checkpoint.",
+      "Keep one Provider worker and cumulative request monitoring."
+    ],
+    "assurance": [
+      "Verify the resume goal hashes and Provider ownership route.",
+      "Inspect candidate identity and ensure no retired path enters source provenance."
+    ],
+    "control": [
+      "Count Provider requests, fallbacks, completed leaves, and materialization events.",
+      "Run generated tests and cached-real-Demo acceptance only after a candidate exists.",
+      "Retain non-PASS if Provider, test, runtime, packaging, or delivery evidence is incomplete."
+    ],
+    "improvement": [
+      "Compare generated structure and request efficiency with the retired project and prior blocked runs."
+    ]
+  },
+  "interface_expectations": [
+    "The external Provider remains the only candidate-source owner.",
+    "Codex supplies only the validated bounded brief and evidence inspection.",
+    "local_packager remains the only delivery exit."
+  ],
+  "evidence_refs": [
+    "examples/test_results/connectivity_check_result.json",
+    "artifacts/cs2_demo_anomaly_lab_rebuild_20260820/run/provider_phase_log.jsonl",
+    "artifacts/cs2_demo_anomaly_lab_rebuild_20260820/run/artifacts/provider_components/component_checkpoint_summary.json",
+    "artifacts/cs2_demo_anomaly_lab_rebuild_20260820/run/artifacts/provider_components/leaf_work_graphs/backend.json",
+    "project_management/cgkn/iterations/ITER-026_CHECKPOINT_INSPECTION.json",
+    "project_management/cgkn/iterations/ITER-026_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The user-selected credential passed one TLS-verified minimal probe through a temporary process-only override and then generated real fresh-run checkpoints.",
+      "The phase log contains 26 cumulative Provider requests: three earlier usage-limited requests from the wrong configured credential and 23 generation requests through the selected working credential; the separate selected-key connectivity probe adds one minimal call.",
+      "Two requests already in flight completed after the monitor observed the 24-request ceiling, so the fresh-run cumulative log overshot the intended ceiling by two. This manual monitor is not an atomic budget gate.",
+      "The run produced two unique Foundation checkpoints and ten unique Backend checkpoints, but only Foundation became a completed component; no candidate directory materialized.",
+      "All ten Backend Python checkpoints parse syntactically, but decisive domain and interface defects make the partial project non-executable for real CS2 Demos."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Temporary hidden credential injection selected the intended working key without replacing the user's persistent configuration or writing the secret to project artifacts.",
+      "The bounded vision and supervisor brief produced domain-named modules and typed contracts rather than a wholly unrelated product.",
+      "Read-only checkpoint inspection exposed fatal semantic defects before more requests, candidate materialization, tests, or delivery."
+    ],
+    "did_not_work": [
+      "Manual phase-log polling is not an atomic request budget and overshot the cumulative ceiling by two already-in-flight requests.",
+      "CGKN still planned eighteen Backend leaves and generated four generic stages_part modules despite guidance for compact ownership boundaries.",
+      "The generated parser decodes bytes as UTF-8 JSON instead of invoking demoparser2; catalog/acquisition/parser collection contracts contradict each other; information-state logic infers target and line of sight without explicit evidence."
+    ],
+    "experiments": [
+      "Before any continuation, add an atomic Provider-request budget and deterministic CS2 goal-fidelity preflight that rejects fake JSON Demo parsing, collection-shape contradictions, disabled required HTTP acquisition, and inferred information relations."
+    ]
+  }
+}

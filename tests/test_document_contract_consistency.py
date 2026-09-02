@@ -18,6 +18,7 @@ FORMAL_DOCS = [
     ROOT / "docs" / "03_execution_flow.md",
     ROOT / "docs" / "04_acceptance_and_evidence.md",
     ROOT / "docs" / "06_agent_led_layered_architecture.md",
+    ROOT / "docs" / "14_codex_cgkn_runtime_supervision_baseline.md",
 ]
 
 

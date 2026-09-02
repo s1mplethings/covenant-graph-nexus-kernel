@@ -1,0 +1,20 @@
+{
+  "kind": "CGKNEnvironmentProbe",
+  "schema_version": "1.0",
+  "probe_id": "iter-025-cs2-current-environment",
+  "default_python_entry": {
+    "command": "python main.py --help",
+    "status": "BLOCKED_ENVIRONMENT",
+    "reason": "ModuleNotFoundError: No module named 'demoparser2'"
+  },
+  "preserved_environment": {
+    "python": "artifacts/cs2_demo_anomaly_lab_20260814/real_retest_20260814/venv/Scripts/python.exe",
+    "status": "available"
+  },
+  "cached_real_inputs": {
+    "directory": "artifacts/cs2_demo_anomaly_lab_20260814/real_retest_20260814/work/af8227b333cd/extracted/s2",
+    "status": "available"
+  },
+  "external_api_calls": 0,
+  "network_requests": 0
+}

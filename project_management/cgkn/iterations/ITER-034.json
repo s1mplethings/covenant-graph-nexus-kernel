@@ -1,0 +1,103 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-034",
+  "project_id": "cgkn",
+  "goal": "Recover and genuinely exercise the real ProjectPulse Codex-assisted CGKN generation route, strengthen direct-CLI generation and repair boundaries, and prove candidate behavior without bypassing Provider review or delivery authority.",
+  "backlog_item_ids": [
+    "PB-028"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A non-retryable Provider key-usage-limit response cannot consume the full plugin subprocess budget through repeated identical semantic attempts; the exact pending leaf checkpoint remains recoverable.",
+    "A recorded local fallback for component generation receives the configured bounded local-generation timeout instead of the shorter API request timeout, while API-owned calls retain their existing cap.",
+    "A valid sealed Codex brief is hash-bound to the generation plan and its concrete package, module, public-symbol, entrypoint, safety, and acceptance constraints are checked before Provider file generation.",
+    "No fix writes a sealed generated candidate, adds a generation path, changes the Telegram default route, packages output, or promotes support evidence to formal PASS.",
+    "Targeted timeout, Provider failure, capability-brief, goal-plan, plugin, kernel, and management regressions pass.",
+    "The ProjectPulse failure fixture rejects the observed backend/Note plan drift before source generation and accepts a plan that preserves the brief's projectpulse/Task/JSONRepository contract."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    },
+    {
+      "id": "QM-CODEX-SUPERVISOR",
+      "measure": "bounded Codex escalation usefulness and authority isolation",
+      "target": "a librarian-curated request and Codex response stay within configured budgets, preserve request identity, produce actionable guidance, and cannot assert formal evidence or delivery authority",
+      "method": "schema validation, deterministic contract tests, support-pipeline prompt tests, and an offline failed-generation replay"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "The reviewed Provider mainline remains scripts/run_local_pipeline.py with the sealed brief and explicit confirmation; local fallback uses the same leaf contracts and validation chain.",
+    "A named direct-CLI candidate is not review-ready until its runtime leaves, pyproject installability, copyable README usage, substantive GoalSpec tests, and real pytest execution all pass.",
+    "Candidate-only PASS receipts never authorize packaging or delivery when Provider semantic review is transport-blocked.",
+    "The CGKN plugin MCP process receives the canonical CGKN_OPENAI_API_KEY and CGKN_OPENAI_BASE_URL variables after credential replacement and does not depend on a cleared OPENAI_API_KEY compatibility copy."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-034_RUNTIME_EVIDENCE.md",
+    "artifacts/codex_cgkn_combined_real_test_20260822/.cgkn/agent-kit/runs/artifacts/candidate_post_build_finalize.json",
+    "artifacts/codex_cgkn_combined_real_test_20260822/.cgkn/agent-kit/runs/artifacts/goal_acceptance.json",
+    "artifacts/codex_cgkn_combined_real_test_20260822/.cgkn/agent-kit/generation_result.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The same reviewed Provider route genuinely regenerated and repaired ProjectPulse. Candidate post-build and all 15 GoalSpec behaviors pass, the latest wheel installs in a clean venv, and both installed entry forms execute successfully.",
+      "Direct-CLI contracts now reject invalid packaging discovery, runtime-name placeholders, swallowed import errors, per-command Task serialization gaps, and non-copyable README examples; exact bounded repair prompts recovered each observed leaf without hand-editing the candidate.",
+      "Formal delivery remains unavailable: Provider semantic review is blocked by the external key-usage limit, overall status is ASK_USER_REVIEW, final_delivery_allowed is false, and no bundle or delivery manifest exists.",
+      "The post-replacement plugin startup gap was traced to an MCP manifest that forwarded only the cleared OPENAI_API_KEY compatibility variable. The source plugin now forwards the canonical key and base URL, guarded generation accepts the canonical process credential, plugin tests pass 7/7, kernel tests pass 31/31, and plugin validation passes."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-028"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Whole-candidate direct-CLI revalidation caught defects that a shallow 15-test suite initially missed, while accepted-leaf revalidation avoided repeating successful model repairs.",
+      "Exact complete-source micro-repairs reduced repeated local-model failures for module-scope placeholders, malformed-import exception propagation, Task JSON serialization, and README invocation completion.",
+      "A clean wheel build and isolated install exposed and then verified the explicit setuptools package-discovery boundary."
+    ],
+    "did_not_work": [
+      "Large generic local-model prompts repeatedly echoed invalid lines or omitted one required usage example; bounded exact repair envelopes were needed.",
+      "The official generated-project test tool correctly refused the candidate-only directory because Provider review never materialized a formal generated-project directory."
+    ],
+    "experiments": [
+      "On a future run with available Provider quota, reuse the same artifact root and GoalSpec, obtain Provider semantic review, and verify that the unchanged local_packager/public_delivery_gate path alone produces formal delivery artifacts."
+    ]
+  }
+}

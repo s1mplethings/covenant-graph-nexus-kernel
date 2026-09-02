@@ -1,0 +1,88 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-029",
+  "project_id": "cgkn",
+  "goal": "Deliver a reusable installable CGKN Agent Kit that operates from arbitrary project directories while preserving the reviewed Provider generation and delivery contracts.",
+  "backlog_item_ids": [
+    "PB-023"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Codex automation is explicit, ephemeral, read-only, schema-constrained, and fails visibly when the executable or authentication is unavailable.",
+    "Manual Agent drafts and Codex drafts pass through the same deterministic supervisor response and brief validation.",
+    "Package, unit, contract, Windows-path, and dry-run tests pass, with local Codex executable limitations reported honestly.",
+    "Project generation invokes only scripts/run_local_pipeline.py with a validated --codex-capability-brief and never stores API keys.",
+    "Project initialization writes only portable support configuration and a secret-ignored artifact directory under .cgkn.",
+    "The companion is an independently installable Python package with a cgkn-agent command that works from an arbitrary project directory."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CODEX-SUPERVISOR",
+      "measure": "bounded Codex escalation usefulness and authority isolation",
+      "target": "a librarian-curated request and Codex response stay within configured budgets, preserve request identity, produce actionable guidance, and cannot assert formal evidence or delivery authority",
+      "method": "schema validation, deterministic contract tests, support-pipeline prompt tests, and an offline failed-generation replay"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "cgkn-agent may create support artifacts only under the target project's .cgkn directory.",
+    "Automatic Codex supervision is ephemeral, read-only, schema-constrained, and advisory-only.",
+    "Generation delegates only to scripts/run_local_pipeline.py with a validated capability brief; Provider, validation, packaging, and delivery authorities remain unchanged.",
+    "Credentials are process-only and never accepted as command arguments or persisted by the companion."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-029_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The reusable CLI, manual Agent sealing, Provider handoff, wheel, and cross-project tests pass; automatic Codex remains unavailable because the discovered WindowsApps executable returns access denied."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-023"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A standalone stdlib-only package reused the sealed supervisor and Provider facade without adding generation or delivery authority."
+    ],
+    "did_not_work": [
+      "The Microsoft Store desktop Codex executable cannot be launched directly from this PowerShell environment."
+    ],
+    "experiments": [
+      "Test a separately installed official Codex CLI or a repaired Windows app execution alias, then rerun cgkn-agent doctor and assist without changing the advisory contract."
+    ]
+  }
+}

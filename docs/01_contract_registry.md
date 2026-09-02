@@ -95,14 +95,26 @@ are not formal delivery evidence and cannot authorize a formal gate.
 | `CGKNAdaptiveIteration` | `schemas/adaptive_iteration.schema.json` | approved `manage-pmp-agile-quality` workflow | implementation, QA, review, retrospective | iteration workflow state is separate from canonical evidence evaluation |
 | `CGKNEnterpriseExperiencePack` | `schemas/enterprise_experience_pack.schema.json` | approved project review and retrospective workflow | project lead and bounded librarian retrieval | `experience_state` is `candidate`, `validated`, `approved`, or `retired`, never EvidenceStatus |
 | `CGKNAdaptiveProjectManagementContext` | bounded inline projection of the three schemas above | `scripts/adaptive_project_management_context.py` | existing provider component and leaf context | support context only; selects no more than four validated/approved experience items and cannot authorize a formal gate |
+| `CGKNCompactProviderLeafRequest` | deterministic hard-bounded inline request | `scripts/run_local_pipeline_impl.py` at the qualified Alibaba Qwen3.8 Responses leaf boundary | existing API Provider component-file generation and local Provider-output validators | contains one target contract, direct interfaces, bounded invariants/context, newest repair delta, size budget, and exact response shape; trims lower-priority duplicated detail to a configured hard character ceiling while retaining omitted detail and its identity locally; cannot authorize evidence, package, delivery, or create another generation route |
 | `GoalSpec` | deterministic inline object plus `requirement_decision/goal_spec.json` | `scripts/requirement_decision_lane.py` | requirement blueprint, Provider component/leaf context, controlled Agent Tree | canonical project-goal planning truth; `PASS` or `NEEDS_REWORK`; never formal delivery evidence |
 | `GoalDrivenProjectPlan` | deterministic inline object plus `requirement_decision/project_plan.json` | `scripts/requirement_decision_lane.py` | Provider component/leaf context, controlled Agent Tree, later goal-acceptance input | business workstreams, leaves, dependencies, outputs, structure, and test intents; cannot authorize formal delivery PASS |
+| `CGKNFeatureContract` | deterministic inline object inside `GoalSpec`, `GoalDrivenProjectPlan`, component manifests, and compact Provider leaves | `scripts/requirement_decision_lane.py` from each explicit typed operation | existing Provider component-file generation, focused generated tests, local validators, and isolated repair selection | freezes one public entrypoint, typed inputs/output, declared errors, explicit side effects, dependencies, owned paths, acceptance checks, and interface hash; support planning truth only and cannot authorize evidence, packaging, or delivery |
+| `CGKNFeatureInterfaceFreeze` | deterministic hashed inline object inside `GoalSpec`, `GoalDrivenProjectPlan`, and the executable interface graph | `scripts/requirement_decision_lane.py` after feature ownership conflict checks | dependency-ready Provider leaf batching, compact Provider requests, checkpoint identity, and repair closure | binds the complete feature set and unique owned-path index before generation; rejects ownership conflicts and prevents an isolated repair from expanding unrelated feature scope; cannot write source or authorize formal delivery PASS |
+| `CGKNFeatureUnitSemanticReviewRequest` | deterministic bounded inline Provider request | `scripts/run_local_pipeline_impl.py` after all feature-unit leaves pass local output boundaries | existing Provider semantic-review stage | contains only the raw goal, frozen feature contracts/interface hash, negative scope, declared entrypoints, exact file manifest, complete bounded source/configuration text, short narrative-document excerpts, and review rules; Qwen Responses requests use no reasoning and an 1,800-token ceiling; replaces the generic multi-review expansion for this architecture only and cannot bypass deterministic tests, evidence, packaging, or delivery gates |
+| `CGKNExecutableInterfaceGraph` | deterministic hashed inline projection inside the reviewed component pipeline | `scripts/run_local_pipeline_impl.py` | Provider implementation/test leaves, component quality validation, checkpoint identity | binds uniform stage callable/result/test-observation semantics plus runtime artifacts and report formats; support interface truth only and cannot authorize formal delivery PASS |
 | `CGKNGoalAcceptance` | deterministic inline support receipt plus `artifacts/goal_acceptance.json` | `scripts/goal_acceptance.py` through existing post-build finalization | candidate review readiness and `scripts/acceptance_verifier.py` veto-only prerequisite inspection | canonical EvidenceStatus for the receipt; binds goal/plan identity, exact substantive test symbols and source hashes, and an execution summary cross-checked against canonical `test_execution.json`; when applicable, missing/change/non-PASS forces final `NEEDS_REWORK`, but PASS cannot replace the registered test inspector, any formal gate, or authorize formal delivery PASS |
 | `CGKNGeneratedComponentQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | provider component checkpoint reuse, downstream component feedforward, assembled-project validation | lower-case internal `pass`/`fail`; rechecks current files and cannot authorize formal delivery PASS |
 | `CGKNAssembledProjectQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | provider generation quality gate and post-build continuation | lower-case internal `pass`/`fail`; failure blocks generation success while canonical test/runtime/visual evidence remains separately required |
 | `CGKNDesignResearchManifest` | deterministic JSON plus Markdown support projection | `scripts/design_research_agent.py` | existing Provider planning context and generation-context librarian | `workflow_state` is not EvidenceStatus; source references, three directions, selected contract, tokens, and anti-copying boundaries cannot authorize formal delivery PASS |
 | `CGKNBoundedDesignContext` | bounded inline projection | `scripts/design_research_agent.py` | frontend, media, and docs leaf generation through the existing librarian | no more than six relevant references plus the selected direction and design contract; context hash is support identity only |
 | `CGKNGeneratedDesignQualityValidation` | deterministic inline support receipt | `scripts/run_local_pipeline_impl.py` | component and assembled-project quality validation | lower-case internal `pass`/`fail`; checks design source/docs traceability and implemented source constraints but cannot replace canonical browser visual evidence or user review |
+| `CGKNCodexCapabilityEscalation` | `schemas/codex_capability_escalation.schema.json` | `scripts/codex_capability_supervisor.py` from librarian-selected context and failure evidence | explicitly invoked external Codex capability supervisor | secret-redacted, bounded, and request-hashed support context only; grants no candidate-write, formal-evidence, package, or delivery authority |
+| `CGKNCodexCapabilitySupervisorResponse` | `schemas/codex_capability_supervisor_response.schema.json` | external Codex through the approved `supervise-cgkn-capabilities` skill and deterministic sealing helper | `scripts/codex_capability_supervisor.py`, CFO/support workers, existing Provider planning context when explicitly selected | workflow state is `ready`, `needs_context`, or `declined`; formal evidence is fixed `NOT_EVALUATED`; response cannot contain source files, patches, final verdicts, packages, or delivery approval |
+| `CGKNCodexCapabilityBrief` | `schemas/codex_capability_brief.schema.json` | `scripts/codex_capability_supervisor.py` after request/response identity and authority validation | existing `agent_session`, bounded whiteboard support state, retained support pipeline, and explicitly selected reviewed formal Provider planning context | full brief is revalidated and retained as support evidence; only a bounded advisory projection enters Provider planning/components; brief hash binds checkpoint reuse; cannot write a candidate or replace Provider output validation, canonical evidence, `local_packager`, or `public_delivery_gate` |
+| `CGKNCodexCapabilityPlanContract` | deterministic inline projection bound inside `generation_plan_checkpoint.json` | `scripts/run_local_pipeline_impl.py` from one validated `CGKNCodexCapabilityBrief` projection | Requirement Decision Lane, existing Provider component/leaf context, checkpoint identity | exact brief paths, public symbols, entrypoints, safety limits, and acceptance-check hash are planning constraints only; drift blocks source generation; grants no candidate-write, formal-evidence, package, or delivery authority |
+| `CGKNRuntimeSupervisionCheckpoint` | deterministic hash-linked JSONL support envelope | `scripts/cgkn_supervision_protocol.py`, invoked by the CGKN Telegram service | persistent Codex supervisor host | binds sequence, prior hash, repository/chat/project/run identity, checkpoint type, bounded context references, requested action, and fixed no-authority fields; contains no credential and is not formal evidence |
+| `CGKNRuntimeSupervisionResult` | deterministic hash-bound support receipt constrained by `schemas/runtime_supervision_draft.schema.json` | `scripts/cgkn_runtime_supervisor.py` after one start/resume turn on the stored Codex thread | CGKN checkpoint release policy, `agent_session`, supervisor cursor | action is only `observe`, `advise`, `repair_cgkn`, `request_user_decision`, `resume`, or `halt`; repair targets are CGKN-owned relative paths; no action grants candidate, evidence, package, or delivery authority |
+| `CGKNRuntimeSupervisorState` | project-local deterministic support JSON under `.cgkn/runtime_supervisor/` | `scripts/cgkn_runtime_supervisor.py` | supervisor reattachment, health/status, checkpoint continuity | stores supervisor/thread/process/repository/cursor/restart workflow identity without secrets; file or process presence is not readiness or formal evidence |
 
 The support flow is:
 
@@ -115,6 +127,40 @@ tailored management context
 ```
 
 It does not alter the formal Telegram mainline or the sole delivery exit.
+
+## Runtime Supervision Architecture Baseline
+
+`docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative authority
+for runtime ownership among Codex, CGKN, and Telegram:
+
+- CGKN is the independently running system and owns Telegram intake, durable
+  project state, the reviewed Provider route, evidence orchestration, packaging,
+  and delivery handoff.
+- Telegram Bot and optional Mini App are CGKN-owned interaction surfaces; they
+  are not direct Codex transports or alternate generation routes.
+- Codex starts or attaches to CGKN and resumes one identity-bound persistent
+  supervision thread at declared checkpoints.
+- A bounded Codex repair may modify CGKN-owned code, configuration,
+  documentation, or tests and must produce an auditable diff plus proportionate
+  regression before resume.
+- Codex cannot impersonate Provider, author a sealed generated candidate,
+  promote workflow state to formal evidence, package, or authorize delivery.
+- Request-scoped or ephemeral Codex calls are bounded specialist/transitional
+  adapters and cannot satisfy persistent-supervision conformance by themselves.
+- Public runtime selection is limited to two mutually exclusive support
+  profiles: `API-only` disables every Codex path, while the branch distribution
+  `CGKN Codex Edition` forces the one-shot design CLI off and uses one persistent supervisor thread.
+  Their sessions, logs, uploads, project memory, Provider candidate roots, and
+  supervisor state are isolated. Both profiles enter the same formal Telegram
+  Provider mainline below.
+
+Supervisor instance identity, Codex thread identity, process health,
+checkpoint cursors, repair receipts, and restart counters are support/workflow
+state. They are not formal artifacts or EvidenceStatus. Persistent supervision
+remains `NOT_EVALUATED` until runtime evidence demonstrates same-thread resume,
+checkpoint continuity, permitted repair plus regression, forbidden-action
+rejection, and failure recovery while retaining the registered Provider and
+`local_packager` route.
 
 ## Formal Telegram Mainline
 

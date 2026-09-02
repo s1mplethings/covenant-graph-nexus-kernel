@@ -59,11 +59,15 @@ import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
 import public_narration
+import telegram_design_supervision
+import cgkn_supervision_protocol
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
 DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "telegram_live_logs"
 DEFAULT_MEMORY_DIR = ROOT / "examples" / "project_memory"
 DEFAULT_UPLOAD_DIR = ROOT / "examples" / "test_results" / "telegram_live_uploads"
+DEFAULT_PROVIDER_PROJECTS_DIR = ROOT / "generated" / "telegram_provider_projects"
+PROVIDER_PROJECTS_DIR = DEFAULT_PROVIDER_PROJECTS_DIR
 POLICY_PATH = ROOT / "config" / "customer_agent_policy.md"
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 GENERATION_TOTAL_TIMEOUT_SECONDS = 900
@@ -73,6 +77,15 @@ VIDEO_SUFFIXES = {".mp4", ".webm"}
 INTERNAL_EVIDENCE_SUFFIXES = {".md", ".json", ".txt", ".log"}
 DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", ".yml", ".toml", ".ini"}
 RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
+TELEGRAM_MINI_APP_URL = ""
+CODEX_DESIGN_MODE = "disabled"
+CODEX_DESIGN_COMMAND = ""
+CODEX_DESIGN_TIMEOUT = 600
+ACTIVE_CODEX_DESIGN_REQUESTS: set[str] = set()
+ACTIVE_CODEX_DESIGN_LOCK = threading.Lock()
+RUNTIME_SUPERVISOR_DIR = ""
+SUPERVISION_POLICY = "disabled"
+SUPERVISION_GATE_TIMEOUT = 0.0
 
 DEFAULT_CUSTOMER_AGENT_POLICY = """# Customer Agent Policy
 
@@ -138,13 +151,7 @@ def production_paths(
     identity: dict[str, str],
 ) -> tuple[pathlib.Path, pathlib.Path]:
     run_slug = safe_id(chat_id)
-    project_dir = (
-        ROOT
-        / "generated"
-        / "telegram_provider_projects"
-        / run_slug
-        / identity["candidate_id"]
-    ).resolve()
+    project_dir = (PROVIDER_PROJECTS_DIR / run_slug / identity["candidate_id"]).resolve()
     run_dir = (
         pathlib.Path(log_dir)
         / "provider_runs"
@@ -303,18 +310,26 @@ class TelegramClient:
             raise RuntimeError(f"Telegram {method} failed: {doc}")
         return doc
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
+    def send_message(self, chat_id: int | str, text: str, *, web_app_url: str = "") -> bool:
         last_error = ""
+        payload: dict[str, Any] = {
+            "chat_id": str(chat_id),
+            "text": text[:3900],
+            "disable_web_page_preview": "true",
+        }
+        validated_url = telegram_design_supervision.mini_app_url(web_app_url)
+        if validated_url:
+            payload["reply_markup"] = json.dumps(
+                {
+                    "inline_keyboard": [[
+                        {"text": "打开操作面板", "web_app": {"url": validated_url}}
+                    ]]
+                },
+                ensure_ascii=False,
+            )
         for attempt in range(3):
             try:
-                self.call(
-                    "sendMessage",
-                    {
-                        "chat_id": str(chat_id),
-                        "text": text[:3900],
-                        "disable_web_page_preview": "true",
-                    },
-                )
+                self.call("sendMessage", payload)
                 return True
             except Exception as exc:
                 last_error = str(exc)
@@ -572,6 +587,175 @@ def append_agent_session_event(session_dir: pathlib.Path, chat_id: int | str, ev
     doc.setdefault("created_at", now())
     append_jsonl(path, doc)
     return path
+
+
+def runtime_supervision_enabled() -> bool:
+    return bool(str(RUNTIME_SUPERVISOR_DIR).strip()) and SUPERVISION_POLICY in {"observe", "gate"}
+
+
+def emit_runtime_supervision_checkpoint(
+    session_dir: pathlib.Path,
+    chat_id: int | str,
+    session: dict[str, Any],
+    checkpoint_type: str,
+    *,
+    reason: str,
+    severity: str = "info",
+    requested_action: str = "observe",
+    context_refs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if not runtime_supervision_enabled():
+        return {}
+    active_project = session.get("active_project", {}) if isinstance(session.get("active_project"), dict) else {}
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    refs = list(context_refs or [])
+    for role, path in (
+        ("telegram_session", session_path(session_dir, chat_id)),
+        ("agent_session", agent_session_path(session_dir, chat_id)),
+    ):
+        if path.is_file():
+            refs.append(
+                {
+                    "role": role,
+                    "ref": str(path.resolve()),
+                    "sha256": canonical_evidence_hash.sha256_file(path),
+                }
+            )
+    try:
+        checkpoint = cgkn_supervision_protocol.emit_checkpoint(
+            RUNTIME_SUPERVISOR_DIR,
+            checkpoint_type,
+            repository_root=ROOT,
+            reason=reason,
+            severity=severity,
+            requested_action=requested_action,
+            chat_id=chat_id,
+            project_id=active_project.get("project_id", ""),
+            run_id=generation.get("run_id", ""),
+            context_refs=refs,
+        )
+    except Exception as exc:
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {
+                "kind": "runtime_supervision_checkpoint_failed",
+                "role": "system",
+                "checkpoint_type": checkpoint_type,
+                "error": str(exc)[:800],
+            },
+        )
+        return {}
+    append_agent_session_event(
+        session_dir,
+        chat_id,
+        {
+            "kind": "runtime_supervision_checkpoint_emitted",
+            "role": "system",
+            "checkpoint_type": checkpoint_type,
+            "checkpoint_id": checkpoint.get("checkpoint_id", ""),
+            "checkpoint_sha256": checkpoint.get("checkpoint_sha256", ""),
+            "requested_action": requested_action,
+        },
+    )
+    return checkpoint
+
+
+def provider_start_supervision_decision(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    session: dict[str, Any],
+    *,
+    reason: str,
+) -> tuple[bool, str]:
+    if SUPERVISION_POLICY != "gate" or not runtime_supervision_enabled():
+        if SUPERVISION_POLICY == "observe" and runtime_supervision_enabled():
+            emit_runtime_supervision_checkpoint(
+                session_dir,
+                chat_id,
+                session,
+                "pre_provider_generation",
+                reason=reason,
+                requested_action="observe",
+            )
+        return True, "supervision_not_gated"
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    checkpoint_id = str(generation.get("runtime_supervision_checkpoint_id", "")).strip()
+    if checkpoint_id:
+        result = cgkn_supervision_protocol.result_for_checkpoint(RUNTIME_SUPERVISOR_DIR, checkpoint_id)
+        if result is not None and result.get("action") in cgkn_supervision_protocol.RELEASE_ACTIONS:
+            generation.pop("runtime_supervision_checkpoint_id", None)
+            generation.pop("runtime_supervision_checkpoint_sha256", None)
+            generation.pop("runtime_supervision_result_action", None)
+            generation["status"] = "idle"
+            generation["start_wait_reason"] = ""
+            session["generation"] = generation
+            append_agent_session_event(
+                session_dir,
+                chat_id,
+                {
+                    "kind": "runtime_supervision_checkpoint_released",
+                    "role": "system",
+                    "checkpoint_id": checkpoint_id,
+                    "action": result.get("action", ""),
+                    "thread_id": result.get("thread_id", ""),
+                },
+            )
+            save_session(session_dir, session)
+            return True, "supervision_released"
+        if result is not None:
+            generation["runtime_supervision_result_action"] = str(result.get("action", ""))
+            generation["start_wait_reason"] = "runtime_supervision_action_pending"
+            session["generation"] = generation
+            save_session(session_dir, session)
+            return False, str(result.get("action", "halt"))
+        if SUPERVISION_GATE_TIMEOUT > 0:
+            result = cgkn_supervision_protocol.await_checkpoint_release(
+                RUNTIME_SUPERVISOR_DIR,
+                checkpoint_id,
+                SUPERVISION_GATE_TIMEOUT,
+            )
+            if result is not None and result.get("action") in cgkn_supervision_protocol.RELEASE_ACTIONS:
+                return provider_start_supervision_decision(
+                    client,
+                    chat_id,
+                    session_dir,
+                    session,
+                    reason=reason,
+                )
+        return False, "waiting_supervisor"
+    checkpoint = emit_runtime_supervision_checkpoint(
+        session_dir,
+        chat_id,
+        session,
+        "pre_provider_generation",
+        reason=reason,
+        severity="blocking",
+        requested_action="resume",
+    )
+    if not checkpoint:
+        generation["status"] = "waiting_supervisor"
+        generation["start_wait_reason"] = "runtime_supervision_unavailable"
+        session["generation"] = generation
+        save_session(session_dir, session)
+        return False, "supervision_unavailable"
+    generation["status"] = "waiting_supervisor"
+    generation["start_wait_reason"] = "runtime_supervision_checkpoint_pending"
+    generation["runtime_supervision_checkpoint_id"] = checkpoint["checkpoint_id"]
+    generation["runtime_supervision_checkpoint_sha256"] = checkpoint["checkpoint_sha256"]
+    session["generation"] = generation
+    save_session(session_dir, session)
+    send_customer_reply(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        event="runtime_supervision_checkpoint_pending",
+        source="runtime_supervisor",
+        direct_text="后台已进入生成前检查；检查通过后会自动继续，不需要重复提交需求。",
+    )
+    return False, "checkpoint_emitted"
 
 
 def load_session(session_dir: pathlib.Path, chat_id: int | str) -> dict[str, Any]:
@@ -1551,7 +1735,19 @@ def send_customer_reply(
         can_user_see=True,
         data={"artifact": "frontdesk_reply", "event": event},
     )
-    ok = client.send_message(chat_id, text)
+    design = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
+    surfaces = design.get("interaction_surfaces", []) if isinstance(design.get("interaction_surfaces"), list) else []
+    chat_type = str(session.get("telegram_chat_type", "")).lower()
+    web_app_url = (
+        TELEGRAM_MINI_APP_URL
+        if "telegram_mini_app" in surfaces and chat_type in {"", "private"}
+        else ""
+    )
+    ok = (
+        client.send_message(chat_id, text, web_app_url=web_app_url)
+        if web_app_url
+        else client.send_message(chat_id, text)
+    )
     append_truth_ledger(
         session_dir,
         session,
@@ -3400,6 +3596,14 @@ def combined_requirement(session: dict[str, Any]) -> str:
                 "平台生成约束:\n"
                 + "\n".join(f"- {key}: {value}" for key, value in sorted(cgkn_execution.items()))
             )
+        product_design = whiteboard.get("product_design")
+        if isinstance(product_design, dict) and product_design.get("required"):
+            surfaces = product_design.get("interaction_surfaces", []) if isinstance(product_design.get("interaction_surfaces"), list) else []
+            lines = [f"- interaction_surfaces: {', '.join(str(item) for item in surfaces)}"]
+            summary_text = str(product_design.get("brief_summary", "")).strip()
+            if summary_text:
+                lines.append(f"- approved_design_summary: {summary_text}")
+            parts.append("交互界面约束:\n" + "\n".join(lines))
         attachment_lines = attachment_requirement_lines(session)
         if attachment_lines:
             parts.append("用户上传资料和本地输入:\n" + "\n".join(attachment_lines))
@@ -3733,12 +3937,14 @@ def extract_project_intent_signals(text: str, session: dict[str, Any], analysis:
 
 
 def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, Any], user_text: str) -> tuple[bool, str]:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    if telegram_design_supervision.design_supervision_pending(whiteboard):
+        return False, "product_design_confirmation_pending"
     if explicit_start_requested(user_text):
         return True, "explicit_start_requested"
     session_analysis = session.get("backend_dialogue_analysis", {}) if isinstance(session.get("backend_dialogue_analysis"), dict) else {}
     if session_analysis:
         analysis = {**analysis, **session_analysis}
-    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     context = "\n".join(
         str(item)
         for item in (
@@ -4115,7 +4321,7 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
     if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")):
         changes = normalized.get("change_requests", [])
         normalized["change_requests"] = unique_strings((changes if isinstance(changes, list) else []) + [text], limit=120)
-    return normalized
+    return telegram_design_supervision.apply_design_intent(normalized, text, telegram_default=True)
 
 
 def substantive_user_turn_count(session: dict[str, Any]) -> int:
@@ -4265,6 +4471,8 @@ JSON 结构：
         action = "continue_chat"
         next_whiteboard["ready_to_generate"] = False
     next_whiteboard = enforce_backend_updates_from_user_text(session, next_whiteboard)
+    if telegram_design_supervision.design_supervision_pending(next_whiteboard):
+        action = "continue_chat"
     critical_questions = next_whiteboard.get("critical_questions", []) if isinstance(next_whiteboard.get("critical_questions"), list) else []
     if critical_questions and not any(str(item).strip() and str(item).strip()[:18] in reply for item in critical_questions):
         reply = (reply.rstrip() + "\n关键配置：" + "；".join(str(item).strip() for item in critical_questions[:2] if str(item).strip()))[:1200]
@@ -7439,9 +7647,7 @@ def run_provider_generation_job(
         project_dir, run_dir = production_paths(chat_id, log_dir, identity)
     else:
         run_slug = safe_id(chat_id)
-        project_dir = (
-            ROOT / "generated" / "telegram_provider_projects" / run_slug
-        ).resolve()
+        project_dir = (PROVIDER_PROJECTS_DIR / run_slug).resolve()
         run_dir = (pathlib.Path(log_dir) / "provider_runs" / run_slug).resolve()
     session["generation"] = {
         "status": "running",
@@ -7480,6 +7686,17 @@ def run_provider_generation_job(
             if formal_entry
             else run_dir / "production_entry_receipt.json"
         )
+        design_state = (
+            session.get("whiteboard", {}).get("product_design", {})
+            if isinstance(session.get("whiteboard"), dict)
+            and isinstance(session.get("whiteboard", {}).get("product_design"), dict)
+            else {}
+        )
+        codex_design_brief = (
+            str(design_state.get("brief_ref", "")).strip()
+            if design_state.get("workflow_state") == "approved"
+            else ""
+        )
         args = argparse.Namespace(
             plan="",
             goal=requirement,
@@ -7493,6 +7710,7 @@ def run_provider_generation_job(
             use_api=True,
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
+            codex_capability_brief=codex_design_brief,
         )
         provider_generation_started_at = now()
         provider_request_capture = provider_causal_trace.begin_provider_request(
@@ -7622,6 +7840,26 @@ def run_provider_generation_job(
                 "canonical_validation": provider_validation,
                 "validation_receipt": str(validation_receipt),
             },
+        )
+        emit_runtime_supervision_checkpoint(
+            session_dir,
+            chat_id,
+            session,
+            "provider_output_received",
+            reason="Provider output passed the existing validation boundary and is entering post-build finalization.",
+            requested_action="observe",
+            context_refs=[
+                {
+                    "role": "provider_generation_result",
+                    "ref": str(result_path.resolve()),
+                    "sha256": provider_result_hash,
+                },
+                {
+                    "role": "provider_validation_receipt",
+                    "ref": str(validation_receipt.resolve()),
+                    "sha256": canonical_evidence_hash.sha256_file(validation_receipt),
+                },
+            ],
         )
         append_agent_session_event(session_dir, chat_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, chat_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
@@ -7819,6 +8057,27 @@ def run_provider_generation_job(
             },
         )
         save_session(session_dir, session)
+        emit_runtime_supervision_checkpoint(
+            session_dir,
+            chat_id,
+            session,
+            "provider_failure",
+            reason=f"Provider or downstream generation work stopped in rework: {error_type}",
+            severity="warning",
+            requested_action="advise",
+            context_refs=[
+                {
+                    "role": "provider_phase_log",
+                    "ref": str(phase_log_path.resolve()),
+                    "sha256": canonical_evidence_hash.sha256_file(phase_log_path) if phase_log_path.is_file() else "",
+                },
+                {
+                    "role": "provider_generation_result",
+                    "ref": str(result_path.resolve()),
+                    "sha256": canonical_evidence_hash.sha256_file(result_path) if result_path.is_file() else "",
+                },
+            ],
+        )
         write_provider_phase_event(
             phase_log_path,
             {
@@ -8457,6 +8716,10 @@ def apply_backend_dialogue_tick(
         reason=reason,
         api_budget="low",
     )
+    session["whiteboard"] = enforce_backend_updates_from_user_text(
+        session,
+        session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {},
+    )
     append_whiteboard_version(session, session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {})
     append_memory_event(
         session,
@@ -8491,6 +8754,156 @@ def apply_backend_dialogue_tick(
     )
     save_session(session_dir, session)
     return analysis
+
+
+def design_checkpoint_public_text(session: dict[str, Any]) -> str:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    state = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
+    workflow_state = str(state.get("workflow_state", ""))
+    if not state.get("required") or workflow_state == "approved":
+        return ""
+    if workflow_state == "awaiting_user_confirmation":
+        summary = str(state.get("brief_summary", "")).strip()
+        detail = f" 当前方案摘要：{summary[:360]}" if summary else ""
+        return "界面方案已经整理好。请直接告诉我需要修改的地方，或回复“设计确认，开始生成”。" + detail
+    if workflow_state == "codex_unavailable":
+        return "界面设计分析暂时不可用；请求已保留，正式生成没有启动。恢复后可以直接继续。"
+    if workflow_state == "codex_running":
+        return "我正在先整理 Telegram 对话入口和 Mini App 操作面板；设计完成并由你确认后才会开始正式生成。"
+    return "我已先冻结 Telegram 对话入口和 Mini App 操作面板要求；设计确认前不会开始正式生成。"
+
+
+def run_codex_design_supervision_job(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    request_path: pathlib.Path,
+) -> None:
+    request_id = ""
+    try:
+        request_doc = read_json(request_path, {})
+        request_id = str(request_doc.get("request_id", ""))
+        result = telegram_design_supervision.run_codex_design_supervision(
+            request_path,
+            agent_session_path(session_dir, chat_id),
+            codex_command=CODEX_DESIGN_COMMAND,
+            timeout=CODEX_DESIGN_TIMEOUT,
+        )
+        session = load_session(session_dir, chat_id)
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        session["whiteboard"] = telegram_design_supervision.apply_design_brief(whiteboard, result)
+        append_whiteboard_version(session, session["whiteboard"])
+        append_memory_event(
+            session,
+            "product_design_brief_ready",
+            data={
+                "brief_ref": result.get("brief_path", ""),
+                "brief_sha256": result.get("brief", {}).get("brief_sha256", ""),
+                "advisory_only": True,
+            },
+        )
+        save_session(session_dir, session)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="product_design_brief_ready",
+            source="product_design_checkpoint",
+            direct_text=design_checkpoint_public_text(session),
+        )
+    except Exception as exc:
+        log_bridge_error(log_dir, "product_design_supervision_failed", chat_id, exc)
+        session = load_session(session_dir, chat_id)
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        session["whiteboard"] = telegram_design_supervision.mark_codex_unavailable(whiteboard, str(exc))
+        append_whiteboard_version(session, session["whiteboard"])
+        append_memory_event(session, "product_design_supervision_unavailable", data={"error": str(exc)[:800]})
+        save_session(session_dir, session)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="product_design_supervision_unavailable",
+            source="product_design_checkpoint",
+            direct_text=design_checkpoint_public_text(session),
+        )
+    finally:
+        if request_id:
+            with ACTIVE_CODEX_DESIGN_LOCK:
+                ACTIVE_CODEX_DESIGN_REQUESTS.discard(request_id)
+
+
+def maybe_start_design_supervision(
+    client: TelegramClient,
+    chat_id: int | str,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    session: dict[str, Any],
+) -> dict[str, Any]:
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    state = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
+    workflow_state = str(state.get("workflow_state", ""))
+    request_id = str(state.get("request_id", ""))
+    with ACTIVE_CODEX_DESIGN_LOCK:
+        running_in_process = bool(request_id and request_id in ACTIVE_CODEX_DESIGN_REQUESTS)
+    if not state.get("required") or workflow_state in {"approved", "awaiting_user_confirmation"} or running_in_process:
+        return {"status": "not_started"}
+    if CODEX_DESIGN_MODE == "disabled":
+        session["whiteboard"] = telegram_design_supervision.apply_api_only_design_baseline(whiteboard)
+        append_whiteboard_version(session, session["whiteboard"])
+        append_memory_event(
+            session,
+            "product_design_api_only_ready",
+            data={"design_source": "api_only_baseline", "codex_used": False},
+        )
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {
+                "kind": "product_design_api_only_ready",
+                "role": "system",
+                "design_source": "api_only_baseline",
+                "codex_used": False,
+            },
+        )
+        save_session(session_dir, session)
+        return {"status": "api_only_ready"}
+    prepared = telegram_design_supervision.prepare_design_escalation(
+        session_dir,
+        chat_id,
+        session,
+        agent_session_path(session_dir, chat_id),
+    )
+    append_whiteboard_version(session, session.get("whiteboard", {}))
+    append_memory_event(
+        session,
+        "product_design_supervision_requested",
+        data={"request_path": prepared.get("request_path", ""), "advisory_only": True},
+    )
+    if CODEX_DESIGN_MODE != "cli":
+        state = session.get("whiteboard", {}).get("product_design", {})
+        state["workflow_state"] = "awaiting_codex_brief"
+        session["whiteboard"]["product_design"] = state
+        save_session(session_dir, session)
+        return prepared
+    state = session.get("whiteboard", {}).get("product_design", {})
+    state["workflow_state"] = "codex_running"
+    session["whiteboard"]["product_design"] = state
+    request_id = str(prepared.get("request", {}).get("request_id", ""))
+    if request_id:
+        with ACTIVE_CODEX_DESIGN_LOCK:
+            ACTIVE_CODEX_DESIGN_REQUESTS.add(request_id)
+    save_session(session_dir, session)
+    request_path = pathlib.Path(str(prepared.get("request_path", "")))
+    threading.Thread(
+        target=run_codex_design_supervision_job,
+        args=(client, chat_id, session_dir, log_dir, request_path),
+        daemon=True,
+    ).start()
+    return {**prepared, "status": "codex_running"}
 
 
 def run_model_frontdesk_turn(
@@ -8539,7 +8952,12 @@ def run_model_frontdesk_turn(
             data={"artifact": "model_frontdesk_failure", "error": str(exc)[:500]},
         )
         analysis = apply_backend_dialogue_tick(session_dir, chat_id, session, model=model, timeout=timeout, reason=reason)
-        action = "start_generation" if combined_requirement(session) else "continue_chat"
+        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+        action = (
+            "start_generation"
+            if combined_requirement(session) and not telegram_design_supervision.design_supervision_pending(whiteboard)
+            else "continue_chat"
+        )
         reply = str(analysis.get("user_visible_reply", ""))
         reply, rejected = reject_off_topic_public_reply(session_dir, chat_id, session, reply, source="backend_dialogue_fallback")
         if rejected:
@@ -8650,7 +9068,58 @@ def start_generation_from_income(
     status = str(generation.get("status", "idle")).lower()
     if status in ACTIVE_GENERATION_STATUSES:
         return False
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    if telegram_design_supervision.design_supervision_pending(whiteboard):
+        append_agent_session_event(
+            session_dir,
+            chat_id,
+            {
+                "kind": "generation_waiting_for_product_design",
+                "role": "system",
+                "reason": reason,
+                "workflow_state": whiteboard.get("product_design", {}).get("workflow_state", ""),
+            },
+        )
+        generation["status"] = "waiting_confirmation"
+        generation["start_wait_reason"] = "product_design_confirmation_pending"
+        session["generation"] = generation
+        save_session(session_dir, session)
+        send_customer_reply(
+            client,
+            chat_id,
+            session_dir,
+            session,
+            event="product_design_confirmation_pending",
+            source="product_design_checkpoint",
+            direct_text=design_checkpoint_public_text(session),
+        )
+        return False
     if not combined_requirement(session):
+        return False
+    supervision_allowed, supervision_reason = provider_start_supervision_decision(
+        client,
+        chat_id,
+        session_dir,
+        session,
+        reason=reason,
+    )
+    if not supervision_allowed:
+        if supervision_reason not in {"checkpoint_emitted", "waiting_supervisor"}:
+            public_reason = {
+                "repair_cgkn": "后台检查发现 CGKN 需要先修复，当前项目生成保持暂停。",
+                "request_user_decision": "后台检查需要你确认一个关键决定，当前项目生成保持暂停。",
+                "halt": "后台安全检查未通过，当前项目生成保持暂停。",
+                "supervision_unavailable": "后台监督暂时不可用，已安全暂停生成。",
+            }.get(supervision_reason, "后台检查尚未完成，当前项目生成保持暂停。")
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                session,
+                event="runtime_supervision_checkpoint_blocked",
+                source="runtime_supervisor",
+                direct_text=public_reason,
+            )
         return False
     append_truth_ledger(
         session_dir,
@@ -8878,6 +9347,59 @@ def auto_start_pending_intakes(
     return started
 
 
+def auto_resume_supervised_intakes(
+    client: TelegramClient,
+    session_dir: pathlib.Path,
+    log_dir: pathlib.Path,
+    model: str,
+    timeout: int,
+    *,
+    allowed_chat: str = "",
+    generation_mode: str = "api",
+) -> int:
+    if SUPERVISION_POLICY != "gate" or not runtime_supervision_enabled():
+        return 0
+    session_paths = [session_path(session_dir, allowed_chat)] if allowed_chat else sorted(session_dir.glob("*.json"))
+    resumed = 0
+    for path in session_paths:
+        if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
+            continue
+        chat_id = path.stem
+        session = load_session(session_dir, chat_id)
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        if str(generation.get("status", "")).lower() != "waiting_supervisor":
+            continue
+        checkpoint_id = str(generation.get("runtime_supervision_checkpoint_id", "")).strip()
+        if not checkpoint_id:
+            continue
+        result = cgkn_supervision_protocol.result_for_checkpoint(RUNTIME_SUPERVISOR_DIR, checkpoint_id)
+        if result is None or result.get("action") not in cgkn_supervision_protocol.RELEASE_ACTIONS:
+            continue
+        if start_generation_from_income(
+            client,
+            chat_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            session,
+            reason="runtime_supervision_release",
+            generation_mode=generation_mode,
+        ):
+            resumed += 1
+            refreshed = load_session(session_dir, chat_id)
+            send_customer_reply(
+                client,
+                chat_id,
+                session_dir,
+                refreshed,
+                event="runtime_supervision_checkpoint_released",
+                source="runtime_supervisor",
+                direct_text="后台检查已经通过，项目现在开始构建。",
+            )
+    return resumed
+
+
 def continue_customer_turn(
     client: TelegramClient,
     chat_id: int | str,
@@ -9029,6 +9551,12 @@ def handle_text(
             "update_id": str(message_context.get("update_id", "")),
             "message_id": str(message_context.get("message_id", "")),
         }
+    if isinstance(message_context, dict):
+        session["telegram_chat_type"] = str(message_context.get("chat_type", session.get("telegram_chat_type", "")))
+    session["whiteboard"] = enforce_backend_updates_from_user_text(
+        session,
+        session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {},
+    )
     append_memory_event(session, "user_message", text, {"classification": classification})
     save_session(session_dir, session)
 
@@ -9229,6 +9757,9 @@ def handle_text(
             timeout=timeout,
             reason="new_project_request",
         )
+        design_note = design_checkpoint_public_text(session)
+        if design_note:
+            turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
         auto_start, start_reason = should_auto_start_generation(session, analysis, text)
         if not auto_start:
             record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
@@ -9248,6 +9779,7 @@ def handle_text(
                 source="backend_dialogue_start_policy",
                 direct_text=direct_text,
             )
+            maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
             return
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
@@ -9297,6 +9829,20 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
+        if telegram_design_supervision.design_supervision_pending(whiteboard):
+            start_generation_from_income(
+                client,
+                chat_id,
+                session_dir,
+                log_dir,
+                model,
+                timeout,
+                session,
+                reason="frontdesk_generation_confirmation",
+                generation_mode=generation_mode,
+            )
+            maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+            return
         if str(generation_mode or "api").lower() == "api":
             send_customer_reply(
                 client,
@@ -9318,6 +9864,7 @@ def handle_text(
             reason="frontdesk_generation_confirmation",
             generation_mode=generation_mode,
         )
+        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
         return
 
     if intent == "escalation_request":
@@ -9376,6 +9923,9 @@ def handle_text(
         timeout=timeout,
         reason="project_update",
     )
+    design_note = design_checkpoint_public_text(session)
+    if design_note:
+        turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
     analysis = session.get("backend_dialogue_analysis", {}) if isinstance(session.get("backend_dialogue_analysis"), dict) else {}
     if not analysis or str(analysis.get("reason", "")) != "project_update":
         analysis = apply_backend_dialogue_tick(
@@ -9405,6 +9955,7 @@ def handle_text(
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
+        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,
@@ -9549,6 +10100,9 @@ def handle_attachment_message(
         timeout=timeout,
         reason="attachment_project_input",
     )
+    design_note = design_checkpoint_public_text(session)
+    if design_note:
+        turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
     analysis = apply_backend_dialogue_tick(
         session_dir,
         chat_id,
@@ -9576,6 +10130,7 @@ def handle_attachment_message(
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
+        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,
@@ -9607,16 +10162,46 @@ def handle_attachment_message(
 
 
 def run(args: argparse.Namespace) -> None:
+    global TELEGRAM_MINI_APP_URL, CODEX_DESIGN_MODE, CODEX_DESIGN_COMMAND, CODEX_DESIGN_TIMEOUT
+    global RUNTIME_SUPERVISOR_DIR, SUPERVISION_POLICY, SUPERVISION_GATE_TIMEOUT
+    global DEFAULT_MEMORY_DIR, DEFAULT_UPLOAD_DIR, PROVIDER_PROJECTS_DIR
+    TELEGRAM_MINI_APP_URL = telegram_design_supervision.mini_app_url(getattr(args, "mini_app_url", ""))
+    CODEX_DESIGN_MODE = str(getattr(args, "codex_design_mode", "disabled") or "disabled")
+    CODEX_DESIGN_COMMAND = str(getattr(args, "codex_command", "") or "").strip()
+    CODEX_DESIGN_TIMEOUT = max(30, min(int(getattr(args, "codex_design_timeout", 600)), 1200))
+    RUNTIME_SUPERVISOR_DIR = str(getattr(args, "runtime_supervisor_dir", "") or "").strip()
+    SUPERVISION_POLICY = str(getattr(args, "supervision_policy", "disabled") or "disabled").strip()
+    SUPERVISION_GATE_TIMEOUT = max(0.0, min(float(getattr(args, "supervision_gate_timeout", 0.0)), 30.0))
+    if not RUNTIME_SUPERVISOR_DIR:
+        SUPERVISION_POLICY = "disabled"
+    if runtime_supervision_enabled() and CODEX_DESIGN_MODE == "cli":
+        raise ValueError("ephemeral Codex design mode cannot be combined with persistent runtime supervision")
     token = resolve_token(args.token)
     client = TelegramClient(token, args.http_timeout)
     session_dir = pathlib.Path(args.session_dir).resolve()
     log_dir = pathlib.Path(args.log_dir).resolve()
     upload_dir = pathlib.Path(args.upload_dir).resolve()
+    memory_dir = pathlib.Path(getattr(args, "memory_dir", DEFAULT_MEMORY_DIR)).resolve()
+    provider_projects_dir = pathlib.Path(getattr(args, "provider_projects_dir", PROVIDER_PROJECTS_DIR)).resolve()
+    DEFAULT_MEMORY_DIR = memory_dir
+    DEFAULT_UPLOAD_DIR = upload_dir
+    PROVIDER_PROJECTS_DIR = provider_projects_dir
     session_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
     upload_dir.mkdir(parents=True, exist_ok=True)
+    memory_dir.mkdir(parents=True, exist_ok=True)
+    provider_projects_dir.mkdir(parents=True, exist_ok=True)
     allowed_chat = str(args.chat_id).strip()
     offset = int(args.offset)
+    if runtime_supervision_enabled():
+        cgkn_supervision_protocol.write_service_heartbeat(RUNTIME_SUPERVISOR_DIR)
+        cgkn_supervision_protocol.emit_checkpoint(
+            RUNTIME_SUPERVISOR_DIR,
+            "service_startup",
+            repository_root=ROOT,
+            reason="The CGKN Telegram intake service started and initialized its persistent state directories.",
+            requested_action="observe",
+        )
     print(f"TELEGRAM_ONLY_BRIDGE: running chat_id={allowed_chat or '*'} session_dir={session_dir}", flush=True)
     auto_started = auto_start_pending_intakes(
         client,
@@ -9630,6 +10215,19 @@ def run(args: argparse.Namespace) -> None:
     if auto_started:
         print(f"TELEGRAM_ONLY_BRIDGE: auto_started_pending_intakes={auto_started}", flush=True)
     while True:
+        if runtime_supervision_enabled():
+            cgkn_supervision_protocol.write_service_heartbeat(RUNTIME_SUPERVISOR_DIR)
+        resumed = auto_resume_supervised_intakes(
+            client,
+            session_dir,
+            log_dir,
+            args.model,
+            args.generation_timeout,
+            allowed_chat=allowed_chat,
+            generation_mode=args.generation_mode,
+        )
+        if resumed:
+            print(f"TELEGRAM_ONLY_BRIDGE: supervisor_released_intakes={resumed}", flush=True)
         try:
             updates = client.get_updates(offset, args.poll_timeout)
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError, RuntimeError) as exc:
@@ -9648,7 +10246,10 @@ def run(args: argparse.Namespace) -> None:
                 continue
             if allowed_chat and str(chat_id) != allowed_chat:
                 continue
+            web_app_data = message.get("web_app_data") if isinstance(message.get("web_app_data"), dict) else {}
             text = str(message.get("text", "")).strip()
+            if not text and web_app_data:
+                text = telegram_design_supervision.web_app_user_text(web_app_data)
             if not text:
                 handle_attachment_message(
                     client,
@@ -9676,10 +10277,12 @@ def run(args: argparse.Namespace) -> None:
                     "update_id": update_id,
                     "message_id": message.get("message_id"),
                     "chat_id": chat_id,
+                    "chat_type": chat.get("type", ""),
                     "from_user_id": from_user.get("id"),
                     "from_username": from_user.get("username", ""),
                     "message_date": message.get("date"),
                     "edited_message": "edited_message" in update,
+                    "web_app_data": bool(web_app_data),
                 },
             )
 
@@ -9691,6 +10294,38 @@ def main() -> int:
     parser.add_argument("--session-dir", default=str(DEFAULT_SESSION_DIR))
     parser.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
     parser.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR))
+    parser.add_argument("--memory-dir", default=str(DEFAULT_MEMORY_DIR))
+    parser.add_argument("--provider-projects-dir", default=str(DEFAULT_PROVIDER_PROJECTS_DIR))
+    parser.add_argument(
+        "--mini-app-url",
+        default=os.environ.get("CGKN_TELEGRAM_MINI_APP_URL", ""),
+        help="Public HTTPS Telegram Mini App URL shown as the operation-panel button.",
+    )
+    parser.add_argument(
+        "--codex-design-mode",
+        choices=["disabled", "request-only", "cli"],
+        default=os.environ.get("CGKN_TELEGRAM_CODEX_DESIGN_MODE", "disabled"),
+        help="disabled is API-only; request-only and cli are transitional compatibility modes.",
+    )
+    parser.add_argument("--codex-command", default=os.environ.get("CGKN_TELEGRAM_CODEX_COMMAND", ""))
+    parser.add_argument("--codex-design-timeout", type=int, default=600)
+    parser.add_argument(
+        "--runtime-supervisor-dir",
+        default=os.environ.get("CGKN_RUNTIME_SUPERVISOR_DIR", ""),
+        help="Project-local support directory shared with the persistent Codex supervisor host.",
+    )
+    parser.add_argument(
+        "--supervision-policy",
+        choices=["disabled", "observe", "gate"],
+        default=os.environ.get("CGKN_SUPERVISION_POLICY", "disabled"),
+        help="observe records checkpoints; gate also pauses Provider start until the supervisor releases it.",
+    )
+    parser.add_argument(
+        "--supervision-gate-timeout",
+        type=float,
+        default=float(os.environ.get("CGKN_SUPERVISION_GATE_TIMEOUT", "0") or 0),
+        help="Optional short synchronous wait; zero keeps Telegram polling responsive and auto-resumes later.",
+    )
     parser.add_argument("--model", default=model_policy.select_model("provider_generation"))
     parser.add_argument("--generation-timeout", type=int, default=420)
     parser.add_argument(

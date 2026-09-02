@@ -257,9 +257,59 @@ def check_legacy_isolation(results: list[CheckResult]) -> None:
         add(results, "generate_project CLI wrapper is explicitly marked legacy", ok, ", ".join(missing))
 
 
+def check_runtime_profiles(results: list[CheckResult]) -> None:
+    bridge = read_rel("scripts/telegram_live_bridge.py")
+    supervisor = read_rel("scripts/cgkn_runtime_supervisor.py")
+    api_launcher = read_rel("scripts/start_cgkn_api_only.ps1")
+    codex_launcher = read_rel("scripts/start_cgkn_codex_edition.ps1")
+    api_ok, api_missing = contains_all(
+        api_launcher,
+        [
+            '"--generation-mode", "api"',
+            '"--codex-design-mode", "disabled"',
+            '"--supervision-policy", "disabled"',
+            '"generated\\cgkn_modes\\api_only"',
+        ],
+    )
+    add(results, "API-only launcher disables every Codex control path", api_ok, ", ".join(api_missing))
+    codex_ok, codex_missing = contains_all(
+        codex_launcher,
+        [
+            '"scripts.cgkn_runtime_supervisor", "run"',
+            '"--start-telegram"',
+            '"generated\\cgkn_editions\\codex"',
+            '".cgkn\\editions\\codex"',
+        ],
+    )
+    add(results, "CGKN Codex Edition launcher owns a separate persistent profile", codex_ok, ", ".join(codex_missing))
+    supervisor_ok, supervisor_missing = contains_all(
+        function_body(supervisor, "_default_telegram_argv"),
+        ['"--codex-design-mode"', '"disabled"', '"--provider-projects-dir"'],
+    )
+    add(results, "persistent supervisor disables the one-shot Codex adapter", supervisor_ok, ", ".join(supervisor_missing))
+    bridge_ok, bridge_missing = contains_all(
+        bridge,
+        [
+            'choices=["disabled", "request-only", "cli"]',
+            "apply_api_only_design_baseline",
+            "ephemeral Codex design mode cannot be combined with persistent runtime supervision",
+        ],
+    )
+    add(results, "Telegram bridge enforces mutually exclusive Codex modes", bridge_ok, ", ".join(bridge_missing))
+
+
 def run_checks() -> list[CheckResult]:
     results: list[CheckResult] = []
-    for checker in (check_telegram, check_planner, check_manifest, check_runner, check_local_actions, check_packager, check_legacy_isolation):
+    for checker in (
+        check_telegram,
+        check_planner,
+        check_manifest,
+        check_runner,
+        check_local_actions,
+        check_packager,
+        check_legacy_isolation,
+        check_runtime_profiles,
+    ):
         try:
             checker(results)
         except Exception as exc:

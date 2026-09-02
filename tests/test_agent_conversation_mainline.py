@@ -188,7 +188,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             bridge.start_agent_generation = fake_start
             bridge.agent_conversation_loop.run_agent_loop = forbidden_loop
             try:
-                bridge.handle_text(client, "chat-async", "做一个本地看板应用", session_dir, log_dir, "gpt-test", 30)
+                bridge.handle_text(client, "chat-async", "做一个本地文本转换工具", session_dir, log_dir, "gpt-test", 30)
                 bridge.handle_text(client, "chat-async", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
                 bridge.start_agent_generation = original_start

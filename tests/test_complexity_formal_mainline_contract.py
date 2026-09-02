@@ -403,6 +403,222 @@ def test_component_quality_rejects_unpublished_manifest_symbol() -> None:
     assert "src/app.js does not publish expected symbols: runPipeline" in validation["blockers"]
 
 
+def test_document_manifest_symbols_are_migrated_to_prose_anchors() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="docs",
+        files=[
+            {
+                "path": "README.md",
+                "content": "# CS2 Demo Anomaly Lab\n\nRun `python -m main --help` for the CLI.\n",
+            }
+        ],
+        manifest_entries=[
+            {
+                "path": "README.md",
+                "expected_symbols": ["main", "cs2-demo-anomaly-lab"],
+                "estimated_complexity": "low",
+            }
+        ],
+    )
+
+    assert validation["status"] == "pass"
+    assert validation["blockers"] == []
+
+
+def test_document_anchor_contract_rejects_missing_required_prose() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="docs",
+        files=[{"path": "README.md", "content": "# Project\n\nRun the command.\n"}],
+        manifest_entries=[
+            {
+                "path": "README.md",
+                "expected_anchors": ["human review required"],
+                "estimated_complexity": "low",
+            }
+        ],
+    )
+
+    assert validation["status"] == "fail"
+    assert any("omits expected documentation/config anchors" in item for item in validation["blockers"])
+
+
+def test_requirements_contract_ignores_product_policy_prose_anchor() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="foundation",
+        files=[
+            {
+                "path": "requirements.txt",
+                "content": "demoparser2>=0.37\npy7zr>=0.22\n",
+            }
+        ],
+        manifest_entries=[
+            {
+                "path": "requirements.txt",
+                "expected_anchors": [
+                    "demoparser2",
+                    "no automatic ban or definitive cheating classifier",
+                ],
+                "estimated_complexity": "low",
+            }
+        ],
+    )
+
+    assert validation["status"] == "pass"
+    assert validation["blockers"] == []
+
+
+def test_python_publication_contract_ignores_document_prose_anchors() -> None:
+    contract = run_local_pipeline_impl.leaf_implementation_depth_contract(
+        {
+            "path": "backend/anomaly.py",
+            "expected_symbols": ["detect_windows"],
+            "expected_anchors": ["snap-before-shot human review explanation"],
+            "estimated_complexity": "medium",
+        }
+    )
+
+    assert contract["expected_symbols"] == ["detect_windows"]
+    assert contract["expected_anchors"] == []
+
+
+def test_application_entry_may_delegate_to_validated_backend_cli() -> None:
+    blockers = run_local_pipeline_impl.application_entry_stage_violations(
+        "main.py",
+        (
+            "from backend.cli import run_cli\n\n"
+            "if __name__ == '__main__':\n"
+            "    raise SystemExit(run_cli())\n"
+        ),
+        ["catalog_and_provenance", "bounded_acquisition"],
+    )
+
+    assert blockers == []
+
+
+def test_test_component_rejects_direct_state_assumption_for_stage_result_envelope() -> None:
+    component_contract = {
+        "executable_interface_graph": {
+            "stage_callable": {
+                "symbols": ["parse_demo"],
+                "result_fields": ["status", "output"],
+            }
+        }
+    }
+    files = [
+        {
+            "path": "backend/stages.py",
+            "content": (
+                "def parse_demo(state):\n"
+                "    return {'status': 'success', 'output': {'ticks': 12}}\n"
+            ),
+        },
+        {
+            "path": "tests/test_pipeline.py",
+            "content": (
+                "from backend.stages import parse_demo\n\n"
+                "def test_parse_demo():\n"
+                "    result = parse_demo({})\n"
+                "    assert result['ticks'] == 12\n"
+            ),
+        },
+    ]
+
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[files[1]],
+        prior_files=[files[0]],
+        component_contract=component_contract,
+    )
+
+    assert validation["status"] == "fail"
+    assert any("treats stage result" in item for item in validation["blockers"])
+
+
+def test_test_component_accepts_status_and_output_stage_result_contract() -> None:
+    component_contract = {
+        "executable_interface_graph": {
+            "stage_callable": {"symbols": ["parse_demo"]}
+        }
+    }
+    source = {
+        "path": "backend/stages.py",
+        "content": (
+            "def parse_demo(state):\n"
+            "    return {'status': 'success', 'output': {'ticks': 12}}\n"
+        ),
+    }
+    test = {
+        "path": "tests/test_pipeline.py",
+        "content": (
+            "from backend.stages import parse_demo\n\n"
+            "def test_parse_demo():\n"
+            "    result = parse_demo({})\n"
+            "    assert result['status'] == 'success'\n"
+            "    assert result['output']['ticks'] == 12\n"
+        ),
+    }
+
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[test],
+        prior_files=[source],
+        component_contract=component_contract,
+    )
+
+    assert validation["status"] == "pass"
+
+
+def test_foundation_quality_rejects_missing_goal_runtime_dependencies() -> None:
+    component_contract = {
+        "canonical_goal_spec": {
+            "runtime_dependencies": ["demoparser2", "py7zr"],
+        }
+    }
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="foundation",
+        files=[
+            {
+                "path": "pyproject.toml",
+                "content": (
+                    "[project]\n"
+                    "name = 'cs2-demo-anomaly-lab'\n"
+                    "version = '0.1.0'\n"
+                    "dependencies = ['Flask>=3']\n"
+                ),
+            }
+        ],
+        component_contract=component_contract,
+    )
+
+    assert validation["status"] == "fail"
+    assert any("demoparser2, py7zr" in item for item in validation["blockers"])
+
+
+def test_foundation_quality_accepts_goal_runtime_dependencies() -> None:
+    component_contract = {
+        "canonical_goal_spec": {
+            "runtime_dependencies": ["demoparser2", "py7zr"],
+        }
+    }
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="foundation",
+        files=[
+            {
+                "path": "pyproject.toml",
+                "content": (
+                    "[project]\n"
+                    "name = 'cs2-demo-anomaly-lab'\n"
+                    "version = '0.1.0'\n"
+                    "dependencies = ['demoparser2>=0.39', 'py7zr>=1.0']\n"
+                ),
+            }
+        ],
+        component_contract=component_contract,
+    )
+
+    assert validation["status"] == "pass"
+
+
 def test_component_quality_accepts_python_facade_import_bindings_as_public_symbols() -> None:
     validation = run_local_pipeline_impl.validate_generated_component_quality(
         component_id="backend",
@@ -1029,6 +1245,258 @@ def test_python_leaf_interface_validation_checks_factory_bound_method_signatures
         "expected signature InventoryService.create_item(*, item_id, name)" in item
         for item in violations
     )
+
+
+def test_python_leaf_interface_validation_checks_annotated_helper_parameter_methods() -> None:
+    files = [
+        {
+            "path": "backend/artifact_store.py",
+            "content": (
+                "class ArtifactStore:\n"
+                "    def save_stage_record(self, attempt_id, stage, *, record_kind):\n"
+                "        return True\n"
+            ),
+        },
+        {
+            "path": "tests/test_artifacts.py",
+            "content": (
+                "from backend.artifact_store import ArtifactStore\n"
+                "def assert_round_trip(store: ArtifactStore):\n"
+                "    store.save_stage_record('a', 'stage', 'record')\n"
+            ),
+        },
+    ]
+
+    violations = run_local_pipeline_impl.python_leaf_interface_violations(
+        files,
+        source_paths={"tests/test_artifacts.py"},
+    )
+
+    assert any("3 positional arguments exceed 2" in item for item in violations)
+    assert any("missing required arguments record_kind" in item for item in violations)
+
+
+def test_python_leaf_interface_validation_rejects_calling_property_as_method() -> None:
+    files = [
+        {
+            "path": "backend/artifact_store.py",
+            "content": (
+                "class ArtifactStore:\n"
+                "    @property\n"
+                "    def base_dir(self):\n"
+                "        return 'artifacts'\n"
+            ),
+        },
+        {
+            "path": "backend/reporting.py",
+            "content": (
+                "from backend.artifact_store import ArtifactStore\n"
+                "def report(store: ArtifactStore):\n"
+                "    return store.base_dir()\n"
+            ),
+        },
+    ]
+
+    assert run_local_pipeline_impl.python_leaf_interface_violations(
+        files,
+        source_paths={"backend/reporting.py"},
+    ) == [
+        "backend/reporting.py calls property ArtifactStore.base_dir "
+        "from backend/artifact_store.py as a method"
+    ]
+
+
+def test_component_quality_rejects_undefined_pytest_fixture_after_merge() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/test_catalog.py",
+                "content": (
+                    "def test_catalog(tmp_path, artifact_store):\n"
+                    "    assert artifact_store is not None\n"
+                ),
+            }
+        ],
+        prior_files=[
+            {
+                "path": "backend/artifact_store.py",
+                "content": "class ArtifactStore:\n    pass\n",
+            }
+        ],
+    )
+
+    assert validation["status"] == "fail"
+    assert any(
+        "undefined pytest fixtures: artifact_store" in blocker
+        for blocker in validation["blockers"]
+    )
+
+
+def test_component_quality_accepts_fixture_declared_in_conftest() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/conftest.py",
+                "content": (
+                    "import pytest\n"
+                    "@pytest.fixture\n"
+                    "def artifact_store():\n"
+                    "    return object()\n"
+                ),
+            },
+            {
+                "path": "tests/test_catalog.py",
+                "content": (
+                    "def test_catalog(tmp_path, artifact_store):\n"
+                    "    assert artifact_store is not None\n"
+                ),
+            },
+        ],
+    )
+
+    assert validation["status"] == "pass"
+
+
+def test_component_quality_rejects_test_assertion_that_contradicts_return_annotation() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/test_geometry.py",
+                "content": (
+                    "from backend.geometry import compute_features\n"
+                    "def test_shape():\n"
+                    "    result = compute_features([])\n"
+                    "    assert isinstance(result, list)\n"
+                ),
+            }
+        ],
+        prior_files=[
+            {
+                "path": "backend/geometry.py",
+                "content": (
+                    "from typing import Any, Dict\n"
+                    "def compute_features(rows: list) -> Dict[str, Any]:\n"
+                    "    return {}\n"
+                ),
+            }
+        ],
+    )
+
+    assert validation["status"] == "fail"
+    assert any(
+        "asserts result is list but its published return contract is dict" in blocker
+        for blocker in validation["blockers"]
+    )
+
+
+def test_component_quality_rejects_test_assertion_that_contradicts_model_field() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/test_parser.py",
+                "content": (
+                    "from typing import Any\n"
+                    "from backend.parser import Evidence\n"
+                    "def assert_shape(value: Any):\n"
+                    "    assert isinstance(value, Evidence)\n"
+                    "    assert isinstance(value.ticks_present, bool)\n"
+                ),
+            }
+        ],
+        prior_files=[
+            {
+                "path": "backend/parser.py",
+                "content": (
+                    "from dataclasses import dataclass\n"
+                    "from typing import List\n"
+                    "@dataclass\n"
+                    "class Evidence:\n"
+                    "    ticks_present: List[int]\n"
+                ),
+            }
+        ],
+    )
+
+    assert validation["status"] == "fail"
+    assert any(
+        "asserts Evidence.ticks_present is bool but its published field contract is list"
+        in blocker
+        for blocker in validation["blockers"]
+    )
+
+
+def test_component_quality_rejects_executable_split_test_anchor() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/test_suite.py",
+                "content": (
+                    "import importlib\n"
+                    "SUITE_PARTS = ('tests/test_suite_part_01.py',)\n"
+                    "def test_parts_importable():\n"
+                    "    importlib.import_module('tests.test_suite_part_01')\n"
+                ),
+            },
+            {
+                "path": "tests/test_suite_part_01.py",
+                "content": "def test_behavior():\n    assert True\n",
+            },
+        ],
+        manifest_entries=[
+            {
+                "path": "tests/test_suite.py",
+                "generation_role": "test_suite_anchor",
+                "facade_children": ["tests/test_suite_part_01.py"],
+                "expected_symbols": ["SUITE_PARTS"],
+            },
+            {
+                "path": "tests/test_suite_part_01.py",
+                "generation_role": "bounded_test_module",
+            },
+        ],
+    )
+
+    assert validation["status"] == "fail"
+    assert any(
+        "test suite anchor must not define executable tests or dynamically import child suites"
+        in blocker
+        for blocker in validation["blockers"]
+    )
+
+
+def test_component_quality_accepts_declarative_split_test_anchor() -> None:
+    validation = run_local_pipeline_impl.validate_generated_component_quality(
+        component_id="tests",
+        files=[
+            {
+                "path": "tests/test_suite.py",
+                "content": "SUITE_PARTS = ('tests/test_suite_part_01.py',)\n",
+            },
+            {
+                "path": "tests/test_suite_part_01.py",
+                "content": "def test_behavior():\n    assert True\n",
+            },
+        ],
+        manifest_entries=[
+            {
+                "path": "tests/test_suite.py",
+                "generation_role": "test_suite_anchor",
+                "facade_children": ["tests/test_suite_part_01.py"],
+                "expected_symbols": ["SUITE_PARTS"],
+            },
+            {
+                "path": "tests/test_suite_part_01.py",
+                "generation_role": "bounded_test_module",
+            },
+        ],
+    )
+
+    assert validation["status"] == "pass"
 
 
 def test_python_leaf_interface_validation_rejects_misnamed_instance_receiver() -> None:

@@ -1,0 +1,113 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-021",
+  "project_id": "cgkn",
+  "goal": "Make CGKN itself generate a fresh CS2 Demo Anomaly Lab through the reviewed Provider mainline without manual edits to generated source, then require deterministic component gates, project pytest, real authorized Demo evidence, and local_packager delivery truth.",
+  "backlog_item_ids": [
+    "PB-018"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "BLOCKED_PROVIDER",
+  "acceptance_criteria": [
+    "The accepted evidence comes only from a fresh CGKN-generated project directory produced through the reviewed API Provider route; no human or assistant may edit generated source, tests, documentation, or runtime receipts after generation begins.",
+    "The previously hand-repaired project is reference-only and cannot satisfy generated-project, test, runtime, packaging, or delivery acceptance.",
+    "API Provider generation, semantic review, post-build finalization, and goal-acceptance evidence complete through the existing reviewed route with no alternate generator or fabricated identity.",
+    "Only local_packager may emit the final bundle and delivery_manifest; unmet identity, test, runtime, review, or delivery gates remain explicit non-PASS evidence.",
+    "Runtime evidence preserves source commit, object hash and size, parser row/tick/player counts, event coverage, unknown information-state handling, view-angle proxy wording, human-review status, and NOT_EVALUATED detection accuracy.",
+    "The formal generated project passes its substantive pytest suite and one fresh opt-in online run discovers, verifies, downloads, safely extracts, parses, and reports on a genuine public CS2 demo with synthetic fallback disabled.",
+    "The prior formal run resumes only when its frozen goal hashes match, reuses only validated same-run Provider checkpoints, and writes to an isolated formal project directory without changing the already verified repaired project."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CS-DEMO",
+      "measure": "complete authorized CS2 demo analysis workflow",
+      "target": "offline synthetic end-to-end workflow and generated-project tests pass, reports include signal-level evidence, confidence, limitations, and no unsupported accusation",
+      "method": "generated pytest suite, CLI runtime probe, artifact inspection, and source-adapter contract checks"
+    },
+    {
+      "id": "QM-AUTO-TEST",
+      "measure": "bounded autonomous input discovery, fitness selection, retry, and truthful fallback",
+      "target": "the highest-fitness usable authorized candidate completes analysis and media generation; injected candidate failure selects the next candidate; synthetic fallback is opt-in and always PASS_WITH_LIMITS",
+      "method": "candidate-scoring unit tests, bounded-discovery security tests, retry integration tests, real auto-test CLI execution, report inspection, and package inspection"
+    },
+    {
+      "id": "QM-REAL-DEMO-DISCOVERY",
+      "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+      "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+      "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Convert every deterministic failure from the rejected formal candidate into a component or assembled-project contract before starting the fresh run.",
+      "Bind test fixtures, annotated helper types, property/method semantics, CLI exit/status wording, artifact-store schemas, report entrypoints, and test-package imports to implemented source interfaces.",
+      "Use EXP-CGKN-QUALITY-001 to keep generated source, runtime success, accuracy claims, packaging, and delivery authority independent.",
+      "Use EXP-CGKN-LIBRARIAN-001 to feed only implemented direct interfaces and exact affected owners into bounded Provider retries."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run component-boundary, assembled-project, checkpoint, semantic-review, post-build, kernel, and project-management regressions.",
+      "Run one fresh formal generation into a new isolated directory with no manual generated-project edits.",
+      "Execute the generated pytest suite and explicit-network real Demo workflow, then invoke only local_packager for canonical delivery truth."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "All generated implementation and test consumers use the same constructor, method, property, result-envelope, artifact-path, and report schema contracts.",
+    "Every pytest fixture is built in, declared in the same module, imported from a confirmed fixture module, or present in the applicable generated conftest.py.",
+    "A CLI failure returns a non-zero exit code and stable machine-readable status/reason fields; human-review language and NOT_EVALUATED accuracy semantics are present in real report outputs.",
+    "Fresh-run source identity and runtime receipts prove that no repaired reference project or older generated output entered the accepted candidate.",
+    "local_packager remains the only delivery exit."
+  ],
+  "evidence_refs": [
+    "artifacts/cs2_demo_anomaly_lab_formal_20260819_fresh1/run/provider_phase_log.jsonl",
+    "artifacts/cs2_demo_anomaly_lab_formal_20260819_fresh1/run/artifacts/provider_components/component_checkpoint_summary.json",
+    "project_management/cgkn/iterations/ITER-021_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "CGKN deterministic prevention and mainline regressions passed, and a truly fresh Provider run completed validated Foundation and all 19 Backend leaves without manual generated-project edits.",
+      "The Tests component completed zero leaves after repeated gateway 504 responses, a Provider key-usage-limit rejection, and unreliable local fallback; no candidate, pytest, real-demo, package, or delivery PASS exists.",
+      "PB-018 remains active and the same frozen run may resume only through current checkpoint validation after a reviewed Provider credential has usable allowance."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Fresh generation converted wrong signatures, stage envelopes, syntax, stubs, orchestrator behavior, stage-graph construction, and test-shape contradictions into precise rejected leaves before candidate materialization.",
+      "Component retry reused validated same-run leaves and regenerated only evidenced repair targets without any manual candidate edit."
+    ],
+    "did_not_work": [
+      "The configured compatible API gateway returned repeated HTTP 504 responses and then a key usage limit, while qwen2.5-coder:7b frequently timed out or returned undefined, shallow, or interface-incompatible test code."
+    ],
+    "experiments": [
+      "Resume the exact frozen run with a reviewed funded credential and compare test-component completion and retry counts while retaining the no-manual-edit acceptance boundary."
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "workflow_state": "ready",
+  "summary": "Add one optional, fail-closed advisory input to the existing reviewed Provider route. Revalidate the sealed brief, project only compact guidance into planning and each component, bind its hash to resume/checkpoint identity, and prove it on a deliberately small CLI child project.",
+  "diagnosis": [
+    "The capability-supervisor protocol is implemented and tested, but the formal Provider mainline previously did not consume its validated brief; therefore earlier gains required manual Codex intervention outside the generation route.",
+    "The safest useful increment is context injection, not Agent-owned source generation: the Provider must remain the sole candidate writer and all existing post-build, evidence, packaging, and delivery gates must stay unchanged.",
+    "Brief tampering or replacement during resume could otherwise reuse checkpoints under different advice, so authority, self-hash, readiness, size, and checkpoint identity must be verified before any Provider request.",
+    "A small standard-library CLI is a better first formal proof than another large CS2 rebuild because command-to-handler mappings, persistence, tests, and real CLI behavior can be inspected decisively with limited Provider work."
+  ],
+  "provider_guidance": [
+    "Build a compact Python CLI child project with direct ownership boundaries: one typed Note model, one atomic JSON repository, one NotesService, and one argparse CLI. Do not introduce a generic pipeline, stage framework, web surface, network access, database, or plugin system.",
+    "Implement exactly four user behaviors: add a non-empty note and return its stable ID; list notes in creation order; case-insensitive search over title and body; delete an existing note with a stable not-found error. Persist atomically using a temporary sibling file followed by replace.",
+    "Keep the implementation at no more than six primary source files and three behavior-grouped test files. Generate source in dependency order and reject any manifest that does not map all four commands to concrete callable handlers.",
+    "Use stable JSON output for successful and failed CLI operations, an explicit schema version in storage, and deterministic injectable clock/ID seams in tests. Corrupt storage must fail safely without overwriting the original file.",
+    "Validate syntax and imports before tests; then run substantive repository/service tests and a real CLI add-list-search-delete smoke flow in a temporary directory. Do not manually edit generated source to make the acceptance run pass."
+  ],
+  "repair_targets": [],
+  "acceptance_checks": [
+    "The formal run artifact contains the exact validated CGKNCodexCapabilityBrief, while Provider component context contains only the bounded advisory projection and fixed NOT_EVALUATED authority.",
+    "Every planned component carries the same brief SHA-256, and changing that hash changes component checkpoint identity or fails resume before generation.",
+    "Generated pytest passes with host plugin autoload disabled and includes substantive add/list/search/delete, atomic persistence, not-found, and corrupt-storage assertions.",
+    "A clean real CLI flow adds two notes, lists them in order, searches case-insensitively, deletes one, and returns a stable not-found error on repeat deletion.",
+    "No Agent-authored generated source, alternate materializer, package shortcut, or delivery claim appears in the run."
+  ],
+  "context_requests": [],
+  "tool_evidence_requests": [
+    "Run the capability-supervisor, formal-route, and kernel contract tests including tamper and checkpoint-hash negative cases.",
+    "Inspect the formal run phase log and component pipeline to prove the existing Provider route consumed the brief.",
+    "Run the generated test suite and CLI smoke flow against a temporary data file, then inspect canonical result and delivery artifacts."
+  ],
+  "known_limits": [
+    "One small project can prove wiring and a concrete behavioral result but cannot establish that Agent guidance improves every domain or large-project run.",
+    "The brief remains advisory and its own status is NOT_EVALUATED; only canonical generated-project evidence can support a formal result."
+  ]
+}

@@ -305,7 +305,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             return {
                 "component_id": component_id,
                 "summary": "foundation done",
-                "files": [{"path": "app.py", "content": "print('ok')\n"}],
+                "files": [
+                    {"path": "app.py", "content": "print('ok')\n"},
+                    {"path": "requirements.txt", "content": "# standard library only\n"},
+                ],
                 "quality_gate": {"status": "pass"},
                 "self_test": {"status": "pass", "checks": ["validated"]},
             }
@@ -420,7 +423,10 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 status="pass",
                 raw_output="",
                 parsed_result={"component_id": "foundation"},
-                files=[{"path": "app.py", "content": "print('stale')\n"}],
+                files=[
+                    {"path": "app.py", "content": "print('stale')\n"},
+                    {"path": "requirements.txt", "content": "# standard library only\n"},
+                ],
                 semantic_review={"status": "pass"},
             )
             run_local_pipeline_impl.provider_generate_project_component = fake_provider_component
@@ -479,6 +485,144 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             )
 
         self.assertIsNone(cached)
+
+    def test_failure_attempt_records_current_component_contract_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir)
+            run_local_pipeline_impl.write_provider_component_failure_attempt(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="spec",
+                raw_output="",
+                parsed_result={"component_id": "foundation"},
+                error="dependency contract failed",
+                provider_error_type="PROVIDER_OUTPUT_CONTRACT",
+                contract_hash="contract-v2",
+            )
+
+            failure = json.loads(
+                (checkpoint_dir / "failure_attempts" / "foundation.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        self.assertEqual("contract-v2", failure["component_contract_hash"])
+        self.assertTrue(failure["preserved_last_pass_checkpoint"])
+
+    def test_same_run_spec_tolerance_cannot_reuse_changed_component_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir)
+            old_component = {
+                "id": "foundation",
+                "canonical_goal_spec": {"runtime_dependencies": ["Flask"]},
+            }
+            new_component = {
+                "id": "foundation",
+                "canonical_goal_spec": {
+                    "runtime_dependencies": ["demoparser2", "py7zr"]
+                },
+            }
+            run_local_pipeline_impl.write_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="old-spec",
+                status="pass",
+                raw_output="",
+                parsed_result={"component_id": "foundation"},
+                files=[
+                    {
+                        "path": "pyproject.toml",
+                        "content": "[project]\nname='old'\nversion='0.1.0'\ndependencies=['Flask']\n",
+                    }
+                ],
+                semantic_review={"status": "pass"},
+                contract_hash=run_local_pipeline_impl.component_checkpoint_contract_hash(
+                    old_component
+                ),
+            )
+
+            cached = run_local_pipeline_impl.load_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="new-spec",
+                allow_spec_mismatch=True,
+                expected_contract_hash=run_local_pipeline_impl.component_checkpoint_contract_hash(
+                    new_component
+                ),
+            )
+
+        self.assertIsNone(cached)
+
+    def test_component_checkpoint_contract_hash_normalizes_null_list_fields(self) -> None:
+        component_with_nulls = {
+            "id": "backend",
+            "required_paths": None,
+            "responsibilities": None,
+            "business_outputs": None,
+            "canonical_goal_spec": {
+                "capabilities": None,
+                "constraints": None,
+                "interaction_modes": None,
+                "report_formats": None,
+                "runtime_dependencies": None,
+            },
+        }
+        normalized_component = {
+            "id": "backend",
+            "required_paths": [],
+            "responsibilities": [],
+            "business_outputs": [],
+            "canonical_goal_spec": {
+                "capabilities": [],
+                "constraints": [],
+                "interaction_modes": [],
+                "report_formats": [],
+                "runtime_dependencies": [],
+            },
+        }
+
+        self.assertEqual(
+            run_local_pipeline_impl.component_checkpoint_contract_hash(
+                normalized_component
+            ),
+            run_local_pipeline_impl.component_checkpoint_contract_hash(
+                component_with_nulls
+            ),
+        )
+
+    def test_legacy_checkpoint_requires_exact_spec_when_contract_identity_is_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            checkpoint_dir = pathlib.Path(temp_dir)
+            run_local_pipeline_impl.write_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="exact-spec",
+                status="pass",
+                raw_output="",
+                parsed_result={"component_id": "foundation"},
+                files=[{"path": "app.py", "content": "print('ok')\n"}],
+                semantic_review={"status": "pass"},
+            )
+            expected_contract = run_local_pipeline_impl.component_checkpoint_contract_hash(
+                {"id": "foundation", "required_paths": ["app.py"]}
+            )
+
+            exact = run_local_pipeline_impl.load_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="exact-spec",
+                expected_contract_hash=expected_contract,
+            )
+            tolerant = run_local_pipeline_impl.load_provider_component_checkpoint(
+                checkpoint_dir,
+                component_id="foundation",
+                spec_hash="changed-spec",
+                allow_spec_mismatch=True,
+                expected_contract_hash=expected_contract,
+            )
+
+        self.assertIsNotNone(exact)
+        self.assertIsNone(tolerant)
 
     def test_component_merge_generates_test_plan_from_real_tests(self) -> None:
         original = run_local_pipeline_impl.provider_generate_project_component
@@ -1504,6 +1648,99 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
 
         self.assertEqual("gpt-5.4-nano", route["selected_model"])
 
+    def test_component_file_generation_uses_interface_capable_model_even_when_small(self) -> None:
+        route = run_local_pipeline_impl.choose_provider_model(
+            "component_file_generation",
+            1200,
+            "gpt-4.1-mini",
+            run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+        )
+
+        self.assertEqual("gpt-5.5", route["selected_model"])
+        self.assertEqual(
+            "component_interface_complexity", route["model_routing_reason"]
+        )
+
+    def test_component_manifest_generation_uses_interface_capable_model_even_when_small(self) -> None:
+        route = run_local_pipeline_impl.choose_provider_model(
+            "component_manifest_generation",
+            0,
+            "gpt-4.1-mini",
+            run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+        )
+
+        self.assertEqual("gpt-5.5", route["selected_model"])
+        self.assertEqual(
+            "component_interface_complexity", route["model_routing_reason"]
+        )
+
+    def test_pending_small_model_cannot_lower_current_capability_floor(self) -> None:
+        policy = run_local_pipeline_impl.ProviderModelRoutingPolicy()
+        route = run_local_pipeline_impl.choose_provider_model(
+            "semantic_repair",
+            0,
+            "gpt-5.4-nano",
+            policy,
+            last_error="provider manifest missing required paths",
+        )
+
+        routed = run_local_pipeline_impl.apply_pending_retry_model_floor(
+            route,
+            "gpt-5.4-nano",
+            policy,
+        )
+
+        self.assertEqual("gpt-5.5", routed["selected_model"])
+        self.assertEqual("pending_model_capability_floor", routed["model_routing_reason"])
+
+    def test_goal_plan_multi_file_component_manifest_call_uses_large_model(self) -> None:
+        original_component = run_local_pipeline_impl.provider_generate_project_component
+        required_paths = ["app/main.py"] + [
+            f"src/workflow_{index:02d}.py" for index in range(1, 15)
+        ]
+        calls: list[str] = []
+
+        def fake_component(**kwargs):
+            calls.append(kwargs["model"])
+            return {
+                "component_id": "backend",
+                "files": [
+                    {"path": path, "content": f"VALUE_{index} = {index}\n"}
+                    for index, path in enumerate(required_paths, start=1)
+                ],
+                "quality_gate": {"status": "pass"},
+                "self_test": {"status": "pass"},
+            }
+
+        run_local_pipeline_impl.provider_generate_project_component = fake_component
+        try:
+            result = run_local_pipeline_impl.provider_generate_project_by_components(
+                "Build a local study application with many explicit workflows.",
+                {
+                    "components": [
+                        {
+                            "id": "backend",
+                            "required_paths": required_paths,
+                            "required_path_authority": "canonical_goal_project_plan",
+                        }
+                    ],
+                    "merge_policy": {"required_final_files": required_paths},
+                },
+                {},
+                {},
+                {},
+                {},
+                [],
+                "gpt-5.4-nano",
+                30,
+                routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+            )
+        finally:
+            run_local_pipeline_impl.provider_generate_project_component = original_component
+
+        self.assertEqual(required_paths, [row["path"] for row in result["files"]])
+        self.assertEqual(["gpt-5.5"], calls)
+
     def test_choose_provider_model_large_payload_uses_large_model(self) -> None:
         route = run_local_pipeline_impl.choose_provider_model(
             "component_generation",
@@ -2067,6 +2304,190 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 )
         finally:
             run_local_pipeline_impl.provider_text = original_provider_text
+
+    def test_component_manifest_prunes_other_owned_paths_after_required_coverage(self) -> None:
+        original_provider_text = run_local_pipeline_impl.provider_text
+
+        def fake_provider_text(messages, model, timeout, **kwargs):
+            return json.dumps(
+                {
+                    "component": "backend",
+                    "files": [
+                        {"path": "main.py", "purpose": "CLI entry"},
+                        {"path": "backend/stages.py", "purpose": "stage implementation"},
+                        {"path": "tests/test_pipeline.py", "purpose": "belongs to tests"},
+                        {"path": "README.md", "purpose": "belongs to docs"},
+                    ],
+                }
+            )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
+            run_local_pipeline_impl.provider_text = fake_provider_text
+            try:
+                manifest = run_local_pipeline_impl.provider_component_file_manifest(
+                    goal="Build a CLI application",
+                    component={
+                        "id": "backend",
+                        "required_paths": ["main.py", "backend/stages.py"],
+                        "minimum_file_count": 2,
+                    },
+                    component_pipeline={"components": [{"id": "backend"}]},
+                    prior_manifest=[],
+                    repair_errors=[],
+                    model="gpt-5.4-nano",
+                    timeout=30,
+                    phase_log_path=phase_log,
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+                )
+            finally:
+                run_local_pipeline_impl.provider_text = original_provider_text
+
+            self.assertEqual(["main.py", "backend/stages.py"], [row["path"] for row in manifest])
+            events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines()]
+            pruned = [event for event in events if event.get("event") == "provider_manifest_foreign_paths_pruned"]
+            self.assertEqual(1, len(pruned))
+            self.assertEqual(
+                ["tests/test_pipeline.py", "README.md"],
+                [row["path"] for row in pruned[0]["foreign_paths"]],
+            )
+
+    def test_canonical_goal_plan_backend_paths_override_generic_frontend_directory_guess(self) -> None:
+        original_provider_text = run_local_pipeline_impl.provider_text
+        required_paths = [
+            "app/main.py",
+            "src/domain_models.py",
+            "src/repository.py",
+            "src/service.py",
+            "src/study_plan.py",
+        ]
+
+        def fake_provider_text(messages, model, timeout, **kwargs):
+            return json.dumps(
+                {
+                    "component": "backend",
+                    "files": [
+                        {"path": path, "purpose": f"planned {path}"}
+                        for path in required_paths
+                    ],
+                }
+            )
+
+        component = {
+            "id": "backend",
+            "required_paths": required_paths,
+            "minimum_file_count": len(required_paths),
+            "required_path_authority": "canonical_goal_project_plan",
+            "canonical_goal_spec": {
+                "package_name": "app",
+                "domain": "custom_local_application",
+            },
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
+            run_local_pipeline_impl.provider_text = fake_provider_text
+            try:
+                manifest = run_local_pipeline_impl.provider_component_file_manifest(
+                    goal="Build a local study application",
+                    component=component,
+                    component_pipeline={"components": [component]},
+                    prior_manifest=[],
+                    repair_errors=[],
+                    model="gpt-5.5",
+                    timeout=30,
+                    phase_log_path=phase_log,
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+                )
+            finally:
+                run_local_pipeline_impl.provider_text = original_provider_text
+
+            self.assertEqual(required_paths, [row["path"] for row in manifest])
+            events = (
+                [
+                    json.loads(line)
+                    for line in phase_log.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+                if phase_log.exists()
+                else []
+            )
+            self.assertFalse(
+                any(
+                    event.get("event") == "provider_manifest_foreign_paths_pruned"
+                    for event in events
+                )
+            )
+            self.assertEqual(
+                "",
+                run_local_pipeline_impl.component_declared_package_for_path_validation(
+                    component
+                ),
+            )
+
+    def test_named_package_backend_manifest_prunes_unplanned_legacy_paths_after_required_coverage(self) -> None:
+        original_provider_text = run_local_pipeline_impl.provider_text
+        required_paths = [
+            "projectpulse/model.py",
+            "projectpulse/repository.py",
+            "projectpulse/service.py",
+            "projectpulse/cli.py",
+            "projectpulse/__main__.py",
+        ]
+
+        def fake_provider_text(messages, model, timeout, **kwargs):
+            return json.dumps(
+                {
+                    "component": "backend",
+                    "files": [
+                        *[
+                            {"path": path, "purpose": f"planned {path}"}
+                            for path in required_paths
+                        ],
+                        {"path": "main.py", "purpose": "legacy entry"},
+                        {"path": "backend/model.py", "purpose": "legacy model"},
+                        {"path": "backend/cli.py", "purpose": "legacy CLI"},
+                    ],
+                }
+            )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
+            run_local_pipeline_impl.provider_text = fake_provider_text
+            try:
+                manifest = run_local_pipeline_impl.provider_component_file_manifest(
+                    goal="Build the ProjectPulse CLI application",
+                    component={
+                        "id": "backend",
+                        "required_paths": required_paths,
+                        "minimum_file_count": len(required_paths),
+                        "canonical_goal_spec": {
+                            "package_name": "projectpulse",
+                            "domain": "local_record_cli",
+                        },
+                    },
+                    component_pipeline={"components": [{"id": "backend"}]},
+                    prior_manifest=[],
+                    repair_errors=[],
+                    model="gpt-5.4-nano",
+                    timeout=30,
+                    phase_log_path=phase_log,
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+                )
+            finally:
+                run_local_pipeline_impl.provider_text = original_provider_text
+
+            self.assertEqual(required_paths, [row["path"] for row in manifest])
+            events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines()]
+            normalized = [
+                event
+                for event in events
+                if event.get("reason") == "named_package_manifest_scope_normalization"
+            ]
+            self.assertEqual(1, len(normalized))
+            self.assertEqual(
+                ["main.py", "backend/model.py", "backend/cli.py"],
+                normalized[0]["pruned_paths"],
+            )
 
     def test_provider_phase_log_never_records_oversized_component_request(self) -> None:
         original_provider_text = run_local_pipeline_impl.provider_text
@@ -3734,6 +4155,58 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertIn("src/app.js", plan["target_files"])
         self.assertIn("scripts/test.js", plan["target_files"])
         self.assertLessEqual(len(plan["target_files"]), 3)
+
+    def test_python_failure_repairs_imported_implementation_owner_with_dependent_test(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = pathlib.Path(temp_dir) / "candidate"
+            (project / "src" / "cs2_anomaly_lab").mkdir(parents=True)
+            (project / "tests").mkdir()
+            (project / "src" / "cs2_anomaly_lab" / "stages.py").write_text(
+                (
+                    "def parse_demo(state):\n"
+                    "    return {'status': 'success', 'output': {'ticks': 12}}\n"
+                ),
+                encoding="utf-8",
+            )
+            (project / "tests" / "test_stages.py").write_text(
+                (
+                    "from cs2_anomaly_lab.stages import parse_demo\n\n"
+                    "def test_parse_demo():\n"
+                    "    result = parse_demo({})\n"
+                    "    assert result['ticks'] == 12\n"
+                ),
+                encoding="utf-8",
+            )
+            (project / "tests" / "test_unrelated.py").write_text(
+                "def test_unrelated():\n    assert True\n",
+                encoding="utf-8",
+            )
+            finalize = {
+                "status": "needs_rework",
+                "test_result": {
+                    "status": "failed",
+                    "argv": ["python", "-m", "pytest", "tests"],
+                    "stderr_tail": (
+                        "FAILED tests/test_stages.py::test_parse_demo - AssertionError: "
+                        "parse_demo result has no direct ticks key"
+                    ),
+                },
+                "screenshots": [],
+            }
+
+            plan = run_local_pipeline_impl.compile_post_build_repair_plan(project, finalize)
+
+        self.assertEqual(
+            ["src/cs2_anomaly_lab/stages.py", "tests/test_stages.py"],
+            plan["target_files"][:2],
+        )
+        self.assertEqual(
+            ["src/cs2_anomaly_lab/stages.py"],
+            plan["implementation_owner_targets"],
+        )
+        self.assertEqual(["tests/test_stages.py"], plan["dependent_test_targets"])
+        self.assertTrue(plan["atomic_repair_required"])
+        self.assertNotIn("tests/test_unrelated.py", plan["target_files"])
 
     def test_missing_required_package_json_classified_specific(self) -> None:
         finalize = {"test_result": {"status": "failed", "stderr_tail": "[foundation:test] missing required file: package.json"}}

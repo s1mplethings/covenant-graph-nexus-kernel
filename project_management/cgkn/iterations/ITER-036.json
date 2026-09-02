@@ -1,0 +1,84 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-036",
+  "project_id": "cgkn",
+  "goal": "Correct primary-versus-secondary requirement decisions, bound Codex advisory influence, preserve Unicode MCP input, and rerun the complete exam-learning Provider project.",
+  "backlog_item_ids": [
+    "PB-028"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A broad explicit exam-learning goal retains its study, knowledge, practice, review, timer, dashboard, search, and backup workflows instead of becoming a productivity-timer product.",
+    "A focused Pomodoro goal still selects the reviewed productivity_timer profile.",
+    "Codex advisory guidance constrains grounded acceptance and repair boundaries without becoming a second product planner or overriding the raw goal.",
+    "Natural-language SQLite guidance does not become a required code symbol; explicitly marked code symbols remain enforceable.",
+    "Chinese MCP input round-trips as UTF-8 without surrogate characters or request-hash failure.",
+    "The existing reviewed Provider route is rerun for the complete isolated project and generated-project tests execute when a candidate exists.",
+    "No second generation route, formal evidence authority, candidate-writing authority, packaging authority, or delivery authority is introduced."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "primary intent and explicit workflow retention",
+      "target": "all named workflows survive into GoalSpec and one-to-one goal acceptance tests",
+      "method": "targeted requirement-decision and goal-plan tests plus isolated Provider plan inspection"
+    },
+    {
+      "id": "QM-CODEX-SUPERVISOR",
+      "measure": "advisory authority and constraint precision",
+      "target": "zero raw-goal overrides and zero technology-name false symbol constraints",
+      "method": "capability brief validation and plan-contract regression tests"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "decision, Unicode, kernel, and generated-project regression health",
+      "target": "all targeted tests pass and final generated-project status is recorded honestly",
+      "method": "pytest targeted profile, CGKN Provider rerun, and cgkn_test_generated"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-036_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Primary-intent, explicit-symbol, and Chinese UTF-8 defects are corrected; complete Provider materialization remains blocked by HTTP 504s, leaf contract failures, and resume spec-hash drift."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-028"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Bounded workflow-set classification preserved all ten user workflows while retaining the focused Pomodoro profile and advisory-only Codex authority."
+    ],
+    "did_not_work": [
+      "The resume command was eligible but backend checkpoint identity changed, so accepted leaves were not reused across invocations."
+    ],
+    "experiments": [
+      "Bind resume eligibility and component spec identity to one frozen deterministic planning projection before starting another Provider invocation."
+    ]
+  }
+}

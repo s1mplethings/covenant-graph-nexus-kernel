@@ -1,0 +1,11 @@
+{
+  "evidence": [
+    {
+      "id": "cs2-prior-provider-amplification",
+      "kind": "generation_failure",
+      "path": "project_management/cgkn/iterations/ITER-021_RUNTIME_EVIDENCE.md",
+      "summary": "The last fully fresh generation produced no candidate because work expanded to 38 planned Backend/Test leaves and exhausted an unstable Provider before Tests completed. The rebuild needs smaller ownership units, frozen interfaces, and a bounded request budget.",
+      "sha256": "e9620492623e0e2b3ba73e7c06caad3e7c984e89c84b43346f42740f0777537c"
+    }
+  ]
+}

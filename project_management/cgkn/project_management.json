@@ -40,7 +40,7 @@
       "priority": 1,
       "value_score": 10,
       "risk_reduction_score": 9,
-      "state": "done",
+      "state": "active",
       "dependencies": [],
       "acceptance_criteria": [
         "The method covers people and feedback, value delivery, governance, quality planning, assurance, control, and improvement.",
@@ -449,6 +449,601 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-018",
+      "title": "Resume formal CS2 real-project verification and canonical delivery",
+      "outcome": "The preserved CS2 generation run resumes through the reviewed API Provider route into an isolated formal candidate, then proves generated tests, a fresh bounded public-demo run, and canonical local_packager delivery truth without overwriting prior evidence.",
+      "priority": 18,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "active",
+      "dependencies": [
+        "PB-017"
+      ],
+      "acceptance_criteria": [
+        "The prior formal run resumes only when its frozen goal hashes match, reuses only validated same-run Provider checkpoints, and writes to an isolated formal project directory without changing the already verified repaired project.",
+        "API Provider generation, semantic review, post-build finalization, and goal-acceptance evidence complete through the existing reviewed route with no alternate generator or fabricated identity.",
+        "The formal generated project passes its substantive pytest suite and one fresh opt-in online run discovers, verifies, downloads, safely extracts, parses, and reports on a genuine public CS2 demo with synthetic fallback disabled.",
+        "Runtime evidence preserves source commit, object hash and size, parser row/tick/player counts, event coverage, unknown information-state handling, view-angle proxy wording, human-review status, and NOT_EVALUATED detection accuracy.",
+        "Only local_packager may emit the final bundle and delivery_manifest; unmet identity, test, runtime, review, or delivery gates remain explicit non-PASS evidence."
+      ],
+      "quality_metric_ids": [
+        "QM-REAL-DEMO-DISCOVERY",
+        "QM-AUTO-TEST",
+        "QM-CS-DEMO",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-019",
+      "title": "Add a bounded Codex capability supervisor above librarian context",
+      "outcome": "Codex can receive a compact librarian-curated escalation packet, diagnose capability gaps with tools, and return validated guidance to CGKN without becoming a second generator, formal evidence authority, or delivery exit.",
+      "priority": 19,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-015"
+      ],
+      "acceptance_criteria": [
+        "A deterministic support contract bounds and hashes the goal, capability gap, librarian context, failure evidence, permitted outputs, and request budget before Codex sees them.",
+        "A Codex supervisor response can contain concise provider guidance, repair targets, acceptance checks, context requests, and tool-evidence requests, but cannot claim formal PASS, authorize delivery, package a project, or create source files in a sealed Provider candidate.",
+        "The existing agent_session and whiteboard remain the shared handoff surfaces, and the retained support pipeline can place the supervisor between context support and build work without changing Telegram default generation.",
+        "The project-local Codex skill is validated and one offline replay of the failed CLI generation produces a useful bounded response with zero external API calls.",
+        "Kernel, pipeline-manifest, schema, skill, and management regressions pass; local_packager remains the only delivery exit."
+      ],
+      "quality_metric_ids": [
+        "QM-CODEX-SUPERVISOR",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-020",
+      "title": "Evaluate the Codex capability brief on one concrete offline project",
+      "outcome": "A bounded offline FocusForge experiment measures whether the supervisor brief produces a smaller, executable, goal-faithful project before any user-authorized Provider A/B run.",
+      "priority": 20,
+      "value_score": 9,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-019"
+      ],
+      "acceptance_criteria": [
+        "The experiment is isolated from the Telegram default generation route and is explicitly labelled as an offline mock-Provider candidate with zero external API calls.",
+        "All nine requested FocusForge commands resolve to concrete callable handlers over a WorkItem, JSONRepository, and WorkspaceService domain contract.",
+        "The generated experiment stays within eight primary source files and five test files.",
+        "Generated tests and a real CLI smoke flow cover CRUD, filters and sorting, lifecycle transitions, summary, merge and replace import, export, corrupt storage, and duplicate IDs.",
+        "The result is compared with the preserved failed Provider baseline without claiming Provider token savings or formal delivery PASS."
+      ],
+      "quality_metric_ids": [
+        "QM-CODEX-SUPERVISOR",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-021",
+      "title": "Retire and rebuild the CS2 demo anomaly detector from a sealed project vision",
+      "outcome": "The retired working source is replaced by a fresh reviewed-Provider project generated from durable defensive product vision, safety, truth, and acceptance contracts.",
+      "priority": 21,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "active",
+      "dependencies": [
+        "PB-019"
+      ],
+      "acceptance_criteria": [
+        "The retired working project is converted into a durable product vision before its exact generated directory is removed, while historical artifacts and formal candidates remain preserved.",
+        "A fresh isolated output identity is generated only through the reviewed API Provider route with bounded Codex supervisor guidance and no retired-source reuse.",
+        "The fresh candidate passes compile and substantive security, parser, analysis, truth, report, and CLI tests.",
+        "A cached genuine authorized CS2 Demo completes parse-to-report without synthetic fallback and preserves NOT_EVALUATED accuracy, no automatic ban, and required human review.",
+        "Only local_packager may create a final bundle after canonical gates pass; Provider or runtime blockers remain explicit non-PASS evidence."
+      ],
+      "quality_metric_ids": [
+        "QM-CS-DEMO",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-CODEX-SUPERVISOR",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-022",
+      "title": "Feed a validated Codex capability brief into reviewed Provider generation",
+      "outcome": "CGKN can generate a child project with bounded external Agent guidance while Provider ownership, formal evidence, packaging, and delivery authorities remain unchanged.",
+      "priority": 22,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-019"
+      ],
+      "acceptance_criteria": [
+        "The formal CLI accepts only a hash-valid ready CGKNCodexCapabilityBrief with advisory-only authority.",
+        "Only a bounded projection reaches the existing Provider planning and component contexts, and the brief hash binds checkpoint reuse.",
+        "Tampered authority, changed resume identity, and oversized projections fail before Provider candidate generation.",
+        "A small child project is attempted through the reviewed Provider route and its generated tests plus CLI behavior are evaluated without manual source edits.",
+        "The change preserves Provider output validation, post-build finalization, local_packager, public_delivery_gate, and delivery_manifest.json."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-CODEX-SUPERVISOR",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-023",
+      "title": "Package Agent-assisted CGKN for reuse across arbitrary projects",
+      "outcome": "A user can install one companion CLI, initialize it in any local project, obtain a bounded Agent brief, and invoke the existing reviewed Provider generation route without copying secrets or creating another generation path.",
+      "priority": 23,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-019",
+        "PB-022"
+      ],
+      "acceptance_criteria": [
+        "The companion is an independently installable Python package with a cgkn-agent command that works from an arbitrary project directory.",
+        "Project initialization writes only portable support configuration and a secret-ignored artifact directory under .cgkn.",
+        "Codex automation is explicit, ephemeral, read-only, schema-constrained, and fails visibly when the executable or authentication is unavailable.",
+        "Manual Agent drafts and Codex drafts pass through the same deterministic supervisor response and brief validation.",
+        "Project generation invokes only scripts/run_local_pipeline.py with a validated --codex-capability-brief and never stores API keys.",
+        "Package, unit, contract, Windows-path, and dry-run tests pass, with local Codex executable limitations reported honestly."
+      ],
+      "quality_metric_ids": [
+        "QM-CODEX-SUPERVISOR",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-024",
+      "title": "Connect Agent-assisted CGKN directly to Codex as a personal skill",
+      "outcome": "Codex can discover and run the reviewed CGKN workflow from any local project without launching a nested Codex process.",
+      "priority": 24,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-019",
+        "PB-022",
+        "PB-023"
+      ],
+      "acceptance_criteria": [
+        "A validated use-cgkn skill is retained in the CGKN repository and discoverable from the user's global Codex skill location.",
+        "The skill initializes and prepares a target project through cgkn-agent, lets the active Codex task author only a bounded advisory draft, and seals it with the deterministic supervisor.",
+        "The skill does not launch nested codex exec, persist credentials, author a sealed Provider candidate, or add a generation or delivery path.",
+        "Explicit $use-cgkn invocation and implicit CGKN-specific routing are documented in UI metadata and tested in an isolated project.",
+        "Provider generation remains an explicitly requested follow-on through scripts/run_local_pipeline.py and real tests remain required before success is reported."
+      ],
+      "quality_metric_ids": [
+        "QM-CODEX-SUPERVISOR",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-025",
+      "title": "Expose CGKN as a personal Codex plugin with controlled MCP tools",
+      "outcome": "Codex can call typed cgkn tools from any project through an installed personal plugin, while the existing Provider, evidence, packaging, and delivery authorities remain unchanged.",
+      "priority": 25,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-019",
+        "PB-022",
+        "PB-023",
+        "PB-024"
+      ],
+      "acceptance_criteria": [
+        "A valid cgkn personal plugin manifest and marketplace entry expose a local MCP server plus bounded companion instructions.",
+        "The MCP server provides typed project initialization, context preparation, brief sealing, generation planning/execution, test execution, and status inspection tools with explicit read/write annotations.",
+        "No MCP tool accepts an API key, invokes nested Codex, writes Agent-authored Provider candidate source, calls a packager directly, or adds a generation or delivery route.",
+        "Generation execution requires a hash-valid ready capability brief and explicit confirmation, then delegates only to scripts/run_local_pipeline.py.",
+        "Protocol-level MCP initialization, tool listing, positive tool calls, negative boundary cases, plugin validation, and applicable CGKN regressions pass.",
+        "After MCP pickup is verified in a fresh Codex task, the standalone global use-cgkn skill is retired or reduced to the plugin-bundled guidance."
+      ],
+      "quality_metric_ids": [
+        "QM-CODEX-SUPERVISOR",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-026",
+      "title": "Organize repository navigation, runtime-output boundaries, and local hygiene",
+      "outcome": "Contributors can distinguish formal source, support evidence, examples, generated runtime output, and legacy material from one current guide while local caches no longer obscure the working tree.",
+      "priority": 26,
+      "value_score": 9,
+      "risk_reduction_score": 8,
+      "state": "active",
+      "dependencies": [
+        "PB-025"
+      ],
+      "acceptance_criteria": [
+        "A current repository guide defines the purpose and retention rule for every top-level area without moving contract-bound evidence.",
+        "README navigation reflects plugins, tools, project management, formal evidence, runtime outputs, and legacy boundaries.",
+        "The small-scale plugin smoke run is retained under artifacts rather than presented as a reviewed example project.",
+        "Only verified untracked and reproducible cache or temporary directories are removed; tracked evidence and unrelated working changes are preserved.",
+        "A deterministic read-only hygiene check detects prohibited root caches, live CGKN support state under examples, and missing runtime ignore boundaries.",
+        "Management validation and applicable repository-hygiene tests pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-SELFHOST",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-027",
+      "title": "Create an ACFV-reference-scale ORBIT-360 generated-project benchmark",
+      "outcome": "CGKN has a runnable, documented test project that materializes and verifies 360 dependency-aware work units, supports resume and affected-closure repair, and remains clearly separate from formal delivery evidence.",
+      "priority": 27,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-004",
+        "PB-026"
+      ],
+      "acceptance_criteria": [
+        "The project includes a Chinese project vision and a copy-paste usage guide that explain how it differs from and matches the ACFV reference scale.",
+        "The default plan contains exactly 360 deterministic work units arranged in dependency layers of width 35.",
+        "A real CLI run materializes all unit files, validates their hashes and dependencies, executes all units, and writes an inspectable run report.",
+        "Resume skips verified completed units, while repair of one unit recalculates only its transitive downstream closure.",
+        "The benchmark accepts no arbitrary command or generated code execution and labels its reports as support evidence rather than formal delivery PASS.",
+        "Unit and end-to-end tests pass against a real 360-unit workspace within a bounded local runtime."
+      ],
+      "quality_metric_ids": [
+        "QM-SCALE",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-028",
+      "title": "Recover Codex-assisted Provider generation from quota and local fallback blockers",
+      "outcome": "The existing Codex-assisted reviewed Provider route fails quickly on exhausted credentials, gives local code-generation fallback a bounded owner-aware runtime, and rejects a generated plan that drops the sealed brief's executable project contract.",
+      "priority": 28,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-025"
+      ],
+      "acceptance_criteria": [
+        "A non-retryable Provider key-usage-limit response cannot consume the full plugin subprocess budget through repeated identical semantic attempts; the exact pending leaf checkpoint remains recoverable.",
+        "A recorded local fallback for component generation receives the configured bounded local-generation timeout instead of the shorter API request timeout, while API-owned calls retain their existing cap.",
+        "A valid sealed Codex brief is hash-bound to the generation plan and its concrete package, module, public-symbol, entrypoint, safety, and acceptance constraints are checked before Provider file generation.",
+        "The ProjectPulse failure fixture rejects the observed backend/Note plan drift before source generation and accepts a plan that preserves the brief's projectpulse/Task/JSONRepository contract.",
+        "No fix writes a sealed generated candidate, adds a generation path, changes the Telegram default route, packages output, or promotes support evidence to formal PASS.",
+        "Targeted timeout, Provider failure, capability-brief, goal-plan, plugin, kernel, and management regressions pass."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-CODEX-SUPERVISOR",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-029",
+      "title": "Route Provider component manifests by interface complexity",
+      "outcome": "Canonical multi-file component manifests use an interface-capable Provider model even when incidental payload accounting is small or unavailable, so the manifest does not discard GoalPlan paths before leaf generation.",
+      "priority": 29,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-028"
+      ],
+      "acceptance_criteria": [
+        "Initial component-manifest generation selects the configured interface-capable large model independently of small-payload downgrade logic.",
+        "Ordinary small component-generation payload routing remains available outside the component-manifest contract.",
+        "A regression reproduces the YanTu failure shape where a canonical backend owns many GoalPlan paths and verifies the manifest call route.",
+        "Exact canonical GoalPlan path ownership outranks generic frontend/backend directory guesses even when a package hint is present.",
+        "A high-complexity canonical Python leaf with many public symbols expands into safe same-directory bounded submodules that inherit only the exact parent ownership and retain independent checkpoints.",
+        "Provider-mainline, routing, kernel, and management validation pass without adding a generation or delivery path."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-GOAL-ACCEPTANCE",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-030",
+      "title": "Make MCP resume diagnosis internally consistent",
+      "outcome": "CGKN failure diagnosis reports one coherent resume decision: a complete current identity-bound pending plan is safe despite unrelated historical component drift, while legacy drift remains unsafe and Provider account blockers still require resolution before resume.",
+      "priority": 30,
+      "value_score": 9,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-029"
+      ],
+      "acceptance_criteria": [
+        "resume.safe, resume.reason, and recommended_next_action cannot contradict one another.",
+        "A complete current identity-bound pending plan remains resumable when historical drift belongs to another component.",
+        "A legacy pending plan with active identity drift remains unsafe and recommends a fresh reviewed run.",
+        "Provider authentication or account availability failures recommend resolving the Provider before resuming the matching safe checkpoint.",
+        "Plugin, kernel, and management validations pass without changing generation or delivery authority."
+      ],
+      "quality_metric_ids": [
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-031",
+      "title": "Qualify Alibaba Bailian Qwen3.8-Max as a CGKN Provider",
+      "outcome": "CGKN can diagnose and exercise Qwen3.8-Max through the existing OpenAI-compatible Responses route with bounded probe cost, no credential disclosure, and real generated-project test evidence.",
+      "priority": 31,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-025",
+        "PB-030"
+      ],
+      "acceptance_criteria": [
+        "The built-in Provider probe reaches qwen3.8-max through the existing Responses route with a provider-compatible output budget and a visible pong response.",
+        "The Qwen probe disables reasoning only for the bounded diagnostic request, consumes no more than 128 output Tokens, and does not expose or persist the API key in project artifacts or tool arguments.",
+        "Provider transport, plugin, kernel-contract, and management validations pass without adding a generation or delivery path.",
+        "A live cgkn_probe_provider call reports connected while retaining formal evidence status NOT_EVALUATED.",
+        "An isolated minimal project is attempted through the reviewed Provider route and its supported tests are executed; any Provider or generation limitation is reported without formal PASS promotion."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-032",
+      "title": "Adapt Alibaba Qwen3.8 reasoning for bounded Provider leaves",
+      "outcome": "Short deterministic CGKN leaf requests avoid Qwen3.8's default xhigh reasoning latency while retaining the reviewed Provider validation, checkpoint, packaging, and delivery route.",
+      "priority": 32,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-031"
+      ],
+      "acceptance_criteria": [
+        "Alibaba Model Studio qwen3.8 Responses generation payloads explicitly use reasoning effort none, while other providers and models retain their existing payloads.",
+        "Qualified Qwen component-file calls receive a deterministic compact request containing the target, direct interfaces, applicable contracts, bounded invariants/context, newest repair delta, implementation budget, and exact response shape while broad project state remains local.",
+        "Representative simple, dependency-aware, and oversized leaf fixtures prove material prompt reduction, a hard effective-request character ceiling, dynamic output budgets, and secret-free request-profile telemetry.",
+        "Provider responses continue through the unchanged local output, interface, implementation-depth, checkpoint, post-build, packaging, and delivery validators.",
+        "The bounded diagnostic probe keeps its existing 128-Token and reasoning-none behavior without credential disclosure.",
+        "Provider transport and kernel-contract tests cover the scoped reasoning policy and the reviewed Provider route remains unchanged.",
+        "The preserved identity-bound Qwen acceptance checkpoint is resumed through cgkn_generate and any complete candidate is tested through cgkn_test_generated."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-033",
+      "title": "Plan short requests as minimal parallel feature units",
+      "outcome": "A request with one explicit function or command is planned as one bounded feature with frozen typed input, output, error, dependency, side-effect, acceptance, and file-ownership interfaces; independent features can then be built concurrently without generic workflow, persistence, or complexity inflation.",
+      "priority": 33,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-032"
+      ],
+      "acceptance_criteria": [
+        "An explicit single-operation Python CLI goal produces one canonical feature contract with one public entrypoint, exact typed inputs and output, declared errors and side effects, acceptance behaviors, owned paths, and no invented business capabilities.",
+        "Explicit negative scope such as no persistence, networking, frameworks, or unrelated features prevents repository, service, database, generic workflow, orchestrator, and pipeline outputs from entering the canonical plan.",
+        "The canonical plan freezes shared interfaces before generation and groups dependency-ready feature leaves into parallel batches only when their owned paths do not conflict.",
+        "Each Provider source request contains only one feature leaf plus its frozen contract and direct dependency interfaces; a rejected leaf is repaired independently without regenerating accepted unrelated leaves.",
+        "Minimal feature projects retain only necessary packaging, source, focused tests, and requested documentation while using the unchanged Provider validation, post-build, local_packager, public-delivery, and delivery-manifest route.",
+        "Planning, provider, kernel, and end-to-end regression tests prove the former one-function goal no longer expands into generic repository/service workflows."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-FEATURE-UNIT"
+      ]
+    },
+    {
+      "id": "PB-034",
+      "title": "Validate parallel feature leaves with a real postgraduate-exam assistant",
+      "outcome": "A real standard-library postgraduate-exam assistant is generated from multiple frozen typed feature contracts, builds independent leaves concurrently, integrates them through one thin CLI, and passes focused project tests without unrequested product architecture.",
+      "priority": 34,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-033"
+      ],
+      "acceptance_criteria": [
+        "The goal freezes at least three explicit business feature contracts with exact typed inputs, outputs, errors, side effects, dependencies, owned paths, and acceptance checks.",
+        "At least two independent feature leaves share no owned paths and are scheduled in the same dependency-ready parallel batch.",
+        "One thin JSON CLI adapter depends on the independent feature leaves without redefining their business logic.",
+        "The generated project contains only standard-library source, one JSON CLI adapter, focused pytest tests, packaging metadata, and requested documentation.",
+        "A fresh reviewed Qwen run records leaf batches, repair scope, semantic-review metrics, and zero undeclared architecture.",
+        "The supported generated-project test profile passes while formal delivery remains separately evaluated."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-FEATURE-UNIT"
+      ]
+    },
+    {
+      "id": "PB-035",
+      "title": "Add a Telegram design checkpoint with bounded Codex supervision",
+      "outcome": "Telegram product requests that require an interface are shaped into a reviewable Bot plus Mini App design before the unchanged Provider generation route starts, while short non-visual function requests remain lightweight.",
+      "priority": 35,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-019",
+        "PB-033"
+      ],
+      "acceptance_criteria": [
+        "GUI, interface, Telegram Mini App, and visual-redesign requests deterministically record the intended interaction surfaces, mobile-first design requirements, visual evidence requirements, and a user design-confirmation checkpoint.",
+        "A bounded CGKNCodexCapabilityEscalation is prepared from librarian-selected Telegram context and can be sent to an explicitly configured local Codex CLI in read-only advisory mode.",
+        "A validated Codex brief updates only whiteboard and agent_session support state; it cannot author candidate files, claim formal evidence, package, deliver, or replace the Provider mainline.",
+        "Generation remains paused while required design supervision or user design confirmation is pending, including when the user says to start immediately.",
+        "A configured HTTPS Mini App URL appears as a Telegram web_app button, and web_app_data is normalized into the same text intake path without introducing another generation route.",
+        "Short non-visual requests keep the existing one-function explicit input/output path and are not forced into visual design supervision."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR",
+        "QM-DESIGN",
+        "QM-FEATURE-UNIT"
+      ]
+    },
+    {
+      "id": "PB-036",
+      "title": "Freeze the persistent Codex-CGKN-Telegram runtime supervision baseline",
+      "outcome": "Future CGKN work consistently treats CGKN as the independently running system, Telegram as its built-in customer interface, and Codex as the persistent startup and checkpoint supervisor rather than a per-message execution substitute.",
+      "priority": 36,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-019",
+        "PB-035"
+      ],
+      "acceptance_criteria": [
+        "One normative baseline defines runtime ownership, startup/attachment, persistent supervisor identity, checkpoint events, repair actions, failure recovery, customer flow, and conformance evidence.",
+        "The baseline explicitly makes CGKN the long-running system, Telegram a CGKN-owned interface, and Codex the startup and checkpoint supervisor.",
+        "Request-scoped ephemeral Codex design calls are identified as bounded specialist or transitional adapters rather than the target architecture.",
+        "Codex repair authority is bounded to CGKN-owned code, configuration, documentation, and tests with auditable changes and regression; Provider candidate, formal evidence, packaging, and delivery authority remain prohibited.",
+        "The baseline is referenced by AGENTS.md, README, the kernel contract, and the authoritative contract registry.",
+        "Automated documentation and kernel tests fail if the core ownership or authority statements disappear."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-SELFHOST",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-037",
+      "title": "Implement the persistent Codex runtime supervisor host",
+      "outcome": "Codex can start or attach to a long-running CGKN Telegram service, consume identity-bound checkpoints through one resumable supervision thread, gate Provider start when configured, and record bounded decisions without gaining Provider or delivery authority.",
+      "priority": 37,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-036"
+      ],
+      "acceptance_criteria": [
+        "A dedicated supervisor host starts or attaches to the existing Telegram bridge, records process and heartbeat identity, and exposes read-only status.",
+        "A deterministic checkpoint journal binds sequence, prior hash, repository identity, chat/project/run identity, requested action, and authority without secrets.",
+        "Two checkpoints start then resume the same persisted Codex thread through a replaceable adapter.",
+        "Supervisor results use a strict action/authority contract; unsupported actions, unsafe repair targets, candidate writes, formal evidence, packaging, and delivery authority are rejected.",
+        "When gate mode is enabled, Telegram Provider start waits for a matching supervisor resume result; default disabled mode preserves existing behavior.",
+        "Telegram startup and Provider success/failure emit checkpoints without creating a generation or delivery route.",
+        "Offline tests pass and a real read-only Codex start/resume smoke is recorded separately from formal evidence."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-038",
+      "title": "Separate API-only and Codex-supervised runtime profiles",
+      "outcome": "Operators can choose one unambiguous CGKN runtime profile with isolated state and no accidental mixing of one-shot and persistent Codex control.",
+      "priority": 38,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-037"
+      ],
+      "acceptance_criteria": [
+        "The API-only launcher starts the reviewed API Provider route with Codex design and runtime supervision disabled.",
+        "The Codex-supervised launcher starts one persistent supervisor thread and forces the historical one-shot Codex design CLI off.",
+        "The two profiles isolate sessions, logs, uploads, project memory, Provider candidate roots, and supervisor state.",
+        "Interface requests in API-only mode reach user design confirmation without creating a Codex escalation.",
+        "Both profiles retain the same Provider output validation, evidence, local_packager, public delivery gate, and delivery manifest route.",
+        "Kernel, runtime-supervisor, Telegram-design, and documentation checks pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-039",
+      "title": "Establish the CGKN Codex Edition branch identity",
+      "outcome": "The Codex-and-tools distribution has a distinct branch, product edition name, launcher, runtime directories, and operator documentation while retaining the CGKN kernel namespace and formal Provider route.",
+      "priority": 39,
+      "value_score": 9,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-038"
+      ],
+      "acceptance_criteria": [
+        "The active branch is codex/cgkn-codex-edition.",
+        "The branch distribution is named CGKN Codex Edition while formal schemas and kernel identity remain CGKN.",
+        "The primary launcher is scripts/start_cgkn_codex_edition.ps1 and the superseded launcher name is removed.",
+        "Edition runtime and supervisor state use generated/cgkn_editions/codex and .cgkn/editions/codex.",
+        "README, edition documentation, kernel documentation, registry, and runtime baseline use the edition identity consistently.",
+        "Static checks, kernel guards, supervisor tests, and documentation consistency checks pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-040",
+      "title": "Split API-only and CGKN Codex Edition into separate worktrees",
+      "outcome": "The API-only branch and CGKN Codex Edition branch can be opened and modified in separate filesystem directories without copying runtime state or generated outputs.",
+      "priority": 40,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "active",
+      "dependencies": [
+        "PB-039"
+      ],
+      "acceptance_criteria": [
+        "A recoverable local commit records the reviewed CGKN Codex Edition source snapshot and excludes runtime/generated state.",
+        "D:\\CGKN is checked out on a dedicated API-only branch.",
+        "D:\\CGKN-Codex-Edition is a Git worktree on codex/cgkn-codex-edition.",
+        "The two directories resolve to distinct branches and independent working trees while sharing Git object history.",
+        "The Codex Edition worktree passes kernel, supervisor, and documentation checks.",
+        "No remote push, Provider generation, packaging, or public delivery is performed."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
     }
   ],
   "quality_management": {
@@ -544,6 +1139,18 @@
         "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
         "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
         "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+      },
+      {
+        "id": "QM-CODEX-SUPERVISOR",
+        "measure": "bounded Codex escalation usefulness and authority isolation",
+        "target": "a librarian-curated request and Codex response stay within configured budgets, preserve request identity, produce actionable guidance, and cannot assert formal evidence or delivery authority",
+        "method": "schema validation, deterministic contract tests, support-pipeline prompt tests, and an offline failed-generation replay"
+      },
+      {
+        "id": "QM-FEATURE-UNIT",
+        "measure": "short-request planning fidelity and safe feature concurrency",
+        "target": "one explicit operation yields one public feature, zero invented persistence or generic workflows, frozen input/output/error/side-effect/file-ownership interfaces, and deterministic conflict-free parallel batches",
+        "method": "requirement-decision contract tests, feature-DAG scheduling tests, Provider leaf-context tests, negative scope-expansion fixtures, and a fresh reviewed Qwen acceptance run"
       }
     ],
     "assurance_activities": [
@@ -606,9 +1213,41 @@
     "iterations/ITER-015.json",
     "iterations/ITER-016.json",
     "iterations/ITER-017.json",
-    "iterations/ITER-018.json"
+    "iterations/ITER-018.json",
+    "iterations/ITER-019.json",
+    "iterations/ITER-020.json",
+    "iterations/ITER-021.json",
+    "iterations/ITER-022.json",
+    "iterations/ITER-023.json",
+    "iterations/ITER-024.json",
+    "iterations/ITER-025.json",
+    "iterations/ITER-026.json",
+    "iterations/ITER-027.json",
+    "iterations/ITER-028.json",
+    "iterations/ITER-029.json",
+    "iterations/ITER-030.json",
+    "iterations/ITER-031.json",
+    "iterations/ITER-032.json",
+    "iterations/ITER-033.json",
+    "iterations/ITER-034.json",
+    "iterations/ITER-036.json",
+    "iterations/ITER-037.json",
+    "iterations/ITER-038.json",
+    "iterations/ITER-039.json",
+    "iterations/ITER-040.json",
+    "iterations/ITER-041.json",
+    "iterations/ITER-042.json",
+    "iterations/ITER-043.json",
+    "iterations/ITER-044.json",
+    "iterations/ITER-045.json",
+    "iterations/ITER-046.json",
+    "iterations/ITER-047.json",
+    "iterations/ITER-048.json",
+    "iterations/ITER-049.json",
+    "iterations/ITER-050.json"
   ],
   "improvement_backlog": [
+    "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",
     "Measure rework and first-pass acceptance only after two comparable iterations exist.",
     "Add generated-project provider integration in PB-003 after the self-hosting contracts are stable.",
     "In PB-003, feed only the selected backlog, quality, risk, and experience projection into the existing provider librarian and measure prompt size plus first-pass acceptance.",
@@ -624,7 +1263,26 @@
     "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; consume it in CGKNFinalVerdict only as an independently inspected veto-only support prerequisite.",
     "Keep support prerequisites structurally separate from formal gates and require cross-binding to the canonical evidence they summarize.",
     "Keep discovery cheap but rank extracted demos by goal-relevant event coverage before full parsing; retain large verified inputs outside the delivery tree and keep accuracy separate from pipeline execution.",
-    "Pre-warm the selected local model before long component work, cap local manifest output at 1024 tokens, allow 180 seconds, and keep API manifest budgets high enough for contract-complete JSON."
+    "Pre-warm the selected local model before long component work, cap local manifest output at 1024 tokens, allow 180 seconds, and keep API manifest budgets high enough for contract-complete JSON.",
+    "Before another formal CS2 resume, cluster the 49 candidate failures by implementation owner and regenerate each implementation-plus-test interface set atomically; retain per-member extraction for validated py7zr archives.",
+    "Revalidated the saved tests component under the current component gate; six deterministic blockers were found without another Provider call.",
+    "Mark visual evidence non-applicable for direct_cli_application while preserving mandatory visual gates for browser projects, then rerun the same sealed child-project evidence.",
+    "Test a separately installed official Codex CLI or a repaired Windows app execution alias, then rerun cgkn-agent doctor and assist without changing the advisory contract.",
+    "Start a fresh Codex task in an unrelated repository, invoke -cgkn explicitly, and run one credentialed Provider generation when a process-only key is available.",
+    "On the next three iterations, retain only concise tracked evidence summaries while keeping bulky run output under ignored artifacts or runs paths.",
+    "Reuse a fully valid checkpoint, alter one target, and measure whether exactly the 11-unit transitive closure is recomputed while 349 units remain reusable.",
+    "Bind resume eligibility and component spec identity to one frozen deterministic planning projection before starting another Provider invocation.",
+    "Track whether future blocked runs require any manual log inspection after cgkn_diagnose_failure returns.",
+    "For the next Provider interruption, compare the reported resume_identity fields with the pending leaf before permitting regeneration.",
+    "After Provider balance is restored, resume the exact src/service.py checkpoint and measure whether the remaining canonical leaves complete without manifest or ownership intervention.",
+    "After Provider balance is restored, verify in a new task that cgkn_diagnose_failure recommends resolving the account and then resuming src/service.py.",
+    "Before another full run, qualify a longer per-leaf Provider timeout or a lower-latency Qwen deployment with the same checkpoint and contract gates.",
+    "Create a separate governed increment for compact post-build repair envelopes and clean identity-bound acceptance runs before spending more Provider quota.",
+    "For future independent multi-feature acceptance, compare conflict-free parallel batches against sequential leaves using provider requests, prompt characters, repair closure size, and wall time.",
+    "Return all leaf test-contract violations together and revalidate frozen test contracts on cached components before reuse.",
+    "Probe a documented alternate model's independent quota before resuming the identity-bound pending leaf.",
+    "Run one private-chat smoke in each profile and compare process trees plus profile directories before considering live operations evaluated.",
+    "After the existing working tree is reviewed and committed, publish the branch and run one private-chat supervisor smoke from the edition launcher."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

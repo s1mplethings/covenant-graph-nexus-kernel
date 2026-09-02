@@ -1,0 +1,114 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-020",
+  "project_id": "cgkn",
+  "goal": "Repair goal fidelity, executable interface contracts, checkpoint eligibility, and owner-based post-build repair before resuming the formal CS2 candidate.",
+  "backlog_item_ids": [
+    "PB-018"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "An explicit CLI-plus-JSON/HTML-report analysis goal preserves its named product, acquisition, parser, evidence, safety, reporting, and test capabilities instead of becoming a generic workbench or gaining an unrequested GUI/frontend.",
+    "Leaf publication validation uses file-kind-specific contracts: Python import names, JavaScript exports, HTML ids, CSS custom properties, and documentation anchors are never treated as interchangeable symbols.",
+    "Generated stage, orchestrator, artifact, report, and test leaves share one executable interface contract; a contradictory result shape, constructor, method, or schema is rejected before a component checkpoint can pass.",
+    "A reused component checkpoint must still satisfy current required paths, declared runtime dependencies, goal capabilities, and its implemented upstream/downstream interface projection; historical PASS alone is insufficient.",
+    "Post-build failure planning selects implementation owners from traceback imports/calls and assertion evidence, keeps exact tests as dependent targets, and submits one atomic bounded repair set instead of defaulting to the first test files.",
+    "All changed Provider, post-build, project-management, and kernel-contract regression tests pass, and a bounded formal CS2 generation/resume probe records honest non-PASS if provider or generated runtime evidence remains incomplete.",
+    "The reviewed API/provider route and local_packager-only delivery exit remain unchanged."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CS-DEMO",
+      "measure": "complete authorized CS2 demo analysis workflow",
+      "target": "offline synthetic end-to-end workflow and generated-project tests pass, reports include signal-level evidence, confidence, limitations, and no unsupported accusation",
+      "method": "generated pytest suite, CLI runtime probe, artifact inspection, and source-adapter contract checks"
+    },
+    {
+      "id": "QM-AUTO-TEST",
+      "measure": "bounded autonomous input discovery, fitness selection, retry, and truthful fallback",
+      "target": "the highest-fitness usable authorized candidate completes analysis and media generation; injected candidate failure selects the next candidate; synthetic fallback is opt-in and always PASS_WITH_LIMITS",
+      "method": "candidate-scoring unit tests, bounded-discovery security tests, retry integration tests, real auto-test CLI execution, report inspection, and package inspection"
+    },
+    {
+      "id": "QM-REAL-DEMO-DISCOVERY",
+      "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+      "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+      "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    },
+    {
+      "id": "QM-MODULE-QUALITY",
+      "measure": "goal fidelity, typed publication contracts, executable cross-component interfaces, and eligible checkpoint reuse",
+      "target": "all injected goal-drift, file-kind, interface-shape, dependency, capability, and stale-checkpoint defects are rejected before final pytest",
+      "method": "deterministic GoalSpec/project-plan tests, leaf and merged-component contract tests, checkpoint negative cases, and formal CS2 fixture regression"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Freeze measurable goal, scope, file-kind publication, executable interface, checkpoint, and repair-owner contracts before implementation.",
+      "Use EXP-CGKN-QUALITY-001 to keep planning, component validation, runtime evidence, and delivery truth independent.",
+      "Use EXP-CGKN-LIBRARIAN-001 to retain only direct implemented dependencies and affected repair owners in Provider context."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run focused GoalSpec, component-boundary, checkpoint, and post-build owner-selection tests after each increment.",
+      "Run project-management validation and targeted kernel/provider regressions.",
+      "Run a bounded formal CS2 generation or resume probe without promoting incomplete evidence."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "GoalSpec is the single product-scope authority and distinguishes user interaction modes from report artifact formats.",
+    "The generated pipeline uses one machine-readable stage result, artifact record, analysis result, and report input contract across implementation and tests.",
+    "Component checkpoints bind current requirements and implemented interface truth; same-run identity does not waive capability or dependency validation.",
+    "Post-build repair remains inside the existing Provider route, validates every leaf independently, and writes only a complete atomic repair set.",
+    "local_packager remains the only delivery exit."
+  ],
+  "evidence_refs": [
+    "artifacts/cs2_demo_anomaly_lab_formal_20260814/provider_result_v3_resume7.json",
+    "project_management/cgkn/iterations/ITER-020_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "CGKN mainline increment accepted; the formal generated candidate remains NEEDS_REWORK and PB-018 is not complete."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Actual candidate failures were converted into deterministic goal, interface, fixture, checkpoint, semantic-review, and pytest-environment contracts."
+    ],
+    "did_not_work": [
+      "Bounded semantic excerpts and global pytest plugin autoload initially obscured the generated project's real failures."
+    ],
+    "experiments": [
+      "Revalidated the saved tests component under the current component gate; six deterministic blockers were found without another Provider call."
+    ]
+  }
+}

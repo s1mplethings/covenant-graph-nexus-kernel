@@ -1,0 +1,34 @@
+{
+  "kind": "CGKNLibrarianContextPack",
+  "selected_items": [
+    {
+      "id": "cs2-rebuild-vision",
+      "kind": "project_vision",
+      "path": "project_management/cgkn/CS2_DEMO_ANOMALY_LAB_PROJECT_VISION.md",
+      "summary": "The durable product vision defines an authorized, defensive, explainable Demo-to-report workflow, required acquisition/parser/analysis/report capabilities, conservative uncertainty handling, non-goals, and executable acceptance gates without prescribing the retired source structure.",
+      "sha256": "3f251aae0393e94965a1f03cde5d59165b765b0be54ed5cf1392cb40c8a00eb6"
+    },
+    {
+      "id": "cs2-rebuild-machine-contract",
+      "kind": "project_vision_contract",
+      "path": "project_management/cgkn/iterations/ITER-025_PROJECT_VISION.json",
+      "summary": "The machine contract freezes nine capability groups, prohibited claims/actions, and nine acceptance checks including real parser proof, unknown-information preservation, accuracy NOT_EVALUATED, no automatic ban, and delivery-route boundaries.",
+      "sha256": "d271159e86cd95d2f0d03d70023310e1e960c5a88b9fd2457e3af619933e8d8b"
+    },
+    {
+      "id": "cs2-prior-fresh-provider-failure",
+      "kind": "iteration_runtime_evidence",
+      "path": "project_management/cgkn/iterations/ITER-021_RUNTIME_EVIDENCE.md",
+      "summary": "A previous fresh Provider run passed Foundation and Backend but expanded into nineteen Backend and nineteen Test leaves, then stopped on nine HTTP 504 and five provider-key usage-limit fallbacks before any test leaf completed or candidate materialized.",
+      "sha256": "e9620492623e0e2b3ba73e7c06caad3e7c984e89c84b43346f42740f0777537c"
+    },
+    {
+      "id": "cs2-retirement-receipt",
+      "kind": "project_retirement_receipt",
+      "path": "project_management/cgkn/iterations/ITER-025_RETIREMENT_RECEIPT.json",
+      "summary": "The old working project was removed to the Windows recycle bin after its vision was sealed; historical artifacts and formal candidates remain, and the rebuild output identity is fresh and absent.",
+      "sha256": "0a1505909432e278bec5c63b82b11e2791498a1046467720b6776930a6845784"
+    }
+  ],
+  "excluded_count": 14
+}

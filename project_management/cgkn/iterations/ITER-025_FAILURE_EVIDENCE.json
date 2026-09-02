@@ -1,0 +1,11 @@
+{
+  "evidence": [
+    {
+      "id": "cs2-current-environment-probe",
+      "kind": "environment_probe",
+      "path": "project_management/cgkn/iterations/ITER-025_ENVIRONMENT_PROBE.json",
+      "summary": "The default repository Python cannot import demoparser2, but the previously verified isolated virtual environment and cached genuine CS2 Demo files remain available. The test must use the preserved environment and make no new download.",
+      "sha256": "cc7ac24212d25431b6f741270d0a322e7c6e7d21d306548c9235012b044f7c59"
+    }
+  ]
+}

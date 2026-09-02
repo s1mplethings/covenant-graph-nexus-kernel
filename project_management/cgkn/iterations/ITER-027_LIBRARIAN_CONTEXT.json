@@ -1,0 +1,27 @@
+{
+  "kind": "CGKNLibrarianContextPack",
+  "selected_items": [
+    {
+      "id": "kernel-codex-boundary",
+      "kind": "kernel_contract",
+      "path": "docs/00_kernel_contract.md",
+      "summary": "The kernel permits an external Codex capability supervisor only as bounded advisory support while Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest remain authoritative.",
+      "sha256": "13e90d097ab7b3585da25800c53f14c0062f712e78b86f49fe379d7554840021"
+    },
+    {
+      "id": "formal-provider-mainline",
+      "kind": "implementation",
+      "path": "scripts/run_local_pipeline_impl.py",
+      "summary": "The reviewed formal generation implementation owns planning, Provider component generation, semantic repair, post-build processing, and evidence handoff. It previously had no validated Codex brief input.",
+      "sha256": "0e1520ee7ecf3748b1bff4b31922c92c74da5bea5f6afdb63bc7619917c76782"
+    },
+    {
+      "id": "offline-supervisor-evaluation",
+      "kind": "iteration_evidence",
+      "path": "project_management/cgkn/iterations/ITER-024_RUNTIME_EVIDENCE.md",
+      "summary": "A bounded offline mock-Provider evaluation generated an executable compact FocusForge project, but it did not prove that formal Provider generation consumed the brief.",
+      "sha256": "5f3fe33509bfd988ef1cb09cab890ba8ebb686826a56c647e5679f7930c0041d"
+    }
+  ],
+  "excluded_count": 14
+}

@@ -1,0 +1,89 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-022",
+  "project_id": "cgkn",
+  "goal": "Evaluate one real Codex-assisted CGKN Provider-mainline project generation with the user's compatible API provider, minimize external-model usage, and create a usable integration branch only if the generated product and formal delivery evidence are good.",
+  "backlog_item_ids": [],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
+  "acceptance_criteria": [
+    "Run one representative, explicit, standard-library Python CLI product request through the existing reviewed Provider route without introducing another generation or delivery path.",
+    "Do not persist or report the supplied API credential, and stop further Provider spend when the request count is clearly disproportionate to the product scope.",
+    "Treat only a formally packaged, delivery-allowed candidate with working CRUD, filtering, atomic storage, import/export, documentation, and substantive tests as good enough for a usable branch.",
+    "Do not create the conditional branch when the candidate or formal delivery evidence is incomplete or materially misses the requested product behavior."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-ROUTE",
+      "measure": "reviewed Provider and delivery-route preservation",
+      "target": "Provider validation, post-build finalization, local_packager, public_delivery_gate, and delivery_manifest remain the only public mainline",
+      "method": "kernel and formal-provider regression tests plus run-artifact inspection"
+    },
+    {
+      "id": "QM-PRODUCT",
+      "measure": "requested CLI product behavior",
+      "target": "all named commands and task/bug behaviors are implemented and executable with no placeholder dispatch",
+      "method": "checkpoint source inspection followed by generated-project tests and CLI probes when an executable candidate exists"
+    },
+    {
+      "id": "QM-TOKEN-EFFICIENCY",
+      "measure": "bounded external Provider work",
+      "target": "component planning and repair remain proportional to a medium CLI application",
+      "method": "provider_phase_log request count and aggregate prompt-character inspection"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Use EXP-CGKN-LIBRARIAN-001 to keep diagnostic and Provider contexts bounded.",
+      "Use EXP-CGKN-QUALITY-001 to keep generation progress, implementation quality, packaging, and delivery truth separate.",
+      "Require an explicit branch decision gate after product and formal-evidence review."
+    ],
+    "assurance": [
+      "Run the relevant kernel, complexity, planning, fallback, and post-build baseline tests.",
+      "Reproduce the pre-Provider null-list crash without network access and add a focused normalization regression."
+    ],
+    "control": [
+      "Run the representative request through the real compatible Provider endpoint with the cheap API-only profile.",
+      "Count Provider requests and prompt characters from the run log, then stop the run once test-component retries become disproportionate.",
+      "Inspect the generated split-file checkpoints and canonical public project directory without editing generated source."
+    ],
+    "improvement": [
+      "Before another paid evaluation, add a bounded manifest/request budget and a goal-fidelity check that rejects generic orchestration skeletons for explicit CRUD products."
+    ]
+  },
+  "interface_expectations": [
+    "Codex may supply a compact goal packet and review results, but CGKN must continue using whiteboard and agent_session shared communication and the reviewed Provider generation route.",
+    "A future interface must expose compact status and evidence summaries rather than replaying full component logs.",
+    "local_packager remains the only delivery exit, and a stopped or incomplete run cannot be labeled usable."
+  ],
+  "evidence_refs": [
+    "generated/codex_cgkn_eval_cli_20260819/logs/provider_runs/codex-cgkn-eval-cli-20260819/production-5b36efb4b476492db769ae5b4caa1259/provider_phase_log.jsonl",
+    "generated/telegram_provider_projects/codex-cgkn-eval-cli-20260819/customer-codex-cgkn-eval-cli-20260819-5b36efb4b476492db769ae5b4caa1259/delivery_manifest.json",
+    "tests/test_run_local_pipeline_usage.py",
+    "tests/test_kernel_contract.py"
+  ],
+  "review": {
+    "outcome": "rejected",
+    "feedback": [
+      "The initial real run found an explicit-null list normalization defect in component checkpoint identity; the focused fix and regression reached the Provider boundary successfully.",
+      "The resumed formal run made 87 Provider requests carrying 3,036,760 aggregate prompt characters; 70 requests and 2,643,437 prompt characters were attributed to the tests component before the run was stopped to limit further spend.",
+      "The public project contains only non-deliverable support files, and inspected Backend checkpoints expose command names without implementing task/Bug CRUD; CLI dispatch supplies strings where callable stages are required.",
+      "No generated-project pytest or CLI acceptance run was possible because no assembled executable candidate or allowed delivery was produced. The quality condition for creating a branch was not met."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "The formal route failed closed and preserved its incomplete evidence instead of presenting a partial project as delivered.",
+      "A no-network sentinel isolated the null-list crash before additional Provider use."
+    ],
+    "did_not_work": [
+      "A medium CLI request expanded into an overcomplete 19-file test manifest and repeated generation attempts.",
+      "Generated code favored a generic import/export orchestration skeleton over the explicit domain commands and persistence behavior."
+    ],
+    "experiments": [
+      "Implement and locally verify per-project manifest-size and Provider-request budgets plus deterministic goal-behavior coverage before spending another API call."
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cgkn-agent-kit"
+version = "0.1.0"
+description = "Project-agnostic Agent supervision companion for the CGKN Provider mainline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+authors = [{name = "CGKN"}]
+dependencies = []
+
+[project.scripts]
+cgkn-agent = "cgkn_agent_kit.cli:main"
+
+[tool.setuptools.package-data]
+cgkn_agent_kit = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

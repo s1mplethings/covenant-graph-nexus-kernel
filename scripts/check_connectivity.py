@@ -26,6 +26,7 @@ RESULT_PATH = ROOT / "examples" / "test_results" / "connectivity_check_result.js
 DEFAULT_NOTES_PATH = ROOT / ".agent_private" / "NOTES.md"
 EMBEDDED_BASE_URL = "https://api.gptsapi.net/v1"
 DEFAULT_TEST_MODEL = model_policy.select_model("connectivity")
+PROVIDER_PROBE_MAX_OUTPUT_TOKENS = 128
 
 
 def _write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -57,6 +58,13 @@ def _is_gptsapi_base_url(value: str) -> bool:
         "https://gptsapi.net",
         "http://gptsapi.net",
     }
+
+
+def _is_alibaba_model_studio_base_url(value: str) -> bool:
+    hostname = str(urlparse(_normalize_base_url(value)).hostname or "").lower()
+    return hostname in {"dashscope.aliyuncs.com", "dashscope-intl.aliyuncs.com"} or hostname.endswith(
+        ".maas.aliyuncs.com"
+    )
 
 
 def _join_endpoint(base_url: str, path: str) -> str:
@@ -105,8 +113,13 @@ def _messages_to_input(messages: list[dict[str, Any]]) -> str:
     )
 
 
-def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any], model: str = "") -> dict[str, Any]:
-    del model
+def _build_openai_compatible_payload(
+    base_url: str,
+    payload: dict[str, Any],
+    model: str = "",
+    *,
+    reasoning_effort: str = "",
+) -> dict[str, Any]:
     request_payload = dict(payload)
     if _is_gptsapi_base_url(base_url):
         if "input" in request_payload and "messages" not in request_payload:
@@ -120,7 +133,25 @@ def _build_openai_compatible_payload(base_url: str, payload: dict[str, Any], mod
         if "max_tokens" in request_payload and "max_output_tokens" not in request_payload:
             request_payload["max_output_tokens"] = request_payload.pop("max_tokens")
         request_payload.pop("messages", None)
+        effort = str(reasoning_effort or "").strip().lower()
+        if (
+            effort
+            and _is_alibaba_model_studio_base_url(base_url)
+            and str(model).strip().lower().startswith("qwen3.8")
+        ):
+            request_payload["reasoning"] = {"effort": effort}
     return request_payload
+
+
+def _build_provider_probe_payload(base_url: str, model: str) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": "Reply with exactly: pong"}],
+        "max_tokens": PROVIDER_PROBE_MAX_OUTPUT_TOKENS,
+    }
+    if _is_alibaba_model_studio_base_url(base_url) and str(model).strip().lower().startswith("qwen3.8"):
+        payload["reasoning"] = {"effort": "none"}
+    return _build_openai_compatible_payload(base_url, payload, model=model)
 
 
 def _tls_verify_enabled() -> bool:
@@ -459,7 +490,7 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         return result
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
     endpoint = _openai_compatible_endpoint(root)
-    payload = _build_openai_compatible_payload(root, {"model": model, "messages": [{"role": "user", "content": "Reply with exactly: pong"}], "max_tokens": 8})
+    payload = _build_provider_probe_payload(root, model)
     doc: dict[str, Any] | None = None
     error = ""
     attempts = 0

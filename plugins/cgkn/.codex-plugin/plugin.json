@@ -1,0 +1,35 @@
+{
+  "name": "cgkn",
+  "version": "0.1.0+codex.20260828015416",
+  "description": "Plan, generate, test, diagnose, and inspect local projects through the reviewed CGKN Provider mainline.",
+  "author": {
+    "name": "CGKN"
+  },
+  "license": "Proprietary",
+  "keywords": [
+    "cgkn",
+    "project-generation",
+    "agent",
+    "testing"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "CGKN",
+    "shortDescription": "Plan, generate, diagnose, and test with CGKN",
+    "longDescription": "Use controlled local MCP tools to initialize a project, prepare and seal bounded Agent guidance, diagnose Provider connectivity and internal generation failures, invoke the reviewed CGKN Provider generation route, run generated-project tests, and inspect honest status evidence.",
+    "developerName": "CGKN",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use CGKN to plan and generate this project",
+      "Check this project's CGKN status and test evidence",
+      "Prepare bounded Agent guidance for CGKN",
+      "Directly diagnose this project's latest CGKN failure"
+    ],
+    "brandColor": "#3157D5"
+  }
+}

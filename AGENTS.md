@@ -26,10 +26,14 @@
 - Do not reintroduce fixed local pipeline generation.
 - Do not expose legacy internal jargon to users.
 - Move project/domain-specific generated-project compatibility patches into skills, adapters, or legacy modules instead of adding them to telegram_live_bridge.py.
+- `docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative runtime ownership baseline: CGKN is the independently running system, Telegram is a CGKN-owned interface, and Codex starts or attaches to CGKN and supervises declared checkpoints.
+- Do not treat a new one-shot Codex process per Telegram message as the target architecture. Request-scoped Codex calls are bounded specialist or transitional adapters only.
+- Persistent Codex supervision must resume an identity-bound supervisor thread, preserve CGKN as the long-running owner of Telegram/project state, and keep every Provider, evidence, packaging, and delivery authority boundary intact.
 
 ## CGKN self-hosted project management
 
 - CGKN uses the approved `skills/manage-pmp-agile-quality` method for its own non-trivial development and exposes the same tailored method to generated projects.
+- When the user asks Codex to operate above the context librarian, or a validated `CGKNCodexCapabilityEscalation` is present, use `skills/supervise-cgkn-capabilities`. Codex is an external advisory capability supervisor: consume the bounded librarian handoff, return a validated brief through `agent_session` and whiteboard support state, and never impersonate the Provider, write a sealed generated candidate, authorize formal evidence, package, or deliver.
 - Tailor predictive, adaptive, or hybrid delivery from requirements uncertainty, technical uncertainty, criticality, and feedback needs; do not impose one fixed ceremony set.
 - Preserve stable governance and delivery contracts while implementing the smallest useful vertical increment through an ordered backlog.
 - Define measurable acceptance and quality metrics before implementation; build quality into each increment through prevention, assurance, control, and improvement.

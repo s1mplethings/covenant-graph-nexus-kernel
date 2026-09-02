@@ -1,0 +1,95 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-045",
+  "project_id": "cgkn",
+  "goal": "Add the smallest complete Telegram design checkpoint: detect interface intent, obtain a bounded advisory Codex design brief, require user confirmation, expose a configured Mini App entry, and preserve the reviewed Provider generation and delivery route.",
+  "backlog_item_ids": [
+    "PB-035"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Interface and visual-redesign requests record Telegram Bot plus Telegram Mini App surfaces, mobile-first design constraints, direct screenshot/video evidence, and a user design-confirmation checkpoint.",
+    "A bounded, redacted, hashed CGKNCodexCapabilityEscalation is written to per-chat support state and recorded in agent_session.",
+    "When explicitly enabled, local codex.exe runs in ephemeral read-only mode and its draft is validated into an advisory brief before whiteboard projection.",
+    "Pending or unavailable Codex supervision remains visible as workflow state and never silently becomes an approved design.",
+    "Generation cannot start while required design supervision or user design confirmation is pending.",
+    "An HTTPS Mini App URL can be offered through a Telegram web_app button and web_app_data enters the existing intake path.",
+    "Non-visual short requests do not acquire interface scope or a Codex design checkpoint.",
+    "Provider output validation, post-build finalization, local_packager, public_delivery_gate, and delivery_manifest remain the only Telegram generation and delivery route."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CODEX-SUPERVISOR",
+      "measure": "bounded design-supervision usefulness and authority isolation",
+      "target": "all prepared requests and completed briefs validate; no supervisor artifact has candidate, evidence, package, or delivery authority",
+      "method": "deterministic adapter tests plus Codex supervisor contract tests"
+    },
+    {
+      "id": "QM-DESIGN",
+      "measure": "customer-visible interaction design completeness",
+      "target": "visual Telegram products freeze interaction surfaces, mobile-first/theme/accessibility requirements, and screenshot/video acceptance before generation",
+      "method": "whiteboard contract tests and Telegram message-path integration tests"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal Provider and delivery route preservation",
+      "target": "kernel and Provider route guards pass without a second generation or delivery path",
+      "method": "kernel contract and formal Provider regression tests"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed Telegram design capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Keep design detection and Codex handoff in a dedicated adapter; make only narrow Telegram intake and start-policy changes."
+    ],
+    "assurance": [
+      "Review every new state field as workflow/support state rather than formal evidence.",
+      "Review the diff against the Telegram mainline and Codex authority contracts."
+    ],
+    "control": [
+      "Run adapter, Telegram intake, Codex supervisor, and kernel contract tests.",
+      "Run a live read-only Codex smoke test only if it does not create or alter generated candidates."
+    ],
+    "improvement": [
+      "Record whether design-first routing avoids the prior CLI-only scope error without increasing short-request complexity."
+    ]
+  },
+  "interface_expectations": [
+    "analyze_design_intent(text, whiteboard) returns a deterministic support-state update without starting generation.",
+    "prepare_design_escalation(session_dir, chat_id, session) writes only bounded per-chat support artifacts and agent_session events.",
+    "A validated design brief is projected into whiteboard support state with advisory_only true and requires explicit user confirmation.",
+    "TelegramClient.send_message accepts an optional web_app button only for a validated HTTPS Mini App URL.",
+    "web_app_data is normalized to one user message and then follows handle_text."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-045_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The design checkpoint, bounded read-only Codex supervision, explicit user approval gate, Mini App entry contract, and unchanged Provider delivery route passed deterministic and full-repository verification. A real Codex CLI smoke produced a valid advisory brief. Live Telegram Mini App launch remains NOT_EVALUATED until a public HTTPS Mini App URL is configured."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-035"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Separating one-function business scope from product interaction scope kept short requests minimal while correctly routing GUI requests through design confirmation.",
+      "Reusing the existing capability-supervisor seal and Provider revalidation preserved authority boundaries instead of adding a second generation path."
+    ],
+    "did_not_work": [
+      "The first full regression exposed that the new test filename required the repository's Telegram profile marker; the actual runtime and design assertions were not failing."
+    ],
+    "experiments": [
+      "Configure a public HTTPS Mini App URL and run one private-chat launch plus web_app_data round trip before treating live Telegram interaction as evaluated."
+    ]
+  }
+}

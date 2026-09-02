@@ -1,0 +1,32 @@
+{
+  "iteration_id": "ITER-035",
+  "goal": "Add a bounded direct Provider API diagnostic to the CGKN plugin and align generation credential checks with the canonical resolver.",
+  "delivery_mode": "hybrid-small-vertical-increment",
+  "acceptance": [
+    "The plugin exposes cgkn_probe_provider with explicit RUN_PROVIDER_PROBE confirmation.",
+    "The probe distinguishes missing credential, authentication, quota or permission, model, and transport failures without returning or persisting a secret.",
+    "Plugin generation accepts the canonical Windows User-level CGKN_OPENAI_API_KEY through the existing resolver.",
+    "The probe cannot write a candidate, package, delivery manifest, or formal evidence PASS.",
+    "Targeted plugin, skill, credential, and kernel contract tests pass."
+  ],
+  "quality_metrics": [
+    {"measure": "secret exposure", "target": "zero API key values in tool arguments, output, logs, or project artifacts"},
+    {"measure": "diagnostic specificity", "target": "bounded category for the principal Provider failure families"},
+    {"measure": "route preservation", "target": "no new generation or delivery path"}
+  ],
+  "backlog_ref": "PB-025",
+  "experience_usage": {
+    "experience_id": "EXP-CGKN-BOOTSTRAP-001",
+    "applied": true,
+    "outcome": "successful",
+    "evidence": "The increment added one typed diagnostic tool to the existing MCP server, retained the reviewed Provider generation route, and passed protocol, skill, credential, transport, and kernel contract tests."
+  },
+  "review_outcomes": [
+    "Root cause confirmed: the installed plugin preflight required an inherited process value while the kernel contract selects the canonical Windows User credential through the shared resolver.",
+    "The live gpt-4.1-mini probe connected in one TLS-verified attempt through the configured chat-completions endpoint.",
+    "No candidate, package, delivery manifest, or formal evidence PASS was created.",
+    "The cachebuster was updated to 0.1.0+codex.20260824155310; automatic reinstall was blocked because the packaged Codex CLI executable denied child-process launch, so a normal-terminal reinstall and fresh task remain the pickup step."
+  ],
+  "workflow_state": "completed",
+  "formal_evidence_status": "NOT_EVALUATED"
+}

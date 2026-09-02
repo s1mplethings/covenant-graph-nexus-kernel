@@ -1,6 +1,11 @@
-# CovenantGraph Nexus Kernel
+# CGKN Codex Edition
 
-**Contract-governed autonomous project studio kernel for agent-planned, evidence-traced, and packageable project generation.**
+**Codex-supervised autonomous project studio built on the CovenantGraph Nexus Kernel.**
+
+This branch is the tool-assisted distribution named **CGKN Codex Edition**. The
+formal kernel and schema namespace remain `CGKN`; the edition name identifies
+the persistent Codex supervisor, Codex capability tools, plugins, and operator
+workflow packaged around that kernel. See [EDITION.md](EDITION.md).
 
 CovenantGraph Nexus Kernel, or CGKN, is a machine-first design bundle for building an autonomous project production system. It defines how coding agents plan, generate, test, evidence, revise, and package modular projects under explicit contracts.
 
@@ -9,6 +14,8 @@ CGKN is an Autonomous Project Studio Kernel. It is agent-led, contract-guarded, 
 > 中文：CGKN 是一个面向自主项目生产的合约式 Agent 内核设计包，强调“目标输入 → 合约冻结 → 模块化生成 → 测试证据 → 可交付包”。
 
 `docs/01_contract_registry.md` is the authoritative registry for formal artifact kinds, schemas, producers, consumers, and canonical statuses.
+
+`docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative runtime ownership baseline: Codex starts or attaches to and supervises a long-running CGKN service; Telegram is a CGKN-owned customer interface, not a direct one-shot Codex transport.
 
 ## Product goal
 
@@ -23,7 +30,7 @@ A user provides a goal, input expectation, output requirement, and constraints. 
 - **Evidence-delivered** — a project is not considered complete without test evidence, visual evidence where required, and packaging metadata.
 - **User-revisable** — revision paths and known limits are part of the delivery model.
 
-Generated apps and runtime/test outputs are not source. They are written to `generated/`, `examples/runtime_runs/`, and `examples/test_results/` when commands run.
+Generated apps and runtime/test outputs are not source. New runs belong in `generated/`, `artifacts/`, `runs/`, `examples/runtime_runs/`, or `examples/test_results/` according to [the repository guide](docs/repository_guide.md). Reviewed static fixtures stay in `examples/`; live `.cgkn` support state does not.
 
 ## Kernel architecture
 
@@ -91,15 +98,26 @@ Canonical final verdicts are written through `scripts/acceptance_verifier.py`. L
 ## Source layout
 
 ```text
-COVENANT_GRAPH_NEXUS_KERNEL_DESIGN.md     Main design document
-PRODUCT_GOAL.md                           Product goal and generation rule
-docs/                                     Kernel, product studio, agent, flow, evidence, and architecture contracts
-schemas/                                  JSON Schemas for contract objects and compiled outputs
-examples/                                 Example artifacts, modules, flows, policies, migrations, and compile results
-scripts/                                  Validation, blueprint, context, pipeline, runtime, and preflight utilities
-implementation_plan/                      Phased implementation plan
-codex_prompts/                            Ready-to-use coding-agent prompts
+AGENTS.md             Repository and kernel change rules
+docs/                 Formal contracts, registry, architecture, and contributor guides
+schemas/              Registered JSON Schemas
+src/                  Importable kernel source
+scripts/              Reviewed entrypoints, validation, generation, evidence, and delivery utilities
+contracts/            Module and boundary contracts
+tests/                 Deterministic unit, contract, integration, and regression tests
+skills/                Reviewed repository-owned operating methods
+plugins/               Installable Codex plugin bundles
+tools/                 Portable user-facing companion tools
+project_management/    Backlog, iterations, runtime evidence summaries, and enterprise experience
+examples/              Reviewed static examples and fixtures, never ad hoc live runs
+benchmarks/            Reproducible benchmark definitions and fixtures
+artifacts/             Historical or retained run evidence; new bulk output is ignored by Git
+generated/             Generated customer projects and disposable outputs
+runs/                  Resume/checkpoint workspaces for local generation
+legacy/                Isolated compatibility code and historical behavior
 ```
+
+See [Repository Guide](docs/repository_guide.md) for ownership, retention, and cleanup rules. The formal artifact and status authority remains [Contract Registry](docs/01_contract_registry.md).
 
 ## Quick validation
 
@@ -228,14 +246,38 @@ The bridge understands:
 /status          Show background generation status.
 ```
 
-During generation the bridge starts one background job per chat, sends a waiting message, and only sends the final delivery after project generation, checks, and preview discovery finish. Delivery sends available videos and up to three preview images directly; if no real preview image exists, it tries to create a summary PNG fallback.
+During generation the bridge starts one background job per chat, sends a waiting message, and only sends the final delivery after project generation, checks, and preview discovery finish. Delivery sends only allowed, real user-facing media and package artifacts. Missing required visual evidence remains an explicit limitation or rework condition; fallback media cannot satisfy it.
 
-Set credentials in the shell that starts the listener:
+Set `TELEGRAM_BOT_TOKEN` in the launching shell, then choose exactly one runtime profile.
+
+### API-only profile
 
 ```powershell
 $env:TELEGRAM_BOT_TOKEN="your-bot-token"
-python scripts/telegram_live_bridge.py --chat-id "123456789" --generation-timeout 900
+.\scripts\start_cgkn_api_only.ps1 -ChatId "123456789"
 ```
+
+This profile never starts or invokes Codex. Interface requests use the existing deterministic design baseline and still wait for explicit user confirmation before the reviewed API/Provider generation route starts.
+
+### CGKN Codex Edition
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN="your-bot-token"
+.\scripts\start_cgkn_codex_edition.ps1 -ChatId "123456789" -SupervisionPolicy gate
+```
+
+This profile starts the persistent supervisor, starts the Telegram bridge beneath it, and resumes one identity-bound read-only Codex thread across checkpoints. The child bridge explicitly disables the older one-shot Codex design CLI, so the profile has only one Codex control path. `gate` pauses Provider start until Codex returns `observe` or `resume`; `observe` records supervision without pausing generation.
+
+The two profiles keep separate sessions, logs, uploads, project memory, and Provider candidate directories. API-only data stays under `generated/cgkn_modes/api_only/`; CGKN Codex Edition data stays under `generated/cgkn_editions/codex/`. Edition supervisor state stays under `.cgkn/editions/codex/`. Both profiles retain the same reviewed Provider generation, evidence, `local_packager`, and delivery route.
+
+Inspect or stop CGKN Codex Edition with:
+
+```powershell
+python -m scripts.cgkn_runtime_supervisor status --state-dir .cgkn/editions/codex
+python -m scripts.cgkn_runtime_supervisor stop --state-dir .cgkn/editions/codex
+```
+
+The older `request-only` and one-shot `cli` design modes remain compatibility adapters only and are not recommended startup profiles. Persistent supervision rejects simultaneous one-shot `cli` design execution. `repair_cgkn` is still a validated waiting state, not an automatic self-modification path.
 
 `scripts/telegram_new_listener.py` is no longer a Telegram customer-service listener. Keep it only for local reset maintenance with `--dry-run-reset` or `--reset-now`; do not run it as a second Telegram output.
 

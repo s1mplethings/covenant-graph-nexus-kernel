@@ -104,12 +104,20 @@ def validate_discovery(discovery_dir: pathlib.Path | None) -> tuple[dict[str, An
     architecture_mode = str(contract.get("architecture_mode", "")).strip()
     for key in ("required_pipeline_stages", "required_delivery_evidence"):
         value = contract.get(key)
-        if not isinstance(value, list) or not value:
+        allow_empty = key == "required_pipeline_stages" and architecture_mode in {
+            "direct_cli_application",
+            "feature_unit_application",
+        }
+        if not isinstance(value, list) or (not value and not allow_empty):
             blockers.append(f"contract_{key}_missing")
     stage_artifacts = contract.get("required_stage_artifacts")
     if not isinstance(stage_artifacts, list):
         blockers.append("contract_required_stage_artifacts_missing")
-    elif architecture_mode != "browser_local_static" and not stage_artifacts:
+    elif architecture_mode not in {
+        "browser_local_static",
+        "direct_cli_application",
+        "feature_unit_application",
+    } and not stage_artifacts:
         blockers.append("contract_required_stage_artifacts_missing")
     return contract, blockers
 
@@ -172,7 +180,10 @@ def validate_project(
             blockers.append(f"{name}_missing")
     if run_dir is None or not pathlib.Path(run_dir).exists():
         blockers.append("run_dir_missing")
-    if not any(path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and "screenshot" in path.as_posix().lower() for path in files):
+    requires_screenshot = contract.get("requires_screenshot")
+    if requires_screenshot is None:
+        requires_screenshot = "screenshot" in contract.get("required_delivery_evidence", [])
+    if requires_screenshot and not any(path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and "screenshot" in path.as_posix().lower() for path in files):
         blockers.append("screenshot_missing")
     if require_final_bundle and not (project / "final_project_bundle.zip").exists():
         blockers.append("final_project_bundle.zip_missing")

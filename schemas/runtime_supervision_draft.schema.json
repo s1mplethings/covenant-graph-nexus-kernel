@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "runtime_supervision_draft.schema.json",
+  "title": "CGKN Runtime Supervision Draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "summary",
+    "diagnosis",
+    "guidance",
+    "repair_targets",
+    "acceptance_checks",
+    "known_limits"
+  ],
+  "properties": {
+    "action": {
+      "enum": [
+        "observe",
+        "advise",
+        "repair_cgkn",
+        "request_user_decision",
+        "resume",
+        "halt"
+      ]
+    },
+    "summary": {"type": "string", "minLength": 1, "maxLength": 1600},
+    "diagnosis": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "maxLength": 800}
+    },
+    "guidance": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "maxLength": 800}
+    },
+    "repair_targets": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {"type": "string", "maxLength": 400}
+    },
+    "acceptance_checks": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "maxLength": 800}
+    },
+    "known_limits": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "maxLength": 800}
+    }
+  }
+}

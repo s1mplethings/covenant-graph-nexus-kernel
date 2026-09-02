@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -194,16 +195,667 @@ def goal_has_specialized_analysis_product(raw_goal: str) -> bool:
     return any(token in domain_goal for token in SPECIALIZED_ANALYSIS_PRODUCT_TERMS)
 
 
+def goal_interaction_modes(goal_spec: dict[str, Any]) -> list[str]:
+    """Separate user interaction modes from report/artifact interface names."""
+    explicit = [
+        str(item).strip().lower()
+        for item in goal_spec.get("interaction_modes", [])
+        if str(item).strip()
+    ] if isinstance(goal_spec.get("interaction_modes", []), list) else []
+    if explicit:
+        return list(dict.fromkeys(explicit))
+    interfaces = {
+        str(item).strip().lower()
+        for item in goal_spec.get("interfaces", [])
+        if str(item).strip()
+    } if isinstance(goal_spec.get("interfaces", []), list) else set()
+    modes = [mode for mode in ("cli", "web", "gui", "desktop") if mode in interfaces]
+    if modes:
+        return modes
+    raw_goal = str(goal_spec.get("goal", "")).lower()
+    declared_modes: list[str] = []
+    if re.search(r"\bcli\b|命令行", raw_goal):
+        declared_modes.append("cli")
+    if re.search(r"\bgui\b|图形界面|桌面界面", raw_goal):
+        declared_modes.append("gui")
+    if re.search(r"\bweb\b|网页|浏览器界面", raw_goal):
+        declared_modes.append("web")
+    if declared_modes:
+        return list(dict.fromkeys(declared_modes))
+    if str(goal_spec.get("domain", "")) in {
+        "local_task_board",
+        "visual_novel_editor",
+        "productivity_timer",
+        "csv_cleaning_tool",
+        "choreography_notation_editor",
+        "local_ai_knowledge_studio",
+        "local_media_workbench",
+        "local_studio_operations_hub",
+        "team_operations_console",
+        "local_research_workspace",
+    }:
+        return ["web"]
+    return []
+
+
+def _cs2_demo_analysis_profile(raw_goal: str) -> dict[str, Any] | None:
+    """Preserve an explicit CS2 demo-analysis contract instead of a generic workbench."""
+    goal = product_domain_goal(raw_goal)
+    if not (
+        any(token in goal for token in ("cs2", "counter-strike 2", "counter strike 2"))
+        and any(token in goal for token in ("demo", ".dem", "demoparser2"))
+        and any(token in goal for token in ("anomaly", "aim analysis", "crosshair", "反作弊", "开挂"))
+    ):
+        return None
+    return {
+        "domain": "cs2_demo_anomaly_analysis",
+        "capabilities": [
+            "discover_reviewed_public_demo_candidates",
+            "validate_public_source_license_and_commit",
+            "resolve_git_lfs_demo_objects",
+            "download_bounded_authorized_demo_inputs",
+            "safely_extract_demo_archives",
+            "parse_cs2_demo_ticks_players_and_events",
+            "compute_spatial_view_angle_and_crosshair_features",
+            "derive_information_state_only_from_explicit_evidence",
+            "detect_explainable_multi_signal_anomaly_windows",
+            "export_json_and_html_human_review_reports",
+            "run_real_demo_self_test_without_synthetic_fallback",
+        ],
+        "user_flows": [
+            "run one explicitly network-authorized CLI self-test",
+            "discover and rank bounded public demo candidates",
+            "verify provenance and safely acquire one immutable demo object",
+            "parse real ticks player states and available events",
+            "analyze explainable spatial aim and information-state signals",
+            "review JSON and local HTML evidence reports with limitations",
+        ],
+        "entities": [
+            "PublicDemoCatalog",
+            "DemoCandidate",
+            "SourceManifest",
+            "DemoProvenance",
+            "PlayerTickState",
+            "DemoEvent",
+            "InformationState",
+            "AnomalyWindow",
+            "PlayerReviewReport",
+        ],
+        "interfaces": ["cli", "json_report", "html_report"],
+        "interaction_modes": ["cli"],
+        "report_formats": ["json", "html"],
+        "runtime_dependencies": ["demoparser2", "py7zr"],
+        "constraints": [
+            "authorized_public_inputs_only",
+            "explicit_network_opt_in",
+            "bounded_https_catalog_and_downloads",
+            "safe_archive_extraction",
+            "source_and_object_provenance",
+            "unknown_information_disables_dependent_signals",
+            "view_angles_are_not_raw_mouse_input",
+            "neutral_non_punitive_language",
+            "human_review_required",
+            "unlabeled_demo_accuracy_not_evaluated",
+            "windows_compatible",
+        ],
+        "acceptance_behaviors": [
+            "the CLI refuses network acquisition without explicit authorization",
+            "catalog candidates retain public source license commit object hash and size provenance",
+            "unsafe archive paths links member counts and expansion limits are rejected",
+            "a selected real demo yields non-zero tick and player-state evidence",
+            "player states include identity team position yaw and pitch",
+            "available weapon fire round and death events join by tick and player",
+            "angle wraparound spatial bearings distance motion and crosshair error are computed correctly",
+            "unknown visibility sound teammate and prior-knowledge telemetry disables dependent signals",
+            "anomaly windows expose samples coverage evidence confidence and limitations",
+            "reports use neutral risk language and require human review",
+            "an unlabeled public regression demo never claims detection accuracy or cheating",
+            "the opt-in real self-test retries bounded candidates with synthetic fallback disabled",
+        ],
+    }
+
+
 def _contains_goal_term(goal: str, terms: tuple[str, ...]) -> bool:
     lowered = product_domain_goal(goal)
     return any(term in lowered for term in terms)
 
 
-def _goal_profile(raw_goal: str) -> dict[str, Any] | None:
+FIXED_PROFILE_WORKFLOW_SIGNALS: dict[str, tuple[str, ...]] = {
+    "visual_novel_editor": (
+        "visual novel", "story", "scene", "character", "dialogue", "branch", "剧情", "场景", "角色", "对白", "分支",
+    ),
+    "productivity_timer": (
+        "pomodoro", "timer", "countdown", "work session", "break session", "pause", "reset", "番茄钟", "倒计时", "暂停", "重置",
+    ),
+    "csv_cleaning_tool": (
+        "csv", "missing value", "cleaning rule", "cleaned result", "清洗", "缺失值",
+    ),
+    "choreography_notation_editor": (
+        "choreography", "dance", "movement", "transition", "timing", "舞蹈", "动作", "舞谱",
+    ),
+    "local_studio_operations_hub": (
+        "production task", "asset", "bug", "issue", "release", "制作任务", "资产", "缺陷", "发布",
+    ),
+    "local_ai_knowledge_studio": (
+        "knowledge", "document", "source", "report", "model adapter", "知识", "资料", "文档", "报告",
+    ),
+    "local_task_board": (
+        "task", "board", "kanban", "status", "任务", "看板", "待办", "状态",
+    ),
+    "local_media_workbench": (
+        "media", "video", "audio", "transcript", "clip", "segment", "视频", "音频", "转录", "片段",
+    ),
+    "specialized_analysis_workbench": (
+        "authorized source", "provenance", "evidence", "feature", "analysis", "review report", "来源", "证据", "分析",
+    ),
+    "team_operations_console": (
+        "milestone", "team task", "decision", "risk", "release status", "里程碑", "团队任务", "决策", "风险",
+    ),
+    "local_research_workspace": (
+        "research source", "evidence note", "topic", "brief", "source import", "研究来源", "证据笔记", "主题", "简报",
+    ),
+}
+
+
+def _explicit_workflow_clauses(raw_goal: str) -> list[str]:
+    """Return user-stated workflow clauses without turning quality prose into features."""
+    goal = product_domain_goal(raw_goal).strip()
+    labelled = re.search(
+        r"(?:core\s+workflows?|main\s+workflows?|核心流程|主要流程)\s*[:：]\s*(.+)",
+        goal,
+        flags=re.I | re.S,
+    )
+    workflow_text = labelled.group(1).strip() if labelled else goal
+    if labelled:
+        workflow_text = re.split(
+            r"\.\s+(?=(?:seed|the user interface|include|documentation|tests?|quality|constraints?)\b)|。\s*(?=(?:界面|文档|测试|约束))",
+            workflow_text,
+            maxsplit=1,
+            flags=re.I,
+        )[0]
+    clauses = [
+        re.sub(r"\s+", " ", clause).strip(" .,:：")
+        for clause in re.split(r"[;；\n]+", workflow_text)
+    ]
+    clauses = [
+        clause
+        for clause in clauses
+        if len(clause) >= 8
+        and not any(term in clause.lower() for term in DELIVERY_EVIDENCE_TERMS)
+    ]
+    return list(dict.fromkeys(clauses))[:12]
+
+
+def _fixed_profile_dominates_workflows(clauses: list[str]) -> bool:
+    """A fixed product may win only when its signals cover most explicit workflows."""
+    if len(clauses) < 4:
+        return True
+    lowered_clauses = [clause.lower() for clause in clauses]
+    for signals in FIXED_PROFILE_WORKFLOW_SIGNALS.values():
+        matched = sum(
+            1 for clause in lowered_clauses if any(signal in clause for signal in signals)
+        )
+        if matched * 2 >= len(lowered_clauses):
+            return True
+    return False
+
+
+def _workflow_entity_symbols(clauses: list[str]) -> list[str]:
+    """Derive bounded domain nouns from explicit workflows without a product template."""
+    leading = {
+        "create", "add", "edit", "manage", "maintain", "schedule", "track",
+        "show", "practice", "record", "import", "export", "review", "run",
+        "provide", "perform", "allow", "support", "a", "an", "the", "or", "and",
+        "adjustable", "hierarchical", "transparent", "user", "owned", "daily",
+    }
+    stop = {"from", "with", "using", "while", "when", "through", "without", "and"}
+    symbols: list[str] = []
+    for index, clause in enumerate(clauses, start=1):
+        tokens = [token for token in slug(clause).split("_") if token]
+        while tokens and tokens[0] in leading:
+            tokens.pop(0)
+        selected: list[str] = []
+        for token in tokens:
+            if selected and token in stop:
+                break
+            if token not in leading:
+                selected.append(token)
+            if len(selected) >= 4:
+                break
+        if not selected:
+            selected = [f"workflow{index:02d}", "record"]
+        last = selected[-1]
+        if last.endswith("ies") and len(last) > 4:
+            selected[-1] = last[:-3] + "y"
+        elif last.endswith("s") and not last.endswith("ss") and len(last) > 3:
+            selected[-1] = last[:-1]
+        symbol = "".join(part[:1].upper() + part[1:] for part in selected)
+        if symbol and symbol not in symbols:
+            symbols.append(symbol)
+    if "ApplicationState" not in symbols:
+        symbols.append("ApplicationState")
+    return symbols[:12]
+
+
+def _mixed_workflow_goal_profile(raw_goal: str) -> dict[str, Any] | None:
+    """Preserve broad explicit products when one secondary feature matches a fixed profile."""
+    clauses = _explicit_workflow_clauses(raw_goal)
+    if len(clauses) < 4 or _fixed_profile_dominates_workflows(clauses):
+        return None
+    capabilities: list[str] = []
+    for index, clause in enumerate(clauses, start=1):
+        capability = slug(clause)[:58].rstrip("_") or f"workflow_{index:02d}"
+        candidate = capability
+        if candidate in capabilities:
+            candidate = f"{capability[:54].rstrip('_')}_{index:02d}"
+        capabilities.append(candidate)
+    lowered = product_domain_goal(raw_goal)
+    constraints = ["no_unrequested_external_service"]
+    constraint_rules = (
+        (("local-first", "local first", "本地优先"), "local_first"),
+        (("sqlite",), "sqlite_persistence"),
+        (("python 3.11",), "python_3_11"),
+        (("without requiring a cloud", "no cloud", "无需云", "不需要云"), "no_cloud_required"),
+        (("responsive", "响应式"), "responsive_interface"),
+        (("keyboard accessible", "键盘可访问"), "keyboard_accessible"),
+        (("mobile friendly", "移动端友好"), "mobile_friendly"),
+        (("chinese", "中文"), "chinese_localization"),
+        (("original", "原创"), "original_content_only"),
+    )
+    for signals, constraint in constraint_rules:
+        if any(signal in lowered for signal in signals):
+            constraints.append(constraint)
+    interaction_modes: list[str] = []
+    if re.search(r"\bweb\b|browser\s+ui|网页|浏览器", lowered):
+        interaction_modes.append("web")
+    if re.search(r"\bcli\b|command[- ]line|命令行", lowered):
+        interaction_modes.append("cli")
+    if re.search(r"\bgui\b|desktop\s+(?:ui|app)|图形界面|桌面界面", lowered):
+        interaction_modes.append("gui")
+    interfaces = [*interaction_modes, "primary_workspace", "workflow_navigation"]
+    entrypoints = ["app.main"] if "web" in interaction_modes else []
+    return {
+        "domain": "custom_local_application",
+        "capabilities": capabilities,
+        "user_flows": clauses,
+        "entities": _workflow_entity_symbols(clauses),
+        "interfaces": list(dict.fromkeys(interfaces)),
+        "interaction_modes": interaction_modes,
+        "entrypoints": entrypoints,
+        "runtime_dependencies": [],
+        "constraints": list(dict.fromkeys(constraints)),
+        "acceptance_behaviors": [f"the application supports this stated workflow: {clause}" for clause in clauses],
+    }
+
+
+def _explicit_local_cli_profile(
+    raw_goal: str, planning_contract: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
+    """Derive a domain-preserving plan for an explicit record-oriented CLI."""
+    lowered = product_domain_goal(raw_goal)
+    if not re.search(r"\bcli\b|command[- ]line|命令行", lowered):
+        return None
+    action_rules = (
+        ("add", (r"\badd\b", r"\bcreate\b", "新增", "添加")),
+        ("list", (r"\blist\b", "列表", "列出")),
+        ("show", (r"\bshow\b", r"\bget\b", "查看")),
+        ("search", (r"\bsearch\b", r"\bfind\b", "搜索", "查找")),
+        ("update", (r"\bupdate\b", r"\bedit\b", "更新", "编辑")),
+        ("delete", (r"\bdelete\b", r"\bremove\b", "删除")),
+        ("complete", (r"\bcomplete\b", r"\bcompleted\b", "完成")),
+        ("summary", (r"\bsummary\b", r"\bstats?\b", "汇总", "统计")),
+        ("import", (r"\bimport\b", "导入")),
+        ("export", (r"\bexport\b", "导出")),
+    )
+    actions = [
+        action
+        for action, patterns in action_rules
+        if any(re.search(pattern, lowered) for pattern in patterns)
+    ]
+    if len(actions) < 3:
+        return None
+    noun_match = re.search(
+        r"\b([a-z][a-z0-9_-]*)\s+(?:command[- ]line(?:\s+(?:application|app|tool))?|cli)\b",
+        lowered,
+    )
+    noun = str(noun_match.group(1) if noun_match else "record").strip("_-")
+    if noun in {"and", "python", "offline", "local", "compact", "simple"}:
+        noun = "record"
+    singular = noun[:-1] if noun.endswith("s") and len(noun) > 3 else noun
+    entity_id = slug(singular)
+    entity_name = "".join(part.capitalize() for part in re.split(r"[_-]+", entity_id)) or "Record"
+    behaviors: list[str] = []
+    behavior_templates = {
+        "add": f"add creates and persists one valid {entity_id}",
+        "list": f"list returns persisted {entity_id} records in stable order",
+        "show": f"show returns the requested {entity_id} or a stable not-found error",
+        "search": f"search returns matching persisted {entity_id} records",
+        "update": f"update changes only the requested {entity_id} fields and persists them",
+        "delete": f"delete removes an existing {entity_id} and reports a stable not-found error when absent",
+        "complete": f"complete changes an existing {entity_id} to completed and reports a stable not-found error when absent",
+        "summary": f"summary reports total completed and open {entity_id} counts",
+        "import": f"import validates and persists supported {entity_id} records",
+        "export": f"export emits the current {entity_id} records without changing them",
+    }
+    behaviors.extend(behavior_templates[action] for action in actions)
+    constraints = ["local_first", "cli_only", "no_unrequested_external_service"]
+    if "atomic" in lowered or "原子" in lowered:
+        constraints.append("atomic_persistence")
+        behaviors.append("persistence replaces the data file atomically without leaving partial state")
+    if "json" in lowered:
+        constraints.extend(["versioned_json_storage", "stable_json_cli_output"])
+    if "argparse" in lowered or "no framework" in lowered or "without a framework" in lowered:
+        constraints.append("standard_library_runtime")
+    if "case-insensitive" in lowered or "case insensitive" in lowered or "不区分大小写" in lowered:
+        constraints.append("case_insensitive_search")
+        behaviors.append("search matches declared text fields case-insensitively")
+    if "corrupt" in lowered or "损坏" in lowered:
+        constraints.append("corrupt_storage_fails_safe")
+        behaviors.append("corrupt storage fails safely without overwriting the original data")
+    if any(term in lowered for term in ("never execute", "arbitrary command", "eval", "exec")):
+        constraints.append("no_dynamic_execution")
+    if "secret" in lowered or "credential" in lowered:
+        constraints.extend(["no_secret_storage", "no_credential_literals"])
+    if "standard library" in lowered or "no runtime dependencies" in lowered:
+        constraints.extend(["standard_library_runtime", "no_network_dependency"])
+
+    contract = planning_contract if isinstance(planning_contract, dict) else {}
+    required_symbols = [str(item) for item in contract.get("required_symbols", []) if str(item).strip()]
+    explicit_entity = next(
+        (item for item in required_symbols if not item.endswith(("Repository", "Service"))),
+        "",
+    )
+    repository_symbol = next((item for item in required_symbols if item.endswith("Repository")), "")
+    service_symbol = next((item for item in required_symbols if item.endswith("Service")), "")
+    if explicit_entity:
+        entity_name = explicit_entity
+        entity_id = slug(explicit_entity)
+        behaviors = [re.sub(r"\brecord\b", entity_id, behavior) for behavior in behaviors]
+    package_name = ""
+    required_paths = [str(item).replace("\\", "/") for item in contract.get("required_paths", [])]
+    package_candidates = [path.split("/", 1)[0] for path in required_paths if "/" in path and path.endswith(".py")]
+    required_entrypoints = [str(item) for item in contract.get("required_entrypoints", []) if str(item).strip()]
+    if required_entrypoints:
+        package_name = required_entrypoints[0].split(".", 1)[0]
+    elif package_candidates and len(set(package_candidates)) == 1:
+        package_name = package_candidates[0]
+    if "list" in actions and (
+        "status filtering" in lowered
+        or "status filter" in lowered
+        or ("status" in lowered and "filter" in lowered)
+    ):
+        behaviors.append(
+            f"list status filtering returns only open or completed {entity_id} records"
+        )
+    if "duplicate identifier" in lowered or "duplicate id" in lowered:
+        behaviors.append(
+            f"duplicate {entity_id} identifiers are rejected without replacing persisted data"
+        )
+    merge_replace_requested = bool(
+        "import" in actions
+        and "merge" in lowered
+        and "replace" in lowered
+        and ("mode" in lowered or "merge/replace" in lowered)
+    )
+    if merge_replace_requested:
+        behaviors.extend(
+            [
+                f"import merge adds non-conflicting {entity_id} records and rejects duplicate identifiers",
+                f"import replace replaces all existing {entity_id} records with validated imported records",
+            ]
+        )
+    if "exit code" in lowered:
+        behaviors.append(
+            "CLI returns exit code 0 on success and exit code 2 for invalid input or data errors"
+        )
+    module_match = re.search(r"python\s+-m\s+([a-z][a-z0-9_.-]*)", lowered)
+    if module_match and "console entry" in lowered:
+        module_name = module_match.group(1)
+        console_name = required_entrypoints[0] if required_entrypoints else (package_name or module_name)
+        behaviors.append(
+            f"python -m {module_name} and the {console_name} console entry invoke the same CLI"
+        )
+    profile = {
+        "domain": "local_record_cli",
+        "capabilities": [f"{action}_{entity_id}" for action in actions],
+        "user_flows": [f"run the {action} command for {entity_id} records" for action in actions],
+        "entities": [
+            entity_name,
+            repository_symbol or f"{entity_name}Repository",
+            service_symbol or f"{entity_name}Service",
+        ],
+        "interfaces": ["cli", "json_store"] if "json" in lowered else ["cli", "local_store"],
+        "interaction_modes": ["cli"],
+        "constraints": list(dict.fromkeys(constraints)),
+        "acceptance_behaviors": list(dict.fromkeys(behaviors)),
+    }
+    if package_name:
+        profile.update(
+            {
+                "package_name": package_name,
+                "required_project_paths": required_paths,
+                "entrypoints": required_entrypoints,
+                "expected_symbols": required_symbols,
+            }
+        )
+    return profile
+
+
+def _feature_unit_negative_scope(lowered: str) -> list[str]:
+    """Return explicit short-task exclusions without inventing product scope."""
+    rules = (
+        (("no persistence", "without persistence", "do not add persistence", "不要持久化", "不需要持久化"), "no_persistence"),
+        (("no networking", "without networking", "do not add networking", "不要网络", "不需要网络"), "no_network"),
+        (("no framework", "without a framework", "do not add frameworks", "不要框架", "不需要框架"), "no_frameworks"),
+        (("no gui", "without a gui", "do not add a gui", "不要图形界面", "不需要图形界面"), "no_gui"),
+        (("no unrelated features", "without unrelated features", "do not add unrelated features", "不要额外功能", "不需要额外功能"), "no_unrelated_features"),
+    )
+    selected = [value for phrases, value in rules if any(phrase in lowered for phrase in phrases)]
+    negative_clauses = re.findall(
+        r"(?:do not add|without|no)\s+([^.;\n]{1,220})",
+        lowered,
+        flags=re.I,
+    )
+    negative_text = " ".join(negative_clauses)
+    grouped_terms = (
+        (r"\bpersistence\b", "no_persistence"),
+        (r"\bnetwork(?:ing)?\b", "no_network"),
+        (r"\bframeworks?\b", "no_frameworks"),
+        (r"\bgui\b", "no_gui"),
+        (r"\bunrelated\s+features?\b", "no_unrelated_features"),
+    )
+    for pattern, value in grouped_terms:
+        if re.search(pattern, negative_text, flags=re.I) and value not in selected:
+            selected.append(value)
+    return selected
+
+
+def _feature_signature_inputs(raw_parameters: str) -> list[dict[str, Any]]:
+    inputs: list[dict[str, Any]] = []
+    for raw_parameter in str(raw_parameters or "").split(","):
+        parameter = raw_parameter.strip()
+        if not parameter or parameter in {"/", "*", "self", "cls"}:
+            continue
+        required = "=" not in parameter
+        declaration = parameter.split("=", 1)[0].strip().lstrip("*")
+        if ":" in declaration:
+            name, annotation = declaration.split(":", 1)
+        else:
+            name, annotation = declaration, "Any"
+        normalized_name = str(name).strip()
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", normalized_name):
+            continue
+        inputs.append(
+            {
+                "name": normalized_name,
+                "type": str(annotation).strip() or "Any",
+                "required": required,
+            }
+        )
+    return inputs[:8]
+
+
+def _explicit_feature_unit_profile(
+    raw_goal: str, planning_contract: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
+    """Recognize explicit typed operations before generic application expansion."""
+    goal = str(raw_goal or "").strip()
+    lowered = product_domain_goal(goal)
+    type_atom = (
+        r"[A-Za-z_][A-Za-z0-9_.]*"
+        r"(?:\s*\[(?:[^\[\]\n]|\[[^\[\]\n]*\])+\])?"
+    )
+    pattern = re.compile(
+        rf"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(([^()\n]{{0,320}})\)\s*->\s*"
+        rf"({type_atom}(?:\s*\|\s*{type_atom})*)",
+        flags=re.I,
+    )
+    signatures: list[tuple[str, str, str]] = []
+    for match in pattern.finditer(goal):
+        name = str(match.group(1)).strip()
+        output_type = str(match.group(3)).strip().rstrip(".,")
+        if name.startswith("__") or not output_type:
+            continue
+        candidate = (name, str(match.group(2)).strip(), output_type)
+        if candidate not in signatures:
+            signatures.append(candidate)
+    if not signatures or len(signatures) > 8:
+        return None
+
+    contract = planning_contract if isinstance(planning_contract, dict) else {}
+    package_match = re.search(
+        r"\b(?:project|package|application|app|tool)\s+(?:named\s+)?([A-Za-z][A-Za-z0-9_-]{1,63})\b",
+        goal,
+        flags=re.I,
+    )
+    package_name = slug(package_match.group(1)) if package_match else ""
+    required_entrypoints = [
+        str(item).strip()
+        for item in contract.get("required_entrypoints", [])
+        if str(item).strip()
+    ]
+    if required_entrypoints:
+        package_name = slug(required_entrypoints[0].split(".", 1)[0])
+    if not package_name or package_name in {"python", "minimal", "local", "command_line"}:
+        package_name = slug(f"{signatures[0][0]}_tool")
+
+    errors = list(dict.fromkeys(re.findall(r"\b([A-Z][A-Za-z0-9_]*Error)\b", goal)))
+    negative_scope = _feature_unit_negative_scope(lowered)
+    cli_requested = bool(re.search(r"\bcli\b|command[- ]line|命令行", lowered))
+    feature_contracts: list[dict[str, Any]] = []
+    for name, raw_parameters, output_type in signatures:
+        inputs = _feature_signature_inputs(raw_parameters)
+        acceptance = [
+            f"{name} is importable with the frozen signature {name}({raw_parameters}) -> {output_type}",
+            f"{name} returns a value matching {output_type} for valid declared inputs",
+        ]
+        if "strip" in lowered and "whitespace" in lowered:
+            acceptance.append(f"{name} strips surrounding whitespace from its string input")
+        if "blank" in lowered and "ValueError" in errors:
+            acceptance.append(f"{name} raises ValueError when the normalized input is blank")
+        if cli_requested and "json" in lowered:
+            acceptance.append("the CLI prints exactly one JSON object derived from this feature result")
+        feature = {
+            "kind": "CGKNFeatureContract",
+            "schema_version": 1,
+            "feature_id": slug(name),
+            "public_entrypoint": {
+                "name": name,
+                "signature": f"{name}({raw_parameters}) -> {output_type}",
+                "inputs": inputs,
+                "output": {"type": output_type},
+            },
+            "errors": [
+                {
+                    "type": error,
+                    "condition": (
+                        "normalized input is blank"
+                        if error == "ValueError" and "blank" in lowered
+                        else "declared invalid input"
+                    ),
+                }
+                for error in errors
+            ],
+            "side_effects": [],
+            "dependencies": [],
+            "owned_paths": [f"{package_name}/{slug(name)}.py"],
+            "acceptance_checks": list(dict.fromkeys(acceptance)),
+        }
+        canonical = json.dumps(feature, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        feature["interface_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        feature_contracts.append(feature)
+
+    ownership = {
+        path: feature["feature_id"]
+        for feature in feature_contracts
+        for path in feature["owned_paths"]
+    }
+    freeze = {
+        "kind": "CGKNFeatureInterfaceFreeze",
+        "schema_version": 1,
+        "frozen": True,
+        "feature_ids": [feature["feature_id"] for feature in feature_contracts],
+        "owned_path_index": ownership,
+        "conflicts": [],
+    }
+    freeze_canonical = json.dumps(freeze, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    freeze["freeze_sha256"] = hashlib.sha256(freeze_canonical.encode("utf-8")).hexdigest()
+    constraints = [
+        "one_public_operation_per_feature",
+        "frozen_feature_interfaces_before_generation",
+        "conflict_free_file_ownership",
+        *negative_scope,
+    ]
+    if "standard library" in lowered:
+        constraints.extend(["standard_library_runtime", "no_third_party_runtime_dependencies"])
+    return {
+        "domain": "feature_unit_application",
+        "package_name": package_name,
+        "capabilities": [feature["feature_id"] for feature in feature_contracts],
+        "user_flows": [
+            f"provide the declared inputs to {feature['feature_id']} and receive its declared output"
+            for feature in feature_contracts
+        ],
+        "entities": [],
+        "interfaces": ["python_api", *( ["cli"] if cli_requested else [] )],
+        "interaction_modes": ["cli"] if cli_requested else [],
+        "entrypoints": [
+            f"{package_name}.{feature['public_entrypoint']['name']}"
+            for feature in feature_contracts
+        ] + ([f"{package_name}.__main__"] if cli_requested else []),
+        "runtime_dependencies": [],
+        "constraints": list(dict.fromkeys(constraints)),
+        "acceptance_behaviors": list(
+            dict.fromkeys(
+                check
+                for feature in feature_contracts
+                for check in feature["acceptance_checks"]
+            )
+        ),
+        "feature_contracts": feature_contracts,
+        "feature_interface_freeze": freeze,
+    }
+
+
+def _goal_profile(
+    raw_goal: str, planning_contract: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
     goal = str(raw_goal or "").strip()
     lowered = product_domain_goal(goal)
     if not goal:
         return None
+    cs2_profile = _cs2_demo_analysis_profile(goal)
+    if cs2_profile is not None:
+        return cs2_profile
+    explicit_cli_profile = _explicit_local_cli_profile(goal, planning_contract)
+    if explicit_cli_profile is not None:
+        return explicit_cli_profile
+    feature_unit_profile = _explicit_feature_unit_profile(goal, planning_contract)
+    if feature_unit_profile is not None:
+        return feature_unit_profile
+    mixed_workflow_profile = _mixed_workflow_goal_profile(goal)
+    if mixed_workflow_profile is not None:
+        return mixed_workflow_profile
     if goal_has_visual_novel_product(goal):
         return {
             "domain": "visual_novel_editor",
@@ -345,8 +997,10 @@ def _goal_profile(raw_goal: str) -> dict[str, Any] | None:
     }
 
 
-def build_goal_spec(raw_goal: str) -> dict[str, Any]:
-    profile = _goal_profile(raw_goal)
+def build_goal_spec(
+    raw_goal: str, planning_contract: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    profile = _goal_profile(raw_goal, planning_contract)
     if profile is None:
         return {
             "kind": "GoalSpec",
@@ -370,6 +1024,11 @@ def build_goal_spec(raw_goal: str) -> dict[str, Any]:
 
 
 DOMAIN_WORKSTREAMS: dict[str, list[tuple[str, str]]] = {
+    "local_record_cli": [
+        ("record_model_repository", "Model the declared record and implement safe local persistence behind one repository contract."),
+        ("record_service_cli", "Implement the declared record behaviors and bind every named command to a concrete CLI handler."),
+        ("record_behavior_tests", "Verify every declared CLI, service, persistence, and error behavior."),
+    ],
     "productivity_timer": [
         ("timer_domain", "Model timer sessions, settings, phases, and valid transitions."),
         ("timer_state", "Implement start, pause, resume, reset, countdown, and work/break state changes."),
@@ -426,6 +1085,16 @@ DOMAIN_WORKSTREAMS: dict[str, list[tuple[str, str]]] = {
         ("render_evidence_report", "Export a human-review report that cites evidence and limitations."),
         ("specialized_analysis_tests", "Verify authorization, provenance, normalization, explainability, and report behavior."),
     ],
+    "cs2_demo_anomaly_analysis": [
+        ("catalog_and_provenance", "Discover reviewed public demo candidates and retain license, commit, object, hash, size, and attempt provenance."),
+        ("bounded_acquisition", "Resolve Git LFS objects, download within explicit HTTPS/resource bounds, fail over candidates, and safely extract archives."),
+        ("demo_parser", "Parse real CS2 demo ticks, player identity/team/position/view angles, weapon fire, round, and death events through demoparser2."),
+        ("geometry_and_information", "Compute wrapped angles, spatial bearings, distance, relative motion, crosshair error, and evidence-bounded information state."),
+        ("explainable_anomaly_analysis", "Produce sample-bounded snap, alignment, tracking, switching, and pre-aim/prefire windows without punitive classification."),
+        ("human_review_reporting", "Write machine-readable JSON and local HTML reports with coverage, evidence, confidence, unknowns, limitations, and human-review wording."),
+        ("real_demo_self_test", "Run the complete opt-in public-demo workflow with candidate retry and synthetic fallback disabled."),
+        ("cs2_demo_behavior_tests", "Verify catalog, LFS, network bounds, extraction security, parser proof, geometry, information unknowns, signal samples, reporting, and optional live integration."),
+    ],
 }
 
 DOMAIN_RUNTIME_ARTIFACTS: dict[str, list[str]] = {
@@ -442,9 +1111,11 @@ DOMAIN_RUNTIME_ARTIFACTS: dict[str, list[str]] = {
 }
 
 
-def _workstream_output(workstream_id: str) -> str:
+def _workstream_output(workstream_id: str, domain: str) -> str:
     if workstream_id.endswith("_tests") or "behavior_tests" in workstream_id:
         return f"tests/test_{workstream_id}.py"
+    if domain in {"cs2_demo_anomaly_analysis", "local_record_cli"}:
+        return f"backend/{workstream_id}.py"
     return f"src/{workstream_id}.py"
 
 
@@ -458,10 +1129,240 @@ def goal_acceptance_test_contract(acceptance_behaviors: list[Any]) -> list[dict[
         contract.append(
             {
                 "intent": behavior,
-                "test_symbol": f"test_goal_{index:02d}_{slug(behavior)}",
+                "test_symbol": f"test_goal_{index:02d}_{slug(behavior)[:48].rstrip('_')}",
             }
         )
     return contract
+
+
+def feature_contract_ready_batches(feature_contracts: list[dict[str, Any]]) -> list[list[str]]:
+    """Return deterministic dependency-ready, conflict-free feature batches."""
+    by_id = {
+        str(feature.get("feature_id", "")).strip(): feature
+        for feature in feature_contracts
+        if isinstance(feature, dict) and str(feature.get("feature_id", "")).strip()
+    }
+    remaining = dict(by_id)
+    completed: set[str] = set()
+    batches: list[list[str]] = []
+    while remaining:
+        ready_ids = [
+            feature_id
+            for feature_id, feature in remaining.items()
+            if all(str(item) in completed for item in feature.get("dependencies", []))
+        ]
+        if not ready_ids:
+            ready_ids = [next(iter(remaining))]
+        batch: list[str] = []
+        owned: set[str] = set()
+        for feature_id in ready_ids:
+            paths = {
+                str(path).replace("\\", "/").strip()
+                for path in remaining[feature_id].get("owned_paths", [])
+                if str(path).strip()
+            }
+            if paths.intersection(owned):
+                continue
+            batch.append(feature_id)
+            owned.update(paths)
+        if not batch:
+            batch = [ready_ids[0]]
+        batches.append(batch)
+        for feature_id in batch:
+            completed.add(feature_id)
+            remaining.pop(feature_id, None)
+    return batches
+
+
+def build_feature_unit_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
+    """Build only the files needed for frozen, independently owned feature contracts."""
+    package_name = str(goal_spec.get("package_name", "feature_tool")).strip() or "feature_tool"
+    features = [
+        feature
+        for feature in goal_spec.get("feature_contracts", [])
+        if isinstance(feature, dict) and str(feature.get("feature_id", "")).strip()
+    ]
+    acceptance_behaviors = [
+        str(item) for item in goal_spec.get("acceptance_behaviors", [])
+    ]
+    goal_tests = goal_acceptance_test_contract(acceptance_behaviors)
+    goal_test_symbol_by_intent = {
+        str(item.get("intent", "")): str(item.get("test_symbol", ""))
+        for item in goal_tests
+        if str(item.get("intent", "")).strip()
+        and str(item.get("test_symbol", "")).strip()
+    }
+    workstreams: list[dict[str, Any]] = [
+        {
+            "id": "foundation",
+            "scope": (
+                f"Declare the minimal Python project {package_name} and test metadata "
+                "without adding runtime architecture."
+            ),
+            "depends_on": [],
+            "expected_outputs": ["pyproject.toml", "requirements.txt"],
+            "owned_paths": ["pyproject.toml", "requirements.txt"],
+            "expected_symbols": [],
+            "test_intents": [
+                f"pyproject.toml declares project.name as {package_name}"
+            ],
+        }
+    ]
+    feature_workstream_ids: list[str] = []
+    for feature in features:
+        feature_id = str(feature["feature_id"])
+        workstream_id = f"feature_{feature_id}"
+        feature_workstream_ids.append(workstream_id)
+        workstreams.append(
+            {
+                "id": workstream_id,
+                "scope": f"Implement only the frozen {feature_id} feature contract.",
+                "depends_on": [
+                    "foundation",
+                    *[
+                        f"feature_{dependency}"
+                        for dependency in feature.get("dependencies", [])
+                    ],
+                ],
+                "expected_outputs": list(feature.get("owned_paths", [])),
+                "owned_paths": list(feature.get("owned_paths", [])),
+                "expected_symbols": [
+                    str(feature.get("public_entrypoint", {}).get("name", ""))
+                ],
+                "test_intents": [],
+                "feature_contracts": [feature],
+            }
+        )
+    workstreams.append(
+        {
+            "id": "package_interface",
+            "scope": "Publish only the frozen public feature entrypoints from the package boundary.",
+            "depends_on": list(feature_workstream_ids),
+            "expected_outputs": [f"{package_name}/__init__.py"],
+            "owned_paths": [f"{package_name}/__init__.py"],
+            "expected_symbols": [
+                str(feature.get("public_entrypoint", {}).get("name", ""))
+                for feature in features
+            ],
+            "test_intents": [],
+            "feature_contracts": features,
+        }
+    )
+    cli_requested = "cli" in goal_interaction_modes(goal_spec)
+    if cli_requested:
+        workstreams.append(
+            {
+                "id": "application_entry",
+                "scope": "Adapt the frozen feature interfaces to the requested CLI without adding business behavior.",
+                "depends_on": ["package_interface"],
+                "expected_outputs": [f"{package_name}/__main__.py"],
+                "owned_paths": [f"{package_name}/__main__.py"],
+                "expected_symbols": ["main"],
+                "test_intents": [],
+                "feature_contracts": features,
+            }
+        )
+    test_dependency = "application_entry" if cli_requested else "package_interface"
+    test_workstream_ids: list[str] = []
+    for feature in features:
+        feature_id = str(feature["feature_id"])
+        workstream_id = f"feature_{feature_id}_tests"
+        test_workstream_ids.append(workstream_id)
+        workstreams.append(
+            {
+                "id": workstream_id,
+                "scope": f"Verify only the frozen {feature_id} behavior and its requested adapter behavior.",
+                "depends_on": [f"feature_{feature_id}", test_dependency],
+                "expected_outputs": [f"tests/test_{feature_id}.py"],
+                "owned_paths": [f"tests/test_{feature_id}.py"],
+                "expected_symbols": [
+                    goal_test_symbol_by_intent[str(intent)]
+                    for intent in feature.get("acceptance_checks", [])
+                    if str(intent) in goal_test_symbol_by_intent
+                ],
+                "test_intents": [
+                    *list(feature.get("acceptance_checks", [])),
+                    *(
+                        [
+                            f'Invoke the CLI only as [sys.executable, "-m", "{package_name}", title]; '
+                            f"do not invent a {package_name}.cli module."
+                        ]
+                        if cli_requested
+                        else []
+                    ),
+                ],
+                "feature_contracts": [feature],
+            }
+        )
+    delivery_outputs = ["README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"]
+    workstreams.append(
+        {
+            "id": "delivery",
+            "scope": "Document only installation, the frozen feature interfaces, tests, and delivery limits.",
+            "depends_on": test_workstream_ids or [test_dependency],
+            "expected_outputs": delivery_outputs,
+            "owned_paths": delivery_outputs,
+            "expected_symbols": [],
+            "test_intents": [],
+        }
+    )
+    leaves = [
+        {
+            "leaf_id": f"{workstream['id']}_leaf",
+            "workstream_id": workstream["id"],
+            "scope": workstream["scope"],
+            "depends_on": [f"{item}_leaf" for item in workstream["depends_on"]],
+            "expected_outputs": list(workstream["expected_outputs"]),
+            "owned_paths": list(workstream.get("owned_paths", workstream["expected_outputs"])),
+            "expected_symbols": list(workstream.get("expected_symbols", [])),
+            "test_intents": list(workstream.get("test_intents", [])),
+            "feature_contracts": list(workstream.get("feature_contracts", [])),
+        }
+        for workstream in workstreams
+    ]
+    expected_structure = list(
+        dict.fromkeys(path for row in workstreams for path in row["expected_outputs"])
+    )
+    feature_batches = feature_contract_ready_batches(features)
+    return {
+        "kind": "GoalDrivenProjectPlan",
+        "status": "PASS",
+        "goal": goal_spec.get("goal", ""),
+        "domain": "feature_unit_application",
+        "workstreams": workstreams,
+        "leaves": leaves,
+        "dependencies": [
+            {"from": dependency, "to": row["id"]}
+            for row in workstreams
+            for dependency in row["depends_on"]
+        ],
+        "expected_project_structure": expected_structure,
+        "business_outputs": [
+            path
+            for path in expected_structure
+            if path.endswith(".py") and not path.startswith("tests/")
+        ],
+        "runtime_artifacts": [
+            path
+            for path in expected_structure
+            if path.startswith(package_name + "/") and path.endswith(".py")
+        ],
+        "interaction_modes": goal_interaction_modes(goal_spec),
+        "report_formats": [],
+        "runtime_dependencies": [],
+        "entrypoints": list(goal_spec.get("entrypoints", [])),
+        "test_intents": acceptance_behaviors,
+        "goal_acceptance_tests": goal_tests,
+        "feature_contracts": features,
+        "feature_interface_freeze": goal_spec.get("feature_interface_freeze", {}),
+        "feature_parallel_batches": feature_batches,
+        "parallelism_policy": {
+            "interfaces_frozen_before_generation": True,
+            "dependency_ready_only": True,
+            "owned_path_conflicts_forbidden": True,
+            "failed_feature_repairs_are_isolated": True,
+        },
+    }
 
 
 def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
@@ -480,45 +1381,143 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
             "goal_acceptance_tests": [],
         }
     domain = str(goal_spec.get("domain", "custom_local_application"))
+    if domain == "feature_unit_application":
+        return build_feature_unit_project_plan(goal_spec)
     definitions = DOMAIN_WORKSTREAMS.get(domain)
-    if not definitions:
+    package_name = str(goal_spec.get("package_name", "")).strip()
+    entities = [str(item) for item in (goal_spec.get("entities") or []) if str(item).strip()]
+    entity_name = entities[0] if entities else "Record"
+    repository_symbol = entities[1] if len(entities) >= 2 else f"{entity_name}Repository"
+    service_symbol = entities[2] if len(entities) >= 3 else f"{entity_name}Service"
+    if domain == "local_record_cli" and package_name:
         definitions = [
-            (str(capability), f"Implement and verify {str(capability).replace('_', ' ')} for the stated goal.")
-            for capability in goal_spec.get("capabilities", [])
+            ("record_model", "Define the validated record and its domain invariants.", f"{package_name}/model.py", [entity_name]),
+            ("record_repository", "Implement safe atomic JSON persistence behind one repository contract.", f"{package_name}/repository.py", [repository_symbol]),
+            ("record_service", "Own every declared record behavior without duplicating persistence or CLI concerns.", f"{package_name}/service.py", [service_symbol]),
+            ("record_cli", "Bind every named command and stable exit code to the service contract.", f"{package_name}/cli.py", ["build_parser", "main"]),
+            ("record_behavior_tests", "Verify every declared CLI, service, persistence, and error behavior.", f"tests/test_{slug(package_name)}.py", []),
         ]
+    if not definitions:
+        capability_flows = [str(item) for item in goal_spec.get("user_flows", [])]
+        workflow_definitions = [
+            (
+                str(capability),
+                "Implement and verify the user-stated workflow: "
+                + (
+                    capability_flows[index]
+                    if index < len(capability_flows)
+                    else str(capability).replace("_", " ")
+                ),
+                _workstream_output(str(capability), domain),
+                [str(capability)],
+            )
+            for index, capability in enumerate(goal_spec.get("capabilities", []))
+        ]
+        if domain == "custom_local_application":
+            definitions = [
+                (
+                    "domain_models",
+                    "Define the canonical domain records and validation invariants shared by every workflow.",
+                    "src/domain_models.py",
+                    entities,
+                ),
+                (
+                    "persistence_repository",
+                    "Implement one shared local persistence boundary for all domain records.",
+                    "src/repository.py",
+                    [
+                        "SQLiteRepository"
+                        if "sqlite_persistence" in goal_spec.get("constraints", [])
+                        else "LocalRepository"
+                    ],
+                ),
+                (
+                    "application_service",
+                    "Coordinate domain validation, persistence, and cross-workflow behavior through one service boundary.",
+                    "src/service.py",
+                    ["ApplicationService"],
+                ),
+                *workflow_definitions,
+            ]
+        else:
+            definitions = workflow_definitions
         definitions.append(("goal_behavior_tests", "Verify every acceptance behavior from the GoalSpec."))
     workstreams: list[dict[str, Any]] = []
     prior_ids: list[str] = []
+    foundation_outputs = ["pyproject.toml", "requirements.txt"]
+    if package_name:
+        foundation_outputs.append(f"{package_name}/__init__.py")
     foundation = {
         "id": "foundation",
         "scope": "Create the runnable local project shell, dependency metadata, and shared domain contracts.",
         "depends_on": [],
-        "expected_outputs": ["README.md", "pyproject.toml", "src/__init__.py", "app/main.py"],
+        "expected_outputs": foundation_outputs,
+        "expected_symbols": [],
         "test_intents": [],
     }
     workstreams.append(foundation)
     prior_ids.append("foundation")
+    application_entry = (
+        f"{package_name}/__main__.py"
+        if domain == "local_record_cli" and package_name
+        else "main.py" if domain in {"cs2_demo_anomaly_analysis", "local_record_cli"} else "app/main.py"
+    )
+    workstreams.append(
+        {
+            "id": "application_entry",
+            "scope": "Expose the declared interaction modes through one runnable local entrypoint without adding an unrequested interface.",
+            "depends_on": ["foundation"],
+            "expected_outputs": [application_entry],
+            "expected_symbols": ["main"] if package_name else [],
+            "test_intents": [],
+        }
+    )
+    prior_ids.append("application_entry")
     acceptance_behaviors = [str(item) for item in goal_spec.get("acceptance_behaviors", [])]
     goal_tests = goal_acceptance_test_contract(acceptance_behaviors)
-    for workstream_id, scope in definitions:
+    for definition in definitions:
+        workstream_id, scope = definition[:2]
         is_test = workstream_id.endswith("_tests") or "behavior_tests" in workstream_id
-        dependencies = list(prior_ids if is_test else ["foundation"])
+        if domain == "custom_local_application" and not is_test:
+            if workstream_id == "domain_models":
+                dependencies = ["foundation"]
+            elif workstream_id == "persistence_repository":
+                dependencies = ["foundation", "domain_models"]
+            elif workstream_id == "application_service":
+                dependencies = ["domain_models", "persistence_repository"]
+            else:
+                dependencies = ["application_service"]
+        else:
+            dependencies = list(prior_ids if is_test else ["foundation"])
         test_intents = acceptance_behaviors if is_test else []
         workstream = {
             "id": workstream_id,
             "scope": scope,
             "depends_on": dependencies,
-            "expected_outputs": [_workstream_output(workstream_id)],
+            "expected_outputs": [
+                str(definition[2]) if len(definition) >= 3 else _workstream_output(workstream_id, domain)
+            ],
+            "expected_symbols": list(definition[3]) if len(definition) >= 4 else [],
             "test_intents": test_intents,
         }
         workstreams.append(workstream)
         prior_ids.append(workstream_id)
+    if domain == "custom_local_application":
+        application_entry_workstream = next(
+            row for row in workstreams if row["id"] == "application_entry"
+        )
+        application_entry_workstream["depends_on"] = [
+            "foundation",
+            "application_service",
+        ]
+        application_entry_workstream["expected_symbols"] = ["main"]
     delivery_dependencies = [workstreams[-1]["id"]] if workstreams else ["foundation"]
     workstreams.append({
         "id": "delivery",
         "scope": "Document local startup, known constraints, and expected project contents for the existing delivery path.",
         "depends_on": delivery_dependencies,
-        "expected_outputs": ["TEST_PLAN.md", "DELIVERY_NOTES.md"],
+        "expected_outputs": ["README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"],
+        "expected_symbols": [],
         "test_intents": [],
     })
     leaves = [
@@ -528,12 +1527,13 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
             "scope": workstream["scope"],
             "depends_on": [f"{item}_leaf" for item in workstream["depends_on"]],
             "expected_outputs": list(workstream["expected_outputs"]),
+            "expected_symbols": list(workstream.get("expected_symbols", [])),
             "test_intents": list(workstream["test_intents"]),
         }
         for workstream in workstreams
     ]
     expected_structure = list(dict.fromkeys(path for row in workstreams for path in row["expected_outputs"]))
-    business_outputs = [path for path in expected_structure if path not in {"README.md", "pyproject.toml", "src/__init__.py", "app/main.py", "TEST_PLAN.md", "DELIVERY_NOTES.md"}]
+    business_outputs = [path for path in expected_structure if path not in {"README.md", "pyproject.toml", "requirements.txt", application_entry, "TEST_PLAN.md", "DELIVERY_NOTES.md"}]
     return {
         "kind": "GoalDrivenProjectPlan",
         "status": "PASS",
@@ -545,6 +1545,10 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         "expected_project_structure": expected_structure,
         "business_outputs": business_outputs,
         "runtime_artifacts": list(DOMAIN_RUNTIME_ARTIFACTS.get(domain, business_outputs)),
+        "interaction_modes": goal_interaction_modes(goal_spec),
+        "report_formats": list(goal_spec.get("report_formats", [])),
+        "runtime_dependencies": list(goal_spec.get("runtime_dependencies", [])),
+        "entrypoints": list(goal_spec.get("entrypoints", [])),
         "test_intents": acceptance_behaviors,
         "goal_acceptance_tests": goal_tests,
     }
@@ -1135,7 +2139,12 @@ def load_requirement_acceptance_contract(run_dir: pathlib.Path) -> dict[str, Any
 def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict[str, Any] | None = None) -> dict[str, Any]:
     context = dict(context or {})
     context.setdefault("complex_goal", goal_is_complex(raw_goal, context))
-    goal_spec = build_goal_spec(raw_goal)
+    planning_contract = (
+        context.get("codex_capability_plan_contract", {})
+        if isinstance(context.get("codex_capability_plan_contract", {}), dict)
+        else {}
+    )
+    goal_spec = build_goal_spec(raw_goal, planning_contract)
     project_plan = build_goal_project_plan(goal_spec)
     interpretations = generate_need_interpretations(raw_goal, context)
     candidates = generate_candidate_requirements(raw_goal, interpretations, context)

@@ -99,6 +99,37 @@ def test_design_research_searches_sources_and_selects_distinct_direction(tmp_pat
     assert (tmp_path / "design" / "DESIGN_RESEARCH.md").exists()
 
 
+def test_design_context_identity_ignores_research_artifact_timestamp(
+    monkeypatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    timestamps = iter(
+        ["2026-08-27T01:00:00+00:00", "2026-08-27T02:00:00+00:00"]
+    )
+    monkeypatch.setattr(design_research_agent, "now", lambda: next(timestamps))
+    first = researched_design(tmp_path / "first")
+    second = researched_design(tmp_path / "second")
+    first_context = design_research_agent.bounded_design_context(first)
+    second_context = design_research_agent.bounded_design_context(second)
+
+    assert first["created_at"] != second["created_at"]
+    assert first["manifest_sha256"] != second["manifest_sha256"]
+    assert first["semantic_sha256"] == second["semantic_sha256"]
+    assert first_context["context_sha256"] == second_context["context_sha256"]
+    assert (
+        run_local_pipeline_impl.provider_component_spec_hash(
+            GOAL,
+            {"components": [{"id": "frontend"}], "design_context": first_context},
+            {"id": "frontend"},
+        )
+        == run_local_pipeline_impl.provider_component_spec_hash(
+            GOAL,
+            {"components": [{"id": "frontend"}], "design_context": second_context},
+            {"id": "frontend"},
+        )
+    )
+
+
 def test_nonvisual_api_does_not_receive_aesthetic_frontend_gate(tmp_path: pathlib.Path) -> None:
     result = design_research_agent.run_design_research(
         "Build a JSON API only with no interface",
@@ -119,6 +150,27 @@ def test_nonvisual_api_does_not_receive_aesthetic_frontend_gate(tmp_path: pathli
     )
     assert receipt["status"] == "pass"
     assert receipt["applicability"] == "not_required"
+
+
+def test_cli_html_report_does_not_become_visual_application(tmp_path: pathlib.Path) -> None:
+    result = design_research_agent.run_design_research(
+        "Build a CLI analyzer that writes a local HTML report for human review",
+        {
+            "selected_project_direction": {
+                "required_interfaces": ["cli"],
+                "report_formats": ["json", "html"],
+            },
+            "complexity_project_contract": {
+                "required_interfaces": ["cli"],
+            },
+        },
+        {},
+        tmp_path / "cli-report-design",
+        searchers=[("unused", lambda query: (_ for _ in ()).throw(AssertionError(query)))],
+    )
+
+    assert result["visual_surface_required"] is False
+    assert result["search_attempts"] == []
 
 
 def test_design_context_enters_only_relevant_librarian_queries(tmp_path: pathlib.Path) -> None:

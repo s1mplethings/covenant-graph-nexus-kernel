@@ -129,6 +129,19 @@ class GenerationCompletionContractTests(unittest.TestCase):
             self.assertTrue((project / "app.py").is_file())
             self.assertTrue((project / "TEST_PLAN.md").is_file())
 
+    def test_provider_writes_only_exact_project_local_agent_kit_output(self) -> None:
+        doc = valid_provider_doc()
+        files = run_local_pipeline.validate_provider_files(doc)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project_local = root / "project" / ".cgkn" / "agent-kit" / "generated-project"
+            written = run_local_pipeline.write_provider_files(project_local, files)
+            self.assertIn("README.md", written)
+            self.assertTrue((project_local / "app.py").is_file())
+
+            with self.assertRaisesRegex(RuntimeError, "outside generated root"):
+                run_local_pipeline.write_provider_files(root / "project" / "generated-project", files)
+
     def test_empty_placeholder_and_generic_projects_are_rejected(self) -> None:
         empty = valid_provider_doc()
         empty["files"][2]["content"] = "   "
@@ -200,6 +213,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
         args.provider_semantic_repair_attempts = None
         args.post_build_repair_attempts = None
         args.allow_model_usage_planning = False
+        args.codex_capability_brief = ""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             args.out_dir = str(root / "project")

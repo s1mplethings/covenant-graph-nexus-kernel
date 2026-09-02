@@ -1,0 +1,87 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-039",
+  "project_id": "cgkn",
+  "goal": "Repair live Provider component-manifest routing and ownership so canonical multi-file GoalPlan paths receive an interface-capable model and remain assigned to their exact component before leaf generation.",
+  "backlog_item_ids": [
+    "PB-029"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A regression reproduces the YanTu failure shape where a canonical backend owns many GoalPlan paths and verifies the manifest call route.",
+    "Initial component-manifest generation selects the configured interface-capable large model independently of small-payload downgrade logic.",
+    "Ordinary small component-generation payload routing remains available outside the component-manifest contract.",
+    "Exact canonical GoalPlan path ownership outranks generic frontend/backend directory guesses even when a package hint is present.",
+    "A high-complexity canonical Python leaf with many public symbols expands into safe same-directory bounded submodules that inherit only the exact parent ownership and retain independent checkpoints.",
+    "Provider-mainline, routing, kernel, and management validation pass without adding a generation or delivery path."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "The Provider manifest route and semantic repair route preserve the configured large-model capability floor.",
+    "A current canonical_goal_project_plan assignment is the ownership authority for exact required paths; the generic directory table remains only a fallback for undeclared paths.",
+    "Automatic bounded children inherit only a safe same-directory parent-prefixed path, while arbitrary provider child paths remain subject to ordinary ownership rules."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-039_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Accepted with limits: routing, canonical ownership, and bounded submodule relationships passed regressions and live checkpoints; full YanTu delivery remains blocked by Provider balance."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-029"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Reading each new live failure as a violated authority or dependency relationship exposed model-floor, path-owner, and leaf-granularity defects in causal order."
+    ],
+    "did_not_work": [
+      "Payload size, generic directory guesses, and monolithic public-symbol leaves each overrode the more specific semantic contract."
+    ],
+    "experiments": [
+      "After Provider balance is restored, resume the exact src/service.py checkpoint and measure whether the remaining canonical leaves complete without manifest or ownership intervention."
+    ]
+  }
+}

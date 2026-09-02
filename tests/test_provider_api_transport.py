@@ -102,6 +102,99 @@ class ProviderApiTransportTests(unittest.TestCase):
             payload,
         )
 
+    def test_alibaba_qwen_generation_payload_accepts_explicit_reasoning_policy(self) -> None:
+        payload = check_connectivity._build_openai_compatible_payload(
+            "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            {
+                "model": "qwen3.8-max",
+                "messages": [{"role": "user", "content": "generate one file"}],
+                "max_tokens": 1800,
+            },
+            model="qwen3.8-max",
+            reasoning_effort="none",
+        )
+
+        self.assertEqual({"effort": "none"}, payload["reasoning"])
+        self.assertEqual(1800, payload["max_output_tokens"])
+        self.assertNotIn("messages", payload)
+
+    def test_reasoning_policy_does_not_change_other_models_or_providers(self) -> None:
+        non_qwen = check_connectivity._build_openai_compatible_payload(
+            "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            {"model": "other-model", "messages": [{"role": "user", "content": "ping"}]},
+            model="other-model",
+            reasoning_effort="none",
+        )
+        non_alibaba = check_connectivity._build_openai_compatible_payload(
+            "https://api.example.test/v1",
+            {"model": "qwen3.8-max", "messages": [{"role": "user", "content": "ping"}]},
+            model="qwen3.8-max",
+            reasoning_effort="none",
+        )
+
+        self.assertNotIn("reasoning", non_qwen)
+        self.assertNotIn("reasoning", non_alibaba)
+
+    def test_provider_probe_uses_qwen_compatible_responses_budget_without_reasoning(self) -> None:
+        payload = check_connectivity._build_provider_probe_payload(
+            "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            "qwen3.8-max",
+        )
+
+        self.assertEqual("qwen3.8-max", payload["model"])
+        self.assertEqual("user: Reply with exactly: pong", payload["input"])
+        self.assertEqual(128, payload["max_output_tokens"])
+        self.assertEqual({"effort": "none"}, payload["reasoning"])
+        self.assertNotIn("messages", payload)
+        self.assertNotIn("max_tokens", payload)
+
+    def test_provider_probe_keeps_qwen_reasoning_default_outside_alibaba_model_studio(self) -> None:
+        payload = check_connectivity._build_provider_probe_payload(
+            "https://api.example.test/v1",
+            "qwen3.8-max",
+        )
+
+        self.assertEqual(128, payload["max_output_tokens"])
+        self.assertNotIn("reasoning", payload)
+
+    def test_live_qwen_probe_extracts_responses_text_with_bounded_payload(self) -> None:
+        original_resolve = check_connectivity._resolve_api_credentials
+        original_post = check_connectivity._post_json
+        captured: dict[str, object] = {}
+
+        def fake_post(endpoint, payload, token, timeout):
+            captured.update({"endpoint": endpoint, "payload": payload, "token": token, "timeout": timeout})
+            return {
+                "id": "resp-test",
+                "status": "completed",
+                "output": [
+                    {
+                        "type": "message",
+                        "content": [{"type": "output_text", "text": "pong"}],
+                    }
+                ],
+            }, ""
+
+        try:
+            check_connectivity._resolve_api_credentials = lambda: {
+                "api_key": "test-key",
+                "api_key_source": "test",
+                "base_url": "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                "base_url_source": "test",
+            }
+            check_connectivity._post_json = fake_post
+            result = check_connectivity.check_api(True, 45, "qwen3.8-max")
+        finally:
+            check_connectivity._resolve_api_credentials = original_resolve
+            check_connectivity._post_json = original_post
+
+        self.assertTrue(result["ok"])
+        self.assertEqual("connected", result["status"])
+        self.assertEqual("responses", result["endpoint_mode"])
+        self.assertEqual("https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/responses", captured["endpoint"])
+        self.assertEqual(128, captured["payload"]["max_output_tokens"])
+        self.assertEqual({"effort": "none"}, captured["payload"]["reasoning"])
+
     def test_connectivity_probe_retries_retryable_transport_error(self) -> None:
         original_resolve = check_connectivity._resolve_api_credentials
         original_post = check_connectivity._post_json

@@ -1,0 +1,93 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-047",
+  "project_id": "cgkn",
+  "goal": "Implement the first complete persistent-supervision vertical increment around the existing CGKN Telegram service: process health, identity-bound checkpoints, one resumable Codex thread, bounded result application, and an opt-in Provider-start gate.",
+  "backlog_item_ids": [
+    "PB-037"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "The supervisor host can start or attach to the existing Telegram bridge and records process identity plus fresh heartbeat state without persisting the Telegram token.",
+    "Checkpoint events have deterministic sequence, previous hash, self hash, repository identity, bounded context references, requested action, and fixed no-authority fields.",
+    "Two sequential checkpoints use the same stored Codex thread id; a restarted host resumes only from a coherent hash-bound cursor.",
+    "Strict result validation accepts only observe, advise, repair_cgkn, request_user_decision, resume, or halt and rejects candidate, evidence, package, delivery, secret, absolute-path, and traversal scope.",
+    "Telegram bridge startup plus Provider-before, Provider-validated, and failure points emit through the dedicated protocol; gate mode blocks Provider start until a matching resume/observe result exists.",
+    "The existing Provider validation, post-build finalization, local_packager, public_delivery_gate, delivery_manifest, whiteboard, and agent_session route remains unchanged.",
+    "Focused tests and a real read-only Codex start/resume smoke pass, while production daemon reliability and automatic repair remain honestly bounded by observed evidence."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-PERSISTENCE",
+      "measure": "supervision continuity",
+      "target": "two or more separate checkpoints advance one cursor using the same stored thread id with no hash discontinuity",
+      "method": "mocked adapter integration test plus real read-only Codex smoke"
+    },
+    {
+      "id": "QM-AUTHORITY",
+      "measure": "supervisor action isolation",
+      "target": "all authority-expanding actions and unsafe repair targets are rejected before application",
+      "method": "negative protocol and host tests"
+    },
+    {
+      "id": "QM-HEALTH",
+      "measure": "CGKN service ownership and health",
+      "target": "host records a real child process identity and fresh bridge heartbeat without treating the Codex window or artifact presence as readiness",
+      "method": "mock child process tests and bounded local runtime smoke"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "Telegram Provider/delivery mainline preservation",
+      "target": "all existing kernel and Telegram route guards pass and no second generation or delivery call is introduced",
+      "method": "focused plus full regression"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Keep protocol, host, and Telegram intake integration in separate modules with explicit opt-in configuration."
+    ],
+    "assurance": [
+      "Review all persisted fields for secrets and workflow-versus-evidence separation.",
+      "Review the bridge diff against the formal Provider and delivery route."
+    ],
+    "control": [
+      "Run static compilation, protocol unit tests, host integration tests, Telegram/kernel regression, a real read-only Codex start/resume smoke, and full pytest."
+    ],
+    "improvement": [
+      "Defer automatic code repair execution until the persistent audit and gate path is proven; retain repair_cgkn as a validated action requiring a separate governed executor."
+    ]
+  },
+  "interface_expectations": [
+    "emit_checkpoint(state_dir, checkpoint_type, ...) appends one validated hash-linked event and returns its identity.",
+    "CodexCliThreadAdapter.run(checkpoint, thread_id) starts a persisted read-only thread when empty and resumes exactly that thread otherwise.",
+    "SupervisorHost.process_next() validates one event and result, persists the same thread id and cursor, and writes a result receipt.",
+    "await_checkpoint_release(state_dir, checkpoint_id, timeout) returns only a matching validated release decision.",
+    "telegram_live_bridge remains CGKN intake and the only default path into the reviewed Provider generation handoff."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-047_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The persistent host, same-thread Codex resume, hash-bound checkpoints, live Telegram heartbeat, bounded authority, and Provider-start gate passed offline and real runtime verification. The automatic repair executor remains deliberately deferred, so this increment is accepted with limits."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-037"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A small vertical increment exposed the real process, encoding, import-path, thread-resume, and authority boundaries before adding automatic mutation.",
+      "Using a strict protocol separate from Telegram intake preserved the reviewed Provider and local_packager mainline."
+    ],
+    "did_not_work": [
+      "The first Windows smoke used locale decoding for Codex JSONL, and the first detached launch used both an unreliable os.kill liveness probe and a file-path entrypoint that omitted the repository import root. Real startup evidence exposed and corrected all three defects."
+    ],
+    "experiments": [
+      "Implement a separate governed repair executor that consumes validated repair_cgkn requests, records an auditable CGKN-only diff, runs proportional regression, and emits an explicit resume or rollback receipt."
+    ]
+  }
+}

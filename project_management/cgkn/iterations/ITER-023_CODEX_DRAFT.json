@@ -1,0 +1,38 @@
+{
+  "workflow_state": "ready",
+  "summary": "The failure is primarily a goal-fidelity and work-granularity defect: CGKN preserved command names in the manifest but allowed a generic stage architecture to replace the requested task/Bug domain, then expanded tests far beyond the product's size. Add deterministic domain-contract and budget checks before another Provider run.",
+  "diagnosis": [
+    "Manifest-level purpose text was not converted into executable domain interfaces. The promised CLI commands have no concrete handler contract, WorkItem model, repository operations, filters, sorting, or lifecycle transitions.",
+    "backend/cli.py passes a command-name string into ProjectOrchestrator, while ProjectOrchestrator.execute calls every stage. This is a direct interface contradiction that should have failed before test generation.",
+    "The test plan expanded to 19 leaves and caused 70 of 87 Provider requests even though no usable domain implementation existed. Downstream work continued after a decisive upstream goal-fidelity failure.",
+    "The generated architecture optimized for CGKN's generic import/export pipeline vocabulary instead of the explicit FocusForge product vocabulary and user flows."
+  ],
+  "provider_guidance": [
+    "For an explicit CRUD CLI, freeze a domain interface before file generation: WorkItem fields and validation, JSONRepository atomic load/save/backup, WorkspaceService CRUD/filter/sort/summary/import/export methods, and one callable handler for every named command.",
+    "Reject the component plan unless each requested command maps to an implemented callable and every acceptance behavior maps to a domain method plus at least one test intent. A generic stage/orchestrator abstraction cannot satisfy this mapping by naming commands only.",
+    "Generate and validate the domain model, repository, service, and CLI in dependency order. Do not start the Tests component while a required command handler or domain behavior is absent from the published interface graph.",
+    "For a medium standard-library CLI, cap the planned implementation at eight primary source files, the test suite at five files, and total Provider requests at twelve unless a recorded complexity contract justifies more. Exceeding the cap returns NEEDS_REWORK instead of continuing paid retries.",
+    "Keep tests behavior-focused: one CRUD/lifecycle module, one query/summary module, one import/export/storage module, one CLI smoke module, and an optional corruption/error module. Do not auto-split small test modules into anchor plus three parts."
+  ],
+  "repair_targets": [
+    "scripts/requirement_decision_lane.py",
+    "scripts/run_local_pipeline_impl.py"
+  ],
+  "acceptance_checks": [
+    "A deterministic preflight rejects a CLI manifest when add/list/show/update/move/delete/summary/export/import do not each resolve to a published callable handler.",
+    "A deterministic goal-fidelity check rejects a task/Bug workspace whose published interfaces lack the required fields, CRUD operations, filters, sorting, lifecycle states, summary, import/export modes, atomic persistence, and stable error behavior.",
+    "A medium CLI plan exceeding eight primary source files, five test files, or twelve Provider requests stops with explicit NEEDS_REWORK unless its frozen complexity contract authorizes the increase.",
+    "An offline smoke flow creates a task and bug, filters and sorts them, moves one through lifecycle states, summarizes counts, exports, imports in merge and replace modes, and verifies corruption/duplicate-ID failures without editing generated source.",
+    "Only after generated pytest and the smoke flow pass may post-build finalization proceed to local_packager and the public delivery gate."
+  ],
+  "context_requests": [],
+  "tool_evidence_requests": [
+    "Run the new manifest goal-fidelity unit tests with an injected generic-orchestrator counterexample.",
+    "Run the generated project's pytest suite with PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 and capture the canonical test receipt.",
+    "Run the complete CLI smoke flow in a temporary data directory and bind its outputs to the candidate source hash."
+  ],
+  "known_limits": [
+    "This is an advisory offline diagnosis; it does not repair or validate a generated candidate.",
+    "The exact request cap may need adjustment after two comparable successful runs, but the current 87-request behavior is clearly disproportionate."
+  ]
+}

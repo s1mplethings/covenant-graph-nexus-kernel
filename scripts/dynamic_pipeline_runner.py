@@ -124,6 +124,9 @@ def _role_operating_rules(role: dict[str, Any], step: dict[str, Any], manifest: 
     support_artifacts = cfo_contract.get("support_artifacts", {}) if isinstance(cfo_contract.get("support_artifacts"), dict) else {}
     context_db = support_artifacts.get("context_db", "CFO_CONTEXT_DB.json")
     risk_register = support_artifacts.get("risk_register", "CFO_RISK_REGISTER.md")
+    supervisor_brief = support_artifacts.get(
+        "codex_capability_brief", "CODEX_CAPABILITY_BRIEF.json"
+    )
     global_rules = """Product Studio operating rules:
 - Do not rush to package.
 - Follow the Product Studio discipline: plan, technical plan, build, test, review, package.
@@ -186,6 +189,16 @@ CFO support operating rules:
 - Include capability_strategy, capability_research_targets, critical_questions, and local capability discovery results as first-class facts when present.
 - Prefer structured JSON with source/evidence references where available.
 - Do not implement product features, do not decide delivery readiness, and do not create a new formal generation path."""
+    if role_id == "codex_capability_supervisor":
+        return f"""{prefix}
+
+Codex capability-supervisor operating rules:
+- You operate above the context librarian only for an explicit bounded capability escalation; you do not replace the cfo or the reviewed Provider route.
+- Require a validated CGKNCodexCapabilityEscalation from agent_session or the project support artifacts before acting.
+- Use the supervise-cgkn-capabilities skill and write only the validated advisory artifact {supervisor_brief}.
+- You may diagnose, request narrowly missing context or tool evidence, and propose Provider guidance, relative repair targets, and executable acceptance checks.
+- You must not write generated product source, claim formal PASS, decide delivery readiness, package, deliver, or create a new generation path.
+- If no external Codex handoff is available, report needs_context instead of falling back to another model that impersonates this role."""
     if role_id == "risk_reviewer":
         return f"""{prefix}
 
@@ -199,7 +212,7 @@ CFO support operating rules:
 
 Worker operating rules:
 - Treat the cfo as the owner of scope, module boundaries, handoff order, acceptance interpretation, and delivery readiness.
-- Read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoff files before changing project files when those artifacts exist.
+- Read MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, optional {supervisor_brief}, CFO_RISK_REGISTER.md, and existing handoff files before changing project files when those artifacts exist.
 - Work only on the area assigned by the current step goal unless a small supporting file is required.
 - Leave a concise HANDOFF_<ROLE>.md or update the step-specific handoff with files changed, checks run, gaps, and next dependencies.
 - Do not claim final delivery readiness; that belongs to cfo_review and packaging."""
@@ -289,6 +302,8 @@ def _local_task_for_step(role: dict[str, Any], step: dict[str, Any]) -> str:
 
 
 def _call_step_agent(events: list[dict[str, Any]], model: str, timeout: int, *, role: dict[str, Any], step: dict[str, Any]) -> str:
+    if str(role.get("id", "")).strip().lower() == "codex_capability_supervisor":
+        raise RuntimeError("codex_capability_supervisor_requires_external_codex_handoff")
     local_task = _local_task_for_step(role, step)
     if local_task:
         system = str(events[0].get("content", "")) if events else ""

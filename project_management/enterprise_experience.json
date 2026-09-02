@@ -30,8 +30,8 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 7,
-      "successful_usage_count": 6,
+      "usage_count": 20,
+      "successful_usage_count": 19,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 14,
-      "successful_usage_count": 14,
+      "usage_count": 30,
+      "successful_usage_count": 30,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -88,8 +88,8 @@
         "tests/test_pmp_agile_quality_schemas.py"
       ],
       "experience_state": "approved",
-      "usage_count": 3,
-      "successful_usage_count": 3,
+      "usage_count": 4,
+      "successful_usage_count": 4,
       "owner": "project-lead",
       "supersedes": []
     }
@@ -340,6 +340,327 @@
       "outcome": "successful",
       "evidence_refs": [
         "project_management/cgkn/iterations/ITER-018_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-019",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-019_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-019",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-019_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-020",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-020_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-020",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-020_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-021",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-021_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-021",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/cs2_demo_anomaly_lab_formal_20260819_fresh1/run/provider_phase_log.jsonl",
+        "project_management/cgkn/iterations/ITER-021_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-023",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-023_CODEX_REQUEST.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-023",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-023_CODEX_CAPABILITY_BRIEF.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-024",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-024_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-024",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-024_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-025",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-025_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-025",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-025_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-026",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-026_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-026",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-026_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-028",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-028_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-028",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-028_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-029",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-029_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-029",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-029_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-030",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-030_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-030",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-030_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-032",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-032_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-033",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-033_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-033",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-033_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-BOOTSTRAP-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-036",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-036_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-037",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-037_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-042",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-042_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-043",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-043_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-043",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-043_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-044",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-044_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-044",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-044_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-048",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-048_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-049",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-049_RUNTIME_EVIDENCE.md"
       ]
     }
   ]

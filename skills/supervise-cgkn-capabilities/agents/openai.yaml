@@ -1,0 +1,4 @@
+interface:
+  display_name: "CGKN Capability Supervisor"
+  short_description: "Help CGKN resolve bounded capability gaps safely"
+  default_prompt: "Use $supervise-cgkn-capabilities to resolve this CGKN escalation packet."

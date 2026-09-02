@@ -14,6 +14,7 @@ build/
 .playwright-mcp/
 .service_worktree/
 .vs/
+/.tmp_*/
 
 .DS_Store
 Thumbs.db
@@ -22,6 +23,7 @@ Thumbs.db
 
 generated/
 artifacts/
+/runs/
 .pytest_cache/
 examples/runtime_runs/
 examples/test_results/*

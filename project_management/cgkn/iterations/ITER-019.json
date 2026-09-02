@@ -1,0 +1,97 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-019",
+  "project_id": "cgkn",
+  "goal": "Resume the preserved CS2 Provider run into an isolated formal candidate and repeat the genuine public-demo parse-to-report test before canonical packaging.",
+  "backlog_item_ids": [
+    "PB-018"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
+  "acceptance_criteria": [
+    "The prior formal run resumes only when its frozen goal hashes match, reuses only validated same-run Provider checkpoints, and writes to an isolated formal project directory without changing the already verified repaired project.",
+    "API Provider generation, semantic review, post-build finalization, and goal-acceptance evidence complete through the existing reviewed route with no alternate generator or fabricated identity.",
+    "The formal generated project passes its substantive pytest suite and one fresh opt-in online run discovers, verifies, downloads, safely extracts, parses, and reports on a genuine public CS2 demo with synthetic fallback disabled.",
+    "Runtime evidence preserves source commit, object hash and size, parser row/tick/player counts, event coverage, unknown information-state handling, view-angle proxy wording, human-review status, and NOT_EVALUATED detection accuracy.",
+    "Only local_packager may emit the final bundle and delivery_manifest; unmet identity, test, runtime, review, or delivery gates remain explicit non-PASS evidence."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-REAL-DEMO-DISCOVERY",
+      "measure": "genuine public CS2 demo discovery, provenance verification, safe acquisition, and parser proof",
+      "target": "one dynamically discovered public CS2 demo has verified HTTPS provenance and archive hash, safely extracts, produces non-zero real ticks and player states through demoparser2, and completes the existing analysis workflow without synthetic classification",
+      "method": "catalog contract tests, archive security tests, live catalog discovery, real download hash verification, demoparser2 integration, runtime artifact inspection, and canonical package inspection"
+    },
+    {
+      "id": "QM-GOAL-ACCEPTANCE",
+      "measure": "canonical goal behaviors mapped to substantive executable tests and a real passing post-build test run",
+      "target": "every canonical test intent has one exact non-trivial test symbol and the post-build goal-acceptance receipt is PASS before review readiness",
+      "method": "deterministic plan-identity inspection, Python test AST inspection, post-build test-result binding, and negative missing/trivial/failed-test cases"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Freeze the existing goal identity, isolate the formal output directory, and preserve the reviewed generation and delivery boundaries before execution."
+    ],
+    "assurance": [
+      "Inspect Provider checkpoints and identity bindings before resume.",
+      "Review generated-project claims against source, parser, runtime, and report evidence."
+    ],
+    "control": [
+      "Run project-management validation and targeted CGKN contract tests.",
+      "Run generated pytest, fresh live integration, artifact inspection, and local_packager gates."
+    ],
+    "improvement": [
+      "Record resume efficiency, Provider repair behavior, fresh-download cost, and any remaining formal blocker."
+    ]
+  },
+  "interface_expectations": [
+    "The existing API Provider remains formal generation owner; local_model_router is bounded support or registered fallback only.",
+    "Same-run checkpoint reuse is goal-hash guarded and does not copy the manually repaired project into formal evidence.",
+    "The public catalog and downloaded demo remain untrusted input subject to strict network, hash, archive, parser, and resource bounds.",
+    "Detection accuracy remains NOT_EVALUATED for an unlabeled public regression demo, independently of pipeline execution success.",
+    "local_packager remains the only delivery exit and cannot be bypassed by manually created archives or manifests."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-019_RUNTIME_EVIDENCE.md (working-project live test PASS_WITH_LIMITS; formal Provider resume NEEDS_REWORK)",
+    "artifacts/cs2_demo_anomaly_lab_20260814/real_retest_20260814/report_retry_2/analysis_report.json (genuine public Demo parser and analysis evidence)",
+    "artifacts/cs2_demo_anomaly_lab_formal_20260814/provider_result_resume2.json (formal candidate NEEDS_REWORK; no delivery)",
+    "generated/cs2_demo_anomaly_lab_20260814/TEST_REPORT.md (28 passing tests and live-retest limitations)"
+  ],
+  "review": {
+    "outcome": "rejected",
+    "feedback": [
+      "The working project passed 28 tests and a genuine bounded public Demo run with independently verified provenance, parser proof, unknown-information handling, and non-punitive reporting.",
+      "The formal same-run Provider resume remained NEEDS_REWORK with 49 failed candidate tests, so no canonical project identity, package, manifest, or delivery PASS was produced."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Goal-hash-guarded checkpoint reuse reduced the second formal attempt to the affected docs component while preserving upstream Provider evidence.",
+      "A fresh download and independent source/hash/parser assertions reproduced the real CS2 evidence counts without synthetic fallback.",
+      "Validating the whole archive before per-member extraction preserved safety while resolving the py7zr 1.1.x multi-target incompatibility."
+    ],
+    "did_not_work": [
+      "Provider-generated implementation and test leaves encoded incompatible stage, artifact, normalization, and report interfaces; two post-build repair rounds left 49 failures.",
+      "Complex gpt-5.5 repairs intermittently returned HTTP 504, and the local 7B fallback was not consistently capable of repairing those leaves.",
+      "The first global pytest attempt inherited a broken unrelated Qt plugin, and one live retry encountered the bounded GitLab read timeout."
+    ],
+    "experiments": [
+      "Before another formal resume, plan affected implementation owners from the 49-failure interface clusters and regenerate implementation plus tests together instead of repeating test-only post-build repairs."
+    ]
+  }
+}

@@ -17,13 +17,49 @@ except ModuleNotFoundError:  # package import in tests and tooling
 
 
 OPENVERSE_IMAGES_API = "https://api.openverse.org/v1/images/"
+VISUAL_INTERACTION_MODES = {"web", "gui", "desktop"}
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _declared_interaction_modes(blueprint: dict[str, Any] | None) -> tuple[bool, set[str]]:
+    """Return authoritative interaction modes when upstream planning declared them.
+
+    Report formats such as HTML are outputs, not interactive surfaces. The
+    requirement/discovery lane has better evidence than keyword matching, so a
+    declared CLI-only contract suppresses visual-design expansion even when the
+    goal mentions an HTML report.
+    """
+    plan = blueprint if isinstance(blueprint, dict) else {}
+    direction = plan.get("selected_project_direction", {})
+    complexity = plan.get("complexity_project_contract", {})
+    candidates = [
+        plan.get("interaction_modes"),
+        complexity.get("required_interfaces") if isinstance(complexity, dict) else None,
+        direction.get("required_interfaces") if isinstance(direction, dict) else None,
+    ]
+    if isinstance(direction, dict):
+        goal_spec = direction.get("canonical_goal_spec", {})
+        if isinstance(goal_spec, dict):
+            candidates.append(goal_spec.get("interaction_modes"))
+    for value in candidates:
+        if isinstance(value, list):
+            modes = {
+                str(item).strip().lower()
+                for item in value
+                if str(item).strip().lower() in {"cli", *VISUAL_INTERACTION_MODES}
+            }
+            if modes:
+                return True, modes
+    return False, set()
+
+
 def visual_surface_required(goal: str, blueprint: dict[str, Any] | None = None) -> bool:
+    declared, interaction_modes = _declared_interaction_modes(blueprint)
+    if declared:
+        return bool(VISUAL_INTERACTION_MODES.intersection(interaction_modes))
     text = (str(goal or "") + " " + json.dumps(blueprint or {}, ensure_ascii=False)).lower()
     visual_terms = (
         "web", "website", "ui", "ux", "frontend", "dashboard", "界面",
@@ -334,6 +370,27 @@ def build_design_contract(archetype: str, selected: dict[str, Any]) -> dict[str,
     }
 
 
+def design_research_semantic_sha256(manifest: dict[str, Any]) -> str:
+    """Hash design decisions and sources without artifact-time metadata."""
+    source = manifest if isinstance(manifest, dict) else {}
+    semantic = {
+        "goal": str(source.get("goal", "")),
+        "visual_surface_required": bool(source.get("visual_surface_required")),
+        "archetype": str(source.get("archetype", "")),
+        "references": source.get("references", []),
+        "directions": source.get("directions", []),
+        "design_contract": source.get("design_contract", {}),
+        "market_research_ref": str(source.get("market_research_ref", "")),
+    }
+    canonical = json.dumps(
+        semantic,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def bounded_design_context(manifest: dict[str, Any], *, max_references: int = 6) -> dict[str, Any]:
     if not isinstance(manifest, dict):
         return {}
@@ -369,9 +426,23 @@ def bounded_design_context(manifest: dict[str, Any], *, max_references: int = 6)
         "design_contract": manifest.get("design_contract", {}),
         "references": references,
         "research_manifest_sha256": str(manifest.get("manifest_sha256", "")),
+        "research_semantic_sha256": str(
+            manifest.get("semantic_sha256", "")
+            or design_research_semantic_sha256(manifest)
+        ),
         "authority": "Design context constrains visual implementation but cannot authorize canonical visual evidence or delivery.",
     }
-    canonical = json.dumps(context, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    identity_context = {
+        key: value
+        for key, value in context.items()
+        if key != "research_manifest_sha256"
+    }
+    canonical = json.dumps(
+        identity_context,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     context["context_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return context
 
@@ -470,6 +541,7 @@ def run_design_research(
             "Canonical browser visual evidence and user review remain required when the delivery contract requires them.",
         ],
     }
+    manifest["semantic_sha256"] = design_research_semantic_sha256(manifest)
     canonical = json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     manifest["manifest_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     (out_dir / "design_research.json").write_text(

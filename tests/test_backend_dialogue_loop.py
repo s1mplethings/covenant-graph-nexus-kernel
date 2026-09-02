@@ -204,6 +204,7 @@ class BackendDialogueLoopTests(unittest.TestCase):
         original_creds = dialogue.check_connectivity._resolve_api_credentials
         original_post = dialogue.check_connectivity._post_json
         original_extract = dialogue.check_connectivity._extract_text
+        original_local_call = dialogue.local_model_router.call_json_task
 
         def fake_post(endpoint, payload, token, timeout):
             captured["endpoint"] = endpoint
@@ -226,6 +227,10 @@ class BackendDialogueLoopTests(unittest.TestCase):
         dialogue.check_connectivity._resolve_api_credentials = lambda: {"api_key": "test-key", "base_url": "https://gptsapi.net/v1"}
         dialogue.check_connectivity._post_json = fake_post
         dialogue.check_connectivity._extract_text = lambda doc: doc["choices"][0]["message"]["content"]
+        dialogue.local_model_router.call_json_task = lambda *_args, **_kwargs: {
+            "ok": False,
+            "error": "local model intentionally disabled for API transport test",
+        }
         try:
             result, error = dialogue.call_provider(
                 {"messages": []},
@@ -238,6 +243,7 @@ class BackendDialogueLoopTests(unittest.TestCase):
             dialogue.check_connectivity._resolve_api_credentials = original_creds
             dialogue.check_connectivity._post_json = original_post
             dialogue.check_connectivity._extract_text = original_extract
+            dialogue.local_model_router.call_json_task = original_local_call
 
         self.assertEqual("", error)
         self.assertIsNotNone(result)

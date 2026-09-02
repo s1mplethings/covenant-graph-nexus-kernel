@@ -1,0 +1,87 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-030",
+  "project_id": "cgkn",
+  "goal": "Connect the reusable Agent-assisted CGKN workflow directly to Codex as a globally discoverable personal skill and verify it in an isolated project.",
+  "backlog_item_ids": [
+    "PB-024"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "A validated use-cgkn skill is retained in the CGKN repository and discoverable from the user's global Codex skill location.",
+    "Explicit $use-cgkn invocation and implicit CGKN-specific routing are documented in UI metadata and tested in an isolated project.",
+    "Provider generation remains an explicitly requested follow-on through scripts/run_local_pipeline.py and real tests remain required before success is reported.",
+    "The skill does not launch nested codex exec, persist credentials, author a sealed Provider candidate, or add a generation or delivery path.",
+    "The skill initializes and prepares a target project through cgkn-agent, lets the active Codex task author only a bounded advisory draft, and seals it with the deterministic supervisor."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CODEX-SUPERVISOR",
+      "measure": "bounded Codex escalation usefulness and authority isolation",
+      "target": "a librarian-curated request and Codex response stay within configured budgets, preserve request identity, produce actionable guidance, and cannot assert formal evidence or delivery authority",
+      "method": "schema validation, deterministic contract tests, support-pipeline prompt tests, and an offline failed-generation replay"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [
+    "The personal Codex skill resolves to the reviewed repository copy and is explicitly invocable as $use-cgkn.",
+    "The active Codex task consumes the bounded escalation and authors advisory draft support only; it never starts nested Codex or writes Provider candidate source.",
+    "Only the deterministic supervisor can seal the brief, and only scripts/run_local_pipeline.py may receive it for generation.",
+    "Provider credentials remain process-only, and network research is an explicit existing-route opt-in."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-030_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The global -cgkn skill, direct active-Codex request-to-brief flow, Provider dry-run handoff, and regressions pass; a newly started task may be required for UI re-enumeration and live generation still needs a process-only Provider credential."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-024"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A user-level junction to one reviewed repository skill let Codex use the bounded supervisor directly without nested codex exec or duplicated skill content."
+    ],
+    "did_not_work": [
+      "The already-running task's startup skill catalog cannot demonstrate post-start UI re-enumeration, and the WindowsApps codex executable remains inaccessible from PowerShell."
+    ],
+    "experiments": [
+      "Start a fresh Codex task in an unrelated repository, invoke -cgkn explicitly, and run one credentialed Provider generation when a process-only key is available."
+    ]
+  }
+}

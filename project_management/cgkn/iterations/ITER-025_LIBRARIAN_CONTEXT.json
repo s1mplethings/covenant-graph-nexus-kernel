@@ -1,0 +1,34 @@
+{
+  "kind": "CGKNLibrarianContextPack",
+  "selected_items": [
+    {
+      "id": "cs2-working-project-contract",
+      "kind": "generated_project_readme",
+      "path": "generated/cs2_demo_anomaly_lab_20260814/README.md",
+      "summary": "The working project is a defensive authorized-Demo analyzer with bounded public discovery, demoparser2 normalization, explainable player-level windows, unknown-information handling, no automatic ban, and no claimed accuracy from unlabeled data.",
+      "sha256": "f1fb8869df31aafbdf20c38e8396f61d0559221d11d8638d73fb32194eb60a67"
+    },
+    {
+      "id": "cs2-working-project-test-report",
+      "kind": "generated_project_test_report",
+      "path": "generated/cs2_demo_anomaly_lab_20260814/TEST_REPORT.md",
+      "summary": "The last isolated retest reported 28 passing tests and a genuine public CS2 parse with 369414 rows, 39949 ticks, 10 players, 2764 raw weapon_fire events, 2189 attributable shots, accuracy NOT_EVALUATED, no automatic ban, and required human review.",
+      "sha256": "8c9f4a0f3e8058d16a53e32f8e592e81af2fa430e358450dd24bfc61ed552805"
+    },
+    {
+      "id": "cs2-iter019-runtime",
+      "kind": "iteration_runtime_evidence",
+      "path": "project_management/cgkn/iterations/ITER-019_RUNTIME_EVIDENCE.md",
+      "summary": "The working-project real-demo retest passed with limits, while the independently generated formal Provider candidate remained NEEDS_REWORK with 49 failures and 42 passes and no delivery artifact.",
+      "sha256": "6c0589254a4d69100332a231fe95bb59eea2164d18cd31d941873adde8165c8a"
+    },
+    {
+      "id": "cs2-last-real-report",
+      "kind": "analysis_report",
+      "path": "artifacts/cs2_demo_anomaly_lab_20260814/real_retest_20260814/report_retry_2/analysis_report.json",
+      "summary": "The preserved report binds the verified public source and real parser counts to conservative per-player insufficient_corroboration outcomes and explicit evidence limitations.",
+      "sha256": "dca6e5cd01c9cd418ff40fe31de0a72d85de477133c8de1f9a1166ebe31ded96"
+    }
+  ],
+  "excluded_count": 11
+}

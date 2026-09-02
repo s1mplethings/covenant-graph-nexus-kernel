@@ -311,6 +311,7 @@ def _goal_plan_candidate(
     ]
     stages = [str(row.get("id", "")) for row in project_plan.get("workstreams", []) if isinstance(row, dict)]
     artifacts = [str(item) for item in project_plan.get("business_outputs", [])]
+    interaction_modes = requirement_decision_lane.goal_interaction_modes(goal_spec)
     names = {
         "local_media_workbench": "Local Video Workbench",
         "visual_novel_editor": "Local Visual Novel Studio",
@@ -323,7 +324,11 @@ def _goal_plan_candidate(
         "summary": str(goal_spec.get("goal", user_goal)),
         "target_user": "The user described by the current goal.",
         "core_workflow": [str(item) for item in goal_spec.get("user_flows", [])],
-        "likely_pages": [str(item) for item in goal_spec.get("interfaces", [])],
+        "likely_pages": [
+            str(item)
+            for item in goal_spec.get("interfaces", [])
+            if str(item).strip().lower() not in {"cli", "json_report", "html_report"}
+        ],
         "likely_modules": [str(row.get("id", "")) for row in workstreams],
         "pipeline_stages": stages,
         "expected_artifacts": artifacts,
@@ -331,7 +336,7 @@ def _goal_plan_candidate(
         "complexity_score": 88,
         "pipeline_clarity": 96,
         "artifact_potential": 94,
-        "gui_cli_suitability": 90,
+        "gui_cli_suitability": 90 if interaction_modes else 75,
         "delivery_feasibility": 94,
         "testability_score": 98,
         "screenshot_feasibility": 90,
@@ -437,11 +442,19 @@ def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
     project_plan = selected.get("canonical_project_plan") if isinstance(selected.get("canonical_project_plan"), dict) else {}
     if goal_spec:
         domain = str(goal_spec.get("domain", ""))
+        direct_cli = domain == "local_record_cli"
+        feature_unit = domain == "feature_unit_application"
+        interaction_modes = requirement_decision_lane.goal_interaction_modes(goal_spec)
+        visual_modes = {"web", "gui", "desktop"}.intersection(interaction_modes)
         architecture_mode = (
             "browser_local_static"
             if domain == "local_task_board"
             else "modular_authoring_studio"
             if domain == "visual_novel_editor"
+            else "direct_cli_application"
+            if direct_cli
+            else "feature_unit_application"
+            if feature_unit
             else "goal_driven_local_application"
         )
         return {
@@ -453,20 +466,24 @@ def build_selected_direction(selected: dict[str, Any]) -> dict[str, Any]:
             "canonical_goal_spec": goal_spec,
             "canonical_project_plan": project_plan,
             "selected_project_summary": selected.get("summary", ""),
-            "why_not_too_small": f"Requires {len(stages)} goal-derived workstreams and {len(artifacts)} business outputs with behavior tests.",
+            "why_not_too_small": (
+                "The user explicitly requested a minimal feature; fitness comes from frozen interfaces and executable behavior tests rather than unrelated module count."
+                if feature_unit
+                else f"Requires {len(stages)} goal-derived workstreams and {len(artifacts)} business outputs with behavior tests."
+            ),
             "why_not_too_dependency_heavy": "Unrequested external integrations are excluded by the canonical goal constraints.",
             "why_deliverable": "The direction has explicit capabilities, workstreams, outputs, dependencies, and test intents.",
             "required_complexity_floor": {
                 "min_pages": len(goal_spec.get("interfaces", [])),
                 "min_modules": len(selected.get("likely_modules", [])),
-                "min_pipeline_stages": len(stages),
-                "min_stage_artifacts": len(artifacts),
-                "requires_gui": bool(goal_spec.get("interfaces")),
-                "requires_cli": "cli" in goal_spec.get("interfaces", []),
-                "requires_shared_core": True,
+                "min_pipeline_stages": 0 if direct_cli or feature_unit else len(stages),
+                "min_stage_artifacts": 0 if feature_unit else len(artifacts),
+                "requires_gui": bool(visual_modes),
+                "requires_cli": "cli" in interaction_modes,
+                "requires_shared_core": len(interaction_modes) > 1,
                 "requires_runtime_evidence": True,
                 "requires_final_bundle": True,
-                "requires_screenshot": True,
+                "requires_screenshot": bool(visual_modes),
             },
         }
     task_board = selected.get("id") == "local_task_board"
@@ -515,9 +532,24 @@ def build_contract(selected: dict[str, Any]) -> dict[str, Any]:
         runtime_artifacts = [str(item) for item in project_plan.get("runtime_artifacts", project_plan.get("business_outputs", []))]
         task_board = str(goal_spec.get("domain", "")) == "local_task_board"
         visual_novel = str(goal_spec.get("domain", "")) == "visual_novel_editor"
-        architecture_mode = "browser_local_static" if task_board else "modular_authoring_studio" if visual_novel else "goal_driven_local_application"
-        governance_core = [] if task_board or visual_novel else ["orchestrator.py", "stages.py"]
-        governance_interfaces = [] if task_board or visual_novel else ["cli", "gui"]
+        direct_cli = str(goal_spec.get("domain", "")) == "local_record_cli"
+        feature_unit = str(goal_spec.get("domain", "")) == "feature_unit_application"
+        interaction_modes = requirement_decision_lane.goal_interaction_modes(goal_spec)
+        visual_modes = [
+            mode for mode in interaction_modes if mode in {"web", "gui", "desktop"}
+        ]
+        architecture_mode = "browser_local_static" if task_board else "modular_authoring_studio" if visual_novel else "direct_cli_application" if direct_cli else "feature_unit_application" if feature_unit else "goal_driven_local_application"
+        governance_core = [] if task_board or visual_novel or direct_cli or feature_unit else ["orchestrator.py", "stages.py"]
+        governance_interfaces = (
+            [str(item) for item in goal_spec.get("interfaces", [])]
+            if task_board or visual_novel or feature_unit
+            else interaction_modes
+        )
+        delivery_evidence = [
+            item
+            for item in DEFAULT_DELIVERY_EVIDENCE
+            if item != "screenshot" or bool(visual_modes)
+        ]
         return {
             "contract_id": "complexity_project_contract_v1",
             "architecture_mode": architecture_mode,
@@ -527,20 +559,35 @@ def build_contract(selected: dict[str, Any]) -> dict[str, Any]:
             "goal_spec_domain": str(goal_spec.get("domain", "")),
             "canonical_goal_spec": goal_spec,
             "canonical_project_plan": project_plan,
-            "required_planning_docs": ["goal_spec.json", "project_plan.json", "product_brief.md", "technical_plan.md", "interaction_design.md", "acceptance_matrix.md"],
+            "required_planning_docs": [] if direct_cli or feature_unit else ["goal_spec.json", "project_plan.json", "product_brief.md", "technical_plan.md", "interaction_design.md", "acceptance_matrix.md"],
             "required_core_files": list(dict.fromkeys(governance_core + [path for path in structure if path.endswith(".py") and not path.startswith("tests/")])),
-            "required_interfaces": list(dict.fromkeys(governance_interfaces + [str(item) for item in goal_spec.get("interfaces", [])])),
-            "requires_shared_gui_cli_core": not task_board and not visual_novel,
-            "required_pipeline_stages": [str(row.get("id", "")) for row in project_plan.get("workstreams", []) if isinstance(row, dict)],
-            "required_stage_artifacts": runtime_artifacts,
+            "required_interfaces": list(dict.fromkeys(governance_interfaces)),
+            "report_formats": list(goal_spec.get("report_formats", [])),
+            "runtime_dependencies": list(goal_spec.get("runtime_dependencies", [])),
+            "requires_shared_gui_cli_core": "cli" in interaction_modes and bool(visual_modes),
+            "requires_screenshot": bool(visual_modes),
+            "required_pipeline_stages": [] if direct_cli or feature_unit else [
+                str(row.get("id", ""))
+                for row in project_plan.get("workstreams", [])
+                if isinstance(row, dict)
+                and str(row.get("id", "")) not in {"foundation", "application_entry", "delivery"}
+                and not str(row.get("id", "")).lower().endswith("_tests")
+                and "behavior_tests" not in str(row.get("id", "")).lower()
+            ],
+            "required_stage_artifacts": [] if direct_cli or feature_unit else runtime_artifacts,
             "required_artifact_fields": DEFAULT_REQUIRED_ARTIFACT_FIELDS if runtime_artifacts and all(path.endswith(".json") for path in runtime_artifacts) else [],
-            "required_delivery_evidence": DEFAULT_DELIVERY_EVIDENCE,
+            "required_delivery_evidence": delivery_evidence,
             "honest_degraded_mode_required": True,
-            "forbidden_shortcuts": FORBIDDEN_SHORTCUTS,
+            "forbidden_shortcuts": [
+                item
+                for item in FORBIDDEN_SHORTCUTS
+                if not (feature_unit and item == "single_file_demo")
+            ],
             "downstream_requirements": [
                 "provider generation must implement the canonical GoalSpec capabilities and user flows",
                 "component leaves must cite the canonical project plan workstreams and test intents",
                 "unrelated product templates must not be introduced",
+                *( ["feature interfaces and owned paths are frozen before dependency-ready parallel generation"] if feature_unit else [] ),
             ],
         }
     task_board = selected.get("id") == "local_task_board"

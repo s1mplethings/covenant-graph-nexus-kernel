@@ -8,7 +8,9 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from scripts import complexity_project_contract_check
 from scripts import discovery_selection_lane
+from scripts import requirement_decision_lane
 
 
 def read_json(path: pathlib.Path) -> dict:
@@ -52,6 +54,27 @@ def test_low_complexity_and_high_dependency_candidates_are_not_selected() -> Non
     rejected = {candidate["id"]: discovery_selection_lane.rejection_reasons(candidate) for candidate in candidates}
     assert "complexity_score_lt_60" in rejected["single_page_status_demo"]
     assert "external_dependency_high_without_honest_degraded_mode" in rejected["cloud_ai_autopilot_suite"]
+
+
+def test_direct_cli_contract_allows_empty_stage_graph_without_becoming_static_demo() -> None:
+    goal = "Build a Notes CLI with add, list, search, and delete commands using atomic JSON storage."
+    spec = requirement_decision_lane.build_goal_spec(goal)
+    plan = requirement_decision_lane.build_goal_project_plan(spec)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        discovery_dir = pathlib.Path(temp_dir) / "discovery"
+        result = discovery_selection_lane.run_discovery_selection(
+            goal,
+            discovery_dir,
+            goal_spec=spec,
+            project_plan=plan,
+        )
+        contract, blockers = complexity_project_contract_check.validate_discovery(discovery_dir)
+
+    assert result["status"] == "PASS"
+    assert blockers == []
+    assert contract["architecture_mode"] == "direct_cli_application"
+    assert contract["required_pipeline_stages"] == []
+    assert contract["required_stage_artifacts"] == []
 
 
 def test_rejected_options_artifact_records_non_selected_directions() -> None:
@@ -176,7 +199,7 @@ def test_cs_demo_analysis_goal_selects_goal_derived_specialized_workbench() -> N
 
     assert discovery_selection_lane.goal_has_specialized_analysis_product(goal) is True
     assert selected is not None
-    assert selected["id"] == "goal_derived_specialized_analysis_workbench"
+    assert selected["id"] == "goal_driven_cs2_demo_anomaly_analysis"
     assert selected["pipeline_stages"][0] == "foundation"
-    assert "analyze_explainable_features" in selected["pipeline_stages"]
-    assert "render_evidence_report" in selected["pipeline_stages"]
+    assert "explainable_anomaly_analysis" in selected["pipeline_stages"]
+    assert "human_review_reporting" in selected["pipeline_stages"]

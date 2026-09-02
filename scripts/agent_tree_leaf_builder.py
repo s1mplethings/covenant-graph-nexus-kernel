@@ -139,6 +139,7 @@ def build_controlled_stage(
             "## Run\n\n```bash\npython app/main.py\n```\n",
         )
         _write(project / "pyproject.toml", "[project]\nname = \"goal-driven-controlled-project\"\nversion = \"0.1.0\"\n\n[tool.pytest.ini_options]\ntestpaths = [\"tests\"]\n")
+        _write(project / "requirements.txt", "# Standard library runtime; test runner supplied by the controlled environment.\n")
         _write(project / "src" / "__init__.py", "")
         _write(project / "app" / "__init__.py", "")
         _write(project / "app" / "main.py", _foundation_source(shared_context))
@@ -148,7 +149,9 @@ def build_controlled_stage(
         _record(recorder, stage, local_context, "create_goal_scoped_leaf", "Materialize only this Project Plan leaf scope.")
         for relative in stage.get("expected_files", []):
             target = project / str(relative)
-            if target.suffix.lower() == ".py":
+            if str(relative).replace("\\", "/") == "app/main.py":
+                _write(target, _foundation_source(shared_context))
+            elif target.suffix.lower() == ".py":
                 _write(target, _business_leaf_source(stage, shared_context))
             else:
                 _write(target, json.dumps({"stage": stage_id, "scope": stage.get("scope", "")}, ensure_ascii=False, indent=2) + "\n")
