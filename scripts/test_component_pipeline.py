@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import compose_local_pipeline
 import run_local_pipeline
+
+pytestmark = pytest.mark.slow
 
 
 def assert_true(value: bool, message: str) -> None:

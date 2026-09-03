@@ -7,7 +7,10 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.slow
 
 
 class RunProductStudioTests(unittest.TestCase):

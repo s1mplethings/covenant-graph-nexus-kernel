@@ -1096,6 +1096,24 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-043",
+      "title": "Converge on ProviderJob execution and sparse false-pass auditing",
+      "outcome": "Provider performs parallel project work and semantic repair, CGKN deterministically schedules and verifies, and Codex audits only positive claims or governed kernel defects.",
+      "priority": 43,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": ["PB-042"],
+      "acceptance_criteria": [
+        "ProviderJob DAG execution proves request overlap, dependency ordering, ownership enforcement, deterministic merge, isolated failure, localized retry, and PASS reuse.",
+        "Only requirement freeze, integration complete, and pre-public-delivery are Codex audit checkpoints; ordinary Provider or test failures bypass Codex.",
+        "Canonical audit actions route deterministically to Provider repair, canonical evidence recheck, governed kernel repair, user decision, resume, or halt.",
+        "Customer-project semantic repair is no longer called from Codex conversation post-build finalization.",
+        "False-pass injections A through E and focused kernel/provider/evidence regressions pass."
+      ],
+      "quality_metric_ids": ["QM-FALSE-PASS", "QM-INTEGRATION", "QM-REGRESSION"]
     }
   ],
   "quality_management": {
@@ -1209,6 +1227,12 @@
         "measure": "cross-view consistency and safe downstream publication during real project generation",
         "target": "100% of generated and reused components have hash-valid plan/quality/interface/upstream receipts before publication, only passing bounded projections feed downstream, and one aggregate receipt exists before post-build",
         "method": "deterministic positive and negative receipt tests, component-loop integration test, artifact/event-log inspection, and kernel authority guard"
+      },
+      {
+        "id": "QM-FALSE-PASS",
+        "measure": "sparse adversarial audit accuracy and ProviderJob parallel execution",
+        "target": "five false-pass injections route correctly, clean claims resume, ordinary failures make zero Codex calls, and two independent Provider jobs overlap with peak concurrency of at least two",
+        "method": "fault-injection supervisor fixtures, barrier-based concurrency tests, route receipt inspection, kernel repair isolation tests, and bounded production call-graph guards"
       }
     ],
     "assurance_activities": [
@@ -1304,7 +1328,8 @@
     "iterations/ITER-049.json",
     "iterations/ITER-050.json",
     "iterations/ITER-051.json",
-    "iterations/ITER-052.json"
+    "iterations/ITER-052.json",
+    "iterations/ITER-053.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",

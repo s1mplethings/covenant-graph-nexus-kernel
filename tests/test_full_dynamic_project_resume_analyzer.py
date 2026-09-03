@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+
 from scripts.full_dynamic_project_resume_analyzer import analyze_previous_run
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PREVIOUS = ROOT / "generated" / "full_dynamic_real_project_eval"
+pytestmark = pytest.mark.e2e
 
 
 def test_analyzer_recovers_previous_leaf_states_and_cache(tmp_path: pathlib.Path) -> None:

@@ -7,6 +7,10 @@ import sys
 import tempfile
 from unittest import mock
 
+import pytest
+
+pytestmark = pytest.mark.codex
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 for value in (ROOT, SCRIPTS):
@@ -55,7 +59,7 @@ def test_media_only_short_request_does_not_gain_gui_scope() -> None:
     assert design.design_intent_from_text("build a short JSON function")["required"] is False
 
 
-def test_pending_design_blocks_even_explicit_start() -> None:
+def test_provider_design_scope_does_not_block_explicit_start() -> None:
     session = _design_session("给考研助手增加项目界面")
     allowed, reason = bridge.should_auto_start_generation(
         session,
@@ -63,32 +67,27 @@ def test_pending_design_blocks_even_explicit_start() -> None:
         "直接开始生成",
     )
 
-    assert allowed is False
-    assert reason == "product_design_confirmation_pending"
+    assert allowed is True
+    assert reason == "explicit_start_requested"
 
 
-def test_every_generation_entry_obeys_pending_design_checkpoint() -> None:
+def test_production_bridge_records_provider_design_scope_without_codex() -> None:
     session = _design_session("给考研助手增加项目界面")
     session["generation"] = {"status": "idle"}
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
-        with mock.patch.object(bridge, "send_customer_reply") as send_reply, mock.patch.object(bridge, "save_session"):
-            started = bridge.start_generation_from_income(
-                mock.Mock(),
-                "design-chat",
-                root / "sessions",
-                root / "logs",
-                "test-model",
-                30,
-                session,
-                reason="test",
-                generation_mode="api",
-            )
+        result = bridge.record_provider_design_scope(
+            mock.Mock(),
+            "design-chat",
+            root / "sessions",
+            root / "logs",
+            session,
+        )
 
-        assert started is False
-        assert session["generation"]["status"] == "waiting_confirmation"
-        assert session["generation"]["start_wait_reason"] == "product_design_confirmation_pending"
-        send_reply.assert_called_once()
+        assert result["status"] == "provider_planner_ready"
+        assert session["whiteboard"]["product_design"]["workflow_state"] == "provider_planner_pending"
+        assert session["whiteboard"]["product_design"]["codex_used"] is False
+        assert session["whiteboard"]["product_design"]["user_confirmation_required"] is False
 
 
 def test_prepare_and_validate_bounded_design_handoff() -> None:

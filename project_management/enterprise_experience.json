@@ -30,8 +30,8 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 22,
-      "successful_usage_count": 21,
+      "usage_count": 23,
+      "successful_usage_count": 22,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 34,
-      "successful_usage_count": 34,
+      "usage_count": 35,
+      "successful_usage_count": 35,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -731,6 +731,26 @@
       "outcome": "successful",
       "evidence_refs": [
         "project_management/cgkn/iterations/ITER-052_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-053",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-053_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-053",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-053_RUNTIME_EVIDENCE.md"
       ]
     }
   ]

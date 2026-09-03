@@ -35,11 +35,24 @@ def _emit(state_dir: pathlib.Path, checkpoint_type: str = "service_startup", act
     )
 
 
-def _draft(action: str = "observe", repair_targets: list[str] | None = None) -> dict:
+def _draft(action: str = "resume", repair_targets: list[str] | None = None) -> dict:
+    canonical = protocol.canonical_action(action)
+    scope = {
+        "resume": "none",
+        "rework_project": "project",
+        "recheck_evidence": "evidence",
+        "repair_kernel": "kernel",
+        "user_decision": "user",
+        "halt": "safety",
+    }[canonical]
     return {
         "action": action,
+        "scope": scope,
         "summary": "The bounded checkpoint is coherent.",
         "diagnosis": [],
+        "evidence_refs": [] if canonical == "resume" else [
+            {"role": "test", "ref": "test-evidence.json", "sha256": "a" * 64, "claim": "test contradiction"}
+        ],
         "guidance": [],
         "repair_targets": list(repair_targets or []),
         "acceptance_checks": ["Keep the reviewed Provider and delivery route unchanged."],
@@ -81,7 +94,7 @@ def test_checkpoint_journal_is_hash_linked_and_secret_redacted() -> None:
 def test_result_contract_releases_only_safe_actions_and_rejects_authority_expansion() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         state_dir = pathlib.Path(temp_dir)
-        checkpoint = _emit(state_dir, "pre_provider_generation", "resume")
+        checkpoint = _emit(state_dir, "pre_public_delivery", "resume")
         result = protocol.build_result(checkpoint, "thread-123", _draft("resume"))
         protocol.append_result(state_dir, result)
 
@@ -89,9 +102,9 @@ def test_result_contract_releases_only_safe_actions_and_rejects_authority_expans
         assert protocol.await_checkpoint_release(state_dir, checkpoint["checkpoint_id"], 0) == result
 
         with pytest.raises(ValueError, match="unsafe repair target"):
-            protocol.build_result(checkpoint, "thread-123", _draft("repair_cgkn", ["generated/app.py"]))
+            protocol.build_result(checkpoint, "thread-123", _draft("repair_kernel", ["generated/app.py"]))
         with pytest.raises(ValueError, match="unsafe repair target"):
-            protocol.build_result(checkpoint, "thread-123", _draft("repair_cgkn", ["../escape.py"]))
+            protocol.build_result(checkpoint, "thread-123", _draft("repair_kernel", ["../escape.py"]))
 
         expanded = dict(result)
         expanded["delivery_allowed"] = True
@@ -109,7 +122,7 @@ def test_codex_cli_adapter_starts_then_resumes_the_same_thread() -> None:
         calls.append(list(argv))
         run_options.append(dict(kwargs))
         output_path = pathlib.Path(argv[argv.index("--output-last-message") + 1])
-        output_path.write_text(json.dumps(_draft("observe")), encoding="utf-8")
+        output_path.write_text(json.dumps(_draft("resume")), encoding="utf-8")
         stdout = json.dumps({"type": "thread.started", "thread_id": "thread-persistent"}) if "resume" not in argv else ""
         return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
 
@@ -122,8 +135,8 @@ def test_codex_cli_adapter_starts_then_resumes_the_same_thread() -> None:
             runner=fake_run,
         )
         host = runtime.SupervisorHost(ROOT, state_dir, adapter)
-        _emit(state_dir, "service_startup")
         _emit(state_dir, "requirements_frozen")
+        _emit(state_dir, "integration_complete")
 
         first = host.process_next()
         second = host.process_next()
@@ -160,7 +173,7 @@ def test_supervisor_detects_cursor_discontinuity_before_invoking_codex() -> None
         assert first["checkpoint_sha256"] != "wrong"
 
 
-def test_codex_provider_gate_waits_then_accepts_matching_supervisor_release() -> None:
+def test_positive_transition_gate_waits_then_accepts_matching_supervisor_release() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         state_dir = root / "supervisor"
@@ -176,24 +189,20 @@ def test_codex_provider_gate_waits_then_accepts_matching_supervisor_release() ->
         bridge.SUPERVISION_POLICY = "gate"
         bridge.SUPERVISION_GATE_TIMEOUT = 0
         try:
-            with mock.patch.object(bridge, "send_customer_reply"):
-                allowed, reason = bridge.provider_start_supervision_decision(
-                    mock.Mock(), "chat-gate", session_dir, session, reason="test"
-                )
-            assert allowed is False
-            assert reason == "checkpoint_emitted"
-            checkpoint_id = session["generation"]["runtime_supervision_checkpoint_id"]
+            first = bridge.run_positive_transition_audit(
+                session_dir,
+                "chat-gate",
+                session,
+                "pre_public_delivery",
+                reason="test positive claim",
+                context_refs=[{"role": "test", "ref": "evidence.json", "sha256": "a" * 64}],
+            )
+            assert first["action"] == "halt"
+            assert first["audit_status"] == "timeout"
             checkpoint = protocol.load_checkpoints(state_dir)[0]
             result = protocol.build_result(checkpoint, "thread-gate", _draft("resume"))
             protocol.append_result(state_dir, result)
-
-            allowed, reason = bridge.provider_start_supervision_decision(
-                mock.Mock(), "chat-gate", session_dir, session, reason="test"
-            )
-            assert allowed is True
-            assert reason == "supervision_released"
-            assert checkpoint_id == result["checkpoint_id"]
-            assert session["generation"]["status"] == "idle"
+            assert protocol.await_checkpoint_release(state_dir, checkpoint["checkpoint_id"], 0)["action"] == "resume"
         finally:
             bridge.RUNTIME_SUPERVISOR_DIR = previous_dir
             bridge.SUPERVISION_POLICY = previous_policy

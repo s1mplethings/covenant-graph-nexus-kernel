@@ -47,6 +47,8 @@ import long_context_state
 import market_research_agent
 import post_build_repair
 import post_build_finalize
+import provider_execution_metrics
+import provider_jobs
 import online_input_agent
 import requirement_blueprint
 import requirement_decision_lane
@@ -8022,7 +8024,11 @@ def provider_text(
             model=selected_model,
             reasoning_effort=reasoning_effort,
         )
-        doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
+        with provider_execution_metrics.provider_api_call(
+            phase_log_path,
+            stage=stage,
+        ):
+            doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
         if doc is not None:
             final_status = "ok"
             break
@@ -10763,6 +10769,9 @@ def build_component_leaf_work_graph(component_id: str, manifest: list[dict[str, 
         "leaves": leaves,
         "ordering_warnings": ordering_warnings,
     }
+    graph["provider_jobs"] = [
+        job.as_dict() for job in provider_jobs.provider_jobs_from_leaf_graph(component_id, graph)
+    ]
     canonical = json.dumps(graph, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     graph["graph_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return graph
@@ -17874,7 +17883,10 @@ def provider_leaf_max_workers(
 ) -> int:
     if local_model_router.task_enabled("component_generation") or provider_local_fallback_observed(phase_log_path):
         return max(1, min(env_int("CGNK_LOCAL_PROVIDER_LEAF_MAX_WORKERS", 1), 2))
-    return max(1, min(env_int("CGKN_PROVIDER_LEAF_MAX_WORKERS", 3), 8))
+    legacy = str(os.environ.get("CGKN_PROVIDER_LEAF_MAX_WORKERS", "")).strip()
+    if legacy and "CGKN_PROVIDER_PARALLELISM" not in os.environ:
+        return max(1, min(env_int("CGKN_PROVIDER_LEAF_MAX_WORKERS", 4), 16))
+    return provider_jobs.configured_parallelism()
 
 
 def write_leaf_orchestration_artifacts(
@@ -18252,6 +18264,21 @@ def provider_generate_project_component_split(
         component_id, manifest, component
     )
     leaf_work_graph = build_component_leaf_work_graph(component_id, manifest)
+    provider_execution_metrics.declare_jobs(
+        phase_log_path,
+        [
+            str(item.get("id", ""))
+            for item in leaf_work_graph.get("provider_jobs", [])
+            if isinstance(item, dict)
+        ],
+    )
+    provider_job_by_id = {
+        job.id: job
+        for job in provider_jobs.provider_jobs_from_leaf_graph(
+            component_id,
+            leaf_work_graph,
+        )
+    }
     if checkpoint_dir is not None:
         graph_path = (
             checkpoint_dir
@@ -18317,6 +18344,19 @@ def provider_generate_project_component_split(
         if cached is not None:
             completed_files.append(cached)
             completed_paths.add(rel)
+            leaf_id = next(
+                (
+                    str(item.get("leaf_id", ""))
+                    for item in leaf_work_graph.get("leaves", [])
+                    if isinstance(item, dict) and str(item.get("path", "")) == rel
+                ),
+                f"{component_id}:{rel}",
+            )
+            provider_execution_metrics.record_job(
+                phase_log_path,
+                leaf_id,
+                reused=True,
+            )
         cache_scan.append(
             {
                 "path": rel,
@@ -18499,6 +18539,11 @@ def provider_generate_project_component_split(
             if leaf_result is None:
                 continue
             file_item = leaf_result["file_item"]
+            provider_job = provider_job_by_id[str(leaf.get("leaf_id", ""))]
+            patch_set = provider_jobs.validate_patch_set(
+                provider_job,
+                {target_file: str(file_item.get("content", ""))},
+            )
             write_split_file_checkpoint(
                 checkpoint_dir,
                 component_id=component_id,
@@ -18508,6 +18553,15 @@ def provider_generate_project_component_split(
             )
             completed_files.append(file_item)
             completed_paths.add(target_file)
+            provider_execution_metrics.record_job(
+                phase_log_path,
+                str(leaf.get("leaf_id", "")) or f"{component_id}:{target_file}",
+                repaired=(
+                    target_file in affected_repair_paths
+                    or force_leaf_regeneration
+                    or bool(repair_errors)
+                ),
+            )
             receipt = build_leaf_boundary_check_receipt(
                 component_id=component_id,
                 target_file=target_file,
@@ -18528,6 +18582,14 @@ def provider_generate_project_component_split(
                     "component": component_id,
                     "leaf_id": leaf.get("leaf_id", ""),
                     "target_file": target_file,
+                    "patch_set_sha256": hashlib.sha256(
+                        json.dumps(
+                            dict(patch_set.files),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                    ).hexdigest(),
                     "execution_plan": leaf.get("execution_plan", {}),
                     "interface_contract_sha256": leaf_result["leaf_interface_contract"].get("contract_sha256", ""),
                     "boundary_receipt_sha256": receipt.get("receipt_sha256", ""),
@@ -23612,6 +23674,10 @@ def run_provider_semantic_review_with_repair(
                         continue
             attempted_repairs[-1]["regenerated_files"] = sorted(set(regenerated))
         files = validate_provider_files(generation)
+        provider_execution_metrics.declare_jobs(
+            phase_log_path,
+            ["integration.semantic_review"],
+        )
         try:
             provider_review = provider_review_project(
                 user_goal,
@@ -23796,6 +23862,11 @@ def run_provider_semantic_review_with_repair(
             started_at=generation_started,
         )
         if str(provider_review.get("status", "")).lower() == "pass":
+            provider_execution_metrics.record_job(
+                phase_log_path,
+                "integration.semantic_review",
+                repaired=bool(attempted_repairs),
+            )
             if pending_repair_plan:
                 archive_completed_pending_repair(run_dir)
             update_provider_component_checkpoint_summary(
@@ -25935,10 +26006,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "component_pipeline": component_pipeline,
         "frozen_intent": intent,
         "component_generation": {
-            "strategy": "component_scoped_provider_calls",
+            "strategy": "provider_job_dag",
             "components": generation.get("components", []),
             "component_errors": generation.get("component_errors", {}),
         },
+        "provider_execution_metrics": provider_execution_metrics.snapshot(
+            phase_log_path
+        ),
         "example_outputs": example_outputs,
         "agent_usage": agent_usage,
         "provider_semantic_review": provider_review,

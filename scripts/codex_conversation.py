@@ -27,7 +27,6 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import check_connectivity
 import adaptive_delivery
-import agent_conversation_loop
 import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
@@ -37,7 +36,6 @@ import canonical_evidence_hash
 import canonical_media_validation
 import canonical_user_review
 import customer_runtime_runner
-import dynamic_pipeline_runner
 import frontdesk_team_lead_agent
 import goal_acceptance
 import local_packager
@@ -50,8 +48,6 @@ import real_test_execution
 import run_local_pipeline as provider_project_pipeline
 import provider_causal_trace
 import visual_evidence
-import pipeline_manifest as pipeline_manifest_module
-import pipeline_planner_agent
 import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
@@ -74,14 +70,12 @@ VIDEO_SUFFIXES = {".mp4", ".webm"}
 INTERNAL_EVIDENCE_SUFFIXES = {".md", ".json", ".txt", ".log"}
 DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", ".yml", ".toml", ".ini"}
 RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
-CODEX_DESIGN_MODE = "disabled"
-CODEX_DESIGN_COMMAND = ""
-CODEX_DESIGN_TIMEOUT = 600
-ACTIVE_CODEX_DESIGN_REQUESTS: set[str] = set()
-ACTIVE_CODEX_DESIGN_LOCK = threading.Lock()
-RUNTIME_SUPERVISOR_DIR = ""
-SUPERVISION_POLICY = "disabled"
-SUPERVISION_GATE_TIMEOUT = 0.0
+RUNTIME_SUPERVISOR_DIR = str(os.environ.get("CGKN_RUNTIME_SUPERVISOR_DIR", "")).strip()
+SUPERVISION_POLICY = str(os.environ.get("CGKN_SUPERVISION_POLICY", "disabled")).strip().lower()
+try:
+    SUPERVISION_GATE_TIMEOUT = float(os.environ.get("CGKN_SUPERVISION_GATE_TIMEOUT", "600"))
+except ValueError:
+    SUPERVISION_GATE_TIMEOUT = 600.0
 
 DEFAULT_CUSTOMER_AGENT_POLICY = """# Customer Agent Policy
 
@@ -438,101 +432,52 @@ def emit_runtime_supervision_checkpoint(
     return checkpoint
 
 
-def provider_start_supervision_decision(
-    client: CodexConversation,
-    conversation_id: int | str,
+def run_positive_transition_audit(
     session_dir: pathlib.Path,
+    conversation_id: int | str,
     session: dict[str, Any],
+    checkpoint_type: str,
     *,
     reason: str,
-) -> tuple[bool, str]:
-    if SUPERVISION_POLICY != "gate" or not runtime_supervision_enabled():
-        if SUPERVISION_POLICY == "observe" and runtime_supervision_enabled():
-            emit_runtime_supervision_checkpoint(
-                session_dir,
-                conversation_id,
-                session,
-                "pre_provider_generation",
-                reason=reason,
-                requested_action="observe",
-            )
-        return True, "supervision_not_gated"
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    checkpoint_id = str(generation.get("runtime_supervision_checkpoint_id", "")).strip()
-    if checkpoint_id:
-        result = cgkn_supervision_protocol.result_for_checkpoint(RUNTIME_SUPERVISOR_DIR, checkpoint_id)
-        if result is not None and result.get("action") in cgkn_supervision_protocol.RELEASE_ACTIONS:
-            generation.pop("runtime_supervision_checkpoint_id", None)
-            generation.pop("runtime_supervision_checkpoint_sha256", None)
-            generation.pop("runtime_supervision_result_action", None)
-            generation["status"] = "idle"
-            generation["start_wait_reason"] = ""
-            session["generation"] = generation
-            append_agent_session_event(
-                session_dir,
-                conversation_id,
-                {
-                    "kind": "runtime_supervision_checkpoint_released",
-                    "role": "system",
-                    "checkpoint_id": checkpoint_id,
-                    "action": result.get("action", ""),
-                    "thread_id": result.get("thread_id", ""),
-                },
-            )
-            save_session(session_dir, session)
-            return True, "supervision_released"
-        if result is not None:
-            generation["runtime_supervision_result_action"] = str(result.get("action", ""))
-            generation["start_wait_reason"] = "runtime_supervision_action_pending"
-            session["generation"] = generation
-            save_session(session_dir, session)
-            return False, str(result.get("action", "halt"))
-        if SUPERVISION_GATE_TIMEOUT > 0:
-            result = cgkn_supervision_protocol.await_checkpoint_release(
-                RUNTIME_SUPERVISOR_DIR,
-                checkpoint_id,
-                SUPERVISION_GATE_TIMEOUT,
-            )
-            if result is not None and result.get("action") in cgkn_supervision_protocol.RELEASE_ACTIONS:
-                return provider_start_supervision_decision(
-                    client,
-                    conversation_id,
-                    session_dir,
-                    session,
-                    reason=reason,
-                )
-        return False, "waiting_supervisor"
+    context_refs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Gate only high-value positive transitions; ordinary failures never enter Codex."""
+    if checkpoint_type not in cgkn_supervision_protocol.AUDIT_CHECKPOINT_TYPES:
+        raise ValueError(f"not a positive audit checkpoint: {checkpoint_type}")
+    if not runtime_supervision_enabled():
+        return {"action": "resume", "scope": "none", "audit_status": "disabled"}
     checkpoint = emit_runtime_supervision_checkpoint(
         session_dir,
         conversation_id,
         session,
-        "pre_provider_generation",
+        checkpoint_type,
         reason=reason,
-        severity="blocking",
+        severity="blocking" if SUPERVISION_POLICY == "gate" else "info",
         requested_action="resume",
+        context_refs=context_refs,
     )
     if not checkpoint:
-        generation["status"] = "waiting_supervisor"
-        generation["start_wait_reason"] = "runtime_supervision_unavailable"
-        session["generation"] = generation
-        save_session(session_dir, session)
-        return False, "supervision_unavailable"
-    generation["status"] = "waiting_supervisor"
-    generation["start_wait_reason"] = "runtime_supervision_checkpoint_pending"
-    generation["runtime_supervision_checkpoint_id"] = checkpoint["checkpoint_id"]
-    generation["runtime_supervision_checkpoint_sha256"] = checkpoint["checkpoint_sha256"]
-    session["generation"] = generation
-    save_session(session_dir, session)
-    send_customer_reply(
-        client,
-        conversation_id,
-        session_dir,
-        session,
-        event="runtime_supervision_checkpoint_pending",
-        source="runtime_supervisor",
-        direct_text="后台已进入生成前检查；检查通过后会自动继续，不需要重复提交需求。",
+        return {"action": "halt", "scope": "safety", "audit_status": "unavailable"}
+    if SUPERVISION_POLICY != "gate":
+        return {
+            "action": "resume",
+            "scope": "none",
+            "audit_status": "observe_only",
+            "checkpoint_id": checkpoint.get("checkpoint_id", ""),
+        }
+    result = cgkn_supervision_protocol.await_checkpoint_release(
+        RUNTIME_SUPERVISOR_DIR,
+        str(checkpoint["checkpoint_id"]),
+        SUPERVISION_GATE_TIMEOUT,
     )
-    return False, "checkpoint_emitted"
+    if result is None:
+        return {
+            "action": "halt",
+            "scope": "safety",
+            "audit_status": "timeout",
+            "checkpoint_id": checkpoint.get("checkpoint_id", ""),
+        }
+    return {**result, "audit_status": "completed"}
 
 
 def load_session(session_dir: pathlib.Path, conversation_id: int | str) -> dict[str, Any]:
@@ -873,7 +818,7 @@ def read_truth_ledger(session_dir: pathlib.Path, conversation_id: int | str) -> 
 
 # LEGACY PROVIDER PIPELINE.
 # Codex conversation mainline must not call this.
-# Codex conversation delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+# Delivery is driven by the reviewed Provider route and the sole local_packager exit.
 def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
     required = {
         "package": False,
@@ -2666,7 +2611,7 @@ def ensure_verify_report(result: dict[str, Any], log_dir: pathlib.Path) -> pathl
 
 # LEGACY PROVIDER PIPELINE.
 # Codex conversation mainline must not call this.
-# Codex conversation delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+# Delivery is driven by the reviewed Provider route and the sole local_packager exit.
 def emit_delivery_evidence(
     session_dir: pathlib.Path,
     session: dict[str, Any],
@@ -3648,8 +3593,6 @@ def extract_project_intent_signals(text: str, session: dict[str, Any], analysis:
 
 def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, Any], user_text: str) -> tuple[bool, str]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if codex_design_supervision.design_supervision_pending(whiteboard):
-        return False, "product_design_confirmation_pending"
     if explicit_start_requested(user_text):
         return True, "explicit_start_requested"
     session_analysis = session.get("backend_dialogue_analysis", {}) if isinstance(session.get("backend_dialogue_analysis"), dict) else {}
@@ -4031,7 +3974,28 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
     if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")):
         changes = normalized.get("change_requests", [])
         normalized["change_requests"] = unique_strings((changes if isinstance(changes, list) else []) + [text], limit=120)
-    return codex_design_supervision.apply_design_intent(normalized, text, codex_default=True)
+    ready_before_design_scope = bool(normalized.get("ready_to_generate"))
+    normalized = codex_design_supervision.apply_design_intent(
+        normalized,
+        text,
+        codex_default=False,
+    )
+    design_state = (
+        normalized.get("product_design", {})
+        if isinstance(normalized.get("product_design"), dict)
+        else {}
+    )
+    if design_state.get("required"):
+        normalized["product_design"] = {
+            **design_state,
+            "workflow_state": "provider_planner_pending",
+            "design_source": "provider_planner",
+            "codex_used": False,
+            "user_confirmation_required": False,
+            "advisory_only": False,
+        }
+        normalized["ready_to_generate"] = ready_before_design_scope
+    return normalized
 
 
 def substantive_user_turn_count(session: dict[str, Any]) -> int:
@@ -4181,8 +4145,6 @@ JSON 结构：
         action = "continue_chat"
         next_whiteboard["ready_to_generate"] = False
     next_whiteboard = enforce_backend_updates_from_user_text(session, next_whiteboard)
-    if codex_design_supervision.design_supervision_pending(next_whiteboard):
-        action = "continue_chat"
     critical_questions = next_whiteboard.get("critical_questions", []) if isinstance(next_whiteboard.get("critical_questions"), list) else []
     if critical_questions and not any(str(item).strip() and str(item).strip()[:18] in reply for item in critical_questions):
         reply = (reply.rstrip() + "\n关键配置：" + "；".join(str(item).strip() for item in critical_questions[:2] if str(item).strip()))[:1200]
@@ -4860,1486 +4822,6 @@ def _short_output(text: str, limit: int = 5000) -> str:
     return clean[: limit // 2] + "\n...\n" + clean[-limit // 2 :]
 
 
-def _dependency_name(line: str) -> str:
-    value = str(line or "").strip()
-    value = value.split("#", 1)[0].strip()
-    match = re.match(r"([A-Za-z0-9_.-]+)", value)
-    return match.group(1).lower().replace("_", "-") if match else ""
-
-
-def ensure_requirement(project_dir: pathlib.Path, requirement: str, *, replace_names: set[str] | None = None) -> bool:
-    project = pathlib.Path(project_dir).resolve()
-    req = project / "requirements.txt"
-    names = {name.lower().replace("_", "-") for name in (replace_names or set())}
-    lines = req.read_text(encoding="utf-8", errors="replace").splitlines() if req.exists() else []
-    changed = False
-    kept: list[str] = []
-    for line in lines:
-        name = _dependency_name(line)
-        if name and (name in names or name == _dependency_name(requirement)):
-            changed = True
-            continue
-        kept.append(line)
-    if requirement not in kept:
-        kept.append(requirement)
-        changed = True
-    if changed:
-        req.write_text("\n".join(line for line in kept if str(line).strip()) + "\n", encoding="utf-8")
-    return changed
-
-
-def ensure_provider_root_launcher(project_dir: pathlib.Path) -> dict[str, Any]:
-    project = pathlib.Path(project_dir).resolve()
-    if (project / "main.py").is_file() or (project / "app.py").is_file():
-        return {"changed": False, "launcher": "", "reason": "root_entrypoint_exists"}
-    src_main = project / "src" / "main.py"
-    cli_main = project / "src" / "backend" / "cli.py"
-    backend_dir = project / "src" / "backend"
-    if not src_main.is_file() and not cli_main.is_file() and not backend_dir.is_dir():
-        return {"changed": False, "launcher": "", "reason": "src_main_missing"}
-    launcher = project / "main.py"
-    if src_main.is_file():
-        launcher.write_text(
-            "\n".join(
-                [
-                    "from __future__ import annotations",
-                    "",
-                    "import importlib",
-                    "import pathlib",
-                    "import runpy",
-                    "import sys",
-                    "",
-                    "ROOT = pathlib.Path(__file__).resolve().parent",
-                    "if str(ROOT) not in sys.path:",
-                    "    sys.path.insert(0, str(ROOT))",
-                    "",
-                    "",
-                    "def main() -> None:",
-                    "    module = importlib.import_module('src.main')",
-                    "    entry = getattr(module, 'main', None)",
-                    "    if callable(entry):",
-                    "        entry()",
-                    "        return",
-                    "    app = getattr(module, 'app', None)",
-                    "    if app is not None:",
-                    "        try:",
-                    "            import uvicorn",
-                    "        except Exception as exc:",
-                    "            raise RuntimeError('uvicorn is required to run src.main:app') from exc",
-                    "        uvicorn.run(app, host='127.0.0.1', port=8000)",
-                    "        return",
-                    "    runpy.run_path(str(ROOT / 'src' / 'main.py'), run_name='__main__')",
-                    "",
-                    "",
-                    "if __name__ == '__main__':",
-                    "    main()",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        return {"changed": True, "launcher": str(launcher), "reason": "created_main_py_for_src_main"}
-    launcher.write_text(
-        "\n".join(
-            [
-                "from __future__ import annotations",
-                "",
-                "import pathlib",
-                "import sys",
-                "",
-                "ROOT = pathlib.Path(__file__).resolve().parent",
-                "SRC = ROOT / 'src'",
-                "for path in (ROOT, SRC):",
-                "    if str(path) not in sys.path:",
-                "        sys.path.insert(0, str(path))",
-                "",
-                "",
-                "def main() -> None:",
-                "    cli = ROOT / 'src' / 'backend' / 'cli.py'",
-                "    if cli.exists():",
-                "        import runpy",
-                "        runpy.run_path(str(cli), run_name='__main__')",
-                "        return",
-                "    print('VN Project Assistant')",
-                "    print('Project files are available under src/, tests/, assets/generated/, and screenshots/.')",
-                "",
-                "",
-                "if __name__ == '__main__':",
-                "    main()",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return {"changed": True, "launcher": str(launcher), "reason": "created_main_py_for_backend_cli"}
-
-
-def repair_pydantic_basesettings(project_dir: pathlib.Path) -> dict[str, Any]:
-    project = pathlib.Path(project_dir).resolve()
-    changed_files: list[str] = []
-    for path in sorted(project.rglob("*.py")):
-        if ".cgnk_test_env" in path.parts:
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        lines = text.splitlines()
-        out: list[str] = []
-        changed = False
-        inserted = False
-        for line in lines:
-            match = re.match(r"^(\s*)from\s+pydantic\s+import\s+(.+)$", line)
-            if match and "BaseSettings" in match.group(2):
-                indent = match.group(1)
-                names = [name.strip() for name in match.group(2).split(",") if name.strip()]
-                remaining = [name for name in names if name != "BaseSettings"]
-                out.append(f"{indent}from pydantic_settings import BaseSettings")
-                inserted = True
-                if remaining:
-                    out.append(f"{indent}from pydantic import {', '.join(remaining)}")
-                changed = True
-            else:
-                out.append(line)
-        if changed:
-            path.write_text("\n".join(out) + ("\n" if text.endswith("\n") else ""), encoding="utf-8")
-            changed_files.append(str(path.relative_to(project)).replace("\\", "/"))
-    requirements_changed = False
-    if changed_files:
-        requirements_changed |= ensure_requirement(project, "pydantic-settings>=2,<3", replace_names={"pydantic-settings"})
-        requirements_changed |= ensure_requirement(project, "pydantic>=2,<3", replace_names={"pydantic"})
-        req = project / "requirements.txt"
-        req_text = req.read_text(encoding="utf-8", errors="replace") if req.exists() else ""
-        if re.search(r"(?im)^\s*fastapi\s*==\s*0\.(?:[0-9]|[1-9][0-9])\.", req_text):
-            requirements_changed |= ensure_requirement(project, "fastapi>=0.115,<1", replace_names={"fastapi"})
-    return {"changed": bool(changed_files or requirements_changed), "files": changed_files, "requirements_changed": requirements_changed}
-
-
-def project_uses_pillow(project_dir: pathlib.Path) -> bool:
-    project = pathlib.Path(project_dir).resolve()
-    for path in project.rglob("*.py"):
-        if ".cgnk_test_env" in path.parts:
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        if "from PIL import" in text or "import PIL" in text:
-            return True
-    return False
-
-
-def repair_pillow_requirement(project_dir: pathlib.Path, error_text: str) -> dict[str, Any]:
-    needed = "PIL._deprecate" in str(error_text) or project_uses_pillow(project_dir)
-    changed = ensure_requirement(project_dir, "pillow>=10,<12", replace_names={"pillow", "pil"}) if needed else False
-    return {"changed": changed, "dependency_environment_error": "PIL._deprecate" in str(error_text), "needed": needed}
-
-
-def collect_project_test_source_text(project_dir: pathlib.Path) -> str:
-    project = pathlib.Path(project_dir).resolve()
-    chunks: list[str] = []
-    for base_name in ("tests", "src"):
-        base = project / base_name
-        if not base.exists():
-            continue
-        for path in sorted(base.rglob("*.py")):
-            if ".cgnk_test_env" in path.parts:
-                continue
-            chunks.append(path.read_text(encoding="utf-8", errors="replace"))
-    return "\n".join(chunks)
-
-
-def repair_missing_test_import_requirements(project_dir: pathlib.Path) -> dict[str, Any]:
-    text = collect_project_test_source_text(project_dir)
-    changes: list[str] = []
-    if re.search(r"(?m)^\s*(from\s+flask\s+import|import\s+flask\b)", text):
-        if ensure_requirement(project_dir, "Flask>=3,<4", replace_names={"flask"}):
-            changes.append("Flask>=3,<4")
-    return {"changed": bool(changes), "requirements": changes}
-
-
-def repair_common_provider_project_interfaces(project_dir: pathlib.Path, error_text: str) -> dict[str, Any]:
-    project = pathlib.Path(project_dir).resolve()
-    text = str(error_text or "")
-    changed: list[str] = []
-
-    image_tests_text = collect_project_test_source_text(project)
-    image_module_paths = {
-        project / "src" / "backend" / "image_generator.py",
-        project / "src" / "backend" / "image_generation.py",
-    }
-    for module_name in re.findall(
-        r"from\s+src\.backend\.([A-Za-z_][A-Za-z0-9_]*)\s+import\s+(?:ImageGenerator|BackgroundGenerator|CharacterSpriteGenerator)",
-        image_tests_text,
-    ):
-        image_module_paths.add(project / "src" / "backend" / f"{module_name}.py")
-    for package_name, module_name in re.findall(
-        r"from\s+src\.([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s+import\s+(?:ImageGenerator|BackgroundGenerator|CharacterSpriteGenerator)",
-        image_tests_text,
-    ):
-        image_module_paths.add(project / "src" / package_name / f"{module_name}.py")
-    if (
-        "unexpected keyword argument 'output_dir'" in text
-        or "has no attribute 'generate_sprite'" in text
-        or "cannot import name 'ImageGenerator'" in text
-        or "cannot import name 'BackgroundGenerator'" in text
-        or "cannot import name 'CharacterSpriteGenerator'" in text
-        or "ImageGenerator" in image_tests_text
-        or "BackgroundGenerator" in image_tests_text
-        or "CharacterSpriteGenerator" in image_tests_text
-        or "generate_sprite(" in image_tests_text
-        or "output_dir=" in image_tests_text
-    ):
-        for image_module in sorted(image_module_paths):
-            if not image_module.exists():
-                continue
-            source = image_module.read_text(encoding="utf-8", errors="replace")
-            marker = "# CGNK post-build compatibility repairs"
-            if marker not in source and ("class ImageGenerator" in source or "class LocalImageGenerator" in source):
-                image_module.write_text(
-                    source.rstrip()
-                    + "\n\n"
-                    + "\n".join(
-                        [
-                            marker,
-                            "try:",
-                            "    _cgnk_image_base = ImageGenerator",
-                            "except NameError:",
-                            "    try:",
-                            "        _cgnk_image_base = LocalImageGenerator",
-                            "    except NameError:",
-                            "        _cgnk_image_base = object",
-                            "",
-                            "class ImageGenerator(_cgnk_image_base):",
-                            "    def generate_background(self, prompt, width=800, height=600, output_dir=None, **kwargs):",
-                            "        import os",
-                            "        import uuid",
-                            "        from PIL import Image, ImageDraw",
-                            "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                            "        if output_dir:",
-                            "            target_dir = output_dir",
-                            "        elif test_output_root:",
-                            "            target_dir = os.path.join(test_output_root, 'media', 'generated_images')",
-                            "        else:",
-                            "            target_dir = globals().get('IMAGE_OUTPUT_DIR', 'media/generated_images')",
-                            "        os.makedirs(target_dir, exist_ok=True)",
-                            "        path = os.path.join(target_dir, f'background_{uuid.uuid4().hex}.png')",
-                            "        img = Image.new('RGB', (width, height), (32, 96, 160))",
-                            "        draw = ImageDraw.Draw(img)",
-                            "        for x in range(0, width, 24):",
-                            "            draw.line((x, 0, width - x // 2, height), fill=(40 + x % 160, 120, 210))",
-                            "        draw.text((24, 24), f'BG: {prompt}', fill=(255, 255, 255))",
-                            "        img.save(path)",
-                            "        return path",
-                            "",
-                            "    def generate_sprite(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        import os",
-                            "        import uuid",
-                            "        from PIL import Image, ImageDraw",
-                            "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                            "        if output_dir:",
-                            "            target_dir = output_dir",
-                            "        elif test_output_root:",
-                            "            target_dir = os.path.join(test_output_root, 'media', 'generated_images')",
-                            "        else:",
-                            "            target_dir = globals().get('IMAGE_OUTPUT_DIR', 'media/generated_images')",
-                            "        os.makedirs(target_dir, exist_ok=True)",
-                            "        path = os.path.join(target_dir, f'sprite_{uuid.uuid4().hex}.png')",
-                            "        img = Image.new('RGB', (width, height), (96, 56, 140))",
-                            "        draw = ImageDraw.Draw(img)",
-                            "        draw.ellipse((width//3, 30, width*2//3, height//3), fill=(230, 200, 170))",
-                            "        draw.rectangle((width//3, height//3, width*2//3, height-60), fill=(80, 120, 210))",
-                            "        draw.text((24, 24), f'Sprite: {prompt}', fill=(255, 255, 255))",
-                            "        img.save(path)",
-                            "        return path",
-                            "",
-                            "    def generate_character_sprite(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_sprite(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                            "",
-                            "class BackgroundGenerator(ImageGenerator):",
-                            "    def generate(self, prompt, width=800, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_background(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                            "",
-                            "class CharacterSpriteGenerator(ImageGenerator):",
-                            "    def generate(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_character_sprite(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                        ]
-                    )
-                    + "\n",
-                    encoding="utf-8",
-                )
-                changed.append(str(image_module.relative_to(project)).replace("\\", "/"))
-            updated = image_module.read_text(encoding="utf-8", errors="replace")
-            if "src/backend/image_generator.py" in image_tests_text and "--test" in image_tests_text and "Image generation test passed" not in updated:
-                image_module.write_text(
-                    updated.rstrip()
-                    + "\n\n"
-                    + "\n".join(
-                        [
-                            "if __name__ == '__main__':",
-                            "    import sys",
-                            "    if '--test' in sys.argv:",
-                            "        gen = ImageGenerator()",
-                            "        gen.generate_background('local runtime smoke')",
-                            "        gen.generate_character_sprite('local runtime smoke')",
-                            "        print('Image generation test passed')",
-                            "        raise SystemExit(0)",
-                        ]
-                    )
-                    + "\n",
-                    encoding="utf-8",
-                )
-                rel_path = str(image_module.relative_to(project)).replace("\\", "/")
-                if rel_path not in changed:
-                    changed.append(rel_path)
-            if (
-                marker in image_module.read_text(encoding="utf-8", errors="replace")
-                and ("BackgroundGenerator" in image_tests_text or "CharacterSpriteGenerator" in image_tests_text)
-                and (
-                    "class BackgroundGenerator" not in image_module.read_text(encoding="utf-8", errors="replace")
-                    or "class CharacterSpriteGenerator" not in image_module.read_text(encoding="utf-8", errors="replace")
-                )
-            ):
-                latest_image_source = image_module.read_text(encoding="utf-8", errors="replace")
-                alias_block = "\n\n" + "\n".join(
-                    [
-                        "class BackgroundGenerator(ImageGenerator):",
-                        "    def generate(self, prompt, width=800, height=600, output_dir=None, **kwargs):",
-                        "        return self.generate_background(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                        "",
-                        "class CharacterSpriteGenerator(ImageGenerator):",
-                        "    def generate(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                        "        return self.generate_character_sprite(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                    ]
-                ) + "\n"
-                image_module.write_text(latest_image_source.rstrip() + alias_block, encoding="utf-8")
-                rel_path = str(image_module.relative_to(project)).replace("\\", "/")
-                if rel_path not in changed:
-                    changed.append(rel_path)
-            positional_source = image_module.read_text(encoding="utf-8", errors="replace")
-            positional_marker = "# CGNK image positional output_dir compatibility"
-            if (
-                marker in positional_source
-                and positional_marker not in positional_source
-                and (
-                    "generate_background(prompt, self.output_dir" in image_tests_text
-                    or "generate_sprite(prompt, self.output_dir" in image_tests_text
-                    or ("generate_background(" in image_tests_text and "output_dir" in image_tests_text)
-                    or ("generate_sprite(" in image_tests_text and "output_dir" in image_tests_text)
-                    or "not supported between instances of 'str' and 'int'" in text
-                )
-            ):
-                image_module.write_text(
-                    positional_source.rstrip()
-                    + "\n\n"
-                    + "\n".join(
-                        [
-                            positional_marker,
-                            "class ImageGenerator(ImageGenerator):",
-                            "    def generate_background(self, prompt, width=800, height=600, output_dir=None, **kwargs):",
-                            "        import os",
-                            "        import uuid",
-                            "        from PIL import Image, ImageDraw",
-                            "        if isinstance(width, (str, os.PathLike)) and output_dir is None:",
-                            "            output_dir = str(width)",
-                            "            width = 800",
-                            "        if isinstance(height, (str, os.PathLike)) and output_dir is None:",
-                            "            output_dir = str(height)",
-                            "            height = 600",
-                            "        width = int(width) if isinstance(width, (int, float, str)) and str(width).isdigit() else 800",
-                            "        height = int(height) if isinstance(height, (int, float, str)) and str(height).isdigit() else 600",
-                            "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                            "        if output_dir:",
-                            "            target_dir = output_dir",
-                            "        elif test_output_root:",
-                            "            target_dir = os.path.join(test_output_root, 'media', 'generated_images')",
-                            "        else:",
-                            "            target_dir = globals().get('IMAGE_OUTPUT_DIR', 'media/generated_images')",
-                            "        os.makedirs(target_dir, exist_ok=True)",
-                            "        path = os.path.join(target_dir, f'background_{uuid.uuid4().hex}.png')",
-                            "        img = Image.new('RGB', (width, height), (32, 96, 160))",
-                            "        draw = ImageDraw.Draw(img)",
-                            "        for x in range(0, width, 24):",
-                            "            draw.line((x, 0, width - x // 2, height), fill=(40 + x % 160, 120, 210))",
-                            "        draw.text((24, 24), f'BG: {prompt}', fill=(255, 255, 255))",
-                            "        img.save(path)",
-                            "        return path",
-                            "",
-                            "    def generate_sprite(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        import os",
-                            "        import uuid",
-                            "        from PIL import Image, ImageDraw",
-                            "        if isinstance(width, (str, os.PathLike)) and output_dir is None:",
-                            "            output_dir = str(width)",
-                            "            width = 400",
-                            "        if isinstance(height, (str, os.PathLike)) and output_dir is None:",
-                            "            output_dir = str(height)",
-                            "            height = 600",
-                            "        width = int(width) if isinstance(width, (int, float, str)) and str(width).isdigit() else 400",
-                            "        height = int(height) if isinstance(height, (int, float, str)) and str(height).isdigit() else 600",
-                            "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                            "        if output_dir:",
-                            "            target_dir = output_dir",
-                            "        elif test_output_root:",
-                            "            target_dir = os.path.join(test_output_root, 'media', 'generated_images')",
-                            "        else:",
-                            "            target_dir = globals().get('IMAGE_OUTPUT_DIR', 'media/generated_images')",
-                            "        os.makedirs(target_dir, exist_ok=True)",
-                            "        path = os.path.join(target_dir, f'sprite_{uuid.uuid4().hex}.png')",
-                            "        img = Image.new('RGB', (width, height), (96, 56, 140))",
-                            "        draw = ImageDraw.Draw(img)",
-                            "        draw.ellipse((width//3, 30, width*2//3, height//3), fill=(230, 200, 170))",
-                            "        draw.rectangle((width//3, height//3, width*2//3, height-60), fill=(80, 120, 210))",
-                            "        draw.text((24, 24), f'Sprite: {prompt}', fill=(255, 255, 255))",
-                            "        img.save(path)",
-                            "        return path",
-                            "",
-                            "    def generate_character_sprite(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_sprite(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                            "",
-                            "class BackgroundGenerator(ImageGenerator):",
-                            "    def generate(self, prompt, width=800, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_background(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                            "",
-                            "class CharacterSpriteGenerator(ImageGenerator):",
-                            "    def generate(self, prompt, width=400, height=600, output_dir=None, **kwargs):",
-                            "        return self.generate_character_sprite(prompt, width=width, height=height, output_dir=output_dir, **kwargs)",
-                        ]
-                    )
-                    + "\n",
-                    encoding="utf-8",
-                )
-                rel_path = str(image_module.relative_to(project)).replace("\\", "/")
-                if rel_path not in changed:
-                    changed.append(rel_path)
-            result_source = image_module.read_text(encoding="utf-8", errors="replace")
-            result_marker = "# CGNK image result object compatibility"
-            if marker in result_source and result_marker not in result_source and ".file_path" in image_tests_text:
-                image_module.write_text(
-                    result_source.rstrip()
-                    + "\n\n"
-                    + "\n".join(
-                        [
-                            result_marker,
-                            "class _CGNKImageResult(str):",
-                            "    @property",
-                            "    def file_path(self):",
-                            "        return str(self)",
-                            "",
-                            "class ImageGenerator(ImageGenerator):",
-                            "    def generate_background(self, *args, **kwargs):",
-                            "        return _CGNKImageResult(super().generate_background(*args, **kwargs))",
-                            "    def generate_sprite(self, *args, **kwargs):",
-                            "        return _CGNKImageResult(super().generate_sprite(*args, **kwargs))",
-                            "    def generate_character_sprite(self, *args, **kwargs):",
-                            "        return _CGNKImageResult(super().generate_character_sprite(*args, **kwargs))",
-                        ]
-                    )
-                    + "\n",
-                    encoding="utf-8",
-                )
-                rel_path = str(image_module.relative_to(project)).replace("\\", "/")
-                if rel_path not in changed:
-                    changed.append(rel_path)
-
-    timeline_module = project / "src" / "backend" / "timeline_manager.py"
-    if timeline_module.exists() and (
-        "has no attribute 'add_edge'" in text
-        or "get_edges" in text
-        or "get_nodes" in text
-        or "add_edge(" in image_tests_text
-        or "add_branch(" in image_tests_text
-        or "get_edges(" in image_tests_text
-        or "get_nodes(" in image_tests_text
-        or "description=" in image_tests_text
-        or "serialize(" in image_tests_text
-    ):
-        source = timeline_module.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK timeline compatibility repairs"
-        if marker in source and "def _cgnk_load(self, filepath):" in source:
-            source = source.replace("def _cgnk_load(self, filepath):", "def _cgnk_load(self, filepath=None):")
-            source = source.replace("        with open(filepath, 'r', encoding='utf-8') as f:", "        with open(filepath or getattr(self, 'storage_path', 'data/story_timeline.json'), 'r', encoding='utf-8') as f:")
-            timeline_module.write_text(source, encoding="utf-8")
-            changed.append("src/backend/timeline_manager.py")
-        if marker in source and "TimelineManager.get_node = _cgnk_get_node" not in source:
-            timeline_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        "# CGNK timeline dict access compatibility",
-                        "def _cgnk_storynode_getitem(self, key):",
-                        "    if key in ('id', 'node_id'):",
-                        "        return getattr(self, 'node_id', '')",
-                        "    if key == 'title':",
-                        "        return getattr(self, 'title', '') or getattr(self, 'node_id', '')",
-                        "    if key == 'description':",
-                        "        return getattr(self, 'description', getattr(self, 'content', ''))",
-                        "    if key == 'branches':",
-                        "        return list(getattr(self, 'next_nodes', getattr(self, 'choices', [])))",
-                        "    return getattr(self, key)",
-                        "",
-                        "try:",
-                        "    StoryNode.__getitem__ = _cgnk_storynode_getitem",
-                        "except NameError:",
-                        "    pass",
-                        "",
-                        "def _cgnk_get_node(self, node_id):",
-                        "    return self.nodes.get(str(node_id))",
-                        "",
-                        "def _cgnk_serialize_with_titles(self):",
-                        "    nodes = {node_id: getattr(node, 'to_dict', lambda: {'node_id': node_id})() for node_id, node in self.nodes.items()}",
-                        "    data = {'nodes': nodes, 'branches': _cgnk_get_edges(self)}",
-                        "    for node_id, payload in nodes.items():",
-                        "        title = payload.get('title') or payload.get('node_id') or node_id",
-                        "        data[str(title)] = payload",
-                        "    return data",
-                        "",
-                        "TimelineManager.get_node = _cgnk_get_node",
-                        "TimelineManager.serialize = _cgnk_serialize_with_titles",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/backend/timeline_manager.py")
-        if marker not in source and "class TimelineManager" in source:
-            timeline_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "_cgnk_original_add_node = TimelineManager.add_node",
-                        "_cgnk_original_save = getattr(TimelineManager, 'save', None)",
-                        "_cgnk_original_load = getattr(TimelineManager, 'load', None)",
-                        "",
-                        "def _cgnk_add_node(self, title, content=None, choices=None, description=None, **kwargs):",
-                        "    node_id = str(title)",
-                        "    payload_value = content if content is not None else (description if description is not None else '')",
-                        "    payload = json.dumps(payload_value, ensure_ascii=False) if isinstance(payload_value, dict) else str(payload_value)",
-                        "    try:",
-                        "        node = StoryNode(node_id=node_id, title=node_id, content=payload, choices=choices)",
-                        "    except TypeError:",
-                        "        try:",
-                        "            node = StoryNode(node_id=node_id, content=payload)",
-                        "        except TypeError:",
-                        "            node = StoryNode(node_id, payload)",
-                        "    if not hasattr(node, 'next_nodes'):",
-                        "        node.next_nodes = list(getattr(node, 'choices', []))",
-                        "    if not hasattr(node, 'choices'):",
-                        "        node.choices = list(getattr(node, 'next_nodes', []))",
-                        "    actual_id = getattr(node, 'node_id', node_id)",
-                        "    self.nodes[actual_id] = node",
-                        "    if getattr(self, 'start_node_id', None) is None:",
-                        "        self.start_node_id = actual_id",
-                        "    save = getattr(self, 'save', None)",
-                        "    if callable(save):",
-                        "        try:",
-                        "            save()",
-                        "        except TypeError:",
-                        "            pass",
-                        "    return actual_id",
-                        "",
-                        "def _cgnk_add_edge(self, from_node_id, to_node_id):",
-                        "    from_id = str(from_node_id)",
-                        "    to_id = str(to_node_id)",
-                        "    if from_id not in self.nodes:",
-                        "        try:",
-                        "            self.nodes[from_id] = StoryNode(node_id=from_id, content='')",
-                        "        except TypeError:",
-                        "            self.nodes[from_id] = StoryNode(from_id, '')",
-                        "        if not hasattr(self.nodes[from_id], 'next_nodes'):",
-                        "            self.nodes[from_id].next_nodes = list(getattr(self.nodes[from_id], 'choices', []))",
-                        "        if getattr(self, 'start_node_id', None) is None:",
-                        "            self.start_node_id = from_id",
-                        "    if to_id not in self.nodes:",
-                        "        try:",
-                        "            self.nodes[to_id] = StoryNode(node_id=to_id, content='')",
-                        "        except TypeError:",
-                        "            self.nodes[to_id] = StoryNode(to_id, '')",
-                        "        if not hasattr(self.nodes[to_id], 'next_nodes'):",
-                        "            self.nodes[to_id].next_nodes = list(getattr(self.nodes[to_id], 'choices', []))",
-                        "    if to_id not in self.nodes[from_id].next_nodes:",
-                        "        self.nodes[from_id].next_nodes.append(to_id)",
-                        "    if hasattr(self.nodes[from_id], 'choices') and to_id not in self.nodes[from_id].choices:",
-                        "        self.nodes[from_id].choices.append(to_id)",
-                        "    return True",
-                        "",
-                        "def _cgnk_get_nodes(self):",
-                        "    return self.nodes",
-                        "",
-                        "def _cgnk_get_node(self, node_id):",
-                        "    return self.nodes.get(str(node_id))",
-                        "",
-                        "def _cgnk_get_edges(self):",
-                        "    edges = []",
-                        "    for node_id, node in self.nodes.items():",
-                        "        targets = getattr(node, 'next_nodes', None)",
-                        "        if targets is None:",
-                        "            targets = getattr(node, 'choices', [])",
-                        "        edges.extend((node_id, next_id) for next_id in targets)",
-                        "    return edges",
-                        "",
-                        "def _cgnk_get_branches(self, node_id):",
-                        "    node = self.nodes.get(str(node_id))",
-                        "    if not node:",
-                        "        return []",
-                        "    return list(getattr(node, 'next_nodes', getattr(node, 'choices', [])))",
-                        "",
-                        "def _cgnk_serialize(self):",
-                        "    nodes = {node_id: getattr(node, 'to_dict', lambda: {'node_id': node_id})() for node_id, node in self.nodes.items()}",
-                        "    data = {'nodes': nodes, 'branches': _cgnk_get_edges(self)}",
-                        "    for node_id, payload in nodes.items():",
-                        "        title = payload.get('title') or payload.get('node_id') or node_id",
-                        "        data[str(title)] = payload",
-                        "    return data",
-                        "",
-                        "def _cgnk_storynode_getitem(self, key):",
-                        "    if key in ('id', 'node_id'):",
-                        "        return getattr(self, 'node_id', '')",
-                        "    if key == 'title':",
-                        "        return getattr(self, 'title', '') or getattr(self, 'node_id', '')",
-                        "    if key == 'description':",
-                        "        return getattr(self, 'description', getattr(self, 'content', ''))",
-                        "    if key == 'branches':",
-                        "        return list(getattr(self, 'next_nodes', getattr(self, 'choices', [])))",
-                        "    return getattr(self, key)",
-                        "",
-                        "try:",
-                        "    StoryNode.__getitem__ = _cgnk_storynode_getitem",
-                        "except NameError:",
-                        "    pass",
-                        "",
-                        "def _cgnk_save(self, filepath=None):",
-                        "    target = filepath or getattr(self, 'storage_path', None)",
-                        "    if target:",
-                        "        data = {node_id: getattr(node, 'to_dict', lambda: {'node_id': node_id})() for node_id, node in self.nodes.items()}",
-                        "        with open(target, 'w', encoding='utf-8') as f:",
-                        "            json.dump(data, f, ensure_ascii=False, indent=2)",
-                        "        return None",
-                        "    if callable(_cgnk_original_save):",
-                        "        return _cgnk_original_save(self)",
-                        "    return None",
-                        "",
-                        "def _cgnk_load(self, filepath=None):",
-                        "    try:",
-                        "        with open(filepath or getattr(self, 'storage_path', 'data/story_timeline.json'), 'r', encoding='utf-8') as f:",
-                        "            data = json.load(f)",
-                        "        nodes = data.get('nodes', data) if isinstance(data, dict) else {}",
-                        "        self.nodes = {}",
-                        "        for node_id, payload in nodes.items():",
-                        "            self.add_node(node_id, payload if isinstance(payload, dict) else {'content': payload})",
-                        "    except FileNotFoundError:",
-                        "        self.nodes = {}",
-                        "    return None",
-                        "",
-                        "TimelineManager.add_node = _cgnk_add_node",
-                        "TimelineManager.add_edge = _cgnk_add_edge",
-                        "TimelineManager.add_branch = _cgnk_add_edge",
-                        "TimelineManager.get_node = _cgnk_get_node",
-                        "TimelineManager.get_nodes = _cgnk_get_nodes",
-                        "TimelineManager.get_edges = _cgnk_get_edges",
-                        "TimelineManager.get_branches = _cgnk_get_branches",
-                        "TimelineManager.serialize = _cgnk_serialize",
-                        "TimelineManager.save = _cgnk_save",
-                        "TimelineManager.load = _cgnk_load",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/backend/timeline_manager.py")
-
-    story_timeline_paths = set()
-    for module_name in re.findall(
-        r"from\s+src\.backend\.([A-Za-z_][A-Za-z0-9_]*)\s+import\s+StoryTimeline",
-        image_tests_text,
-    ):
-        story_timeline_paths.add(project / "src" / "backend" / f"{module_name}.py")
-    for module_name in re.findall(
-        r"from\s+src\.([A-Za-z_][A-Za-z0-9_]*)\s+import\s+StoryTimeline",
-        image_tests_text,
-    ):
-        story_timeline_paths.add(project / "src" / f"{module_name}.py")
-    if "StoryTimeline" in image_tests_text:
-        story_timeline_paths.add(project / "src" / "backend" / "timeline.py")
-    if (
-        "StoryTimeline.add_node() missing" in text
-        or "StoryTimeline.add_node() got an unexpected keyword argument 'description'" in text
-        or "cannot import name 'StoryTimeline'" in text
-        or "add_event(" in image_tests_text
-        or "add_dependency(" in image_tests_text
-        or "get_ordered_events(" in image_tests_text
-        or "has_cycle(" in image_tests_text
-        or "add_branch(" in image_tests_text
-        or "remove_node(" in image_tests_text
-        or "to_dict(" in image_tests_text
-    ):
-        for story_timeline_module in sorted(story_timeline_paths):
-            if not story_timeline_module.exists():
-                continue
-            source = story_timeline_module.read_text(encoding="utf-8", errors="replace")
-            marker = "# CGNK StoryTimeline compatibility repairs"
-            if marker in source:
-                persistence_marker = "# CGNK StoryTimeline persistence compatibility"
-                if persistence_marker not in source:
-                    story_timeline_module.write_text(
-                        source.rstrip()
-                        + "\n\n"
-                        + "\n".join(
-                            [
-                                persistence_marker,
-                                "def _cgnk_story_get_node(self, node_id):",
-                                "    return self.nodes.get(str(node_id))",
-                                "",
-                                "def _cgnk_story_get_branches(self, node_id):",
-                                "    node = self.nodes.get(str(node_id))",
-                                "    if not node:",
-                                "        return []",
-                                "    return list(node.get('branches', node.get('next_nodes', [])) if isinstance(node, dict) else getattr(node, 'next_nodes', getattr(node, 'choices', [])))",
-                                "",
-                                "def _cgnk_story_save_to_file(self, filepath):",
-                                "    import json",
-                                "    data = {'nodes': [dict(node) if isinstance(node, dict) else node.to_dict() for node in self.nodes.values()], 'dependencies': getattr(self, 'dependencies', {})}",
-                                "    with open(filepath, 'w', encoding='utf-8') as f:",
-                                "        json.dump(data, f, ensure_ascii=False, indent=2)",
-                                "",
-                                "def _cgnk_story_load_from_file(cls, filepath):",
-                                "    import json",
-                                "    timeline = cls()",
-                                "    with open(filepath, 'r', encoding='utf-8') as f:",
-                                "        data = json.load(f)",
-                                "    nodes = data.get('nodes', data) if isinstance(data, dict) else []",
-                                "    if isinstance(nodes, dict):",
-                                "        nodes = list(nodes.values())",
-                                "    for node in nodes:",
-                                "        if isinstance(node, dict):",
-                                "            node_id = str(node.get('node_id') or node.get('id') or node.get('title') or len(timeline.nodes) + 1)",
-                                "            record = _CGNKStoryNodeRecord(node)",
-                                "            record.setdefault('branches', list(record.get('next_nodes', record.get('choices', []))))",
-                                "            record['next_nodes'] = record['branches']",
-                                "            timeline.nodes[node_id] = record",
-                                "    if isinstance(data, dict):",
-                                "        timeline.dependencies = data.get('dependencies', {})",
-                                "    return timeline",
-                                "",
-                                "StoryTimeline.get_node = _cgnk_story_get_node",
-                                "StoryTimeline.get_branches = _cgnk_story_get_branches",
-                                "StoryTimeline.save_to_file = _cgnk_story_save_to_file",
-                                "StoryTimeline.load_from_file = classmethod(_cgnk_story_load_from_file)",
-                            ]
-                        )
-                        + "\n",
-                        encoding="utf-8",
-                    )
-                    changed.append(str(story_timeline_module.relative_to(project)).replace("\\", "/"))
-                    source = story_timeline_module.read_text(encoding="utf-8", errors="replace")
-                node_marker = "# CGNK StoryNode id compatibility"
-                if node_marker not in source and ("StoryNode(id=" in image_tests_text or "get_ordered_nodes(" in image_tests_text or "get_children(" in image_tests_text):
-                    story_timeline_module.write_text(
-                        source.rstrip()
-                        + "\n\n"
-                        + "\n".join(
-                            [
-                                node_marker,
-                        "try:",
-                        "    _cgnk_original_storynode_init = StoryNode.__init__",
-                        "    def _cgnk_storynode_init(self, id=None, node_id=None, content='', title='', description='', parent_id=None, **kwargs):",
-                                "        actual_id = str(id or node_id or title or len(str(content)))",
-                                "        self.id = actual_id",
-                                "        self.node_id = actual_id",
-                                "        self.title = title or actual_id",
-                                "        self.content = content",
-                                "        self.description = description or content",
-                                "        self.parent_id = parent_id",
-                                "        self.next_nodes = list(kwargs.get('next_nodes', []))",
-                        "        self.choices = self.next_nodes",
-                        "    StoryNode.__init__ = _cgnk_storynode_init",
-                        "except NameError:",
-                        "    class StoryNode:",
-                        "        def __init__(self, id=None, node_id=None, content='', title='', description='', parent_id=None, **kwargs):",
-                        "            actual_id = str(id or node_id or title or len(str(content)))",
-                        "            self.id = actual_id",
-                        "            self.node_id = actual_id",
-                        "            self.title = title or actual_id",
-                        "            self.content = content",
-                        "            self.description = description or content",
-                        "            self.parent_id = parent_id",
-                        "            self.next_nodes = list(kwargs.get('next_nodes', []))",
-                        "            self.choices = self.next_nodes",
-                                "",
-                                "def _cgnk_story_add_node_object(self, node, *args, **kwargs):",
-                                "    if hasattr(node, 'id') or hasattr(node, 'node_id'):",
-                                "        node_id = str(getattr(node, 'id', getattr(node, 'node_id', '')))",
-                                "        self.nodes[node_id] = node",
-                                "        if getattr(self, 'start_node_id', None) is None:",
-                                "            self.start_node_id = node_id",
-                                "        return node_id",
-                                "    return _cgnk_story_add_node(self, node, *args, **kwargs)",
-                                "",
-                                "def _cgnk_story_get_ordered_nodes(self):",
-                                "    return sorted(self.nodes.values(), key=lambda node: (getattr(node, 'parent_id', None) is not None, getattr(node, 'parent_id', ''), getattr(node, 'id', getattr(node, 'node_id', ''))))",
-                                "",
-                                "def _cgnk_story_get_children(self, node_id):",
-                                "    return [node for node in self.nodes.values() if str(getattr(node, 'parent_id', '')) == str(node_id)]",
-                                "",
-                                "StoryTimeline.add_node = _cgnk_story_add_node_object",
-                                "StoryTimeline.get_ordered_nodes = _cgnk_story_get_ordered_nodes",
-                                "StoryTimeline.get_children = _cgnk_story_get_children",
-                            ]
-                        )
-                        + "\n",
-                        encoding="utf-8",
-                    )
-                    changed.append(str(story_timeline_module.relative_to(project)).replace("\\", "/"))
-                story_timeline_module.write_text(
-                    story_timeline_module.read_text(encoding="utf-8", errors="replace").rstrip()
-                    + "\n\n"
-                    + "\n".join(
-                        []
-                    )
-                    + "",
-                    encoding="utf-8",
-                )
-                continue
-            story_timeline_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "class _CGNKStoryNodeRecord(dict):",
-                        "    def __getattr__(self, name):",
-                        "        if name == 'next_nodes':",
-                        "            return self.setdefault('branches', [])",
-                        "        try:",
-                        "            return self[name]",
-                        "        except KeyError as exc:",
-                        "            raise AttributeError(name) from exc",
-                        "    def __setattr__(self, name, value):",
-                        "        if name == 'next_nodes':",
-                        "            self['branches'] = value",
-                        "            return",
-                        "        self[name] = value",
-                        "    def to_dict(self):",
-                        "        return dict(self)",
-                        "",
-                        "try:",
-                        "    StoryTimeline",
-                        "except NameError:",
-                        "    class StoryTimeline:",
-                        "        def __init__(self):",
-                        "            self.nodes = {}",
-                        "            self.start_node_id = None",
-                        "            self.dependencies = {}",
-                        "try:",
-                        "    StoryNode",
-                        "except NameError:",
-                        "    class StoryNode:",
-                        "        def __init__(self, id=None, node_id=None, content='', title='', description='', parent_id=None, **kwargs):",
-                        "            actual_id = str(id or node_id or title or len(str(content)))",
-                        "            self.id = actual_id",
-                        "            self.node_id = actual_id",
-                        "            self.title = title or actual_id",
-                        "            self.content = content",
-                        "            self.description = description or content",
-                        "            self.parent_id = parent_id",
-                        "            self.next_nodes = list(kwargs.get('next_nodes', []))",
-                        "            self.choices = self.next_nodes",
-                        "else:",
-                        "    _cgnk_original_storynode_init = StoryNode.__init__",
-                        "    def _cgnk_storynode_init(self, id=None, node_id=None, content='', title='', description='', parent_id=None, **kwargs):",
-                        "        actual_id = str(id or node_id or title or len(str(content)))",
-                        "        self.id = actual_id",
-                        "        self.node_id = actual_id",
-                        "        self.title = title or actual_id",
-                        "        self.content = content",
-                        "        self.description = description or content",
-                        "        self.parent_id = parent_id",
-                        "        self.next_nodes = list(kwargs.get('next_nodes', []))",
-                        "        self.choices = self.next_nodes",
-                        "    StoryNode.__init__ = _cgnk_storynode_init",
-                        "",
-                        "def _cgnk_story_add_node(self, title, content=None, description=None, **kwargs):",
-                        "    if hasattr(title, 'id') or hasattr(title, 'node_id'):",
-                        "        node_id = str(getattr(title, 'id', getattr(title, 'node_id', '')))",
-                        "        self.nodes[node_id] = title",
-                        "        if getattr(self, 'start_node_id', None) is None:",
-                        "            self.start_node_id = node_id",
-                        "        return node_id",
-                        "    import uuid as _cgnk_uuid",
-                        "    node_id = str(_cgnk_uuid.uuid4())",
-                        "    branches = []",
-                        "    node = _CGNKStoryNodeRecord({",
-                        "        'node_id': node_id,",
-                        "        'id': node_id,",
-                        "        'title': str(title),",
-                        "        'content': content if content is not None else '',",
-                        "        'description': description if description is not None else (content if content is not None else ''),",
-                        "        'branches': branches,",
-                        "        'next_nodes': branches,",
-                        "    })",
-                        "    node.update(kwargs)",
-                        "    self.nodes[node_id] = node",
-                        "    if getattr(self, 'start_node_id', None) is None:",
-                        "        self.start_node_id = node_id",
-                        "    return node_id",
-                        "",
-                        "def _cgnk_story_add_event(self, event_id, description=None, **kwargs):",
-                        "    node_id = str(event_id)",
-                        "    branches = []",
-                        "    node = _CGNKStoryNodeRecord({",
-                        "        'node_id': node_id,",
-                        "        'id': node_id,",
-                        "        'title': node_id,",
-                        "        'content': description if description is not None else '',",
-                        "        'description': description if description is not None else '',",
-                        "        'branches': branches,",
-                        "        'next_nodes': branches,",
-                        "    })",
-                        "    node.update(kwargs)",
-                        "    self.nodes[node_id] = node",
-                        "    if not hasattr(self, 'dependencies'):",
-                        "        self.dependencies = {}",
-                        "    self.dependencies.setdefault(node_id, [])",
-                        "    if getattr(self, 'start_node_id', None) is None:",
-                        "        self.start_node_id = node_id",
-                        "    return node_id",
-                        "",
-                        "def _cgnk_story_add_branch(self, from_node_id, to_node_id):",
-                        "    source = self.nodes.get(str(from_node_id))",
-                        "    if source is None:",
-                        "        self.add_event(str(from_node_id))",
-                        "        source = self.nodes.get(str(from_node_id))",
-                        "    if str(to_node_id) not in self.nodes:",
-                        "        self.add_event(str(to_node_id))",
-                        "    branches = source.setdefault('branches', [])",
-                        "    source['next_nodes'] = branches",
-                        "    if str(to_node_id) not in branches:",
-                        "        branches.append(str(to_node_id))",
-                        "    if not hasattr(self, 'dependencies'):",
-                        "        self.dependencies = {}",
-                        "    self.dependencies.setdefault(str(from_node_id), [])",
-                        "    if str(to_node_id) not in self.dependencies[str(from_node_id)]:",
-                        "        self.dependencies[str(from_node_id)].append(str(to_node_id))",
-                        "    return True",
-                        "",
-                        "def _cgnk_story_remove_node(self, node_id):",
-                        "    node_id = str(node_id)",
-                        "    self.nodes.pop(node_id, None)",
-                        "    for node in self.nodes.values():",
-                        "        branches = node.setdefault('branches', []) if isinstance(node, dict) else getattr(node, 'next_nodes', [])",
-                        "        if node_id in branches:",
-                        "            branches.remove(node_id)",
-                        "    return True",
-                        "",
-                        "def _cgnk_story_get_nodes(self):",
-                        "    return self.nodes",
-                        "",
-                        "def _cgnk_story_get_node(self, node_id):",
-                        "    return self.nodes.get(str(node_id))",
-                        "",
-                        "def _cgnk_story_get_edges(self):",
-                        "    edges = []",
-                        "    for node_id, node in self.nodes.items():",
-                        "        branches = node.get('branches', []) if isinstance(node, dict) else getattr(node, 'next_nodes', [])",
-                        "        edges.extend((node_id, next_id) for next_id in branches)",
-                        "    return edges",
-                        "",
-                        "def _cgnk_story_get_branches(self, node_id):",
-                        "    node = self.nodes.get(str(node_id))",
-                        "    if not node:",
-                        "        return []",
-                        "    return list(node.get('branches', node.get('next_nodes', [])) if isinstance(node, dict) else getattr(node, 'next_nodes', getattr(node, 'choices', [])))",
-                        "",
-                        "def _cgnk_story_to_dict(self):",
-                        "    return {'start_node_id': getattr(self, 'start_node_id', None), 'nodes': [dict(node) if isinstance(node, dict) else node.to_dict() for node in self.nodes.values()]}",
-                        "",
-                        "def _cgnk_story_save_to_file(self, filepath):",
-                        "    import json",
-                        "    data = {'nodes': [dict(node) if isinstance(node, dict) else node.to_dict() for node in self.nodes.values()], 'dependencies': getattr(self, 'dependencies', {})}",
-                        "    with open(filepath, 'w', encoding='utf-8') as f:",
-                        "        json.dump(data, f, ensure_ascii=False, indent=2)",
-                        "",
-                        "def _cgnk_story_load_from_file(cls, filepath):",
-                        "    import json",
-                        "    timeline = cls()",
-                        "    with open(filepath, 'r', encoding='utf-8') as f:",
-                        "        data = json.load(f)",
-                        "    nodes = data.get('nodes', data) if isinstance(data, dict) else []",
-                        "    if isinstance(nodes, dict):",
-                        "        nodes = list(nodes.values())",
-                        "    for node in nodes:",
-                        "        if isinstance(node, dict):",
-                        "            node_id = str(node.get('node_id') or node.get('id') or node.get('title') or len(timeline.nodes) + 1)",
-                        "            record = _CGNKStoryNodeRecord(node)",
-                        "            record.setdefault('branches', list(record.get('next_nodes', record.get('choices', []))))",
-                        "            record['next_nodes'] = record['branches']",
-                        "            timeline.nodes[node_id] = record",
-                        "    if isinstance(data, dict):",
-                        "        timeline.dependencies = data.get('dependencies', {})",
-                        "    return timeline",
-                        "",
-                        "def _cgnk_story_get_ordered_events(self):",
-                        "    deps = getattr(self, 'dependencies', {})",
-                        "    ordered = []",
-                        "    temporary = set()",
-                        "    permanent = set()",
-                        "    def visit(node_id):",
-                        "        if node_id in permanent:",
-                        "            return",
-                        "        if node_id in temporary:",
-                        "            return",
-                        "        temporary.add(node_id)",
-                        "        for child in deps.get(node_id, []):",
-                        "            visit(child)",
-                        "        temporary.remove(node_id)",
-                        "        permanent.add(node_id)",
-                        "        ordered.append(node_id)",
-                        "    for node_id in self.nodes:",
-                        "        visit(node_id)",
-                        "    return list(reversed(ordered))",
-                        "",
-                        "def _cgnk_story_has_cycle(self):",
-                        "    deps = getattr(self, 'dependencies', {})",
-                        "    visiting = set()",
-                        "    visited = set()",
-                        "    def visit(node_id):",
-                        "        if node_id in visiting:",
-                        "            return True",
-                        "        if node_id in visited:",
-                        "            return False",
-                        "        visiting.add(node_id)",
-                        "        for child in deps.get(node_id, []):",
-                        "            if visit(child):",
-                        "                return True",
-                        "        visiting.remove(node_id)",
-                        "        visited.add(node_id)",
-                        "        return False",
-                        "    return any(visit(node_id) for node_id in self.nodes)",
-                        "",
-                        "def _cgnk_story_get_ordered_nodes(self):",
-                        "    return sorted(self.nodes.values(), key=lambda node: (getattr(node, 'parent_id', None) is not None, getattr(node, 'parent_id', ''), getattr(node, 'id', getattr(node, 'node_id', ''))))",
-                        "",
-                        "def _cgnk_story_get_children(self, node_id):",
-                        "    return [node for node in self.nodes.values() if str(getattr(node, 'parent_id', '')) == str(node_id)]",
-                        "",
-                        "StoryTimeline.add_node = _cgnk_story_add_node",
-                        "StoryTimeline.add_event = _cgnk_story_add_event",
-                        "StoryTimeline.add_dependency = _cgnk_story_add_branch",
-                        "StoryTimeline.add_branch = _cgnk_story_add_branch",
-                        "StoryTimeline.add_edge = _cgnk_story_add_branch",
-                        "StoryTimeline.link_nodes = _cgnk_story_add_branch",
-                        "StoryTimeline.remove_node = _cgnk_story_remove_node",
-                        "StoryTimeline.get_node = _cgnk_story_get_node",
-                        "StoryTimeline.get_nodes = _cgnk_story_get_nodes",
-                        "StoryTimeline.get_edges = _cgnk_story_get_edges",
-                        "StoryTimeline.get_branches = _cgnk_story_get_branches",
-                        "StoryTimeline.serialize = _cgnk_story_to_dict",
-                        "StoryTimeline.to_dict = _cgnk_story_to_dict",
-                        "StoryTimeline.save_to_file = _cgnk_story_save_to_file",
-                        "StoryTimeline.load_from_file = classmethod(_cgnk_story_load_from_file)",
-                        "StoryTimeline.get_ordered_events = _cgnk_story_get_ordered_events",
-                        "StoryTimeline.has_cycle = _cgnk_story_has_cycle",
-                        "StoryTimeline.get_ordered_nodes = _cgnk_story_get_ordered_nodes",
-                        "StoryTimeline.get_children = _cgnk_story_get_children",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append(str(story_timeline_module.relative_to(project)).replace("\\", "/"))
-
-    cli_module = project / "src" / "backend" / "cli.py"
-    if cli_module.exists() and (
-        "test_cli_help" in text
-        or "test_export_project" in text
-        or "No module named 'backend'" in text
-        or "VNProjectCLI" in image_tests_text
-        or "cannot import name 'VNProjectCLI'" in text
-        or "'src/backend/cli.py'" in image_tests_text
-        or '"src/backend/cli.py"' in image_tests_text
-    ):
-        source = cli_module.read_text(encoding="utf-8", errors="replace")
-        patched = source
-        if "SRC_ROOT = pathlib.Path(__file__).resolve().parents[1]" not in patched:
-            patched = patched.replace(
-                "import argparse\nimport sys\n",
-                "import argparse\nimport pathlib\nimport sys\n\nSRC_ROOT = pathlib.Path(__file__).resolve().parents[1]\nif str(SRC_ROOT) not in sys.path:\n    sys.path.insert(0, str(SRC_ROOT))\n",
-            )
-        if "parser.add_argument('command', nargs='?'" not in patched:
-            patched = patched.replace(
-                "    parser = argparse.ArgumentParser(description=\"VN Project Assistant CLI\")\n",
-                "    parser = argparse.ArgumentParser(description=\"VN Project Assistant CLI\")\n"
-                "    parser.add_argument('command', nargs='?', choices=['export'], help=argparse.SUPPRESS)\n"
-                "    parser.add_argument('--format', default='json', help=argparse.SUPPRESS)\n",
-            )
-        if "if getattr(args, 'command', None) == 'export' and not args.export:" not in patched:
-            patched = patched.replace(
-                "    args = parser.parse_args()\n",
-                "    args = parser.parse_args()\n"
-                "    if getattr(args, 'command', None) == 'export' and not args.export:\n"
-                "        args.export = 'vn_project'\n",
-            )
-        if "CGNK CLI add-node compatibility" not in patched and "add-node" in image_tests_text:
-            patched = patched.replace(
-                "def main():\n",
-                "def main():\n"
-                "    # CGNK CLI add-node compatibility\n"
-                "    if len(sys.argv) >= 4 and sys.argv[1] == 'add-node':\n"
-                "        print(f'Node added: {sys.argv[2]}')\n"
-                "        return\n",
-            )
-        if patched != source:
-            cli_module.write_text(patched, encoding="utf-8")
-            changed.append("src/backend/cli.py")
-        source = cli_module.read_text(encoding="utf-8", errors="replace")
-        if (
-            "VNProjectCLI" in image_tests_text
-            or "cannot import name 'VNProjectCLI'" in text
-        ) and not re.search(r"(?m)^class\s+VNProjectCLI\b", source):
-            cli_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        "# CGNK VNProjectCLI compatibility",
-                        "class _CGNKRuntimeTimeline:",
-                        "    def __init__(self):",
-                        "        self.nodes = {}",
-                        "    def add_node(self, title, content=None, **kwargs):",
-                        "        node_id = str(title)",
-                        "        self.nodes[node_id] = {'id': node_id, 'title': str(title), 'content': content or ''}",
-                        "        self.nodes[node_id].update(kwargs)",
-                        "        return node_id",
-                        "",
-                        "class VNProjectCLI:",
-                        "    def __init__(self):",
-                        "        self.timeline = _CGNKRuntimeTimeline()",
-                        "    def export_background(self, prompt, output_dir='exports'):",
-                        "        import os",
-                        "        import uuid",
-                        "        from PIL import Image, ImageDraw",
-                        "        os.makedirs(output_dir, exist_ok=True)",
-                        "        path = os.path.join(output_dir, f'background_{uuid.uuid4().hex}.png')",
-                        "        image = Image.new('RGB', (800, 600), (36, 96, 146))",
-                        "        draw = ImageDraw.Draw(image)",
-                        "        for y in range(0, 600, 24):",
-                        "            draw.line((0, y, 800, 600 - y // 2), fill=(60, 130, 190))",
-                        "        draw.text((24, 24), str(prompt), fill=(255, 255, 255))",
-                        "        image.save(path)",
-                        "        return path",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            rel_path = "src/backend/cli.py"
-            if rel_path not in changed:
-                changed.append(rel_path)
-
-    main_module = project / "src" / "main.py"
-    if main_module.exists() and "create_app" in image_tests_text:
-        source = main_module.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK Flask create_app compatibility"
-        if "def create_app" not in source and marker not in source:
-            main_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "def create_app():",
-                        "    from flask import Flask, jsonify, request",
-                        "    app = Flask(__name__)",
-                        "    timeline_nodes = {}",
-                        "",
-                        "    @app.get('/')",
-                        "    def _home():",
-                        "        return '<h1>Visual Novel Project Assistant</h1>'",
-                        "",
-                        "    @app.post('/api/timeline/nodes')",
-                        "    def _create_timeline_node():",
-                        "        payload = request.get_json(silent=True) or {}",
-                        "        node_id = str(len(timeline_nodes) + 1)",
-                        "        node = {'node_id': node_id, 'title': payload.get('title', '')}",
-                        "        timeline_nodes[node_id] = node",
-                        "        return jsonify(node), 201",
-                        "",
-                        "    @app.get('/api/timeline/nodes/<node_id>')",
-                        "    def _get_timeline_node(node_id):",
-                        "        node = timeline_nodes.get(str(node_id))",
-                        "        if not node:",
-                        "            return jsonify({'error': 'not found'}), 404",
-                        "        return jsonify(node)",
-                        "",
-                        "    return app",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/main.py")
-    if main_module.exists() and "src/main.py" in image_tests_text and ("--generate-background" in image_tests_text or "--help" in image_tests_text):
-        source = main_module.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK src main CLI compatibility"
-        if marker not in source:
-            if "from fastapi import" in source or "FastAPI(" in source:
-                ensure_requirement(project, "fastapi>=0.115,<1")
-            main_module.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "def _cgnk_write_cli_png(path):",
-                        "    import pathlib, struct, zlib",
-                        "    target = pathlib.Path(path)",
-                        "    target.parent.mkdir(parents=True, exist_ok=True)",
-                        "    width, height = 800, 450",
-                        "    rows = []",
-                        "    for y in range(height):",
-                        "        row = bytearray()",
-                        "        for x in range(width):",
-                        "            row.extend(((40 + x // 5) % 256, (90 + y // 3) % 256, (140 + x // 6) % 256))",
-                        "        rows.append(b'\\x00' + bytes(row))",
-                        "    def chunk(tag, data):",
-                        "        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xFFFFFFFF)",
-                        "    raw = b''.join(rows)",
-                        "    png = b'\\x89PNG\\r\\n\\x1a\\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 6)) + chunk(b'IEND', b'')",
-                        "    target.write_bytes(png)",
-                        "    return str(target)",
-                        "",
-                        "if __name__ == '__main__':",
-                        "    import argparse",
-                        "    parser = argparse.ArgumentParser(description='VN Project Assistant')",
-                        "    parser.add_argument('--generate-background')",
-                        "    parser.add_argument('--output', default='output.png')",
-                        "    args = parser.parse_args()",
-                        "    if args.generate_background:",
-                        "        print(_cgnk_write_cli_png(args.output))",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/main.py")
-
-    backend_pkg = project / "src" / "backend"
-    if backend_pkg.exists() and "from src.backend import main" in image_tests_text:
-        backend_main = backend_pkg / "main.py"
-        if not backend_main.exists():
-            backend_main.write_text(
-                "\n".join(
-                    [
-                        "from __future__ import annotations",
-                        "",
-                        "import pathlib",
-                        "",
-                        "def main(start_server: bool = False) -> bool:",
-                        "    pathlib.Path('exported_images').mkdir(exist_ok=True)",
-                        "    pathlib.Path('exported_timelines').mkdir(exist_ok=True)",
-                        "    return True",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/backend/main.py")
-    if "from src.frontend import main" in image_tests_text:
-        frontend_pkg = project / "src" / "frontend"
-        frontend_pkg.mkdir(parents=True, exist_ok=True)
-        init_file = frontend_pkg / "__init__.py"
-        if not init_file.exists():
-            init_file.write_text("", encoding="utf-8")
-        frontend_main = frontend_pkg / "main.py"
-        if not frontend_main.exists():
-            frontend_main.write_text(
-                "\n".join(
-                    [
-                        "from __future__ import annotations",
-                        "",
-                        "def main(run_ui: bool = False) -> bool:",
-                        "    return True",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/frontend/main.py")
-    backend_app = project / "src" / "backend" / "app.py"
-    if backend_app.exists() and "src/backend/app.py" in image_tests_text and "--version" in image_tests_text:
-        source = backend_app.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK backend app script protocol"
-        if marker not in source:
-            backend_app.write_text(
-                "\n".join(
-                    [
-                        marker,
-                        "import pathlib as _cgnk_pathlib",
-                        "import sys as _cgnk_sys",
-                        "_cgnk_src = _cgnk_pathlib.Path(__file__).resolve().parents[1]",
-                        "if str(_cgnk_src) not in _cgnk_sys.path:",
-                        "    _cgnk_sys.path.insert(0, str(_cgnk_src))",
-                        "if __name__ == '__main__' and '--version' in _cgnk_sys.argv:",
-                        "    print('Version 0.1.0')",
-                        "    raise SystemExit(0)",
-                        "",
-                    ]
-                )
-                + source,
-                encoding="utf-8",
-            )
-            changed.append("src/backend/app.py")
-    if backend_app.exists() and "src/backend/app.py" in image_tests_text and "subprocess.Popen" in image_tests_text:
-        source = backend_app.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK backend app runtime entrypoint"
-        if marker not in source and "FastAPI(" in source:
-            ensure_requirement(project, "uvicorn>=0.22,<1")
-            backend_app.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "if __name__ == '__main__':",
-                        "    import os as _cgnk_os",
-                        "    import uvicorn as _cgnk_uvicorn",
-                        "    _cgnk_uvicorn.run(",
-                        "        app,",
-                        "        host=_cgnk_os.environ.get('VN_PROJECT_HOST', '127.0.0.1'),",
-                        "        port=int(_cgnk_os.environ.get('VN_PROJECT_PORT', '8765')),",
-                        "        log_level='warning',",
-                        "    )",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            rel_path = "src/backend/app.py"
-            if rel_path not in changed:
-                changed.append(rel_path)
-    project_data = project / "src" / "backend" / "project_data.py"
-    if project_data.exists() and "from src.backend.project_data import ProjectData" in image_tests_text:
-        source = project_data.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK ProjectData export compatibility"
-        if not re.search(r"(?m)^class\s+ProjectData\b", source) and marker not in source:
-            project_data.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "class _CGNKTimeline:",
-                        "    def __init__(self):",
-                        "        self.nodes = []",
-                        "    def add_node(self, title, **kwargs):",
-                        "        node = {'id': str(len(self.nodes) + 1), 'title': str(title)}",
-                        "        node.update(kwargs)",
-                        "        self.nodes.append(node)",
-                        "        return node",
-                        "    def to_dict(self):",
-                        "        return {'nodes': self.nodes}",
-                        "",
-                        "class ProjectData:",
-                        "    def __init__(self):",
-                        "        self.timeline = _CGNKTimeline()",
-                        "    def export_timeline_json(self, export_path):",
-                        "        import json",
-                        "        import pathlib",
-                        "        target = pathlib.Path(export_path)",
-                        "        target.parent.mkdir(parents=True, exist_ok=True)",
-                        "        target.write_text(json.dumps(self.timeline.to_dict(), ensure_ascii=False, indent=2), encoding='utf-8')",
-                        "        return str(target)",
-                        "    def export_image(self, image_path, export_dir):",
-                        "        import pathlib",
-                        "        import shutil",
-                        "        source = pathlib.Path(image_path)",
-                        "        target_dir = pathlib.Path(export_dir)",
-                        "        target_dir.mkdir(parents=True, exist_ok=True)",
-                        "        target = target_dir / source.name",
-                        "        if source.resolve() == target.resolve():",
-                        "            return str(target)",
-                        "        shutil.copy2(source, target)",
-                        "        return str(target)",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/backend/project_data.py")
-
-    project_api = project / "src" / "backend" / "project_api.py"
-    if project_api.exists() and (
-        "from src.backend.project_api import ProjectAPI" in image_tests_text
-        or "cannot import name 'ProjectAPI'" in text
-    ):
-        source = project_api.read_text(encoding="utf-8", errors="replace")
-        marker = "# CGNK ProjectAPI compatibility"
-        if not re.search(r"(?m)^class\s+ProjectAPI\b", source) and marker not in source:
-            project_api.write_text(
-                source.rstrip()
-                + "\n\n"
-                + "\n".join(
-                    [
-                        marker,
-                        "def _cgnk_write_project_api_png(path, kind='background'):",
-                        "    import struct",
-                        "    import zlib",
-                        "    path.parent.mkdir(parents=True, exist_ok=True)",
-                        "    width, height = (800, 450) if kind == 'background' else (320, 520)",
-                        "    rows = []",
-                        "    for y in range(height):",
-                        "        row = bytearray()",
-                        "        for x in range(width):",
-                        "            if kind == 'background':",
-                        "                row.extend(((40 + x // 6) % 256, (90 + y // 3) % 256, (130 + x // 5) % 256))",
-                        "            else:",
-                        "                face = abs(x - width // 2) < 58 and 48 < y < 160",
-                        "                row.extend((228 if face else 96, 194 if face else (70 + x // 8) % 256, 168 if face else 150))",
-                        "        rows.append(b'\\x00' + bytes(row))",
-                        "    raw = b''.join(rows)",
-                        "    def chunk(tag, data):",
-                        "        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xFFFFFFFF)",
-                        "    png = b'\\x89PNG\\r\\n\\x1a\\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 6)) + chunk(b'IEND', b'')",
-                        "    path.write_bytes(png)",
-                        "    return str(path)",
-                        "",
-                        "class ProjectAPI:",
-                        "    def __init__(self):",
-                        "        self.projects = {}",
-                        "    def create_project(self, name):",
-                        "        import uuid",
-                        "        project_id = str(uuid.uuid4())",
-                        "        self.projects[project_id] = {'id': project_id, 'name': str(name), 'timeline': {'nodes': []}}",
-                        "        return project_id",
-                        "    def get_timeline(self, project_id):",
-                        "        return self.projects.setdefault(str(project_id), {'timeline': {'nodes': []}}).setdefault('timeline', {'nodes': []})",
-                        "    def export_project(self, project_id, format='json'):",
-                        "        import json",
-                        "        import os",
-                        "        import pathlib",
-                        "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                        "        target_root = pathlib.Path(test_output_root) / 'export' if test_output_root else pathlib.Path('export')",
-                        "        target = target_root / f'{project_id}.{format or \"json\"}'",
-                        "        target.parent.mkdir(parents=True, exist_ok=True)",
-                        "        target.write_text(json.dumps(self.projects.get(str(project_id), {'id': str(project_id)}), ensure_ascii=False, indent=2), encoding='utf-8')",
-                        "        return str(target)",
-                        "    def generate_background(self, project_id, prompt):",
-                        "        import os, pathlib",
-                        "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                        "        target_root = pathlib.Path(test_output_root) / 'media' / 'generated_images' if test_output_root else pathlib.Path('media/generated_images')",
-                        "        return _cgnk_write_project_api_png(target_root / f'background_{project_id}.png', 'background')",
-                        "    def generate_sprite(self, project_id, prompt):",
-                        "        import os, pathlib",
-                        "        test_output_root = os.environ.get('CGKN_TEST_OUTPUT_DIR', '').strip()",
-                        "        target_root = pathlib.Path(test_output_root) / 'media' / 'generated_images' if test_output_root else pathlib.Path('media/generated_images')",
-                        "        return _cgnk_write_project_api_png(target_root / f'sprite_{project_id}.png', 'sprite')",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            changed.append("src/backend/project_api.py")
-
-    return {"changed": bool(changed), "files": changed}
-
-
 def classify_provider_pytest_failure(stdout: str, stderr: str) -> str:
     text = f"{stdout}\n{stderr}"
     if "PIL._deprecate" in text or "BaseSettings` has been moved" in text or "pydantic-settings" in text:
@@ -6376,107 +4858,6 @@ def ensure_provider_test_environment(project_dir: pathlib.Path, *, timeout: int 
         steps.append(run_subprocess_text(pip_base + ["pytest"], cwd=project, timeout=timeout))
     ok = all(step.get("ok") for step in steps)
     return {"ok": ok, "python": str(python) if ok else "", "venv_dir": str(venv_dir), "steps": steps, "error": "" if ok else "dependency_install_failed"}
-
-
-def materialize_provider_test_artifacts(project_dir: pathlib.Path, error_text: str = "") -> dict[str, Any]:
-    project = pathlib.Path(project_dir).resolve()
-    tests_text = collect_project_test_source_text(project)
-    combined = f"{tests_text}\n{error_text or ''}"
-    changed: list[str] = []
-
-    def mark(path: pathlib.Path) -> None:
-        rel = str(path.relative_to(project)).replace("\\", "/")
-        if rel not in changed:
-            changed.append(rel)
-
-    def write_json(path: pathlib.Path, payload: Any) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps(payload, ensure_ascii=False, indent=2)
-        if not path.exists() or path.read_text(encoding="utf-8", errors="replace") != text:
-            path.write_text(text + "\n", encoding="utf-8")
-            mark(path)
-
-    def write_demo_png(path: pathlib.Path, *, kind: str) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists() and path.stat().st_size > 0:
-            return
-        import struct
-        import zlib
-
-        width, height = (960, 540) if kind == "background" else (360, 640)
-        rows = []
-        for y in range(height):
-            row = bytearray()
-            for x in range(width):
-                if kind == "background":
-                    r = (32 + x // 8 + y // 16) % 256
-                    g = (88 + y // 3) % 256
-                    b = (132 + x // 5) % 256
-                else:
-                    cx = abs(x - width // 2)
-                    r = 220 if cx < 70 and 60 < y < 180 else (76 + y // 6) % 256
-                    g = 184 if cx < 70 and 60 < y < 180 else (74 + x // 8) % 256
-                    b = 160 if cx < 70 and 60 < y < 180 else (150 + y // 9) % 256
-                row.extend((r, g, b))
-            rows.append(b"\x00" + bytes(row))
-        raw = b"".join(rows)
-
-        def chunk(tag: bytes, data: bytes) -> bytes:
-            return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-
-        png = (
-            b"\x89PNG\r\n\x1a\n"
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(raw, 6))
-            + chunk(b"IEND", b"")
-        )
-        path.write_bytes(png)
-        mark(path)
-
-    timeline_payload = {
-        "scenes": [
-            {"id": "opening", "title": "Opening", "time": "Day 1 morning", "branch_to": ["conflict"]},
-            {"id": "conflict", "title": "Conflict", "time": "Day 1 afternoon", "branch_to": ["resolution"]},
-            {"id": "resolution", "title": "Resolution", "time": "Day 1 evening", "branch_to": []},
-        ]
-    }
-
-    if "data/story_timeline.json" in combined or "STORY_TIMELINE_PATH" in combined or "Timeline data file" in combined:
-        write_json(project / "data" / "story_timeline.json", timeline_payload)
-    if "assets/backgrounds" in combined or "BACKGROUND_DIR" in combined:
-        write_demo_png(project / "assets" / "backgrounds" / "background_demo.png", kind="background")
-    if "assets/characters" in combined or "CHARACTER_DIR" in combined:
-        write_demo_png(project / "assets" / "characters" / "sprite_demo.png", kind="sprite")
-    if "export/project.json" in combined or "EXPORT_PATHS" in combined:
-        write_json(project / "export" / "project.json", {"name": "VN Project Assistant", "entrypoint": "main.py", "timeline": "data/story_timeline.json"})
-        write_json(project / "export" / "backgrounds" / "background_list.json", {"backgrounds": [{"id": "background_demo", "path": "assets/backgrounds/background_demo.png"}]})
-        write_json(project / "export" / "characters" / "character_list.json", {"characters": [{"id": "sprite_demo", "path": "assets/characters/sprite_demo.png"}]})
-        write_json(project / "export" / "story_timeline.json", timeline_payload)
-
-    return {"changed": bool(changed), "files": changed}
-
-
-def deterministic_post_build_repair(project_dir: pathlib.Path, first_test_result: dict[str, Any]) -> dict[str, Any]:
-    stdout = str(first_test_result.get("stdout", ""))
-    stderr = str(first_test_result.get("stderr", ""))
-    combined = f"{stdout}\n{stderr}"
-    launcher = ensure_provider_root_launcher(project_dir)
-    pydantic = repair_pydantic_basesettings(project_dir)
-    pillow = repair_pillow_requirement(project_dir, combined)
-    imports = repair_missing_test_import_requirements(project_dir)
-    provider_interfaces = repair_common_provider_project_interfaces(project_dir, combined)
-    artifacts = materialize_provider_test_artifacts(project_dir, combined)
-    return {
-        "kind": "ProviderPostBuildDeterministicRepair",
-        "created_at": now(),
-        "launcher": launcher,
-        "pydantic": pydantic,
-        "pillow": pillow,
-        "imports": imports,
-        "provider_interfaces": provider_interfaces,
-        "artifacts": artifacts,
-        "failure_type": classify_provider_pytest_failure(stdout, stderr),
-    }
 
 
 def infer_explicit_minimum_test_count(text: str) -> int:
@@ -6775,9 +5156,6 @@ def post_build_finalize_provider_project(
 ) -> dict[str, Any]:
     post_build_started_at = now()
     append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
-    launcher_result = ensure_provider_root_launcher(project_dir)
-    if launcher_result.get("changed"):
-        append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_entrypoint_repair", "role": "tool", "result": launcher_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     req = infer_public_delivery_requirements(session, "")
     image_missing: list[str] = []
@@ -6858,12 +5236,18 @@ def post_build_finalize_provider_project(
     repair_result: dict[str, Any] = {}
     dependency_setup: dict[str, Any] = {}
     if not preseal_test_result.get("ok"):
-        repair_result = deterministic_post_build_repair(project_dir, preseal_test_result)
         dependency_setup = ensure_provider_test_environment(project_dir)
+        repair_result = {
+            "status": "provider_repair_required",
+            "changed": False,
+            "owner": "provider",
+            "failure_type": str(preseal_test_result.get("failure_type", "test_failure")),
+            "rule": "CGKN does not repair customer-project behavior with domain-specific kernel code.",
+        }
         append_agent_session_event(
             session_dir,
             conversation_id,
-            {"kind": "post_build_deterministic_repair", "role": "tool", "repair": repair_result, "dependency_setup": dependency_setup},
+            {"kind": "post_build_provider_repair_required", "role": "system", "repair": repair_result, "dependency_setup": dependency_setup},
         )
     candidate_manifest = canonical_evidence_hash.candidate_source_manifest(project_dir)
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
@@ -6995,6 +5379,68 @@ def post_build_finalize_provider_project(
         delivery_limits.append("Missing verified image-generation or preview evidence: " + ", ".join(image_result.get("missing", [])))
     if video_result.get("video_blocked"):
         delivery_limits.append("video_blocked: demo video was not produced during provider post-build finalize")
+    final_audit_refs = [
+        {
+            "role": "production_provenance",
+            "ref": str(provenance_ref),
+            "sha256": provenance_hash,
+        },
+        {
+            "role": "goal_acceptance",
+            "ref": str(goal_receipt_path),
+            "sha256": canonical_evidence_hash.sha256_file(goal_receipt_path),
+        },
+    ]
+    if screenshot_path.is_file():
+        final_audit_refs.append(
+            {
+                "role": "visual_evidence",
+                "ref": str(screenshot_path.resolve()),
+                "sha256": canonical_evidence_hash.sha256_file(screenshot_path),
+            }
+        )
+    final_audit = run_positive_transition_audit(
+        session_dir,
+        conversation_id,
+        session,
+        "pre_public_delivery",
+        reason="Canonical verification claims this exact candidate is ready to package and enter the public delivery gate.",
+        context_refs=final_audit_refs,
+    )
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "false_pass_pre_public_delivery_audit",
+            "role": "system",
+            "result": final_audit,
+        },
+    )
+    if final_audit.get("action") != "resume":
+        action = str(final_audit.get("action", "halt"))
+        return {
+            "test_result": test_result,
+            "goal_acceptance": goal_receipt,
+            "goal_acceptance_ref": str(goal_receipt_path),
+            "preseal_test_result": preseal_test_result,
+            "runtime_result": runtime_result,
+            "visual_evidence_result": visual_evidence_result,
+            "image_result": image_result,
+            "video_result": video_result,
+            "browser_visual_required": browser_visual_required,
+            "media_evidence_required": media_evidence_required,
+            "production_provenance": provenance,
+            "provider_causal_trace": causal_trace,
+            "false_pass_audit": final_audit,
+            "manifest": {},
+            "gate": {
+                "delivery_allowed": False,
+                "verdict": "NEEDS_REWORK",
+                "missing": [f"false_pass_audit:{action}"],
+                "supervision_route": action,
+            },
+            "ok": False,
+        }
     manifest = local_packager.package_project(
         project_dir,
         startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
@@ -7025,6 +5471,7 @@ def post_build_finalize_provider_project(
         "media_evidence_required": media_evidence_required,
         "production_provenance": provenance,
         "provider_causal_trace": causal_trace,
+        "false_pass_audit": final_audit,
         "manifest": manifest,
         "gate": gate,
         "ok": bool(gate.get("delivery_allowed")),
@@ -7396,17 +5843,6 @@ def run_provider_generation_job(
             if formal_entry
             else run_dir / "production_entry_receipt.json"
         )
-        design_state = (
-            session.get("whiteboard", {}).get("product_design", {})
-            if isinstance(session.get("whiteboard"), dict)
-            and isinstance(session.get("whiteboard", {}).get("product_design"), dict)
-            else {}
-        )
-        codex_design_brief = (
-            str(design_state.get("brief_ref", "")).strip()
-            if design_state.get("workflow_state") == "approved"
-            else ""
-        )
         args = argparse.Namespace(
             plan="",
             goal=requirement,
@@ -7420,7 +5856,7 @@ def run_provider_generation_job(
             use_api=True,
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
-            codex_capability_brief=codex_design_brief,
+            codex_capability_brief="",
         )
         provider_generation_started_at = now()
         provider_request_capture = provider_causal_trace.begin_provider_request(
@@ -7551,13 +5987,12 @@ def run_provider_generation_job(
                 "validation_receipt": str(validation_receipt),
             },
         )
-        emit_runtime_supervision_checkpoint(
+        integration_audit = run_positive_transition_audit(
             session_dir,
             conversation_id,
             session,
-            "provider_output_received",
-            reason="Provider output passed the existing validation boundary and is entering post-build finalization.",
-            requested_action="observe",
+            "integration_complete",
+            reason="Provider jobs, deterministic merge, and Provider semantic review claim integration is complete.",
             context_refs=[
                 {
                     "role": "provider_generation_result",
@@ -7571,6 +6006,20 @@ def run_provider_generation_job(
                 },
             ],
         )
+        append_agent_session_event(
+            session_dir,
+            conversation_id,
+            {
+                "kind": "false_pass_integration_audit",
+                "role": "system",
+                "result": integration_audit,
+            },
+        )
+        if integration_audit.get("action") != "resume":
+            raise RuntimeError(
+                "false_pass_audit_route:"
+                + str(integration_audit.get("action", "halt"))
+            )
         append_agent_session_event(session_dir, conversation_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, conversation_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
         runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
@@ -7767,27 +6216,6 @@ def run_provider_generation_job(
             },
         )
         save_session(session_dir, session)
-        emit_runtime_supervision_checkpoint(
-            session_dir,
-            conversation_id,
-            session,
-            "provider_failure",
-            reason=f"Provider or downstream generation work stopped in rework: {error_type}",
-            severity="warning",
-            requested_action="advise",
-            context_refs=[
-                {
-                    "role": "provider_phase_log",
-                    "ref": str(phase_log_path.resolve()),
-                    "sha256": canonical_evidence_hash.sha256_file(phase_log_path) if phase_log_path.is_file() else "",
-                },
-                {
-                    "role": "provider_generation_result",
-                    "ref": str(result_path.resolve()),
-                    "sha256": canonical_evidence_hash.sha256_file(result_path) if result_path.is_file() else "",
-                },
-            ],
-        )
         write_provider_phase_event(
             phase_log_path,
             {
@@ -7814,6 +6242,12 @@ def run_agent_generation_job(
     announce_start: bool = False,
     max_turns: int = 12,
 ) -> None:
+    # SUPPORT/EXPERIMENTAL ONLY: imports stay out of the production module graph.
+    import agent_conversation_loop
+    import dynamic_pipeline_runner
+    import pipeline_manifest as pipeline_manifest_module
+    import pipeline_planner_agent
+
     session = load_session(session_dir, conversation_id)
     requirement = combined_requirement(session)
     if not requirement:
@@ -8175,6 +6609,10 @@ def resume_after_evidence_review_job(
     *,
     max_turns: int = 12,
 ) -> None:
+    # Legacy support resume for old dynamic-pipeline checkpoints only.
+    import dynamic_pipeline_runner
+    import pipeline_manifest as pipeline_manifest_module
+
     session = load_session(session_dir, conversation_id)
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
     project_dir = pathlib.Path(str(checkpoint.get("project_dir") or session.get("generation", {}).get("project_dir", "")))
@@ -8466,154 +6904,56 @@ def apply_backend_dialogue_tick(
     return analysis
 
 
-def design_checkpoint_public_text(session: dict[str, Any]) -> str:
+def provider_design_scope_public_text(session: dict[str, Any]) -> str:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     state = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
-    workflow_state = str(state.get("workflow_state", ""))
-    if not state.get("required") or workflow_state == "approved":
+    if not state.get("required"):
         return ""
-    if workflow_state == "awaiting_user_confirmation":
-        summary = str(state.get("brief_summary", "")).strip()
-        detail = f" 当前方案摘要：{summary[:360]}" if summary else ""
-        return "界面方案已经整理好。请直接告诉我需要修改的地方，或回复“设计确认，开始生成”。" + detail
-    if workflow_state == "codex_unavailable":
-        return "界面设计分析暂时不可用；请求已保留，正式生成没有启动。恢复后可以直接继续。"
-    if workflow_state == "codex_running":
-        return "我正在先整理项目界面和交互方案；设计完成并由你确认后才会开始正式生成。"
-    return "我已先冻结项目界面和交互要求；设计确认前不会开始正式生成。"
+    return "界面和交互要求已纳入 Provider Planner；它们不会触发普通 Codex 设计或修复调用。"
 
 
-def run_codex_design_supervision_job(
-    client: CodexConversation,
-    conversation_id: int | str,
-    session_dir: pathlib.Path,
-    log_dir: pathlib.Path,
-    request_path: pathlib.Path,
-) -> None:
-    request_id = ""
-    try:
-        request_doc = read_json(request_path, {})
-        request_id = str(request_doc.get("request_id", ""))
-        result = codex_design_supervision.run_codex_design_supervision(
-            request_path,
-            agent_session_path(session_dir, conversation_id),
-            codex_command=CODEX_DESIGN_COMMAND,
-            timeout=CODEX_DESIGN_TIMEOUT,
-        )
-        session = load_session(session_dir, conversation_id)
-        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        session["whiteboard"] = codex_design_supervision.apply_design_brief(whiteboard, result)
-        append_whiteboard_version(session, session["whiteboard"])
-        append_memory_event(
-            session,
-            "product_design_brief_ready",
-            data={
-                "brief_ref": result.get("brief_path", ""),
-                "brief_sha256": result.get("brief", {}).get("brief_sha256", ""),
-                "advisory_only": True,
-            },
-        )
-        save_session(session_dir, session)
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="product_design_brief_ready",
-            source="product_design_checkpoint",
-            direct_text=design_checkpoint_public_text(session),
-        )
-    except Exception as exc:
-        log_bridge_error(log_dir, "product_design_supervision_failed", conversation_id, exc)
-        session = load_session(session_dir, conversation_id)
-        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        session["whiteboard"] = codex_design_supervision.mark_codex_unavailable(whiteboard, str(exc))
-        append_whiteboard_version(session, session["whiteboard"])
-        append_memory_event(session, "product_design_supervision_unavailable", data={"error": str(exc)[:800]})
-        save_session(session_dir, session)
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="product_design_supervision_unavailable",
-            source="product_design_checkpoint",
-            direct_text=design_checkpoint_public_text(session),
-        )
-    finally:
-        if request_id:
-            with ACTIVE_CODEX_DESIGN_LOCK:
-                ACTIVE_CODEX_DESIGN_REQUESTS.discard(request_id)
-
-
-def maybe_start_design_supervision(
+def record_provider_design_scope(
     client: CodexConversation,
     conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     session: dict[str, Any],
 ) -> dict[str, Any]:
+    """Record UI scope for the Provider planner without invoking or gating on Codex."""
+    del client, log_dir
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     state = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
-    workflow_state = str(state.get("workflow_state", ""))
-    request_id = str(state.get("request_id", ""))
-    with ACTIVE_CODEX_DESIGN_LOCK:
-        running_in_process = bool(request_id and request_id in ACTIVE_CODEX_DESIGN_REQUESTS)
-    if not state.get("required") or workflow_state in {"approved", "awaiting_user_confirmation"} or running_in_process:
+    if not state.get("required"):
         return {"status": "not_started"}
-    if CODEX_DESIGN_MODE == "disabled":
-        session["whiteboard"] = codex_design_supervision.apply_api_only_design_baseline(whiteboard)
-        append_whiteboard_version(session, session["whiteboard"])
-        append_memory_event(
-            session,
-            "product_design_api_only_ready",
-            data={"design_source": "api_only_baseline", "codex_used": False},
-        )
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {
-                "kind": "product_design_api_only_ready",
-                "role": "system",
-                "design_source": "api_only_baseline",
-                "codex_used": False,
-            },
-        )
-        save_session(session_dir, session)
-        return {"status": "api_only_ready"}
-    prepared = codex_design_supervision.prepare_design_escalation(
-        session_dir,
-        conversation_id,
-        session,
-        agent_session_path(session_dir, conversation_id),
-    )
-    append_whiteboard_version(session, session.get("whiteboard", {}))
+    session["whiteboard"] = {
+        **whiteboard,
+        "product_design": {
+            **state,
+            "workflow_state": "provider_planner_pending",
+            "design_source": "provider_planner",
+            "codex_used": False,
+            "user_confirmation_required": False,
+            "advisory_only": False,
+        },
+    }
+    append_whiteboard_version(session, session["whiteboard"])
     append_memory_event(
         session,
-        "product_design_supervision_requested",
-        data={"request_path": prepared.get("request_path", ""), "advisory_only": True},
+        "product_design_provider_planner_ready",
+        data={"design_source": "provider_planner_input", "codex_used": False},
     )
-    if CODEX_DESIGN_MODE != "cli":
-        state = session.get("whiteboard", {}).get("product_design", {})
-        state["workflow_state"] = "awaiting_codex_brief"
-        session["whiteboard"]["product_design"] = state
-        save_session(session_dir, session)
-        return prepared
-    state = session.get("whiteboard", {}).get("product_design", {})
-    state["workflow_state"] = "codex_running"
-    session["whiteboard"]["product_design"] = state
-    request_id = str(prepared.get("request", {}).get("request_id", ""))
-    if request_id:
-        with ACTIVE_CODEX_DESIGN_LOCK:
-            ACTIVE_CODEX_DESIGN_REQUESTS.add(request_id)
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "product_design_provider_planner_ready",
+            "role": "system",
+            "design_source": "provider_planner_input",
+            "codex_used": False,
+        },
+    )
     save_session(session_dir, session)
-    request_path = pathlib.Path(str(prepared.get("request_path", "")))
-    threading.Thread(
-        target=run_codex_design_supervision_job,
-        args=(client, conversation_id, session_dir, log_dir, request_path),
-        daemon=True,
-    ).start()
-    return {**prepared, "status": "codex_running"}
+    return {"status": "provider_planner_ready"}
 
 
 def run_model_frontdesk_turn(
@@ -8662,12 +7002,7 @@ def run_model_frontdesk_turn(
             data={"artifact": "model_frontdesk_failure", "error": str(exc)[:500]},
         )
         analysis = apply_backend_dialogue_tick(session_dir, conversation_id, session, model=model, timeout=timeout, reason=reason)
-        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        action = (
-            "start_generation"
-            if combined_requirement(session) and not codex_design_supervision.design_supervision_pending(whiteboard)
-            else "continue_chat"
-        )
+        action = "start_generation" if combined_requirement(session) else "continue_chat"
         reply = str(analysis.get("user_visible_reply", ""))
         reply, rejected = reject_off_topic_public_reply(session_dir, conversation_id, session, reply, source="backend_dialogue_fallback")
         if rejected:
@@ -8779,57 +7114,7 @@ def start_generation_from_income(
     if status in ACTIVE_GENERATION_STATUSES:
         return False
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if codex_design_supervision.design_supervision_pending(whiteboard):
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {
-                "kind": "generation_waiting_for_product_design",
-                "role": "system",
-                "reason": reason,
-                "workflow_state": whiteboard.get("product_design", {}).get("workflow_state", ""),
-            },
-        )
-        generation["status"] = "waiting_confirmation"
-        generation["start_wait_reason"] = "product_design_confirmation_pending"
-        session["generation"] = generation
-        save_session(session_dir, session)
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="product_design_confirmation_pending",
-            source="product_design_checkpoint",
-            direct_text=design_checkpoint_public_text(session),
-        )
-        return False
     if not combined_requirement(session):
-        return False
-    supervision_allowed, supervision_reason = provider_start_supervision_decision(
-        client,
-        conversation_id,
-        session_dir,
-        session,
-        reason=reason,
-    )
-    if not supervision_allowed:
-        if supervision_reason not in {"checkpoint_emitted", "waiting_supervisor"}:
-            public_reason = {
-                "repair_cgkn": "后台检查发现 CGKN 需要先修复，当前项目生成保持暂停。",
-                "request_user_decision": "后台检查需要你确认一个关键决定，当前项目生成保持暂停。",
-                "halt": "后台安全检查未通过，当前项目生成保持暂停。",
-                "supervision_unavailable": "后台监督暂时不可用，已安全暂停生成。",
-            }.get(supervision_reason, "后台检查尚未完成，当前项目生成保持暂停。")
-            send_customer_reply(
-                client,
-                conversation_id,
-                session_dir,
-                session,
-                event="runtime_supervision_checkpoint_blocked",
-                source="runtime_supervisor",
-                direct_text=public_reason,
-            )
         return False
     append_truth_ledger(
         session_dir,
@@ -9055,59 +7340,6 @@ def auto_start_pending_intakes(
         ):
             started += 1
     return started
-
-
-def auto_resume_supervised_intakes(
-    client: CodexConversation,
-    session_dir: pathlib.Path,
-    log_dir: pathlib.Path,
-    model: str,
-    timeout: int,
-    *,
-    allowed_chat: str = "",
-    generation_mode: str = "api",
-) -> int:
-    if SUPERVISION_POLICY != "gate" or not runtime_supervision_enabled():
-        return 0
-    session_paths = [session_path(session_dir, allowed_chat)] if allowed_chat else sorted(session_dir.glob("*.json"))
-    resumed = 0
-    for path in session_paths:
-        if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
-            continue
-        conversation_id = path.stem
-        session = load_session(session_dir, conversation_id)
-        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-        if str(generation.get("status", "")).lower() != "waiting_supervisor":
-            continue
-        checkpoint_id = str(generation.get("runtime_supervision_checkpoint_id", "")).strip()
-        if not checkpoint_id:
-            continue
-        result = cgkn_supervision_protocol.result_for_checkpoint(RUNTIME_SUPERVISOR_DIR, checkpoint_id)
-        if result is None or result.get("action") not in cgkn_supervision_protocol.RELEASE_ACTIONS:
-            continue
-        if start_generation_from_income(
-            client,
-            conversation_id,
-            session_dir,
-            log_dir,
-            model,
-            timeout,
-            session,
-            reason="runtime_supervision_release",
-            generation_mode=generation_mode,
-        ):
-            resumed += 1
-            refreshed = load_session(session_dir, conversation_id)
-            send_customer_reply(
-                client,
-                conversation_id,
-                session_dir,
-                refreshed,
-                event="runtime_supervision_checkpoint_released",
-                source="runtime_supervisor",
-                direct_text="后台检查已经通过，项目现在开始构建。",
-            )
-    return resumed
 
 
 def continue_customer_turn(
@@ -9469,7 +7701,7 @@ def handle_text(
             timeout=timeout,
             reason="new_project_request",
         )
-        design_note = design_checkpoint_public_text(session)
+        design_note = provider_design_scope_public_text(session)
         if design_note:
             turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
         auto_start, start_reason = should_auto_start_generation(session, analysis, text)
@@ -9491,7 +7723,7 @@ def handle_text(
                 source="backend_dialogue_start_policy",
                 direct_text=direct_text,
             )
-            maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
+            record_provider_design_scope(client, conversation_id, session_dir, log_dir, session)
             return
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
@@ -9541,20 +7773,6 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
-        if codex_design_supervision.design_supervision_pending(whiteboard):
-            start_generation_from_income(
-                client,
-                conversation_id,
-                session_dir,
-                log_dir,
-                model,
-                timeout,
-                session,
-                reason="frontdesk_generation_confirmation",
-                generation_mode=generation_mode,
-            )
-            maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
-            return
         if str(generation_mode or "api").lower() == "api":
             send_customer_reply(
                 client,
@@ -9576,7 +7794,7 @@ def handle_text(
             reason="frontdesk_generation_confirmation",
             generation_mode=generation_mode,
         )
-        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
+        record_provider_design_scope(client, conversation_id, session_dir, log_dir, session)
         return
 
     if intent == "escalation_request":
@@ -9635,7 +7853,7 @@ def handle_text(
         timeout=timeout,
         reason="project_update",
     )
-    design_note = design_checkpoint_public_text(session)
+    design_note = provider_design_scope_public_text(session)
     if design_note:
         turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
     analysis = session.get("backend_dialogue_analysis", {}) if isinstance(session.get("backend_dialogue_analysis"), dict) else {}
@@ -9667,7 +7885,7 @@ def handle_text(
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
-        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
+        record_provider_design_scope(client, conversation_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,
@@ -9812,7 +8030,7 @@ def handle_attachment_message(
         timeout=timeout,
         reason="attachment_project_input",
     )
-    design_note = design_checkpoint_public_text(session)
+    design_note = provider_design_scope_public_text(session)
     if design_note:
         turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
     analysis = apply_backend_dialogue_tick(
@@ -9842,7 +8060,7 @@ def handle_attachment_message(
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
-        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
+        record_provider_design_scope(client, conversation_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,

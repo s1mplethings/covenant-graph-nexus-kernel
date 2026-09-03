@@ -16,10 +16,13 @@ The production generation route remains:
 ```text
 Codex conversation
 -> requirements and whiteboard/agent_session state
--> reviewed API/Provider generation
+-> Provider Planner API and minimal ProviderJob DAG
+-> parallel isolated Provider work, ownership check, deterministic merge
+-> Provider integration/semantic repair
 -> Provider output validation
 -> post-build finalization
 -> canonical test/runtime/visual evidence as applicable
+-> sparse read-only Codex False-Pass audit at positive checkpoints
 -> user review in the active Codex task when required
 -> local_packager
 -> public_delivery_gate
@@ -35,9 +38,10 @@ must not become a second production or delivery route.
 
 - `scripts/codex_conversation.py` — import-only conversation orchestration,
   generation entry, guarded replies, evidence gates, and delivery handoff.
-- `scripts/codex_design_supervision.py` — bounded design-support adapter.
-- `scripts/cgkn_runtime_supervisor.py` — optional checkpoint supervisor; it
-  does not launch another conversation service.
+- `scripts/provider_jobs.py` — minimal deterministic DAG executor and PatchSet ownership boundary.
+- `scripts/cgkn_runtime_supervisor.py` — persistent read-only False-Pass Auditor host.
+- `scripts/cgkn_supervision_router.py` — deterministic project/evidence/kernel routing.
+- `scripts/governed_kernel_repair.py` — isolated allowlisted kernel-repair execution.
 - `scripts/local_packager.py` — sole package and delivery exit.
 - `docs/00_kernel_contract.md` — kernel invariants.
 - `docs/01_contract_registry.md` — authoritative formal artifact registry.
@@ -52,3 +56,8 @@ python -m pytest tests/test_kernel_contract.py tests/test_codex_conversation.py 
 
 Provider credentials are used only by the reviewed Provider route. No
 conversation transport credential is required.
+
+`CGKN_PROVIDER_PARALLELISM` defaults to 4. Normal Provider leaves, retries, and
+test failures do not invoke Codex. Project problems return to Provider,
+evidence problems rerun canonical verification, and only demonstrated CGKN
+bugs can enter the separate governed Codex kernel-repair path.

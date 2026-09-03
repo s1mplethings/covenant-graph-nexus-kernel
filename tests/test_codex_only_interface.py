@@ -4,6 +4,10 @@ import ast
 import pathlib
 import subprocess
 
+import pytest
+
+pytestmark = pytest.mark.codex
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEXT_SUFFIXES = {

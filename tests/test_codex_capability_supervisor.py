@@ -9,6 +9,8 @@ import tempfile
 import jsonschema
 import pytest
 
+pytestmark = pytest.mark.codex
+
 from scripts import codex_capability_supervisor as supervisor
 from scripts import dynamic_pipeline_runner
 from scripts import pipeline_manifest

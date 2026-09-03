@@ -1,0 +1,62 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-053",
+  "project_id": "cgkn",
+  "goal": "Make ProviderJob DAG execution the parallel project-work contract and restrict persistent Codex supervision to evidence-bound false-pass auditing with deterministic repair routing.",
+  "backlog_item_ids": ["PB-043"],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Provider remains the only generated-candidate author and customer-project semantic repair owner.",
+    "ProviderJob workers return isolated PatchSets, enforce owns, honor dependencies and concurrency caps, merge deterministically, retry only failed jobs, and reuse PASS jobs.",
+    "Codex audits only high-value positive transitions and ordinary Provider/test failures invoke no Codex.",
+    "Audit results use one canonical action and scope model with deterministic routing.",
+    "Kernel repair is a separate allowlisted workspace-write mirror requiring reproduction and regression checks.",
+    "False-pass cases A-E, focused tests, kernel guard, and bounded verification pass."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-FALSE-PASS",
+      "measure": "fault routing accuracy and clean-path availability",
+      "target": "A-E all pass and an ordinary failure records zero Codex invocations",
+      "method": "fault-injection suite and durable route/metric receipt inspection"
+    },
+    {
+      "id": "QM-PROVIDER-PARALLEL",
+      "measure": "safe real temporal overlap of independent jobs",
+      "target": "provider_peak_concurrency >= 2 under a two-party barrier while dependency and ownership tests pass",
+      "method": "barrier/event timing, deterministic merge assertions, localized retry and reuse tests"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed contract and mainline tests",
+      "target": "all focused and bounded verification commands pass",
+      "method": "ordered pytest profiles and cgnk_slim_rule_guard"
+    }
+  ],
+  "quality_activities": {
+    "prevention": ["Freeze Provider, CGKN, Codex, evidence, package, and delivery authority before code changes."],
+    "assurance": ["Review production call graph before modification and keep local_packager as the only exit."],
+    "control": ["Run protocol/router/kernel repair/parallel executor tests before Provider and delivery regressions."],
+    "improvement": ["Track Provider and Codex invocation metrics in durable support receipts and use failures to localize future work."]
+  },
+  "interface_expectations": [
+    "scripts/provider_jobs.py owns the minimal ProviderJob/PatchSet scheduling contract.",
+    "scripts/cgkn_supervision_protocol.py owns canonical audit results and legacy boundary mapping.",
+    "scripts/cgkn_supervision_router.py owns deterministic next-action receipts without an LLM.",
+    "scripts/governed_kernel_repair.py owns isolated allowlisted Codex write execution.",
+    "scripts/codex_conversation.py emits only integration-complete and pre-public-delivery audits in its current production route."
+  ],
+  "evidence_refs": ["project_management/cgkn/iterations/ITER-053_RUNTIME_EVIDENCE.md"],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": ["Local fault injection, temporal concurrency, focused Provider, kernel, delivery, and 1404-test quick verification passed. Live Qwen3.8 Provider acceptance is blocked by a repeatable TLS transport failure."],
+    "accepted_backlog_item_ids": ["PB-043"]
+  },
+  "retrospective": {
+    "worked": ["Reusing the existing leaf DAG and adding one minimal ProviderJob/PatchSet contract increased observable parallelism without creating a second generation route."],
+    "did_not_work": ["The first 300-second quick bound was too short; a complete run required about 804 seconds. The full_all profile still exceeds a 180-second bounded run because an identified legacy agent-conversation test alone takes about 60 seconds."],
+    "experiments": ["Measure the next credentialed run's two positive Codex audits against Provider call count and wall time before tuning audit frequency."]
+  }
+}

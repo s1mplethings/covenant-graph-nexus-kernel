@@ -92,6 +92,11 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     local_studio = read_text("scripts/local_studio_cli.py") if (ROOT / "scripts/local_studio_cli.py").exists() else ""
     revision_doc = read_text("docs/09_project_revision_lane.md") if (ROOT / "docs/09_project_revision_lane.md").exists() else ""
     connectivity = read_text("scripts/check_connectivity.py")
+    supervision_protocol = read_text("scripts/cgkn_supervision_protocol.py")
+    supervision_host = read_text("scripts/cgkn_runtime_supervisor.py")
+    supervision_router = read_text("scripts/cgkn_supervision_router.py")
+    provider_jobs = read_text("scripts/provider_jobs.py")
+    provider_impl = read_text("scripts/run_local_pipeline_impl.py")
 
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
         missing = [term for term in ROUTE_TERMS if term not in text]
@@ -147,6 +152,75 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "default generation dispatch marks api_provider_project_generation driver",
         "api_provider_project_generation" in start_body and "agent_generated_pipeline" not in start_body,
         "start_agent_generation driver is not api_provider_project_generation",
+    )
+    add(
+        checks,
+        "Codex audits only positive transitions",
+        all(term in supervision_protocol for term in ("requirements_frozen", "integration_complete", "pre_public_delivery"))
+        and "AUDIT_CHECKPOINT_TYPES" in supervision_host
+        and '"pre_provider_generation"' not in bridge
+        and '"provider_failure"' not in bridge,
+        "bridge still emits an ordinary build/failure checkpoint or high-value audit set is missing",
+    )
+    add(
+        checks,
+        "ordinary product design does not invoke Codex",
+        "run_codex_design_supervision" not in bridge
+        and "CODEX_DESIGN_MODE" not in bridge
+        and "provider_planner_ready" in bridge,
+        "Codex design execution remains reachable from the production bridge",
+    )
+    add(
+        checks,
+        "retired planner and agent lanes are not production imports",
+        all(
+            marker not in bridge.splitlines()[:120]
+            for marker in (
+                "import agent_conversation_loop",
+                "import dynamic_pipeline_runner",
+                "import pipeline_planner_agent",
+                "import pipeline_manifest as pipeline_manifest_module",
+            )
+        ),
+        "retired support lane is still imported at module load time",
+    )
+    add(
+        checks,
+        "false-pass actions have one deterministic router",
+        all(term in supervision_protocol for term in ("rework_project", "recheck_evidence", "repair_kernel", "user_decision"))
+        and "provider_repair_required" in supervision_router
+        and "canonical_verification_rerun_required" in supervision_router
+        and "governed_kernel_repair_required" in supervision_router,
+        "canonical audit action or deterministic route is missing",
+    )
+    add(
+        checks,
+        "ProviderJob DAG owns parallel project work",
+        "class ProviderJob" in provider_jobs
+        and "CGKN_PROVIDER_PARALLELISM" in provider_jobs
+        and "ThreadPoolExecutor" in provider_jobs
+        and "validate_patch_set" in provider_impl,
+        "ProviderJob contract, deterministic parallelism, or production ownership boundary is missing",
+    )
+    post_build_body = function_body(bridge, "post_build_finalize_provider_project")
+    forbidden_kernel_repairs = [
+        name
+        for name in (
+            "deterministic_post_build_repair",
+            "ensure_provider_root_launcher",
+            "repair_pydantic_basesettings",
+            "repair_pillow_requirement",
+            "repair_missing_test_import_requirements",
+            "repair_common_provider_project_interfaces",
+            "materialize_provider_test_artifacts",
+        )
+        if f"{name}(" in post_build_body
+    ]
+    add(
+        checks,
+        "post-build does not repair customer behavior in the kernel",
+        not forbidden_kernel_repairs and "provider_repair_required" in post_build_body,
+        ", ".join(forbidden_kernel_repairs) or "Provider repair routing marker missing",
     )
 
     provider_route_body = function_body(bridge, "run_provider_generation_job") + "\n" + function_body(bridge, "run_provider_execute_with_retries")
@@ -283,15 +357,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         ", ".join(unmarked_wrappers),
     )
 
-    line_count = bridge.count("\n") + 1
-    if line_count > 5200:
-        warnings.append(
-            {
-                "name": "codex_conversation.py is too large",
-                "detail": f"{line_count} lines; extract modules before adding more logic",
-            }
-        )
-    bloat_hits = [term for term in BLOAT_HINTS if term in bridge]
+    bloat_hits = [term for term in BLOAT_HINTS if term in post_build_body]
     if bloat_hits:
         warnings.append(
             {

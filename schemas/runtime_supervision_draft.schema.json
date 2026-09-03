@@ -6,8 +6,10 @@
   "additionalProperties": false,
   "required": [
     "action",
+    "scope",
     "summary",
     "diagnosis",
+    "evidence_refs",
     "guidance",
     "repair_targets",
     "acceptance_checks",
@@ -16,19 +18,37 @@
   "properties": {
     "action": {
       "enum": [
-        "observe",
-        "advise",
-        "repair_cgkn",
-        "request_user_decision",
+        "rework_project",
+        "recheck_evidence",
+        "repair_kernel",
+        "user_decision",
         "resume",
         "halt"
       ]
+    },
+    "scope": {
+      "enum": ["none", "project", "integration", "requirements", "evidence", "runtime", "visual", "identity", "kernel", "user", "safety"]
     },
     "summary": {"type": "string", "minLength": 1, "maxLength": 1600},
     "diagnosis": {
       "type": "array",
       "maxItems": 8,
       "items": {"type": "string", "maxLength": 800}
+    },
+    "evidence_refs": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "ref", "sha256", "claim"],
+        "properties": {
+          "role": {"type": "string", "maxLength": 80},
+          "ref": {"type": "string", "minLength": 1, "maxLength": 600},
+          "sha256": {"type": "string", "maxLength": 64},
+          "claim": {"type": "string", "maxLength": 400}
+        }
+      }
     },
     "guidance": {
       "type": "array",

@@ -8,7 +8,10 @@ import tempfile
 import unittest
 import zipfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.slow
 
 
 class ProductStudioFinalAcceptanceTests(unittest.TestCase):

@@ -123,12 +123,13 @@ def test_project_team_checks_present_and_ok() -> None:
         "model defaults are centralized for bridge and connectivity",
         "local studio routes through MainAgentManager only",
         "model policy exposes required task profiles",
+        "retired planner and agent lanes are not production imports",
     ):
         assert name in checks, name
         assert checks[name]["ok"], name
 
 
-def test_strict_mode_reports_existing_bloat_as_warning() -> None:
+def test_strict_mode_passes_when_no_architecture_warnings_remain() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/cgnk_slim_rule_guard.py", "--strict"],
         cwd=ROOT,
@@ -137,8 +138,8 @@ def test_strict_mode_reports_existing_bloat_as_warning() -> None:
         timeout=30,
     )
 
-    assert result.returncode != 0
-    assert "WARN:" in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "WARN:" not in result.stdout
 
 
 def test_strict_mode_fails_when_warnings_present() -> None:

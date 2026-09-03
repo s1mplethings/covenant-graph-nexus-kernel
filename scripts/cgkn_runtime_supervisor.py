@@ -28,6 +28,7 @@ for import_path in (ROOT, SCRIPTS_DIR):
         sys.path.insert(0, str(import_path))
 
 import cgkn_supervision_protocol as protocol
+import cgkn_supervision_router
 
 
 DEFAULT_STATE_DIR = ROOT / ".cgkn" / "runtime_supervisor"
@@ -106,15 +107,36 @@ def _checkpoint_prompt(checkpoint: dict[str, Any]) -> str:
         )
     }
     return (
-        "You are the persistent bounded Codex supervisor for CGKN. "
+        "You are the persistent bounded Codex False-Pass Auditor for CGKN. "
         "CGKN is the long-running system and Codex conversation is its interface. "
         "Inspect only this identity-bound checkpoint and referenced repository evidence. "
         "Do not run Provider generation, write or patch a sealed generated candidate, claim formal evidence, package, deliver, or expose secrets. "
-        "This assessment turn is read-only. Use repair_cgkn only to request a separate governed repair and include only relative CGKN-owned repair targets. "
-        "Use resume or observe when the checkpoint may continue, request_user_decision for business/cost/credential/publication authority, and halt when it is unsafe. "
+        "Treat every CGKN-generated PASS, READY, verdict, summary, and status as an untrusted claim. "
+        "Artifact existence is not proof: inspect the underlying source, tests, runtime observation, candidate identity, requirement coverage, and dependency relationships. "
+        "Actively seek a concrete counterexample and ask whether the evidence proves that this exact candidate satisfies this exact claim. "
+        "If no concrete contradiction can be bound to an evidence ref, use resume; never block on intuition. "
+        "Use rework_project for generated-project, integration, or requirement-coverage defects; use recheck_evidence when the project may be sound but evidence is stale or insufficient; "
+        "use repair_kernel only to request a separate governed CGKN repair; use user_decision only for business, cost, credential, or publication authority; use halt only when continuation is unsafe. "
+        "This assessment turn is read-only. For repair_kernel include only relative CGKN-owned repair targets. "
         "Return exactly the JSON object required by the output schema.\n\n"
         f"CHECKPOINT:\n{json.dumps(compact, ensure_ascii=False, sort_keys=True)}"
     )
+
+
+def _record_invocation_metric(state_dir: pathlib.Path, field: str) -> None:
+    path = state_dir / "supervision_metrics.json"
+    try:
+        current = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        current = {}
+    current.setdefault("kind", "CGKNSupervisionMetrics")
+    current.setdefault("codex_supervisor_invocation_count", 0)
+    current.setdefault("codex_kernel_repair_invocation_count", 0)
+    current[field] = int(current.get(field, 0) or 0) + 1
+    current["updated_at"] = protocol.now()
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
 
 
 class CodexCliThreadAdapter:
@@ -335,8 +357,27 @@ class SupervisorHost:
         state["workflow_state"] = "supervising"
         self.save_state(state)
         try:
-            result = self.adapter.run(checkpoint, str(state.get("thread_id", "")))
+            if checkpoint.get("checkpoint_type") in protocol.AUDIT_CHECKPOINT_TYPES:
+                _record_invocation_metric(self.state_dir, "codex_supervisor_invocation_count")
+                result = self.adapter.run(checkpoint, str(state.get("thread_id", "")))
+            else:
+                result = protocol.build_result(
+                    checkpoint,
+                    str(state.get("thread_id", "") or "deterministic-non-audit-bypass"),
+                    {
+                        "action": "resume",
+                        "scope": "none",
+                        "summary": "Non-positive operational checkpoint bypassed without a Codex invocation.",
+                        "diagnosis": [],
+                        "evidence_refs": [],
+                        "guidance": [],
+                        "repair_targets": [],
+                        "acceptance_checks": [],
+                        "known_limits": [],
+                    },
+                )
             protocol.append_result(self.state_dir, result)
+            route_receipt = cgkn_supervision_router.dispatch(result, checkpoint, self.state_dir)
         except Exception:
             state = self.load_state()
             state["workflow_state"] = "supervision_unavailable"
@@ -349,13 +390,16 @@ class SupervisorHost:
         state["last_checkpoint_sha256"] = str(checkpoint["checkpoint_sha256"])
         action = str(result["action"])
         state["workflow_state"] = {
-            "observe": "ready",
             "resume": "ready",
-            "advise": "advisory_pending",
-            "repair_cgkn": "waiting_repair_executor",
-            "request_user_decision": "waiting_user_decision",
+            "rework_project": "waiting_provider_repair",
+            "recheck_evidence": "waiting_evidence_recheck",
+            "repair_kernel": "waiting_kernel_repair",
+            "user_decision": "waiting_user_decision",
             "halt": "halted",
         }[action]
+        state["last_route_receipt"] = str(
+            self.state_dir / "routes" / f"{route_receipt['checkpoint_id']}.json"
+        )
         state["last_failure_category"] = "" if action in protocol.RELEASE_ACTIONS else action
         self.save_state(state)
         return result
@@ -374,6 +418,11 @@ class SupervisorHost:
                 if isinstance(item, dict):
                     results.append(item)
         health = protocol.read_service_health(self.state_dir)
+        metrics_path = self.state_dir / "supervision_metrics.json"
+        try:
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8")) if metrics_path.is_file() else {}
+        except (OSError, json.JSONDecodeError):
+            metrics = {}
         service_pid = int(state.get("service_pid", 0) or 0)
         return {
             "kind": "CGKNRuntimeSupervisorStatus",
@@ -392,6 +441,8 @@ class SupervisorHost:
             ),
             "restart_count": state.get("restart_count", 0),
             "last_failure_category": state.get("last_failure_category", ""),
+            "codex_supervisor_invocation_count": int(metrics.get("codex_supervisor_invocation_count", 0) or 0),
+            "codex_kernel_repair_invocation_count": int(metrics.get("codex_kernel_repair_invocation_count", 0) or 0),
             "formal_evidence_status": "NOT_EVALUATED",
         }
 

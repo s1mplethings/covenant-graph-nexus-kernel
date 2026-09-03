@@ -8,10 +8,14 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.check_product_studio_contract as checker
+
+pytestmark = pytest.mark.slow
 
 
 def copy_checker_inputs(temp_root: pathlib.Path) -> None:

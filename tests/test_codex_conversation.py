@@ -670,7 +670,7 @@ class CodexConversationCustomerBridgeTests(unittest.TestCase):
             events = bridge.agent_session_path(session_dir, "chat-revise").read_text(encoding="utf-8")
             self.assertIn("背景和立绘", events)
 
-    def test_completed_project_interface_update_waits_for_design_confirmation(self) -> None:
+    def test_completed_project_interface_update_routes_design_to_provider_planner(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
@@ -684,10 +684,11 @@ class CodexConversationCustomerBridgeTests(unittest.TestCase):
 
             session = bridge.load_session(session_dir, "chat-restart")
             self.assertEqual("ready_with_warnings", session["generation"]["status"])
-            self.assertIn(
+            self.assertEqual(
+                "provider_planner_pending",
                 session["whiteboard"]["product_design"]["workflow_state"],
-                {"awaiting_codex_brief", "codex_unavailable", "awaiting_user_confirmation"},
             )
+            self.assertFalse(session["whiteboard"]["product_design"]["codex_used"])
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
 
     def test_project_attachment_waits_for_confirmation(self) -> None:

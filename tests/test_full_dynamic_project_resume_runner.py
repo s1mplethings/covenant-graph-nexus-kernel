@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+
 from scripts.full_dynamic_project_resume_runner import run_resume
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PREVIOUS = ROOT / "generated" / "full_dynamic_real_project_eval"
+pytestmark = pytest.mark.e2e
 
 
 def test_full_resume_runner_preserves_blocked_semantics(tmp_path: pathlib.Path) -> None:

@@ -21,15 +21,25 @@ messaging API, require a conversation credential, or introduce another UI
 transport. `scripts/codex_conversation.py` is import-only and is called from
 the active Codex task.
 
-## Persistent supervision
+## Persistent False-Pass supervision
 
 Checkpoint supervision resumes one identity-bound Codex thread. A checkpoint
 binds its sequence, previous hash, repository identity, conversation, project,
 run, bounded context references, requested action, and fixed authority fields.
 Supervisor results are support state and never formal evidence.
 
-Allowed outcomes are bounded observation, advice, a governed `repair_cgkn`
-request, a user decision request, resume, or halt. The supervisor cannot
+The persistent thread is an adversarial auditor, not a project worker. It is
+called only when CGKN proposes a positive transition at requirements freeze,
+integration complete, or pre-public-delivery. It treats CGKN PASS/READY claims
+as untrusted, checks the underlying source, tests, runtime observations,
+candidate identity, requirement coverage, and dependencies, and must bind any
+challenge to concrete evidence. Ordinary leaf completion, Provider failure,
+test failure, and API retry bypass Codex deterministically.
+
+Canonical outcomes are `resume`, `rework_project`, `recheck_evidence`,
+`repair_kernel`, `user_decision`, or `halt`. The deterministic router sends
+project defects to Provider repair, evidence defects to canonical rechecking,
+and kernel defects to a separate allowlisted Codex repair mirror. The supervisor cannot
 impersonate the Provider, edit a sealed candidate, assert formal evidence,
 package, or deliver.
 
@@ -38,8 +48,10 @@ package, or deliver.
 ```text
 Codex user message or attachment
 -> CGKN intake and shared state
--> requirements/design confirmation when needed
--> Provider generation and validation
+-> Provider API planning and parallel ProviderJob execution
+-> deterministic ownership check, merge, and integration
+-> Provider validation and canonical evidence
+-> sparse positive-transition False-Pass audit
 -> canonical evidence
 -> Codex user review when required
 -> local_packager and delivery gate
@@ -50,3 +62,9 @@ Failures remain bound to project/run state and can be diagnosed or resumed in
 the same task. A request-scoped Codex specialist call is allowed only as a
 bounded advisory adapter; it is not a second conversation, generation, or
 delivery path.
+
+The read-only audit turn never becomes writable. A `repair_kernel` result
+creates a governed request requiring reproduction, a regression test, an
+allowlisted isolated workspace-write execution, passing checks, and re-audit of
+the original checkpoint. Generated candidates, artifacts, runs, workspaces,
+packages, and delivery state are absent from that writable mirror.

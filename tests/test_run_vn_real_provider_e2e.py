@@ -3,6 +3,10 @@ from __future__ import annotations
 import pathlib
 import threading
 
+import pytest
+
+pytestmark = pytest.mark.e2e
+
 from scripts import run_vn_real_provider_e2e as runner
 from scripts import run_local_pipeline_impl
 

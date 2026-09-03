@@ -7,6 +7,9 @@
 - Conversation orchestration: `scripts/codex_conversation.py` (import-only)
 - Shared state: `whiteboard` and `agent_session`
 - Delivery exit: `scripts/local_packager.py`
+- Project author and semantic repair owner: Provider API
+- Project work unit: deterministic `ProviderJob` DAG with isolated PatchSets
+- Codex role: sparse read-only False-Pass Auditor at positive transitions
 
 This edition requires no separate customer-service process or conversation
 credential. Codex operates directly in the repository and returns customer-safe

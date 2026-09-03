@@ -8,10 +8,14 @@ import tempfile
 import unittest
 import zipfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.deliver_product_studio as delivery
+
+pytestmark = pytest.mark.slow
 
 
 RUN_FILE = ROOT / "examples" / "product_studio" / "runs" / "minimal_gui_tool_run" / "product_studio_run.json"

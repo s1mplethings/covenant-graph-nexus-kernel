@@ -41,17 +41,36 @@ CHECKPOINT_TYPES = {
     "pre_public_delivery",
     "service_crash",
 }
+AUDIT_CHECKPOINT_TYPES = {
+    "requirements_frozen",
+    "integration_complete",
+    "pre_public_delivery",
+}
 SEVERITIES = {"info", "warning", "blocking"}
 REQUESTED_ACTIONS = {"observe", "advise", "resume", "repair_cgkn"}
 RESULT_ACTIONS = {
-    "observe",
-    "advise",
-    "repair_cgkn",
-    "request_user_decision",
+    "rework_project",
+    "recheck_evidence",
+    "repair_kernel",
+    "user_decision",
     "resume",
     "halt",
 }
-RELEASE_ACTIONS = {"observe", "resume"}
+RELEASE_ACTIONS = {"resume"}
+LEGACY_ACTION_MAP = {
+    "observe": "resume",
+    "advise": "rework_project",
+    "repair_cgkn": "repair_kernel",
+    "request_user_decision": "user_decision",
+}
+ACTION_SCOPES = {
+    "resume": {"none"},
+    "rework_project": {"project", "integration", "requirements"},
+    "recheck_evidence": {"evidence", "runtime", "visual", "identity"},
+    "repair_kernel": {"kernel"},
+    "user_decision": {"user"},
+    "halt": {"safety"},
+}
 
 AUTHORITY = {
     "advisory_only": True,
@@ -359,6 +378,44 @@ def _safe_repair_target(value: Any) -> str:
     return ""
 
 
+def _safe_project_target(value: Any) -> str:
+    raw = str(value or "").strip().replace("\\", "/")
+    if not raw or raw.startswith("/") or re.match(r"^[A-Za-z]:", raw):
+        return ""
+    parts = pathlib.PurePosixPath(raw).parts
+    if any(part in {".", ".."} for part in parts):
+        return ""
+    return pathlib.PurePosixPath(*parts).as_posix()
+
+
+def canonical_action(value: Any) -> str:
+    raw = str(value or "").strip()
+    return LEGACY_ACTION_MAP.get(raw, raw)
+
+
+def _evidence_refs(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    output: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        ref = _bounded_text(item.get("ref"), 600)
+        if not ref:
+            continue
+        clean = {
+            "role": _bounded_text(item.get("role"), 80),
+            "ref": ref,
+            "sha256": _bounded_text(item.get("sha256"), 64),
+            "claim": _bounded_text(item.get("claim"), 400),
+        }
+        if clean not in output:
+            output.append(clean)
+        if len(output) >= 12:
+            break
+    return output
+
+
 def _string_list(value: Any, *, limit: int, chars: int) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -377,9 +434,19 @@ def build_result(
     thread_id: str,
     draft: dict[str, Any],
 ) -> dict[str, Any]:
-    action = str(draft.get("action", "")).strip()
+    action = canonical_action(draft.get("action", ""))
+    default_scope = {
+        "resume": "none",
+        "rework_project": "project",
+        "recheck_evidence": "evidence",
+        "repair_kernel": "kernel",
+        "user_decision": "user",
+        "halt": "safety",
+    }.get(action, "")
+    scope = str(draft.get("scope", "") or default_scope).strip()
     raw_targets = _string_list(draft.get("repair_targets", []), limit=12, chars=400)
-    repair_targets = [_safe_repair_target(item) for item in raw_targets]
+    target_sanitizer = _safe_repair_target if action == "repair_kernel" else _safe_project_target
+    repair_targets = [target_sanitizer(item) for item in raw_targets]
     if any(not item for item in repair_targets):
         raise ValueError("unsafe repair target")
     result = {
@@ -390,8 +457,10 @@ def build_result(
         "checkpoint_sha256": str(checkpoint.get("checkpoint_sha256", "")),
         "thread_id": _bounded_text(thread_id, 160),
         "action": action,
+        "scope": scope,
         "summary": _bounded_text(draft.get("summary"), 1600),
         "diagnosis": _string_list(draft.get("diagnosis", []), limit=8, chars=800),
+        "evidence_refs": _evidence_refs(draft.get("evidence_refs", [])),
         "guidance": _string_list(draft.get("guidance", []), limit=8, chars=800),
         "repair_targets": repair_targets,
         "acceptance_checks": _string_list(draft.get("acceptance_checks", []), limit=8, chars=800),
@@ -413,6 +482,8 @@ def validate_result(result: dict[str, Any], checkpoint: dict[str, Any] | None = 
         errors.append("result.schema_version")
     if result.get("action") not in RESULT_ACTIONS:
         errors.append("result.action")
+    elif result.get("scope") not in ACTION_SCOPES[str(result.get("action"))]:
+        errors.append("result.scope")
     if not str(result.get("thread_id", "")).strip():
         errors.append("result.thread_id")
     if result.get("authority") != AUTHORITY:
@@ -426,13 +497,19 @@ def validate_result(result: dict[str, Any], checkpoint: dict[str, Any] | None = 
     if not isinstance(targets, list):
         errors.append("result.repair_targets")
         targets = []
+    target_sanitizer = _safe_repair_target if result.get("action") == "repair_kernel" else _safe_project_target
     for target in targets:
-        if _safe_repair_target(target) != target:
+        if target_sanitizer(target) != target:
             errors.append("result.repair_target_scope")
-    if result.get("action") == "repair_cgkn" and not targets:
+    if result.get("action") in {"repair_kernel", "rework_project"} and not targets:
         errors.append("result.repair_targets_required")
-    if result.get("action") != "repair_cgkn" and targets:
+    if result.get("action") not in {"repair_kernel", "rework_project"} and targets:
         errors.append("result.repair_targets_unexpected")
+    refs = result.get("evidence_refs", [])
+    if not isinstance(refs, list):
+        errors.append("result.evidence_refs")
+    elif result.get("action") not in {"resume", "user_decision"} and not refs:
+        errors.append("result.evidence_refs_required")
     if any(key in result for key in FORBIDDEN_RESULT_KEYS):
         errors.append("result.forbidden_authority_field")
     expected = canonical_hash(_without_hash(result, "result_sha256"))

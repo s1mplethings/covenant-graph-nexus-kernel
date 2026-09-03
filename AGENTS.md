@@ -29,6 +29,8 @@
 - `docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative runtime ownership baseline: CGKN is the independently running system, Codex conversation is a CGKN-owned interface, and Codex starts or attaches to CGKN and supervises declared checkpoints.
 - Do not treat a new one-shot Codex process per Codex conversation message as the target architecture. Request-scoped Codex calls are bounded specialist or transitional adapters only.
 - Persistent Codex supervision must resume an identity-bound supervisor thread, preserve CGKN as the long-running owner of Codex conversation/project state, and keep every Provider, evidence, packaging, and delivery authority boundary intact.
+- Persistent Codex supervision is a sparse read-only False-Pass Auditor for high-value positive transitions only. Ordinary Provider work, retries, and test failures must not invoke Codex. Canonical audit actions route deterministically: project issues to Provider, evidence issues to canonical rechecking, and actual kernel issues to a separate allowlisted governed Codex repair.
+- `ProviderJob` is the only project-work concurrency unit. Provider authors isolated PatchSets; CGKN deterministically enforces dependencies, ownership, concurrency, merge order, affected-only repair, and PASS reuse. CGKN must not repair customer-project behavior with domain-specific kernel code.
 
 ## CGKN self-hosted project management
 
