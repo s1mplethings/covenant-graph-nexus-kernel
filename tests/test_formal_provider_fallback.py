@@ -3949,6 +3949,18 @@ def test_cached_component_is_revalidated_before_reuse(
 
     assert len(calls) == 1
     assert result["module_quality_validation"]["status"] == "pass"
+    assert result["cross_validation_feedforward_receipt"]["status"] == "pass"
+    assert result["components"][0]["cross_validation_feedforward_receipt"]["status"] == "pass"
+    assert (
+        tmp_path
+        / "artifacts"
+        / "cross_validation_feedforward"
+        / "components"
+        / "frontend.json"
+    ).exists()
+    assert (
+        tmp_path / "artifacts" / "cross_validation_feedforward" / "assembled_project.json"
+    ).exists()
     assert any(
         "cached component quality validation failed"
         in message
@@ -9225,7 +9237,23 @@ def test_component_quality_failure_retries_only_affected_leaf_files(monkeypatch,
                 ],
                 "affected_files": ["src/app.js", "src/styles.css"],
             }
-        return {"status": "pass", "blockers": [], "affected_files": []}
+        receipt = {
+            "kind": "CGKNGeneratedComponentQualityValidation",
+            "schema_version": 1,
+            "component_id": "frontend",
+            "status": "pass",
+            "checks": ["mocked_source_contracts"],
+            "validated_paths": sorted(item["path"] for item in files),
+            "blockers": [],
+            "affected_files": [],
+        }
+        canonical = json.dumps(
+            receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        receipt["receipt_sha256"] = run_local_pipeline_impl.hashlib.sha256(
+            canonical.encode("utf-8")
+        ).hexdigest()
+        return receipt
 
     monkeypatch.setattr(run_local_pipeline_impl, "provider_transport_repair_attempts", lambda: 2)
     monkeypatch.setattr(run_local_pipeline_impl, "should_split_component_generation", lambda *args, **kwargs: (True, "test"))
@@ -9255,6 +9283,8 @@ def test_component_quality_failure_retries_only_affected_leaf_files(monkeypatch,
     assert all("execution_plan" not in item for item in calls[1]["pending_context"]["file_manifest"])
     events = (tmp_path / "provider_phase_log.jsonl").read_text(encoding="utf-8")
     assert "component_quality_targeted_repair_planned" in events
+    assert "cross_validation_feedforward_passed" in events
+    assert "project_cross_validation_feedforward_passed" in events
 
 
 def test_python_test_leaf_has_separate_bounded_output_contract(monkeypatch) -> None:

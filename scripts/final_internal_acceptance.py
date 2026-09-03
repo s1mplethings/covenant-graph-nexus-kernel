@@ -524,12 +524,12 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
             customer_runtime_hash=sha(candidate / "customer_runtime.json"),
             visual_evidence_ref=str((candidate / "visual_evidence.json").resolve()),
             visual_evidence_hash=sha(candidate / "visual_evidence.json"),
-            blocker_code="BLOCKED_TELEGRAM_TEST_CHAT"
+            blocker_code="BLOCKED_USER_REVIEW"
             if provider_integration.get("status") == "PASS"
             else "",
-            reason="Live provider project reached tested runtime and browser validation; Telegram review and delivery require an explicit test chat."
+            reason="Live provider project reached tested runtime and browser validation; Codex conversation review and delivery require an explicit test chat."
             if provider_integration.get("status") == "PASS"
-            else "Live provider project did not reach the Telegram boundary.",
+            else "Live provider project did not reach the Codex conversation boundary.",
         ),
     )
 
@@ -657,8 +657,8 @@ def build_internal_acceptance(run_dir: str | pathlib.Path) -> dict[str, Any]:
                 "runtime",
                 "visual",
             ],
-            blocker_code="BLOCKED_TELEGRAM_TEST_CHAT" if deterministic_status == "BLOCKED" else "",
-            reason="Telegram review, send, receipt, and final delivery require an explicit test chat"
+            blocker_code="BLOCKED_USER_REVIEW" if deterministic_status == "BLOCKED" else "",
+            reason="Codex conversation review, send, receipt, and final delivery require an explicit test chat"
             if deterministic_status == "BLOCKED"
             else "internal deterministic chain failed",
         ),

@@ -4,18 +4,19 @@ import ast
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "telegram_dynamic_tree_contract.md"
-BRIDGE = ROOT / "scripts" / "telegram_live_bridge.py"
+DOC = ROOT / "docs" / "codex_conversation_contract.md"
+BRIDGE = ROOT / "scripts" / "codex_conversation.py"
 
 
 def test_contract_document_records_expected_boundary() -> None:
     text = DOC.read_text(encoding="utf-8")
     for term in (
-        "telegram_mainline_not_connected",
-        "explicit adapter",
-        "public_delivery_gate",
-        "emit_public_delivery",
-        "legacy provider pipeline",
+        "only user-facing intake and result surface",
+        "support lane",
+        "whiteboard + agent_session",
+        "reviewed Provider route",
+        "local_packager",
+        "public delivery",
     ):
         assert term in text
 
@@ -23,7 +24,7 @@ def test_contract_document_records_expected_boundary() -> None:
 def test_bridge_preserves_legacy_and_mainline_guards() -> None:
     source = BRIDGE.read_text(encoding="utf-8")
     assert "LEGACY PROVIDER PIPELINE" in source
-    assert "Telegram mainline must not call this" in source
+    assert "Codex conversation mainline must not call this" in source
     start = source[source.index("def start_agent_generation(") : source.index("def record_generation_start_waiting(")]
     assert "target=run_agent_generation_job" not in start
 

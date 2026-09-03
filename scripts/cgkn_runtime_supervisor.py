@@ -96,7 +96,7 @@ def _checkpoint_prompt(checkpoint: dict[str, Any]) -> str:
             "checkpoint_type",
             "severity",
             "reason",
-            "chat_id",
+            "conversation_id",
             "project_id",
             "run_id",
             "repository_identity",
@@ -107,7 +107,7 @@ def _checkpoint_prompt(checkpoint: dict[str, Any]) -> str:
     }
     return (
         "You are the persistent bounded Codex supervisor for CGKN. "
-        "CGKN is the long-running system and Telegram is its interface. "
+        "CGKN is the long-running system and Codex conversation is its interface. "
         "Inspect only this identity-bound checkpoint and referenced repository evidence. "
         "Do not run Provider generation, write or patch a sealed generated candidate, claim formal evidence, package, deliver, or expose secrets. "
         "This assessment turn is read-only. Use repair_cgkn only to request a separate governed repair and include only relative CGKN-owned repair targets. "
@@ -289,8 +289,8 @@ class SupervisorHost:
         env = dict(os.environ)
         env["CGKN_RUNTIME_SUPERVISOR_DIR"] = str(self.state_dir)
         env["CGKN_SUPERVISION_POLICY"] = str(supervision_policy)
-        stdout_path = self.state_dir / "telegram_service.stdout.log"
-        stderr_path = self.state_dir / "telegram_service.stderr.log"
+        stdout_path = self.state_dir / "codex_service.stdout.log"
+        stderr_path = self.state_dir / "codex_service.stderr.log"
         self._stdout_handle = stdout_path.open("a", encoding="utf-8")
         self._stderr_handle = stderr_path.open("a", encoding="utf-8")
         kwargs: dict[str, Any] = {
@@ -416,37 +416,6 @@ class SupervisorHost:
                     pass
 
 
-def _default_telegram_argv(args: argparse.Namespace) -> list[str]:
-    # Launch as a module from the repository root so both the scripts package
-    # and root-level contracts package are importable in the detached child.
-    argv = [sys.executable, "-m", "scripts.telegram_live_bridge"]
-    if args.chat_id:
-        argv.extend(["--chat-id", str(args.chat_id)])
-    if args.model:
-        argv.extend(["--model", str(args.model)])
-    argv.extend(
-        [
-            "--generation-mode",
-            str(args.generation_mode),
-            "--generation-timeout",
-            str(getattr(args, "generation_timeout", 900)),
-            "--codex-design-mode",
-            "disabled",
-            "--session-dir",
-            str(getattr(args, "session_dir", DEFAULT_CODEX_PROFILE_DIR / "sessions")),
-            "--log-dir",
-            str(getattr(args, "log_dir", DEFAULT_CODEX_PROFILE_DIR / "logs")),
-            "--upload-dir",
-            str(getattr(args, "upload_dir", DEFAULT_CODEX_PROFILE_DIR / "uploads")),
-            "--memory-dir",
-            str(getattr(args, "memory_dir", DEFAULT_CODEX_PROFILE_DIR / "memory")),
-            "--provider-projects-dir",
-            str(getattr(args, "provider_projects_dir", DEFAULT_CODEX_PROFILE_DIR / "provider_projects")),
-        ]
-    )
-    return argv
-
-
 def run_host(args: argparse.Namespace) -> int:
     state_dir = pathlib.Path(args.state_dir).resolve()
     adapter = CodexCliThreadAdapter(
@@ -458,46 +427,13 @@ def run_host(args: argparse.Namespace) -> int:
     host = SupervisorHost(ROOT, state_dir, adapter)
     stop_path = state_dir / "stop.request"
     stop_path.unlink(missing_ok=True)
-    service_argv = _default_telegram_argv(args) if args.start_telegram else []
-    if service_argv:
-        host.ensure_service(service_argv, supervision_policy=args.supervision_policy)
-    processed = 0
     attempted = 0
     try:
         while not stop_path.exists():
-            if service_argv:
-                current_state = host.load_state()
-                service_pid = int(current_state.get("service_pid", 0) or 0)
-                if not process_is_alive(service_pid):
-                    if int(current_state.get("restart_count", 0) or 0) >= int(args.restart_limit):
-                        current_state["workflow_state"] = "service_restart_exhausted"
-                        current_state["last_failure_category"] = "service_process_exit"
-                        host.save_state(current_state)
-                    else:
-                        host.ensure_service(service_argv, supervision_policy=args.supervision_policy)
-                health = protocol.read_service_health(state_dir)
-                if health.get("healthy"):
-                    current_state = host.load_state()
-                    current_state["last_health_at"] = protocol.now()
-                    if current_state.get("workflow_state") in {"service_starting", "attached", "service_degraded"}:
-                        current_state["workflow_state"] = "ready"
-                    host.save_state(current_state)
-                elif process_is_alive(int(host.load_state().get("service_pid", 0) or 0)):
-                    current_state = host.load_state()
-                    if current_state.get("workflow_state") not in {
-                        "supervising",
-                        "waiting_repair_executor",
-                        "waiting_user_decision",
-                        "halted",
-                    }:
-                        current_state["workflow_state"] = "service_degraded"
-                        current_state["last_failure_category"] = str(health.get("reason", "heartbeat_unavailable"))
-                        host.save_state(current_state)
             try:
                 result = host.process_next()
                 if result is not None:
                     attempted += 1
-                    processed += 1
                     print(json.dumps({"event": "checkpoint_processed", "result": result}, ensure_ascii=False), flush=True)
             except Exception as exc:
                 attempted += 1
@@ -512,7 +448,7 @@ def run_host(args: argparse.Namespace) -> int:
                 break
             time.sleep(max(0.1, min(float(args.poll_interval), 30.0)))
     finally:
-        host.close(terminate_child=bool(args.stop_service_on_exit))
+        host.close()
     return 0
 
 
@@ -527,22 +463,6 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--poll-interval", type=float, default=1.0)
     run.add_argument("--once", action="store_true")
     run.add_argument("--max-events", type=int, default=0)
-    run.add_argument("--start-telegram", action="store_true")
-    run.add_argument("--stop-service-on-exit", action="store_true")
-    run.add_argument("--restart-limit", type=int, default=2)
-    run.add_argument("--supervision-policy", choices=["observe", "gate"], default="gate")
-    run.add_argument("--chat-id", default="")
-    run.add_argument("--model", default="")
-    run.add_argument("--generation-mode", choices=["simulator", "api"], default="api")
-    run.add_argument("--generation-timeout", type=int, default=900)
-    run.add_argument("--session-dir", default=str(DEFAULT_CODEX_PROFILE_DIR / "sessions"))
-    run.add_argument("--log-dir", default=str(DEFAULT_CODEX_PROFILE_DIR / "logs"))
-    run.add_argument("--upload-dir", default=str(DEFAULT_CODEX_PROFILE_DIR / "uploads"))
-    run.add_argument("--memory-dir", default=str(DEFAULT_CODEX_PROFILE_DIR / "memory"))
-    run.add_argument(
-        "--provider-projects-dir",
-        default=str(DEFAULT_CODEX_PROFILE_DIR / "provider_projects"),
-    )
     run.set_defaults(func=run_host)
 
     status = sub.add_parser("status", help="Read supervisor and service status.")
@@ -557,7 +477,7 @@ def build_parser() -> argparse.ArgumentParser:
     emit.add_argument("--reason", required=True)
     emit.add_argument("--severity", choices=sorted(protocol.SEVERITIES), default="info")
     emit.add_argument("--requested-action", choices=sorted(protocol.REQUESTED_ACTIONS), default="observe")
-    emit.add_argument("--chat-id", default="")
+    emit.add_argument("--conversation-id", default="")
     emit.add_argument("--project-id", default="")
     emit.add_argument("--run-id", default="")
     return parser
@@ -584,7 +504,7 @@ def main() -> int:
             reason=args.reason,
             severity=args.severity,
             requested_action=args.requested_action,
-            chat_id=args.chat_id,
+            conversation_id=args.conversation_id,
             project_id=args.project_id,
             run_id=args.run_id,
         )

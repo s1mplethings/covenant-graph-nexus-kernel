@@ -17,7 +17,7 @@
     "Component-file generation uses a capability-appropriate Provider model instead of being downgraded solely because one leaf payload is small.",
     "Remote disconnect and equivalent connection-closure failures classify as provider transport, while current identity-bound pending work is not made unsafe by superseded historical hashes.",
     "Ordinary prose such as symbol contracts cannot create a required code symbol; only the exact required code symbol wording can do so.",
-    "No fix writes a sealed generated candidate, adds a generation path, changes the Telegram default route, packages output, or promotes support evidence to formal PASS.",
+    "No fix writes a sealed generated candidate, adds a generation path, changes the Codex conversation default route, packages output, or promotes support evidence to formal PASS.",
     "Targeted resume, design, goal-plan, dependency, routing, plugin, kernel, and management regressions pass."
   ],
   "quality_metrics": [

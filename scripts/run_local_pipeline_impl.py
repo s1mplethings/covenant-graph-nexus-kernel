@@ -35,6 +35,7 @@ import candidate_sanitizer
 import check_test_environment
 import codex_capability_supervisor
 import compose_local_pipeline
+import cross_validation_feedforward
 import discovery_selection_lane
 import design_research_agent
 import final_delivery_truth
@@ -101,7 +102,7 @@ GENERATION_POLICY = {
         "synthetic_project_code",
         "post_generation_architecture_rewrite",
     ],
-    "failure_rule": "Simulator mode is allowed to stop at BLOCKED. Telegram delivery mode must use API/provider or fail fast with a clear configuration error.",
+    "failure_rule": "Simulator mode is allowed to stop at BLOCKED. Codex conversation delivery mode must use API/provider or fail fast with a clear configuration error.",
 }
 
 
@@ -9244,6 +9245,7 @@ def provider_component_error_is_retryable(error_type: str, error_text: str) -> b
             "task-board interaction contract mismatch",
             "component semantic review failed",
             "component quality validation failed",
+            "component cross-validation and feedforward failed",
             "assembled project quality validation failed",
             "split file contains placeholder wording",
             "contract mismatch",
@@ -9340,6 +9342,11 @@ def write_provider_component_checkpoint(
         "module_quality_validation": parsed_result.get("module_quality_validation", {})
         if isinstance(parsed_result, dict)
         else {},
+        "cross_validation_feedforward_receipt": parsed_result.get(
+            "cross_validation_feedforward_receipt", {}
+        )
+        if isinstance(parsed_result, dict)
+        else {},
         "provider_error_type": provider_error_type,
         "error": error,
         "raw_output": raw_output,
@@ -9359,6 +9366,11 @@ def write_provider_component_checkpoint(
         "status": status,
         "semantic_review": semantic_review,
         "module_quality_validation": parsed_result.get("module_quality_validation", {})
+        if isinstance(parsed_result, dict)
+        else {},
+        "cross_validation_feedforward_receipt": parsed_result.get(
+            "cross_validation_feedforward_receipt", {}
+        )
         if isinstance(parsed_result, dict)
         else {},
         "files": files,
@@ -9887,6 +9899,11 @@ def enrich_component_pipeline_with_goal_plan(
     for workstream in workstreams:
         workstream_id = str(workstream.get("id", ""))
         searchable = f"{workstream_id} {workstream.get('scope', '')}".lower()
+        expected_outputs = [
+            str(path).replace("\\", "/").strip()
+            for path in workstream.get("expected_outputs", [])
+            if str(path).strip()
+        ]
         if workstream_id == "foundation":
             owner = "foundation"
         elif workstream_id == "application_entry":
@@ -9902,6 +9919,13 @@ def enrich_component_pipeline_with_goal_plan(
             owner = "docs"
         elif workstream_id.lower().endswith("_tests") or "behavior_tests" in workstream_id.lower():
             owner = "tests"
+        elif visual_surface_required and any(
+            path == "index.html"
+            or path.startswith("frontend/")
+            or path.startswith("public/")
+            for path in expected_outputs
+        ):
+            owner = "frontend"
         elif visual_surface_required and any(
             re.search(pattern, searchable)
             for pattern in (
@@ -12749,6 +12773,18 @@ def build_integration_feedforward_snapshot(
         for item in prior_files[-48:]
         if isinstance(item, dict) and str(item.get("path", "")).strip()
     ]
+    validated_feedforward = [
+        projection
+        for result in prior_component_results[-12:]
+        for projection in [
+            cross_validation_feedforward.component_feedforward_projection(
+                result.get("cross_validation_feedforward_receipt", {})
+                if isinstance(result, dict)
+                else {}
+            )
+        ]
+        if projection
+    ]
     snapshot: dict[str, Any] = {
         "kind": "CGKNIntegrationFeedforwardSnapshot",
         "schema_version": 1,
@@ -12777,6 +12813,7 @@ def build_integration_feedforward_snapshot(
             "path_manifest": [str(item.get("path", "")).replace("\\", "/").strip() for item in prior_files[-120:] if str(item.get("path", "")).strip()],
             "published_contracts": published_contracts,
             "interface_catalog": catalog,
+            "cross_validation_feedforward": validated_feedforward,
         },
         "downstream_consumers": downstream,
         "unresolved_integration_signals": [str(item)[:1000] for item in repair_errors[-12:]],
@@ -12802,6 +12839,14 @@ def integration_feedforward_checkpoint_hash(snapshot: dict[str, Any]) -> str:
     stable = json.loads(json.dumps(snapshot, ensure_ascii=False)) if isinstance(snapshot, dict) else {}
     stable.pop("snapshot_sha256", None)
     stable["unresolved_integration_signals"] = []
+    upstream_state = stable.get("upstream_state", {})
+    if isinstance(upstream_state, dict):
+        for projection in upstream_state.get("cross_validation_feedforward", []):
+            if isinstance(projection, dict):
+                # The receipt binds the complete audit snapshot, including transient
+                # repair narration. Stable checkpoint identity already retains its
+                # file, quality, and interface hashes, so omit only that audit hash.
+                projection.pop("receipt_sha256", None)
     canonical = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -18841,6 +18886,51 @@ def provider_generate_project_by_components(
             "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else "",
         }
 
+    def cross_validate_component_for_feedforward(
+        *,
+        component: dict[str, Any],
+        result: dict[str, Any],
+        files: list[dict[str, str]],
+        prior_files: list[dict[str, str]],
+        integration_feedforward: dict[str, Any],
+    ) -> dict[str, Any]:
+        component_id = str(component.get("id", "")).strip()
+        interface_registry = build_project_interface_registry([*prior_files, *files])
+        receipt = cross_validation_feedforward.build_component_receipt(
+            component_id=component_id,
+            required_paths=component_required_manifest_paths(component_id, component),
+            actual_paths=[item.get("path", "") for item in files],
+            component_quality_validation=result.get("module_quality_validation", {}),
+            interface_registry=interface_registry,
+            integration_feedforward=integration_feedforward,
+        )
+        result["cross_validation_feedforward_receipt"] = receipt
+        if run_dir is not None:
+            receipt_dir = run_dir / "artifacts" / "cross_validation_feedforward" / "components"
+            receipt_dir.mkdir(parents=True, exist_ok=True)
+            write_json(
+                receipt_dir / f"{provider_component_checkpoint_id(component_id)}.json",
+                receipt,
+            )
+        append_provider_event_log(
+            provider_phase_log_path,
+            {
+                "event": (
+                    "cross_validation_feedforward_passed"
+                    if receipt.get("status") == "pass"
+                    else "cross_validation_feedforward_failed"
+                ),
+                "stage": "project_generation",
+                "component": component_id,
+                "receipt_sha256": receipt.get("receipt_sha256", ""),
+                "blockers": receipt.get("blockers", [])[:8],
+                "downstream_component_ids": receipt.get("bindings", {}).get(
+                    "downstream_component_ids", []
+                ),
+            },
+        )
+        return receipt
+
     for component in components:
         component_id = str(component.get("id", "")).strip()
         if not component_id:
@@ -19031,6 +19121,30 @@ def provider_generate_project_by_components(
                     },
                 )
                 cached = None
+        if cached is not None:
+            cached_result, cached_files = cached
+            cached_result = dict(cached_result)
+            cached_result["files"] = cached_files
+            cached_result["module_quality_validation"] = cached_quality_validation
+            cached_cross_validation = cross_validate_component_for_feedforward(
+                component=component,
+                result=cached_result,
+                files=cached_files,
+                prior_files=prior_files,
+                integration_feedforward=integration_feedforward,
+            )
+            if cached_cross_validation.get("status") != "pass":
+                message = (
+                    f"cached component cross-validation and feedforward failed: {component_id}: "
+                    + "; ".join(
+                        str(item)
+                        for item in cached_cross_validation.get("blockers", [])[:8]
+                    )
+                )
+                component_errors.setdefault(component_id, []).append(message)
+                cached = None
+            else:
+                cached = (cached_result, cached_files)
         if cached is not None:
             if (
                 same_run_resume_goal_matches
@@ -19367,6 +19481,35 @@ def provider_generate_project_by_components(
                         contract_hash=current_component_contract_hash,
                     )
                     raise RuntimeError(quality_error)
+                cross_validation_receipt = cross_validate_component_for_feedforward(
+                    component=component,
+                    result=result,
+                    files=files,
+                    prior_files=prior_files,
+                    integration_feedforward=integration_feedforward,
+                )
+                if cross_validation_receipt.get("status") != "pass":
+                    cross_validation_error = (
+                        f"component cross-validation and feedforward failed: {component_id}: "
+                        + "; ".join(
+                            str(item)
+                            for item in cross_validation_receipt.get("blockers", [])[:8]
+                        )
+                    )
+                    write_provider_component_checkpoint(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        status="failed",
+                        raw_output=raw_output,
+                        parsed_result=result,
+                        files=files,
+                        semantic_review=semantic_review,
+                        error="component cross-validation and feedforward failed",
+                        provider_error_type="PROVIDER_COMPONENT_QUALITY_FAIL",
+                        contract_hash=current_component_contract_hash,
+                    )
+                    raise RuntimeError(cross_validation_error)
                 write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
@@ -19530,6 +19673,49 @@ def provider_generate_project_by_components(
                 for item in assembled_quality_validation.get("blockers", [])[:12]
             )
         )
+    project_interface_registry = build_project_interface_registry(files)
+    cross_validation_required = [
+        "TEST_REPORT.md"
+        if rel == "TEST_PLAN.md" and "TEST_REPORT.md" in paths and "TEST_PLAN.md" not in paths
+        else rel
+        for rel in required
+    ]
+    project_cross_validation_feedforward = cross_validation_feedforward.build_project_receipt(
+        component_receipts=[
+            result.get("cross_validation_feedforward_receipt", {})
+            for result in component_results
+        ],
+        assembled_quality_validation=assembled_quality_validation,
+        required_final_paths=cross_validation_required,
+        actual_paths=[item.get("path", "") for item in files],
+        interface_registry=project_interface_registry,
+    )
+    if run_dir is not None:
+        write_json(
+            run_dir / "artifacts" / "cross_validation_feedforward" / "assembled_project.json",
+            project_cross_validation_feedforward,
+        )
+    append_provider_event_log(
+        provider_phase_log_path,
+        {
+            "event": (
+                "project_cross_validation_feedforward_passed"
+                if project_cross_validation_feedforward.get("status") == "pass"
+                else "project_cross_validation_feedforward_failed"
+            ),
+            "stage": "project_generation",
+            "receipt_sha256": project_cross_validation_feedforward.get("receipt_sha256", ""),
+            "blockers": project_cross_validation_feedforward.get("blockers", [])[:12],
+        },
+    )
+    if project_cross_validation_feedforward.get("status") != "pass":
+        raise RuntimeError(
+            "project cross-validation and feedforward failed: "
+            + "; ".join(
+                str(item)
+                for item in project_cross_validation_feedforward.get("blockers", [])[:12]
+            )
+        )
     mark_generation_progress(
         deadline,
         "project_generation",
@@ -19548,6 +19734,9 @@ def provider_generate_project_by_components(
                 "public_contract": result.get("public_contract", {}),
                 "quality_gate": result.get("quality_gate", {}),
                 "module_quality_validation": result.get("module_quality_validation", {}),
+                "cross_validation_feedforward_receipt": result.get(
+                    "cross_validation_feedforward_receipt", {}
+                ),
             }
             for result in component_results
         ],
@@ -19555,6 +19744,7 @@ def provider_generate_project_by_components(
         "component_errors": component_errors,
         "component_checkpoint_summary": checkpoint_summary(),
         "module_quality_validation": assembled_quality_validation,
+        "cross_validation_feedforward_receipt": project_cross_validation_feedforward,
         "manual_checks": [
             check
             for result in component_results
@@ -23832,7 +24022,7 @@ def make_workflow_demo_video(out_dir: pathlib.Path, image_path: pathlib.Path, go
         ("1. Input Interface", "Story: a quiet VN opening scene\nNeed: background + character preview\nAction: prepare generation request"),
         ("2. Generate Assets", "The assistant turns the story input into image prompts,\nthen starts the image preview workflow."),
         ("3. Preview Generated Image", "A real PNG preview artifact is available for inspection.\nThis frame is generated by the local runtime, not copied from input."),
-        ("4. Delivery Artifacts", "Outputs prepared for Telegram:\n- still PNG preview\n- MP4 workflow demo\n- example report with source metadata"),
+        ("4. Delivery Artifacts", "Outputs prepared for Codex conversation:\n- still PNG preview\n- MP4 workflow demo\n- example report with source metadata"),
     ]
 
     for idx, (title, body) in enumerate(steps, 1):

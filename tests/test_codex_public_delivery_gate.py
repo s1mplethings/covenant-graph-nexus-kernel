@@ -9,7 +9,7 @@ import unittest
 
 import pytest
 
-pytestmark = pytest.mark.telegram
+pytestmark = pytest.mark.codex
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -22,7 +22,7 @@ import scripts.customer_runtime_runner as customer_runtime_runner
 import scripts.real_test_execution as real_test_execution
 import scripts.production_candidate_provenance as production_candidate_provenance
 import scripts.provider_causal_trace as provider_causal_trace
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
 @pytest.fixture(autouse=True)
@@ -247,7 +247,7 @@ def write_real_mp4(path: pathlib.Path) -> None:
     )
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self, *, document_success: bool = True, photo_success: bool = True, video_success: bool = True) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
@@ -257,46 +257,52 @@ class FakeTelegramClient:
         self.document_success = document_success
         self.photo_success = photo_success
         self.video_success = video_success
-        self._message_id = 100
+        self._turn_id = 100
 
-    def _result(self, chat_id: int | str, field: str) -> dict:
-        self._message_id += 1
-        media = {"file_id": f"{field}-{self._message_id}", "file_unique_id": f"unique-{field}-{self._message_id}"}
-        value = [dict(media, width=160, height=120)] if field == "photo" else media
-        return {"ok": True, "result": {"message_id": self._message_id, "chat": {"id": chat_id}, field: value}}
+    def _result(self, conversation_id: int | str, field: str) -> dict:
+        self._turn_id += 1
+        return {
+            "ok": True,
+            "result": {
+                "turn_id": self._turn_id,
+                "conversation_id": conversation_id,
+                "artifact_id": f"{field}-{self._turn_id}",
+                "artifact_unique_id": f"unique-{field}-{self._turn_id}",
+            },
+        }
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
-        return self._result(chat_id, "photo") if self.photo_success else False
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
+        return self._result(conversation_id, "photo") if self.photo_success else False
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
-        self.videos.append((str(chat_id), pathlib.Path(path), caption))
-        return self._result(chat_id, "video") if self.video_success else False
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
+        self.videos.append((str(conversation_id), pathlib.Path(path), caption))
+        return self._result(conversation_id, "video") if self.video_success else False
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
-        return self._result(chat_id, "document") if self.document_success else False
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict | bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
+        return self._result(conversation_id, "document") if self.document_success else False
 
 
-def vn_session(chat_id: str) -> dict:
-    session = bridge.default_session(chat_id)
+def vn_session(conversation_id: str) -> dict:
+    session = bridge.default_session(conversation_id)
     session["whiteboard"]["project_summary"] = "本地可运行的 VN 项目助手，桌面界面，文件导出，能直接生成背景和立绘图片"
     session["whiteboard"]["delivery_requirements"] = ["交付项目包、界面截图、生成背景、生成立绘"]
     session["whiteboard"]["acceptance_criteria"] = ["NO TEST EXECUTED 不能公开交付"]
-    session["active_run"] = {"id": f"run-{chat_id}-1", "status": "running", "created_at": bridge.now()}
+    session["active_run"] = {"id": f"run-{conversation_id}-1", "status": "running", "created_at": bridge.now()}
     session["generation"] = {"status": "running"}
     return session
 
 
-def requirement_session(chat_id: str, text: str) -> dict:
-    session = bridge.default_session(chat_id)
+def requirement_session(conversation_id: str, text: str) -> dict:
+    session = bridge.default_session(conversation_id)
     session["messages"].append({"role": "user", "text": text, "created_at": bridge.now()})
     session["whiteboard"]["delivery_requirements"] = [text]
     return session
@@ -462,10 +468,10 @@ def write_json_with_artifact_hash(path: pathlib.Path, update: dict) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-class TelegramPublicDeliveryGateTests(unittest.TestCase):
+class CodexConversationPublicDeliveryGateTests(unittest.TestCase):
     def test_final_delivery_requires_canonical_receipt_not_bare_true(self) -> None:
-        class BareTrueTelegramClient(FakeTelegramClient):
-            def _result(self, chat_id: int | str, field: str) -> bool:
+        class BareTrueCodexConversation(FakeCodexConversation):
+            def _result(self, conversation_id: int | str, field: str) -> bool:
                 return True
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -475,7 +481,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             session = vn_session("chat-receipt-missing")
             bridge.save_session(session_dir, session)
             sent = bridge.send_delivery_from_manifest(
-                BareTrueTelegramClient(),
+                BareTrueCodexConversation(),
                 "chat-receipt-missing",
                 session_dir,
                 session,
@@ -485,7 +491,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             receipt = project / "delivery_receipt.json"
             receipt_exists = receipt.is_file()
 
-        self.assertTrue(any(item.get("kind") == "package" for item in sent))
+        self.assertFalse(any(item.get("kind") == "package" for item in sent))
         self.assertTrue(receipt_exists)
         self.assertNotEqual("delivered", saved["generation"]["status"])
 
@@ -498,7 +504,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             (project / "README.md").write_text("# VN helper\n", encoding="utf-8")
             session = vn_session("chat-block")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             evidence = {
                 "test_report_path": "TEST_REPORT.md",
                 "test_commands": [],
@@ -539,7 +545,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             project, manifest = make_deliverable_project(root)
             session = vn_session("chat-pass")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             gate = bridge.evaluate_public_delivery_gate(project, manifest, session, phase="final")
             sent = bridge.send_delivery_from_manifest(client, "chat-pass", session_dir, session, manifest)
@@ -1109,7 +1115,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
                 "browser_visual_required": True,
             }
             try:
-                sent = bridge.send_delivery_from_manifest(FakeTelegramClient(), "chat-empty-send", session_dir, session, manifest)
+                sent = bridge.send_delivery_from_manifest(FakeCodexConversation(), "chat-empty-send", session_dir, session, manifest)
             finally:
                 bridge.evaluate_public_delivery_gate = original_gate
             saved = bridge.load_session(session_dir, "chat-empty-send")
@@ -1125,7 +1131,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             project, manifest = make_deliverable_project(root)
             session = vn_session("chat-package-fail")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient(document_success=False)
+            client = FakeCodexConversation(document_success=False)
 
             sent = bridge.send_delivery_from_manifest(client, "chat-package-fail", session_dir, session, manifest)
             saved = bridge.load_session(session_dir, "chat-package-fail")
@@ -1187,7 +1193,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             bridge.evaluate_public_delivery_gate = lambda *args, **kwargs: gate
             try:
                 bridge.send_delivery_from_manifest(
-                    FakeTelegramClient(),
+                    FakeCodexConversation(),
                     "chat-frozen-manifest",
                     session_dir,
                     session,
@@ -1203,13 +1209,13 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             )
 
     def test_package_replaced_after_inspector_is_not_sent(self) -> None:
-        class ReplacingClient(FakeTelegramClient):
+        class ReplacingClient(FakeCodexConversation):
             def __init__(self, package: pathlib.Path) -> None:
                 super().__init__()
                 self.package = package
 
-            def send_chat_action(self, chat_id: int | str, action: str) -> None:
-                super().send_chat_action(chat_id, action)
+            def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+                super().send_chat_action(conversation_id, action)
                 if action == "upload_document":
                     self.package.write_bytes(self.package.read_bytes() + b"replaced-before-send")
 
@@ -1240,7 +1246,7 @@ class TelegramPublicDeliveryGateTests(unittest.TestCase):
             project, manifest = make_media_project_without_browser_evidence(root, media="background")
             session = requirement_session("chat-send-bound", "只需要生成背景 background")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             sent = bridge.send_delivery_from_manifest(client, "chat-send-bound", session_dir, session, manifest)
             package_documents = [item for item in client.documents if item[1].name == "final_project_bundle.zip"]

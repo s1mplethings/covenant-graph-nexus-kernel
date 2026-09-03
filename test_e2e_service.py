@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-E2E test: Customer Service (Telegram) + Backend Dialogue Integration
+E2E test: Customer Service (Codex conversation) + Backend Dialogue Integration
 Tests if the system auto-generates and discovers local models.
 """
 
@@ -30,7 +30,7 @@ def test_backend_response():
     
     # Simulate a customer message
     session = {
-        "chat_id": "test_chat_123",
+        "conversation_id": "test_chat_123",
         "messages": [
             {
                 "role": "user",
@@ -150,7 +150,7 @@ def test_e2e_flow():
         print(f"客户: {request}\n")
         
         session = {
-            "chat_id": f"test_{i}",
+            "conversation_id": f"test_{i}",
             "messages": [{"role": "user", "text": request, "timestamp": now_str()}],
             "whiteboard": {}
         }

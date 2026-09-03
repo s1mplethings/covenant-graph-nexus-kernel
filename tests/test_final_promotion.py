@@ -14,7 +14,7 @@ import scripts.artifact_integrity as artifact_integrity
 import scripts.final_delivery_truth as final_delivery_truth
 import scripts.formal_model_contract as formal_model_contract
 import scripts.final_promotion as final_promotion
-import telegram_live_bridge as bridge
+import codex_conversation as bridge
 
 
 def nonblank_png() -> bytes:

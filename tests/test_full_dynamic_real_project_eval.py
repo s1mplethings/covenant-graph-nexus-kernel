@@ -45,7 +45,7 @@ def test_full_dynamic_real_project_control_path_cannot_pass_canonical_delivery(t
     assert result["provider_output_overrides_used"] is True
     assert result["reference_benchmark"] == "local_ai_knowledge_studio"
     assert result["generic_planner_proof"] is False
-    assert result["telegram_mainline"] == "telegram_mainline_not_connected"
+    assert result["production_mainline"] == "support_lane_not_promoted"
     assert not (tmp_path / "final_project_bundle.zip").exists()
     assert (tmp_path / "public_delivery_gate.json").exists()
     registry = json.loads((tmp_path / "agent_tree_registry.json").read_text(encoding="utf-8"))

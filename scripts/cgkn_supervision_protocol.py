@@ -290,7 +290,7 @@ def emit_checkpoint(
     reason: str,
     severity: str = "info",
     requested_action: str = "observe",
-    chat_id: Any = "",
+    conversation_id: Any = "",
     project_id: Any = "",
     run_id: Any = "",
     context_refs: list[dict[str, Any]] | None = None,
@@ -320,7 +320,7 @@ def emit_checkpoint(
             "checkpoint_type": str(checkpoint_type or "").strip(),
             "severity": str(severity or "info").strip(),
             "reason": _bounded_text(reason, 2000),
-            "chat_id": _bounded_text(chat_id, 120),
+            "conversation_id": _bounded_text(conversation_id, 120),
             "project_id": _bounded_text(project_id, 160),
             "run_id": _bounded_text(run_id, 160),
             "repository_identity": repository_identity(repository_root),
@@ -545,7 +545,7 @@ def write_service_heartbeat(
     state_dir: str | pathlib.Path,
     *,
     service_pid: int | None = None,
-    service_kind: str = "telegram_live_bridge",
+    service_kind: str = "codex_conversation",
 ) -> pathlib.Path:
     heartbeat = {
         "kind": HEARTBEAT_KIND,

@@ -26,7 +26,7 @@ This guide is the navigation and retention map for the repository. It does not r
 | `artifacts/` | Retained diagnostic or runtime evidence | Historical tracked evidence stays in place when referenced. New bulk output is ignored unless a review explicitly promotes a bounded evidence summary. |
 | `generated/` | Generated customer projects and disposable generation output | Runtime-only and ignored. A generated project is not formal delivery merely because it exists. |
 | `runs/` | Provider checkpoints, resumes, and local workspaces | Runtime-only and ignored. Preserve externally only when a referenced diagnostic requires it. |
-| `legacy/` | Compatibility and historical code | Keep isolated. Do not reconnect it to the Telegram default mainline. |
+| `legacy/` | Compatibility and historical code | Keep isolated. Do not reconnect it to the Codex conversation default mainline. |
 | `.service_worktree/` | Service-owned nested worktree | Local-only. Never clean it as ordinary cache data. |
 
 ## Where new work goes

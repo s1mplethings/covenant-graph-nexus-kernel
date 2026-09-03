@@ -16,7 +16,7 @@ from scripts import provider_causal_trace
 
 FORMAL_GATE_STATUS_PRODUCER = "scripts/formal_mainline_acceptance.py"
 FORMAL_GATE_STATUS_KIND = "CGKNFormalGateStatus"
-TELEGRAM_BLOCKABLE_GATES = {
+CODEX_BLOCKABLE_GATES = {
     "user_review",
     "delivery_manifest",
     "delivery_receipt",
@@ -94,7 +94,7 @@ GATE_SPECS: dict[str, dict[str, Any]] = {
     "recovery": {"scope": "candidate", "producer": "", "inspector": "", "artifact": ""},
     "provider_causal_trace": {
         "scope": "candidate",
-        "producer": "scripts/telegram_live_bridge.py",
+        "producer": "scripts/codex_conversation.py",
         "inspector": "scripts.provider_causal_trace.inspect",
         "artifact": "provider_causal_trace.json",
     },
@@ -293,7 +293,7 @@ def inspect_source(
         else:
             inspection = canonical_delivery_receipt.inspect_canonical_delivery_receipt(
                 path.parent,
-                expected_chat_id=expectations.get("chat_id"),
+                expected_conversation_id=expectations.get("conversation_id"),
                 expected_requirements=expectations.get("requirements"),
                 expected_attachment_refs=expectations.get("attachment_refs"),
             )
@@ -410,8 +410,8 @@ def inspect_gate_status(
         if claimed == "PASS":
             failures.append("source_missing")
         if claimed.startswith("BLOCKED") and (
-            gate not in TELEGRAM_BLOCKABLE_GATES
-            or document.get("blocker_code") != "BLOCKED_TELEGRAM_TEST_CHAT"
+            gate not in CODEX_BLOCKABLE_GATES
+            or document.get("blocker_code") != "BLOCKED_USER_REVIEW"
         ):
             failures.append("unsupported_source_free_blocker")
         if spec.get("inspector") and claimed not in {"BLOCKED", "NOT_EVALUATED", "NEEDS_REWORK"}:

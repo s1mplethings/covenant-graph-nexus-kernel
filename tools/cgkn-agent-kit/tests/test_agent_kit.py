@@ -149,7 +149,7 @@ def test_generation_command_has_one_formal_entry_and_no_secret_argument(tmp_path
     assert "--allow-network" in argv
     assert "--api-key" not in argv
     assert "local_packager.py" not in joined
-    assert "telegram_live_bridge.py" not in joined
+    assert "codex_conversation.py" not in joined
 
 
 def test_generation_command_routes_every_provider_stage_to_selected_model(tmp_path: pathlib.Path) -> None:

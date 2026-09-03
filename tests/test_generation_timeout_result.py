@@ -9,16 +9,16 @@ import unittest
 
 import pytest
 
-pytestmark = pytest.mark.telegram
+pytestmark = pytest.mark.codex
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import product_studio_reply
-import telegram_live_bridge as bridge
+import codex_conversation as bridge
 
 
-class TelegramGenerationTimeoutResultTests(unittest.TestCase):
+class CodexConversationGenerationTimeoutResultTests(unittest.TestCase):
     def setUp(self) -> None:
         self.project_slug = "unit-timeout-result"
         self.run_dir = ROOT / "examples" / "runtime_runs" / self.project_slug

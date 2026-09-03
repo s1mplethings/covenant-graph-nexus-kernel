@@ -80,7 +80,7 @@
     "feedback": [
       "The complete offline synthetic workflow, 50-test reviewed suite, isolated runtime, browser evidence, canonical package, and complexity contract passed.",
       "Live Steam/FACEIT credentials, a production real-demo corpus, and population-calibrated error rates remain explicitly not evaluated.",
-      "The local CLI continuation did not enter through Telegram production capture, so the public delivery gate correctly remains NEEDS_REWORK on production_candidate_provenance; no provenance was fabricated."
+      "The local CLI continuation did not enter through Codex conversation production capture, so the public delivery gate correctly remains NEEDS_REWORK on production_candidate_provenance; no provenance was fabricated."
     ],
     "accepted_backlog_item_ids": [
       "PB-006"

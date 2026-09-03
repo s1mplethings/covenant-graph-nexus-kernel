@@ -198,6 +198,41 @@ def test_goal_plan_paths_replace_inherited_duplicate_backend_architecture() -> N
     assert "backend/artifact_store.py" not in backend["required_paths"]
 
 
+def test_visual_goal_plan_assigns_owned_web_files_only_to_frontend() -> None:
+    goal = str(next(case["goal"] for case in CASES if case["name"] == "visual_novel"))
+    goal_spec = requirement_decision_lane.build_goal_spec(goal)
+    project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
+    pipeline = run_local_pipeline_impl.component_pipeline_from_plan(
+        goal,
+        {
+            "pipeline_plan": {
+                "payload": {
+                    "component_pipeline": compose_local_pipeline.build_component_pipeline(goal)
+                }
+            },
+            "goal_spec": goal_spec,
+            "project_plan": project_plan,
+        },
+    )
+    components = {row["id"]: row for row in pipeline["components"]}
+    expected_frontend_paths = {
+        "frontend/index.html",
+        "frontend/styles.css",
+        "frontend/app.js",
+    }
+
+    assert expected_frontend_paths.issubset(components["frontend"]["required_paths"])
+    assert expected_frontend_paths.isdisjoint(components["backend"]["required_paths"])
+    assert any(
+        row["id"] == "user_interface"
+        for row in components["frontend"]["business_workstreams"]
+    )
+    assert all(
+        row["id"] != "user_interface"
+        for row in components["backend"]["business_workstreams"]
+    )
+
+
 def test_goal_plan_workstream_relationships_become_leaf_dependencies_and_symbols() -> None:
     goal_spec = requirement_decision_lane.build_goal_spec(EXAM_LEARNING_GOAL)
     project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)

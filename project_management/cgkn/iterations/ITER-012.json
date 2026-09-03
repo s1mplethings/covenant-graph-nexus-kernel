@@ -77,7 +77,7 @@
   "interface_expectations": [
     "Checkpoint reuse revalidates constructor-injected Python interfaces, safe execution, the nonempty application stage graph, uniform stage-result mappings, and structured artifact storage before a component can feed downstream generation.",
     "Generated-project post-build executes demo.run_fixture through the bounded command runner and routes multi-root failures to exact traceback, media, fixture, and orchestrator owners without adding a generation or delivery path.",
-    "The Telegram Provider mainline, whiteboard and agent session, local_packager delivery exit, and public delivery gate remain unchanged."
+    "The Codex conversation Provider mainline, whiteboard and agent session, local_packager delivery exit, and public delivery gate remain unchanged."
   ],
   "evidence_refs": [
     "runs/vn_story_studio_large_20260801_v6/result.json",

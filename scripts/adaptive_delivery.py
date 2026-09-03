@@ -453,7 +453,7 @@ def delivery_fact_check(
             "preview_exists": bool(previews),
             "provider_success": provider_success,
             "provider_status": provider_status,
-            "telegram_attachments_exist": not missing_claimed_artifacts,
+            "delivery_attachments_exist": not missing_claimed_artifacts,
             "paths_safe": not unsafe_paths,
         },
         "missing": sorted(set(missing)),

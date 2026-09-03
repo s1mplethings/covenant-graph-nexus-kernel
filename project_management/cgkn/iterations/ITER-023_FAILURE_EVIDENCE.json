@@ -10,7 +10,7 @@
     {
       "id": "focusforge-delivery-truth",
       "kind": "delivery_manifest",
-      "path": "generated/telegram_provider_projects/codex-cgkn-eval-cli-20260819/customer-codex-cgkn-eval-cli-20260819-5b36efb4b476492db769ae5b4caa1259/delivery_manifest.json",
+      "path": "generated/codex_provider_projects/codex-cgkn-eval-cli-20260819/customer-codex-cgkn-eval-cli-20260819-5b36efb4b476492db769ae5b4caa1259/delivery_manifest.json",
       "summary": "Canonical delivery status is NEEDS_REWORK with identity mismatches and non-passing runtime and test evidence. The public project has no executable assembled candidate.",
       "sha256": "5bce835ba8bd3eb037a0be166804289990a855f6cb92deb671c1a210955b036e"
     }

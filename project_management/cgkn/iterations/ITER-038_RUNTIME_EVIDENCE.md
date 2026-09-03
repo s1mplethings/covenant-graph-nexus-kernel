@@ -4,7 +4,7 @@ Recorded: 2026-08-27T21:41:50+08:00
 
 ## Scope and authority boundary
 
-This iteration repaired causal relationships inside the reviewed Provider generation mainline. It did not write or seal a generated candidate, add a generation path, change the Telegram default route, package output, or authorize formal delivery evidence. The `PASS` recorded for this iteration is support evidence for the CGKN code change only.
+This iteration repaired causal relationships inside the reviewed Provider generation mainline. It did not write or seal a generated candidate, add a generation path, change the Codex conversation default route, package output, or authorize formal delivery evidence. The `PASS` recorded for this iteration is support evidence for the CGKN code change only.
 
 ## Causal diagnosis and repair
 

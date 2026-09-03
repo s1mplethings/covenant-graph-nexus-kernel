@@ -6,44 +6,44 @@ import unittest
 
 import pytest
 
-pytestmark = [pytest.mark.telegram, pytest.mark.e2e]
+pytestmark = [pytest.mark.codex, pytest.mark.e2e]
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 import sys
 
 sys.path.insert(0, str(ROOT))
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 import scripts.local_packager as local_packager
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         return True
 
 
-class TelegramBridgeGenerationE2ETests(unittest.TestCase):
+class CodexConversationBridgeGenerationE2ETests(unittest.TestCase):
     def test_api_generation_without_key_fails_fast(self) -> None:
         original = bridge.check_connectivity._resolve_api_credentials
         bridge.check_connectivity._resolve_api_credentials = lambda: {"api_key": ""}
@@ -102,7 +102,7 @@ class TelegramBridgeGenerationE2ETests(unittest.TestCase):
             project_dir.mkdir()
             (project_dir / "README.md").write_text("# Local task manager\n", encoding="utf-8")
             (project_dir / "app.py").write_text("print('ok')\n", encoding="utf-8")
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             original_start_policy = bridge.should_auto_start_generation

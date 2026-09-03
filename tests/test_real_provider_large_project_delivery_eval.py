@@ -33,7 +33,7 @@ def _load_json(name: str):
 def test_real_provider_large_project_delivery_eval_is_honest() -> None:
     readiness = _load_json("provider_readiness.json")
     result = _load_json("real_provider_generation_result.json")
-    transcript = _load_json("telegram_e2e_transcript.json")
+    transcript = _load_json("codex_e2e_transcript.json")
 
     classification = result.get("classification")
     assert classification in ALLOWED_CLASSIFICATIONS
@@ -41,8 +41,8 @@ def test_real_provider_large_project_delivery_eval_is_honest() -> None:
 
     if not readiness.get("provider_ready"):
         assert classification == "interface_unavailable"
-        assert result.get("telegram_sent_document", 0) == 0
-        assert result.get("telegram_sent_photo", 0) == 0
+        assert result.get("codex_sent_document", 0) == 0
+        assert result.get("codex_sent_photo", 0) == 0
         return
 
     assert result.get("provider_ready") is True
@@ -61,9 +61,9 @@ def test_real_provider_large_project_delivery_eval_is_honest() -> None:
         assert result.get("visual_evidence_verdict") == "PASS"
         assert result.get("bundle_integrity_verdict") == "PASS"
         assert result.get("public_delivery_gate_verdict") == "PASS"
-        assert result.get("telegram_sent_document", 0) > 0
-        assert result.get("telegram_sent_photo", 0) > 0
+        assert result.get("codex_sent_document", 0) > 0
+        assert result.get("codex_sent_photo", 0) > 0
     else:
         assert result.get("public_delivery_gate_verdict") != "PASS"
         assert result.get("missing_evidence")
-        assert result.get("telegram_sent_document", 0) == 0
+        assert result.get("codex_sent_document", 0) == 0

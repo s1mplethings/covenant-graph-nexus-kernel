@@ -5,9 +5,9 @@ Evidence status: `PASS`
 ## Scope accepted
 
 - Added `docs/14_codex_cgkn_runtime_supervision_baseline.md` as the normative architecture baseline.
-- The baseline makes CGKN the independently running system, Telegram Bot and Mini App CGKN-owned interfaces, and Codex the startup/attachment and persistent checkpoint supervisor.
+- The baseline makes CGKN the independently running system, the Codex task its only conversation interface, and Codex the startup/attachment and persistent checkpoint supervisor.
 - It defines startup and attachment, persisted supervisor/thread/process/checkpoint identity, mandatory checkpoints, allowed actions, bounded `repair_cgkn`, recovery behavior, customer flow, formal-route preservation, and implementation-conformance evidence.
-- It explicitly rejects a fresh one-shot Codex process per Telegram message as the target architecture.
+- It explicitly rejects a fresh one-shot Codex process per Codex conversation message as the target architecture.
 - It labels the current ephemeral read-only design adapter as a valid bounded specialist/transitional path, not the persistent supervisor.
 
 ## Authority preservation
@@ -38,4 +38,4 @@ Evidence status: `PASS`
 ## Evidence boundary
 
 - `PASS` applies to creating, registering, and guarding the architecture baseline requested by the user.
-- The persistent supervisor host, same-thread runtime resume, checkpoint emitter, automatic bounded repair, restart behavior, and live Telegram supervision are not implemented by this documentation increment and remain `NOT_EVALUATED` until the baseline's conformance evidence exists.
+- The persistent supervisor host, same-thread runtime resume, checkpoint emitter, automatic bounded repair, restart behavior, and live Codex conversation supervision are not implemented by this documentation increment and remain `NOT_EVALUATED` until the baseline's conformance evidence exists.

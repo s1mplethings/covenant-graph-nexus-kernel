@@ -13,7 +13,7 @@
     "Each generated submodule retains its own split-file checkpoint, interface feedforward, boundary receipt, and affected-only repair behavior.",
     "High-complexity source entries with many public symbols expand deterministically into legal owned submodules plus a facade while preserving the original public path.",
     "Provider file calls default to at most 5000 output tokens and explicitly reject length-truncated responses before publication.",
-    "The Telegram Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest route remains unchanged."
+    "The Codex conversation Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest route remains unchanged."
   ],
   "quality_metrics": [
     {

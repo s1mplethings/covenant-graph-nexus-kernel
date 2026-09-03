@@ -49,7 +49,7 @@ def required_attachment_kinds(requirements: dict[str, Any]) -> list[str]:
 def produce_canonical_delivery_receipt(
     project_dir: str | pathlib.Path,
     *,
-    chat_id: int | str,
+    conversation_id: int | str,
     manifest_inspection: dict[str, Any],
     requirement_snapshot: dict[str, Any],
     attempted_items: list[tuple[pathlib.Path, str]],
@@ -61,26 +61,26 @@ def produce_canonical_delivery_receipt(
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     required = required_attachment_kinds(requirement_snapshot)
     finished_at = _now()
-    telegram_receipts: list[dict[str, Any]] = []
+    conversation_receipts: list[dict[str, Any]] = []
     valid_sent: list[str] = []
     for item in sent_items:
         kind = str(item.get("kind", ""))
         local = pathlib.Path(str(item.get("path", "")))
         valid_identity = all(
             str(item.get(field, "")).strip()
-            for field in ("telegram_message_id", "telegram_chat_id", "telegram_file_id")
-        ) and str(item.get("telegram_chat_id")) == str(chat_id)
+            for field in ("turn_id", "conversation_id", "artifact_id")
+        ) and str(item.get("conversation_id")) == str(conversation_id)
         if valid_identity and kind in ATTACHMENT_KINDS:
             valid_sent.append(kind)
-        telegram_receipts.append(
+        conversation_receipts.append(
             {
                 "kind": kind,
                 "local_ref": str(local.resolve()) if local.exists() else str(local),
                 "local_sha256": canonical_evidence_hash.sha256_file(local) if local.is_file() else "",
-                "telegram_chat_id": str(item.get("telegram_chat_id", "")),
-                "telegram_message_id": str(item.get("telegram_message_id", "")),
-                "telegram_file_id": str(item.get("telegram_file_id", "")),
-                "telegram_file_unique_id": str(item.get("telegram_file_unique_id", "")),
+                "conversation_id": str(item.get("conversation_id", "")),
+                "turn_id": str(item.get("turn_id", "")),
+                "artifact_id": str(item.get("artifact_id", "")),
+                "artifact_unique_id": str(item.get("artifact_unique_id", "")),
                 "sent_at": str(item.get("sent_at", finished_at)),
                 "send_status": "PASS" if valid_identity else "FAIL",
             }
@@ -98,7 +98,7 @@ def produce_canonical_delivery_receipt(
         "status": "PASS" if not failed and len(valid_sent) == len(set(valid_sent)) else "NEEDS_REWORK",
         "artifact_hash": "",
         "project_dir": str(project),
-        "chat_id": str(chat_id),
+        "conversation_id": str(conversation_id),
         "delivery_attempt_id": f"{manifest.get('run_id', '')}:{started_at}",
         "delivery_manifest_ref": str(manifest_path.resolve()),
         "delivery_manifest_file_hash": canonical_evidence_hash.sha256_file(manifest_path),
@@ -111,7 +111,7 @@ def produce_canonical_delivery_receipt(
         "required_attachment_kinds": required,
         "attempted_attachment_kinds": [kind for _, kind in attempted_items],
         "sent_attachment_kinds": valid_sent,
-        "telegram_receipts": telegram_receipts,
+        "conversation_receipts": conversation_receipts,
         "failed_attachment_kinds": failed,
         "started_at": started_at,
         "finished_at": finished_at,
@@ -124,7 +124,7 @@ def produce_canonical_delivery_receipt(
 def inspect_canonical_delivery_receipt(
     project_dir: str | pathlib.Path,
     *,
-    expected_chat_id: int | str | None = None,
+    expected_conversation_id: int | str | None = None,
     expected_requirements: dict[str, Any] | None = None,
     expected_attachment_refs: dict[str, str | pathlib.Path] | None = None,
 ) -> dict[str, Any]:
@@ -145,8 +145,8 @@ def inspect_canonical_delivery_receipt(
         failures.append("producer_mismatch")
     if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
         failures.append("artifact_hash_mismatch")
-    if expected_chat_id is None:
-        failures.append("expected_chat_id_required")
+    if expected_conversation_id is None:
+        failures.append("expected_conversation_id_required")
     if expected_requirements is None:
         failures.append("expected_requirements_required")
     if expected_attachment_refs is None:
@@ -175,13 +175,13 @@ def inspect_canonical_delivery_receipt(
                 failures.append(f"expected_attachment_ref_invalid:{kind}")
     if set(approved_refs) != set(required):
         failures.append("expected_attachment_refs_not_exact")
-    if expected_chat_id is not None and str(document.get("chat_id")) != str(expected_chat_id):
-        failures.append("telegram_chat_id_mismatch")
+    if expected_conversation_id is not None and str(document.get("conversation_id")) != str(expected_conversation_id):
+        failures.append("conversation_id_mismatch")
     if document.get("project_dir") != str(project) or not str(document.get("delivery_attempt_id", "")).strip():
         failures.append("delivery_binding_missing")
     if document.get("delivery_attempt_id") != f"{document.get('run_id', '')}:{document.get('started_at', '')}":
         failures.append("delivery_attempt_id_mismatch")
-    if any(not str(document.get(field, "")).strip() for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "chat_id")):
+    if any(not str(document.get(field, "")).strip() for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "conversation_id")):
         failures.append("canonical_identity_missing")
     manifest_path = project / canonical_delivery_manifest.MANIFEST_NAME
     if document.get("delivery_manifest_ref") != str(manifest_path.resolve()):
@@ -207,11 +207,11 @@ def inspect_canonical_delivery_receipt(
             failures.append("package_ref_mismatch")
     except (OSError, ValueError, json.JSONDecodeError):
         failures.append("delivery_manifest_unreadable")
-    receipts = document.get("telegram_receipts", [])
+    receipts = document.get("conversation_receipts", [])
     if not isinstance(receipts, list):
         receipts = []
-        failures.append("telegram_receipts_invalid")
-    message_ids: set[str] = set()
+        failures.append("conversation_receipts_invalid")
+    turn_ids: set[str] = set()
     sent: list[str] = []
     try:
         started = datetime.fromisoformat(str(document.get("started_at")))
@@ -221,21 +221,21 @@ def inspect_canonical_delivery_receipt(
         failures.append("delivery_time_invalid")
     for entry in receipts:
         if not isinstance(entry, dict):
-            failures.append("telegram_receipt_invalid")
+            failures.append("codex_receipt_invalid")
             continue
         kind = str(entry.get("kind", ""))
         local = pathlib.Path(str(entry.get("local_ref", "")))
         if kind not in ATTACHMENT_KINDS or entry.get("send_status") != "PASS":
-            failures.append(f"telegram_receipt_failed:{kind}")
+            failures.append(f"codex_receipt_failed:{kind}")
             continue
-        if not all(str(entry.get(key, "")).strip() for key in ("telegram_message_id", "telegram_chat_id", "telegram_file_id")):
-            failures.append(f"telegram_identity_missing:{kind}")
-        if str(entry.get("telegram_chat_id")) != str(document.get("chat_id")):
-            failures.append(f"telegram_chat_mismatch:{kind}")
-        message_id = str(entry.get("telegram_message_id", ""))
-        if message_id in message_ids:
-            failures.append("duplicate_telegram_message_id")
-        message_ids.add(message_id)
+        if not all(str(entry.get(key, "")).strip() for key in ("turn_id", "conversation_id", "artifact_id")):
+            failures.append(f"codex_identity_missing:{kind}")
+        if str(entry.get("conversation_id")) != str(document.get("conversation_id")):
+            failures.append(f"codex_chat_mismatch:{kind}")
+        turn_id = str(entry.get("turn_id", ""))
+        if turn_id in turn_ids:
+            failures.append("duplicate_turn_id")
+        turn_ids.add(turn_id)
         try:
             sent_at = datetime.fromisoformat(str(entry.get("sent_at")))
             if not started <= sent_at <= finished:

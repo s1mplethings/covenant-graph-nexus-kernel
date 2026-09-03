@@ -8,37 +8,37 @@ import unittest
 
 import pytest
 
-pytestmark = pytest.mark.telegram
+pytestmark = pytest.mark.codex
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 import scripts.legacy_provider_pipeline as legacy_provider_pipeline
 import scripts.project_memory_md as project_memory_md
 import scripts.local_packager as local_packager
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
@@ -75,7 +75,7 @@ def make_provider_result(project_dir: pathlib.Path) -> dict:
     }
 
 
-class TelegramCustomerBridgeTests(unittest.TestCase):
+class CodexConversationCustomerBridgeTests(unittest.TestCase):
     def assert_public_reply_style(self, text: str) -> None:
         forbidden = [
             "intake ticket",
@@ -93,7 +93,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             self.assertNotIn(term, text)
 
     def test_single_text_customer_output_transport(self) -> None:
-        source = (ROOT / "scripts" / "telegram_live_bridge.py").read_text(encoding="utf-8")
+        source = (ROOT / "scripts" / "codex_conversation.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
         parents: dict[ast.AST, ast.AST] = {}
         for parent in ast.walk(tree):
@@ -118,9 +118,11 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertTrue(send_message_calls)
         self.assertEqual({"send_customer_reply"}, {enclosing_function(node) for node in send_message_calls})
 
-        listener_source = (ROOT / "scripts" / "telegram_new_listener.py").read_text(encoding="utf-8")
-        self.assertNotIn("sendMessage", listener_source)
-        self.assertNotIn(".send_message(", listener_source)
+        self.assertFalse((ROOT / "scripts" / "codex_new_listener.py").exists())
+        self.assertFalse(
+            any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "main" for node in tree.body)
+        )
+        self.assertNotIn("get_updates", source)
 
     def test_visual_requirements_are_forced_into_backend_fields(self) -> None:
         session = bridge.default_session("test-chat")
@@ -249,7 +251,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             "mime_type": "image/png",
             "file_size": 120,
             "caption": "参考这个风格生成页面",
-            "local_path": str(ROOT / "examples" / "test_results" / "telegram_live_uploads" / "test-chat" / "reference.png"),
+            "local_path": str(ROOT / "examples" / "test_results" / "codex_uploads" / "test-chat" / "reference.png"),
             "created_at": bridge.now(),
         }
         bridge.record_attachments_as_project_input(session, [attachment])
@@ -268,7 +270,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "file_size": 512,
                 "caption": "这里是详细功能",
-                "local_path": str(ROOT / "examples" / "test_results" / "telegram_live_uploads" / "test-chat" / "requirements.docx"),
+                "local_path": str(ROOT / "examples" / "test_results" / "codex_uploads" / "test-chat" / "requirements.docx"),
                 "created_at": bridge.now(),
             }
         )
@@ -286,7 +288,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 "mime_type": "text/csv",
                 "file_size": 64,
                 "caption": "训练样例",
-                "local_path": str(ROOT / "examples" / "test_results" / "telegram_live_uploads" / "test-chat" / "dataset.csv"),
+                "local_path": str(ROOT / "examples" / "test_results" / "codex_uploads" / "test-chat" / "dataset.csv"),
                 "created_at": bridge.now(),
             }
         )
@@ -373,24 +375,22 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         self.assertIn("CS2 demo 鉴挂工具", whiteboard["project_summary"])
 
     def test_summarize_message_attachments_accepts_photos_and_documents(self) -> None:
-        message = {
-            "caption": "用这个做参考",
-            "photo": [
-                {"file_id": "small", "file_unique_id": "u1", "file_size": 10},
-                {"file_id": "large", "file_unique_id": "u2", "file_size": 50},
-            ],
-            "document": {
-                "file_id": "doc",
-                "file_unique_id": "du1",
-                "file_name": "brief.pdf",
-                "mime_type": "application/pdf",
-                "file_size": 100,
-            },
-        }
-        specs = bridge.summarize_message_attachments(message)
-        self.assertEqual(["image", "document"], [item["type"] for item in specs])
-        self.assertEqual("large", specs[0]["file_id"])
-        self.assertEqual("用这个做参考", specs[1]["caption"])
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image = pathlib.Path(temp_dir) / "reference.png"
+            document = pathlib.Path(temp_dir) / "brief.pdf"
+            image.write_bytes(b"image")
+            document.write_bytes(b"document")
+            message = {
+                "caption": "用这个做参考",
+                "attachments": [
+                    {"path": str(image), "type": "image", "mime_type": "image/png"},
+                    {"path": str(document), "type": "document", "mime_type": "application/pdf"},
+                ],
+            }
+            specs = bridge.summarize_message_attachments(message)
+            self.assertEqual(["image", "document"], [item["type"] for item in specs])
+            self.assertEqual(str(image.resolve()), specs[0]["local_path"])
+            self.assertEqual("用这个做参考", specs[1]["caption"])
 
     def test_generation_args_include_required_context_prompt_fields(self) -> None:
         args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420)
@@ -420,7 +420,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_provider_text = bridge.provider_text
             original_local_call = bridge.local_model_router.call_text_task
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
@@ -448,7 +448,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_provider_text = bridge.provider_text
             original_local_call = bridge.local_model_router.call_text_task
             bridge.provider_text = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called"))
@@ -474,14 +474,14 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             called = {}
 
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+            def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
                 called["reason"] = reason
                 called["announce_start"] = announce_start
-                session = bridge.load_session(session_dir_arg, chat_id)
+                session = bridge.load_session(session_dir_arg, conversation_id)
                 bridge.update_active_run_status(session, "running", driver="agent_conversation_loop")
                 session["generation"] = {"status": "running", "driver": "agent_conversation_loop"}
                 bridge.save_session(session_dir_arg, session)
@@ -517,7 +517,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             called = {}
@@ -553,7 +553,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
 
@@ -581,15 +581,15 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-startup")
             ticket = bridge.create_intake_ticket(session_dir, session, "做一个本地 VN 助手")
             bridge.create_active_run(session, ticket, "做一个本地 VN 助手")
             bridge.save_session(session_dir, session)
             original_start = bridge.start_agent_generation
 
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                next_session = bridge.load_session(session_dir_arg, chat_id)
+            def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                next_session = bridge.load_session(session_dir_arg, conversation_id)
                 bridge.update_active_run_status(next_session, "running", driver="agent_conversation_loop")
                 next_session["generation"] = {"status": "running", "driver": "agent_conversation_loop"}
                 bridge.save_session(session_dir_arg, next_session)
@@ -610,7 +610,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             original_provider_message = bridge.send_provider_message
             original_backend_tick = bridge.apply_backend_dialogue_tick
@@ -618,7 +618,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
 
             def fake_start(
                 client_arg,
-                chat_id,
+                conversation_id,
                 session_dir_arg,
                 log_dir_arg,
                 model,
@@ -627,7 +627,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                 announce_start,
                 reason="frontdesk_generation_confirmation",
             ):
-                running = bridge.load_session(session_dir_arg, chat_id)
+                running = bridge.load_session(session_dir_arg, conversation_id)
                 bridge.update_active_run_status(
                     running, "running", driver="api_provider_project_generation"
                 )
@@ -670,36 +670,24 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             events = bridge.agent_session_path(session_dir, "chat-revise").read_text(encoding="utf-8")
             self.assertIn("背景和立绘", events)
 
-    def test_completed_project_update_can_start_provider_revision_with_assumptions(self) -> None:
+    def test_completed_project_interface_update_waits_for_design_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-restart")
             session["messages"].append({"role": "user", "text": "做一个本地 VN 助手", "created_at": bridge.now()})
             session["whiteboard"]["project_summary"] = "做一个本地 VN 助手"
             session["generation"] = {"status": "ready_with_warnings", "driver": "api_provider_project_generation"}
             bridge.save_session(session_dir, session)
-            original_start = bridge.start_agent_generation
-            called = {}
-
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                called["reason"] = reason
-                next_session = bridge.load_session(session_dir_arg, chat_id)
-                bridge.update_active_run_status(next_session, "running", driver="api_provider_project_generation")
-                next_session["generation"] = {"status": "running", "driver": "api_provider_project_generation"}
-                bridge.save_session(session_dir_arg, next_session)
-
-            bridge.start_agent_generation = fake_start
-            try:
-                bridge.handle_text(client, "chat-restart", "增加前端界面和图片预览", session_dir, log_dir, "gpt-test", 60)
-            finally:
-                bridge.start_agent_generation = original_start
+            bridge.handle_text(client, "chat-restart", "增加前端界面和图片预览", session_dir, log_dir, "gpt-test", 60)
 
             session = bridge.load_session(session_dir, "chat-restart")
-            self.assertEqual("running", session["generation"]["status"])
-            self.assertEqual("project_update_income_auto_start", called["reason"])
-            self.assertFalse(session.get("generation_start_waiting", False))
+            self.assertEqual("ready_with_warnings", session["generation"]["status"])
+            self.assertIn(
+                session["whiteboard"]["product_design"]["workflow_state"],
+                {"awaiting_codex_brief", "codex_unavailable", "awaiting_user_confirmation"},
+            )
             self.assertIn("增加前端界面", bridge.agent_session_path(session_dir, "chat-restart").read_text(encoding="utf-8"))
 
     def test_project_attachment_waits_for_confirmation(self) -> None:
@@ -707,13 +695,13 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
             upload_dir = pathlib.Path(temp_dir) / "uploads"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_download = bridge.download_message_attachments
             original_start = bridge.start_agent_generation
             called = {}
 
-            def fake_download(client_arg, chat_id, message, upload_dir_arg):
-                path = pathlib.Path(upload_dir_arg) / str(chat_id) / "brief.txt"
+            def fake_download(client_arg, conversation_id, message, upload_dir_arg):
+                path = pathlib.Path(upload_dir_arg) / str(conversation_id) / "brief.txt"
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("VN project brief", encoding="utf-8")
                 return (
@@ -731,9 +719,9 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
                     [],
                 )
 
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+            def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
                 called["reason"] = reason
-                next_session = bridge.load_session(session_dir_arg, chat_id)
+                next_session = bridge.load_session(session_dir_arg, conversation_id)
                 bridge.update_active_run_status(next_session, "running", driver="agent_conversation_loop")
                 next_session["generation"] = {"status": "running", "driver": "agent_conversation_loop"}
                 bridge.save_session(session_dir_arg, next_session)
@@ -774,7 +762,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
             package.write_bytes(b"zip")
             screenshot.write_bytes(b"png")
             verify_report.write_text('{"passed": true}\n', encoding="utf-8")
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-5")
             bridge.append_truth_ledger(session_dir, session, "package", "package exists", evidence_ref=str(package), data={"artifact": "package"})
             bridge.append_truth_ledger(session_dir, session, "screenshot", "screenshot exists", evidence_ref=str(screenshot), data={"artifact": "screenshot"})
@@ -800,7 +788,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-decision")
             session["whiteboard"]["blocking_questions"] = ["背景和立绘要用同一个模型吗？", "是否需要导出脚本？"]
             session["active_run"] = {"id": "run-chat-decision-1", "status": "intake_open"}
@@ -855,7 +843,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-status-no-restart")
             session["whiteboard"]["project_summary"] = "做一个 VN 项目助手"
             session["generation"] = {"status": "max_turns_reached", "driver": "agent_generated_pipeline"}
@@ -888,7 +876,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-status-package")
             session["active_run"] = {"status": "delivered", "package_path": "final_project_bundle.zip"}
             bridge.save_session(session_dir, session)
@@ -922,7 +910,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-greeting-existing")
             session["whiteboard"]["project_summary"] = "本地可运行的 VN 项目助手，具备故事时间线梳理、可视化和 AI 生成背景/立绘图片等能力"
             session["generation"] = {"status": "max_turns_reached", "driver": "agent_generated_pipeline"}
@@ -953,7 +941,7 @@ class TelegramCustomerBridgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
             log_dir = pathlib.Path(temp_dir) / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-greeting-delivered")
             session["whiteboard"]["project_summary"] = "本地任务工具"
             session["generation"] = {"status": "ready_with_warnings", "package_path": "final_project_bundle.zip"}

@@ -71,4 +71,4 @@ def test_internal_acceptance_executes_diagnostic_fixtures_only(
         (tmp_path / "acceptance-run" / "internal_deterministic_e2e.json").read_text(encoding="utf-8")
     )
     assert deterministic["status"] == "BLOCKED"
-    assert deterministic["blocker_code"] == "BLOCKED_TELEGRAM_TEST_CHAT"
+    assert deterministic["blocker_code"] == "BLOCKED_USER_REVIEW"

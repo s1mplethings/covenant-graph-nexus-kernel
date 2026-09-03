@@ -17,9 +17,9 @@ from scripts import canonical_evidence_hash
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRODUCTION_CANDIDATE_ROOT = (ROOT / "generated" / "telegram_provider_projects").resolve()
-PRODUCTION_ENTRYPOINT = "scripts.telegram_live_bridge.start_generation_from_income"
-GENERATION_FUNCTION = "scripts.telegram_live_bridge.run_provider_generation_job"
+PRODUCTION_CANDIDATE_ROOT = (ROOT / "generated" / "codex_provider_projects").resolve()
+PRODUCTION_ENTRYPOINT = "scripts.codex_conversation.start_generation_from_income"
+GENERATION_FUNCTION = "scripts.codex_conversation.run_provider_generation_job"
 STAGE_ORDER = (
     "production_entry",
     "provider_generation",
@@ -29,8 +29,8 @@ STAGE_ORDER = (
 STAGE_FUNCTIONS = {
     "production_entry": PRODUCTION_ENTRYPOINT,
     "provider_generation": GENERATION_FUNCTION,
-    "provider_validation": "scripts.telegram_live_bridge.validate_provider_generation_output",
-    "post_build": "scripts.telegram_live_bridge.post_build_finalize_provider_project",
+    "provider_validation": "scripts.codex_conversation.validate_provider_generation_output",
+    "post_build": "scripts.codex_conversation.post_build_finalize_provider_project",
 }
 
 

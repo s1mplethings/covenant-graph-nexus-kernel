@@ -1,13 +1,13 @@
 # CGNK Slimming and Rule Guard
 
-This document freezes the cleanup direction for CGNK so the repo can become smaller without weakening the Telegram delivery path.
+This document freezes the cleanup direction for CGNK so the repo can become smaller without weakening the Codex conversation delivery path.
 
 ## One Default Route
 
-Telegram default generation has one reviewed route:
+Codex conversation default generation has one reviewed route:
 
 ```text
-Telegram intake
+Codex conversation intake
 -> agent_session / whiteboard
 -> API/provider project generation
 -> provider output validation
@@ -22,7 +22,7 @@ Telegram intake
 
 ## Slimming Rules
 
-1. Keep `telegram_live_bridge.py` as a bridge: Telegram intake, session persistence, generation dispatch, user-visible delivery, and guarded replies only.
+1. Keep `codex_conversation.py` as a bridge: Codex conversation intake, session persistence, generation dispatch, user-visible delivery, and guarded replies only.
 2. Move project/domain-specific repair logic into skills, adapters, or legacy modules. Do not keep adding one-off generated-project hotfixes to the bridge.
 3. Public delivery must send only user-facing package/media artifacts by default. Internal reports, manifests, ledgers, logs, and Markdown files stay in the evidence bundle unless explicitly requested.
 4. Any new fallback must record `pipeline_fallback`, stay behind validation, and pass `local_packager`, factual checking, and adaptive delivery judgment before user delivery.
@@ -31,9 +31,9 @@ Telegram intake
 ## Cleanup Order
 
 1. Freeze route terms in `AGENTS.md`, `docs/00_kernel_contract.md`, and guard tests.
-2. Extract bridge helpers into focused modules: Telegram transport, session store, public delivery assets, provider route, and post-build finalizers.
+2. Extract bridge helpers into focused modules: Codex conversation transport, session store, public delivery assets, provider route, and post-build finalizers.
 3. Move generated-project compatibility patches into capability skills or adapters.
-4. Delete stale wrappers only after tests prove no Telegram path calls them.
+4. Delete stale wrappers only after tests prove no Codex conversation path calls them.
 
 Run:
 

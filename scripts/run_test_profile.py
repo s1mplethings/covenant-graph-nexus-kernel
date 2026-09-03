@@ -18,8 +18,8 @@ DEFAULT_OUT = ROOT / "generated" / "dynamic_agent_tree_fix_eval" / "test_profile
 
 
 PROFILE_MARKS = {
-    "quick": "not (slow or e2e or live_provider or telegram or benchmark or longrun or long_journey or provider)",
-    "regression": "not (longrun or long_journey or provider or live_provider or telegram)",
+    "quick": "not (slow or e2e or live_provider or codex or benchmark or longrun or long_journey or provider)",
+    "regression": "not (longrun or long_journey or provider or live_provider or codex)",
     "longrun": "longrun or long_journey or benchmark",
     "provider": "provider or live_provider",
     "e2e": "e2e",

@@ -22,7 +22,7 @@ FORMAL_DOCS = [
 ]
 
 
-TELEGRAM_MAINLINE = (
+CODEX_MAINLINE = (
     "customer request",
     "API/provider project generation",
     "provider output validation",
@@ -37,11 +37,11 @@ TELEGRAM_MAINLINE = (
 )
 
 
-def test_readme_and_kernel_contract_share_telegram_mainline() -> None:
+def test_readme_and_kernel_contract_share_production_mainline() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     kernel = (ROOT / "docs" / "00_kernel_contract.md").read_text(encoding="utf-8")
     registry = (ROOT / "docs" / "01_contract_registry.md").read_text(encoding="utf-8")
-    for item in TELEGRAM_MAINLINE:
+    for item in CODEX_MAINLINE:
         assert item in registry
         assert item in readme or item in kernel
     assert "local_packager" in readme

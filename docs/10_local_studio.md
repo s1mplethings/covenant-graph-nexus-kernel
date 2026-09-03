@@ -34,9 +34,9 @@ Managed project state lives under `generated/managed_projects/<project_id>/` wit
 
 ## Test Reset Rule
 
-Before starting a new project test, clear the previous test history so Telegram sessions, active project bindings, revision workspaces, uploads, provider run outputs, and managed project state do not leak into the next test.
+Before starting a new project test, clear the previous test history so Codex conversation sessions, active project bindings, revision workspaces, uploads, provider run outputs, and managed project state do not leak into the next test.
 
-For Telegram/customer-service testing, reset the runtime history directories under `generated/telegram_sessions/`, `generated/telegram_bridge_runtime/`, `generated/telegram_uploads/`, `generated/telegram_provider_projects/`, and `generated/managed_projects/` before sending the next test request.
+For Codex conversation/customer-service testing, reset the runtime history directories under `generated/codex_sessions/`, `generated/codex_bridge_runtime/`, `generated/codex_uploads/`, `generated/codex_provider_projects/`, and `generated/managed_projects/` before sending the next test request.
 
 Do not commit generated test history, project memory, uploads, or packaged project artifacts.
 

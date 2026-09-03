@@ -45,12 +45,14 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-032` [done] Adapt Alibaba Qwen3.8 reasoning for bounded Provider leaves
 - `PB-033` [done] Plan short requests as minimal parallel feature units
 - `PB-034` [done] Validate parallel feature leaves with a real postgraduate-exam assistant
-- `PB-035` [done] Add a Telegram design checkpoint with bounded Codex supervision
-- `PB-036` [done] Freeze the persistent Codex-CGKN-Telegram runtime supervision baseline
+- `PB-035` [done] Add a Codex conversation design checkpoint with bounded Codex supervision
+- `PB-036` [done] Freeze the persistent Codex-CGKN runtime supervision baseline
 - `PB-037` [done] Implement the persistent Codex runtime supervisor host
 - `PB-038` [done] Separate API-only and Codex-supervised runtime profiles
 - `PB-039` [done] Establish the CGKN Codex Edition branch identity
 - `PB-040` [done] Split API-only and CGKN Codex Edition into separate worktrees
+- `PB-041` [done] Remove external messaging and retain the Codex conversation interface
+- `PB-042` [done] Add executable cross-validation and feedforward to real project generation
 
 ## Definition of done
 

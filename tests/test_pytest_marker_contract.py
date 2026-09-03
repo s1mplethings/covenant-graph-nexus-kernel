@@ -21,8 +21,8 @@ def _required_markers(path: pathlib.Path, text: str) -> list[tuple[set[str], str
         return requirements
     if any(token in stem for token in ("benchmark", "long_run", "full_pytest", "timeout_diagnosis")):
         requirements.append(({"slow", "benchmark"}, "long-running/benchmark naming"))
-    if ("telegram" in stem and "contract" not in stem) or any(token.lower() in lowered for token in ("sendphoto", "senddocument")):
-        requirements.append(({"telegram"}, "Telegram runtime naming/content"))
+    if ("codex" in stem and "contract" not in stem) or any(token.lower() in lowered for token in ("sendphoto", "senddocument")):
+        requirements.append(({"codex"}, "Codex conversation runtime naming/content"))
     provider_name = any(token in stem for token in ("live_provider", "provider_api"))
     provider_network = any(token in lowered for token in ("gptsapi", "openai_api_key", "cgkn_openai_api_key")) and any(
         token in lowered for token in ("urlopen(", "invoke-restmethod", "curl ")

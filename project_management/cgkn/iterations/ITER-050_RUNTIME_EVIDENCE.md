@@ -31,7 +31,7 @@ were limited to deliberate redaction test fixtures.
 
 ## Limits
 
-No remote branch push, live Telegram launch, Provider generation, package, or
+No remote branch push, live Codex conversation launch, Provider generation, package, or
 public delivery was performed. Existing API-directory example/runtime changes
 were preserved and remain uncommitted. This support evidence does not authorize
 formal delivery PASS.

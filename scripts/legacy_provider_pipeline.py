@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""LEGACY ONLY. Not part of CGNK formal Telegram generation."""
+"""LEGACY ONLY. Not part of CGNK formal Codex conversation generation."""
 
 import argparse
 import json
@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 
 def build_generation_args(
-    chat_id: int | str,
+    conversation_id: int | str,
     requirement: str,
     log_dir: pathlib.Path,
     model: str,
@@ -23,11 +23,11 @@ def build_generation_args(
     root: pathlib.Path,
     safe_id_fn: Callable[[Any], str],
 ) -> argparse.Namespace:
-    slug = f"telegram-live-{safe_id_fn(chat_id)}"
+    slug = f"codex-live-{safe_id_fn(conversation_id)}"
     result_path = pathlib.Path(log_dir) / f"{slug}_generation_result.json"
     return argparse.Namespace(
         requirement=requirement,
-        project_slug=f"telegram_{slug}",
+        project_slug=f"codex_{slug}",
         assume_defaults=False,
         allow_network=True,
         allow_provider=True,
@@ -266,7 +266,7 @@ def generation_progress_text(elapsed_seconds: int) -> str:
 def run_generation_job(
     bridge: Any,
     client: Any,
-    chat_id: int | str,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -275,14 +275,14 @@ def run_generation_job(
     control_id: str = "",
     generation_mode: str = "api",
 ) -> None:
-    session = bridge.load_session(session_dir, chat_id)
+    session = bridge.load_session(session_dir, conversation_id)
     if session.get("generation", {}).get("status") == "running":
         return
     requirement = bridge.combined_requirement(session)
     if not requirement:
         if not bridge.send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="missing_requirement_before_generation",
             session=session,
@@ -292,7 +292,7 @@ def run_generation_job(
         ):
             bridge.send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="missing_requirement_before_generation",
@@ -313,7 +313,7 @@ def run_generation_job(
     if announce_start:
         bridge.send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="generation_started",
             session=session,
@@ -333,12 +333,12 @@ def run_generation_job(
             elapsed = 120 * (step + 1)
             if stop_progress.wait(120):
                 return
-            current = bridge.load_session(session_dir, chat_id)
+            current = bridge.load_session(session_dir, conversation_id)
             if current.get("generation", {}).get("status") != "running":
                 return
             bridge.send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 current,
                 event="generation_progress",
@@ -348,13 +348,13 @@ def run_generation_job(
             )
 
     threading.Thread(target=progress_worker, daemon=True).start()
-    args = bridge.build_generation_args(chat_id, requirement, log_dir, model, timeout, generation_mode)
+    args = bridge.build_generation_args(conversation_id, requirement, log_dir, model, timeout, generation_mode)
     try:
         bridge.assert_api_generation_ready(generation_mode)
         result = bridge.run_generation_subprocess(args, log_dir)
     except Exception as exc:
         stop_progress.set()
-        session = bridge.load_session(session_dir, chat_id)
+        session = bridge.load_session(session_dir, conversation_id)
         if control_id:
             bridge.update_backend_control_status(session, control_id, "failed", reason=str(exc))
         session["generation"] = {
@@ -368,10 +368,10 @@ def run_generation_job(
         safe_facts = safe_generation_failure_facts(requirement, exc)
         bridge.append_memory_event(session, "generation_failed", data={"error": str(exc), "safe_facts": safe_facts})
         bridge.save_session(session_dir, session)
-        bridge.log_bridge_error(log_dir, "generation_failed", chat_id, exc, {"requirement": requirement})
+        bridge.log_bridge_error(log_dir, "generation_failed", conversation_id, exc, {"requirement": requirement})
         bridge.send_provider_or_technical_error(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="generation_failed",
             session=session,
@@ -383,7 +383,7 @@ def run_generation_job(
         bridge.save_session(session_dir, session)
         return
     stop_progress.set()
-    session = bridge.load_session(session_dir, chat_id)
+    session = bridge.load_session(session_dir, conversation_id)
     status = str(result.get("status", "unknown")).upper()
     session["generation"] = {
         "status": result.get("status", "unknown"),
@@ -402,16 +402,16 @@ def run_generation_job(
         image = image_candidates[0] if image_candidates else None
         try:
             bridge.emit_delivery_evidence(session_dir, session, result, image, log_dir)
-            evidence = bridge.delivery_evidence_state(bridge.read_truth_ledger(session_dir, chat_id))
-            bridge.send_delivery_artifacts(client, chat_id, session_dir, session, evidence)
+            evidence = bridge.delivery_evidence_state(bridge.read_truth_ledger(session_dir, conversation_id))
+            bridge.send_delivery_artifacts(client, conversation_id, session_dir, session, evidence)
         except Exception as exc:
-            bridge.log_bridge_error(log_dir, "emit_delivery_evidence_failed", chat_id, exc, {"result_path": str(args.result_path)})
-        bridge.send_provider_message(client, chat_id, session_dir, event="generation_passed", session=session, facts=bridge.project_delivery_facts(result), model=model, timeout=timeout)
+            bridge.log_bridge_error(log_dir, "emit_delivery_evidence_failed", conversation_id, exc, {"result_path": str(args.result_path)})
+        bridge.send_provider_message(client, conversation_id, session_dir, event="generation_passed", session=session, facts=bridge.project_delivery_facts(result), model=model, timeout=timeout)
         bridge.save_session(session_dir, session)
     else:
         bridge.send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="generation_completed_non_pass",
             session=session,

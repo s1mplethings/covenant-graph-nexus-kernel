@@ -27,7 +27,7 @@
     {
       "id": "QM-INTEGRATION",
       "measure": "delivery-route preservation",
-      "target": "local_packager remains the only packaging exit and no Telegram generation route changes",
+      "target": "local_packager remains the only packaging exit and no Codex conversation generation route changes",
       "method": "kernel contract tests and canonical manifest inspection"
     }
   ],
@@ -76,7 +76,7 @@
     "feedback": [
       "The project generated its own 8-second 960x540 VP9 test video with 160 frames, visible synthetic disclaimer, moving player and aim relationships, FFprobe PASS, and a matching SHA-256 sidecar.",
       "All 58 reviewed project tests, isolated runtime, browser visual evidence, complexity contract, canonical package, media validation, and applicable CGKN management/kernel tests passed.",
-      "Real production .dem compatibility, calibrated detection rates, and Telegram production provenance remain outside this bounded increment."
+      "Real production .dem compatibility, calibrated detection rates, and Codex conversation production provenance remain outside this bounded increment."
     ],
     "accepted_backlog_item_ids": [
       "PB-007"

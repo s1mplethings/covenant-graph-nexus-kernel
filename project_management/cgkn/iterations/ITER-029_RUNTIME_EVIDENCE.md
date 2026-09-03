@@ -79,7 +79,7 @@ usable, and Provider generation remains usable with a process-only credential.
   filenames, build trees, large/binary files, and symbolic links.
 - Online research is explicit and is forwarded only to the existing Provider
   route.
-- No Telegram mainline, packager, public gate, or delivery exit was added.
+- No Codex conversation mainline, packager, public gate, or delivery exit was added.
 
 Evidence status: `PASS_WITH_LIMITS` because the reusable package, manual Agent
 workflow, Provider command handoff, packaging, and tests pass, while automatic

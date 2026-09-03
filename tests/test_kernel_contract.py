@@ -14,20 +14,20 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.pipeline_manifest as pipeline_manifest
 import scripts.local_model_router as local_model_router
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
 
 def read_source(path: str) -> str:
@@ -74,7 +74,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("PASS", result.stdout.splitlines()[0])
 
     def test_generation_confirmation_only_dispatches_generation_starter(self) -> None:
-        branch = generation_confirmation_branch(read_source("scripts/telegram_live_bridge.py"))
+        branch = generation_confirmation_branch(read_source("scripts/codex_conversation.py"))
 
         self.assertTrue(branch)
         for forbidden in ("generate_project.py", "run_local_pipeline", "simulator", "run_generation_subprocess"):
@@ -89,8 +89,8 @@ class KernelContractTests(unittest.TestCase):
             original_memory = bridge.DEFAULT_MEMORY_DIR
             called: dict[str, object] = {}
 
-            def fake_start(client, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                called["chat_id"] = str(chat_id)
+            def fake_start(client, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["conversation_id"] = str(conversation_id)
                 called["announce_start"] = announce_start
 
             try:
@@ -101,12 +101,12 @@ class KernelContractTests(unittest.TestCase):
                 bridge.save_session(session_dir, session)
                 bridge.start_agent_generation = fake_start
 
-                bridge.handle_text(FakeTelegramClient(), "chat-soft", "开始生成", session_dir, log_dir, "gpt-test", 5)
+                bridge.handle_text(FakeCodexConversation(), "chat-soft", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.start_agent_generation = original_start
                 bridge.DEFAULT_MEMORY_DIR = original_memory
 
-            self.assertEqual("chat-soft", called.get("chat_id"))
+            self.assertEqual("chat-soft", called.get("conversation_id"))
             self.assertFalse(called.get("announce_start"))
 
     def test_soft_questions_do_not_prevent_auto_start(self) -> None:
@@ -131,8 +131,8 @@ class KernelContractTests(unittest.TestCase):
             original_memory = bridge.DEFAULT_MEMORY_DIR
             called: dict[str, object] = {}
 
-            def fake_start(client, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                called["chat_id"] = str(chat_id)
+            def fake_start(client, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["conversation_id"] = str(conversation_id)
                 called["announce_start"] = announce_start
 
             try:
@@ -144,12 +144,12 @@ class KernelContractTests(unittest.TestCase):
                 bridge.save_session(session_dir, session)
                 bridge.start_agent_generation = fake_start
 
-                bridge.handle_text(FakeTelegramClient(), "chat-critical", "开始生成", session_dir, log_dir, "gpt-test", 5)
+                bridge.handle_text(FakeCodexConversation(), "chat-critical", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.start_agent_generation = original_start
                 bridge.DEFAULT_MEMORY_DIR = original_memory
 
-            self.assertEqual("chat-critical", called.get("chat_id"))
+            self.assertEqual("chat-critical", called.get("conversation_id"))
             doc = read_source("docs/00_kernel_contract.md")
             self.assertIn("critical_questions", doc)
             self.assertIn("fallback output is not misreported", doc)
@@ -161,8 +161,8 @@ class KernelContractTests(unittest.TestCase):
             self.assertIn("capability_strategy", manifest["shared_whiteboard_keys"])
             self.assertIn("capability_research_targets", manifest["shared_whiteboard_keys"])
 
-    def test_telegram_default_generation_uses_provider_route_with_gate(self) -> None:
-        source = read_source("scripts/telegram_live_bridge.py")
+    def test_codex_default_generation_uses_provider_route_with_gate(self) -> None:
+        source = read_source("scripts/codex_conversation.py")
         start = function_body(source, "start_agent_generation")
         agent_job = function_body(source, "run_agent_generation_job")
         provider_job = function_body(source, "run_provider_generation_job") + function_body(source, "run_provider_execute_with_retries")
@@ -185,7 +185,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("finish_agent_loop_delivery", provider_job)
 
     def test_production_candidate_provenance_is_frozen_before_canonical_evidence(self) -> None:
-        source = read_source("scripts/telegram_live_bridge.py")
+        source = read_source("scripts/codex_conversation.py")
         finalize = function_body(source, "post_build_finalize_provider_project")
         contract = read_source("docs/00_kernel_contract.md")
 
@@ -200,7 +200,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("short-circuits canonical evidence inspection", contract)
 
     def test_provider_response_is_staged_and_causally_applied_before_evidence(self) -> None:
-        source = read_source("scripts/telegram_live_bridge.py")
+        source = read_source("scripts/codex_conversation.py")
         provider_job = function_body(source, "run_provider_generation_job")
         finalize = function_body(source, "post_build_finalize_provider_project")
         contract = read_source("docs/00_kernel_contract.md")
@@ -233,7 +233,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("must not be recursively scanned", contract)
 
     def test_support_pipeline_manifest_required_before_dynamic_runner(self) -> None:
-        body = function_body(read_source("scripts/telegram_live_bridge.py"), "run_agent_generation_job")
+        body = function_body(read_source("scripts/codex_conversation.py"), "run_agent_generation_job")
 
         planner_index = body.find("pipeline_planner_agent.plan_pipeline")
         write_index = body.find("write_pipeline_manifest")
@@ -259,7 +259,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual("logged", control["status"])
 
     def test_packager_is_only_delivery_exit(self) -> None:
-        text = read_source("scripts/telegram_live_bridge.py")
+        text = read_source("scripts/codex_conversation.py")
         finish = function_body(text, "finish_agent_loop_delivery")
         evidence = function_body(text, "delivery_evidence_state")
 
@@ -271,7 +271,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("final_message", evidence)
 
     def test_final_delivery_recomputes_canonical_package_without_mutating_manifest(self) -> None:
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
         packager_source = read_source("scripts/local_packager.py")
         canonical_source = read_source("scripts/canonical_delivery_manifest.py")
         pipeline_source = read_source("scripts/run_local_pipeline_impl.py")
@@ -292,7 +292,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("def validate_task_board_interaction_contract", pipeline_source)
         self.assertIn("task-board interaction contract mismatch", pipeline_source)
         self.assertIn("def validate_javascript_const_reassignment", pipeline_source)
-        self.assertIn("provider_result=result", function_body((ROOT / "scripts" / "telegram_live_bridge.py").read_text(encoding="utf-8"), "finish_agent_loop_delivery"))
+        self.assertIn("provider_result=result", function_body((ROOT / "scripts" / "codex_conversation.py").read_text(encoding="utf-8"), "finish_agent_loop_delivery"))
         self.assertIn('body_text_length") or 0) < 8', pipeline_source)
         self.assertIn('set(doc) == {"component"}', pipeline_source)
         self.assertIn('"num_predict": local_model_num_predict(task, system=system)', read_source("scripts/local_model_router.py"))
@@ -307,19 +307,19 @@ class KernelContractTests(unittest.TestCase):
 
     def test_user_review_is_candidate_bound_canonical_evidence(self) -> None:
         review_source = read_source("scripts/canonical_user_review.py")
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
         packager_source = read_source("scripts/canonical_delivery_manifest.py")
         contract = read_source("docs/00_kernel_contract.md")
 
         self.assertIn("record_user_review_approval", review_source)
         self.assertIn("inspect_user_review_evidence", review_source)
-        self.assertIn("from_user_id", bridge_source)
-        self.assertIn("message_context", bridge_source)
+        self.assertIn("reviewer_id", bridge_source)
+        self.assertIn("turn_context", bridge_source)
         self.assertIn("user_review_required", packager_source)
         self.assertIn("session booleans and text substrings are not review truth", contract)
         self.assertIn("canonical_screenshot_path_or_hash_changed", bridge_source)
-        self.assertIn("telegram_screenshot_send_failed_or_invalid", bridge_source)
-        self.assertIn("normalized successful Telegram returns", contract)
+        self.assertIn("codex_screenshot_send_failed_or_invalid", bridge_source)
+        self.assertIn("normalized successful Codex conversation returns", contract)
 
     def test_kernel_contract_defines_cfo_module_plan(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
@@ -356,13 +356,11 @@ class KernelContractTests(unittest.TestCase):
         self.assertFalse(local_model_router.DEFAULT_LOCAL_TASKS & local_model_router.LOCAL_GENERATION_TASKS)
         self.assertGreater(local_model_router.local_model_temperature("customer_public_reply"), 0.5)
         self.assertEqual(0.1, local_model_router.local_model_temperature("cfo_pipeline"))
-        starter = read_source("start_customer_service.py")
-        self.assertIn('"hybrid_safe"', starter)
-        self.assertIn("HYBRID_SAFE_LOCAL_TASKS", starter)
         self.assertIn("HYBRID_SAFE_API_TASKS", router_source)
-        self.assertIn("CGNK_MODEL_ROUTING_PROFILE", starter)
-        self.assertIn("CGNK_OLLAMA_CODE_MODEL", starter)
+        self.assertIn("CGNK_MODEL_ROUTING_PROFILE", router_source)
+        self.assertIn("CGNK_OLLAMA_CODE_MODEL", router_source)
         pipeline_source = read_source("scripts/run_local_pipeline_impl.py")
+        cross_validation_source = read_source("scripts/cross_validation_feedforward.py")
         pipeline_facade_source = read_source("scripts/run_local_pipeline.py")
         cgkn_plugin_source = read_source("plugins/cgkn/scripts/cgkn_mcp_server.py")
         cgkn_plugin_mcp = read_source("plugins/cgkn/.mcp.json")
@@ -528,6 +526,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGKNAssembledProjectQualityValidation", pipeline_source)
         self.assertIn("component_checkpoint_quality_invalidated", pipeline_source)
         self.assertIn("independent deterministic component quality validation", doc)
+        self.assertIn("cross_validate_component_for_feedforward", pipeline_source)
+        self.assertIn("cross_validation_feedforward_passed", pipeline_source)
+        self.assertIn("project_cross_validation_feedforward_passed", pipeline_source)
+        self.assertIn("CGKNCrossValidationFeedforwardReceipt", cross_validation_source)
+        self.assertIn("CGKNCrossValidationFeedforwardProjection", cross_validation_source)
+        self.assertIn('"veto_only": True', cross_validation_source)
+        self.assertIn('"can_assert_formal_evidence": False', cross_validation_source)
+        self.assertIn('"can_package": False', cross_validation_source)
+        self.assertIn('"can_deliver": False', cross_validation_source)
+        self.assertIn("every newly generated or checkpoint-reused component", doc)
+        self.assertIn("local_packager", doc)
+        self.assertIn("public_delivery_gate", doc)
         self.assertIn("CGKN_PROVIDER_LEAF_MAX_WORKERS", pipeline_source)
         self.assertIn("CGNK_LOCAL_PROVIDER_LEAF_MAX_WORKERS", pipeline_source)
         self.assertIn("def provider_task_timeout_cap", pipeline_source)
@@ -659,6 +669,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"toml_syntax",', pipeline_source)
         self.assertIn("has invalid TOML syntax", pipeline_source)
         self.assertIn("cached component current contract validation failed", pipeline_source)
+        self.assertIn('path.startswith("frontend/")', pipeline_source)
+        self.assertIn('path.startswith("public/")', pipeline_source)
         self.assertIn('required_paths.extend(["backend/stages.py", "backend/orchestrator.py"])', pipeline_source)
         self.assertIn('entry["expected_symbols"] = ["ProjectOrchestrator"]', pipeline_source)
         self.assertIn("overrides any different historical name", pipeline_source)
@@ -938,7 +950,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("require_final_bundle=False", post_build_source)
         self.assertIn("complexity contract is phase-aware", doc)
         self.assertIn("complexity_project_contract_not_passed", post_build_source)
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
         self.assertIn('session["generation"]["production_entry_receipt_ref"]', bridge_source)
         self.assertIn("visual_evidence.capture_candidate_video", bridge_source)
         self.assertIn("infer_explicit_minimum_test_count", bridge_source)
@@ -965,8 +977,13 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"切片工作台"', requirement_source)
         self.assertIn('"切片工作台"', discovery_source)
         self.assertIn("VISUAL_NOVEL_PRODUCT_TERMS", requirement_source)
+        self.assertIn('re.search(r"\\bvn\\b"', requirement_source)
+        self.assertIn('"frontend/styles.css"', requirement_source)
+        self.assertIn('"generate_background_images"', requirement_source)
+        self.assertIn('"generate_character_sprites"', requirement_source)
         self.assertIn("local_visual_novel_studio_requirement", requirement_source)
         self.assertIn("VISUAL_NOVEL_PRODUCT_TERMS", discovery_source)
+        self.assertIn('re.search(r"\\bvn\\b"', discovery_source)
         self.assertIn("local_visual_novel_studio", discovery_source)
         compose_source = read_source("scripts/compose_local_pipeline.py")
         self.assertIn('"database storage"', compose_source)
@@ -1027,7 +1044,7 @@ class KernelContractTests(unittest.TestCase):
         goal_acceptance = read_source("scripts/goal_acceptance.py")
         post_build = read_source("scripts/post_build_finalize.py")
         final_verdict = read_source("scripts/acceptance_verifier.py")
-        telegram = read_source("scripts/telegram_live_bridge.py")
+        codex = read_source("scripts/codex_conversation.py")
 
         self.assertIn("one canonical `GoalSpec`", doc)
         self.assertIn("`INSUFFICIENT_GOAL_PLAN`", doc)
@@ -1108,7 +1125,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("produce_canonical_final_verdict", goal_acceptance)
         self.assertIn('"support_prerequisites": {"goal_acceptance": goal_support}', final_verdict)
         self.assertIn("goal_acceptance.inspect_goal_acceptance", final_verdict)
-        self.assertIn("goal_acceptance.produce_from_canonical_test_evidence", telegram)
+        self.assertIn("goal_acceptance.produce_from_canonical_test_evidence", codex)
         post_build_repair = read_source("scripts/post_build_repair.py")
         self.assertIn("Goal fidelity and repair ownership are executable contracts", doc)
         self.assertIn("def goal_interaction_modes", requirement)
@@ -1151,7 +1168,7 @@ class KernelContractTests(unittest.TestCase):
 
     def test_public_delivery_gate_receipt_and_final_verdict_are_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
         send_manifest = function_body(bridge_source, "send_delivery_from_manifest")
         send_checkpoint = function_body(bridge_source, "send_evidence_checkpoint")
 
@@ -1159,7 +1176,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("public_delivery_gate", doc)
         self.assertIn("delivery_receipt", doc)
         receipt_schema = json.loads((ROOT / "schemas" / "delivery_receipt_v1.schema.json").read_text(encoding="utf-8"))
-        for field in ("delivery_attempt_id", "delivery_manifest_file_hash", "package_entries_hash", "telegram_receipts"):
+        for field in ("delivery_attempt_id", "delivery_manifest_file_hash", "package_entries_hash", "conversation_receipts"):
             self.assertIn(field, receipt_schema["required"])
         registry = (ROOT / "docs" / "01_contract_registry.md").read_text(encoding="utf-8")
         self.assertIn("scripts/canonical_delivery_receipt.py", registry)
@@ -1179,7 +1196,7 @@ class KernelContractTests(unittest.TestCase):
     def test_build_qa_and_checkpoint_rework_are_part_of_kernel_contract(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
         runner = read_source("scripts/dynamic_pipeline_runner.py")
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
 
         self.assertIn("app.py` or `main.py`", doc)
         self.assertIn("requirements.txt", doc)
@@ -1193,9 +1210,9 @@ class KernelContractTests(unittest.TestCase):
 
     def test_public_narration_is_expression_layer_only(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
-        bridge = read_source("scripts/telegram_live_bridge.py")
+        bridge = read_source("scripts/codex_conversation.py")
 
-        self.assertIn("Public narration is allowed only at Telegram reply boundaries", doc)
+        self.assertIn("Public narration is allowed only at Codex conversation reply boundaries", doc)
         self.assertIn("does not create a new formal generation path", doc)
         self.assertIn("public_narration", bridge)
         self.assertIn("pipeline_manifest", doc)
@@ -1204,7 +1221,7 @@ class KernelContractTests(unittest.TestCase):
 
     def test_rework_blocked_clears_session_package_path(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
-        bridge = read_source("scripts/telegram_live_bridge.py")
+        bridge = read_source("scripts/codex_conversation.py")
         marker = function_body(bridge, "mark_public_delivery_rework")
 
         self.assertIn("must clear `generation.package_path`", doc)
@@ -1245,7 +1262,7 @@ class KernelContractTests(unittest.TestCase):
 
     def test_simulator_and_media_evidence_cannot_fake_delivery(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
-        bridge_source = read_source("scripts/telegram_live_bridge.py")
+        bridge_source = read_source("scripts/codex_conversation.py")
         packager_source = read_source("scripts/local_packager.py")
 
         self.assertIn("preflight-only", doc)
@@ -1289,7 +1306,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("validate_generated_design_quality", pipeline)
         self.assertIn("run_design_research", design)
         self.assertNotIn("local_packager", design)
-        self.assertNotIn("telegram_live_bridge", design)
+        self.assertNotIn("codex_conversation", design)
 
     def test_generated_test_and_png_fixture_boundaries_are_kernel_contracts(self) -> None:
         doc = read_source("docs/00_kernel_contract.md")
@@ -1328,8 +1345,8 @@ class KernelContractTests(unittest.TestCase):
         formal_facade = read_source("scripts/run_local_pipeline.py")
         agent_kit = read_source("tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py")
         agent_kit_project = read_source("tools/cgkn-agent-kit/pyproject.toml")
-        telegram_design = read_source("scripts/telegram_design_supervision.py")
-        telegram_bridge = read_source("scripts/telegram_live_bridge.py")
+        codex_design = read_source("scripts/codex_design_supervision.py")
+        codex_bridge = read_source("scripts/codex_conversation.py")
         agents = read_source("AGENTS.md")
 
         self.assertIn("capability supervisor above the librarian's bounded selection", doc)
@@ -1339,15 +1356,15 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGKNCodexCapabilityBrief", registry)
         self.assertIn("formal_evidence_authorized", supervisor)
         self.assertIn('"formal_evidence_status": "NOT_EVALUATED"', supervisor)
-        self.assertIn("Telegram interface requests use `scripts/telegram_design_supervision.py`", doc)
+        self.assertIn("Codex conversation interface requests use `scripts/codex_design_supervision.py`", doc)
         self.assertIn("Media-only or short non-visual function requests do not acquire GUI scope", doc)
-        self.assertIn("build_escalation_request", telegram_design)
+        self.assertIn("build_escalation_request", codex_design)
         self.assertIn('"candidate_write_authorized": False', supervisor)
-        self.assertIn('"--ephemeral"', telegram_design)
-        self.assertIn('"--sandbox",', telegram_design)
-        self.assertIn('"read-only"', telegram_design)
-        self.assertIn("design_supervision_pending", telegram_bridge)
-        self.assertIn("codex_capability_brief=codex_design_brief", telegram_bridge)
+        self.assertIn('"--ephemeral"', codex_design)
+        self.assertIn('"--sandbox",', codex_design)
+        self.assertIn('"read-only"', codex_design)
+        self.assertIn("design_supervision_pending", codex_bridge)
+        self.assertIn("codex_capability_brief=codex_design_brief", codex_bridge)
         self.assertIn("provider output validation", doc)
         self.assertIn("local_packager", doc)
         self.assertIn("public_delivery_gate", doc)
@@ -1494,7 +1511,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("--api-key", agent_kit)
         self.assertIn('cgkn-agent = "cgkn_agent_kit.cli:main"', agent_kit_project)
         self.assertNotIn("local_packager", supervisor)
-        self.assertNotIn("telegram_live_bridge", supervisor)
+        self.assertNotIn("codex_conversation", supervisor)
 
     def test_codex_cgkn_runtime_supervision_baseline_preserves_ownership_and_authority(self) -> None:
         baseline = read_source("docs/14_codex_cgkn_runtime_supervision_baseline.md")
@@ -1503,18 +1520,17 @@ class KernelContractTests(unittest.TestCase):
         agents = read_source("AGENTS.md")
         protocol = read_source("scripts/cgkn_supervision_protocol.py")
         host = read_source("scripts/cgkn_runtime_supervisor.py")
-        bridge = read_source("scripts/telegram_live_bridge.py")
+        bridge = read_source("scripts/codex_conversation.py")
 
-        self.assertIn("CGKN is the independently running project-production system", baseline)
-        self.assertIn("interaction channel owned by and contained within CGKN", baseline)
-        self.assertIn("resumes one persistent supervision thread", baseline)
+        self.assertIn("CGKN is the long-running project-production system", baseline)
+        self.assertIn("active Codex task is", baseline)
+        self.assertIn("resumes one identity-bound Codex thread", baseline)
         self.assertIn("repair_cgkn", baseline)
-        self.assertIn("The following inversion is prohibited", baseline)
-        self.assertIn("Telegram -> start a fresh one-shot Codex process", baseline)
-        self.assertIn("provider output validation", baseline)
+        self.assertIn("must not start a second conversation service", baseline)
+        self.assertIn("Provider generation and validation", baseline)
         self.assertIn("local_packager", baseline)
-        self.assertIn("public_delivery_gate", baseline)
-        self.assertIn("persistent supervision is `NOT_EVALUATED`", baseline)
+        self.assertIn("public delivery gate", baseline)
+        self.assertIn("support state and never formal evidence", baseline)
         self.assertIn("fixes the higher-level runtime ownership model", kernel)
         self.assertIn("Runtime Supervision Architecture Baseline", registry)
         self.assertIn("normative runtime ownership baseline", agents)

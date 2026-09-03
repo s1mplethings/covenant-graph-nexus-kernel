@@ -19,9 +19,9 @@ from scripts import browser_visual_evidence
 from scripts import customer_runtime_runner
 from scripts import local_packager
 from scripts import real_test_execution
-from scripts import telegram_live_bridge as bridge
+from scripts import codex_conversation as bridge
 from scripts import production_candidate_provenance
-from tests.test_telegram_public_delivery_gate import (
+from tests.test_codex_public_delivery_gate import (
     bind_test_production_provenance,
 )
 
@@ -59,11 +59,11 @@ class FakeClient:
     def __init__(self) -> None:
         self.messages: list[str] = []
 
-    def send_message(self, _chat_id, text):
+    def send_message(self, _conversation_id, text):
         self.messages.append(text)
         return True
 
-    def send_chat_action(self, _chat_id, _action):
+    def send_chat_action(self, _conversation_id, _action):
         return None
 
 
@@ -108,11 +108,11 @@ def make_project(root: pathlib.Path) -> pathlib.Path:
     return project
 
 
-def request_for(project: pathlib.Path, chat_id: str = "group-1") -> dict:
+def request_for(project: pathlib.Path, conversation_id: str = "group-1") -> dict:
     request = canonical_user_review.create_review_request_snapshot(
         project,
-        chat_id=chat_id,
-        expected_reviewer_user_id=303,
+        conversation_id=conversation_id,
+        expected_reviewer_id=303,
         requirement_snapshot=["review this build"],
     )
     assert request["status"] == "waiting_user_review"
@@ -121,7 +121,7 @@ def request_for(project: pathlib.Path, chat_id: str = "group-1") -> dict:
         request,
         presented_artifacts=[{
             "kind": "nonvisual_summary",
-            "ref": "telegram:summary",
+            "ref": "codex:summary",
             "sha256": canonical_evidence_hash.sha256_bytes(b"summary"),
             "sent": True,
             "presented_at": canonical_user_review.now(),
@@ -139,13 +139,13 @@ def request_for(project: pathlib.Path, chat_id: str = "group-1") -> dict:
 
 def context(**updates) -> dict:
     value = {
-        "update_id": 101,
-        "message_id": 202,
-        "chat_id": "group-1",
-        "from_user_id": 303,
+        "event_id": 101,
+        "turn_id": 202,
+        "conversation_id": "group-1",
+        "reviewer_id": 303,
         "from_username": "reviewer",
-        "message_date": time.time() - 0.005,
-        "edited_message": False,
+        "turn_date": time.time() - 0.005,
+        "edited_turn": False,
     }
     value.update(updates)
     return value
@@ -209,14 +209,14 @@ class InvalidPhotoResultClient(FakeClient):
         super().__init__()
         self.photos: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_photo(self, chat_id, path, caption):
-        self.photos.append((str(chat_id), pathlib.Path(path).resolve(), str(caption)))
+    def send_photo(self, conversation_id, path, caption):
+        self.photos.append((str(conversation_id), pathlib.Path(path).resolve(), str(caption)))
         return {"ok": False}
 
-    def send_document(self, _chat_id, _path, _caption):
+    def send_document(self, _conversation_id, _path, _caption):
         return False
 
-    def send_video(self, _chat_id, _path, _caption):
+    def send_video(self, _conversation_id, _path, _caption):
         return False
 
 
@@ -225,16 +225,17 @@ class StructuredPhotoResultClient(InvalidPhotoResultClient):
         super().__init__()
         self.raises = raises
 
-    def send_photo(self, chat_id, path, caption):
-        self.photos.append((str(chat_id), pathlib.Path(path).resolve(), str(caption)))
+    def send_photo(self, conversation_id, path, caption):
+        self.photos.append((str(conversation_id), pathlib.Path(path).resolve(), str(caption)))
         if self.raises:
-            raise RuntimeError("telegram photo send failed")
+            raise RuntimeError("codex photo send failed")
         return {
             "ok": True,
             "result": {
-                "message_id": 7001,
-                "chat": {"id": chat_id},
-                "photo": [{"file_id": "fake-canonical-screenshot"}],
+                "turn_id": 7001,
+                "conversation_id": conversation_id,
+                "artifact_id": "fake-canonical-screenshot",
+                "artifact_unique_id": "fake-canonical-screenshot",
             },
         }
 
@@ -251,8 +252,8 @@ def test_explicit_approval_creates_candidate_bound_review_and_package() -> None:
         )
         assert review["status"] == "PASS"
         assert review["reviewer"] == "303"
-        assert review["chat_id"] == "group-1"
-        assert review["telegram_message_id"] == "202"
+        assert review["conversation_id"] == "group-1"
+        assert review["turn_id"] == "202"
         assert review["reviewed_candidate_hash"] == canonical_evidence_hash.candidate_source_hash(project)
         assert review["artifact_hash"] == canonical_evidence_hash.canonical_json_hash(review, ("artifact_hash",))
         assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "PASS"
@@ -303,8 +304,8 @@ def test_chinese_and_english_negative_or_ambiguous_text_never_approves() -> None
     assert canonical_user_review.classify_review_text("I approve this version for final packaging.") == "APPROVED"
 
 
-def test_missing_identity_edited_message_and_wrong_chat_are_rejected() -> None:
-    for field in ("update_id", "message_id", "from_user_id"):
+def test_missing_identity_edited_turn_and_wrong_chat_are_rejected() -> None:
+    for field in ("event_id", "turn_id", "reviewer_id"):
         with tempfile.TemporaryDirectory() as temp:
             project = make_project(pathlib.Path(temp))
             result = canonical_user_review.record_user_review_approval(
@@ -316,7 +317,7 @@ def test_missing_identity_edited_message_and_wrong_chat_are_rejected() -> None:
             assert result["status"] == "NEEDS_REWORK"
             assert any(field in item for item in result["failures"])
             assert not (project / "user_review.json").exists()
-    for updates, expected in (({"edited_message": True}, "edited_message_not_allowed"), ({"chat_id": "other"}, "chat_id_mismatch")):
+    for updates, expected in (({"edited_turn": True}, "edited_turn_not_allowed"), ({"conversation_id": "other"}, "conversation_id_mismatch")):
         with tempfile.TemporaryDirectory() as temp:
             project = make_project(pathlib.Path(temp))
             result = canonical_user_review.record_user_review_approval(
@@ -353,7 +354,7 @@ def test_presentation_failure_and_handwritten_review_do_not_pass() -> None:
     with tempfile.TemporaryDirectory() as temp:
         project = make_project(pathlib.Path(temp))
         request = canonical_user_review.create_review_request_snapshot(
-            project, chat_id="group-1", expected_reviewer_user_id=303, requirement_snapshot=[]
+            project, conversation_id="group-1", expected_reviewer_id=303, requirement_snapshot=[]
         )
         request = canonical_user_review.mark_review_request_presented(project, request, presented_artifacts=[])
         result = canonical_user_review.record_user_review_approval(
@@ -394,7 +395,7 @@ def test_root_review_is_excluded_but_nested_product_fixture_is_hashed() -> None:
         assert canonical_evidence_hash.candidate_source_hash(project) != before_request
 
 
-def test_telegram_message_cannot_be_replayed() -> None:
+def test_codex_message_cannot_be_replayed() -> None:
     with tempfile.TemporaryDirectory() as temp:
         project = make_project(pathlib.Path(temp))
         first = canonical_user_review.record_user_review_approval(
@@ -412,10 +413,10 @@ def test_telegram_message_cannot_be_replayed() -> None:
             context(),
         )
         assert second["status"] == "NEEDS_REWORK"
-        assert "telegram_message_replayed" in second["failures"]
+        assert "conversation_turn_replayed" in second["failures"]
 
 
-def test_handle_text_requires_message_context_and_feedback_invalidates_review() -> None:
+def test_handle_text_requires_turn_context_and_feedback_invalidates_review() -> None:
     with tempfile.TemporaryDirectory() as temp:
         root = pathlib.Path(temp)
         project = make_project(root)
@@ -440,7 +441,7 @@ def test_handle_text_requires_message_context_and_feedback_invalidates_review() 
                 log_dir,
                 "model",
                 10,
-                message_context=context(),
+                turn_context=context(),
             )
             assert resumed == [True]
             assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "PASS"
@@ -457,7 +458,7 @@ def test_handle_text_requires_message_context_and_feedback_invalidates_review() 
                 log_dir,
                 "model",
                 10,
-                message_context=context(update_id=102, message_id=203),
+                turn_context=context(event_id=102, turn_id=203),
             )
         finally:
             bridge.resume_after_evidence_review = original_resume
@@ -499,20 +500,20 @@ def test_trust_boundary_regressions_require_disk_request_owner_date_and_durable_
         request = request_for(project)
         assert (project / "user_review_request.json").is_file()
         missing_date = canonical_user_review.record_user_review_approval(
-            project, request, "我确认这个版本，可以最终打包", context(message_date=None)
+            project, request, "我确认这个版本，可以最终打包", context(turn_date=None)
         )
         assert missing_date["status"] == "NEEDS_REWORK"
         wrong_user = canonical_user_review.record_user_review_approval(
-            project, request, "我确认这个版本，可以最终打包", context(from_user_id=999)
+            project, request, "我确认这个版本，可以最终打包", context(reviewer_id=999)
         )
         assert wrong_user["status"] == "NEEDS_REWORK"
         tampered = dict(request)
-        tampered["expected_reviewer_user_id"] = "999"
+        tampered["expected_reviewer_id"] = "999"
         assert canonical_user_review.record_user_review_approval(
-            project, tampered, "我确认这个版本，可以最终打包", context(from_user_id=999)
+            project, tampered, "我确认这个版本，可以最终打包", context(reviewer_id=999)
         )["status"] == "NEEDS_REWORK"
         waiting = canonical_user_review.create_review_request_snapshot(
-            project, chat_id="group-1", expected_reviewer_user_id=303, requirement_snapshot=[]
+            project, conversation_id="group-1", expected_reviewer_id=303, requirement_snapshot=[]
         )
         forged_presentation = dict(waiting)
         forged_presentation.update(
@@ -523,7 +524,7 @@ def test_trust_boundary_regressions_require_disk_request_owner_date_and_durable_
             project, forged_presentation, "我确认这个版本，可以最终打包", context()
         )["status"] == "NEEDS_REWORK"
         assert canonical_user_review.create_review_request_snapshot(
-            project, chat_id="group-1", expected_reviewer_user_id="",
+            project, conversation_id="group-1", expected_reviewer_id="",
             requirement_snapshot=[],
         )["status"] == "NEEDS_REWORK"
 
@@ -556,8 +557,8 @@ def test_stale_review_does_not_infer_workflow_requirement() -> None:
 def test_forged_but_self_hashed_reviews_are_independently_rejected() -> None:
     mutations = {
         "empty_reviewer": lambda review, request: review.update(reviewer=""),
-        "empty_message": lambda review, request: review.update(telegram_message_id=""),
-        "wrong_event": lambda review, request: review.update(review_event_id="telegram:forged"),
+        "empty_message": lambda review, request: review.update(turn_id=""),
+        "wrong_event": lambda review, request: review.update(review_event_id="codex:forged"),
         "review_not_required": lambda review, request: review.update(review_required=False),
         "wrong_channel": lambda review, request: review.update(channel="manual"),
         "bad_time": lambda review, request: review.update(reviewed_at=request["requested_at"]),
@@ -566,7 +567,7 @@ def test_forged_but_self_hashed_reviews_are_independently_rejected() -> None:
         "missing_test": lambda review, request: review.update(
             reviewed_evidence=[item for item in review["reviewed_evidence"] if item["kind"] != "test_execution"]
         ),
-        "handwritten_ids": lambda review, request: review.update(telegram_update_id="999", telegram_message_id="999"),
+        "handwritten_ids": lambda review, request: review.update(event_id="999", turn_id="999"),
         "bad_approval_hash": lambda review, request: review.update(approval_text_hash="not-a-hash"),
     }
     for name, mutate in mutations.items():
@@ -591,8 +592,8 @@ def test_required_presentation_roles_are_backed_by_actual_sent_artifacts() -> No
             project = make_project(pathlib.Path(temp))
             request = canonical_user_review.create_review_request_snapshot(
                 project,
-                chat_id="group-1",
-                expected_reviewer_user_id=303,
+                conversation_id="group-1",
+                expected_reviewer_id=303,
                 requirement_snapshot=[role],
                 required_presentation_roles=["nonvisual_summary", role],
             )
@@ -600,7 +601,7 @@ def test_required_presentation_roles_are_backed_by_actual_sent_artifacts() -> No
                 project,
                 request,
                 presented_artifacts=[{
-                    "kind": "nonvisual_summary", "ref": "telegram:summary",
+                    "kind": "nonvisual_summary", "ref": "codex:summary",
                     "sha256": canonical_evidence_hash.sha256_bytes(b"summary"), "sent": True,
                     "presented_at": canonical_user_review.now(),
                 }],
@@ -625,14 +626,14 @@ def test_feedback_keeps_replay_history_across_new_request_and_candidate() -> Non
             project, new_request, "我确认这个版本，可以最终打包", context()
         )
         assert replay["status"] == "NEEDS_REWORK"
-        assert "telegram_message_replayed" in replay["failures"]
-        assert "telegram_message_replayed" in canonical_user_review.record_user_review_approval(
+        assert "conversation_turn_replayed" in replay["failures"]
+        assert "conversation_turn_replayed" in canonical_user_review.record_user_review_approval(
             project, new_request, "我确认这个版本，可以最终打包",
-            context(update_id=999, message_id=202),
+            context(event_id=999, turn_id=202),
         )["failures"]
-        assert "telegram_message_replayed" in canonical_user_review.record_user_review_approval(
+        assert "conversation_turn_replayed" in canonical_user_review.record_user_review_approval(
             project, new_request, "我确认这个版本，可以最终打包",
-            context(update_id=101, message_id=999),
+            context(event_id=101, turn_id=999),
         )["failures"]
 
 
@@ -658,7 +659,7 @@ def test_checkpoint_sender_uses_actual_attachment_results_for_required_roles() -
                 root = pathlib.Path(temp)
                 project = make_project(root)
                 request = canonical_user_review.create_review_request_snapshot(
-                    project, chat_id="group-1", expected_reviewer_user_id=303,
+                    project, conversation_id="group-1", expected_reviewer_id=303,
                     requirement_snapshot=[role], required_presentation_roles=["nonvisual_summary", role],
                 )
                 session_dir = root / "sessions"
@@ -673,7 +674,7 @@ def test_checkpoint_sender_uses_actual_attachment_results_for_required_roles() -
             root = pathlib.Path(temp)
             project = make_project(root)
             request = canonical_user_review.create_review_request_snapshot(
-                project, chat_id="group-1", expected_reviewer_user_id=303,
+                project, conversation_id="group-1", expected_reviewer_id=303,
                 requirement_snapshot=[], required_presentation_roles=["nonvisual_summary"],
             )
             session_dir = root / "sessions"
@@ -742,8 +743,8 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
         assert visual["status"] == "PASS"
         missing_role_request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual",
+            expected_reviewer_id=303,
             requirement_snapshot=["screenshot required"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary"],
@@ -752,8 +753,8 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
         assert "visual_screenshot_role_missing" in missing_role_request["failures"]
         failed_request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual",
+            expected_reviewer_id=303,
             requirement_snapshot=["screenshot required"],
             visual_required=True,
             required_presentation_roles=["screenshot"],
@@ -764,8 +765,8 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
         assert failed_request["status"] == "presentation_failed"
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual",
+            expected_reviewer_id=303,
             requirement_snapshot=["screenshot required"],
             visual_required=True,
             required_presentation_roles=["screenshot"],
@@ -792,7 +793,7 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
             project,
             request,
             "我确认这个版本，可以最终打包",
-            context(chat_id="group-visual"),
+            context(conversation_id="group-visual"),
         )
         assert review["status"] == "PASS", review
         assert review["visual_required"] is True
@@ -882,14 +883,14 @@ def test_visual_request_inspector_uses_bound_visual_requirement() -> None:
         assert not execution_root.exists()
 
 
-def test_formal_checkpoint_sender_rejects_invalid_telegram_photo_result() -> None:
+def test_formal_checkpoint_sender_rejects_invalid_codex_photo_result() -> None:
     with tempfile.TemporaryDirectory() as temp:
         root = pathlib.Path(temp)
         project, runtime, visual = make_visual_project(root)
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual-sender",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual-sender",
+            expected_reviewer_id=303,
             requirement_snapshot=["需要真实界面截图"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary", "screenshot"],
@@ -914,7 +915,7 @@ def test_formal_checkpoint_sender_rejects_invalid_telegram_photo_result() -> Non
         assert saved["presentation_succeeded"] is False
         assert {item["kind"] for item in saved["presented_artifacts"]} == {"nonvisual_summary"}
         assert not any(item.get("kind") == "screenshot" for item in saved["presented_artifacts"])
-        assert "telegram_screenshot_send_failed_or_invalid" in saved["sender_diagnostic"]["failures"]
+        assert "codex_screenshot_send_failed_or_invalid" in saved["sender_diagnostic"]["failures"]
         assert runtime["shutdown_result"]["stopped"] is True
         assert runtime["cleanup_result"]["removed"] is True
 
@@ -926,8 +927,8 @@ def test_formal_checkpoint_sender_closes_visual_review_package_and_gate() -> Non
         canonical_screenshot = pathlib.Path(visual["screenshot_path"]).resolve()
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual-success",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual-success",
+            expected_reviewer_id=303,
             requirement_snapshot=["需要真实界面截图"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary", "screenshot"],
@@ -965,14 +966,14 @@ def test_formal_checkpoint_sender_closes_visual_review_package_and_gate() -> Non
         assert pathlib.Path(screenshot_artifact["ref"]).resolve() == canonical_screenshot
         assert screenshot_artifact["sha256"] == visual["screenshot_hash"]
         assert screenshot_artifact["sent"] is True
-        assert screenshot_artifact["telegram_message_id"] == "7001"
-        assert screenshot_artifact["telegram_chat_id"] == "group-visual-success"
+        assert screenshot_artifact["turn_id"] == "7001"
+        assert screenshot_artifact["conversation_id"] == "group-visual-success"
         assert canonical_user_review.inspect_user_review_request(project)["status"] == "PASS"
         review = canonical_user_review.record_user_review_approval(
             project,
             bridge.load_session(session_dir, "group-visual-success")["pending_evidence_checkpoint"],
             "我确认这个版本，可以最终打包",
-            context(chat_id="group-visual-success", update_id=7100, message_id=7101),
+            context(conversation_id="group-visual-success", event_id=7100, turn_id=7101),
         )
         assert review["status"] == "PASS", review
         assert canonical_user_review.inspect_user_review_evidence(project)["status"] == "PASS"
@@ -1013,8 +1014,8 @@ def test_formal_checkpoint_sender_exception_blocks_approval_package_and_adaptive
         project, _runtime, visual = make_visual_project(root)
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual-exception",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual-exception",
+            expected_reviewer_id=303,
             requirement_snapshot=["需要真实界面截图"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary", "screenshot"],
@@ -1038,12 +1039,12 @@ def test_formal_checkpoint_sender_exception_blocks_approval_package_and_adaptive
         assert len(client.photos) == 1
         assert saved_request["status"] == "presentation_failed"
         assert saved_request["presentation_succeeded"] is False
-        assert "telegram_screenshot_send_failed_or_invalid" in saved_request["sender_diagnostic"]["failures"]
+        assert "codex_screenshot_send_failed_or_invalid" in saved_request["sender_diagnostic"]["failures"]
         assert canonical_user_review.record_user_review_approval(
             project,
             saved_request,
             "我确认这个版本，可以最终打包",
-            context(chat_id="group-visual-exception", update_id=7200, message_id=7201),
+            context(conversation_id="group-visual-exception", event_id=7200, turn_id=7201),
         )["status"] == "NEEDS_REWORK"
         manifest = local_packager.package_project(
             project, visual_required=True, user_review_required=True
@@ -1071,8 +1072,8 @@ def test_formal_checkpoint_sender_detects_pre_send_and_post_send_tampering() -> 
         original_screenshot = screenshot.read_bytes()
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual-tamper",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual-tamper",
+            expected_reviewer_id=303,
             requirement_snapshot=["需要真实界面截图"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary", "screenshot"],
@@ -1100,8 +1101,8 @@ def test_formal_checkpoint_sender_detects_pre_send_and_post_send_tampering() -> 
 
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-visual-tamper",
-            expected_reviewer_user_id=303,
+            conversation_id="group-visual-tamper",
+            expected_reviewer_id=303,
             requirement_snapshot=["需要真实界面截图"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary", "screenshot"],
@@ -1127,7 +1128,7 @@ def test_formal_checkpoint_sender_detects_pre_send_and_post_send_tampering() -> 
             project,
             sent_request,
             "我确认这个版本，可以最终打包",
-            context(chat_id="group-visual-tamper", update_id=7300, message_id=7301),
+            context(conversation_id="group-visual-tamper", event_id=7300, turn_id=7301),
         )["status"] == "NEEDS_REWORK"
         screenshot.write_bytes(original_screenshot)
         visual_path = project / "visual_evidence.json"
@@ -1138,7 +1139,7 @@ def test_formal_checkpoint_sender_detects_pre_send_and_post_send_tampering() -> 
             project,
             sent_request,
             "我确认这个版本，可以最终打包",
-            context(chat_id="group-visual-tamper", update_id=7302, message_id=7303),
+            context(conversation_id="group-visual-tamper", event_id=7302, turn_id=7303),
         )["status"] == "NEEDS_REWORK"
 
 
@@ -1172,8 +1173,8 @@ def test_formal_checkpoint_sender_nonvisual_summary_does_not_send_old_png() -> N
         )["status"] == "PASS"
         request = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-nonvisual-sender",
-            expected_reviewer_user_id=303,
+            conversation_id="group-nonvisual-sender",
+            expected_reviewer_id=303,
             requirement_snapshot=["plain cli"],
             visual_required=False,
             required_presentation_roles=["nonvisual_summary"],
@@ -1265,16 +1266,16 @@ def test_visual_request_requires_visual_evidence_and_screenshot_role() -> None:
         project = make_project(pathlib.Path(temp))
         missing_visual = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-1",
-            expected_reviewer_user_id=303,
+            conversation_id="group-1",
+            expected_reviewer_id=303,
             requirement_snapshot=["visual"],
             visual_required=True,
         )
         assert missing_visual["status"] == "NEEDS_REWORK"
         missing_role = canonical_user_review.create_review_request_snapshot(
             project,
-            chat_id="group-1",
-            expected_reviewer_user_id=303,
+            conversation_id="group-1",
+            expected_reviewer_id=303,
             requirement_snapshot=["visual"],
             visual_required=True,
             required_presentation_roles=["nonvisual_summary"],

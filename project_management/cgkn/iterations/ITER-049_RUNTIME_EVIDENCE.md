@@ -5,8 +5,7 @@
 The active branch is `codex/cgkn-codex-edition`. Its distribution name is
 `CGKN Codex Edition`; the formal kernel and schema namespace remain `CGKN`.
 
-The canonical edition launcher is
-`scripts/start_cgkn_codex_edition.ps1`. It uses
+The active Codex task is the canonical conversation entry. It uses
 `generated/cgkn_editions/codex/` for sessions, logs, uploads, memory, and
 Provider candidates, and `.cgkn/editions/codex/` for persistent supervisor
 state. The superseded `start_cgkn_codex_supervised.ps1` launcher is absent.
@@ -23,6 +22,6 @@ state. The superseded `start_cgkn_codex_supervised.ps1` launcher is absent.
 ## Limits
 
 The branch was created with the repository's existing uncommitted working-tree
-changes intact. No commit, remote branch push, live Telegram launch, Provider
+changes intact. No commit, remote branch push, live Codex conversation launch, Provider
 generation, package, or public delivery was performed. This iteration record is
 support evidence and does not authorize formal delivery PASS.

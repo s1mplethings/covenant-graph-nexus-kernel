@@ -19,42 +19,73 @@ if str(ROOT / "scripts") not in sys.path:
 
 import check_connectivity
 import provider_api_smoke
-import telegram_live_bridge as bridge
+import codex_conversation as bridge
 
 
 VN_REQUEST = "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景，立绘，是正经直接生成图片的\n补充：\n本地模型，桌面界面，文件导出"
-START_TEXT = "开始生成"
+START_TEXT = "确认设计，按这个设计开始生成"
 FORBIDDEN_TOPIC_TERMS = ("CSGO", "csgo", "CS2", "cs2", "demo 鉴挂", "鉴挂", "视角异常", "命中事件", "风险评分")
 FORBIDDEN_PUBLIC_INTERNALS = ("TLS", "SSLError", "provider", "backend", "internal", "pipeline", "manifest", "runner", "后台")
 RETRYABLE_MARKERS = ("SSLError", "SSLV3_ALERT_BAD_RECORD_MAC", "timeout", "timed out", "502", "503", "504", "connection reset", "connection aborted", "empty response")
+PROVIDER_BLOCKING_ERROR_TYPES = {
+    "PROVIDER_FORBIDDEN",
+    "PROVIDER_KEY_USAGE_LIMIT",
+    "PROVIDER_MISSING_CONFIG",
+    "PROVIDER_METHOD_UNSUPPORTED",
+    "PROVIDER_NON_RETRYABLE_HTTP",
+}
 
 
-class CaptureTelegramClient:
+class CaptureCodexConversation:
     def __init__(self) -> None:
         self.messages: list[dict[str, str]] = []
         self.photos: list[dict[str, str]] = []
         self.documents: list[dict[str, str]] = []
         self.videos: list[dict[str, str]] = []
         self.actions: list[dict[str, str]] = []
+        self._turn = 0
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append({"chat_id": str(chat_id), "text": str(text)})
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self._turn += 1
+        self.messages.append(
+            {"conversation_id": str(conversation_id), "turn_id": str(self._turn), "text": str(text)}
+        )
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append({"chat_id": str(chat_id), "action": str(action)})
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append({"conversation_id": str(conversation_id), "action": str(action)})
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append({"chat_id": str(chat_id), "path": str(path), "caption": str(caption)})
-        return True
+    def _artifact_result(
+        self,
+        collection: list[dict[str, str]],
+        conversation_id: int | str,
+        path: pathlib.Path,
+        caption: str,
+    ) -> dict[str, Any]:
+        artifact = pathlib.Path(path)
+        if not artifact.is_file():
+            return {}
+        self._turn += 1
+        digest = bridge.canonical_evidence_hash.sha256_file(artifact)
+        item = {
+            "conversation_id": str(conversation_id),
+            "turn_id": str(self._turn),
+            "artifact_id": digest,
+            "artifact_unique_id": digest,
+            "path": str(artifact.resolve()),
+            "caption": str(caption),
+        }
+        collection.append(item)
+        return {"ok": True, "result": item}
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append({"chat_id": str(chat_id), "path": str(path), "caption": str(caption)})
-        return True
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._artifact_result(self.photos, conversation_id, path, caption)
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.videos.append({"chat_id": str(chat_id), "path": str(path), "caption": str(caption)})
-        return True
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._artifact_result(self.documents, conversation_id, path, caption)
+
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._artifact_result(self.videos, conversation_id, path, caption)
 
 
 class InlineThread:
@@ -76,6 +107,39 @@ class InlineThread:
 
     def is_alive(self) -> bool:
         return self._started and not self._finished
+
+
+class InlineThreadingNamespace:
+    """Override only codex_conversation's thread launcher, not Python threading."""
+
+    Thread = InlineThread
+
+    def __init__(self, real_threading: Any) -> None:
+        self._real_threading = real_threading
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real_threading, name)
+
+
+def apply_task_model_override(model: str) -> dict[str, str | None]:
+    previous: dict[str, str | None] = {}
+    env_names = {
+        *bridge.model_policy.TASK_ENV_VARS.values(),
+        "CGNK_PROVIDER_SMALL_MODEL",
+        "CGNK_PROVIDER_LARGE_MODEL",
+    }
+    for env_name in env_names:
+        previous[env_name] = os.environ.get(env_name)
+        os.environ[env_name] = model
+    return previous
+
+
+def restore_task_model_override(previous: dict[str, str | None]) -> None:
+    for env_name, value in previous.items():
+        if value is None:
+            os.environ.pop(env_name, None)
+        else:
+            os.environ[env_name] = value
 
 
 def read_jsonl(path: pathlib.Path) -> list[dict[str, Any]]:
@@ -134,6 +198,34 @@ def retry_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def classify_e2e_status(
+    *,
+    success_ready: bool,
+    retryable_rework_verified: bool,
+    smoke: dict[str, Any],
+    generation: dict[str, Any] | None = None,
+    public_delivery_gate: dict[str, Any] | None = None,
+) -> tuple[str, bool]:
+    if success_ready:
+        return "PASS", False
+    provider_error_type = str(smoke.get("provider_error_type", "")).strip()
+    if provider_error_type in PROVIDER_BLOCKING_ERROR_TYPES:
+        return "BLOCKED_PROVIDER", True
+    generation_status = str((generation or {}).get("status", "")).strip().lower()
+    gate_status = str(
+        (public_delivery_gate or {}).get("status")
+        or (public_delivery_gate or {}).get("verdict")
+        or ""
+    ).strip()
+    if (
+        retryable_rework_verified
+        or generation_status in {"rework_blocked", "waiting_rework", "needs_rework"}
+        or gate_status == "NEEDS_REWORK"
+    ):
+        return "NEEDS_REWORK", False
+    return "FAIL", False
+
+
 def strip_secret_fields(doc: dict[str, Any]) -> dict[str, Any]:
     cleaned = dict(doc)
     cleaned.pop("api_key_mask", None)
@@ -159,27 +251,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     output_root.mkdir(parents=True, exist_ok=True)
     session_dir = output_root / "sessions"
     log_dir = output_root / "logs"
-    chat_id = args.chat_id
-    client = CaptureTelegramClient()
+    conversation_id = args.conversation_id
+    client = CaptureCodexConversation()
 
     smoke = provider_api_smoke.run_smoke(args.model, args.timeout, args.smoke_attempts)
     smoke = strip_secret_fields(smoke)
 
-    original_thread = bridge.threading.Thread
-    bridge.threading.Thread = InlineThread
+    original_threading = bridge.threading
+    previous_model_overrides = apply_task_model_override(args.model)
+    bridge.threading = InlineThreadingNamespace(original_threading)
     try:
-        bridge.handle_text(client, chat_id, VN_REQUEST, session_dir, log_dir, args.model, args.timeout)
-        first_session = bridge.load_session(session_dir, chat_id)
+        bridge.handle_text(client, conversation_id, VN_REQUEST, session_dir, log_dir, args.model, args.timeout)
+        first_session = bridge.load_session(session_dir, conversation_id)
         first_status = str(first_session.get("generation", {}).get("status", ""))
         first_messages = list(client.messages)
 
-        bridge.handle_text(client, chat_id, START_TEXT, session_dir, log_dir, args.model, args.timeout)
+        bridge.handle_text(client, conversation_id, START_TEXT, session_dir, log_dir, args.model, args.timeout)
     finally:
-        bridge.threading.Thread = original_thread
+        bridge.threading = original_threading
+        restore_task_model_override(previous_model_overrides)
 
-    session = bridge.load_session(session_dir, chat_id)
+    session = bridge.load_session(session_dir, conversation_id)
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    project_dir = pathlib.Path(str(generation.get("project_dir") or (log_dir / "agent_projects" / bridge.safe_id(chat_id))))
+    project_dir = pathlib.Path(str(generation.get("project_dir") or (log_dir / "agent_projects" / bridge.safe_id(conversation_id))))
     sent = {
         "messages": client.messages,
         "photos": client.photos,
@@ -187,7 +281,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "videos": client.videos,
         "actions": client.actions,
     }
-    events = read_jsonl(bridge.agent_session_path(session_dir, chat_id))
+    events = read_jsonl(bridge.agent_session_path(session_dir, conversation_id))
     gate = public_gate_from_session(session)
     audit = artifact_audit(project_dir, sent)
     retries = retry_events(events)
@@ -215,11 +309,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and bool(retries)
     )
 
+    formal_status, provider_blocked = classify_e2e_status(
+        success_ready=success_ready,
+        retryable_rework_verified=retryable_rework_verified,
+        smoke=smoke,
+        generation=generation,
+        public_delivery_gate=gate,
+    )
     package = {
         "kind": "VnRealProviderE2ELogPackage",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "ok": success_ready,
-        "status": "PASS" if success_ready else ("REWORK_VERIFIED_NON_PASS" if retryable_rework_verified else "FAIL"),
+        "status": formal_status,
+        "provider_blocked": provider_blocked,
+        "provider_block_reason": str(smoke.get("error_summary", "")) if provider_blocked else "",
         "model": args.model,
         "endpoint": check_connectivity._openai_compatible_endpoint(str(creds.get("base_url", "")), model=args.model),
         "api_key_source": creds.get("api_key_source", ""),
@@ -230,8 +333,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "topic_leak": topic_leak,
             "messages": first_messages,
         },
-        "session_path": str(bridge.session_path(session_dir, chat_id)),
-        "agent_session_path": str(bridge.agent_session_path(session_dir, chat_id)),
+        "session_path": str(bridge.session_path(session_dir, conversation_id)),
+        "agent_session_path": str(bridge.agent_session_path(session_dir, conversation_id)),
         "project_dir": str(project_dir),
         "generation": generation,
         "public_delivery_gate": gate,
@@ -259,15 +362,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     return package
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Real Telegram VN e2e through configured OpenAI-compatible provider.")
-    parser.add_argument("--model", default="gpt-5.4-nano")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Real Codex conversation VN e2e through configured OpenAI-compatible provider.")
+    parser.add_argument("--model", default=bridge.model_policy.select_model("project_generation"))
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--smoke-attempts", type=int, default=3)
-    parser.add_argument("--chat-id", default="vn-real-provider-e2e")
+    parser.add_argument("--conversation-id", default="vn-real-provider-e2e")
     parser.add_argument("--output-dir", default="")
     parser.add_argument("--clean", action="store_true")
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
     package = run(args)
     print(json.dumps(package, ensure_ascii=False, indent=2))
     if package.get("status") == "missing_api_key":

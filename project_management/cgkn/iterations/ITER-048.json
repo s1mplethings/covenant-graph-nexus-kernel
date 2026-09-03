@@ -12,7 +12,7 @@
   "acceptance_criteria": [
     "Both profiles retain the same Provider output validation, evidence, local_packager, public delivery gate, and delivery manifest route.",
     "Interface requests in API-only mode reach user design confirmation without creating a Codex escalation.",
-    "Kernel, runtime-supervisor, Telegram-design, and documentation checks pass.",
+    "Kernel, runtime-supervisor, Codex conversation-design, and documentation checks pass.",
     "The API-only launcher starts the reviewed API Provider route with Codex design and runtime supervision disabled.",
     "The Codex-supervised launcher starts one persistent supervisor thread and forces the historical one-shot Codex design CLI off.",
     "The two profiles isolate sessions, logs, uploads, project memory, Provider candidate roots, and supervisor state."
@@ -65,8 +65,8 @@
   "interface_expectations": [
     "scripts/start_cgkn_api_only.ps1 always passes generation-mode api, codex-design-mode disabled, and supervision-policy disabled.",
     "scripts/start_cgkn_codex_supervised.ps1 always starts scripts.cgkn_runtime_supervisor with a dedicated state directory and runtime-data root.",
-    "cgkn_runtime_supervisor._default_telegram_argv always forces the child bridge's one-shot Codex design mode to disabled.",
-    "telegram_live_bridge API-only design handling reaches awaiting_user_confirmation without creating a CGKNCodexCapabilityEscalation.",
+    "cgkn_runtime_supervisor._default_codex_argv always forces the child bridge's one-shot Codex design mode to disabled.",
+    "codex_conversation API-only design handling reaches awaiting_user_confirmation without creating a CGKNCodexCapabilityEscalation.",
     "Both profiles dispatch formal generation only through run_provider_generation_job and retain local_packager as the sole delivery exit."
   ],
   "evidence_refs": [

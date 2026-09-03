@@ -13,10 +13,10 @@ from scripts import local_conversation_manager as conversations
 def test_create_append_bind_and_reload_conversation(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("CGNK_LOCAL_STUDIO_CONVERSATION_ROOT", str(tmp_path / "conversations"))
 
-    conversation = conversations.default_conversation("chat one", source="telegram")
+    conversation = conversations.default_conversation("chat one", source="codex")
     assert conversation["active_project"]["status"] == "none"
 
-    conversations.append_user_message(conversation, "做一个本地工具", source="telegram")
+    conversations.append_user_message(conversation, "做一个本地工具", source="codex")
     conversations.append_assistant_message(conversation, "已记录", event="recorded")
     conversations.update_whiteboard(conversation, {"known_facts": ["本地工具"], "project_summary": "本地工具"}, "test")
     conversations.bind_active_project(
@@ -31,7 +31,7 @@ def test_create_append_bind_and_reload_conversation(tmp_path, monkeypatch) -> No
     conversations.save_conversation(conversation)
 
     loaded = conversations.load_conversation("chat one")
-    assert loaded["source"] == "telegram"
+    assert loaded["source"] == "codex"
     assert len(loaded["messages"]) == 2
     assert loaded["whiteboard"]["project_summary"] == "本地工具"
     assert loaded["active_project"]["project_id"] == "project-chat-one"

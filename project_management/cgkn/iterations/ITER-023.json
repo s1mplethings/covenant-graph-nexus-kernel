@@ -27,7 +27,7 @@
     {
       "id": "QM-INTEGRATION",
       "measure": "formal Provider and delivery-route preservation",
-      "target": "no new Telegram generation route or delivery exit",
+      "target": "no new Codex conversation generation route or delivery exit",
       "method": "kernel and pipeline contract tests"
     },
     {

@@ -25,8 +25,8 @@ from scripts import production_candidate_provenance
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CAUSAL_DIR_NAME = "provider_causal_artifacts"
-PRODUCTION_ENTRYPOINT = "scripts.telegram_live_bridge.start_generation_from_income"
-GENERATION_FUNCTION = "scripts.telegram_live_bridge.run_provider_generation_job"
+PRODUCTION_ENTRYPOINT = "scripts.codex_conversation.start_generation_from_income"
+GENERATION_FUNCTION = "scripts.codex_conversation.run_provider_generation_job"
 INTERFACE_RESULT_FILE = "provider_interface_result.json"
 HASH_FIELDS = ("artifact_hash",)
 FORBIDDEN_REQUEST_KEYS = {

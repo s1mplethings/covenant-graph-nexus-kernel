@@ -114,7 +114,7 @@ def question_answered_by_text(question: str, text: str) -> bool:
     if any(token in question_text for token in ("交付重点", "界面", "文件导出", "自动化流程")):
         return contains_any(answer_text, ("界面", "ui", "页面", "自动化", "流程", "导出", "文件"))
     if any(token in question_text for token in ("运行方式", "本地网页", "本地工具", "桌面", "命令行")):
-        return contains_any(answer_text, ("本地", "网页", "桌面", "cli", "命令行", "telegram", "服务端"))
+        return contains_any(answer_text, ("本地", "网页", "桌面", "cli", "命令行", "codex", "服务端"))
     if any(token in question_text for token in ("图片", "模型", "接口", "api", "后端", "comfyui", "sd_model_dir")):
         return contains_any(answer_text, ("本地模型", "api", "comfyui", "automatic1111", "sd", "分开", "统一模型", "预留接口", "先预留"))
     if any(token in question_text for token in ("优先", "模块", "先做", "第一版")):
@@ -309,7 +309,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
         intent_context,
         ("管理", "生成", "分析", "导出", "自动化", "预览", "处理", "识别", "编辑", "整理", "导入", "截取", "报告", "对接", "api", "转换", "配置", "测试"),
     )
-    run_shape_unclear = not contains_any(context_text, ("本地", "网页", "app", "gui", "telegram", "桌面", "命令行", "cli", "小程序"))
+    run_shape_unclear = not contains_any(context_text, ("本地", "网页", "app", "gui", "codex", "桌面", "命令行", "cli", "小程序"))
     output_shape_unclear = not contains_any(context_text, ("界面", "gui", "桌面", "网页", "文件", "导出", "自动化", "流程", "api", "报表", "工具", "时间线", "背景", "立绘"))
     actionable_project_request = has_project_goal and has_core_capability
     if actionable_project_request:
@@ -322,7 +322,7 @@ def summarize_locally(session: dict[str, Any], latest_text: str, *, reason: str 
             questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
         if output_shape_unclear:
             questions.append("交付重点是界面、文件导出、还是自动化流程？")
-    elif not contains_any(context_text, ("本地", "网页", "app", "gui", "telegram", "桌面")):
+    elif not contains_any(context_text, ("本地", "网页", "app", "gui", "codex", "桌面")):
         questions.append("第一版我先按本地网页/本地工具处理，可以吗？")
     if not short_request and output_shape_unclear:
         questions.append("交付重点是界面、文件导出、还是自动化流程？")
@@ -654,7 +654,7 @@ def update_session_from_analysis(session: dict[str, Any], analysis: dict[str, An
 
 def run_backend_dialogue_tick(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     *,
     model: str,
@@ -662,7 +662,7 @@ def run_backend_dialogue_tick(
     reason: str,
     api_budget: str = "low",
 ) -> dict[str, Any]:
-    del session_dir, chat_id
+    del session_dir, conversation_id
     if str(model or "").lower().startswith("gpt-test"):
         api_budget = "off"
     latest_text = latest_user_text(session)

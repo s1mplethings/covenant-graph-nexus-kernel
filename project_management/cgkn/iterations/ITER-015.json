@@ -80,7 +80,7 @@
       "Reusing the existing tests manifest and post-build wrapper kept planning, execution, and delivery authority separated."
     ],
     "did_not_work": [
-      "The first official quick run hit one existing Telegram asynchronous session-state race; the isolated test then passed three consecutive repetitions."
+      "The first official quick run hit one existing Codex conversation asynchronous session-state race; the isolated test then passed three consecutive repetitions."
     ],
     "experiments": [
       "Keep exact goal-test identity in the plan and require collected-test plus source-hash evidence; defer any CGKNFinalVerdict consumption to its dedicated next increment."

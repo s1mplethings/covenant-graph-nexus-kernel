@@ -14,7 +14,7 @@ from scripts import formal_gate_registry
 from scripts import formal_mainline_acceptance
 from scripts import production_candidate_provenance
 from scripts import provider_causal_trace
-from scripts import telegram_live_bridge
+from scripts import codex_conversation
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -739,7 +739,7 @@ def test_caller_boolean_and_adaptive_agent_cannot_override_inspector(
     )
     assert gate["status"] == "NEEDS_REWORK"
     called: list[bool] = []
-    delivery = telegram_live_bridge.evaluate_public_delivery_gate(
+    delivery = codex_conversation.evaluate_public_delivery_gate(
         case["candidate"],
         {},
         {},

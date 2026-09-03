@@ -15,37 +15,37 @@ import scripts.dynamic_pipeline_runner as dynamic_runner
 import scripts.local_packager as local_packager
 import scripts.pipeline_manifest as pipeline_manifest
 import scripts.pipeline_planner_agent as planner_agent
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
         self.actions: list[tuple[str, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
 
 def read_jsonl(path: pathlib.Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def make_session(session_dir: pathlib.Path, chat_id: str, summary: str = "做一个本地任务管理器") -> dict:
-    session = bridge.default_session(chat_id)
+def make_session(session_dir: pathlib.Path, conversation_id: str, summary: str = "做一个本地任务管理器") -> dict:
+    session = bridge.default_session(conversation_id)
     session["whiteboard"]["project_summary"] = summary
     session["messages"].append({"role": "user", "text": summary, "created_at": bridge.now()})
     bridge.save_session(session_dir, session)
-    bridge.append_agent_session_event(session_dir, chat_id, {"kind": "user", "role": "user", "text": summary})
+    bridge.append_agent_session_event(session_dir, conversation_id, {"kind": "user", "role": "user", "text": summary})
     return session
 
 
@@ -498,7 +498,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             session_dir = root / "sessions"
             log_dir = root / "logs"
             make_session(session_dir, "chat-pipeline")
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             calls: list[str] = []
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
@@ -535,7 +535,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             session_dir = root / "sessions"
             log_dir = root / "logs"
             make_session(session_dir, "chat-fallback")
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             called = {"fallback": False}
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
@@ -569,7 +569,7 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             session_dir = root / "sessions"
             log_dir = root / "logs"
             make_session(session_dir, "chat-manifest")
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
             original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
 

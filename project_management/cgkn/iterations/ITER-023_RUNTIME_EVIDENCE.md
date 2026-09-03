@@ -28,7 +28,7 @@ The brief diagnosed the mismatch between explicit CRUD behavior and the generic 
 
 ## Authority and limitations
 
-- Telegram default generation remains the reviewed Provider route.
+- Codex conversation default generation remains the reviewed Provider route.
 - Provider validation, post-build finalization, canonical evidence, `local_packager`, `public_delivery_gate`, and `delivery_manifest.json` remain unchanged authorities.
 - An absent external Codex handoff fails explicitly; Provider and local models cannot impersonate the Codex supervisor.
 - This increment does not automatically launch a new Codex task in the background. A future plugin or SDK adapter may automate that invocation while retaining this file and `agent_session` contract.

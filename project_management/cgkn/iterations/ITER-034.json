@@ -13,7 +13,7 @@
     "A non-retryable Provider key-usage-limit response cannot consume the full plugin subprocess budget through repeated identical semantic attempts; the exact pending leaf checkpoint remains recoverable.",
     "A recorded local fallback for component generation receives the configured bounded local-generation timeout instead of the shorter API request timeout, while API-owned calls retain their existing cap.",
     "A valid sealed Codex brief is hash-bound to the generation plan and its concrete package, module, public-symbol, entrypoint, safety, and acceptance constraints are checked before Provider file generation.",
-    "No fix writes a sealed generated candidate, adds a generation path, changes the Telegram default route, packages output, or promotes support evidence to formal PASS.",
+    "No fix writes a sealed generated candidate, adds a generation path, changes the Codex conversation default route, packages output, or promotes support evidence to formal PASS.",
     "Targeted timeout, Provider failure, capability-brief, goal-plan, plugin, kernel, and management regressions pass.",
     "The ProjectPulse failure fixture rejects the observed backend/Note plan drift before source generation and accepts a plan that preserves the brief's projectpulse/Task/JSONRepository contract."
   ],

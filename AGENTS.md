@@ -10,9 +10,9 @@
 - You may modify generated project files.
 - You may modify tests when explicitly asked.
 - You may add approved skills only through reviewed changes.
-- You must not replace the Telegram generation mainline.
-- Telegram default generation must stay on the reviewed API/provider project generation route: provider output validation -> post-build finalization -> local_packager -> public_delivery_gate -> delivery_manifest.json.
-- `pipeline_manifest` + `dynamic_pipeline_runner` are preserved as the support/experimental planning lane, not a second Telegram default public delivery route.
+- You must not replace the Codex conversation generation mainline.
+- Codex conversation default generation must stay on the reviewed API/provider project generation route: provider output validation -> post-build finalization -> local_packager -> public_delivery_gate -> delivery_manifest.json.
+- `pipeline_manifest` + `dynamic_pipeline_runner` are preserved as the support/experimental planning lane, not a second Codex conversation default public delivery route.
 - You must preserve whiteboard + agent_session as shared communication.
 - You must preserve local_packager as the only delivery exit.
 - If you need to change kernel files, update docs/00_kernel_contract.md and tests/test_kernel_contract.py or the rule guard in the same commit.
@@ -21,14 +21,14 @@
 - If you add a fallback, record pipeline_fallback and test it.
 - If a change increases user-visible internal jargon, reject it.
 - Prefer moving legacy code into legacy/ over keeping it inside kernel files.
-- telegram_live_bridge.py must stay focused on Telegram intake, backend dialogue, generation confirmation, guarded public replies, and delivery handoff.
-- Do not reconnect legacy simulator/run_local_pipeline/generate_project.py as Telegram mainline.
+- codex_conversation.py must stay focused on Codex conversation intake, backend dialogue, generation confirmation, guarded public replies, and delivery handoff.
+- Do not reconnect legacy simulator/run_local_pipeline/generate_project.py as Codex conversation mainline.
 - Do not reintroduce fixed local pipeline generation.
 - Do not expose legacy internal jargon to users.
-- Move project/domain-specific generated-project compatibility patches into skills, adapters, or legacy modules instead of adding them to telegram_live_bridge.py.
-- `docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative runtime ownership baseline: CGKN is the independently running system, Telegram is a CGKN-owned interface, and Codex starts or attaches to CGKN and supervises declared checkpoints.
-- Do not treat a new one-shot Codex process per Telegram message as the target architecture. Request-scoped Codex calls are bounded specialist or transitional adapters only.
-- Persistent Codex supervision must resume an identity-bound supervisor thread, preserve CGKN as the long-running owner of Telegram/project state, and keep every Provider, evidence, packaging, and delivery authority boundary intact.
+- Move project/domain-specific generated-project compatibility patches into skills, adapters, or legacy modules instead of adding them to codex_conversation.py.
+- `docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative runtime ownership baseline: CGKN is the independently running system, Codex conversation is a CGKN-owned interface, and Codex starts or attaches to CGKN and supervises declared checkpoints.
+- Do not treat a new one-shot Codex process per Codex conversation message as the target architecture. Request-scoped Codex calls are bounded specialist or transitional adapters only.
+- Persistent Codex supervision must resume an identity-bound supervisor thread, preserve CGKN as the long-running owner of Codex conversation/project state, and keep every Provider, evidence, packaging, and delivery authority boundary intact.
 
 ## CGKN self-hosted project management
 

@@ -39,7 +39,7 @@ def write_gate(path: pathlib.Path, name: str, status: str) -> pathlib.Path:
         "failures": [],
         "reason": "",
         "blocker_code": (
-            "BLOCKED_TELEGRAM_TEST_CHAT" if status == "BLOCKED" else ""
+            "BLOCKED_USER_REVIEW" if status == "BLOCKED" else ""
         ),
     }
     document["artifact_hash"] = evidence_hash.canonical_json_hash(

@@ -113,6 +113,24 @@ def test_visual_novel_goal_selects_visual_novel_requirement_and_not_media() -> N
     assert result["need_interpretations"]["interpreted_needs"][0]["id"] == "visual_novel_authoring_need"
 
 
+def test_standalone_vn_abbreviation_selects_visual_novel_requirement() -> None:
+    goal = "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景和立绘。"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    assert requirement_decision_lane.goal_has_visual_novel_product(goal) is True
+    assert result["goal_spec"]["status"] == "PASS"
+    assert result["goal_spec"]["domain"] == "visual_novel_editor"
+    assert result["project_plan"]["status"] == "PASS"
+    assert result["selected_requirement"]["selected_requirement_id"] == "local_visual_novel_studio_requirement"
+    assert "generate_background_images" in result["goal_spec"]["capabilities"]
+    assert "generate_character_sprites" in result["goal_spec"]["capabilities"]
+    assert "bind_visual_assets" in result["goal_spec"]["capabilities"]
+    expected_paths = set(result["project_plan"]["expected_project_structure"])
+    assert {"frontend/index.html", "frontend/styles.css", "frontend/app.js"}.issubset(expected_paths)
+    assert {"src/background_generator.py", "src/sprite_generator.py", "src/asset_library.py"}.issubset(expected_paths)
+
+
 def test_image_generation_without_video_terms_does_not_select_video_requirement() -> None:
     goal = "构建图片生成和透明角色立绘资产库，不需要视频、音频、转录或切片。"
     with tempfile.TemporaryDirectory() as temp_dir:

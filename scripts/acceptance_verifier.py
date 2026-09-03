@@ -21,7 +21,7 @@ SCHEMA_VERSION = "1.0"
 FILE_NAME = "final_verdict.json"
 PRODUCER = "scripts/acceptance_verifier.py"
 PASS = "PASS"
-TELEGRAM_DEPENDENT_GATES = {
+CODEX_DEPENDENT_GATES = {
     "user_review",
     "delivery_manifest",
     "delivery_receipt",
@@ -77,8 +77,8 @@ def _aggregate_status(gates: dict[str, Any]) -> tuple[str, list[str], list[str]]
     blockers: list[str] = []
     for name, item in gates.items():
         status = str(item.get("status", "NOT_EVALUATED")).upper()
-        if name in TELEGRAM_DEPENDENT_GATES and status.startswith("BLOCKED"):
-            blockers.append(str(item.get("blocker_code") or "BLOCKED_TELEGRAM_TEST_CHAT"))
+        if name in CODEX_DEPENDENT_GATES and status.startswith("BLOCKED"):
+            blockers.append(str(item.get("blocker_code") or "BLOCKED_USER_REVIEW"))
         elif name in PROVIDER_DEPENDENT_GATES and status == "BLOCKED_PROVIDER":
             blockers.append(str(item.get("blocker_code") or "BLOCKED_PROVIDER"))
         elif status != PASS:
@@ -87,7 +87,7 @@ def _aggregate_status(gates: dict[str, Any]) -> tuple[str, list[str], list[str]]
     internal_statuses = {
         str(item.get("status", "")).upper()
         for name, item in gates.items()
-        if name not in TELEGRAM_DEPENDENT_GATES | PROVIDER_DEPENDENT_GATES
+        if name not in CODEX_DEPENDENT_GATES | PROVIDER_DEPENDENT_GATES
     }
     if "FAIL" in statuses:
         overall = "FAIL"

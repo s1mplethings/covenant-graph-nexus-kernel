@@ -11,7 +11,7 @@
   "evidence_status": "PASS",
   "acceptance_criteria": [
     "Design research records multiple source-backed references, three distinct directions, one selected direction, design tokens, interaction principles, accessibility constraints, and anti-copying boundaries.",
-    "Design support receipts cannot authorize canonical visual evidence or public delivery PASS, and the Telegram Provider/local_packager route remains unchanged.",
+    "Design support receipts cannot authorize canonical visual evidence or public delivery PASS, and the Codex conversation Provider/local_packager route remains unchanged.",
     "Frontend and assembled-project validation reject missing tokens, responsive behavior, focus treatment, interaction feedback, design documentation, or source-to-design traceability.",
     "Only a bounded design context enters frontend, media, and docs leaves through the existing generation-context librarian.",
     "Design research artifacts are written before Provider source generation, and the generated project must include design_research.md and design_system.md before assembly can pass.",

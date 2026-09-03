@@ -144,7 +144,7 @@ def build_project_memory_artifact(session: dict[str, Any], md_path: pathlib.Path
         "artifact_ref": "artifact.project_memory_markdown@1",
         "schema_version": "1",
         "generated_at": utc_now(),
-        "chat_id": str(session.get("chat_id", "")),
+        "conversation_id": str(session.get("conversation_id", "")),
         "markdown_path": str(md_path),
         "flow_ref": FLOW_REF,
         "policy_ref": POLICY_REF,
@@ -185,7 +185,7 @@ def build_project_memory_md(session: dict[str, Any], artifact_path: pathlib.Path
         "---",
         "kind: ProjectMemoryMarkdown",
         "schema_version: 1",
-        f"chat_id: {session.get('chat_id', '')}",
+        f"conversation_id: {session.get('conversation_id', '')}",
         f"flow_ref: {FLOW_REF}",
         f"policy_ref: {POLICY_REF}",
         f"contract_pack: {CONTRACT_PACK_REF}",
@@ -196,7 +196,7 @@ def build_project_memory_md(session: dict[str, Any], artifact_path: pathlib.Path
         "",
         "# Project Memory",
         "",
-        "这份文档是 Telegram 项目的长期可维护规格。后续修改必须先更新这里，再传给模块化生成后台。",
+        "这份文档是 Codex conversation 项目的长期可维护规格。后续修改必须先更新这里，再传给模块化生成后台。",
         "",
         "## Modular Contract Binding",
         "",
@@ -256,7 +256,7 @@ def build_project_memory_md(session: dict[str, Any], artifact_path: pathlib.Path
 
 def write_project_memory(session: dict[str, Any], memory_dir: pathlib.Path | None = None) -> dict[str, str]:
     base = memory_dir or DEFAULT_MEMORY_DIR
-    target = base / safe_id(session.get("chat_id", "session"))
+    target = base / safe_id(session.get("conversation_id", "session"))
     target.mkdir(parents=True, exist_ok=True)
     md_path = target / "PROJECT_MEMORY.md"
     artifact_path = target / "project_memory.artifact.json"

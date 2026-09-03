@@ -13,10 +13,10 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.canonical_delivery_receipt as receipt
 import scripts.canonical_evidence_hash as evidence_hash
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 import scripts.production_candidate_provenance as production_candidate_provenance
-from tests.test_telegram_public_delivery_gate import (
-    FakeTelegramClient,
+from tests.test_codex_public_delivery_gate import (
+    FakeCodexConversation,
     make_deliverable_project,
     make_media_project_without_browser_evidence,
     requirement_session,
@@ -67,11 +67,11 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
             gate = self.pass_final_gate(project, manifest, session)
             with mock.patch.object(bridge, "evaluate_public_delivery_gate", return_value=gate):
                 sent = bridge.send_delivery_from_manifest(
-                    FakeTelegramClient(), "receipt-package", sessions, session, manifest
+                    FakeCodexConversation(), "receipt-package", sessions, session, manifest
                 )
             inspection = receipt.inspect_canonical_delivery_receipt(
                 project,
-                expected_chat_id="receipt-package",
+                expected_conversation_id="receipt-package",
                 expected_requirements=bridge.infer_public_delivery_requirements(session, manifest["startup_command"]),
                 expected_attachment_refs={item["kind"]: item["path"] for item in sent},
             )
@@ -94,20 +94,20 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
             bridge.save_session(sessions, session)
             gate = self.pass_final_gate(project, manifest, session)
             with mock.patch.object(bridge, "evaluate_public_delivery_gate", return_value=gate):
-                bridge.send_delivery_from_manifest(FakeTelegramClient(), "receipt-visual", sessions, session, manifest)
+                bridge.send_delivery_from_manifest(FakeCodexConversation(), "receipt-visual", sessions, session, manifest)
             requirements = bridge.infer_public_delivery_requirements(session, manifest["startup_command"])
             inspection = receipt.inspect_canonical_delivery_receipt(
-                project, expected_chat_id="receipt-visual", expected_requirements=requirements,
-                expected_attachment_refs={item["kind"]: item["local_ref"] for item in json.loads((project / receipt.RECEIPT_NAME).read_text(encoding="utf-8"))["telegram_receipts"]},
+                project, expected_conversation_id="receipt-visual", expected_requirements=requirements,
+                expected_attachment_refs={item["kind"]: item["local_ref"] for item in json.loads((project / receipt.RECEIPT_NAME).read_text(encoding="utf-8"))["conversation_receipts"]},
             )
 
             self.assertEqual("PASS", inspection["status"], inspection)
             self.assertEqual(["package", "screenshot"], inspection["receipt"]["required_attachment_kinds"])
             self.assertEqual(["package", "screenshot"], inspection["receipt"]["sent_attachment_kinds"])
-            self.assertTrue(all(item["telegram_file_id"] for item in inspection["receipt"]["telegram_receipts"]))
+            self.assertTrue(all(item["artifact_id"] for item in inspection["receipt"]["conversation_receipts"]))
             self.assertEqual("delivered", bridge.load_session(sessions, "receipt-visual")["generation"]["status"])
 
-    def test_tampering_and_duplicate_message_identity_are_rejected(self) -> None:
+    def test_tampering_and_duplicate_turn_identity_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = pathlib.Path(temp)
             sessions = root / "sessions"
@@ -118,21 +118,21 @@ class CanonicalDeliveryReceiptTests(unittest.TestCase):
             bridge.save_session(sessions, session)
             gate = self.pass_final_gate(project, manifest, session)
             with mock.patch.object(bridge, "evaluate_public_delivery_gate", return_value=gate):
-                bridge.send_delivery_from_manifest(FakeTelegramClient(), "receipt-tamper", sessions, session, manifest)
+                bridge.send_delivery_from_manifest(FakeCodexConversation(), "receipt-tamper", sessions, session, manifest)
             path = project / receipt.RECEIPT_NAME
             document = json.loads(path.read_text(encoding="utf-8"))
-            document["telegram_receipts"][1]["telegram_message_id"] = document["telegram_receipts"][0]["telegram_message_id"]
+            document["conversation_receipts"][1]["turn_id"] = document["conversation_receipts"][0]["turn_id"]
             document["artifact_hash"] = bridge.canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",))
             path.write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
 
             inspection = receipt.inspect_canonical_delivery_receipt(
                 project,
-                expected_chat_id="receipt-tamper",
+                expected_conversation_id="receipt-tamper",
                 expected_requirements=bridge.infer_public_delivery_requirements(session, manifest["startup_command"]),
-                expected_attachment_refs={item["kind"]: item["local_ref"] for item in document["telegram_receipts"]},
+                expected_attachment_refs={item["kind"]: item["local_ref"] for item in document["conversation_receipts"]},
             )
             self.assertEqual("NEEDS_REWORK", inspection["status"])
-            self.assertIn("duplicate_telegram_message_id", inspection["failures"])
+            self.assertIn("duplicate_turn_id", inspection["failures"])
 
     def test_only_root_authoritative_receipt_is_outside_candidate_hash(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

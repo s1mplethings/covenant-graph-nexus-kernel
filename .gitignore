@@ -33,7 +33,7 @@ examples/test_results/*
 
 examples/product_studio/runs/direct_*/
 examples/product_studio/runs/tmp_*/
-examples/product_studio/runs/telegram_*/
+examples/product_studio/runs/codex_*/
 examples/product_studio/runs/final_acceptance_*/
 examples/product_studio/runs/*/generated_project/
 examples/product_studio/runs/*/test_data/

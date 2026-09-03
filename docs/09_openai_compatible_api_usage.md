@@ -170,7 +170,7 @@ python scripts/check_connectivity.py --live --json
 - `scripts/dynamic_pipeline_runner.py`
 - `scripts/run_local_pipeline.py`
 - `scripts/backend_dialogue_loop.py`
-- `scripts/telegram_live_bridge.py`
+- `scripts/codex_conversation.py`
 - `scripts/provider_api_smoke.py`
 
 调用方式（示例）：

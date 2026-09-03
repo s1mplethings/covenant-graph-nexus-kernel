@@ -279,7 +279,7 @@ def ensure_video_evidence(
         recreate_candidate_diagnostic_package(project, run_dir, result)
         return
 
-    # The Telegram pre-finalize stage can only report that no provider-supplied
+    # The Codex conversation pre-finalize stage can only report that no provider-supplied
     # video exists; capture_failed at that point is not a browser capture attempt.
     # The formal post-build stage must still try the pipeline-owned browser recorder.
     if old_reason in {"not_requested", "capture_failed"} or not old_blocked or not old_blocked.exists():

@@ -15,7 +15,7 @@ DEFAULT_SKIPPED_MARKERS = (
     "long_journey",
     "provider",
     "live_provider",
-    "telegram",
+    "codex",
     "e2e",
     "benchmark",
 )

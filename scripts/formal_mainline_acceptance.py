@@ -19,12 +19,12 @@ from scripts import production_candidate_provenance
 
 PRODUCER = "scripts/formal_mainline_acceptance.py"
 SCHEMA_VERSION = "1.0"
-TELEGRAM_GATES = {"user_review", "delivery_manifest", "delivery_receipt"}
+CODEX_GATES = {"user_review", "delivery_manifest", "delivery_receipt"}
 PRODUCTION_MAINLINE = {
-    "entry": "scripts.telegram_live_bridge.start_generation_from_income",
-    "default_generation": "scripts.telegram_live_bridge.run_provider_generation_job",
+    "entry": "scripts.codex_conversation.start_generation_from_income",
+    "default_generation": "scripts.codex_conversation.run_provider_generation_job",
     "execution_chain": [
-        "scripts.telegram_live_bridge.run_provider_execute_with_retries",
+        "scripts.codex_conversation.run_provider_execute_with_retries",
         "provider output validation",
         "scripts.post_build_finalize.run",
         "scripts.real_test_execution.run_tests",
@@ -32,13 +32,13 @@ PRODUCTION_MAINLINE = {
         "scripts.browser_visual_evidence.finalize_evidence",
         "scripts.canonical_user_review",
         "scripts.local_packager.package_project",
-        "scripts.telegram_live_bridge.evaluate_public_delivery_gate",
-        "scripts.telegram_live_bridge.send_delivery_from_manifest",
+        "scripts.codex_conversation.evaluate_public_delivery_gate",
+        "scripts.codex_conversation.send_delivery_from_manifest",
         "scripts.canonical_delivery_receipt.produce_canonical_delivery_receipt",
         "scripts.acceptance_verifier.produce_canonical_final_verdict",
     ],
     "support_lane": [
-        "scripts.telegram_live_bridge.run_agent_generation_job",
+        "scripts.codex_conversation.run_agent_generation_job",
         "scripts.dynamic_pipeline_runner.run_dynamic_pipeline",
         "scripts.agent_conversation_loop.run_agent_loop",
     ],
@@ -193,7 +193,7 @@ def _gate_status(
     *,
     identity: dict[str, str],
     source: pathlib.Path | None,
-    telegram_test_chat_configured: bool,
+    codex_test_conversation_configured: bool,
     context: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     spec = formal_gate_registry.GATE_SPECS[gate]
@@ -202,12 +202,12 @@ def _gate_status(
             gate, source, expected_identity=identity, context=context
         )
         return str(inspection["status"]), inspection
-    if gate in TELEGRAM_GATES and not telegram_test_chat_configured:
+    if gate in CODEX_GATES and not codex_test_conversation_configured:
         return "BLOCKED", {
             "status": "BLOCKED",
             "failures": [],
-            "blocker_code": "BLOCKED_TELEGRAM_TEST_CHAT",
-            "reason": "No explicit Telegram test chat is configured; no send was attempted.",
+            "blocker_code": "BLOCKED_USER_REVIEW",
+            "reason": "No explicit Codex conversation test chat is configured; no send was attempted.",
         }
     reason = (
         "formal_inspector_unavailable"
@@ -223,7 +223,7 @@ def build_acceptance(
     candidate_dir: str | pathlib.Path | None = None,
     production_run_dir: str | pathlib.Path | None = None,
     full_all_result: str | pathlib.Path | None = None,
-    telegram_test_chat_id: str = "",
+    codex_test_conversation_id: str = "",
     receipt_expectations: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     out = pathlib.Path(out_dir).resolve()
@@ -332,7 +332,7 @@ def build_acceptance(
             gate,
             identity=identity,
             source=source,
-            telegram_test_chat_configured=bool(telegram_test_chat_id),
+            codex_test_conversation_configured=bool(codex_test_conversation_id),
             context=context,
         )
         spec = formal_gate_registry.GATE_SPECS[gate]
@@ -428,8 +428,8 @@ def build_acceptance(
             gate_registry_ref=str(registry),
             acceptance_matrix_ref=str(matrix),
             final_verdict_ref=str((out / acceptance_verifier.FILE_NAME).resolve()),
-            telegram_messages_sent=0,
-            telegram_test_chat_configured=bool(telegram_test_chat_id),
+            codex_messages_sent=0,
+            codex_test_conversation_configured=bool(codex_test_conversation_id),
         ),
     )
     pass_gates = sorted(name for name, result in gate_results.items() if result["status"] == "PASS")
@@ -441,7 +441,7 @@ def build_acceptance(
         f"- customer candidate hash: {identity['candidate_hash'] or 'NOT_EVALUATED'}\n"
         f"- inspected PASS gates: {', '.join(pass_gates) or 'none'}\n"
         f"- non-PASS gates: {', '.join(nonpass_gates)}\n"
-        "- Telegram messages sent: 0\n"
+        "- Codex conversation messages sent: 0\n"
         "- Fixture/diagnostic producers cannot authorize formal Gate PASS.\n",
         encoding="utf-8",
     )
@@ -461,14 +461,14 @@ def main() -> int:
     parser.add_argument("--candidate-dir", default="")
     parser.add_argument("--production-run-dir", default="")
     parser.add_argument("--full-all-result", default="")
-    parser.add_argument("--telegram-test-chat-id", default="")
+    parser.add_argument("--codex-test-conversation-id", default="")
     args = parser.parse_args()
     result = build_acceptance(
         args.out_dir,
         candidate_dir=args.candidate_dir or None,
         production_run_dir=args.production_run_dir or None,
         full_all_result=args.full_all_result or None,
-        telegram_test_chat_id=args.telegram_test_chat_id,
+        codex_test_conversation_id=args.codex_test_conversation_id,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["inspection"] in {

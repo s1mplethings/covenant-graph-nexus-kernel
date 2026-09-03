@@ -182,7 +182,9 @@ def goal_has_media_product(raw_goal: str) -> bool:
 
 def goal_has_visual_novel_product(raw_goal: str) -> bool:
     domain_goal = product_domain_goal(raw_goal)
-    return any(token in domain_goal for token in VISUAL_NOVEL_PRODUCT_TERMS)
+    return any(token in domain_goal for token in VISUAL_NOVEL_PRODUCT_TERMS) or bool(
+        re.search(r"\bvn\b", domain_goal)
+    )
 
 
 def goal_has_task_board_product(raw_goal: str) -> bool:
@@ -859,12 +861,12 @@ def _goal_profile(
     if goal_has_visual_novel_product(goal):
         return {
             "domain": "visual_novel_editor",
-            "capabilities": ["create_scenes", "manage_characters", "link_story_branches", "edit_dialogue", "preview_story_flow", "export_story_project"],
-            "user_flows": ["create scenes and characters", "edit dialogue and connect story branches", "preview alternate story flow", "export and reload the story project"],
-            "entities": ["StoryProject", "Scene", "Character", "Dialogue", "StoryBranch"],
-            "interfaces": ["story_tree", "scene_editor", "character_editor", "branch_editor", "story_preview", "project_export"],
-            "constraints": ["local_first", "persistent_project_state", "no_cloud_required"],
-            "acceptance_behaviors": ["a scene can be created and edited", "a character can be created and assigned dialogue", "a branch can be linked to another scene", "edited dialogue survives save and export", "the user can preview and export the story flow"],
+            "capabilities": ["create_scenes", "manage_characters", "link_story_branches", "edit_dialogue", "generate_background_images", "generate_character_sprites", "bind_visual_assets", "preview_story_flow", "export_story_project"],
+            "user_flows": ["create scenes and characters", "edit dialogue and connect story branches", "generate separate background and character-sprite assets", "bind generated assets to story nodes", "preview alternate story flow", "export and reload the story project"],
+            "entities": ["StoryProject", "Scene", "Character", "Dialogue", "StoryBranch", "VisualAsset", "GenerationJob"],
+            "interfaces": ["story_tree", "scene_editor", "character_editor", "branch_editor", "background_generator", "sprite_generator", "asset_library", "story_preview", "project_export"],
+            "constraints": ["local_first", "persistent_project_state", "honest_image_generation", "separate_background_sprite_evidence"],
+            "acceptance_behaviors": ["a scene can be created and edited", "a character can be created and assigned dialogue", "a branch can be linked to another scene", "background generation creates a decoder-valid image through the configured image backend or reports the missing capability", "sprite generation creates a decoder-valid transparent image through the configured image backend or reports the missing capability", "generated visual assets can be bound to story nodes", "edited dialogue survives save and export", "the user can preview and export the story flow"],
         }
     if _contains_goal_term(goal, ("pomodoro", "番茄钟", "work and break", "work/break")):
         return {
@@ -1047,8 +1049,11 @@ DOMAIN_WORKSTREAMS: dict[str, list[tuple[str, str]]] = {
         ("scene_editor", "Create and edit scenes and dialogue."),
         ("character_editor", "Create characters and assign character dialogue and metadata."),
         ("branch_editor", "Connect scenes into validated branches and alternate paths."),
+        ("background_generator", "Generate decoder-valid background assets through the configured image backend and report missing capability honestly."),
+        ("sprite_generator", "Generate decoder-valid transparent character sprites through the configured image backend and report missing capability honestly."),
+        ("asset_library", "Store generated visual assets and bind them to the shared story-project model."),
         ("preview_export", "Preview story flow and save or export the project."),
-        ("story_behavior_tests", "Verify scene, character, branch, dialogue persistence, preview, and export behavior."),
+        ("story_behavior_tests", "Verify scene, character, branch, image generation, asset binding, dialogue persistence, preview, and export behavior."),
     ],
     "choreography_notation_editor": [
         ("sequence_model", "Model dance sequences, movements, transitions, and timing cues."),
@@ -1475,9 +1480,29 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
     prior_ids.append("application_entry")
     acceptance_behaviors = [str(item) for item in goal_spec.get("acceptance_behaviors", [])]
     goal_tests = goal_acceptance_test_contract(acceptance_behaviors)
+    interaction_modes = goal_interaction_modes(goal_spec)
+    visual_interface_required = bool({"web", "gui", "desktop"}.intersection(interaction_modes))
+    user_interface_added = False
     for definition in definitions:
         workstream_id, scope = definition[:2]
         is_test = workstream_id.endswith("_tests") or "behavior_tests" in workstream_id
+        if is_test and visual_interface_required and not user_interface_added:
+            workstreams.append(
+                {
+                    "id": "user_interface",
+                    "scope": "Implement the declared visual interaction modes with owned markup, styling, behavior, responsive layout, and accessible focus feedback.",
+                    "depends_on": list(prior_ids),
+                    "expected_outputs": [
+                        "frontend/index.html",
+                        "frontend/styles.css",
+                        "frontend/app.js",
+                    ],
+                    "expected_symbols": [],
+                    "test_intents": [],
+                }
+            )
+            prior_ids.append("user_interface")
+            user_interface_added = True
         if domain == "custom_local_application" and not is_test:
             if workstream_id == "domain_models":
                 dependencies = ["foundation"]
@@ -1545,7 +1570,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         "expected_project_structure": expected_structure,
         "business_outputs": business_outputs,
         "runtime_artifacts": list(DOMAIN_RUNTIME_ARTIFACTS.get(domain, business_outputs)),
-        "interaction_modes": goal_interaction_modes(goal_spec),
+        "interaction_modes": interaction_modes,
         "report_formats": list(goal_spec.get("report_formats", [])),
         "runtime_dependencies": list(goal_spec.get("runtime_dependencies", [])),
         "entrypoints": list(goal_spec.get("entrypoints", [])),

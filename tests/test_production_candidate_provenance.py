@@ -16,7 +16,7 @@ from scripts import formal_gate_registry
 from scripts import formal_mainline_acceptance
 from scripts import production_candidate_provenance
 from scripts import provider_causal_trace
-from scripts import telegram_live_bridge
+from scripts import codex_conversation
 
 
 def _rehash(path: pathlib.Path, document: dict) -> None:
@@ -315,7 +315,7 @@ def test_handwritten_provenance_with_correct_self_hash_rejected(
         "candidate_id": "candidate",
         "candidate_hash": canonical_evidence_hash.candidate_source_hash(candidate),
         "commit_sha": "commit",
-        "producer": "scripts/telegram_live_bridge.py",
+        "producer": "scripts/codex_conversation.py",
         "created_at": "2026-07-20T00:00:00+00:00",
         "status": "PASS",
         "artifact_hash": "",
@@ -555,7 +555,7 @@ def test_adaptive_agent_cannot_override_provenance_failure(
     candidate.mkdir()
     (candidate / "index.html").write_text("<h1>x</h1>", encoding="utf-8")
     called: list[bool] = []
-    result = telegram_live_bridge.evaluate_public_delivery_gate(
+    result = codex_conversation.evaluate_public_delivery_gate(
         candidate,
         {},
         {},
@@ -568,7 +568,7 @@ def test_adaptive_agent_cannot_override_provenance_failure(
     ]["failures"]
 
 
-class _NoTelegramTransport:
+class _NoCodexConversationTransport:
     def __init__(self) -> None:
         self.messages_sent = 0
         self.photos_sent = 0
@@ -604,10 +604,10 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    chat_id = f"provenance-positive-{uuid.uuid4().hex}"
+    conversation_id = f"provenance-positive-{uuid.uuid4().hex}"
     session_dir = tmp_path / "sessions"
     log_dir = tmp_path / "logs"
-    session = telegram_live_bridge.default_session(chat_id)
+    session = codex_conversation.default_session(conversation_id)
     session["whiteboard"]["project_summary"] = (
         "生成一个真实可运行的静态网页工具，包含 pytest，并执行真实浏览器截图。"
     )
@@ -620,13 +620,13 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
     ]
     session["generation"] = {"status": "idle"}
     monkeypatch.setattr(
-        telegram_live_bridge, "DEFAULT_MEMORY_DIR", tmp_path / "project_memory"
+        codex_conversation, "DEFAULT_MEMORY_DIR", tmp_path / "project_memory"
     )
     monkeypatch.setenv(
         "CGNK_LOCAL_STUDIO_CONVERSATION_ROOT",
         str(tmp_path / "conversations"),
     )
-    telegram_live_bridge.save_session(session_dir, session)
+    codex_conversation.save_session(session_dir, session)
 
     provider_out_dirs: list[pathlib.Path] = []
 
@@ -673,21 +673,21 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         }
 
     monkeypatch.setattr(
-        telegram_live_bridge.provider_project_pipeline,
+        codex_conversation.provider_project_pipeline,
         "execute",
         reproducible_provider,
     )
-    client = _NoTelegramTransport()
+    client = _NoCodexConversationTransport()
     project_parent = (
-        telegram_live_bridge.ROOT
+        codex_conversation.ROOT
         / "generated"
-        / "telegram_provider_projects"
-        / telegram_live_bridge.safe_id(chat_id)
+        / "codex_provider_projects"
+        / codex_conversation.safe_id(conversation_id)
     )
     try:
-        started = telegram_live_bridge.start_generation_from_income(
+        started = codex_conversation.start_generation_from_income(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             log_dir,
             "gpt-test",
@@ -697,15 +697,15 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         )
         assert started is True
         deadline = time.monotonic() + 180
-        final_session = telegram_live_bridge.load_session(session_dir, chat_id)
+        final_session = codex_conversation.load_session(session_dir, conversation_id)
         while (
             str(final_session.get("generation", {}).get("status", "")).lower()
             in {"queued", "running"}
             and time.monotonic() < deadline
         ):
             time.sleep(0.1)
-            final_session = telegram_live_bridge.load_session(
-                session_dir, chat_id
+            final_session = codex_conversation.load_session(
+                session_dir, conversation_id
             )
         assert str(
             final_session.get("generation", {}).get("status", "")
@@ -726,7 +726,7 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         identity = inspection["identity"]
         assert provider_out_dirs == [
             (
-                telegram_live_bridge.ROOT
+                codex_conversation.ROOT
                 / "generated"
                 / "provider_response_staging"
                 / generation["run_id"]

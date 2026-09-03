@@ -520,7 +520,7 @@ def create_sent_record(delivery_dir: pathlib.Path) -> dict[str, Any]:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "prepared",
         "transport": "local_delivery_packager",
-        "note": "Telegram/customer outlet records the final sent status after transport succeeds.",
+        "note": "Codex conversation/customer outlet records the final sent status after transport succeeds.",
     }
     write_json(delivery_dir / "sent_record.json", record)
     return record
@@ -657,7 +657,7 @@ def deliver(run_file: pathlib.Path, out_dir: pathlib.Path, use_boundary_guard: b
     limits = [
         "当前是本地静态交付闭环。",
         "尚未接真实 provider。",
-        "尚未接真实 Telegram 文件发送。",
+        "尚未接真实 Codex conversation 文件发送。",
         "尚未做真实浏览器截图。",
         "尚未做真实文件系统图片重命名。",
         "下一步可以接 runner / browser screenshot / filesystem adapter。",

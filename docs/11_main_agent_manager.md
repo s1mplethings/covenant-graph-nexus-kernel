@@ -6,7 +6,7 @@ It is not a replacement for the provider generation route.
 
 ## Responsibilities
 
-- Receive user input from Telegram, Local CLI, or a future Local UI.
+- Receive user input from Codex conversation, Local CLI, or a future Local UI.
 - Load and update the local conversation schema.
 - Classify new project, revision, status, review, repair, and rollback requests.
 - Prepare revision manifests and workspaces.

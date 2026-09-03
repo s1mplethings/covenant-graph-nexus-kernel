@@ -52,7 +52,7 @@ iteration, and enterprise-experience JSON before relying on it.
 
 - Keep workflow and experience states separate from formal evidence status.
 - Use only canonical CGKN evidence statuses in `evidence_status`.
-- Keep the Telegram default on the reviewed provider route.
+- Keep the Codex conversation default on the reviewed provider route.
 - Do not create a second generation route or planning authority.
 - Keep `local_packager` as the only delivery exit.
 - Treat management artifacts and skill output as planning context, not delivery

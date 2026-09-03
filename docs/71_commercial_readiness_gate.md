@@ -1,6 +1,6 @@
 # Commercial Readiness Gate
 
-`scripts/run_commercial_readiness.py` aggregates environment checks, provider preflight, sandbox scan, focused tests, anti-fake checks, product acceptance, warning classification, customer status samples, and Telegram delivery split metadata.
+`scripts/run_commercial_readiness.py` aggregates environment checks, provider preflight, sandbox scan, focused tests, anti-fake checks, product acceptance, warning classification, customer status samples, and Codex conversation delivery split metadata.
 
 Verdicts:
 

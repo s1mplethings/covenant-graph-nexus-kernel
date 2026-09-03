@@ -13,20 +13,20 @@ import scripts.backend_dialogue_loop as backend_dialogue_loop
 import scripts.check_connectivity as check_connectivity
 import scripts.local_packager as local_packager
 import scripts.run_local_pipeline as run_local_pipeline
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
 
 class CaptureThread:
@@ -60,12 +60,12 @@ class GenerationCompletionContractTests(unittest.TestCase):
             "帮我做一个数据分析平台，可以导入 CSV 并生成图表报告",
         )
         for index, text in enumerate(requests):
-            session = {"chat_id": f"ready-{index}", "messages": [{"role": "user", "text": text}], "whiteboard": {}}
+            session = {"conversation_id": f"ready-{index}", "messages": [{"role": "user", "text": text}], "whiteboard": {}}
             analysis = backend_dialogue_loop.summarize_locally(session, text)
             self.assertTrue(analysis["ready_to_generate"], text)
             self.assertTrue(analysis["start_allowed_with_assumptions"], text)
 
-    def test_telegram_generation_starts_reviewed_provider_job(self) -> None:
+    def test_codex_generation_starts_reviewed_provider_job(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
@@ -79,7 +79,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
             bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
             try:
                 bridge.start_agent_generation(
-                    FakeTelegramClient(),
+                    FakeCodexConversation(),
                     "provider-start",
                     session_dir,
                     log_dir,
@@ -103,7 +103,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
             session["messages"].append({"role": "user", "text": "做一个本地任务工具"})
             bridge.save_session(session_dir, session)
             result = bridge.run_simulator_preflight(
-                FakeTelegramClient(),
+                FakeCodexConversation(),
                 "simulator-contract",
                 session_dir,
                 log_dir,

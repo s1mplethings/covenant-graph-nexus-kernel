@@ -15,7 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
 
 
 def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, session: dict[str, Any] | None = None, *, evidence: dict[str, Any] | None = None, phase: str = "final") -> dict[str, Any]:
-    import telegram_live_bridge as bridge
+    import codex_conversation as bridge
 
     project = pathlib.Path(project_dir)
     if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():

@@ -59,7 +59,7 @@
   ],
   "evidence_refs": [
     "generated/codex_cgkn_eval_cli_20260819/logs/provider_runs/codex-cgkn-eval-cli-20260819/production-5b36efb4b476492db769ae5b4caa1259/provider_phase_log.jsonl",
-    "generated/telegram_provider_projects/codex-cgkn-eval-cli-20260819/customer-codex-cgkn-eval-cli-20260819-5b36efb4b476492db769ae5b4caa1259/delivery_manifest.json",
+    "generated/codex_provider_projects/codex-cgkn-eval-cli-20260819/customer-codex-cgkn-eval-cli-20260819-5b36efb4b476492db769ae5b4caa1259/delivery_manifest.json",
     "tests/test_run_local_pipeline_usage.py",
     "tests/test_kernel_contract.py"
   ],

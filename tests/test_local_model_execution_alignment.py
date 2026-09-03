@@ -3,7 +3,7 @@ from __future__ import annotations
 import pathlib
 import tempfile
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 from scripts import model_mode_semantics
 
 
@@ -49,10 +49,10 @@ def test_status_question_does_not_start_generation(monkeypatch) -> None:
         bridge.save_session(session_dir, session)
 
         class Client:
-            def send_message(self, chat_id, text):
+            def send_message(self, conversation_id, text):
                 return True
 
-            def send_chat_action(self, chat_id, action):
+            def send_chat_action(self, conversation_id, action):
                 return None
 
         monkeypatch.setattr(

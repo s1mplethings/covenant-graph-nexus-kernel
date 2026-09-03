@@ -13,8 +13,8 @@ def read(path: str) -> str:
 
 
 class LegacyCleanupContractTests(unittest.TestCase):
-    def test_telegram_bridge_does_not_embed_naked_legacy_cli_pipeline(self) -> None:
-        text = read("scripts/telegram_live_bridge.py")
+    def test_codex_bridge_does_not_embed_naked_legacy_cli_pipeline(self) -> None:
+        text = read("scripts/codex_conversation.py")
 
         self.assertNotIn("generation_subprocess_command", text)
         self.assertNotIn("run_generation_subprocess(args", text)
@@ -29,7 +29,7 @@ class LegacyCleanupContractTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8", errors="replace")
 
         self.assertIn("LEGACY CLI ONLY", text)
-        self.assertIn("Not used by Telegram formal generation", text)
+        self.assertIn("Not used by Codex conversation formal generation", text)
 
     def test_legacy_provider_pipeline_marked_legacy(self) -> None:
         path = ROOT / "scripts" / "legacy_provider_pipeline.py"
@@ -38,10 +38,10 @@ class LegacyCleanupContractTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8", errors="replace")
 
         self.assertIn("LEGACY ONLY", text)
-        self.assertIn("Not part of CGNK formal Telegram generation", text)
+        self.assertIn("Not part of CGNK formal Codex conversation generation", text)
 
     def test_customer_policy_uses_soft_questions_not_blocking_questions(self) -> None:
-        text = read("scripts/telegram_live_bridge.py")
+        text = read("scripts/codex_conversation.py")
 
         self.assertNotIn("Ask only questions that block generation", text)
         self.assertIn("non-blocking soft questions", text)

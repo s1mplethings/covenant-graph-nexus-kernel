@@ -106,8 +106,8 @@ def _evidence(project: pathlib.Path, visual_required: bool) -> tuple[list[dict[s
 def create_review_request_snapshot(
     project_dir: str | pathlib.Path,
     *,
-    chat_id: int | str,
-    expected_reviewer_user_id: int | str,
+    conversation_id: int | str,
+    expected_reviewer_id: int | str,
     requirement_snapshot: Any,
     visual_required: bool = False,
     required_presentation_roles: list[str] | None = None,
@@ -115,9 +115,9 @@ def create_review_request_snapshot(
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     records, identity, failures = _evidence(project, visual_required)
-    if str(chat_id).strip() == "":
-        failures.append("chat_id_missing")
-    if str(expected_reviewer_user_id).strip() == "":
+    if str(conversation_id).strip() == "":
+        failures.append("conversation_id_missing")
+    if str(expected_reviewer_id).strip() == "":
         failures.append("expected_reviewer_missing")
     if failures:
         return {"status": "NEEDS_REWORK", "failures": sorted(set(failures))}
@@ -131,7 +131,7 @@ def create_review_request_snapshot(
         "kind": "CGKNUserReviewRequest", "schema_version": SCHEMA_VERSION, **identity,
         "producer": "scripts/canonical_user_review.py", "created_at": requested, "status": "waiting_user_review",
         "artifact_hash": "", "review_request_id": f"review-{uuid.uuid4().hex}", "project_dir": str(project),
-        "chat_id": str(chat_id), "expected_reviewer_user_id": str(expected_reviewer_user_id),
+        "conversation_id": str(conversation_id), "expected_reviewer_id": str(expected_reviewer_id),
         "replay_ledger_ref": str(pathlib.Path(replay_ledger_path).resolve()) if replay_ledger_path else str((project / REPLAY_LEDGER_FILE).resolve()),
         "reviewed_evidence": records, "reviewed_evidence_hashes": [item["hash"] for item in records],
         "visual_required": bool(visual_required),
@@ -185,7 +185,7 @@ def mark_review_request_presented(
             "kind": kind, "ref": ref, "sha256": digest, "sent": True,
             "presented_at": str(item.get("presented_at") or now()),
         }
-        for key in ("telegram_message_id", "telegram_chat_id"):
+        for key in ("turn_id", "conversation_id"):
             if item.get(key) not in (None, ""):
                 normalized_item[key] = str(item[key])
         normalized.append(normalized_item)
@@ -229,7 +229,7 @@ def inspect_user_review_request(project_dir: str | pathlib.Path, *, require_pres
         failures.append("visual_required_invalid")
     if document.get("artifact_hash") != canonical_evidence_hash.canonical_json_hash(document, ("artifact_hash",)):
         failures.append("request_artifact_hash")
-    for key in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "review_request_id", "chat_id", "expected_reviewer_user_id", "replay_ledger_ref"):
+    for key in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "review_request_id", "conversation_id", "expected_reviewer_id", "replay_ledger_ref"):
         if not str(document.get(key, "")).strip():
             failures.append(f"request_missing:{key}")
     requested, presented = _parse_time(document.get("requested_at")), _parse_time(document.get("presented_at"))
@@ -299,8 +299,8 @@ def _ledger(project: pathlib.Path, request: dict[str, Any] | None = None) -> lis
 
 def _is_replayed(events: list[dict[str, Any]], context: dict[str, Any]) -> bool:
     return any(
-        str(event.get("update_id")) == str(context.get("update_id"))
-        or (str(event.get("chat_id")) == str(context.get("chat_id")) and str(event.get("message_id")) == str(context.get("message_id")))
+        str(event.get("event_id")) == str(context.get("event_id"))
+        or (str(event.get("conversation_id")) == str(context.get("conversation_id")) and str(event.get("turn_id")) == str(context.get("turn_id")))
         for event in events
     )
 
@@ -309,10 +309,10 @@ def record_user_review_approval(
     project_dir: str | pathlib.Path,
     request: dict[str, Any],
     approval_text: str,
-    message_context: dict[str, Any] | None,
+    turn_context: dict[str, Any] | None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
-    context = message_context if isinstance(message_context, dict) else {}
+    context = turn_context if isinstance(turn_context, dict) else {}
     inspection = inspect_user_review_request(project)
     disk = inspection.get("details", {})
     failures = list(inspection.get("failures", []))
@@ -320,26 +320,26 @@ def record_user_review_approval(
         failures.append("request_argument_mismatch")
     if classify_review_text(approval_text) != "APPROVED":
         failures.append("approval_not_explicit")
-    for key in ("update_id", "message_id", "from_user_id", "chat_id", "message_date"):
+    for key in ("event_id", "turn_id", "reviewer_id", "conversation_id", "turn_date"):
         if context.get(key) in (None, ""):
-            failures.append(f"missing_message_identity:{key}")
-    if context.get("edited_message"):
-        failures.append("edited_message_not_allowed")
-    if str(context.get("chat_id", "")) != str(disk.get("chat_id", "")):
-        failures.append("chat_id_mismatch")
-    if str(context.get("from_user_id", "")) != str(disk.get("expected_reviewer_user_id", "")):
+            failures.append(f"missing_turn_identity:{key}")
+    if context.get("edited_turn"):
+        failures.append("edited_turn_not_allowed")
+    if str(context.get("conversation_id", "")) != str(disk.get("conversation_id", "")):
+        failures.append("conversation_id_mismatch")
+    if str(context.get("reviewer_id", "")) != str(disk.get("expected_reviewer_id", "")):
         failures.append("reviewer_mismatch")
     message_time = None
     try:
-        message_time = datetime.fromtimestamp(float(context.get("message_date")), timezone.utc)
+        message_time = datetime.fromtimestamp(float(context.get("turn_date")), timezone.utc)
     except (TypeError, ValueError, OSError):
-        failures.append("message_date_invalid")
+        failures.append("turn_date_invalid")
     requested, presented = _parse_time(disk.get("requested_at")), _parse_time(disk.get("presented_at"))
     if requested is None or presented is None or message_time is None or not requested <= presented < message_time:
         failures.append("review_time_order")
     events = _ledger(project, disk)
     if _is_replayed(events, context):
-        failures.append("telegram_message_replayed")
+        failures.append("conversation_turn_replayed")
     if failures:
         return {"status": "NEEDS_REWORK", "failures": sorted(set(failures))}
     reviewed_at = now()
@@ -354,10 +354,10 @@ def record_user_review_approval(
         "visual_required": disk["visual_required"],
         "review_request_ref": str((project / REQUEST_FILE).resolve()),
         "review_request_hash": canonical_evidence_hash.sha256_file(project / REQUEST_FILE),
-        "review_event_id": f"telegram:{context['chat_id']}:{context['message_id']}",
-        "reviewer": str(context["from_user_id"]), "channel": "telegram", "chat_id": str(context["chat_id"]),
-        "telegram_update_id": str(context["update_id"]), "telegram_message_id": str(context["message_id"]),
-        "telegram_message_date": message_time.isoformat(), "reviewed_candidate_hash": disk["candidate_hash"],
+        "review_event_id": f"codex:{context['conversation_id']}:{context['turn_id']}",
+        "reviewer": str(context["reviewer_id"]), "channel": "codex", "conversation_id": str(context["conversation_id"]),
+        "event_id": str(context["event_id"]), "turn_id": str(context["turn_id"]),
+        "turn_date": message_time.isoformat(), "reviewed_candidate_hash": disk["candidate_hash"],
         "reviewed_evidence": disk["reviewed_evidence"], "reviewed_evidence_hashes": disk["reviewed_evidence_hashes"],
         "review_request_created_at": disk["requested_at"], "review_request_presented_at": disk["presented_at"],
         "reviewed_at": reviewed_at, "approval_text_hash": canonical_evidence_hash.sha256_bytes(approval_text.encode("utf-8")),
@@ -366,8 +366,8 @@ def record_user_review_approval(
     review["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(review, ("artifact_hash",))
     _write_json_atomic(project / REVIEW_FILE, review)
     event = {
-        "chat_id": str(context["chat_id"]), "update_id": str(context["update_id"]), "message_id": str(context["message_id"]),
-        "from_user_id": str(context["from_user_id"]), "review_request_id": disk["review_request_id"],
+        "conversation_id": str(context["conversation_id"]), "event_id": str(context["event_id"]), "turn_id": str(context["turn_id"]),
+        "reviewer_id": str(context["reviewer_id"]), "review_request_id": disk["review_request_id"],
         "candidate_hash": disk["candidate_hash"], "consumed_at": reviewed_at,
     }
     ledger_path = pathlib.Path(str(disk.get("replay_ledger_ref") or project / REPLAY_LEDGER_FILE))
@@ -389,7 +389,7 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
         return {"status": "NEEDS_REWORK", "failures": ["user_review_missing"], "details": {}}
     if document.get("kind") != "CGKNUserReviewEvidence" or document.get("schema_version") != SCHEMA_VERSION or document.get("status") != "PASS":
         failures.append("review_contract")
-    if document.get("review_required") is not True or document.get("decision") != "APPROVED" or document.get("channel") != "telegram":
+    if document.get("review_required") is not True or document.get("decision") != "APPROVED" or document.get("channel") != "codex":
         failures.append("review_decision")
     if not isinstance(document.get("visual_required"), bool):
         failures.append("review_visual_required_invalid")
@@ -406,23 +406,23 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
     for key in ("run_id", "candidate_id", "candidate_hash", "commit_sha", "review_request_id"):
         if not str(document.get(key, "")).strip() or document.get(key) != request.get(key):
             failures.append(f"review_identity:{key}")
-    if not str(document.get("reviewer", "")).strip() or document.get("reviewer") != request.get("expected_reviewer_user_id"):
+    if not str(document.get("reviewer", "")).strip() or document.get("reviewer") != request.get("expected_reviewer_id"):
         failures.append("reviewer_mismatch")
-    if document.get("chat_id") != request.get("chat_id"):
-        failures.append("chat_id_mismatch")
+    if document.get("conversation_id") != request.get("conversation_id"):
+        failures.append("conversation_id_mismatch")
     if document.get("visual_required") != request.get("visual_required"):
         failures.append("review_visual_requirement_mismatch")
-    for key in ("telegram_update_id", "telegram_message_id"):
+    for key in ("event_id", "turn_id"):
         if not str(document.get(key, "")).strip():
             failures.append(f"missing:{key}")
-    expected_event = f"telegram:{document.get('chat_id', '')}:{document.get('telegram_message_id', '')}"
+    expected_event = f"codex:{document.get('conversation_id', '')}:{document.get('turn_id', '')}"
     if document.get("review_event_id") != expected_event:
         failures.append("review_event_id")
     if not HASH_RE.fullmatch(str(document.get("approval_text_hash", ""))):
         failures.append("approval_text_hash")
     requested = _parse_time(document.get("review_request_created_at"))
     presented = _parse_time(document.get("review_request_presented_at"))
-    message = _parse_time(document.get("telegram_message_date"))
+    message = _parse_time(document.get("turn_date"))
     reviewed = _parse_time(document.get("reviewed_at"))
     if None in (requested, presented, message, reviewed) or not requested <= presented < message <= reviewed:
         failures.append("review_time_order")
@@ -447,10 +447,10 @@ def inspect_user_review_evidence(project_dir: str | pathlib.Path) -> dict[str, A
             failures.append(f"identity:{key}")
     matching = [
         event for event in _ledger(project, request)
-        if str(event.get("update_id")) == str(document.get("telegram_update_id"))
-        and str(event.get("chat_id")) == str(document.get("chat_id"))
-        and str(event.get("message_id")) == str(document.get("telegram_message_id"))
-        and str(event.get("from_user_id")) == str(document.get("reviewer"))
+        if str(event.get("event_id")) == str(document.get("event_id"))
+        and str(event.get("conversation_id")) == str(document.get("conversation_id"))
+        and str(event.get("turn_id")) == str(document.get("turn_id"))
+        and str(event.get("reviewer_id")) == str(document.get("reviewer"))
         and event.get("review_request_id") == document.get("review_request_id")
         and event.get("candidate_hash") == document.get("candidate_hash")
     ]

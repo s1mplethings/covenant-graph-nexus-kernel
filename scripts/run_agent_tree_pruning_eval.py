@@ -399,7 +399,7 @@ def run_eval(out_dir: str | pathlib.Path = DEFAULT_OUT) -> dict[str, Any]:
         "branch_replan_count": len(replans),
         "replacement_merge_verdict": replacement_merge["merge_verdict"],
         "downstream_blocked": downstream,
-        "telegram_mainline": "not_connected",
+        "production_mainline": "not_connected",
         "delivery_executed": False,
     }
     write_json(out / "final_verdict.json", final)

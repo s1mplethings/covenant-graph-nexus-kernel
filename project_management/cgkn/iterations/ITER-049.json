@@ -15,7 +15,7 @@
     "Static checks, kernel guards, supervisor tests, and documentation consistency checks pass.",
     "The active branch is codex/cgkn-codex-edition.",
     "The branch distribution is named CGKN Codex Edition while formal schemas and kernel identity remain CGKN.",
-    "The primary launcher is scripts/start_cgkn_codex_edition.ps1 and the superseded launcher name is removed."
+    "The active Codex task is the sole conversation entry and no project-specific conversation launcher is required."
   ],
   "quality_metrics": [
     {
@@ -65,9 +65,9 @@
   "interface_expectations": [
     "The branch name resolves exactly to codex/cgkn-codex-edition.",
     "README.md and EDITION.md present CGKN Codex Edition as the distribution name and preserve CGKN as the formal kernel namespace.",
-    "scripts/start_cgkn_codex_edition.ps1 starts scripts.cgkn_runtime_supervisor with API generation, one persistent supervisor, and edition-specific state paths.",
-    "scripts/start_cgkn_codex_supervised.ps1 is absent so operators see one canonical Codex-edition launcher.",
-    "The kernel guard binds the edition launcher and rejects a reintroduced mixed one-shot Codex path."
+    "The active Codex task attaches to CGKN supervision with API generation and edition-specific state paths.",
+    "Project-specific conversation launchers are absent so operators see one Codex conversation surface.",
+    "The kernel guard binds the Codex-only interface and rejects a reintroduced detached conversation path."
   ],
   "evidence_refs": [
     "project_management/cgkn/iterations/ITER-049_RUNTIME_EVIDENCE.md"

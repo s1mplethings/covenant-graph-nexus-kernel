@@ -33,7 +33,7 @@ except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_shared_context import create_shared_context, save_shared_context
     from scripts.agent_tree_trace_bundle import create_trace_bundle
 
-import telegram_live_bridge
+import codex_conversation
 
 
 def _next_stage_ids(dag: dict[str, Any], stage_id: str) -> list[str]:
@@ -54,7 +54,7 @@ def _write_public_gate(project_dir: pathlib.Path, out_dir: pathlib.Path, manifes
             "acceptance_criteria": shared_context.get("acceptance_contract", []),
         },
     }
-    gate = telegram_live_bridge.evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+    gate = codex_conversation.evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
     write_json(out_dir / "contract_checks" / "public_delivery_gate.json", gate)
     return gate
 

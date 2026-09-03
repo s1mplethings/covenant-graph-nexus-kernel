@@ -38,5 +38,5 @@ Measured safe configuration:
 
 `hybrid_safe` keeps `api_provider` as formal generation owner. Ollama handles bounded dialogue, classification, planning-context and risk-support tasks; the existing registered fallback may handle code tasks only when the API route reports a classified failure. Local support cannot authorize formal delivery truth.
 
-The currently running Codex process inherited an older credential value before the user-level environment was updated, so the process reports a credential conflict while still selecting the new user-level value. Restart Codex and any long-running Telegram bridge after this iteration to refresh their environment blocks.
+The currently running Codex process inherited an older credential value before the user-level environment was updated, so the process reports a credential conflict while still selecting the new user-level value. Restart Codex and any long-running Codex conversation bridge after this iteration to refresh their environment blocks.
 

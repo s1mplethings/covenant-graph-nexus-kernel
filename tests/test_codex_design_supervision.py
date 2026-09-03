@@ -7,9 +7,6 @@ import sys
 import tempfile
 from unittest import mock
 
-import pytest
-
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 for value in (ROOT, SCRIPTS):
@@ -17,8 +14,8 @@ for value in (ROOT, SCRIPTS):
         sys.path.insert(0, str(value))
 
 import scripts.codex_capability_supervisor as supervisor
-import scripts.telegram_design_supervision as design
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_design_supervision as design
+import scripts.codex_conversation as bridge
 
 
 def _design_session(text: str) -> dict:
@@ -27,7 +24,7 @@ def _design_session(text: str) -> dict:
         text,
     )
     return {
-        "chat_id": "design-chat",
+        "conversation_id": "design-chat",
         "messages": [{"role": "user", "text": text}],
         "whiteboard": whiteboard,
         "memory_events": [],
@@ -35,16 +32,16 @@ def _design_session(text: str) -> dict:
     }
 
 
-def test_interface_request_freezes_bot_mini_app_and_visual_acceptance() -> None:
-    session = _design_session("为什么没有 GUI？我要从 Telegram 对话进入并用 Mini App 操作，重新设计")
+def test_interface_request_freezes_codex_and_visual_acceptance() -> None:
+    session = _design_session("为什么没有 GUI？我要从 Codex 对话进入并重新设计项目界面")
     state = session["whiteboard"]["product_design"]
 
     assert state["required"] is True
     assert state["workflow_state"] == "awaiting_codex_brief"
-    assert state["interaction_surfaces"] == ["telegram_bot", "telegram_mini_app"]
+    assert state["interaction_surfaces"] == ["codex_conversation"]
     acceptance = "\n".join(session["whiteboard"]["acceptance_criteria"])
     assert "一个明确功能" in acceptance
-    assert "initData" in acceptance
+    assert "Codex 对话" in acceptance
     assert "明暗主题" in acceptance
     assert session["whiteboard"]["ready_to_generate"] is False
 
@@ -59,7 +56,7 @@ def test_media_only_short_request_does_not_gain_gui_scope() -> None:
 
 
 def test_pending_design_blocks_even_explicit_start() -> None:
-    session = _design_session("给考研助手增加 Telegram Mini App 界面")
+    session = _design_session("给考研助手增加项目界面")
     allowed, reason = bridge.should_auto_start_generation(
         session,
         {"start_allowed_with_assumptions": True, "project_summary": "考研助手"},
@@ -71,7 +68,7 @@ def test_pending_design_blocks_even_explicit_start() -> None:
 
 
 def test_every_generation_entry_obeys_pending_design_checkpoint() -> None:
-    session = _design_session("给考研助手增加 Telegram Mini App 界面")
+    session = _design_session("给考研助手增加项目界面")
     session["generation"] = {"status": "idle"}
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
@@ -95,7 +92,7 @@ def test_every_generation_entry_obeys_pending_design_checkpoint() -> None:
 
 
 def test_prepare_and_validate_bounded_design_handoff() -> None:
-    session = _design_session("从 Telegram 对话进入 Mini App，给考研助手做 GUI")
+    session = _design_session("从 Codex 对话进入，给考研助手做 GUI")
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         agent_session = root / "design-chat" / "agent_session.jsonl"
@@ -117,7 +114,7 @@ def test_prepare_and_validate_bounded_design_handoff() -> None:
 
 
 def test_read_only_codex_draft_is_sealed_then_requires_user_confirmation() -> None:
-    session = _design_session("从 Telegram 对话进入 Mini App，给考研助手做 GUI")
+    session = _design_session("从 Codex 对话进入，给考研助手做 GUI")
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         agent_session = root / "design-chat" / "agent_session.jsonl"
@@ -129,9 +126,9 @@ def test_read_only_codex_draft_is_sealed_then_requires_user_confirmation() -> No
                 json.dumps(
                     {
                         "workflow_state": "ready",
-                        "summary": "以对话处理低频决策，以 Mini App 承载连续浏览和编辑。",
+                        "summary": "以 Codex 对话处理决策，以生成项目界面承载连续浏览和编辑。",
                         "diagnosis": ["此前把业务叶子最小化误当成产品界面最小化。"],
-                        "provider_guidance": ["实现 Bot 入口、Mini App 首页、单功能操作页和统一动作契约。"],
+                        "provider_guidance": ["实现项目首页、单功能操作页和统一动作契约。"],
                         "repair_targets": [],
                         "acceptance_checks": ["在 390px 宽度完成主要流程并提供明暗主题截图。"],
                         "context_requests": [],
@@ -163,20 +160,3 @@ def test_read_only_codex_draft_is_sealed_then_requires_user_confirmation() -> No
         approved = design.apply_design_intent(projected, "设计确认，开始生成")
         assert approved["product_design"]["workflow_state"] == "approved"
         assert design.design_supervision_pending(approved) is False
-
-
-@pytest.mark.telegram
-def test_telegram_web_app_button_requires_https_and_web_app_data_is_normalized() -> None:
-    client = bridge.TelegramClient("test-token", timeout=5)
-    captured: list[tuple[str, dict]] = []
-    client.call = lambda method, payload=None: captured.append((method, payload or {})) or {"ok": True}
-
-    assert client.send_message("chat", "打开", web_app_url="http://unsafe.example/app") is True
-    assert "reply_markup" not in captured[-1][1]
-    assert client.send_message("chat", "打开", web_app_url="https://example.com/app") is True
-    markup = json.loads(captured[-1][1]["reply_markup"])
-    assert markup["inline_keyboard"][0][0]["web_app"]["url"] == "https://example.com/app"
-
-    message = design.web_app_user_text({"data": json.dumps({"action": "build_weekly_plan", "payload": {"hours": 20}})})
-    assert "build_weekly_plan" in message
-    assert '"hours": 20' in message

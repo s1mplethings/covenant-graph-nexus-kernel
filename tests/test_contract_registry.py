@@ -8,8 +8,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 FORMAL_ARTIFACTS = {
-    "production_candidate_provenance": ("CGKNProductionCandidateProvenance", "schemas/production_candidate_provenance_v1.schema.json", "scripts/telegram_live_bridge.py"),
-    "provider_causal_trace": ("CGKNProviderCausalTrace", "schemas/provider_causal_trace_v1.schema.json", "scripts/telegram_live_bridge.py"),
+    "production_candidate_provenance": ("CGKNProductionCandidateProvenance", "schemas/production_candidate_provenance_v1.schema.json", "scripts/codex_conversation.py"),
+    "provider_causal_trace": ("CGKNProviderCausalTrace", "schemas/provider_causal_trace_v1.schema.json", "scripts/codex_conversation.py"),
     "test_execution": ("CGKNTestExecutionEvidence", "schemas/test_execution_v1.schema.json", "scripts/real_test_execution.py"),
     "customer_runtime": ("CGKNCustomerRuntimeEvidence", "schemas/customer_runtime_v1.schema.json", "scripts/customer_runtime_runner.py"),
     "visual_evidence": ("CGKNVisualEvidence", "schemas/visual_evidence_v1.schema.json", "scripts/browser_visual_evidence.py"),

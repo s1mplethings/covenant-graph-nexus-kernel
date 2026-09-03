@@ -88,7 +88,16 @@
     "generated/vn_story_studio_large_20260802_v7/TEST_REPORT.md",
     "tests/test_formal_provider_fallback.py",
     "tests/test_run_local_pipeline_usage.py",
-    "tests/test_kernel_contract.py"
+    "tests/test_kernel_contract.py",
+    "project_management/cgkn/iterations/ITER-013_PROVIDER_BLOCK_20260903.md",
+    "artifacts/vn_real_provider_e2e_20260903/vn_real_provider_e2e_log_package.json",
+    "artifacts/vn_real_provider_e2e_20260903/sessions/vn-real-provider-e2e-20260903.json",
+    "project_management/cgkn/iterations/ITER-013_QWEN_MODEL_EVIDENCE_20260903.md",
+    "artifacts/vn_real_provider_e2e_qwen3coderplus_20260903/vn_real_provider_e2e_log_package.json",
+    "artifacts/vn_real_provider_e2e_qwen37plus_20260903/vn_real_provider_e2e_log_package.json",
+    "artifacts/vn_real_provider_e2e_qwen3coderplus_v7_20260903/vn_real_provider_e2e_log_package.json",
+    "artifacts/vn_real_provider_e2e_qwen37plus_v8_20260903/vn_real_provider_e2e_log_package.json",
+    "artifacts/vn_real_provider_e2e_qwen35plus_v9_20260903/logs/provider_runs/vn-real-provider-e2e-qwen35plus-v9-20260903/production-ed8ae2dc933845f39c1737a312f61d9b/provider_phase_log.jsonl"
   ],
   "review": {
     "outcome": "needs_rework",
@@ -99,6 +108,14 @@
       "qwen2.5-coder:7b repeatedly returned the same single-fillRect preview after the prompt was reduced to one source body and given an exact structured canvas contract; a stronger code provider or model is required for the remaining generated-project repair."
       ,"Root-cause review found that the deterministic UI semantic adapter itself had crossed the generation boundary by inserting sample graph nodes, capability controls, result outputs, initial status copy, and a CSS hit-target rule, while collapsing missing JavaScript owners into one status target. The adapter is now ownership-only and legacy accepted/rejected frontend leaf caches are isolated by policy version."
       ,"Focused adapter, cache-isolation, and kernel-contract tests pass. The broader related profile reports 201 passed, 135 skipped, and 3 pre-existing failures in unrelated media-fixture error precedence, implementation-depth payload shape, and component-quality affected-file selection; no delivery status was promoted."
+      ,"The 2026-09-03 live Provider attempt reached the configured endpoint but was blocked: the default model returned MODEL_NOT_FOUND, and qwen3.8-max returned HTTP 403 PERMISSION_DENIED because the free quota was exhausted or free-tier-only mode remained enabled. No generated candidate, package, or delivery PASS was produced."
+      ,"The real-project harness now uses the Codex conversation contract and maps the captured Provider permission failure to BLOCKED_PROVIDER; focused regression groups report 87 passed, 46 passed, and 16 passed."
+      ,"Alternative Qwen probes restored Provider access: qwen3-coder-plus, qwen3.7-plus, and qwen3.5-plus each returned valid structured smoke responses, while qwen3.8-27b did not."
+      ,"Fresh full runs with qwen3-coder-plus and qwen3.7-plus both stopped at requirement_decision_needs_rework with an insufficient canonical goal/project plan; implementation, runtime, visual, packaging, and delivery evidence remained unevaluated or absent."
+      ,"The harness now maps a canonical rework_blocked generation or NEEDS_REWORK delivery gate to formal NEEDS_REWORK; the updated focused regression group reports 17 passed."
+      ,"Standalone VN recognition and generic visual-component ownership were corrected without adding a generation path; the related planning, complexity, acceptance, and kernel profile reports 149 passed."
+      ,"The qwen3-coder-plus v7 run passed canonical planning and routed all 54 Provider requests to the requested model with no fallback, but exhausted structured repair output for src/character_editor.py after recording 46 leaf completions; no candidate or delivery was promoted."
+      ,"The qwen3.7-plus v8 run stopped on repeated remote disconnect/refusal during the foundation manifest, while the qwen3.5-plus v9 bounded run repeatedly timed out and became dependent on local qwen2.5-coder fallback; neither provides end-to-end delivery evidence."
     ],
     "accepted_backlog_item_ids": []
   },
@@ -108,15 +125,23 @@
       "Monotonic rejected-candidate ranking preserved near-pass CSS instead of regressing to the latest structurally worse output.",
       "Browser workflow execution and computed geometry/style/pixel diagnostics converted manual design findings into reproducible quality failures."
       ,"Separating generated product truth from deterministic interface normalization removed a false-completeness mechanism without adding another generation path."
+      ,"Keeping Provider reachability, generated-candidate evidence, packaging, and delivery authority separate prevented a reachable but quota-blocked endpoint from being reported as a successful real-project test."
+      ,"A two-run structured smoke check identified stable Qwen candidates cheaply before full generation attempts, and the quality gate consistently rejected insufficient project plans."
     ],
     "did_not_work": [
       "Repeated prose instructions alone did not make the 7B local model change a single solid canvas drawing into a content-bearing preview.",
       "Token declaration counts and non-empty canvas pixels were too weak and allowed default browser styling plus a blue rectangle to pass."
       ,"A deterministic adapter that inserted visible sample content made structural checks easier to satisfy while reducing confidence that the Provider authored the product behavior."
+      ,"The configured Provider account could not execute either the default model or qwen3.8-max, so fresh candidate, runtime, browser, and media evidence could not be collected."
+      ,"Changing to available Qwen models removed the Provider-access blocker but did not produce the canonical requirement plan needed to start implementation."
+      ,"After the canonical planning correction, no tested Qwen model completed the full governed route: coder-plus failed repeated structured repair output, and the plus models were transport-unstable at project payload sizes."
     ],
     "experiments": [
       "Resume the same affected JS/CSS repair with a stronger reviewed provider while keeping the single-source librarian slice and all new gates unchanged.",
-      "Track semantic-adapter policy provenance on every cached frontend leaf and reject policy-less or older records before librarian retrieval or accepted-leaf reuse."
+      "Track semantic-adapter policy provenance on every cached frontend leaf and reject policy-less or older records before librarian retrieval or accepted-leaf reuse.",
+      "After Provider access is restored, rerun the same fresh Codex conversation E2E with the current gates and do not reuse this blocked attempt as PASS evidence.",
+      "Inspect the requirement-planning prompt, Provider response projection, and canonical goal-plan parser using the qwen3-coder-plus and qwen3.7-plus run evidence before another paid full run."
+      ,"Keep the corrected plan and component ownership fixed, then evaluate a Provider/model combination that can sustain 20k-30k character structured code-repair prompts without transport timeouts or non-JSON responses."
     ]
   }
 }

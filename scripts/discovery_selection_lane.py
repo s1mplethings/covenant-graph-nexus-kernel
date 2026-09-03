@@ -203,7 +203,10 @@ def goal_has_media_product(user_goal: str) -> bool:
 
 
 def goal_has_visual_novel_product(user_goal: str) -> bool:
-    return any(token in product_domain_goal(user_goal) for token in VISUAL_NOVEL_PRODUCT_TERMS)
+    domain_goal = product_domain_goal(user_goal)
+    return any(token in domain_goal for token in VISUAL_NOVEL_PRODUCT_TERMS) or bool(
+        re.search(r"\bvn\b", domain_goal)
+    )
 
 
 def goal_has_task_board_product(user_goal: str) -> bool:

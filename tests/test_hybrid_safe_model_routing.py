@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-import start_customer_service
 from scripts import local_model_router, run_local_pipeline_impl
 
 
@@ -21,25 +20,6 @@ def test_hybrid_safe_assigns_support_to_local_and_formal_work_to_api(monkeypatch
     assert local_model_router.task_model_owner("component_generation") == "api_provider"
 
 
-def test_telegram_launcher_defaults_to_hybrid_safe() -> None:
-    env = start_customer_service.telegram_model_environment({})
-    tasks = set(env["CGNK_LOCAL_MODEL_TASKS"].split(","))
-
-    assert env["CGNK_MODEL_ROUTING_PROFILE"] == "hybrid_safe"
-    assert env["CGKN_TELEGRAM_GENERATION_MODE"] == "api"
-    assert tasks == local_model_router.HYBRID_SAFE_LOCAL_TASKS
-    assert not tasks & local_model_router.HYBRID_SAFE_API_TASKS
-    assert env["CGNK_LOCAL_PROVIDER_ATTEMPTS"] == "1"
-
-
-def test_local_first_requires_explicit_profile() -> None:
-    env = start_customer_service.telegram_model_environment({"CGNK_MODEL_ROUTING_PROFILE": "local_first"})
-    tasks = set(env["CGNK_LOCAL_MODEL_TASKS"].split(","))
-
-    assert local_model_router.LOCAL_CODE_TASKS <= tasks
-    assert "qa" in tasks
-
-
 def test_component_reasoning_repair_uses_configured_code_model(monkeypatch) -> None:
     monkeypatch.setenv("CGNK_OLLAMA_CODE_MODEL", "unit-code-model")
     monkeypatch.setenv("CGNK_OLLAMA_REASONING_MODEL", "unit-reasoning-model")
@@ -48,13 +28,6 @@ def test_component_reasoning_repair_uses_configured_code_model(monkeypatch) -> N
         "http://127.0.0.1:11434",
         "component_reasoning_repair",
     ) == "unit-code-model"
-
-
-def test_api_only_disables_local_tasks() -> None:
-    env = start_customer_service.telegram_model_environment({"CGNK_MODEL_ROUTING_PROFILE": "api_only"})
-
-    assert env["CGNK_USE_LOCAL_MODEL"] == "0"
-    assert env["CGNK_LOCAL_MODEL_TASKS"] == ""
 
 
 def test_hybrid_safe_component_generation_goes_directly_to_api(monkeypatch, tmp_path) -> None:

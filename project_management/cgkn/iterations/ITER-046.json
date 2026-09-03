@@ -3,14 +3,14 @@
   "schema_version": "1.0",
   "iteration_id": "ITER-046",
   "project_id": "cgkn",
-  "goal": "Freeze the user's intended Codex-CGKN-Telegram ownership and persistent checkpoint-supervision model as a normative, registered, automatically guarded architecture baseline without claiming the supervisor runtime is already implemented.",
+  "goal": "Freeze the user's intended Codex-CGKN-Codex conversation ownership and persistent checkpoint-supervision model as a normative, registered, automatically guarded architecture baseline without claiming the supervisor runtime is already implemented.",
   "backlog_item_ids": [
     "PB-036"
   ],
   "workflow_state": "closed",
   "evidence_status": "PASS",
   "acceptance_criteria": [
-    "A dedicated normative document defines CGKN as the independently running system, Telegram as a CGKN-owned interface, and Codex as the startup/attachment and persistent checkpoint supervisor.",
+    "A dedicated normative document defines CGKN as the independently running system, Codex conversation as a CGKN-owned interface, and Codex as the startup/attachment and persistent checkpoint supervisor.",
     "The baseline defines lifecycle, persistent identity, mandatory checkpoints, allowed actions, bounded repair, failure recovery, customer flow, formal-route preservation, conformance criteria, and the current implementation gap.",
     "Request-scoped Codex calls are explicitly transitional or specialist-only and cannot satisfy the persistent-supervision baseline.",
     "AGENTS.md, README, docs/00_kernel_contract.md, and docs/01_contract_registry.md reference the baseline consistently.",
@@ -53,7 +53,7 @@
   },
   "interface_expectations": [
     "Codex starts or attaches to a long-running CGKN service; starting the desktop window alone is not readiness evidence.",
-    "CGKN owns Telegram intake and durable project state and emits identity-bound checkpoints.",
+    "CGKN owns Codex conversation intake and durable project state and emits identity-bound checkpoints.",
     "The supervisor resumes one persistent Codex thread and records process, repository, and checkpoint continuity.",
     "repair_cgkn may change only CGKN-owned artifacts and must retain an auditable diff plus passing proportionate regression before resume.",
     "Provider authorship, formal evidence, local_packager, public_delivery_gate, and delivery authority remain outside Codex supervision."

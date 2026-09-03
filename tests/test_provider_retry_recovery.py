@@ -12,10 +12,10 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
@@ -23,37 +23,37 @@ class FakeTelegramClient:
         self.videos: list[tuple[str, pathlib.Path, str]] = []
         self.actions: list[tuple[str, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.videos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.videos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
-def seed_session(session_dir: pathlib.Path, chat_id: str, goal: str) -> None:
-    shutil.rmtree(ROOT / "generated" / "telegram_provider_projects" / bridge.safe_id(chat_id), ignore_errors=True)
-    session = bridge.default_session(chat_id)
+def seed_session(session_dir: pathlib.Path, conversation_id: str, goal: str) -> None:
+    shutil.rmtree(ROOT / "generated" / "codex_provider_projects" / bridge.safe_id(conversation_id), ignore_errors=True)
+    session = bridge.default_session(conversation_id)
     session["messages"].append({"role": "user", "text": goal, "created_at": bridge.now()})
     session["active_run"] = {"goal": goal, "status": "intake_open"}
     session["whiteboard"]["project_summary"] = goal
     bridge.save_session(session_dir, session)
 
 
-def read_agent_events(session_dir: pathlib.Path, chat_id: str) -> list[dict[str, object]]:
-    path = bridge.agent_session_path(session_dir, chat_id)
+def read_agent_events(session_dir: pathlib.Path, conversation_id: str) -> list[dict[str, object]]:
+    path = bridge.agent_session_path(session_dir, conversation_id)
     events: list[dict[str, object]] = []
     if not path.exists():
         return events
@@ -81,8 +81,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            chat_id = "chat-retry-pass"
-            seed_session(session_dir, chat_id, "做一个本地任务工具")
+            conversation_id = "chat-retry-pass"
+            seed_session(session_dir, conversation_id, "做一个本地任务工具")
             calls = {"count": 0}
 
             def fake_execute(args):
@@ -99,11 +99,11 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 return {"status": "PASS", "generated_files": ["app.py"], "agent_usage": {"events": [{"command": "python app.py"}]}}
 
             bridge.provider_project_pipeline.execute = fake_execute
-            client = FakeTelegramClient()
-            bridge.run_provider_generation_job(client, chat_id, session_dir, log_dir, "gpt-test", 30)
+            client = FakeCodexConversation()
+            bridge.run_provider_generation_job(client, conversation_id, session_dir, log_dir, "gpt-test", 30)
 
-            session = bridge.load_session(session_dir, chat_id)
-            retry_events = [event for event in read_agent_events(session_dir, chat_id) if event.get("kind") == "provider_retry"]
+            session = bridge.load_session(session_dir, conversation_id)
+            retry_events = [event for event in read_agent_events(session_dir, conversation_id) if event.get("kind") == "provider_retry"]
             self.assertEqual(3, calls["count"])
             self.assertEqual(2, len(retry_events))
             self.assertEqual("rework_blocked", session["generation"]["status"])
@@ -113,8 +113,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            chat_id = "chat-retry-fail"
-            seed_session(session_dir, chat_id, "本地可运行的 VN 项目助手，时间线，背景，立绘，本地模型，桌面界面，文件导出")
+            conversation_id = "chat-retry-fail"
+            seed_session(session_dir, conversation_id, "本地可运行的 VN 项目助手，时间线，背景，立绘，本地模型，桌面界面，文件导出")
             calls = {"count": 0}
 
             def fake_execute(args):
@@ -122,10 +122,10 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 raise ssl.SSLError("SSLV3_ALERT_BAD_RECORD_MAC")
 
             bridge.provider_project_pipeline.execute = fake_execute
-            client = FakeTelegramClient()
-            bridge.run_provider_generation_job(client, chat_id, session_dir, log_dir, "gpt-test", 30)
+            client = FakeCodexConversation()
+            bridge.run_provider_generation_job(client, conversation_id, session_dir, log_dir, "gpt-test", 30)
 
-            session = bridge.load_session(session_dir, chat_id)
+            session = bridge.load_session(session_dir, conversation_id)
             self.assertEqual(5, calls["count"])
             self.assertEqual("rework_blocked", session["generation"]["status"])
             self.assertFalse(session["generation"]["delivery_allowed"])
@@ -142,8 +142,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            chat_id = "chat-stage-resume"
-            seed_session(session_dir, chat_id, "做一个本地任务工具")
+            conversation_id = "chat-stage-resume"
+            seed_session(session_dir, conversation_id, "做一个本地任务工具")
             calls = {"count": 0}
             provider_staging: list[pathlib.Path] = []
 
@@ -166,10 +166,10 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 return {"status": "PASS", "generated_files": ["TEST_REPORT.md"], "agent_usage": {"events": [{"command": "python app.py"}]}}
 
             bridge.provider_project_pipeline.execute = fake_execute
-            client = FakeTelegramClient()
-            bridge.run_provider_generation_job(client, chat_id, session_dir, log_dir, "gpt-test", 30)
+            client = FakeCodexConversation()
+            bridge.run_provider_generation_job(client, conversation_id, session_dir, log_dir, "gpt-test", 30)
 
-            project = ROOT / "generated" / "telegram_provider_projects" / bridge.safe_id(chat_id)
+            project = ROOT / "generated" / "codex_provider_projects" / bridge.safe_id(conversation_id)
             self.assertEqual(2, calls["count"])
             self.assertEqual(provider_staging[0], provider_staging[1])
             self.assertEqual(
@@ -191,8 +191,8 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            chat_id = "chat-partial-no-deliver"
-            seed_session(session_dir, chat_id, "做一个本地任务工具")
+            conversation_id = "chat-partial-no-deliver"
+            seed_session(session_dir, conversation_id, "做一个本地任务工具")
 
             def fake_execute(args):
                 project = pathlib.Path(args.out_dir)
@@ -207,10 +207,10 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
                 raise RuntimeError("merged component output missing required files: TEST_PLAN.md")
 
             bridge.provider_project_pipeline.execute = fake_execute
-            client = FakeTelegramClient()
-            bridge.run_provider_generation_job(client, chat_id, session_dir, log_dir, "gpt-test", 30)
+            client = FakeCodexConversation()
+            bridge.run_provider_generation_job(client, conversation_id, session_dir, log_dir, "gpt-test", 30)
 
-            session = bridge.load_session(session_dir, chat_id)
+            session = bridge.load_session(session_dir, conversation_id)
             self.assertEqual("rework_blocked", session["generation"]["status"])
             self.assertFalse(session["generation"]["delivery_allowed"])
             self.assertEqual("NEEDS_REWORK", session["generation"]["delivery_gate"]["status"])

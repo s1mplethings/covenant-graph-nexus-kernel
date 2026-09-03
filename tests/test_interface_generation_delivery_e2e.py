@@ -13,10 +13,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self, *, fail_documents: bool = False, fail_photos: bool = False) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
@@ -25,31 +25,31 @@ class FakeTelegramClient:
         self.fail_documents = fail_documents
         self.fail_photos = fail_photos
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         if self.fail_photos:
             return False
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
         if self.fail_documents:
             return False
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
-def make_session(chat_id: str) -> dict:
-    session = bridge.default_session(chat_id)
+def make_session(conversation_id: str) -> dict:
+    session = bridge.default_session(conversation_id)
     session["whiteboard"]["project_summary"] = "本地项目生成系统，带 GUI 状态展示，像项目团队一样交付"
     session["whiteboard"]["delivery_requirements"] = ["交付可运行项目包", "真实截图", "测试报告"]
-    session["active_run"] = {"id": f"run-{chat_id}", "status": "running", "created_at": bridge.now()}
+    session["active_run"] = {"id": f"run-{conversation_id}", "status": "running", "created_at": bridge.now()}
     session["generation"] = {"status": "running", "driver": "api_provider_project_generation"}
     return session
 
@@ -86,12 +86,12 @@ def test_ambiguous_model_mode_message_does_not_restart_active_run(monkeypatch) -
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         bridge.save_session(session_dir, make_session("chat-e2e"))
         starts: list[str] = []
 
-        def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-            session = bridge.load_session(session_dir_arg, chat_id)
+        def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+            session = bridge.load_session(session_dir_arg, conversation_id)
             starts.append(session["active_run"]["id"])
             session["generation"]["status"] = "running"
             bridge.save_session(session_dir_arg, session)
@@ -176,7 +176,7 @@ def test_incomplete_manifest_sends_no_public_artifacts() -> None:
         manifest = package_project(project)
         session = make_session("delivery-success")
         bridge.save_session(session_dir, session)
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
 
         sent = bridge.send_delivery_from_manifest(client, "delivery-success", session_dir, session, manifest)
         saved = bridge.load_session(session_dir, "delivery-success")
@@ -188,7 +188,7 @@ def test_incomplete_manifest_sends_no_public_artifacts() -> None:
         assert "继续修复" in visible
 
 
-def test_delivery_is_not_complete_when_telegram_document_send_fails() -> None:
+def test_delivery_is_not_complete_when_codex_document_send_fails() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         session_dir = root / "sessions"
@@ -196,7 +196,7 @@ def test_delivery_is_not_complete_when_telegram_document_send_fails() -> None:
         manifest = package_project(project)
         session = make_session("delivery-send-failed")
         bridge.save_session(session_dir, session)
-        client = FakeTelegramClient(fail_documents=True)
+        client = FakeCodexConversation(fail_documents=True)
 
         sent = bridge.send_delivery_from_manifest(client, "delivery-send-failed", session_dir, session, manifest)
         saved = bridge.load_session(session_dir, "delivery-send-failed")

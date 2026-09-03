@@ -67,7 +67,7 @@
     "git -C D:\\CGKN\\.service_worktree\\codex-edition branch --show-current returns codex/cgkn-codex-edition.",
     "git worktree list records both absolute directories and their distinct branch refs.",
     "The edition snapshot excludes .cgkn, examples runtime memory, workspaces, benchmarks, generated outputs, and secrets.",
-    "CGKN Codex Edition retains scripts/start_cgkn_codex_edition.ps1 and the registered Provider/local_packager route."
+    "CGKN Codex Edition retains the active Codex-task entry and the registered Provider/local_packager route."
   ],
   "evidence_refs": [
     "project_management/cgkn/iterations/ITER-050_RUNTIME_EVIDENCE.md"

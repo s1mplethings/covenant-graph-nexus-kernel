@@ -73,7 +73,7 @@ def _wrapper(
             "failures": [],
             "reason": "",
             "blocker_code": (
-                "BLOCKED_TELEGRAM_TEST_CHAT" if status == "BLOCKED" else ""
+                "BLOCKED_USER_REVIEW" if status == "BLOCKED" else ""
             ),
         },
     )
@@ -219,7 +219,7 @@ def test_08_inspector_needs_rework_prevents_blocked_only(
     )
     assert verdict["status"] == "NEEDS_REWORK"
     assert "replan" in verdict["internal_failures"]
-    assert "BLOCKED_TELEGRAM_TEST_CHAT" in verdict["blockers"]
+    assert "BLOCKED_USER_REVIEW" in verdict["blockers"]
 
 
 def test_09_different_test_runtime_visual_candidates_cannot_be_rewrapped(
@@ -279,42 +279,42 @@ def test_10_commit_hash_cannot_replace_candidate_source_hash(
     assert "production_run_identity_missing_or_mixed" in failures
 
 
-def test_11_telegram_block_cannot_hide_internal_needs_rework() -> None:
+def test_11_codex_block_cannot_hide_internal_needs_rework() -> None:
     gates = {
         gate: {
             "status": (
                 "NEEDS_REWORK"
                 if gate == "recovery"
                 else "BLOCKED"
-                if gate in acceptance_verifier.TELEGRAM_DEPENDENT_GATES
+                if gate in acceptance_verifier.CODEX_DEPENDENT_GATES
                 else "PASS"
             ),
-            "blocker_code": "BLOCKED_TELEGRAM_TEST_CHAT",
+            "blocker_code": "BLOCKED_USER_REVIEW",
         }
         for gate in acceptance_verifier.REQUIRED_GATES
     }
     status, internal, blockers = acceptance_verifier._aggregate_status(gates)
     assert status == "NEEDS_REWORK"
     assert internal == ["recovery"]
-    assert blockers == ["BLOCKED_TELEGRAM_TEST_CHAT"]
+    assert blockers == ["BLOCKED_USER_REVIEW"]
 
 
-def test_12_only_telegram_missing_allows_blocked_telegram() -> None:
+def test_12_only_codex_missing_allows_blocked_codex() -> None:
     gates = {
         gate: {
             "status": (
                 "BLOCKED"
-                if gate in acceptance_verifier.TELEGRAM_DEPENDENT_GATES
+                if gate in acceptance_verifier.CODEX_DEPENDENT_GATES
                 else "PASS"
             ),
-            "blocker_code": "BLOCKED_TELEGRAM_TEST_CHAT",
+            "blocker_code": "BLOCKED_USER_REVIEW",
         }
         for gate in acceptance_verifier.REQUIRED_GATES
     }
     status, internal, blockers = acceptance_verifier._aggregate_status(gates)
     assert status == "BLOCKED"
     assert internal == []
-    assert blockers == ["BLOCKED_TELEGRAM_TEST_CHAT"]
+    assert blockers == ["BLOCKED_USER_REVIEW"]
 
 
 def test_source_free_internal_blocker_is_rejected(
@@ -329,11 +329,11 @@ def test_source_free_internal_blocker_is_rejected(
     assert "unsupported_source_free_blocker" in result["failures"]
 
 
-def test_13_arbitrary_chat_id_without_sources_cannot_pass(
+def test_13_arbitrary_conversation_id_without_sources_cannot_pass(
     tmp_path: pathlib.Path,
 ) -> None:
     result = formal_mainline_acceptance.build_acceptance(
-        tmp_path / "acceptance", telegram_test_chat_id="arbitrary"
+        tmp_path / "acceptance", codex_test_conversation_id="arbitrary"
     )
     assert result["status"] == "NEEDS_REWORK"
     for gate in ("user_review", "delivery_manifest", "delivery_receipt"):
@@ -570,7 +570,7 @@ def test_real_canonical_test_runtime_and_playwright_visual_enter_registry_pass(
     run_manifest = json.loads(
         (tmp_path / "formal" / "run_manifest.json").read_text(encoding="utf-8")
     )
-    assert run_manifest["telegram_messages_sent"] == 0
+    assert run_manifest["codex_messages_sent"] == 0
     matrix = json.loads(
         (tmp_path / "formal" / "acceptance_matrix.json").read_text(encoding="utf-8")
     )

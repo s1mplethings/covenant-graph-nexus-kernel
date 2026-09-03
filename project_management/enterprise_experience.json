@@ -30,8 +30,8 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 20,
-      "successful_usage_count": 19,
+      "usage_count": 22,
+      "successful_usage_count": 21,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 31,
-      "successful_usage_count": 31,
+      "usage_count": 34,
+      "successful_usage_count": 34,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -671,6 +671,66 @@
       "outcome": "successful",
       "evidence_refs": [
         "project_management/cgkn/iterations/ITER-050_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-013",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-013_PROVIDER_BLOCK_20260903.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-013",
+      "applied": false,
+      "outcome": "inconclusive",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-013_PROVIDER_BLOCK_20260903.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-013",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-013_QWEN_MODEL_EVIDENCE_20260903.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-013",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-013_QWEN_MODEL_EVIDENCE_20260903.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-052",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-052_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-052",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-052_RUNTIME_EVIDENCE.md"
       ]
     }
   ]

@@ -8,7 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 def test_pytest_markers_are_registered() -> None:
     text = (ROOT / "pytest.ini").read_text(encoding="utf-8")
-    for marker in ("slow", "longrun", "long_journey", "provider", "telegram", "e2e"):
+    for marker in ("slow", "longrun", "long_journey", "provider", "codex", "e2e"):
         assert f"{marker}:" in text
 
 
@@ -41,6 +41,6 @@ def test_naked_pytest_skips_profile_marked_tests_by_default() -> None:
     assert "longrun" in text
     assert "long_journey" in text
     assert "provider" in text
-    assert "telegram" in text
+    assert "codex" in text
     assert "CGKN_INCLUDE_PROFILE_MARKS" in text
     assert "--run-profile-marked" in text

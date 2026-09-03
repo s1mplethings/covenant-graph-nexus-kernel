@@ -26,13 +26,13 @@
   "properties": {
     "kind": { "const": "CGKNProductionCandidateProvenance" },
     "schema_version": { "const": "1.0" },
-    "producer": { "const": "scripts/telegram_live_bridge.py" },
+    "producer": { "const": "scripts/codex_conversation.py" },
     "status": { "const": "PASS" },
     "production_entrypoint": {
-      "const": "scripts.telegram_live_bridge.start_generation_from_income"
+      "const": "scripts.codex_conversation.start_generation_from_income"
     },
     "generation_function": {
-      "const": "scripts.telegram_live_bridge.run_provider_generation_job"
+      "const": "scripts.codex_conversation.run_provider_generation_job"
     },
     "candidate_root": { "type": "string", "minLength": 1 },
     "production_run_root": { "type": "string", "minLength": 1 },

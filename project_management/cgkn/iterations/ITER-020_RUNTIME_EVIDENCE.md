@@ -44,7 +44,7 @@ Revalidating the saved tests component with the new component gate rejected it b
 
 - The formal run contains recorded API Provider execution and bounded local-model fallback participation in its model ledger.
 - No new API resume was started during final review because the current process had no Provider credential environment variable. No credential was written to source, command history, or project evidence.
-- The reviewed API/provider route remains the only Telegram default generation route.
+- The reviewed API/provider route remains the only Codex conversation default generation route.
 - `local_packager` remains the only delivery exit.
 - Detection accuracy remains `NOT_EVALUATED`; an unlabeled public demo can prove pipeline execution only, not cheating or classifier accuracy.
 

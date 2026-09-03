@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts import frontdesk_team_lead_agent as agent
 from scripts import main_agent_manager
-from scripts import telegram_live_bridge as bridge
+from scripts import codex_conversation as bridge
 
 
 FORBIDDEN_PUBLIC_TERMS = (
@@ -329,7 +329,7 @@ def test_delivery_send_failed_is_not_presented_as_complete() -> None:
             event="delivery_send_failed",
             generation_status={"status": "delivery_send_failed"},
             delivery_evidence={"delivery_ready": True, "missing": [], "refs": {"package": "x.zip", "screenshot": "x.png"}},
-            known_limits=["Telegram 附件没有全部发送成功"],
+            known_limits=["Codex conversation 附件没有全部发送成功"],
         )
     )
 
@@ -355,13 +355,13 @@ def test_generic_change_request_reply_is_not_record_template() -> None:
     assert_public_clean(reply["reply"])
 
 
-def test_telegram_send_customer_reply_uses_team_lead_metadata() -> None:
+def test_codex_send_customer_reply_uses_team_lead_metadata() -> None:
     class FakeClient:
         def __init__(self) -> None:
             self.messages: list[tuple[str, str]] = []
 
-        def send_message(self, chat_id, text):
-            self.messages.append((str(chat_id), text))
+        def send_message(self, conversation_id, text):
+            self.messages.append((str(conversation_id), text))
             return True
 
     with tempfile.TemporaryDirectory() as temp_dir:

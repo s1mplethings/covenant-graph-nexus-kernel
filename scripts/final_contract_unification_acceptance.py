@@ -34,7 +34,7 @@ def build_acceptance(
     *,
     candidate_dir: str | pathlib.Path | None = None,
     production_run_dir: str | pathlib.Path | None = None,
-    test_chat_id: str = "",
+    test_conversation_id: str = "",
     full_all_result: str | pathlib.Path = DEFAULT_FULL_ALL_RESULT,
 ) -> dict[str, Any]:
     return formal_mainline_acceptance.build_acceptance(
@@ -42,7 +42,7 @@ def build_acceptance(
         candidate_dir=candidate_dir,
         production_run_dir=production_run_dir,
         full_all_result=full_all_result,
-        telegram_test_chat_id=test_chat_id,
+        codex_test_conversation_id=test_conversation_id,
     )
 
 
@@ -51,14 +51,14 @@ def main() -> int:
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--candidate-dir", default="")
     parser.add_argument("--production-run-dir", default="")
-    parser.add_argument("--telegram-test-chat-id", default="")
+    parser.add_argument("--codex-test-conversation-id", default="")
     parser.add_argument("--full-all-result", default=str(DEFAULT_FULL_ALL_RESULT))
     args = parser.parse_args()
     result = build_acceptance(
         args.run_dir,
         candidate_dir=args.candidate_dir or None,
         production_run_dir=args.production_run_dir or None,
-        test_chat_id=args.telegram_test_chat_id,
+        test_conversation_id=args.codex_test_conversation_id,
         full_all_result=args.full_all_result,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -42,7 +42,7 @@ After task overrides, the selected profile supplies the default. If no task prof
 
 ## Compatibility
 
-Telegram provider generation should use `select_model("provider_generation")`.
+Codex conversation provider generation should use `select_model("provider_generation")`.
 
 Connectivity checks should use `select_model("connectivity")`.
 

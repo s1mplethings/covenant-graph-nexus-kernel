@@ -119,7 +119,12 @@ def test_primary_preflight_uses_canonical_provider_credentials(monkeypatch) -> N
         lambda: {"api_key": "configured-canonical-key", "base_url": "https://provider.example/v1"},
     )
 
-    result = provider_resilience.provider_preflight(config())
+    cfg = config()
+    cfg["providers"][0]["connectivity_report"] = str(
+        ROOT / "examples" / "test_results" / "nonexistent_connectivity_report.json"
+    )
+
+    result = provider_resilience.provider_preflight(cfg)
 
     assert result["verdict"] == provider_resilience.PROVIDER_OK
     assert result["metadata"]["live_generation_allowed"] is True

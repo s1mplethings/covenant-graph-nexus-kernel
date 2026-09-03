@@ -29,8 +29,8 @@ FORBIDDEN_CONFIRMATION_TERMS = [
 DELIVERY_GATE_FUNCTIONS = ["send_delivery_from_manifest", "send_evidence_checkpoint"]
 DELIVERY_GATE_TERMS = ["evaluate_public_delivery_gate", "emit_public_delivery"]
 LEGACY_WRAPPER_FILES = [
-    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Telegram formal generation"]),
-    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Telegram generation"]),
+    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Codex conversation formal generation"]),
+    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Codex conversation generation"]),
 ]
 LEGACY_BRIDGE_WRAPPERS = ["build_generation_args", "run_generation_subprocess", "run_generation_job"]
 PROVIDER_ROUTE_TERMS = [
@@ -86,7 +86,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
 
     agents = read_text("AGENTS.md")
     kernel = read_text("docs/00_kernel_contract.md")
-    bridge = read_text("scripts/telegram_live_bridge.py")
+    bridge = read_text("scripts/codex_conversation.py")
     model_policy = read_text("scripts/model_policy.py") if (ROOT / "scripts/model_policy.py").exists() else ""
     revision_lane = read_text("scripts/project_revision_lane.py") if (ROOT / "scripts/project_revision_lane.py").exists() else ""
     local_studio = read_text("scripts/local_studio_cli.py") if (ROOT / "scripts/local_studio_cli.py").exists() else ""
@@ -95,7 +95,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
 
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
         missing = [term for term in ROUTE_TERMS if term not in text]
-        add(checks, f"{path} names reviewed Telegram route", not missing, ", ".join(missing))
+        add(checks, f"{path} names reviewed Codex conversation route", not missing, ", ".join(missing))
     add(
         checks,
         "kernel contract names adaptive delivery layers",
@@ -104,7 +104,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "telegram bridge implements adaptive delivery layers",
+        "codex bridge implements adaptive delivery layers",
         "def delivery_fact_check" in bridge and "def agent_delivery_judgment" in bridge,
         "adaptive delivery functions missing",
     )
@@ -161,7 +161,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     default_session_body = function_body(bridge, "default_session")
     add(
         checks,
-        "telegram default session carries active project state",
+        "codex default session carries active project state",
         "active_project" in default_session_body and "revision_history" in default_session_body,
         "default_session missing active_project or revision_history",
     )
@@ -175,7 +175,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     revision_branch = between(handle_body, 'if intent == "project_revision_request":', 'if intent == "new_project_request":')
     add(
         checks,
-        "telegram revision branch delegates out of bridge",
+        "codex revision branch delegates out of bridge",
         "MainAgentManager().start_project_revision" in revision_branch and "local_packager.package_project" not in revision_branch and "evaluate_public_delivery_gate" not in revision_branch,
         "revision handling should delegate without packaging or gate logic inside bridge",
     )
@@ -220,9 +220,9 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "telegram bridge does not call provider revision job",
+        "codex bridge does not call provider revision job",
         "run_provider_revision_job(" not in bridge,
-        "telegram_live_bridge.py must not directly call run_provider_revision_job",
+        "codex_conversation.py must not directly call run_provider_revision_job",
     )
     add(
         checks,
@@ -287,7 +287,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     if line_count > 5200:
         warnings.append(
             {
-                "name": "telegram_live_bridge.py is too large",
+                "name": "codex_conversation.py is too large",
                 "detail": f"{line_count} lines; extract modules before adding more logic",
             }
         )

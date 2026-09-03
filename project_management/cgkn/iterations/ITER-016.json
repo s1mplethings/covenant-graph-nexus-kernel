@@ -64,7 +64,7 @@
   "evidence_refs": [
     "generated/dynamic_agent_tree_fix_eval/test_profiles/quick_result.json (PASS: 1215 passed, 383 deselected, artifact sha256:b805c09ad5486ff0f30d2362961869a145de5b107c0489cbc8658d6839e782cb)",
     "management/schema validation and git diff check (PASS)",
-    "pytest goal acceptance, final verdict, provider, Telegram, delivery, scale, and kernel regression (PASS: 286 passed, 195 skipped)"
+    "pytest goal acceptance, final verdict, provider, Codex conversation, delivery, scale, and kernel regression (PASS: 286 passed, 195 skipped)"
   ],
   "review": {
     "outcome": "accepted",

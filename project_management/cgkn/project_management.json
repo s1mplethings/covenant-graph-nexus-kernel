@@ -16,18 +16,18 @@
     "success_metrics": [
       "CGKN self-hosting management artifacts validate against registered schemas.",
       "The project-local skill can initialize, validate, and retrieve bounded project-management context.",
-      "No change creates a second Telegram generation route or delivery exit.",
+      "No change creates a second Codex conversation generation route or delivery exit.",
       "Every completed increment records measurable quality evidence and a retrospective."
     ],
     "fixed_constraints": [
-      "Preserve the reviewed API/provider Telegram generation route.",
+      "Preserve the reviewed API/provider Codex conversation generation route.",
       "Preserve whiteboard and agent_session shared communication.",
       "Preserve local_packager as the only delivery exit.",
       "Use only canonical formal evidence statuses.",
       "Do not expose internal management jargon in normal customer replies."
     ],
     "escalation_thresholds": [
-      "Escalate any proposed change to telegram_live_bridge.py that expands its responsibility.",
+      "Escalate any proposed change to codex_conversation.py that expands its responsibility.",
       "Escalate any fallback that could become an unregistered generation path.",
       "Return an increment for rework when required quality evidence is absent."
     ]
@@ -134,7 +134,7 @@
         "High-complexity source entries with many public symbols expand deterministically into legal owned submodules plus a facade while preserving the original public path.",
         "Provider file calls default to at most 5000 output tokens and explicitly reject length-truncated responses before publication.",
         "Each generated submodule retains its own split-file checkpoint, interface feedforward, boundary receipt, and affected-only repair behavior.",
-        "The Telegram Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest route remains unchanged."
+        "The Codex conversation Provider validation, post-build finalization, local_packager, public delivery gate, and delivery manifest route remains unchanged."
       ],
       "quality_metric_ids": [
         "QM-SCALE",
@@ -291,7 +291,7 @@
         "Only a bounded design context enters frontend, media, and docs leaves through the existing generation-context librarian.",
         "Design research artifacts are written before Provider source generation, and the generated project must include design_research.md and design_system.md before assembly can pass.",
         "Frontend and assembled-project validation reject missing tokens, responsive behavior, focus treatment, interaction feedback, design documentation, or source-to-design traceability.",
-        "Design support receipts cannot authorize canonical visual evidence or public delivery PASS, and the Telegram Provider/local_packager route remains unchanged."
+        "Design support receipts cannot authorize canonical visual evidence or public delivery PASS, and the Codex conversation Provider/local_packager route remains unchanged."
       ],
       "quality_metric_ids": [
         "QM-DESIGN",
@@ -340,7 +340,7 @@
         "Pomodoro, CSV cleaning, and visual-novel editor goals produce distinct capabilities, user flows, entities, business workstreams, leaf scopes, outputs, and test intents.",
         "Unknown but sufficiently explicit goals receive a goal-derived plan or an explicit NEEDS_REWORK result, never an unrelated Knowledge Studio plan.",
         "Knowledge Studio capabilities appear only when the user goal explicitly requests that product domain.",
-        "The Telegram Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
+        "The Codex conversation Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
         "Existing test, runtime, visual, review, packaging, and delivery truth semantics remain unchanged."
       ],
       "quality_metric_ids": [
@@ -491,7 +491,7 @@
       "acceptance_criteria": [
         "A deterministic support contract bounds and hashes the goal, capability gap, librarian context, failure evidence, permitted outputs, and request budget before Codex sees them.",
         "A Codex supervisor response can contain concise provider guidance, repair targets, acceptance checks, context requests, and tool-evidence requests, but cannot claim formal PASS, authorize delivery, package a project, or create source files in a sealed Provider candidate.",
-        "The existing agent_session and whiteboard remain the shared handoff surfaces, and the retained support pipeline can place the supervisor between context support and build work without changing Telegram default generation.",
+        "The existing agent_session and whiteboard remain the shared handoff surfaces, and the retained support pipeline can place the supervisor between context support and build work without changing Codex conversation default generation.",
         "The project-local Codex skill is validated and one offline replay of the failed CLI generation produces a useful bounded response with zero external API calls.",
         "Kernel, pipeline-manifest, schema, skill, and management regressions pass; local_packager remains the only delivery exit."
       ],
@@ -513,7 +513,7 @@
         "PB-019"
       ],
       "acceptance_criteria": [
-        "The experiment is isolated from the Telegram default generation route and is explicitly labelled as an offline mock-Provider candidate with zero external API calls.",
+        "The experiment is isolated from the Codex conversation default generation route and is explicitly labelled as an offline mock-Provider candidate with zero external API calls.",
         "All nine requested FocusForge commands resolve to concrete callable handlers over a WorkItem, JSONRepository, and WorkspaceService domain contract.",
         "The generated experiment stays within eight primary source files and five test files.",
         "Generated tests and a real CLI smoke flow cover CRUD, filters and sorting, lifecycle transitions, summary, merge and replace import, export, corrupt storage, and duplicate IDs.",
@@ -722,7 +722,7 @@
         "A recorded local fallback for component generation receives the configured bounded local-generation timeout instead of the shorter API request timeout, while API-owned calls retain their existing cap.",
         "A valid sealed Codex brief is hash-bound to the generation plan and its concrete package, module, public-symbol, entrypoint, safety, and acceptance constraints are checked before Provider file generation.",
         "The ProjectPulse failure fixture rejects the observed backend/Note plan drift before source generation and accepts a plan that preserves the brief's projectpulse/Task/JSONRepository contract.",
-        "No fix writes a sealed generated candidate, adds a generation path, changes the Telegram default route, packages output, or promotes support evidence to formal PASS.",
+        "No fix writes a sealed generated candidate, adds a generation path, changes the Codex conversation default route, packages output, or promotes support evidence to formal PASS.",
         "Targeted timeout, Provider failure, capability-brief, goal-plan, plugin, kernel, and management regressions pass."
       ],
       "quality_metric_ids": [
@@ -885,8 +885,8 @@
     },
     {
       "id": "PB-035",
-      "title": "Add a Telegram design checkpoint with bounded Codex supervision",
-      "outcome": "Telegram product requests that require an interface are shaped into a reviewable Bot plus Mini App design before the unchanged Provider generation route starts, while short non-visual function requests remain lightweight.",
+      "title": "Add a Codex conversation design checkpoint with bounded Codex supervision",
+      "outcome": "Codex product requests that require an interface are shaped into a reviewable generated-project design before the unchanged Provider generation route starts, while short non-visual function requests remain lightweight.",
       "priority": 35,
       "value_score": 10,
       "risk_reduction_score": 10,
@@ -896,11 +896,11 @@
         "PB-033"
       ],
       "acceptance_criteria": [
-        "GUI, interface, Telegram Mini App, and visual-redesign requests deterministically record the intended interaction surfaces, mobile-first design requirements, visual evidence requirements, and a user design-confirmation checkpoint.",
-        "A bounded CGKNCodexCapabilityEscalation is prepared from librarian-selected Telegram context and can be sent to an explicitly configured local Codex CLI in read-only advisory mode.",
+        "GUI, interface, and visual-redesign requests deterministically record the intended interaction surfaces, responsive design requirements, visual evidence requirements, and a user design-confirmation checkpoint.",
+        "A bounded CGKNCodexCapabilityEscalation is prepared from librarian-selected conversation context and can be sent to an explicitly configured local Codex CLI in read-only advisory mode.",
         "A validated Codex brief updates only whiteboard and agent_session support state; it cannot author candidate files, claim formal evidence, package, deliver, or replace the Provider mainline.",
         "Generation remains paused while required design supervision or user design confirmation is pending, including when the user says to start immediately.",
-        "A configured HTTPS Mini App URL appears as a Telegram web_app button, and web_app_data is normalized into the same text intake path without introducing another generation route.",
+        "Generated-project interface requirements enter through the same Codex text intake without introducing another generation route or UI transport.",
         "Short non-visual requests keep the existing one-function explicit input/output path and are not forced into visual design supervision."
       ],
       "quality_metric_ids": [
@@ -914,8 +914,8 @@
     },
     {
       "id": "PB-036",
-      "title": "Freeze the persistent Codex-CGKN-Telegram runtime supervision baseline",
-      "outcome": "Future CGKN work consistently treats CGKN as the independently running system, Telegram as its built-in customer interface, and Codex as the persistent startup and checkpoint supervisor rather than a per-message execution substitute.",
+      "title": "Freeze the persistent Codex-CGKN runtime supervision baseline",
+      "outcome": "Future CGKN work consistently treats CGKN as the independently running system and the active Codex task as its sole customer interface and persistent checkpoint supervisor.",
       "priority": 36,
       "value_score": 10,
       "risk_reduction_score": 10,
@@ -926,7 +926,7 @@
       ],
       "acceptance_criteria": [
         "One normative baseline defines runtime ownership, startup/attachment, persistent supervisor identity, checkpoint events, repair actions, failure recovery, customer flow, and conformance evidence.",
-        "The baseline explicitly makes CGKN the long-running system, Telegram a CGKN-owned interface, and Codex the startup and checkpoint supervisor.",
+        "The baseline explicitly makes CGKN the long-running system and the active Codex task the sole interface and checkpoint supervisor.",
         "Request-scoped ephemeral Codex design calls are identified as bounded specialist or transitional adapters rather than the target architecture.",
         "Codex repair authority is bounded to CGKN-owned code, configuration, documentation, and tests with auditable changes and regression; Provider candidate, formal evidence, packaging, and delivery authority remain prohibited.",
         "The baseline is referenced by AGENTS.md, README, the kernel contract, and the authoritative contract registry.",
@@ -943,7 +943,7 @@
     {
       "id": "PB-037",
       "title": "Implement the persistent Codex runtime supervisor host",
-      "outcome": "Codex can start or attach to a long-running CGKN Telegram service, consume identity-bound checkpoints through one resumable supervision thread, gate Provider start when configured, and record bounded decisions without gaining Provider or delivery authority.",
+      "outcome": "Codex can attach to long-running CGKN state, consume identity-bound checkpoints through one resumable supervision thread, gate Provider start when configured, and record bounded decisions without gaining Provider or delivery authority.",
       "priority": 37,
       "value_score": 10,
       "risk_reduction_score": 10,
@@ -952,12 +952,12 @@
         "PB-036"
       ],
       "acceptance_criteria": [
-        "A dedicated supervisor host starts or attaches to the existing Telegram bridge, records process and heartbeat identity, and exposes read-only status.",
+        "A dedicated supervisor host attaches to CGKN checkpoint state and exposes read-only status without starting a second conversation service.",
         "A deterministic checkpoint journal binds sequence, prior hash, repository identity, chat/project/run identity, requested action, and authority without secrets.",
         "Two checkpoints start then resume the same persisted Codex thread through a replaceable adapter.",
         "Supervisor results use a strict action/authority contract; unsupported actions, unsafe repair targets, candidate writes, formal evidence, packaging, and delivery authority are rejected.",
-        "When gate mode is enabled, Telegram Provider start waits for a matching supervisor resume result; default disabled mode preserves existing behavior.",
-        "Telegram startup and Provider success/failure emit checkpoints without creating a generation or delivery route.",
+        "When gate mode is enabled, Codex conversation Provider start waits for a matching supervisor resume result; default disabled mode preserves existing behavior.",
+        "Provider start and success/failure events emit checkpoints without creating a generation or delivery route.",
         "Offline tests pass and a real read-only Codex start/resume smoke is recorded separately from formal evidence."
       ],
       "quality_metric_ids": [
@@ -984,7 +984,7 @@
         "The two profiles isolate sessions, logs, uploads, project memory, Provider candidate roots, and supervisor state.",
         "Interface requests in API-only mode reach user design confirmation without creating a Codex escalation.",
         "Both profiles retain the same Provider output validation, evidence, local_packager, public delivery gate, and delivery manifest route.",
-        "Kernel, runtime-supervisor, Telegram-design, and documentation checks pass."
+        "Kernel, runtime-supervisor, Codex conversation-design, and documentation checks pass."
       ],
       "quality_metric_ids": [
         "QM-CONTRACT",
@@ -1007,7 +1007,7 @@
       "acceptance_criteria": [
         "The active branch is codex/cgkn-codex-edition.",
         "The branch distribution is named CGKN Codex Edition while formal schemas and kernel identity remain CGKN.",
-        "The primary launcher is scripts/start_cgkn_codex_edition.ps1 and the superseded launcher name is removed.",
+        "The active Codex task is the sole conversation entry and no project-specific conversation launcher is required.",
         "Edition runtime and supervisor state use generated/cgkn_editions/codex and .cgkn/editions/codex.",
         "README, edition documentation, kernel documentation, registry, and runtime baseline use the edition identity consistently.",
         "Static checks, kernel guards, supervisor tests, and documentation consistency checks pass."
@@ -1043,6 +1043,58 @@
         "QM-INTEGRATION",
         "QM-REGRESSION",
         "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-041",
+      "title": "Remove external messaging and retain the Codex conversation interface",
+      "outcome": "CGKN Codex Edition has no external chat listener, conversation credential, polling service, secondary UI, or messaging delivery adapter; users operate the edition through the Codex conversation while the reviewed Provider validation and local_packager boundaries remain intact.",
+      "priority": 41,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-040"
+      ],
+      "acceptance_criteria": [
+        "No active source, launcher, configuration, schema, documentation, or test path contains an external chat transport, conversation credential, polling service, secondary UI, or messaging delivery behavior.",
+        "Documentation describes the active Codex task as the only user interaction surface and no separate launcher is required.",
+        "Provider output validation, post-build finalization, canonical evidence, local_packager, public delivery gate, and delivery manifest remain one governed route.",
+        "Whiteboard and agent_session remain the shared project communication state.",
+        "Canonical user review and delivery receipts use Codex conversation, turn, reviewer, event, and artifact identities.",
+        "Static removal checks, schema validation, kernel guards, and the focused regression suite pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION",
+        "QM-CODEX-SUPERVISOR"
+      ]
+    },
+    {
+      "id": "PB-042",
+      "title": "Add executable cross-validation and feedforward to real project generation",
+      "outcome": "Every generated or reused component is cross-validated against the frozen plan, current quality receipt, implemented interface registry, and upstream passing receipts before a bounded result feeds the next component; the assembled project is checked before post-build without changing formal evidence or delivery authority.",
+      "priority": 42,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-041"
+      ],
+      "acceptance_criteria": [
+        "Every newly generated and checkpoint-reused component produces a current hash-bound cross-validation receipt before downstream publication.",
+        "Plan paths, actual component files, component quality validation, implemented interfaces, upstream completion, and upstream receipts are independently cross-bound.",
+        "Only verified passing bounded projections enter the next integration feedforward snapshot.",
+        "The assembled project produces an aggregate receipt before post-build continuation.",
+        "The stage is veto-only and cannot assert formal evidence, package, deliver, or create a second generation route.",
+        "Positive, tamper, missing-path, missing-upstream, integration-loop, and kernel guard tests pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CROSS-FEEDFORWARD",
+        "QM-MODULE-QUALITY",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
       ]
     }
   ],
@@ -1151,6 +1203,12 @@
         "measure": "short-request planning fidelity and safe feature concurrency",
         "target": "one explicit operation yields one public feature, zero invented persistence or generic workflows, frozen input/output/error/side-effect/file-ownership interfaces, and deterministic conflict-free parallel batches",
         "method": "requirement-decision contract tests, feature-DAG scheduling tests, Provider leaf-context tests, negative scope-expansion fixtures, and a fresh reviewed Qwen acceptance run"
+      },
+      {
+        "id": "QM-CROSS-FEEDFORWARD",
+        "measure": "cross-view consistency and safe downstream publication during real project generation",
+        "target": "100% of generated and reused components have hash-valid plan/quality/interface/upstream receipts before publication, only passing bounded projections feed downstream, and one aggregate receipt exists before post-build",
+        "method": "deterministic positive and negative receipt tests, component-loop integration test, artifact/event-log inspection, and kernel authority guard"
       }
     ],
     "assurance_activities": [
@@ -1244,7 +1302,9 @@
     "iterations/ITER-047.json",
     "iterations/ITER-048.json",
     "iterations/ITER-049.json",
-    "iterations/ITER-050.json"
+    "iterations/ITER-050.json",
+    "iterations/ITER-051.json",
+    "iterations/ITER-052.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",
@@ -1283,7 +1343,9 @@
     "Probe a documented alternate model's independent quota before resuming the identity-bound pending leaf.",
     "Run one private-chat smoke in each profile and compare process trees plus profile directories before considering live operations evaluated.",
     "After the existing working tree is reviewed and committed, publish the branch and run one private-chat supervisor smoke from the edition launcher.",
-    "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history."
+    "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history.",
+    "Keep the Codex-only repository scan in the default test profile and reject any future detached conversation launcher or credential.",
+    "Resume a comparable supported Qwen project at its tests component and verify the aggregate cross-validation receipt appears before post-build without weakening the split-test anchor contract."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

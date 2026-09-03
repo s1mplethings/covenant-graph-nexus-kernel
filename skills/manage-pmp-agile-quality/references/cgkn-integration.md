@@ -24,7 +24,7 @@ prompt.
 
 This skill may propose and validate planning artifacts. It must not:
 
-- become a second Telegram generation mainline;
+- become a second Codex conversation generation mainline;
 - reconnect a legacy local generator;
 - authorize formal PASS;
 - replace canonical test/runtime/visual evidence;

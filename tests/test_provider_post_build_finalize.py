@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.canonical_evidence_hash as canonical_evidence_hash
 import scripts.canonical_media_validation as canonical_media_validation
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
 @contextmanager
@@ -193,7 +193,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                     {"copied": {}},
                     session,
                     session_dir=session_dir,
-                    chat_id="chat-canonical-browser-only",
+                    conversation_id="chat-canonical-browser-only",
                     **production,
                 )
 
@@ -770,7 +770,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                     {"copied": {"ui_screenshot": str(screenshot), "background": str(background), "sprite": str(sprite)}},
                     session,
                     session_dir=session_dir,
-                    chat_id="chat-vn-post",
+                    conversation_id="chat-vn-post",
                     **production,
                 )
 
@@ -862,7 +862,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                     {"copied": {}},
                     session,
                     session_dir=session_dir,
-                    chat_id="chat-video-blocked",
+                    conversation_id="chat-video-blocked",
                     **production,
                 )
 
@@ -902,7 +902,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
                     {"copied": {"ui_screenshot": str(screenshot)}},
                     session,
                     session_dir=session_dir,
-                    chat_id="chat-repair-post",
+                    conversation_id="chat-repair-post",
                     **production,
                 )
 

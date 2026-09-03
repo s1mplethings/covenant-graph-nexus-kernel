@@ -14,9 +14,6 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import uuid
 import zlib
 from datetime import datetime, timezone
@@ -59,14 +56,14 @@ import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
 import public_narration
-import telegram_design_supervision
+import codex_design_supervision
 import cgkn_supervision_protocol
 
-DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "telegram_live_sessions"
-DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "telegram_live_logs"
+DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "codex_sessions"
+DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "codex_logs"
 DEFAULT_MEMORY_DIR = ROOT / "examples" / "project_memory"
-DEFAULT_UPLOAD_DIR = ROOT / "examples" / "test_results" / "telegram_live_uploads"
-DEFAULT_PROVIDER_PROJECTS_DIR = ROOT / "generated" / "telegram_provider_projects"
+DEFAULT_UPLOAD_DIR = ROOT / "examples" / "test_results" / "codex_uploads"
+DEFAULT_PROVIDER_PROJECTS_DIR = ROOT / "generated" / "codex_provider_projects"
 PROVIDER_PROJECTS_DIR = DEFAULT_PROVIDER_PROJECTS_DIR
 POLICY_PATH = ROOT / "config" / "customer_agent_policy.md"
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -77,7 +74,6 @@ VIDEO_SUFFIXES = {".mp4", ".webm"}
 INTERNAL_EVIDENCE_SUFFIXES = {".md", ".json", ".txt", ".log"}
 DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", ".yml", ".toml", ".ini"}
 RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
-TELEGRAM_MINI_APP_URL = ""
 CODEX_DESIGN_MODE = "disabled"
 CODEX_DESIGN_COMMAND = ""
 CODEX_DESIGN_TIMEOUT = 600
@@ -96,7 +92,7 @@ It is the front-office interface for the CGNK project generation and delivery wo
 - Understand the user's goal first, then propose a first-version product and technical plan.
 - Infer reasonable defaults for optional fields instead of asking the user to fill every field.
 - Ask at most a small number of non-blocking soft questions; continue with explicit assumptions when the user confirms generation.
-- Accept uploaded images, documents, videos, audio, and data files as project input when Telegram provides them.
+- Accept uploaded images, documents, videos, audio, and data files as project input when Codex conversation provides them.
 - When enough information exists, proceed naturally; do not require a fixed command phrase.
 - Delivery messages should present product capabilities, test status, preview artifacts, and next-step suggestions.
 - Never expose API stack traces or internal transport errors to the user.
@@ -121,7 +117,7 @@ def repository_commit_sha() -> str:
 
 
 def production_generation_identity(
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
 ) -> dict[str, str]:
     generation = (
@@ -135,7 +131,7 @@ def production_generation_identity(
     if not run_id:
         run_id = f"production-{uuid.uuid4().hex}"
     if not candidate_id:
-        candidate_id = f"customer-{safe_id(chat_id)}-{run_id.rsplit('-', 1)[-1]}"
+        candidate_id = f"customer-{safe_id(conversation_id)}-{run_id.rsplit('-', 1)[-1]}"
     if not commit_sha:
         commit_sha = repository_commit_sha()
     return {
@@ -146,11 +142,11 @@ def production_generation_identity(
 
 
 def production_paths(
-    chat_id: int | str,
+    conversation_id: int | str,
     log_dir: pathlib.Path,
     identity: dict[str, str],
 ) -> tuple[pathlib.Path, pathlib.Path]:
-    run_slug = safe_id(chat_id)
+    run_slug = safe_id(conversation_id)
     project_dir = (PROVIDER_PROJECTS_DIR / run_slug / identity["candidate_id"]).resolve()
     run_dir = (
         pathlib.Path(log_dir)
@@ -204,7 +200,7 @@ def read_json(path: pathlib.Path, default: dict[str, Any]) -> dict[str, Any]:
 
 def safe_id(raw: Any) -> str:
     value = re.sub(r"[^a-zA-Z0-9_-]+", "-", str(raw or "")).strip("-")
-    return value[:120] or "telegram-session"
+    return value[:120] or "codex-session"
 
 
 def safe_file_name(raw: Any, fallback: str) -> str:
@@ -248,290 +244,71 @@ def extension_for_mime(mime_type: str, default: str = ".bin") -> str:
     }.get(mime, default)
 
 
-def resolve_token(explicit: str = "") -> str:
-    token = explicit.strip() if explicit else ""
-    if token:
-        return token
-    for name in (
-        "TELEGRAM_BOT_TOKEN",
-        "CGNK_TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_TOKEN",
-        "BOT_TOKEN",
-    ):
-        token = str(os.environ.get(name, "")).strip()
-        if token:
-            return token
-    raise RuntimeError("missing Telegram bot token; set TELEGRAM_BOT_TOKEN")
+class CodexConversation:
+    """In-process projection of output shown by the Codex conversation UI.
 
+    The Codex app owns transport and rendering.  This object only records the
+    messages and local artifacts selected by the governed delivery code, which
+    keeps the production path testable without a second listener or network API.
+    """
 
-class TelegramClient:
-    def __init__(self, token: str, timeout: int) -> None:
-        self.token = token
-        self.base = f"https://api.telegram.org/bot{token}"
-        self.file_base = f"https://api.telegram.org/file/bot{token}"
-        self.timeout = timeout
-        try:
-            import requests
+    def __init__(self) -> None:
+        self.messages: list[dict[str, str]] = []
+        self.artifacts: list[dict[str, str]] = []
+        self._turn = 0
 
-            self.session = requests.Session()
-        except Exception:
-            self.session = None
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self._turn += 1
+        self.messages.append(
+            {
+                "conversation_id": str(conversation_id),
+                "turn_id": str(self._turn),
+                "text": str(text),
+            }
+        )
+        return True
 
-    def redact_for_log(self, text: Any) -> str:
-        value = str(text)
-        if self.token:
-            value = value.replace(self.token, "<telegram-token>")
-        return re.sub(r"/bot[^/\s]+", "/bot<telegram-token>", value)
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        return None
 
-    def call(self, method: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-        last_exc: Exception | None = None
-        for attempt in range(4):
-            try:
-                if self.session is not None:
-                    resp = self.session.post(f"{self.base}/{method}", data=payload or {}, timeout=self.timeout)
-                    doc = resp.json()
-                else:
-                    data = urllib.parse.urlencode(payload or {}).encode("utf-8")
-                    req = urllib.request.Request(
-                        f"{self.base}/{method}",
-                        data=data,
-                        method="POST",
-                        headers={"Content-Type": "application/x-www-form-urlencoded"},
-                    )
-                    with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
-                break
-            except Exception as exc:
-                last_exc = exc
-                time.sleep(min(8.0, 1.5 * (attempt + 1)))
-        else:
-            raise RuntimeError(f"Telegram {method} transport failed: {self.redact_for_log(last_exc)}")
-        if not isinstance(doc, dict) or not doc.get("ok"):
-            raise RuntimeError(f"Telegram {method} failed: {doc}")
-        return doc
-
-    def send_message(self, chat_id: int | str, text: str, *, web_app_url: str = "") -> bool:
-        last_error = ""
-        payload: dict[str, Any] = {
-            "chat_id": str(chat_id),
-            "text": text[:3900],
-            "disable_web_page_preview": "true",
+    def _present_file(
+        self,
+        conversation_id: int | str,
+        path: pathlib.Path,
+        caption: str,
+    ) -> dict[str, Any]:
+        if not path.is_file():
+            return {}
+        self._turn += 1
+        digest = canonical_evidence_hash.sha256_file(path)
+        item = {
+            "conversation_id": str(conversation_id),
+            "turn_id": str(self._turn),
+            "artifact_id": digest,
+            "artifact_unique_id": digest,
+            "path": str(path.resolve()),
+            "caption": str(caption),
         }
-        validated_url = telegram_design_supervision.mini_app_url(web_app_url)
-        if validated_url:
-            payload["reply_markup"] = json.dumps(
-                {
-                    "inline_keyboard": [[
-                        {"text": "打开操作面板", "web_app": {"url": validated_url}}
-                    ]]
-                },
-                ensure_ascii=False,
-            )
-        for attempt in range(3):
-            try:
-                self.call("sendMessage", payload)
-                return True
-            except Exception as exc:
-                last_error = str(exc)
-                time.sleep(1.5 * (attempt + 1))
-        print(f"telegram send_message failed chat_id={chat_id}: {last_error}", flush=True)
-        return False
+        self.artifacts.append(item)
+        return {"ok": True, "result": item}
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        try:
-            self.call("sendChatAction", {"chat_id": str(chat_id), "action": action})
-        except Exception:
-            pass
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._present_file(conversation_id, path, caption)
 
-    def get_file_info(self, file_id: str) -> dict[str, Any]:
-        doc = self.call("getFile", {"file_id": file_id})
-        result = doc.get("result", {})
-        return result if isinstance(result, dict) else {}
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._present_file(conversation_id, path, caption)
 
-    def download_file(self, file_path: str, target: pathlib.Path) -> None:
-        target.parent.mkdir(parents=True, exist_ok=True)
-        quoted = urllib.parse.quote(file_path, safe="/")
-        url = f"{self.file_base}/{quoted}"
-        tmp = target.with_suffix(target.suffix + ".tmp")
-        if self.session is not None:
-            with self.session.get(url, stream=True, timeout=max(self.timeout, 120)) as resp:
-                resp.raise_for_status()
-                with tmp.open("wb") as fh:
-                    for chunk in resp.iter_content(chunk_size=1024 * 256):
-                        if chunk:
-                            fh.write(chunk)
-        else:
-            with urllib.request.urlopen(url, timeout=max(self.timeout, 120)) as resp, tmp.open("wb") as fh:
-                shutil.copyfileobj(resp, fh)
-        tmp.replace(target)
-
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
-        if not path.exists() or not path.is_file():
-            return {}
-        boundary = "----CGNKTelegramBoundary"
-        fields = {"chat_id": str(chat_id), "caption": caption[:900]}
-        suffix = path.suffix.lower()
-        content_type = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
-        body = bytearray()
-        for key, value in fields.items():
-            body.extend(f"--{boundary}\r\n".encode())
-            body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
-            body.extend(str(value).encode("utf-8"))
-            body.extend(b"\r\n")
-        body.extend(f"--{boundary}\r\n".encode())
-        body.extend(
-            (
-                f'Content-Disposition: form-data; name="photo"; filename="{path.name}"\r\n'
-                f"Content-Type: {content_type}\r\n\r\n"
-            ).encode()
-        )
-        body.extend(path.read_bytes())
-        body.extend(b"\r\n")
-        body.extend(f"--{boundary}--\r\n".encode())
-        req = urllib.request.Request(
-            f"{self.base}/sendPhoto",
-            data=bytes(body),
-            method="POST",
-            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        )
-        for attempt in range(3):
-            try:
-                if self.session is not None:
-                    with path.open("rb") as fh:
-                        resp = self.session.post(
-                            f"{self.base}/sendPhoto",
-                            data=fields,
-                            files={"photo": (path.name, fh, content_type)},
-                            timeout=self.timeout,
-                        )
-                    doc = resp.json()
-                else:
-                    with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
-                break
-            except Exception:
-                if attempt == 2:
-                    return {}
-                time.sleep(min(8.0, 2.0 * (attempt + 1)))
-        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
-
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
-        if not path.exists() or not path.is_file():
-            return {}
-        fields = {"chat_id": str(chat_id), "caption": caption[:900]}
-        content_type = "application/octet-stream"
-        doc: dict[str, Any] | None = None
-        for attempt in range(3):
-            try:
-                if self.session is not None:
-                    with path.open("rb") as fh:
-                        resp = self.session.post(
-                            f"{self.base}/sendDocument",
-                            data=fields,
-                            files={"document": (path.name, fh, content_type)},
-                            timeout=max(self.timeout, 120),
-                        )
-                    doc = resp.json()
-                else:
-                    boundary = "----CGNKTelegramBoundary"
-                    body = bytearray()
-                    for key, value in fields.items():
-                        body.extend(f"--{boundary}\r\n".encode())
-                        body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
-                        body.extend(str(value).encode("utf-8"))
-                        body.extend(b"\r\n")
-                    body.extend(f"--{boundary}\r\n".encode())
-                    body.extend(
-                        (
-                            f'Content-Disposition: form-data; name="document"; filename="{path.name}"\r\n'
-                            f"Content-Type: {content_type}\r\n\r\n"
-                        ).encode()
-                    )
-                    body.extend(path.read_bytes())
-                    body.extend(b"\r\n")
-                    body.extend(f"--{boundary}--\r\n".encode())
-                    req = urllib.request.Request(
-                        f"{self.base}/sendDocument",
-                        data=bytes(body),
-                        method="POST",
-                        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-                    )
-                    with urllib.request.urlopen(req, timeout=max(self.timeout, 120)) as resp:
-                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
-                break
-            except Exception:
-                if attempt == 2:
-                    return {}
-                time.sleep(min(8.0, 2.0 * (attempt + 1)))
-        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
-
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
-        if not path.exists() or not path.is_file():
-            return {}
-        boundary = "----CGNKTelegramBoundary"
-        fields = {"chat_id": str(chat_id), "caption": caption[:900], "supports_streaming": "true"}
-        suffix = path.suffix.lower()
-        content_type = {
-            ".mp4": "video/mp4",
-            ".webm": "video/webm",
-            ".mov": "video/quicktime",
-        }.get(suffix, "application/octet-stream")
-        body = bytearray()
-        for key, value in fields.items():
-            body.extend(f"--{boundary}\r\n".encode())
-            body.extend(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode())
-            body.extend(str(value).encode("utf-8"))
-            body.extend(b"\r\n")
-        body.extend(f"--{boundary}\r\n".encode())
-        body.extend(
-            (
-                f'Content-Disposition: form-data; name="video"; filename="{path.name}"\r\n'
-                f"Content-Type: {content_type}\r\n\r\n"
-            ).encode()
-        )
-        body.extend(path.read_bytes())
-        body.extend(b"\r\n")
-        body.extend(f"--{boundary}--\r\n".encode())
-        req = urllib.request.Request(
-            f"{self.base}/sendVideo",
-            data=bytes(body),
-            method="POST",
-            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        )
-        for attempt in range(3):
-            try:
-                if self.session is not None:
-                    with path.open("rb") as fh:
-                        resp = self.session.post(
-                            f"{self.base}/sendVideo",
-                            data=fields,
-                            files={"video": (path.name, fh, content_type)},
-                            timeout=max(self.timeout, 120),
-                        )
-                    doc = resp.json()
-                else:
-                    with urllib.request.urlopen(req, timeout=max(self.timeout, 120)) as resp:
-                        doc = json.loads(resp.read().decode("utf-8", errors="replace"))
-                break
-            except Exception:
-                if attempt == 2:
-                    return {}
-                time.sleep(min(12.0, 3.0 * (attempt + 1)))
-        return doc if isinstance(doc, dict) and doc.get("ok") is True else {}
-
-    def get_updates(self, offset: int, poll_timeout: int) -> list[dict[str, Any]]:
-        doc = self.call("getUpdates", {"offset": str(offset), "timeout": str(poll_timeout)})
-        result = doc.get("result", [])
-        return result if isinstance(result, list) else []
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> dict[str, Any]:
+        return self._present_file(conversation_id, path, caption)
 
 
-def default_session(chat_id: int | str) -> dict[str, Any]:
+def default_session(conversation_id: int | str) -> dict[str, Any]:
     return {
-        "kind": "TelegramOnlyCustomerSession",
+        "kind": "CGKNCodexConversationSession",
         "schema_version": "1",
-        "conversation_id": str(chat_id),
-        "source": "telegram",
-        "chat_id": str(chat_id),
+        "conversation_id": str(conversation_id),
+        "source": "codex",
+        "conversation_id": str(conversation_id),
         "created_at": now(),
         "updated_at": now(),
         "messages": [],
@@ -573,17 +350,17 @@ def default_session(chat_id: int | str) -> dict[str, Any]:
     }
 
 
-def session_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
-    return session_dir / f"{safe_id(chat_id)}.json"
+def session_path(session_dir: pathlib.Path, conversation_id: int | str) -> pathlib.Path:
+    return session_dir / f"{safe_id(conversation_id)}.json"
 
 
-def agent_session_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
-    return session_dir / safe_id(chat_id) / "agent_session.jsonl"
+def agent_session_path(session_dir: pathlib.Path, conversation_id: int | str) -> pathlib.Path:
+    return session_dir / safe_id(conversation_id) / "agent_session.jsonl"
 
 
-def append_agent_session_event(session_dir: pathlib.Path, chat_id: int | str, event: dict[str, Any]) -> pathlib.Path:
-    path = agent_session_path(session_dir, chat_id)
-    doc = {"kind": "event", "chat_id": str(chat_id), **event}
+def append_agent_session_event(session_dir: pathlib.Path, conversation_id: int | str, event: dict[str, Any]) -> pathlib.Path:
+    path = agent_session_path(session_dir, conversation_id)
+    doc = {"kind": "event", "conversation_id": str(conversation_id), **event}
     doc.setdefault("created_at", now())
     append_jsonl(path, doc)
     return path
@@ -595,7 +372,7 @@ def runtime_supervision_enabled() -> bool:
 
 def emit_runtime_supervision_checkpoint(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     checkpoint_type: str,
     *,
@@ -610,8 +387,8 @@ def emit_runtime_supervision_checkpoint(
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     refs = list(context_refs or [])
     for role, path in (
-        ("telegram_session", session_path(session_dir, chat_id)),
-        ("agent_session", agent_session_path(session_dir, chat_id)),
+        ("codex_session", session_path(session_dir, conversation_id)),
+        ("agent_session", agent_session_path(session_dir, conversation_id)),
     ):
         if path.is_file():
             refs.append(
@@ -629,7 +406,7 @@ def emit_runtime_supervision_checkpoint(
             reason=reason,
             severity=severity,
             requested_action=requested_action,
-            chat_id=chat_id,
+            conversation_id=conversation_id,
             project_id=active_project.get("project_id", ""),
             run_id=generation.get("run_id", ""),
             context_refs=refs,
@@ -637,7 +414,7 @@ def emit_runtime_supervision_checkpoint(
     except Exception as exc:
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "runtime_supervision_checkpoint_failed",
                 "role": "system",
@@ -648,7 +425,7 @@ def emit_runtime_supervision_checkpoint(
         return {}
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "runtime_supervision_checkpoint_emitted",
             "role": "system",
@@ -662,8 +439,8 @@ def emit_runtime_supervision_checkpoint(
 
 
 def provider_start_supervision_decision(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     *,
@@ -673,7 +450,7 @@ def provider_start_supervision_decision(
         if SUPERVISION_POLICY == "observe" and runtime_supervision_enabled():
             emit_runtime_supervision_checkpoint(
                 session_dir,
-                chat_id,
+                conversation_id,
                 session,
                 "pre_provider_generation",
                 reason=reason,
@@ -693,7 +470,7 @@ def provider_start_supervision_decision(
             session["generation"] = generation
             append_agent_session_event(
                 session_dir,
-                chat_id,
+                conversation_id,
                 {
                     "kind": "runtime_supervision_checkpoint_released",
                     "role": "system",
@@ -719,7 +496,7 @@ def provider_start_supervision_decision(
             if result is not None and result.get("action") in cgkn_supervision_protocol.RELEASE_ACTIONS:
                 return provider_start_supervision_decision(
                     client,
-                    chat_id,
+                    conversation_id,
                     session_dir,
                     session,
                     reason=reason,
@@ -727,7 +504,7 @@ def provider_start_supervision_decision(
         return False, "waiting_supervisor"
     checkpoint = emit_runtime_supervision_checkpoint(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         "pre_provider_generation",
         reason=reason,
@@ -748,7 +525,7 @@ def provider_start_supervision_decision(
     save_session(session_dir, session)
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="runtime_supervision_checkpoint_pending",
@@ -758,9 +535,9 @@ def provider_start_supervision_decision(
     return False, "checkpoint_emitted"
 
 
-def load_session(session_dir: pathlib.Path, chat_id: int | str) -> dict[str, Any]:
-    session = read_json(session_path(session_dir, chat_id), default_session(chat_id))
-    defaults = default_session(chat_id)
+def load_session(session_dir: pathlib.Path, conversation_id: int | str) -> dict[str, Any]:
+    session = read_json(session_path(session_dir, conversation_id), default_session(conversation_id))
+    defaults = default_session(conversation_id)
     for key in ("schema_version", "conversation_id", "source", "active_project", "revision_history"):
         session.setdefault(key, defaults[key])
     if isinstance(session.get("active_project"), dict):
@@ -776,7 +553,7 @@ def save_session(session_dir: pathlib.Path, session: dict[str, Any]) -> None:
         session["project_memory"] = project_memory_md.write_project_memory(session, DEFAULT_MEMORY_DIR)
     except Exception as exc:
         print(f"project memory update failed: {exc}", flush=True)
-    write_json(session_path(session_dir, session.get("chat_id", "")), session)
+    write_json(session_path(session_dir, session.get("conversation_id", "")), session)
 
 
 def attachment_kind_label(kind: str) -> str:
@@ -791,56 +568,31 @@ def attachment_kind_label(kind: str) -> str:
 
 def summarize_message_attachments(message: dict[str, Any]) -> list[dict[str, Any]]:
     caption = str(message.get("caption", "")).strip()
+    values = message.get("attachments", [])
+    if not isinstance(values, list):
+        return []
     specs: list[dict[str, Any]] = []
-    photos = message.get("photo", [])
-    if isinstance(photos, list) and photos:
-        candidates = [item for item in photos if isinstance(item, dict) and item.get("file_id")]
-        if candidates:
-            photo = max(candidates, key=lambda item: int(item.get("file_size") or 0))
-            file_unique_id = str(photo.get("file_unique_id", "")).strip()
-            specs.append(
-                {
-                    "type": "image",
-                    "telegram_field": "photo",
-                    "file_id": str(photo.get("file_id", "")),
-                    "file_unique_id": file_unique_id,
-                    "file_name": f"photo_{file_unique_id or int(time.time())}.jpg",
-                    "mime_type": "image/jpeg",
-                    "file_size": int(photo.get("file_size") or 0),
-                    "caption": caption,
-                }
-            )
-    for field, kind in (
-        ("document", "document"),
-        ("video", "video"),
-        ("animation", "animation"),
-        ("audio", "audio"),
-        ("voice", "audio"),
-    ):
-        item = message.get(field)
-        if not isinstance(item, dict) or not item.get("file_id"):
+    for item in values:
+        if not isinstance(item, dict) or not str(item.get("path", "")).strip():
             continue
-        mime_type = str(item.get("mime_type", "")).strip()
-        fallback_name = f"{field}_{item.get('file_unique_id') or int(time.time())}{extension_for_mime(mime_type)}"
+        path = pathlib.Path(str(item["path"])).resolve()
         specs.append(
             {
-                "type": kind,
-                "telegram_field": field,
-                "file_id": str(item.get("file_id", "")),
-                "file_unique_id": str(item.get("file_unique_id", "")).strip(),
-                "file_name": str(item.get("file_name") or fallback_name),
-                "mime_type": mime_type,
-                "file_size": int(item.get("file_size") or 0),
-                "duration": item.get("duration"),
-                "caption": caption,
+                "type": str(item.get("type") or item.get("kind") or "document"),
+                "codex_field": "attachment",
+                "local_path": str(path),
+                "file_name": str(item.get("file_name") or path.name),
+                "mime_type": str(item.get("mime_type", "")),
+                "file_size": path.stat().st_size if path.is_file() else 0,
+                "caption": str(item.get("caption") or caption),
             }
         )
     return specs
 
 
 def download_message_attachments(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     message: dict[str, Any],
     upload_dir: pathlib.Path,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -849,43 +601,25 @@ def download_message_attachments(
     specs = summarize_message_attachments(message)
     if not specs:
         return downloaded, skipped
-    safe_chat = safe_id(chat_id)
-    message_id = safe_id(message.get("message_id", "message"))
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    target_dir = upload_dir / safe_chat
-    for index, spec in enumerate(specs, start=1):
+    for spec in specs:
         file_size = int(spec.get("file_size") or 0)
         if file_size > MAX_UPLOAD_BYTES:
             skipped.append({**spec, "reason": "too_large", "max_bytes": MAX_UPLOAD_BYTES})
             continue
-        file_id = str(spec.get("file_id", "")).strip()
-        if not file_id:
-            skipped.append({**spec, "reason": "missing_file_id"})
+        target = pathlib.Path(str(spec.get("local_path", ""))).resolve()
+        if not target.is_file():
+            skipped.append({**spec, "reason": "local_attachment_missing"})
             continue
-        info = client.get_file_info(file_id)
-        remote_path = str(info.get("file_path", "")).strip()
-        if not remote_path:
-            skipped.append({**spec, "reason": "missing_file_path"})
-            continue
-        remote_suffix = pathlib.Path(remote_path).suffix
-        mime_suffix = extension_for_mime(str(spec.get("mime_type", "")), "")
-        raw_name = str(spec.get("file_name") or f"{spec.get('telegram_field', 'upload')}{remote_suffix or mime_suffix or '.bin'}")
-        safe_name = safe_file_name(raw_name, f"upload_{index}{remote_suffix or mime_suffix or '.bin'}")
-        if not pathlib.Path(safe_name).suffix and (remote_suffix or mime_suffix):
-            safe_name += remote_suffix or mime_suffix
-        target = unique_path(target_dir / f"{stamp}_{message_id}_{index}_{safe_name}")
-        client.download_file(remote_path, target)
         downloaded.append(
             {
                 "type": spec.get("type", "file"),
-                "telegram_field": spec.get("telegram_field", ""),
-                "file_unique_id": spec.get("file_unique_id", ""),
-                "file_name": safe_name,
+                "codex_field": spec.get("codex_field", ""),
+                "file_name": target.name,
                 "mime_type": spec.get("mime_type", ""),
-                "file_size": target.stat().st_size if target.exists() else file_size,
+                "file_size": target.stat().st_size,
                 "caption": spec.get("caption", ""),
                 "local_path": str(target),
-                "message_id": message.get("message_id"),
+                "turn_id": message.get("turn_id"),
                 "created_at": now(),
             }
         )
@@ -990,12 +724,12 @@ def inside_workspace(path: pathlib.Path) -> bool:
         return False
 
 
-def chat_history_targets(chat_id: int | str, session_dir: pathlib.Path, log_dir: pathlib.Path) -> list[pathlib.Path]:
-    safe_chat = safe_id(chat_id)
-    slug = f"telegram-live-{safe_chat}"
-    project_slug = f"telegram_{slug}"
+def chat_history_targets(conversation_id: int | str, session_dir: pathlib.Path, log_dir: pathlib.Path) -> list[pathlib.Path]:
+    safe_chat = safe_id(conversation_id)
+    slug = f"codex-live-{safe_chat}"
+    project_slug = f"codex_{slug}"
     targets = [
-        session_path(session_dir, chat_id),
+        session_path(session_dir, conversation_id),
         log_dir / f"{slug}_generation_result.json",
         log_dir / f"{project_slug}_preview.png",
         ROOT / "generated" / project_slug,
@@ -1006,7 +740,7 @@ def chat_history_targets(chat_id: int | str, session_dir: pathlib.Path, log_dir:
         ROOT / "examples" / "test_results" / f"{project_slug}_context_prompt.json",
         DEFAULT_UPLOAD_DIR / safe_chat,
     ]
-    current = read_json(session_path(session_dir, chat_id), {})
+    current = read_json(session_path(session_dir, conversation_id), {})
     memory = current.get("project_memory", {}) if isinstance(current, dict) else {}
     if isinstance(memory, dict):
         for key in ("project_memory_md", "project_memory_artifact"):
@@ -1017,17 +751,17 @@ def chat_history_targets(chat_id: int | str, session_dir: pathlib.Path, log_dir:
 
 
 def clear_chat_history(
-    chat_id: int | str,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     *,
     include_outputs: bool,
     delete: bool,
 ) -> dict[str, Any]:
-    archive_dir = ROOT / "generated" / "telegram_history_archives" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") / safe_id(chat_id)
-    raw_targets = chat_history_targets(chat_id, session_dir, log_dir)
+    archive_dir = ROOT / "generated" / "codex_history_archives" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") / safe_id(conversation_id)
+    raw_targets = chat_history_targets(conversation_id, session_dir, log_dir)
     if not include_outputs:
-        raw_targets = [session_path(session_dir, chat_id)]
+        raw_targets = [session_path(session_dir, conversation_id)]
     unique = []
     seen: set[str] = set()
     for target in raw_targets:
@@ -1089,8 +823,8 @@ def append_memory_event(session: dict[str, Any], event_type: str, text: str = ""
     session["memory_events"] = events[-250:]
 
 
-def truth_ledger_path(session_dir: pathlib.Path, chat_id: int | str) -> pathlib.Path:
-    return session_dir / f"{safe_id(chat_id)}.truth_ledger.jsonl"
+def truth_ledger_path(session_dir: pathlib.Path, conversation_id: int | str) -> pathlib.Path:
+    return session_dir / f"{safe_id(conversation_id)}.truth_ledger.jsonl"
 
 
 def append_truth_ledger(
@@ -1107,7 +841,7 @@ def append_truth_ledger(
     entry = {
         "kind": "TruthLedgerEntry",
         "created_at": now(),
-        "chat_id": str(session.get("chat_id", "")),
+        "conversation_id": str(session.get("conversation_id", "")),
         "stage": stage,
         "claim": claim,
         "status": status,
@@ -1115,15 +849,15 @@ def append_truth_ledger(
         "can_user_see": bool(can_user_see),
         "data": data or {},
     }
-    path = truth_ledger_path(session_dir, session.get("chat_id", ""))
+    path = truth_ledger_path(session_dir, session.get("conversation_id", ""))
     append_jsonl(path, entry)
     session["truth_ledger_path"] = str(path)
     append_memory_event(session, "truth_ledger_entry", data={k: entry[k] for k in ("stage", "claim", "status", "evidence_ref")})
     return entry
 
 
-def read_truth_ledger(session_dir: pathlib.Path, chat_id: int | str) -> list[dict[str, Any]]:
-    path = truth_ledger_path(session_dir, chat_id)
+def read_truth_ledger(session_dir: pathlib.Path, conversation_id: int | str) -> list[dict[str, Any]]:
+    path = truth_ledger_path(session_dir, conversation_id)
     if not path.exists():
         return []
     entries: list[dict[str, Any]] = []
@@ -1138,8 +872,8 @@ def read_truth_ledger(session_dir: pathlib.Path, chat_id: int | str) -> list[dic
 
 
 # LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+# Codex conversation mainline must not call this.
+# Codex conversation delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def delivery_evidence_state(entries: list[dict[str, Any]]) -> dict[str, Any]:
     required = {
         "package": False,
@@ -1247,7 +981,7 @@ def model_classify_customer_message(text: str, session: dict[str, Any]) -> dict[
     )
     result = local_model_router.call_json_task(
         "customer_classification",
-        "Classify the Telegram customer message. Return JSON only: {\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"short\"}. Do not start generation by yourself.",
+        "Classify the Codex conversation customer message. Return JSON only: {\"intent\":\"...\",\"confidence\":0.0,\"reason\":\"short\"}. Do not start generation by yourself.",
         prompt,
         30,
     )
@@ -1340,8 +1074,8 @@ def active_run(session: dict[str, Any]) -> dict[str, Any] | None:
 
 def create_active_run(session: dict[str, Any], ticket: dict[str, Any], text: str) -> dict[str, Any]:
     run = {
-        "kind": "TelegramHumanFrontdeskRun",
-        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-{len(session.get('intake_tickets', []))}",
+        "kind": "CGKNCodexFrontdeskRun",
+        "id": f"run-{safe_id(session.get('conversation_id', 'chat'))}-{len(session.get('intake_tickets', []))}",
         "ticket_id": str(ticket.get("id", "")),
         "status": "intake_open",
         "driver": "frontdesk_intake",
@@ -1358,8 +1092,8 @@ def create_active_run(session: dict[str, Any], ticket: dict[str, Any], text: str
 
 def update_active_run_status(session: dict[str, Any], status: str, **fields: Any) -> dict[str, Any]:
     run = active_run(session) or {
-        "kind": "TelegramHumanFrontdeskRun",
-        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-manual",
+        "kind": "CGKNCodexFrontdeskRun",
+        "id": f"run-{safe_id(session.get('conversation_id', 'chat'))}-manual",
         "created_at": now(),
         "driver": "frontdesk_intake",
     }
@@ -1380,8 +1114,8 @@ def mark_generation_retry(
     max_retries: int = 2,
 ) -> bool:
     run = active_run(session) or {
-        "kind": "TelegramHumanFrontdeskRun",
-        "id": f"run-{safe_id(session.get('chat_id', 'chat'))}-manual",
+        "kind": "CGKNCodexFrontdeskRun",
+        "id": f"run-{safe_id(session.get('conversation_id', 'chat'))}-manual",
         "created_at": now(),
     }
     retry_count = int(run.get("local_retry_count") or 0) + 1
@@ -1411,7 +1145,7 @@ def current_pending_decision(session: dict[str, Any]) -> dict[str, Any] | None:
 
 def create_intake_ticket(session_dir: pathlib.Path, session: dict[str, Any], text: str) -> dict[str, Any]:
     tickets = session.setdefault("intake_tickets", [])
-    ticket_id = f"ticket-{safe_id(session.get('chat_id', 'chat'))}-{len(tickets) + 1}"
+    ticket_id = f"ticket-{safe_id(session.get('conversation_id', 'chat'))}-{len(tickets) + 1}"
     cleaned_session = reset_project_scoped_context_for_new_run(session, text, ticket_id)
     session.clear()
     session.update(cleaned_session)
@@ -1491,7 +1225,7 @@ def append_backend_control(
     run = active_run(session) or {}
     control = {
         "kind": "BackendControlLog",
-        "id": f"ctrl-{safe_id(session.get('chat_id', 'chat'))}-{len(controls) + 1}",
+        "id": f"ctrl-{safe_id(session.get('conversation_id', 'chat'))}-{len(controls) + 1}",
         "action": action,
         "status": status,
         "log_only": True,
@@ -1557,7 +1291,7 @@ def latest_backend_control(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def has_open_backend_control(session: dict[str, Any], actions: set[str]) -> bool:
-    # Legacy status display only. Telegram generation_confirmation must not use
+    # Legacy status display only. Codex conversation generation_confirmation must not use
     # backend_controls as a queue or blocker.
     controls = session.get("backend_controls", [])
     if not isinstance(controls, list):
@@ -1691,8 +1425,8 @@ def pre_send_guard(text: str) -> str:
 
 
 def send_customer_reply(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     *,
@@ -1704,7 +1438,7 @@ def send_customer_reply(
 ) -> bool:
     fact_doc = facts if isinstance(facts, dict) else {}
     generation = fact_doc.get("generation") if isinstance(fact_doc.get("generation"), dict) else session.get("generation", {})
-    evidence = fact_doc.get("evidence_state") if isinstance(fact_doc.get("evidence_state"), dict) else delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+    evidence = fact_doc.get("evidence_state") if isinstance(fact_doc.get("evidence_state"), dict) else delivery_evidence_state(read_truth_ledger(session_dir, conversation_id))
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     draft = direct_text or frontdesk_compose(event, session, facts, backend_memo)
     context = frontdesk_team_lead_agent.build_context(
@@ -1735,19 +1469,7 @@ def send_customer_reply(
         can_user_see=True,
         data={"artifact": "frontdesk_reply", "event": event},
     )
-    design = whiteboard.get("product_design", {}) if isinstance(whiteboard.get("product_design"), dict) else {}
-    surfaces = design.get("interaction_surfaces", []) if isinstance(design.get("interaction_surfaces"), list) else []
-    chat_type = str(session.get("telegram_chat_type", "")).lower()
-    web_app_url = (
-        TELEGRAM_MINI_APP_URL
-        if "telegram_mini_app" in surfaces and chat_type in {"", "private"}
-        else ""
-    )
-    ok = (
-        client.send_message(chat_id, text, web_app_url=web_app_url)
-        if web_app_url
-        else client.send_message(chat_id, text)
-    )
+    ok = client.send_message(conversation_id, text)
     append_truth_ledger(
         session_dir,
         session,
@@ -1756,31 +1478,31 @@ def send_customer_reply(
         status="sent" if ok else "failed",
         evidence_ref=event,
         can_user_see=ok,
-        data={"artifact": "sent_record", "event": event, "transport": "telegram_message"},
+        data={"artifact": "sent_record", "event": event, "transport": "codex_message"},
     )
     save_session(session_dir, session)
     return ok
 
 
-def provider_escalation_allowed(session_dir: pathlib.Path, chat_id: int | str, classification: dict[str, Any]) -> bool:
+def provider_escalation_allowed(session_dir: pathlib.Path, conversation_id: int | str, classification: dict[str, Any]) -> bool:
     return str(classification.get("intent")) == "escalation_request"
 
 
-def maybe_auto_deliver_if_ready(client: TelegramClient, chat_id: int | str, session_dir: pathlib.Path) -> dict[str, Any]:
-    session = load_session(session_dir, chat_id)
-    evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+def maybe_auto_deliver_if_ready(client: CodexConversation, conversation_id: int | str, session_dir: pathlib.Path) -> dict[str, Any]:
+    session = load_session(session_dir, conversation_id)
+    evidence = delivery_evidence_state(read_truth_ledger(session_dir, conversation_id))
     if evidence["delivery_ready"] and not evidence.get("sent_record"):
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="delivery_ready",
             facts={"evidence_state": evidence},
             backend_memo=latest_backend_memo(session),
         )
-        send_delivery_artifacts(client, chat_id, session_dir, session, evidence)
-        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        send_delivery_artifacts(client, conversation_id, session_dir, session, evidence)
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, conversation_id))
     return evidence
 
 
@@ -2557,8 +2279,8 @@ def public_delivery_gate_failed_reply(gate: dict[str, Any] | None = None) -> str
 
 
 def mark_public_delivery_rework(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     project_dir: pathlib.Path,
@@ -2580,7 +2302,7 @@ def mark_public_delivery_rework(
     save_session(session_dir, session)
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="public_delivery_gate_failed",
@@ -2607,8 +2329,8 @@ def _public_caption_for(kind: str, path: pathlib.Path) -> str:
 
 
 def emit_public_delivery(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     items: list[tuple[pathlib.Path, str]],
@@ -2616,31 +2338,19 @@ def emit_public_delivery(
     source: str,
     package_approval: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    def normalized_send_result(value: Any, expected_chat_id: int | str, kind: str) -> tuple[bool, dict[str, str]]:
-        if value is True:
-            return True, {}
+    def normalized_send_result(value: Any, expected_conversation_id: int | str, kind: str) -> tuple[bool, dict[str, str]]:
         if not isinstance(value, dict) or value.get("ok") is not True:
             return False, {}
         result = value.get("result")
-        if not isinstance(result, dict) or result.get("message_id") in (None, ""):
+        if not isinstance(result, dict) or result.get("turn_id") in (None, ""):
             return False, {}
-        chat = result.get("chat") if isinstance(result.get("chat"), dict) else {}
-        if chat.get("id") not in (None, "") and str(chat.get("id")) != str(expected_chat_id):
+        if str(result.get("conversation_id", "")) != str(expected_conversation_id):
             return False, {}
-        media: dict[str, Any] = {}
-        if kind in {"package"}:
-            media = result.get("document") if isinstance(result.get("document"), dict) else {}
-        elif kind == "video":
-            media = result.get("video") if isinstance(result.get("video"), dict) else {}
-        else:
-            photos = [item for item in result.get("photo", []) if isinstance(item, dict) and item.get("file_id")]
-            if photos:
-                media = max(photos, key=lambda item: int(item.get("width", 0)) * int(item.get("height", 0)))
         return True, {
-            "telegram_message_id": str(result["message_id"]),
-            "telegram_chat_id": str(chat.get("id", "")),
-            "telegram_file_id": str(media.get("file_id", "")),
-            "telegram_file_unique_id": str(media.get("file_unique_id", "")),
+            "turn_id": str(result["turn_id"]),
+            "conversation_id": str(result["conversation_id"]),
+            "artifact_id": str(result.get("artifact_id", "")),
+            "artifact_unique_id": str(result.get("artifact_unique_id", "")),
             "sent_at": now(),
         }
 
@@ -2656,23 +2366,23 @@ def emit_public_delivery(
         caption = _public_caption_for(kind, path)
         suffix = path.suffix.lower()
         if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
-            client.send_chat_action(chat_id, "upload_photo")
+            client.send_chat_action(conversation_id, "upload_photo")
             try:
-                ok, metadata = normalized_send_result(client.send_photo(chat_id, path, caption), chat_id, kind)
+                ok, metadata = normalized_send_result(client.send_photo(conversation_id, path, caption), conversation_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
                 sent.append({"kind": kind, "path": str(path), "caption": caption, **metadata})
         elif suffix in VIDEO_SUFFIXES:
-            client.send_chat_action(chat_id, "upload_video")
+            client.send_chat_action(conversation_id, "upload_video")
             try:
-                ok, metadata = normalized_send_result(client.send_video(chat_id, path, caption), chat_id, kind)
+                ok, metadata = normalized_send_result(client.send_video(conversation_id, path, caption), conversation_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
                 sent.append({"kind": kind, "path": str(path), "caption": caption, **metadata})
         else:
-            client.send_chat_action(chat_id, "upload_document")
+            client.send_chat_action(conversation_id, "upload_document")
             if kind == "package" and isinstance(package_approval, dict):
                 approved_path = pathlib.Path(str(package_approval.get("package_path", "")))
                 approved_manifest_path = pathlib.Path(str(package_approval.get("manifest_path", "")))
@@ -2699,7 +2409,7 @@ def emit_public_delivery(
                     package_approval["failure_reason"] = "package_changed_before_send"
                     continue
             try:
-                ok, metadata = normalized_send_result(client.send_document(chat_id, path, caption), chat_id, kind)
+                ok, metadata = normalized_send_result(client.send_document(conversation_id, path, caption), conversation_id, kind)
             except Exception:
                 ok, metadata = False, {}
             if ok:
@@ -2775,8 +2485,8 @@ def evidence_checkpoint_summary(evidence: dict[str, Any]) -> str:
 
 
 def send_evidence_checkpoint(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     project_dir: pathlib.Path,
@@ -2785,7 +2495,7 @@ def send_evidence_checkpoint(
     sent: list[dict[str, Any]] = []
     gate = evaluate_public_delivery_gate(project_dir, {}, session, evidence=evidence, phase="checkpoint")
     if not gate.get("delivery_allowed"):
-        current = load_session(session_dir, chat_id)
+        current = load_session(session_dir, conversation_id)
         checkpoint = current.get("pending_evidence_checkpoint", {}) if isinstance(current.get("pending_evidence_checkpoint"), dict) else {}
         if checkpoint:
             checkpoint = canonical_user_review.mark_review_request_presented(
@@ -2803,23 +2513,23 @@ def send_evidence_checkpoint(
             }
             current["pending_evidence_checkpoint"] = checkpoint
             save_session(session_dir, current)
-        mark_public_delivery_rework(client, chat_id, session_dir, current, project_dir, gate)
+        mark_public_delivery_rework(client, conversation_id, session_dir, current, project_dir, gate)
         return []
     presentation_sent = send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="user_evidence_checkpoint",
         source="agent_generated_pipeline",
         direct_text=evidence_checkpoint_summary(evidence),
     )
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
     sender_failures: list[str] = []
     summary_artifact = {
         "kind": "nonvisual_summary",
-        "ref": f"telegram:chat:{chat_id}:review-summary",
+        "ref": f"codex:chat:{conversation_id}:review-summary",
         "sha256": canonical_evidence_hash.sha256_bytes(evidence_checkpoint_summary(evidence).encode("utf-8")),
         "sent": True,
         "presented_at": now(),
@@ -2870,9 +2580,9 @@ def send_evidence_checkpoint(
         if not canonical_screenshot_found:
             sender_failures.append("canonical_screenshot_not_sendable")
         items = valid_items
-    sent = emit_public_delivery(client, chat_id, session_dir, session, items, source="user_evidence_checkpoint")
+    sent = emit_public_delivery(client, conversation_id, session_dir, session, items, source="user_evidence_checkpoint")
     if checkpoint.get("visual_required") is True and not any(item.get("kind") == "screenshot" for item in sent):
-        sender_failures.append("telegram_screenshot_send_failed_or_invalid")
+        sender_failures.append("codex_screenshot_send_failed_or_invalid")
     presented_artifacts = ([summary_artifact] if summary_artifact else []) + [
         {
             "kind": str(item.get("kind", "")),
@@ -2882,7 +2592,7 @@ def send_evidence_checkpoint(
             "presented_at": now(),
             **{
                 key: str(item[key])
-                for key in ("telegram_message_id", "telegram_chat_id")
+                for key in ("turn_id", "conversation_id")
                 if item.get(key) not in (None, "")
             },
         }
@@ -2955,8 +2665,8 @@ def ensure_verify_report(result: dict[str, Any], log_dir: pathlib.Path) -> pathl
 
 
 # LEGACY PROVIDER PIPELINE.
-# Telegram mainline must not call this.
-# Telegram delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
+# Codex conversation mainline must not call this.
+# Codex conversation delivery is now driven by agent_conversation_loop + local_packager + delivery_manifest.
 def emit_delivery_evidence(
     session_dir: pathlib.Path,
     session: dict[str, Any],
@@ -2989,8 +2699,8 @@ def emit_delivery_evidence(
 
 
 def send_delivery_artifacts(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     evidence: dict[str, Any],
@@ -2999,22 +2709,22 @@ def send_delivery_artifacts(
     sent: list[dict[str, Any]] = []
     screenshot = _evidence_path(str(refs.get("screenshot", "")))
     if screenshot:
-        client.send_chat_action(chat_id, "upload_photo")
-        if client.send_photo(chat_id, screenshot, "效果预览"):
+        client.send_chat_action(conversation_id, "upload_photo")
+        if client.send_photo(conversation_id, screenshot, "效果预览"):
             sent.append({"kind": "photo", "path": str(screenshot)})
     package = _evidence_path(str(refs.get("package", "")))
     if package and package.suffix.lower() == ".zip":
-        client.send_chat_action(chat_id, "upload_document")
-        if client.send_document(chat_id, package, "项目包"):
+        client.send_chat_action(conversation_id, "upload_document")
+        if client.send_document(conversation_id, package, "项目包"):
             sent.append({"kind": "document", "artifact": "package", "path": str(package)})
     if sent:
         append_truth_ledger(
             session_dir,
             session,
             "delivery_attachment_sent",
-            "真实交付附件已通过 Telegram 发送",
+            "真实交付附件已通过 Codex conversation 发送",
             status="sent",
-            evidence_ref="telegram_delivery",
+            evidence_ref="conversation_delivery",
             can_user_see=True,
             data={"artifact": "delivery_attachment_sent", "sent": sent},
         )
@@ -3161,8 +2871,8 @@ def delivery_send_diagnostic(
 
 
 def send_delivery_from_manifest(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     session: dict[str, Any],
     manifest: dict[str, Any],
@@ -3178,7 +2888,7 @@ def send_delivery_from_manifest(
         provider_result=provider_result,
     )
     if not gate.get("delivery_allowed"):
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
         return []
     package_inspection = canonical_delivery_manifest.inspect_canonical_delivery_manifest(
         project_dir,
@@ -3197,7 +2907,7 @@ def send_delivery_from_manifest(
                 "canonical_package_inspection": package_inspection,
             }
         )
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
+        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, failed_gate)
         return []
     approved_manifest = package_inspection.get("manifest", {}) if isinstance(package_inspection.get("manifest"), dict) else {}
     package_approval = {
@@ -3208,7 +2918,7 @@ def send_delivery_from_manifest(
         "manifest_artifact_hash": approved_manifest.get("artifact_hash", ""),
         "failure_reason": "",
     }
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     assets = collect_public_delivery_assets(project_dir, manifest)
     items: list[tuple[pathlib.Path, str]] = []
     items.extend((path, "package") for path in assets["packages"][:1])
@@ -3228,7 +2938,7 @@ def send_delivery_from_manifest(
     delivery_started_at = now()
     sent = emit_public_delivery(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         items,
@@ -3238,7 +2948,7 @@ def send_delivery_from_manifest(
     diagnostic = delivery_send_diagnostic(gate, items, sent)
     canonical_delivery_receipt.produce_canonical_delivery_receipt(
         project_dir,
-        chat_id=chat_id,
+        conversation_id=conversation_id,
         manifest_inspection=package_inspection,
         requirement_snapshot=requirements,
         attempted_items=items,
@@ -3247,7 +2957,7 @@ def send_delivery_from_manifest(
     )
     receipt_inspection = canonical_delivery_receipt.inspect_canonical_delivery_receipt(
         project_dir,
-        expected_chat_id=chat_id,
+        expected_conversation_id=conversation_id,
         expected_requirements=requirements,
         expected_attachment_refs={kind: path for path, kind in items},
     )
@@ -3268,11 +2978,11 @@ def send_delivery_from_manifest(
                 + ([] if gate.get("verdict") == "PASS_FINAL" else ["canonical_final_delivery_requires_pass_final"]),
             }
         )
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, failed_gate)
+        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, failed_gate)
         return sent
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="delivery_manifest_ready",
@@ -3280,7 +2990,7 @@ def send_delivery_from_manifest(
         source="delivery_team_summary",
         direct_text=build_delivery_summary_text(manifest),
     )
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     gate["delivery_send_diagnostic"] = diagnostic
     record_public_delivery_gate(session_dir, session, gate, project_dir)
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
@@ -3447,7 +3157,7 @@ def grounded_current_goal_reply(session: dict[str, Any]) -> str:
 
 def reject_off_topic_public_reply(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     reply: str,
     *,
@@ -3464,7 +3174,7 @@ def reject_off_topic_public_reply(
         "current_goal": goal[:1200],
         "rejected_reply": str(reply or "")[:1200],
     }
-    append_agent_session_event(session_dir, chat_id, event)
+    append_agent_session_event(session_dir, conversation_id, event)
     append_memory_event(session, "public_reply_rejected_off_topic_domain_mismatch", data=event)
     return grounded, True
 
@@ -3677,13 +3387,13 @@ def build_generation_context_snapshot(session: dict[str, Any], requirement: str)
 
 def ensure_generation_context_snapshot(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     requirement: str,
 ) -> dict[str, Any]:
     snapshot = build_generation_context_snapshot(session, requirement)
     session["generation_context_snapshot"] = snapshot
-    append_agent_session_event(session_dir, chat_id, snapshot)
+    append_agent_session_event(session_dir, conversation_id, snapshot)
     return snapshot
 
 
@@ -3901,7 +3611,7 @@ def extract_project_intent_signals(text: str, session: dict[str, Any], analysis:
         "上传",
         "下载",
     )
-    runtime_terms = ("本地", "网页", "桌面", "cli", "命令行", "服务端", "telegram", "界面", "页面", "后台", "可运行")
+    runtime_terms = ("本地", "网页", "桌面", "cli", "命令行", "服务端", "codex", "界面", "页面", "后台", "可运行")
     output_terms = ("文件", "导出", "报告", "结果", "包", "zip", "截图", "预览", "列表", "看板")
     has_goal = any(term in context for term in goal_terms) and any(term in context for term in intent_terms)
     has_capability = any(term in context for term in capability_terms)
@@ -3938,7 +3648,7 @@ def extract_project_intent_signals(text: str, session: dict[str, Any], analysis:
 
 def should_auto_start_generation(session: dict[str, Any], analysis: dict[str, Any], user_text: str) -> tuple[bool, str]:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if telegram_design_supervision.design_supervision_pending(whiteboard):
+    if codex_design_supervision.design_supervision_pending(whiteboard):
         return False, "product_design_confirmation_pending"
     if explicit_start_requested(user_text):
         return True, "explicit_start_requested"
@@ -4084,7 +3794,7 @@ def provider_text(messages: list[dict[str, str]], model: str, timeout: int) -> s
     creds = check_connectivity._resolve_api_credentials()
     token = creds.get("api_key", "")
     if not token:
-        raise RuntimeError("missing OpenAI-compatible API key for Telegram customer service")
+        raise RuntimeError("missing OpenAI-compatible API key for Codex conversation customer service")
     root = str(creds.get("base_url", "")).rstrip("/")
     temperature = customer_reply_temperature()
     endpoint = check_connectivity._openai_compatible_endpoint(root)
@@ -4321,7 +4031,7 @@ def enforce_backend_updates_from_user_text(session: dict[str, Any], whiteboard: 
     if any(token in text for token in ("必须", "不允许", "不要", "一定要", "后续", "修改", "不是", "我要的是")):
         changes = normalized.get("change_requests", [])
         normalized["change_requests"] = unique_strings((changes if isinstance(changes, list) else []) + [text], limit=120)
-    return telegram_design_supervision.apply_design_intent(normalized, text, telegram_default=True)
+    return codex_design_supervision.apply_design_intent(normalized, text, codex_default=True)
 
 
 def substantive_user_turn_count(session: dict[str, Any]) -> int:
@@ -4337,7 +4047,7 @@ def substantive_user_turn_count(session: dict[str, Any]) -> int:
 
 def customer_service_reply(session: dict[str, Any], model: str, timeout: int) -> tuple[str, dict[str, Any], str]:
     policy = read_customer_agent_policy()
-    system = """你是 CGNK 项目生成与交付团队的 Telegram 前台接口，更像项目负责人和产品/工程搭档，不是闲聊机器人，也不是表单客服。
+    system = """你是 CGNK 项目生成与交付团队的 Codex conversation 前台接口，更像项目负责人和产品/工程搭档，不是闲聊机器人，也不是表单客服。
 你的目标是把用户的一句话想法主动发展成可生成、可测试、可交付预览的第一版项目方案。
 
 自我认知：
@@ -4471,7 +4181,7 @@ JSON 结构：
         action = "continue_chat"
         next_whiteboard["ready_to_generate"] = False
     next_whiteboard = enforce_backend_updates_from_user_text(session, next_whiteboard)
-    if telegram_design_supervision.design_supervision_pending(next_whiteboard):
+    if codex_design_supervision.design_supervision_pending(next_whiteboard):
         action = "continue_chat"
     critical_questions = next_whiteboard.get("critical_questions", []) if isinstance(next_whiteboard.get("critical_questions"), list) else []
     if critical_questions and not any(str(item).strip() and str(item).strip()[:18] in reply for item in critical_questions):
@@ -4538,7 +4248,7 @@ def local_public_reply_message(event: str, session: dict[str, Any], facts: dict[
         safe_facts["evidence_state"] = {"delivery_ready": False, "missing": [], "refs": {}, "sent_record": False}
         safe_facts["delivery_evidence_applicable"] = False
         safe_facts["status_hint"] = "空会话，没有正在运行的后台任务；不要提可运行项目文件、效果预览或测试结论。"
-    system = """你是 CGNK Telegram 前台，只写一条要直接发给用户的中文短消息。
+    system = """你是 CGNK Codex conversation 前台，只写一条要直接发给用户的中文短消息。
 边界：
 - 不生成项目文件，不改白板，不决定是否开始生成。
 - 不宣布完成；没有交付包、预览和测试结论时不能说已经完成。
@@ -4604,7 +4314,7 @@ def provider_user_message(
         return local_text
 
     policy = read_customer_agent_policy()
-    system = """你是 CGNK 项目生成与交付团队的 Telegram 前台接口。
+    system = """你是 CGNK 项目生成与交付团队的 Codex conversation 前台接口。
 根据事件和事实生成一条自然、简短、像项目负责人/产品工程搭档的中文消息。
 
 规则：
@@ -4648,8 +4358,8 @@ def provider_user_message(
 
 
 def send_provider_message(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     *,
     event: str,
@@ -4666,7 +4376,7 @@ def send_provider_message(
     append_backend_memo(session_dir, session, f"provider_{event}", text)
     return send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event=event,
@@ -4678,8 +4388,8 @@ def send_provider_message(
 
 
 def send_provider_or_technical_error(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     *,
     event: str,
@@ -4689,11 +4399,11 @@ def send_provider_or_technical_error(
     timeout: int,
     technical_error: str,
 ) -> None:
-    if send_provider_message(client, chat_id, session_dir, event=event, session=session, facts=facts, model=model, timeout=timeout):
+    if send_provider_message(client, conversation_id, session_dir, event=event, session=session, facts=facts, model=model, timeout=timeout):
         return
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event=event,
@@ -4703,13 +4413,13 @@ def send_provider_or_technical_error(
     )
 
 
-def log_bridge_error(log_dir: pathlib.Path, event: str, chat_id: int | str, exc: Exception, context: dict[str, Any] | None = None) -> None:
+def log_bridge_error(log_dir: pathlib.Path, event: str, conversation_id: int | str, exc: Exception, context: dict[str, Any] | None = None) -> None:
     append_jsonl(
         log_dir / "bridge_errors.jsonl",
         {
             "created_at": now(),
             "event": event,
-            "chat_id": str(chat_id),
+            "conversation_id": str(conversation_id),
             "error_type": type(exc).__name__,
             "error": str(exc),
             "context": context or {},
@@ -4779,7 +4489,7 @@ def delivery_image_candidates(result: dict[str, Any]) -> list[pathlib.Path]:
             candidates.extend((3, p) for p in root.rglob("*.png"))
             candidates.extend((3, p) for p in root.rglob("*.jpg"))
             candidates.extend((3, p) for p in root.rglob("*.jpeg"))
-    root_pngs = sorted(ROOT.glob("*telegram*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
+    root_pngs = sorted(ROOT.glob("*codex*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
     candidates.extend((5, p) for p in root_pngs[:5])
     unique: dict[str, tuple[int, pathlib.Path]] = {}
     for priority, path in candidates:
@@ -4970,9 +4680,9 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def build_generation_args(
-    chat_id: int | str,
+    conversation_id: int | str,
     requirement: str,
     log_dir: pathlib.Path,
     model: str,
@@ -4982,7 +4692,7 @@ def build_generation_args(
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.build_generation_args(
-        chat_id,
+        conversation_id,
         requirement,
         log_dir,
         model,
@@ -4993,42 +4703,42 @@ def build_generation_args(
     )
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def phase_log_path_for_project(project_slug: str) -> pathlib.Path:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.phase_log_path_for_project(project_slug, root=ROOT)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def last_known_phase(phase_log_path: pathlib.Path) -> str:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.last_known_phase(phase_log_path)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def recent_phase_events(phase_log_path: pathlib.Path, limit: int = 8) -> list[dict[str, Any]]:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.recent_phase_events(phase_log_path, limit)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def read_timeout_diagnostics(project_slug: str) -> dict[str, Any]:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.read_timeout_diagnostics(project_slug, root=ROOT)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_path: pathlib.Path) -> tuple[list[str], list[str]]:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.artifact_inventory(project_slug, result_path, phase_log_path, root=ROOT)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def write_timeout_failure_result(legacy_args: argparse.Namespace, timeout_seconds: int, result_path: pathlib.Path) -> dict[str, Any]:
     import legacy_provider_pipeline
 
@@ -5042,7 +4752,7 @@ def write_timeout_failure_result(legacy_args: argparse.Namespace, timeout_second
     )
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def run_generation_subprocess(legacy_args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
     import legacy_provider_pipeline
 
@@ -5057,24 +4767,24 @@ def run_generation_subprocess(legacy_args: argparse.Namespace, log_dir: pathlib.
     )
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def safe_generation_failure_facts(requirement: str, exc: Exception) -> dict[str, Any]:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.safe_generation_failure_facts(requirement, exc)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def generation_progress_text(elapsed_seconds: int) -> str:
     import legacy_provider_pipeline
 
     return legacy_provider_pipeline.generation_progress_text(elapsed_seconds)
 
 
-# LEGACY ONLY. Telegram formal generation must not call this.
+# LEGACY ONLY. Codex conversation formal generation must not call this.
 def run_generation_job(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -5088,7 +4798,7 @@ def run_generation_job(
     legacy_provider_pipeline.run_generation_job(
         sys.modules[__name__],
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -7056,7 +6766,7 @@ def post_build_finalize_provider_project(
     session: dict[str, Any],
     *,
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     production_identity: dict[str, str],
     production_run_dir: pathlib.Path,
     stage_receipts: dict[str, pathlib.Path],
@@ -7064,10 +6774,10 @@ def post_build_finalize_provider_project(
     provider_causal_capture: dict[str, Any],
 ) -> dict[str, Any]:
     post_build_started_at = now()
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
+    append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
     launcher_result = ensure_provider_root_launcher(project_dir)
     if launcher_result.get("changed"):
-        append_agent_session_event(session_dir, chat_id, {"kind": "post_build_entrypoint_repair", "role": "tool", "result": launcher_result})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_entrypoint_repair", "role": "tool", "result": launcher_result})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
     req = infer_public_delivery_requirements(session, "")
     image_missing: list[str] = []
@@ -7127,7 +6837,7 @@ def post_build_finalize_provider_project(
     image_result["video"] = video_result.get("video", "")
     image_result["video_blocked"] = video_result.get("video_blocked", "")
     image_result["video_result"] = video_result
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
+    append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_image_evidence", "role": "tool", "result": image_result})
     minimum_test_count = infer_explicit_minimum_test_count(
         "\n".join(
             [
@@ -7152,7 +6862,7 @@ def post_build_finalize_provider_project(
         dependency_setup = ensure_provider_test_environment(project_dir)
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {"kind": "post_build_deterministic_repair", "role": "tool", "repair": repair_result, "dependency_setup": dependency_setup},
         )
     candidate_manifest = canonical_evidence_hash.candidate_source_manifest(project_dir)
@@ -7224,7 +6934,7 @@ def post_build_finalize_provider_project(
     )
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "post_build_test_result",
             "role": "tool",
@@ -7249,7 +6959,7 @@ def post_build_finalize_provider_project(
         live_consumer=browser_visual_evidence.capture_live_runtime if browser_visual_required else None,
         browser_capture_required=browser_visual_required,
     )
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
+    append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
     visual_evidence_result = (
         browser_visual_evidence.finalize_evidence(
             project_dir,
@@ -7260,7 +6970,7 @@ def post_build_finalize_provider_project(
         if browser_visual_required
         else {"status": "NOT_EVALUATED", "reason": "not_required", "not_required": True}
     )
-    append_agent_session_event(session_dir, chat_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
+    append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
     write_provider_delivery_notes(
         project_dir,
         provider_result,
@@ -7349,7 +7059,7 @@ def write_provider_test_report(project_dir: pathlib.Path, provider_result: dict[
                 "",
                 "results:",
                 f"- provider_usage_status: {agent_usage.get('status', provider_result.get('status', 'unknown'))}",
-                "- provider project generation completed and runtime artifacts were inspected by the Telegram bridge.",
+                "- provider project generation completed and runtime artifacts were inspected by the Codex conversation bridge.",
                 "",
                 "failures:",
                 "- none recorded by provider usage agent" if str(agent_usage.get("status", "")).lower() != "failed" else "- provider usage agent reported failure",
@@ -7383,7 +7093,7 @@ def write_provider_delivery_notes(project_dir: pathlib.Path, provider_result: di
                 "known_limits:",
                 "- Local model endpoint must be configured by the user for full local image generation.",
                 "revision_entry:",
-                "- Provider project generation restored as Telegram default route with public delivery gate.",
+                "- Provider project generation restored as Codex conversation default route with public delivery gate.",
             ]
         )
         + "\n",
@@ -7575,7 +7285,7 @@ def run_provider_execute_with_retries(
     args: argparse.Namespace,
     *,
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     phase_log_path: pathlib.Path,
     max_attempts: int = 5,
 ) -> dict[str, Any]:
@@ -7597,7 +7307,7 @@ def run_provider_execute_with_retries(
                 "error": str(exc),
                 "stage": "api_provider_project_generation",
             }
-            append_agent_session_event(session_dir, chat_id, {"role": "tool", **event})
+            append_agent_session_event(session_dir, conversation_id, {"role": "tool", **event})
             write_provider_phase_event(phase_log_path, event)
             if not retryable or attempt >= max_attempts:
                 break
@@ -7613,8 +7323,8 @@ def run_provider_execute_with_retries(
 
 
 def run_provider_generation_job(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -7623,17 +7333,17 @@ def run_provider_generation_job(
     announce_start: bool = False,
 ) -> None:
     model = model or model_policy.select_model("provider_generation")
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     requirement = combined_requirement(session)
     if not requirement:
-        send_customer_reply(client, chat_id, session_dir, session, event="missing_requirement_before_generation", facts={"message": "当前没有可执行项目目标；后台未启动。"})
+        send_customer_reply(client, conversation_id, session_dir, session, event="missing_requirement_before_generation", facts={"message": "当前没有可执行项目目标；后台未启动。"})
         return
     prior_generation = (
         session.get("generation", {})
         if isinstance(session.get("generation"), dict)
         else {}
     )
-    identity = production_generation_identity(chat_id, session)
+    identity = production_generation_identity(conversation_id, session)
     entry_ref_value = str(
         prior_generation.get("production_entry_receipt_ref", "")
     ).strip()
@@ -7644,16 +7354,16 @@ def run_provider_generation_job(
         and not entry_ref.is_symlink()
     )
     if formal_entry:
-        project_dir, run_dir = production_paths(chat_id, log_dir, identity)
+        project_dir, run_dir = production_paths(conversation_id, log_dir, identity)
     else:
-        run_slug = safe_id(chat_id)
+        run_slug = safe_id(conversation_id)
         project_dir = (PROVIDER_PROJECTS_DIR / run_slug).resolve()
         run_dir = (pathlib.Path(log_dir) / "provider_runs" / run_slug).resolve()
     session["generation"] = {
         "status": "running",
         "driver": "api_provider_project_generation",
         "started_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
         **identity,
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
@@ -7662,12 +7372,12 @@ def run_provider_generation_job(
         session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
         session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
     update_active_run_status(session, "running", driver="api_provider_project_generation")
-    snapshot = ensure_generation_context_snapshot(session_dir, chat_id, session, requirement)
-    append_agent_session_event(session_dir, chat_id, {"kind": "provider_generation_started", "role": "system", "driver": "api_provider_project_generation", "requirement": requirement})
+    snapshot = ensure_generation_context_snapshot(session_dir, conversation_id, session, requirement)
+    append_agent_session_event(session_dir, conversation_id, {"kind": "provider_generation_started", "role": "system", "driver": "api_provider_project_generation", "requirement": requirement})
     append_memory_event(session, "provider_generation_started", data={"requirement": requirement[:6000]})
     save_session(session_dir, session)
     if announce_start:
-        send_customer_reply(client, chat_id, session_dir, session, event="generation_started", direct_text=public_narration.public_event_text("generation_started", {}))
+        send_customer_reply(client, conversation_id, session_dir, session, event="generation_started", direct_text=public_narration.public_event_text("generation_started", {}))
 
     result_path = run_dir / "provider_generation_result.json"
     phase_log_path = run_dir / "provider_phase_log.jsonl"
@@ -7724,7 +7434,7 @@ def run_provider_generation_job(
         provider_result = run_provider_execute_with_retries(
             args,
             session_dir=session_dir,
-            chat_id=chat_id,
+            conversation_id=conversation_id,
             phase_log_path=phase_log_path,
         )
         if not result_path.is_file():
@@ -7827,10 +7537,10 @@ def run_provider_generation_job(
             phase_log_path,
             {"kind": "provider_phase", "stage": "api_provider_project_generation", "status": "completed", "project_dir": str(project_dir)},
         )
-        append_agent_session_event(session_dir, chat_id, {"kind": "api-provider-project-generated", "role": "tool", "result_path": str(result_path), "project_dir": str(project_dir)})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "api-provider-project-generated", "role": "tool", "result_path": str(result_path), "project_dir": str(project_dir)})
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "provider-output-validated",
                 "role": "tool",
@@ -7843,7 +7553,7 @@ def run_provider_generation_job(
         )
         emit_runtime_supervision_checkpoint(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             "provider_output_received",
             reason="Provider output passed the existing validation boundary and is entering post-build finalization.",
@@ -7861,8 +7571,8 @@ def run_provider_generation_job(
                 },
             ],
         )
-        append_agent_session_event(session_dir, chat_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
-        append_agent_session_event(session_dir, chat_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
         runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
         write_provider_phase_event(
             phase_log_path,
@@ -7874,7 +7584,7 @@ def run_provider_generation_job(
             runtime_artifacts,
             session,
             session_dir=session_dir,
-            chat_id=chat_id,
+            conversation_id=conversation_id,
             production_identity=identity,
             production_run_dir=run_dir,
             stage_receipts={
@@ -7900,7 +7610,7 @@ def run_provider_generation_job(
         artifact_audit = provider_success_artifact_audit(project_dir, session, manifest)
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {"kind": "provider-success-artifact-audit", "role": "tool", "audit": artifact_audit, "post_build_finalize": finalize},
         )
         gate = dict(gate)
@@ -7910,13 +7620,13 @@ def run_provider_generation_job(
                 phase_log_path,
                 {"kind": "provider_phase", "stage": "public_delivery_gate", "status": "rework_blocked", "missing": gate.get("missing", [])},
             )
-            session = load_session(session_dir, chat_id)
+            session = load_session(session_dir, conversation_id)
             session["generation"] = {
                 "status": "rework_blocked",
                 "driver": "api_provider_project_generation",
                 "finished_at": now(),
                 **identity,
-                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
                 "project_dir": str(project_dir),
                 "provider_run_dir": str(run_dir),
                 "manifest_path": str(manifest.get("manifest_path", "")),
@@ -7938,7 +7648,7 @@ def run_provider_generation_job(
             update_active_run_status(session, "rework_blocked", driver="api_provider_project_generation", delivery_allowed=False, delivery_gate=gate, project_dir=str(project_dir))
             append_memory_event(session, "provider_generation_rework_blocked", data={"delivery_gate": gate})
             save_session(session_dir, session)
-            mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+            mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
             return
         result = {
             "status": manifest.get("status", "ready"),
@@ -7965,9 +7675,9 @@ def run_provider_generation_job(
                 "package_path": str(manifest.get("package_path", "")),
             },
         )
-        finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
+        finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
     except Exception as exc:
-        session = load_session(session_dir, chat_id)
+        session = load_session(session_dir, conversation_id)
         error_type = provider_error_type(exc)
         missing_config = provider_missing_config(exc)
         partial_artifacts = provider_partial_artifacts(project_dir)
@@ -8003,7 +7713,7 @@ def run_provider_generation_job(
             "error": str(exc),
             "provider_error_type": error_type,
             "missing_config": missing_config,
-            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
             "project_dir": str(project_dir),
             "provider_run_dir": str(run_dir),
             "partial_artifacts": partial_artifacts,
@@ -8029,7 +7739,7 @@ def run_provider_generation_job(
         )
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "provider_generation_error",
                 "role": "tool",
@@ -8059,7 +7769,7 @@ def run_provider_generation_job(
         save_session(session_dir, session)
         emit_runtime_supervision_checkpoint(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             "provider_failure",
             reason=f"Provider or downstream generation work stopped in rework: {error_type}",
@@ -8089,13 +7799,13 @@ def run_provider_generation_job(
                 "error": str(exc),
             },
         )
-        log_bridge_error(log_dir, "provider_generation_rework_blocked", chat_id, exc, {"project_dir": str(project_dir)})
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        log_bridge_error(log_dir, "provider_generation_rework_blocked", conversation_id, exc, {"project_dir": str(project_dir)})
+        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
 
 
 def run_agent_generation_job(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -8104,12 +7814,12 @@ def run_agent_generation_job(
     announce_start: bool = False,
     max_turns: int = 12,
 ) -> None:
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     requirement = combined_requirement(session)
     if not requirement:
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="missing_requirement_before_generation",
@@ -8120,31 +7830,31 @@ def run_agent_generation_job(
         "status": "running",
         "driver": "agent_generated_pipeline",
         "started_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
     }
-    snapshot = ensure_generation_context_snapshot(session_dir, chat_id, session, requirement)
+    snapshot = ensure_generation_context_snapshot(session_dir, conversation_id, session, requirement)
     append_memory_event(session, "agent_pipeline_started", data={"requirement": requirement[:6000]})
     append_truth_ledger(
         session_dir,
         session,
         "agent_pipeline_started",
-        "Agent-generated pipeline generation started from Telegram confirmation",
-        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        "Agent-generated pipeline generation started from Codex conversation confirmation",
+        evidence_ref=str(agent_session_path(session_dir, conversation_id)),
         data={"artifact": "agent_session", "backend_controls_required": False, "generation_context_snapshot": True},
     )
     save_session(session_dir, session)
     if announce_start:
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="generation_started",
             direct_text=public_narration.public_event_text("generation_started", {}),
         )
-    project_dir = log_dir / "agent_projects" / safe_id(chat_id)
+    project_dir = log_dir / "agent_projects" / safe_id(conversation_id)
     project_dir.mkdir(parents=True, exist_ok=True)
-    session_file = agent_session_path(session_dir, chat_id)
+    session_file = agent_session_path(session_dir, conversation_id)
     snapshot_path = write_generation_context_snapshot(project_dir, snapshot)
     manifest: dict[str, Any] = {}
     manifest_path: pathlib.Path | str = ""
@@ -8163,7 +7873,7 @@ def run_agent_generation_job(
         manifest_path = pipeline_manifest_module.write_pipeline_manifest(project_dir, manifest)
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {"kind": "pipeline_manifest", "role": "system", "manifest": manifest, "agent_generated": True, "manifest_path": str(manifest_path)},
         )
         result = dynamic_pipeline_runner.run_dynamic_pipeline(
@@ -8180,7 +7890,7 @@ def run_agent_generation_job(
         fallback_reason = str(exc)
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {"kind": "pipeline_fallback", "role": "system", "reason": fallback_reason, "stage": "run_agent_generation_job"},
         )
         try:
@@ -8193,14 +7903,14 @@ def run_agent_generation_job(
             )
             result["driver"] = "agent_conversation_loop_fallback"
         except Exception as fallback_exc:
-            session = load_session(session_dir, chat_id)
+            session = load_session(session_dir, conversation_id)
             gate = evaluate_public_delivery_gate(project_dir, {}, session, phase="final")
             session["generation"] = {
                 "status": "rework_blocked",
                 "driver": "agent_generated_pipeline",
                 "finished_at": now(),
                 "error": str(fallback_exc),
-                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
                 "project_dir": str(project_dir),
                 "pipeline_manifest_path": str(manifest_path or ""),
                 "generation_context_snapshot_path": str(snapshot_path),
@@ -8215,11 +7925,11 @@ def run_agent_generation_job(
                 delivery_gate=gate,
                 project_dir=str(project_dir),
             )
-            append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(fallback_exc)})
+            append_agent_session_event(session_dir, conversation_id, {"kind": "agent_loop_error", "role": "tool", "error": str(fallback_exc)})
             append_memory_event(session, "agent_pipeline_failed", data={"error": str(fallback_exc), "pipeline_error": str(exc)})
             save_session(session_dir, session)
-            log_bridge_error(log_dir, "agent_pipeline_failed", chat_id, fallback_exc, {"project_dir": str(project_dir)})
-            mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+            log_bridge_error(log_dir, "agent_pipeline_failed", conversation_id, fallback_exc, {"project_dir": str(project_dir)})
+            mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
             return
     if isinstance(result, dict) and result.get("pipeline_manifest") and "driver" not in result:
         result["driver"] = "agent_generated_pipeline"
@@ -8234,14 +7944,14 @@ def run_agent_generation_job(
     if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting_user_review":
         evidence = result.get("evidence", {}) if isinstance(result.get("evidence"), dict) else {}
         checkpoint_project_dir = pathlib.Path(str(result.get("project_dir") or project_dir))
-        session = load_session(session_dir, chat_id)
+        session = load_session(session_dir, conversation_id)
         gate = evaluate_public_delivery_gate(checkpoint_project_dir, {}, session, evidence=evidence, phase="checkpoint")
         if not gate.get("delivery_allowed"):
             session["generation"] = {
                 "status": "rework_blocked",
                 "driver": "agent_generated_pipeline",
                 "updated_at": now(),
-                "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
                 "project_dir": str(checkpoint_project_dir),
                 "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
                 "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
@@ -8251,13 +7961,13 @@ def run_agent_generation_job(
             update_active_run_status(session, "rework_blocked", driver="agent_generated_pipeline", delivery_allowed=False, delivery_gate=gate, project_dir=str(checkpoint_project_dir))
             append_memory_event(session, "user_evidence_checkpoint_rework_blocked", data={"evidence": evidence, "delivery_gate": gate})
             save_session(session_dir, session)
-            mark_public_delivery_rework(client, chat_id, session_dir, session, checkpoint_project_dir, gate)
+            mark_public_delivery_rework(client, conversation_id, session_dir, session, checkpoint_project_dir, gate)
             return
         session["generation"] = {
             "status": "waiting_user_review",
             "driver": "agent_generated_pipeline",
             "updated_at": now(),
-            "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
             "project_dir": str(checkpoint_project_dir),
             "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
             "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
@@ -8272,12 +7982,12 @@ def run_agent_generation_job(
         owner = session.get("active_request_owner", {}) if isinstance(session.get("active_request_owner"), dict) else {}
         review_request = canonical_user_review.create_review_request_snapshot(
             checkpoint_project_dir,
-            chat_id=chat_id,
-            expected_reviewer_user_id=owner.get("from_user_id", ""),
+            conversation_id=conversation_id,
+            expected_reviewer_id=owner.get("reviewer_id", ""),
             requirement_snapshot=session.get("whiteboard", {}).get("delivery_requirements", []),
             visual_required=bool(requirements.get("screenshot")),
             required_presentation_roles=required_roles,
-            replay_ledger_path=session_dir / f"{safe_id(chat_id)}.review_replay_ledger.json",
+            replay_ledger_path=session_dir / f"{safe_id(conversation_id)}.review_replay_ledger.json",
         )
         if review_request.get("status") == "NEEDS_REWORK":
             session["generation"]["status"] = "rework_blocked"
@@ -8293,7 +8003,7 @@ def run_agent_generation_job(
         update_active_run_status(session, "waiting_user_review", driver="agent_generated_pipeline")
         append_memory_event(session, "user_evidence_checkpoint_waiting", data={"evidence": evidence})
         save_session(session_dir, session)
-        send_evidence_checkpoint(client, chat_id, session_dir, session, checkpoint_project_dir, evidence)
+        send_evidence_checkpoint(client, conversation_id, session_dir, session, checkpoint_project_dir, evidence)
         return
     summary_driver = "agent_conversation_loop_fallback" if fallback_used else str(result.get("driver") or "agent_generated_pipeline")
     summary_path = write_pipeline_run_summary(
@@ -8306,12 +8016,12 @@ def run_agent_generation_job(
         fallback_reason=fallback_reason,
     )
     result["pipeline_run_summary_path"] = str(summary_path)
-    finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
+    finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
 
 
 def finish_agent_loop_delivery(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     project_dir: pathlib.Path,
     result: dict[str, Any],
@@ -8319,7 +8029,7 @@ def finish_agent_loop_delivery(
     manifest = result.get("manifest", {}) if isinstance(result.get("manifest"), dict) else {}
     if not manifest and result.get("manifest_path"):
         manifest = read_delivery_manifest(str(result.get("manifest_path", "")))
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     driver = str(result.get("driver") or "agent_conversation_loop")
     post_build = (
         result.get("post_build_finalize", {})
@@ -8336,7 +8046,7 @@ def finish_agent_loop_delivery(
         "status": str(result.get("status", "unknown")),
         "driver": driver,
         "finished_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
         "project_dir": str(project_dir),
         "manifest_path": str(manifest.get("manifest_path", result.get("manifest_path", ""))),
         "package_path": str(manifest.get("package_path", result.get("package_path", ""))),
@@ -8380,7 +8090,7 @@ def finish_agent_loop_delivery(
         save_session(session_dir, session)
         send_delivery_from_manifest(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             manifest,
@@ -8410,7 +8120,7 @@ def finish_agent_loop_delivery(
             warning_text = "；".join(user_visible_known_limit(item) for item in warnings[:5] if str(item).strip())
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="delivery_user_review_requested",
@@ -8428,7 +8138,7 @@ def finish_agent_loop_delivery(
             items.extend((path, "video") for path in assets["videos"][:2])
             emit_public_delivery(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 filter_delivery_items_by_judgment(items, gate),
@@ -8452,12 +8162,12 @@ def finish_agent_loop_delivery(
         )
         append_memory_event(session, "agent_loop_rework_blocked", data={"result": result, "delivery_gate": gate})
         save_session(session_dir, session)
-        mark_public_delivery_rework(client, chat_id, session_dir, session, project_dir, gate)
+        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
 
 
 def resume_after_evidence_review_job(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -8465,13 +8175,13 @@ def resume_after_evidence_review_job(
     *,
     max_turns: int = 12,
 ) -> None:
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     checkpoint = session.get("pending_evidence_checkpoint", {}) if isinstance(session.get("pending_evidence_checkpoint"), dict) else {}
     project_dir = pathlib.Path(str(checkpoint.get("project_dir") or session.get("generation", {}).get("project_dir", "")))
     if not project_dir.exists():
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="user_evidence_resume_missing_project",
@@ -8495,7 +8205,7 @@ def resume_after_evidence_review_job(
         "status": "running",
         "driver": "agent_generated_pipeline",
         "started_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
         "project_dir": str(project_dir),
         "resume_reason": "user_evidence_approved",
     }
@@ -8504,17 +8214,17 @@ def resume_after_evidence_review_job(
     save_session(session_dir, session)
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="user_evidence_review_approved",
         source="delivery_team_summary",
         direct_text=public_narration.public_event_text("review_continue", {}),
     )
-    session_file = agent_session_path(session_dir, chat_id)
+    session_file = agent_session_path(session_dir, conversation_id)
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "resume_after_evidence_review",
             "role": "system",
@@ -8535,15 +8245,15 @@ def resume_after_evidence_review_job(
             start_stage="review",
         )
     except Exception as exc:
-        session = load_session(session_dir, chat_id)
+        session = load_session(session_dir, conversation_id)
         session["generation"] = {"status": "failed", "driver": "agent_generated_pipeline", "finished_at": now(), "error": str(exc)}
-        append_agent_session_event(session_dir, chat_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc), "stage": "resume_after_evidence_review"})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "agent_loop_error", "role": "tool", "error": str(exc), "stage": "resume_after_evidence_review"})
         append_memory_event(session, "agent_pipeline_failed", data={"error": str(exc), "stage": "resume_after_evidence_review"})
         save_session(session_dir, session)
-        log_bridge_error(log_dir, "agent_pipeline_resume_failed", chat_id, exc, {"project_dir": str(project_dir)})
+        log_bridge_error(log_dir, "agent_pipeline_resume_failed", conversation_id, exc, {"project_dir": str(project_dir)})
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="generation_failed",
@@ -8553,33 +8263,33 @@ def resume_after_evidence_review_job(
     result["driver"] = result.get("driver") or "agent_generated_pipeline"
     if checkpoint.get("pipeline_manifest_path"):
         result["pipeline_manifest_path"] = str(checkpoint.get("pipeline_manifest_path", ""))
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     checkpoint["status"] = "approved"
     checkpoint["approved_at"] = now()
     session["pending_evidence_checkpoint"] = checkpoint
     save_session(session_dir, session)
-    finish_agent_loop_delivery(client, chat_id, session_dir, project_dir, result)
+    finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
 
 
 def resume_after_evidence_review(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
     timeout: int,
 ) -> None:
-    client.send_chat_action(chat_id, "typing")
+    client.send_chat_action(conversation_id, "typing")
     threading.Thread(
         target=resume_after_evidence_review_job,
-        args=(client, chat_id, session_dir, log_dir, model, timeout),
+        args=(client, conversation_id, session_dir, log_dir, model, timeout),
         daemon=True,
     ).start()
 
 
 def record_evidence_review_feedback(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     text: str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
@@ -8606,7 +8316,7 @@ def record_evidence_review_feedback(
     update_active_run_status(session, "intake_open", driver="agent_generated_pipeline")
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "user_evidence_feedback",
             "role": "user",
@@ -8619,7 +8329,7 @@ def record_evidence_review_feedback(
     save_session(session_dir, session)
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="user_evidence_feedback_received",
@@ -8628,7 +8338,7 @@ def record_evidence_review_feedback(
     )
     start_agent_generation(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -8639,8 +8349,8 @@ def record_evidence_review_feedback(
 
 
 def start_agent_generation(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -8650,20 +8360,20 @@ def start_agent_generation(
     reason: str = "frontdesk_generation_confirmation",
 ) -> None:
     model = model or model_policy.select_model("provider_generation")
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     requirement = combined_requirement(session)
     if not requirement:
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="missing_requirement_before_generation",
             facts={"message": "当前没有可执行项目目标；后台未启动。"},
         )
         return
-    identity = production_generation_identity(chat_id, session)
-    project_dir, run_dir = production_paths(chat_id, log_dir, identity)
+    identity = production_generation_identity(conversation_id, session)
+    project_dir, run_dir = production_paths(conversation_id, log_dir, identity)
     prior_generation = (
         session.get("generation", {})
         if isinstance(session.get("generation"), dict)
@@ -8674,7 +8384,7 @@ def start_agent_generation(
         "status": "running",
         "driver": "api_provider_project_generation",
         "started_at": str(prior_generation.get("started_at") or now()),
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
         **identity,
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
@@ -8686,10 +8396,10 @@ def start_agent_generation(
         ),
     }
     save_session(session_dir, session)
-    client.send_chat_action(chat_id, "typing")
+    client.send_chat_action(conversation_id, "typing")
     threading.Thread(
         target=run_provider_generation_job,
-        args=(client, chat_id, session_dir, log_dir, model, timeout),
+        args=(client, conversation_id, session_dir, log_dir, model, timeout),
         kwargs={"announce_start": announce_start},
         daemon=True,
     ).start()
@@ -8700,7 +8410,7 @@ ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_
 
 def apply_backend_dialogue_tick(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     *,
     model: str,
@@ -8709,7 +8419,7 @@ def apply_backend_dialogue_tick(
 ) -> dict[str, Any]:
     analysis = backend_dialogue_loop.run_backend_dialogue_tick(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         model=model,
         timeout=timeout,
@@ -8734,7 +8444,7 @@ def apply_backend_dialogue_tick(
     )
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "backend_dialogue_tick",
             "role": "assistant",
@@ -8749,7 +8459,7 @@ def apply_backend_dialogue_tick(
         session,
         "backend_dialogue_tick",
         "项目相关消息已完成轻量后台分析；真实生成只由明确开始生成触发。",
-        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        evidence_ref=str(agent_session_path(session_dir, conversation_id)),
         data={"artifact": "backend_dialogue_analysis", "reason": reason, "status": analysis.get("status")},
     )
     save_session(session_dir, session)
@@ -8769,13 +8479,13 @@ def design_checkpoint_public_text(session: dict[str, Any]) -> str:
     if workflow_state == "codex_unavailable":
         return "界面设计分析暂时不可用；请求已保留，正式生成没有启动。恢复后可以直接继续。"
     if workflow_state == "codex_running":
-        return "我正在先整理 Telegram 对话入口和 Mini App 操作面板；设计完成并由你确认后才会开始正式生成。"
-    return "我已先冻结 Telegram 对话入口和 Mini App 操作面板要求；设计确认前不会开始正式生成。"
+        return "我正在先整理项目界面和交互方案；设计完成并由你确认后才会开始正式生成。"
+    return "我已先冻结项目界面和交互要求；设计确认前不会开始正式生成。"
 
 
 def run_codex_design_supervision_job(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     request_path: pathlib.Path,
@@ -8784,15 +8494,15 @@ def run_codex_design_supervision_job(
     try:
         request_doc = read_json(request_path, {})
         request_id = str(request_doc.get("request_id", ""))
-        result = telegram_design_supervision.run_codex_design_supervision(
+        result = codex_design_supervision.run_codex_design_supervision(
             request_path,
-            agent_session_path(session_dir, chat_id),
+            agent_session_path(session_dir, conversation_id),
             codex_command=CODEX_DESIGN_COMMAND,
             timeout=CODEX_DESIGN_TIMEOUT,
         )
-        session = load_session(session_dir, chat_id)
+        session = load_session(session_dir, conversation_id)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        session["whiteboard"] = telegram_design_supervision.apply_design_brief(whiteboard, result)
+        session["whiteboard"] = codex_design_supervision.apply_design_brief(whiteboard, result)
         append_whiteboard_version(session, session["whiteboard"])
         append_memory_event(
             session,
@@ -8806,7 +8516,7 @@ def run_codex_design_supervision_job(
         save_session(session_dir, session)
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="product_design_brief_ready",
@@ -8814,16 +8524,16 @@ def run_codex_design_supervision_job(
             direct_text=design_checkpoint_public_text(session),
         )
     except Exception as exc:
-        log_bridge_error(log_dir, "product_design_supervision_failed", chat_id, exc)
-        session = load_session(session_dir, chat_id)
+        log_bridge_error(log_dir, "product_design_supervision_failed", conversation_id, exc)
+        session = load_session(session_dir, conversation_id)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        session["whiteboard"] = telegram_design_supervision.mark_codex_unavailable(whiteboard, str(exc))
+        session["whiteboard"] = codex_design_supervision.mark_codex_unavailable(whiteboard, str(exc))
         append_whiteboard_version(session, session["whiteboard"])
         append_memory_event(session, "product_design_supervision_unavailable", data={"error": str(exc)[:800]})
         save_session(session_dir, session)
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="product_design_supervision_unavailable",
@@ -8837,8 +8547,8 @@ def run_codex_design_supervision_job(
 
 
 def maybe_start_design_supervision(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     session: dict[str, Any],
@@ -8852,7 +8562,7 @@ def maybe_start_design_supervision(
     if not state.get("required") or workflow_state in {"approved", "awaiting_user_confirmation"} or running_in_process:
         return {"status": "not_started"}
     if CODEX_DESIGN_MODE == "disabled":
-        session["whiteboard"] = telegram_design_supervision.apply_api_only_design_baseline(whiteboard)
+        session["whiteboard"] = codex_design_supervision.apply_api_only_design_baseline(whiteboard)
         append_whiteboard_version(session, session["whiteboard"])
         append_memory_event(
             session,
@@ -8861,7 +8571,7 @@ def maybe_start_design_supervision(
         )
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "product_design_api_only_ready",
                 "role": "system",
@@ -8871,11 +8581,11 @@ def maybe_start_design_supervision(
         )
         save_session(session_dir, session)
         return {"status": "api_only_ready"}
-    prepared = telegram_design_supervision.prepare_design_escalation(
+    prepared = codex_design_supervision.prepare_design_escalation(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
-        agent_session_path(session_dir, chat_id),
+        agent_session_path(session_dir, conversation_id),
     )
     append_whiteboard_version(session, session.get("whiteboard", {}))
     append_memory_event(
@@ -8900,7 +8610,7 @@ def maybe_start_design_supervision(
     request_path = pathlib.Path(str(prepared.get("request_path", "")))
     threading.Thread(
         target=run_codex_design_supervision_job,
-        args=(client, chat_id, session_dir, log_dir, request_path),
+        args=(client, conversation_id, session_dir, log_dir, request_path),
         daemon=True,
     ).start()
     return {**prepared, "status": "codex_running"}
@@ -8908,7 +8618,7 @@ def maybe_start_design_supervision(
 
 def run_model_frontdesk_turn(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     *,
     model: str,
@@ -8918,7 +8628,7 @@ def run_model_frontdesk_turn(
     try:
         reply, next_whiteboard, action = customer_service_reply(session, model, min(timeout, 90))
         session["whiteboard"] = enforce_backend_updates_from_user_text(session, next_whiteboard)
-        reply, rejected = reject_off_topic_public_reply(session_dir, chat_id, session, reply, source="model_frontdesk_turn")
+        reply, rejected = reject_off_topic_public_reply(session_dir, conversation_id, session, reply, source="model_frontdesk_turn")
         if rejected:
             action = "continue_chat"
         append_whiteboard_version(session, session["whiteboard"])
@@ -8929,7 +8639,7 @@ def run_model_frontdesk_turn(
         )
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "model_frontdesk_turn",
                 "role": "assistant",
@@ -8951,15 +8661,15 @@ def run_model_frontdesk_turn(
             evidence_ref=reason,
             data={"artifact": "model_frontdesk_failure", "error": str(exc)[:500]},
         )
-        analysis = apply_backend_dialogue_tick(session_dir, chat_id, session, model=model, timeout=timeout, reason=reason)
+        analysis = apply_backend_dialogue_tick(session_dir, conversation_id, session, model=model, timeout=timeout, reason=reason)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         action = (
             "start_generation"
-            if combined_requirement(session) and not telegram_design_supervision.design_supervision_pending(whiteboard)
+            if combined_requirement(session) and not codex_design_supervision.design_supervision_pending(whiteboard)
             else "continue_chat"
         )
         reply = str(analysis.get("user_visible_reply", ""))
-        reply, rejected = reject_off_topic_public_reply(session_dir, chat_id, session, reply, source="backend_dialogue_fallback")
+        reply, rejected = reject_off_topic_public_reply(session_dir, conversation_id, session, reply, source="backend_dialogue_fallback")
         if rejected:
             action = "continue_chat"
         return {
@@ -8973,7 +8683,7 @@ def run_model_frontdesk_turn(
 
 def record_generation_start_waiting(
     session_dir: pathlib.Path,
-    chat_id: int | str,
+    conversation_id: int | str,
     session: dict[str, Any],
     analysis: dict[str, Any],
     reason: str,
@@ -8991,7 +8701,7 @@ def record_generation_start_waiting(
         session["generation"] = generation
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "generation_start_waiting",
             "role": "system",
@@ -9015,7 +8725,7 @@ def record_generation_start_waiting(
     save_session(session_dir, session)
 
 
-def record_forced_start_context(session_dir: pathlib.Path, chat_id: int | str, session: dict[str, Any]) -> None:
+def record_forced_start_context(session_dir: pathlib.Path, conversation_id: int | str, session: dict[str, Any]) -> None:
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     soft = session.get("pending_soft_questions", []) if isinstance(session.get("pending_soft_questions"), list) else whiteboard.get("soft_questions", [])
     critical = session.get("pending_critical_questions", []) if isinstance(session.get("pending_critical_questions"), list) else whiteboard.get("critical_questions", [])
@@ -9038,7 +8748,7 @@ def record_forced_start_context(session_dir: pathlib.Path, chat_id: int | str, s
     session["whiteboard"] = whiteboard
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "forced_generation_start_context",
             "role": "system",
@@ -9053,8 +8763,8 @@ def record_forced_start_context(session_dir: pathlib.Path, chat_id: int | str, s
 
 
 def start_generation_from_income(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -9069,10 +8779,10 @@ def start_generation_from_income(
     if status in ACTIVE_GENERATION_STATUSES:
         return False
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if telegram_design_supervision.design_supervision_pending(whiteboard):
+    if codex_design_supervision.design_supervision_pending(whiteboard):
         append_agent_session_event(
             session_dir,
-            chat_id,
+            conversation_id,
             {
                 "kind": "generation_waiting_for_product_design",
                 "role": "system",
@@ -9086,7 +8796,7 @@ def start_generation_from_income(
         save_session(session_dir, session)
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="product_design_confirmation_pending",
@@ -9098,7 +8808,7 @@ def start_generation_from_income(
         return False
     supervision_allowed, supervision_reason = provider_start_supervision_decision(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         reason=reason,
@@ -9113,7 +8823,7 @@ def start_generation_from_income(
             }.get(supervision_reason, "后台检查尚未完成，当前项目生成保持暂停。")
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="runtime_supervision_checkpoint_blocked",
@@ -9126,13 +8836,13 @@ def start_generation_from_income(
         session,
         "agent_loop_income_start_requested",
         "项目输入已触发正式 agent 生成启动。",
-        evidence_ref=str(agent_session_path(session_dir, chat_id)),
+        evidence_ref=str(agent_session_path(session_dir, conversation_id)),
         data={"artifact": "agent_session", "reason": reason, "previous_generation_status": status},
     )
     append_memory_event(session, "agent_loop_income_start_requested", data={"reason": reason, "previous_generation_status": status})
     save_session(session_dir, session)
     if str(generation_mode or "api").lower() == "simulator":
-        run_simulator_preflight(client, chat_id, session_dir, log_dir, session, reason=reason)
+        run_simulator_preflight(client, conversation_id, session_dir, log_dir, session, reason=reason)
         return True
     entry_started_at = now()
     identity = {
@@ -9141,9 +8851,9 @@ def start_generation_from_income(
         "commit_sha": repository_commit_sha(),
     }
     identity["candidate_id"] = (
-        f"customer-{safe_id(chat_id)}-{identity['run_id'].rsplit('-', 1)[-1]}"
+        f"customer-{safe_id(conversation_id)}-{identity['run_id'].rsplit('-', 1)[-1]}"
     )
-    project_dir, production_run_dir = production_paths(chat_id, log_dir, identity)
+    project_dir, production_run_dir = production_paths(conversation_id, log_dir, identity)
     entry_receipt = production_candidate_provenance.write_stage_receipt(
         production_run_dir,
         stage="production_entry",
@@ -9158,7 +8868,7 @@ def start_generation_from_income(
         "status": "queued",
         "driver": "api_provider_project_generation",
         "started_at": entry_started_at,
-        "agent_session_path": str(agent_session_path(session_dir, chat_id)),
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
         **identity,
         "project_dir": str(project_dir),
         "provider_run_dir": str(production_run_dir),
@@ -9169,7 +8879,7 @@ def start_generation_from_income(
     }
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "canonical_production_entry",
             "role": "system",
@@ -9182,7 +8892,7 @@ def start_generation_from_income(
     save_session(session_dir, session)
     start_agent_generation(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -9194,8 +8904,8 @@ def start_generation_from_income(
 
 
 def run_simulator_preflight(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     session: dict[str, Any],
@@ -9203,9 +8913,9 @@ def run_simulator_preflight(
     reason: str,
 ) -> dict[str, Any]:
     requirement = combined_requirement(session)
-    run_dir = log_dir / "simulator_preflight" / safe_id(chat_id)
+    run_dir = log_dir / "simulator_preflight" / safe_id(conversation_id)
     result_path = run_dir / "simulator_preflight_result.json"
-    project_dir = ROOT / "generated" / "simulator_preflight" / safe_id(chat_id)
+    project_dir = ROOT / "generated" / "simulator_preflight" / safe_id(conversation_id)
     if project_dir.exists():
         shutil.rmtree(project_dir)
     args = argparse.Namespace(
@@ -9235,7 +8945,7 @@ def run_simulator_preflight(
         shutil.rmtree(project_dir)
     creds = check_connectivity._resolve_api_credentials()
     missing_config = [] if str(creds.get("api_key", "")).strip() else ["CGKN_OPENAI_API_KEY or OPENAI_API_KEY"]
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     session["generation"] = {
         "status": "rework_blocked",
         "driver": "simulator_preflight",
@@ -9256,7 +8966,7 @@ def run_simulator_preflight(
     )
     append_agent_session_event(
         session_dir,
-        chat_id,
+        conversation_id,
         {
             "kind": "simulator_preflight_result",
             "role": "tool",
@@ -9269,7 +8979,7 @@ def run_simulator_preflight(
     save_session(session_dir, session)
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="simulator_preflight_blocked",
@@ -9280,8 +8990,8 @@ def run_simulator_preflight(
 
 
 def queue_generation_job_legacy_disabled(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -9290,10 +9000,10 @@ def queue_generation_job_legacy_disabled(
     announce_start: bool,
     generation_mode: str = "api",
 ) -> None:
-    # LEGACY ONLY. Telegram formal generation must not call this.
+    # LEGACY ONLY. Codex conversation formal generation must not call this.
     start_agent_generation(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -9304,7 +9014,7 @@ def queue_generation_job_legacy_disabled(
 
 
 def auto_start_pending_intakes(
-    client: TelegramClient,
+    client: CodexConversation,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -9321,8 +9031,8 @@ def auto_start_pending_intakes(
     for path in session_paths:
         if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
             continue
-        chat_id = path.stem
-        session = load_session(session_dir, chat_id)
+        conversation_id = path.stem
+        session = load_session(session_dir, conversation_id)
         run = active_run(session) or {}
         generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
         status = str(generation.get("status", "idle")).lower()
@@ -9334,7 +9044,7 @@ def auto_start_pending_intakes(
             continue
         if start_generation_from_income(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             log_dir,
             model,
@@ -9348,7 +9058,7 @@ def auto_start_pending_intakes(
 
 
 def auto_resume_supervised_intakes(
-    client: TelegramClient,
+    client: CodexConversation,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
@@ -9364,8 +9074,8 @@ def auto_resume_supervised_intakes(
     for path in session_paths:
         if not path.exists() or path.name.endswith(".truth_ledger.jsonl"):
             continue
-        chat_id = path.stem
-        session = load_session(session_dir, chat_id)
+        conversation_id = path.stem
+        session = load_session(session_dir, conversation_id)
         generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
         if str(generation.get("status", "")).lower() != "waiting_supervisor":
             continue
@@ -9377,7 +9087,7 @@ def auto_resume_supervised_intakes(
             continue
         if start_generation_from_income(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             log_dir,
             model,
@@ -9387,10 +9097,10 @@ def auto_resume_supervised_intakes(
             generation_mode=generation_mode,
         ):
             resumed += 1
-            refreshed = load_session(session_dir, chat_id)
+            refreshed = load_session(session_dir, conversation_id)
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 refreshed,
                 event="runtime_supervision_checkpoint_released",
@@ -9401,8 +9111,8 @@ def auto_resume_supervised_intakes(
 
 
 def continue_customer_turn(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     session: dict[str, Any],
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
@@ -9410,7 +9120,7 @@ def continue_customer_turn(
     timeout: int,
     context: dict[str, Any] | None = None,
 ) -> None:
-    del client, chat_id, log_dir, model, timeout, context
+    del client, conversation_id, log_dir, model, timeout, context
     latest = latest_user_text(session)
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     if latest:
@@ -9449,20 +9159,20 @@ def continue_customer_turn(
 
 
 def handle_text(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     text: str,
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
     model: str,
     timeout: int,
     generation_mode: str = "api",
-    message_context: dict[str, Any] | None = None,
+    turn_context: dict[str, Any] | None = None,
 ) -> None:
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     text = text.strip()
     if text:
-        append_agent_session_event(session_dir, chat_id, {"kind": "user", "role": "user", "text": text})
+        append_agent_session_event(session_dir, conversation_id, {"kind": "user", "role": "user", "text": text})
     classification = classify_customer_message(text, session)
     append_truth_ledger(
         session_dir,
@@ -9473,12 +9183,12 @@ def handle_text(
         data={"artifact": "message_classification", "classification": classification},
     )
     if text == "/new":
-        clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=False, delete=False)
-        session = default_session(chat_id)
+        clear_result = clear_chat_history(conversation_id, session_dir, log_dir, include_outputs=False, delete=False)
+        session = default_session(conversation_id)
         append_memory_event(session, "session_reset", "/new", {"clear_result": clear_result})
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="admin_command",
@@ -9486,12 +9196,12 @@ def handle_text(
         )
         return
     if text in {"/reset", "/restart"}:
-        clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=True, delete=False)
-        session = default_session(chat_id)
+        clear_result = clear_chat_history(conversation_id, session_dir, log_dir, include_outputs=True, delete=False)
+        session = default_session(conversation_id)
         append_memory_event(session, "session_reset", text, {"clear_result": clear_result})
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="admin_command",
@@ -9499,12 +9209,12 @@ def handle_text(
         )
         return
     if text == "/delete_history":
-        clear_result = clear_chat_history(chat_id, session_dir, log_dir, include_outputs=True, delete=True)
-        session = default_session(chat_id)
+        clear_result = clear_chat_history(conversation_id, session_dir, log_dir, include_outputs=True, delete=True)
+        session = default_session(conversation_id)
         append_memory_event(session, "session_deleted", text, {"clear_result": clear_result})
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="admin_command",
@@ -9514,7 +9224,7 @@ def handle_text(
     if text == "/help":
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="admin_command",
@@ -9538,7 +9248,7 @@ def handle_text(
         if isinstance(session.get("generation"), dict) else "idle"
     )
     if (
-        isinstance(message_context, dict)
+        isinstance(turn_context, dict)
         and intent not in {"admin_command", "greeting", "status_query"}
         and (
             not isinstance(session.get("active_request_owner"), dict)
@@ -9546,13 +9256,15 @@ def handle_text(
         )
     ):
         session["active_request_owner"] = {
-            "chat_id": str(message_context.get("chat_id", chat_id)),
-            "from_user_id": str(message_context.get("from_user_id", "")),
-            "update_id": str(message_context.get("update_id", "")),
-            "message_id": str(message_context.get("message_id", "")),
+            "conversation_id": str(turn_context.get("conversation_id", conversation_id)),
+            "reviewer_id": str(turn_context.get("reviewer_id", "")),
+            "event_id": str(turn_context.get("event_id", "")),
+            "turn_id": str(turn_context.get("turn_id", "")),
         }
-    if isinstance(message_context, dict):
-        session["telegram_chat_type"] = str(message_context.get("chat_type", session.get("telegram_chat_type", "")))
+    if isinstance(turn_context, dict):
+        session["codex_conversation_type"] = str(
+            turn_context.get("conversation_type", session.get("codex_conversation_type", ""))
+        )
     session["whiteboard"] = enforce_backend_updates_from_user_text(
         session,
         session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {},
@@ -9561,10 +9273,10 @@ def handle_text(
     save_session(session_dir, session)
 
     if intent == "greeting":
-        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, conversation_id))
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="greeting",
             session=session,
@@ -9580,7 +9292,7 @@ def handle_text(
             return
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="greeting",
@@ -9589,10 +9301,10 @@ def handle_text(
         )
         return
     if intent == "status_query":
-        evidence = delivery_evidence_state(read_truth_ledger(session_dir, chat_id))
+        evidence = delivery_evidence_state(read_truth_ledger(session_dir, conversation_id))
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="status_requested",
             session=session,
@@ -9603,7 +9315,7 @@ def handle_text(
             return
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="status_requested",
@@ -9622,7 +9334,7 @@ def handle_text(
                 project_dir,
                 checkpoint,
                 text,
-                message_context,
+                turn_context,
             )
             if approval.get("status") != "PASS":
                 checkpoint["approval_failures"] = approval.get("failures", [])
@@ -9630,35 +9342,35 @@ def handle_text(
                 save_session(session_dir, session)
                 send_customer_reply(
                     client,
-                    chat_id,
+                    conversation_id,
                     session_dir,
                     session,
                     event="user_evidence_review_identity_required",
                     direct_text="我还不能把这条消息记录为正式批准；审核对象或消息身份已变化，请在当前审核消息之后明确确认。",
                 )
                 return
-            checkpoint["consumed_message_id"] = str((message_context or {}).get("message_id", ""))
+            checkpoint["consumed_turn_id"] = str((turn_context or {}).get("turn_id", ""))
             checkpoint["status"] = "approved"
             session["pending_evidence_checkpoint"] = checkpoint
             save_session(session_dir, session)
             append_agent_session_event(
                 session_dir,
-                chat_id,
+                conversation_id,
                 {"kind": "user_evidence_review_approved", "role": "user", "text": text},
             )
-            resume_after_evidence_review(client, chat_id, session_dir, log_dir, model, timeout)
+            resume_after_evidence_review(client, conversation_id, session_dir, log_dir, model, timeout)
             return
         if decision == "AMBIGUOUS":
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="user_evidence_review_ambiguous",
                 direct_text="请明确说明是否批准当前版本用于最终打包；如果需要修改，直接告诉我要改哪里。",
             )
             return
-        record_evidence_review_feedback(client, chat_id, text, session_dir, log_dir, model, timeout, session)
+        record_evidence_review_feedback(client, conversation_id, text, session_dir, log_dir, model, timeout, session)
         return
 
     pending = current_pending_decision(session)
@@ -9693,7 +9405,7 @@ def handle_text(
             save_session(session_dir, session)
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="project_revision_prepared",
@@ -9705,7 +9417,7 @@ def handle_text(
             save_session(session_dir, session)
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="project_revision_prepare_failed",
@@ -9729,7 +9441,7 @@ def handle_text(
             session_dir,
             session,
             "active_run_bound",
-            "Telegram chat_id 已绑定 active run",
+            "Codex conversation_id 已绑定 active run",
             evidence_ref=str(run.get("id", "")),
             data={"artifact": "active_run", "run_id": run.get("id", ""), "ticket_id": ticket.get("id", "")},
         )
@@ -9743,7 +9455,7 @@ def handle_text(
         )
         analysis = apply_backend_dialogue_tick(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             model=model,
             timeout=timeout,
@@ -9751,7 +9463,7 @@ def handle_text(
         )
         turn = run_model_frontdesk_turn(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             model=model,
             timeout=timeout,
@@ -9762,35 +9474,35 @@ def handle_text(
             turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
         auto_start, start_reason = should_auto_start_generation(session, analysis, text)
         if not auto_start:
-            record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+            record_generation_start_waiting(session_dir, conversation_id, session, analysis, start_reason)
             direct_text, _ = reject_off_topic_public_reply(
                 session_dir,
-                chat_id,
+                conversation_id,
                 session,
                 build_intake_waiting_text(analysis, str(turn.get("reply", ""))),
                 source="backend_dialogue_start_policy",
             )
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="model_frontdesk_reply",
                 source="backend_dialogue_start_policy",
                 direct_text=direct_text,
             )
-            maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+            maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
             return
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             str(turn.get("reply", "")),
             source=str(turn.get("source", "customer_service_reply")),
         )
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="model_frontdesk_reply",
@@ -9799,7 +9511,7 @@ def handle_text(
         )
         start_generation_from_income(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             log_dir,
             model,
@@ -9811,14 +9523,14 @@ def handle_text(
         return
 
     if intent == "generation_confirmation":
-        record_forced_start_context(session_dir, chat_id, session)
-        session = load_session(session_dir, chat_id)
+        record_forced_start_context(session_dir, conversation_id, session)
+        session = load_session(session_dir, conversation_id)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         soft_questions = whiteboard.get("soft_questions", []) if isinstance(whiteboard.get("soft_questions"), list) else []
         if soft_questions:
             append_agent_session_event(
                 session_dir,
-                chat_id,
+                conversation_id,
                 {
                     "kind": "soft_questions_unanswered",
                     "role": "system",
@@ -9829,10 +9541,10 @@ def handle_text(
                     "soft_questions_are_blocking": False,
                 },
             )
-        if telegram_design_supervision.design_supervision_pending(whiteboard):
+        if codex_design_supervision.design_supervision_pending(whiteboard):
             start_generation_from_income(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 log_dir,
                 model,
@@ -9841,12 +9553,12 @@ def handle_text(
                 reason="frontdesk_generation_confirmation",
                 generation_mode=generation_mode,
             )
-            maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+            maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
             return
         if str(generation_mode or "api").lower() == "api":
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="generation_started",
@@ -9855,7 +9567,7 @@ def handle_text(
             )
         start_generation_from_income(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             log_dir,
             model,
@@ -9864,7 +9576,7 @@ def handle_text(
             reason="frontdesk_generation_confirmation",
             generation_mode=generation_mode,
         )
-        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
         return
 
     if intent == "escalation_request":
@@ -9887,7 +9599,7 @@ def handle_text(
         )
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="escalation_request",
             session=session,
@@ -9896,15 +9608,15 @@ def handle_text(
             timeout=timeout,
         ):
             return
-        send_customer_reply(client, chat_id, session_dir, session, event="escalation_request", facts={"message": "模型通道暂时不可用；这条升级请求已写入会话。"})
+        send_customer_reply(client, conversation_id, session_dir, session, event="escalation_request", facts={"message": "模型通道暂时不可用；这条升级请求已写入会话。"})
         return
 
-    continue_customer_turn(client, chat_id, session, session_dir, log_dir, model, timeout, {"text": text})
-    session = load_session(session_dir, chat_id)
+    continue_customer_turn(client, conversation_id, session, session_dir, log_dir, model, timeout, {"text": text})
+    session = load_session(session_dir, conversation_id)
     if generation_status in ACTIVE_GENERATION_STATUSES:
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="project_update_running",
             session=session,
@@ -9913,11 +9625,11 @@ def handle_text(
             timeout=timeout,
         ):
             return
-        send_customer_reply(client, chat_id, session_dir, session, event="project_update_running", facts={"message": "模型通道暂时不可用；补充已写入生成会话。"})
+        send_customer_reply(client, conversation_id, session_dir, session, event="project_update_running", facts={"message": "模型通道暂时不可用；补充已写入生成会话。"})
         return
     turn = run_model_frontdesk_turn(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         model=model,
         timeout=timeout,
@@ -9930,7 +9642,7 @@ def handle_text(
     if not analysis or str(analysis.get("reason", "")) != "project_update":
         analysis = apply_backend_dialogue_tick(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             model=model,
             timeout=timeout,
@@ -9938,35 +9650,35 @@ def handle_text(
         )
     auto_start, start_reason = should_auto_start_generation(session, analysis, text)
     if not auto_start:
-        record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+        record_generation_start_waiting(session_dir, conversation_id, session, analysis, start_reason)
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             build_intake_waiting_text(analysis, str(turn.get("reply", ""))),
             source="backend_dialogue_start_policy",
         )
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="model_frontdesk_reply",
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
-        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         str(turn.get("reply", "")),
         source=str(turn.get("source", "customer_service_reply")),
     )
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="model_frontdesk_reply",
@@ -9975,7 +9687,7 @@ def handle_text(
     )
     start_generation_from_income(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -9987,8 +9699,8 @@ def handle_text(
 
 
 def handle_attachment_message(
-    client: TelegramClient,
-    chat_id: int | str,
+    client: CodexConversation,
+    conversation_id: int | str,
     message: dict[str, Any],
     session_dir: pathlib.Path,
     log_dir: pathlib.Path,
@@ -9997,15 +9709,15 @@ def handle_attachment_message(
     timeout: int,
     generation_mode: str = "api",
 ) -> None:
-    session = load_session(session_dir, chat_id)
-    client.send_chat_action(chat_id, "upload_document")
+    session = load_session(session_dir, conversation_id)
+    client.send_chat_action(conversation_id, "upload_document")
     try:
-        attachments, skipped = download_message_attachments(client, chat_id, message, upload_dir)
+        attachments, skipped = download_message_attachments(client, conversation_id, message, upload_dir)
     except Exception as exc:
-        log_bridge_error(log_dir, "attachment_download_failed", chat_id, exc, {"message_id": message.get("message_id")})
+        log_bridge_error(log_dir, "attachment_download_failed", conversation_id, exc, {"turn_id": message.get("turn_id")})
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="attachment_download_failed",
@@ -10017,16 +9729,16 @@ def handle_attachment_message(
             append_memory_event(session, "user_attachment_skipped", data={"skipped": skipped})
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="attachment_skipped",
-                facts={"message": "上传资料未进入后台：文件过大或 Telegram 未返回可下载路径。", "skipped": skipped},
+                facts={"message": "上传资料未进入后台：文件过大或 Codex conversation 未返回可下载路径。", "skipped": skipped},
             )
             return
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="unsupported_attachment_received",
             session=session,
@@ -10038,7 +9750,7 @@ def handle_attachment_message(
         else:
             send_customer_reply(
                 client,
-                chat_id,
+                conversation_id,
                 session_dir,
                 session,
                 event="unsupported_attachment_received",
@@ -10065,10 +9777,10 @@ def handle_attachment_message(
         {"source": "attachment_message", "attachment_count": len(attachments)},
     )
     save_session(session_dir, session)
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     continue_customer_turn(
         client,
-        chat_id,
+        conversation_id,
         session,
         session_dir,
         log_dir,
@@ -10076,12 +9788,12 @@ def handle_attachment_message(
         timeout,
         {"attachments": recent_attachments({"attachments": attachments}, limit=len(attachments))},
     )
-    session = load_session(session_dir, chat_id)
+    session = load_session(session_dir, conversation_id)
     generation_status = str(session.get("generation", {}).get("status", "idle")).lower() if isinstance(session.get("generation"), dict) else "idle"
     if generation_status in ACTIVE_GENERATION_STATUSES:
         if send_provider_message(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             event="attachment_project_input_running",
             session=session,
@@ -10090,11 +9802,11 @@ def handle_attachment_message(
             timeout=timeout,
         ):
             return
-        send_customer_reply(client, chat_id, session_dir, session, event="attachment_project_input_running", facts={"message": "模型通道暂时不可用；上传资料已写入生成会话。"})
+        send_customer_reply(client, conversation_id, session_dir, session, event="attachment_project_input_running", facts={"message": "模型通道暂时不可用；上传资料已写入生成会话。"})
         return
     turn = run_model_frontdesk_turn(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         model=model,
         timeout=timeout,
@@ -10105,7 +9817,7 @@ def handle_attachment_message(
         turn["reply"] = (str(turn.get("reply", "")).rstrip() + "\n\n" + design_note)[:1200]
     analysis = apply_backend_dialogue_tick(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         model=model,
         timeout=timeout,
@@ -10113,35 +9825,35 @@ def handle_attachment_message(
     )
     auto_start, start_reason = should_auto_start_generation(session, analysis, user_text)
     if not auto_start:
-        record_generation_start_waiting(session_dir, chat_id, session, analysis, start_reason)
+        record_generation_start_waiting(session_dir, conversation_id, session, analysis, start_reason)
         direct_text, _ = reject_off_topic_public_reply(
             session_dir,
-            chat_id,
+            conversation_id,
             session,
             str(analysis.get("user_visible_reply") or turn.get("reply", "")),
             source="backend_dialogue_start_policy",
         )
         send_customer_reply(
             client,
-            chat_id,
+            conversation_id,
             session_dir,
             session,
             event="model_frontdesk_reply",
             source="backend_dialogue_start_policy",
             direct_text=direct_text,
         )
-        maybe_start_design_supervision(client, chat_id, session_dir, log_dir, session)
+        maybe_start_design_supervision(client, conversation_id, session_dir, log_dir, session)
         return
     direct_text, _ = reject_off_topic_public_reply(
         session_dir,
-        chat_id,
+        conversation_id,
         session,
         str(turn.get("reply", "")),
         source=str(turn.get("source", "customer_service_reply")),
     )
     send_customer_reply(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         session,
         event="model_frontdesk_reply",
@@ -10150,7 +9862,7 @@ def handle_attachment_message(
     )
     start_generation_from_income(
         client,
-        chat_id,
+        conversation_id,
         session_dir,
         log_dir,
         model,
@@ -10161,187 +9873,6 @@ def handle_attachment_message(
     )
 
 
-def run(args: argparse.Namespace) -> None:
-    global TELEGRAM_MINI_APP_URL, CODEX_DESIGN_MODE, CODEX_DESIGN_COMMAND, CODEX_DESIGN_TIMEOUT
-    global RUNTIME_SUPERVISOR_DIR, SUPERVISION_POLICY, SUPERVISION_GATE_TIMEOUT
-    global DEFAULT_MEMORY_DIR, DEFAULT_UPLOAD_DIR, PROVIDER_PROJECTS_DIR
-    TELEGRAM_MINI_APP_URL = telegram_design_supervision.mini_app_url(getattr(args, "mini_app_url", ""))
-    CODEX_DESIGN_MODE = str(getattr(args, "codex_design_mode", "disabled") or "disabled")
-    CODEX_DESIGN_COMMAND = str(getattr(args, "codex_command", "") or "").strip()
-    CODEX_DESIGN_TIMEOUT = max(30, min(int(getattr(args, "codex_design_timeout", 600)), 1200))
-    RUNTIME_SUPERVISOR_DIR = str(getattr(args, "runtime_supervisor_dir", "") or "").strip()
-    SUPERVISION_POLICY = str(getattr(args, "supervision_policy", "disabled") or "disabled").strip()
-    SUPERVISION_GATE_TIMEOUT = max(0.0, min(float(getattr(args, "supervision_gate_timeout", 0.0)), 30.0))
-    if not RUNTIME_SUPERVISOR_DIR:
-        SUPERVISION_POLICY = "disabled"
-    if runtime_supervision_enabled() and CODEX_DESIGN_MODE == "cli":
-        raise ValueError("ephemeral Codex design mode cannot be combined with persistent runtime supervision")
-    token = resolve_token(args.token)
-    client = TelegramClient(token, args.http_timeout)
-    session_dir = pathlib.Path(args.session_dir).resolve()
-    log_dir = pathlib.Path(args.log_dir).resolve()
-    upload_dir = pathlib.Path(args.upload_dir).resolve()
-    memory_dir = pathlib.Path(getattr(args, "memory_dir", DEFAULT_MEMORY_DIR)).resolve()
-    provider_projects_dir = pathlib.Path(getattr(args, "provider_projects_dir", PROVIDER_PROJECTS_DIR)).resolve()
-    DEFAULT_MEMORY_DIR = memory_dir
-    DEFAULT_UPLOAD_DIR = upload_dir
-    PROVIDER_PROJECTS_DIR = provider_projects_dir
-    session_dir.mkdir(parents=True, exist_ok=True)
-    log_dir.mkdir(parents=True, exist_ok=True)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    memory_dir.mkdir(parents=True, exist_ok=True)
-    provider_projects_dir.mkdir(parents=True, exist_ok=True)
-    allowed_chat = str(args.chat_id).strip()
-    offset = int(args.offset)
-    if runtime_supervision_enabled():
-        cgkn_supervision_protocol.write_service_heartbeat(RUNTIME_SUPERVISOR_DIR)
-        cgkn_supervision_protocol.emit_checkpoint(
-            RUNTIME_SUPERVISOR_DIR,
-            "service_startup",
-            repository_root=ROOT,
-            reason="The CGKN Telegram intake service started and initialized its persistent state directories.",
-            requested_action="observe",
-        )
-    print(f"TELEGRAM_ONLY_BRIDGE: running chat_id={allowed_chat or '*'} session_dir={session_dir}", flush=True)
-    auto_started = auto_start_pending_intakes(
-        client,
-        session_dir,
-        log_dir,
-        args.model,
-        args.generation_timeout,
-        allowed_chat=allowed_chat,
-        generation_mode=args.generation_mode,
-    )
-    if auto_started:
-        print(f"TELEGRAM_ONLY_BRIDGE: auto_started_pending_intakes={auto_started}", flush=True)
-    while True:
-        if runtime_supervision_enabled():
-            cgkn_supervision_protocol.write_service_heartbeat(RUNTIME_SUPERVISOR_DIR)
-        resumed = auto_resume_supervised_intakes(
-            client,
-            session_dir,
-            log_dir,
-            args.model,
-            args.generation_timeout,
-            allowed_chat=allowed_chat,
-            generation_mode=args.generation_mode,
-        )
-        if resumed:
-            print(f"TELEGRAM_ONLY_BRIDGE: supervisor_released_intakes={resumed}", flush=True)
-        try:
-            updates = client.get_updates(offset, args.poll_timeout)
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError, RuntimeError) as exc:
-            print(f"poll failed: {client.redact_for_log(exc)}", flush=True)
-            time.sleep(args.retry_delay)
-            continue
-        for update in updates:
-            update_id = int(update.get("update_id", 0))
-            offset = max(offset, update_id + 1)
-            message = update.get("message") or update.get("edited_message") or {}
-            if not isinstance(message, dict):
-                continue
-            chat = message.get("chat") or {}
-            chat_id = chat.get("id")
-            if chat_id is None:
-                continue
-            if allowed_chat and str(chat_id) != allowed_chat:
-                continue
-            web_app_data = message.get("web_app_data") if isinstance(message.get("web_app_data"), dict) else {}
-            text = str(message.get("text", "")).strip()
-            if not text and web_app_data:
-                text = telegram_design_supervision.web_app_user_text(web_app_data)
-            if not text:
-                handle_attachment_message(
-                    client,
-                    chat_id,
-                    message,
-                    session_dir,
-                    log_dir,
-                    upload_dir,
-                    args.model,
-                    args.generation_timeout,
-                    args.generation_mode,
-                )
-                continue
-            from_user = message.get("from") if isinstance(message.get("from"), dict) else {}
-            handle_text(
-                client,
-                chat_id,
-                text,
-                session_dir,
-                log_dir,
-                args.model,
-                args.generation_timeout,
-                args.generation_mode,
-                message_context={
-                    "update_id": update_id,
-                    "message_id": message.get("message_id"),
-                    "chat_id": chat_id,
-                    "chat_type": chat.get("type", ""),
-                    "from_user_id": from_user.get("id"),
-                    "from_username": from_user.get("username", ""),
-                    "message_date": message.get("date"),
-                    "edited_message": "edited_message" in update,
-                    "web_app_data": bool(web_app_data),
-                },
-            )
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Telegram-only CGNK customer-service bridge.")
-    parser.add_argument("--token", default="")
-    parser.add_argument("--chat-id", default="")
-    parser.add_argument("--session-dir", default=str(DEFAULT_SESSION_DIR))
-    parser.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
-    parser.add_argument("--upload-dir", default=str(DEFAULT_UPLOAD_DIR))
-    parser.add_argument("--memory-dir", default=str(DEFAULT_MEMORY_DIR))
-    parser.add_argument("--provider-projects-dir", default=str(DEFAULT_PROVIDER_PROJECTS_DIR))
-    parser.add_argument(
-        "--mini-app-url",
-        default=os.environ.get("CGKN_TELEGRAM_MINI_APP_URL", ""),
-        help="Public HTTPS Telegram Mini App URL shown as the operation-panel button.",
-    )
-    parser.add_argument(
-        "--codex-design-mode",
-        choices=["disabled", "request-only", "cli"],
-        default=os.environ.get("CGKN_TELEGRAM_CODEX_DESIGN_MODE", "disabled"),
-        help="disabled is API-only; request-only and cli are transitional compatibility modes.",
-    )
-    parser.add_argument("--codex-command", default=os.environ.get("CGKN_TELEGRAM_CODEX_COMMAND", ""))
-    parser.add_argument("--codex-design-timeout", type=int, default=600)
-    parser.add_argument(
-        "--runtime-supervisor-dir",
-        default=os.environ.get("CGKN_RUNTIME_SUPERVISOR_DIR", ""),
-        help="Project-local support directory shared with the persistent Codex supervisor host.",
-    )
-    parser.add_argument(
-        "--supervision-policy",
-        choices=["disabled", "observe", "gate"],
-        default=os.environ.get("CGKN_SUPERVISION_POLICY", "disabled"),
-        help="observe records checkpoints; gate also pauses Provider start until the supervisor releases it.",
-    )
-    parser.add_argument(
-        "--supervision-gate-timeout",
-        type=float,
-        default=float(os.environ.get("CGKN_SUPERVISION_GATE_TIMEOUT", "0") or 0),
-        help="Optional short synchronous wait; zero keeps Telegram polling responsive and auto-resumes later.",
-    )
-    parser.add_argument("--model", default=model_policy.select_model("provider_generation"))
-    parser.add_argument("--generation-timeout", type=int, default=420)
-    parser.add_argument(
-        "--generation-mode",
-        choices=["simulator", "api"],
-        default=os.environ.get("CGNK_TELEGRAM_GENERATION_MODE", "api"),
-        help="api runs the reviewed provider delivery route; simulator performs preflight only and can never deliver PASS.",
-    )
-    parser.add_argument("--http-timeout", type=int, default=35)
-    parser.add_argument("--poll-timeout", type=int, default=20)
-    parser.add_argument("--retry-delay", type=float, default=3.0)
-    parser.add_argument("--offset", type=int, default=0)
-    args = parser.parse_args()
-    run(args)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+# The Codex app owns the sole user-facing conversation loop.  This module is
+# intentionally import-only: Codex invokes its bounded functions directly and
+# renders returned text or local artifact links in the active task.

@@ -5,36 +5,36 @@ import tempfile
 
 import pytest
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
-pytestmark = [pytest.mark.provider, pytest.mark.telegram, pytest.mark.e2e]
+pytestmark = [pytest.mark.provider, pytest.mark.codex, pytest.mark.e2e]
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
 def _patch_dialogue(monkeypatch):
-    def fake_analysis(session_dir, chat_id, session, *, model, timeout, reason):
+    def fake_analysis(session_dir, conversation_id, session, *, model, timeout, reason):
         latest = bridge.latest_user_text(session)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         summary = str(whiteboard.get("project_summary") or "").strip()
@@ -90,13 +90,13 @@ def test_auto_start_policy_starts_at_most_once_across_followup_messages(monkeypa
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         starts: list[str] = []
         _patch_dialogue(monkeypatch)
 
-        def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+        def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
             starts.append(reason)
-            session = bridge.load_session(session_dir_arg, chat_id)
+            session = bridge.load_session(session_dir_arg, conversation_id)
             session["generation"] = {"status": "running", "driver": "controlled_start_test"}
             bridge.update_active_run_status(session, "running", driver="controlled_start_test")
             bridge.save_session(session_dir_arg, session)
@@ -126,7 +126,7 @@ def test_delivered_revision_requests_do_not_start_new_generation(monkeypatch) ->
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         _patch_dialogue(monkeypatch)
         starts: list[str] = []
         monkeypatch.setattr(bridge, "start_agent_generation", lambda *args, **kwargs: starts.append(str(kwargs.get("reason", ""))))
@@ -151,13 +151,13 @@ def test_running_model_backend_question_explains_two_layers_without_restart(monk
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         _patch_dialogue(monkeypatch)
         starts: list[str] = []
 
-        def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+        def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
             starts.append(reason)
-            session = bridge.load_session(session_dir_arg, chat_id)
+            session = bridge.load_session(session_dir_arg, conversation_id)
             session["generation"] = {"status": "running", "driver": "controlled_start_test", "effective_generation_mode": "api"}
             bridge.update_active_run_status(session, "running", driver="controlled_start_test")
             bridge.save_session(session_dir_arg, session)

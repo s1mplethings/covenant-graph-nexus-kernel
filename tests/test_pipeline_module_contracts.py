@@ -30,7 +30,7 @@ class PipelineModuleContractTests(unittest.TestCase):
         source = (ROOT / "scripts" / "run_local_pipeline.py").read_text(encoding="utf-8", errors="replace")
 
         self.assertIn("api_provider_for_delivery_simulator_for_preflight_only", source)
-        self.assertNotIn("telegram_live_bridge", source)
+        self.assertNotIn("codex_conversation", source)
         self.assertNotIn("send_delivery_from_manifest", source)
 
     def test_provider_generation_module_contract(self) -> None:

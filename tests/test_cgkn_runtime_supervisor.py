@@ -19,7 +19,7 @@ for value in (ROOT, SCRIPTS):
 
 import scripts.cgkn_runtime_supervisor as runtime
 import scripts.cgkn_supervision_protocol as protocol
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
 def _emit(state_dir: pathlib.Path, checkpoint_type: str = "service_startup", action: str = "observe") -> dict:
@@ -29,7 +29,7 @@ def _emit(state_dir: pathlib.Path, checkpoint_type: str = "service_startup", act
         repository_root=ROOT,
         reason=f"test {checkpoint_type}",
         requested_action=action,
-        chat_id="chat-1",
+        conversation_id="chat-1",
         project_id="project-1",
         run_id="run-1",
     )
@@ -53,13 +53,6 @@ def test_process_liveness_probe_handles_current_process_on_windows() -> None:
     completed = subprocess.Popen([sys.executable, "-c", "pass"])
     completed.wait(timeout=10)
     assert runtime.process_is_alive(completed.pid) is False
-
-
-def test_default_telegram_service_runs_as_repository_module() -> None:
-    args = runtime.build_parser().parse_args(["run", "--start-telegram"])
-    argv = runtime._default_telegram_argv(args)
-
-    assert argv[:3] == [sys.executable, "-m", "scripts.telegram_live_bridge"]
 
 
 def test_checkpoint_journal_is_hash_linked_and_secret_redacted() -> None:
@@ -167,31 +160,7 @@ def test_supervisor_detects_cursor_discontinuity_before_invoking_codex() -> None
         assert first["checkpoint_sha256"] != "wrong"
 
 
-def test_host_starts_service_without_persisting_credentials_and_reads_heartbeat() -> None:
-    class FakeProcess:
-        pid = 43210
-
-        def poll(self):
-            return None
-
-    popen = mock.Mock(return_value=FakeProcess())
-    with tempfile.TemporaryDirectory() as temp_dir:
-        state_dir = pathlib.Path(temp_dir)
-        host = runtime.SupervisorHost(ROOT, state_dir, adapter=mock.Mock(), popen_factory=popen)
-        state = host.ensure_service([sys.executable, str(SCRIPTS / "telegram_live_bridge.py")])
-        protocol.write_service_heartbeat(state_dir, service_pid=43210)
-        status = host.status()
-
-        assert state["service_pid"] == 43210
-        assert "service_command_sha256" in state
-        assert "token" not in json.dumps(state).lower()
-        assert status["service_health"]["healthy"] is True
-        with pytest.raises(ValueError, match="credentials"):
-            host.ensure_service([sys.executable, str(SCRIPTS / "telegram_live_bridge.py"), "--token", "secret"])
-        host.close()
-
-
-def test_telegram_provider_gate_waits_then_accepts_matching_supervisor_release() -> None:
+def test_codex_provider_gate_waits_then_accepts_matching_supervisor_release() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         state_dir = root / "supervisor"
@@ -232,7 +201,7 @@ def test_telegram_provider_gate_waits_then_accepts_matching_supervisor_release()
 
 
 def test_bridge_and_supervisor_keep_formal_authorities_outside_runtime_protocol() -> None:
-    bridge_source = (SCRIPTS / "telegram_live_bridge.py").read_text(encoding="utf-8")
+    bridge_source = (SCRIPTS / "codex_conversation.py").read_text(encoding="utf-8")
     host_source = (SCRIPTS / "cgkn_runtime_supervisor.py").read_text(encoding="utf-8")
     protocol_source = (SCRIPTS / "cgkn_supervision_protocol.py").read_text(encoding="utf-8")
 

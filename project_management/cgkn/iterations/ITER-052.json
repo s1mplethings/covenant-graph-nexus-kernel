@@ -1,0 +1,88 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-052",
+  "project_id": "cgkn",
+  "goal": "Design and implement executable cross-validation and bounded feedforward inside the real Provider project-generation lifecycle while preserving formal evidence, packaging, and delivery authority boundaries.",
+  "backlog_item_ids": [
+    "PB-042"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Every newly generated and checkpoint-reused component produces a current hash-bound cross-validation receipt before downstream publication.",
+    "The receipt cross-binds frozen plan paths, actual files, component quality receipt, implemented interface registry, upstream completion, and passing upstream receipts.",
+    "Only a verified passing receipt creates the bounded projection embedded in the next integration feedforward snapshot.",
+    "The assembled project produces an aggregate receipt before the existing post-build stage.",
+    "Failure blocks or uses the existing component quality repair route and cannot create a second generation path.",
+    "The receipts remain veto-only support state and cannot assert formal evidence, package, deliver, or replace canonical test/runtime/visual gates.",
+    "Positive, tamper, missing-path, missing-upstream, component-loop integration, management validation, and kernel guard tests pass."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CROSS-FEEDFORWARD",
+      "measure": "cross-view consistency and safe downstream publication during real project generation",
+      "target": "100% of generated and reused components have hash-valid plan/quality/interface/upstream receipts before publication, only passing bounded projections feed downstream, and one aggregate receipt exists before post-build",
+      "method": "deterministic positive and negative receipt tests, component-loop integration test, artifact/event-log inspection, and kernel authority guard"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Define stage position, independent views, failure behavior, bounded output, and authority exclusions before integration."
+    ],
+    "assurance": [
+      "Review the design against the kernel mainline and local_packager-only exit.",
+      "Verify checkpoint reuse is revalidated and downstream context receives no failed projection.",
+      "Review support status and formal EvidenceStatus separation."
+    ],
+    "control": [
+      "Run deterministic receipt tests including tamper and missing-upstream cases.",
+      "Run a mocked real component-generation loop with artifacts and event logs.",
+      "Run management validation and kernel contract guards."
+    ],
+    "improvement": [
+      "Record experience usage outcomes and retain post-build evidence convergence as a separate future increment only if it does not duplicate canonical gates."
+    ]
+  },
+  "interface_expectations": [
+    "scripts/cross_validation_feedforward.py owns deterministic receipt and projection construction without Provider, packaging, or delivery calls.",
+    "scripts/run_local_pipeline_impl.py invokes the receipt after component quality validation for new and reused components and before component publication.",
+    "CGKNIntegrationFeedforwardSnapshot.upstream_state carries only bounded verified passing projections.",
+    "The aggregate receipt is written before post-build continuation while canonical evidence and local_packager remain unchanged."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-052_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Deterministic and integration evidence passed, and a real qwen3-coder-plus run produced two passing component receipts with verified upstream-to-downstream feedforward; the Provider failed later at the existing split-test anchor contract before aggregate post-build evidence."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-042"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Separating the four independent views in one hash-bound veto-only receipt made component publication and downstream context objectively auditable without adding a generation route."
+    ],
+    "did_not_work": [
+      "The first generic calculator goal did not pass existing requirement planning, and the supported Notes CLI run stopped when Qwen could not satisfy the existing split-test anchor after bounded repair."
+    ],
+    "experiments": [
+      "Resume a comparable supported project at the tests component and measure whether the aggregate receipt is produced before post-build while keeping the current strict test-anchor validator."
+    ]
+  }
+}

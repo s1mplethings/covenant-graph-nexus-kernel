@@ -13,7 +13,7 @@
     "Existing test, runtime, visual, review, packaging, and delivery truth semantics remain unchanged.",
     "Knowledge Studio capabilities appear only when the user goal explicitly requests that product domain.",
     "Pomodoro, CSV cleaning, and visual-novel editor goals produce distinct capabilities, user flows, entities, business workstreams, leaf scopes, outputs, and test intents.",
-    "The Telegram Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
+    "The Codex conversation Provider path consumes the canonical GoalSpec and project plan through its existing component and leaf context without adding a generation route.",
     "Unknown but sufficiently explicit goals receive a goal-derived plan or an explicit NEEDS_REWORK result, never an unrelated Knowledge Studio plan."
   ],
   "quality_metrics": [

@@ -12,10 +12,10 @@ sys.path.insert(0, str(ROOT))
 import scripts.agent_conversation_loop as agent_loop
 import scripts.local_agent_actions as local_actions
 import scripts.local_packager as local_packager
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
@@ -23,23 +23,23 @@ class FakeTelegramClient:
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.videos: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.videos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.videos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
@@ -91,7 +91,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
     def test_customer_text_appends_to_agent_session(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             bridge.start_agent_generation = lambda *args, **kwargs: None
             try:
@@ -107,7 +107,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
@@ -142,7 +142,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             called = {"ran": False}
@@ -170,13 +170,13 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_start = bridge.start_agent_generation
             original_loop = bridge.agent_conversation_loop.run_agent_loop
 
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                called["chat_id"] = str(chat_id)
+            def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["conversation_id"] = str(conversation_id)
                 called["session_dir"] = str(session_dir_arg)
                 called["log_dir"] = str(log_dir_arg)
                 called["announce_start"] = announce_start
@@ -194,7 +194,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.start_agent_generation = original_start
                 bridge.agent_conversation_loop.run_agent_loop = original_loop
 
-            self.assertEqual("chat-async", called["chat_id"])
+            self.assertEqual("chat-async", called["conversation_id"])
             self.assertEqual(str(session_dir), called["session_dir"])
             self.assertEqual(str(log_dir), called["log_dir"])
             self.assertFalse(called["announce_start"])
@@ -204,7 +204,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             called = {"start": False}
 
@@ -380,7 +380,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertNotEqual("PASS", result.get("status"))
             self.assertEqual('{"ok": true}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
 
-    def test_telegram_delivery_uses_delivery_manifest(self) -> None:
+    def test_conversation_delivery_uses_delivery_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
@@ -388,7 +388,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             manifest = make_manifest(project_dir)
             session = bridge.default_session("chat-d")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             sent = bridge.send_delivery_from_manifest(client, "chat-d", session_dir, session, manifest)
 
@@ -411,7 +411,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             session["active_run"] = {"id": "run-1", "status": "running", "created_at": bridge.now()}
             session["generation"] = {"status": "running"}
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             bridge.finish_agent_loop_delivery(
                 client,
@@ -438,7 +438,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             project_dir.mkdir()
             session = bridge.default_session("chat-provider-result")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             result = {
                 "status": "PASS",
                 "driver": "api_provider_project_generation",
@@ -452,7 +452,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             captured: dict[str, object] = {}
             original_send = bridge.send_delivery_from_manifest
 
-            def fake_send(_client, _chat_id, _session_dir, _session, _manifest, provider_result=None):
+            def fake_send(_client, _conversation_id, _session_dir, _session, _manifest, provider_result=None):
                 captured["provider_result"] = provider_result
                 return []
 
@@ -469,7 +469,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-fail-rework")
             session["active_run"] = {"id": "run-fail", "goal": "做一个本地工具", "status": "running", "created_at": bridge.now()}
             session["whiteboard"]["project_summary"] = "做一个本地工具"
@@ -501,7 +501,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_subprocess = bridge.run_generation_subprocess
             original_thread = bridge.threading.Thread
@@ -512,7 +512,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 return make_provider_result(pathlib.Path(args.out_dir))
 
             def forbidden_subprocess(*args, **kwargs):
-                raise AssertionError("Telegram mainline must not call old no-api subprocess path")
+                raise AssertionError("Codex conversation mainline must not call old no-api subprocess path")
 
             bridge.provider_project_pipeline.execute = fake_execute
             bridge.run_generation_subprocess = forbidden_subprocess
