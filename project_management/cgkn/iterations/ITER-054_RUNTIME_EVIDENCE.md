@@ -20,6 +20,8 @@ or formal public PASS.
 - `provider_jobs.py` contains only ProviderJob/PatchSet contracts and
   validation. The production worker pool remains solely in
   `run_local_pipeline_impl.py`.
+- Exact leaf-id repair targeting was verified: `backend:a` maps only to
+  `src/a.py` and does not widen to the adjacent `src/b.py` leaf.
 
 ## Regression evidence
 
@@ -31,8 +33,12 @@ or formal public PASS.
 - Initial quick run: 1403 passed, 6 failed, 461 deselected. It exposed one
   over-narrow evidence invalidation role and five stale support-lane tests that
   patched duplicate bare/package module instances.
-- Corrected quick run: 1409 passed, 0 failed, 461 deselected in 873.08 seconds;
-  profile artifact status is PASS.
+- Corrected quick run: 1409 passed, 0 failed, 461 deselected in 873.08 seconds.
+- Final quick run after the exact leaf-id mapping correction: 1410 passed,
+  0 failed, 461 deselected in 550.45 seconds; profile artifact status is PASS.
+- Post-commit quick run bound to code commit `80ac2fb`: 1410 passed, 0 failed,
+  461 deselected in 569.39 seconds; profile artifact status and artifact hash
+  validation are PASS.
 
 ## Provider live status
 
