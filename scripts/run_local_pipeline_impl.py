@@ -23269,6 +23269,132 @@ def prepare_semantic_repair_retry_plan(
     return prepared
 
 
+def prepare_supervision_provider_repair(
+    run_dir: pathlib.Path | str,
+    audit_result: dict[str, Any],
+    *,
+    user_goal: str,
+) -> dict[str, Any]:
+    """Translate an audited project contradiction into the existing leaf-repair resume contract."""
+    root = pathlib.Path(run_dir).resolve()
+    checkpoint_path = root / "artifacts" / "generation_plan_checkpoint.json"
+    if not checkpoint_path.is_file():
+        raise RuntimeError("supervision_provider_repair_plan_checkpoint_missing")
+    checkpoint = load_json(checkpoint_path)
+    plan_doc = checkpoint.get("plan_doc", {}) if isinstance(checkpoint, dict) else {}
+    if not isinstance(plan_doc, dict) or not plan_doc:
+        raise RuntimeError("supervision_provider_repair_plan_checkpoint_invalid")
+    component_pipeline = component_pipeline_from_plan(user_goal, plan_doc)
+    components = [
+        str(row.get("id", "")).strip()
+        for row in component_pipeline.get("components", [])
+        if isinstance(row, dict) and str(row.get("id", "")).strip()
+    ]
+    checkpoint_dir = root / "artifacts" / "provider_components"
+    component_files = component_files_from_checkpoints(checkpoint_dir)
+    file_owner = {
+        str(item.get("path", "")).replace("\\", "/").strip(): component_id
+        for component_id, rows in component_files.items()
+        for item in rows
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    leaf_owner: dict[str, tuple[str, str]] = {}
+    for graph_path in (
+        checkpoint_dir.rglob("*leaf_work_graph*.json")
+        if checkpoint_dir.exists()
+        else []
+    ):
+        try:
+            graph = load_json(graph_path)
+        except Exception:
+            continue
+        component_id = str(graph.get("component_id", "")).strip()
+        for leaf in graph.get("leaves", []) if isinstance(graph.get("leaves"), list) else []:
+            if not isinstance(leaf, dict):
+                continue
+            leaf_id = str(leaf.get("leaf_id", "")).strip()
+            path = str(leaf.get("path", "")).replace("\\", "/").strip()
+            if leaf_id and component_id:
+                leaf_owner[leaf_id] = (component_id, path)
+    narrative = "\n".join(
+        [
+            str(audit_result.get("summary", "")),
+            *[str(item) for item in audit_result.get("diagnosis", [])],
+            *[str(item) for item in audit_result.get("guidance", [])],
+            *[str(item) for item in audit_result.get("acceptance_checks", [])],
+        ]
+    ).strip()
+    fallback_components = route_semantic_review_blockers([narrative], component_pipeline)
+    if str(audit_result.get("scope", "")) == "integration":
+        integration_components = [item for item in ("frontend", "backend") if item in components]
+        if integration_components:
+            fallback_components = integration_components
+    structured_blockers: list[dict[str, Any]] = []
+    targets = [str(item).replace("\\", "/").strip() for item in audit_result.get("repair_targets", []) if str(item).strip()]
+    for target in targets or [""]:
+        target_components: list[str] = []
+        files_hint: list[str] = []
+        if target in file_owner:
+            target_components = [file_owner[target]]
+            files_hint = [target]
+        elif target in leaf_owner:
+            owner, path = leaf_owner[target]
+            target_components = [owner]
+            files_hint = [path] if path else []
+        elif target in components:
+            target_components = [target]
+        else:
+            prefix = target.split(".", 1)[0]
+            if prefix in components:
+                target_components = [prefix]
+            else:
+                target_components = list(fallback_components)
+        structured_blockers.append(
+            {
+                "kind": "generic_semantic_blocker",
+                "raw": "\n".join(item for item in (f"Audited target: {target}" if target else "", narrative) if item),
+                "components": target_components,
+                "files_hint": files_hint,
+                "repair_hint": narrative or "Repair the audited contradiction without modifying unrelated passed work.",
+                "severity": "hard",
+            }
+        )
+    repair_plan = compile_repair_plan(
+        structured_blockers,
+        component_files,
+        component_pipeline=component_pipeline,
+    )
+    if not repair_plan_provider_components(repair_plan):
+        raise RuntimeError("supervision_provider_repair_has_no_affected_provider_job")
+    prepared = prepare_semantic_repair_retry_plan(
+        repair_plan,
+        [narrative or "False-pass audit rejected the positive transition."],
+        user_goal,
+        component_pipeline,
+    )
+    prepared.update(
+        {
+            "kind": "CGKNSupervisionProviderRepairPlan",
+            "checkpoint_id": str(audit_result.get("checkpoint_id", "")),
+            "audit_result_sha256": str(audit_result.get("result_sha256", "")),
+            "supervision_scope": str(audit_result.get("scope", "project")),
+            "supervision_repair_targets": targets,
+            "created_at": now(),
+        }
+    )
+    pending_path = root / "artifacts" / "pending_repair_plan.json"
+    write_pending_repair_context(pending_path, prepared)
+    return {
+        "kind": "CGKNSupervisionProviderRepairPreparationReceipt",
+        "status": "pending_provider_repair",
+        "pending_repair_plan_ref": str(pending_path.resolve()),
+        "affected_components": repair_plan_provider_components(prepared),
+        "affected_files": list(prepared.get("affected_files", [])),
+        "provider_authoring_required": True,
+        "formal_evidence_authorized": False,
+    }
+
+
 def route_semantic_review_blockers(issues: list[str], component_pipeline: dict[str, Any]) -> list[str]:
     components = [str(row.get("id", "")).strip() for row in component_pipeline.get("components", []) if isinstance(row, dict)]
     available = {item for item in components if item}

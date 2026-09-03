@@ -52,6 +52,8 @@ Codex user message or attachment
 -> deterministic ownership check, merge, and integration
 -> Provider validation and canonical evidence
 -> sparse positive-transition False-Pass audit
+-> deterministic route consumption (`rework_project`, `recheck_evidence`, or governed `repair_kernel`)
+-> original positive checkpoint re-emission and bounded re-audit
 -> canonical evidence
 -> Codex user review when required
 -> local_packager and delivery gate
@@ -68,3 +70,10 @@ creates a governed request requiring reproduction, a regression test, an
 allowlisted isolated workspace-write execution, passing checks, and re-audit of
 the original checkpoint. Generated candidates, artifacts, runs, workspaces,
 packages, and delivery state are absent from that writable mirror.
+
+Production route consumption is bounded by
+`MAX_SUPERVISION_REWORK_ROUNDS=2`. Two consecutive refusals at the same
+positive transition stop as `NEEDS_REWORK`; `user_decision` waits for review
+and `halt` stops explicitly. Project repair resumes the existing split-file
+Provider leaf executor, evidence recheck calls no Provider, and no pending
+route receipt can act as evidence or delivery authority.

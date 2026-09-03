@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 import scripts.agent_conversation_loop as agent_loop
 import scripts.local_agent_actions as local_actions
 import scripts.local_packager as local_packager
+import scripts.pipeline_planner_agent as planner_agent
 import scripts.codex_conversation as bridge
 
 
@@ -173,7 +174,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_start = bridge.start_agent_generation
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_loop = agent_loop.run_agent_loop
 
             def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
                 called["conversation_id"] = str(conversation_id)
@@ -186,13 +187,13 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 raise AssertionError("generation_confirmation must not synchronously call run_agent_loop")
 
             bridge.start_agent_generation = fake_start
-            bridge.agent_conversation_loop.run_agent_loop = forbidden_loop
+            agent_loop.run_agent_loop = forbidden_loop
             try:
                 bridge.handle_text(client, "chat-async", "做一个本地文本转换工具", session_dir, log_dir, "gpt-test", 30)
                 bridge.handle_text(client, "chat-async", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
                 bridge.start_agent_generation = original_start
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                agent_loop.run_agent_loop = original_loop
 
             self.assertEqual("chat-async", called["conversation_id"])
             self.assertEqual(str(session_dir), called["session_dir"])
@@ -474,16 +475,16 @@ class AgentConversationMainlineTests(unittest.TestCase):
             session["active_run"] = {"id": "run-fail", "goal": "做一个本地工具", "status": "running", "created_at": bridge.now()}
             session["whiteboard"]["project_summary"] = "做一个本地工具"
             bridge.save_session(session_dir, session)
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_plan = planner_agent.plan_pipeline
+            original_loop = agent_loop.run_agent_loop
 
-            bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("planner transport failed"))
-            bridge.agent_conversation_loop.run_agent_loop = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider TLS failed"))
+            planner_agent.plan_pipeline = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("planner transport failed"))
+            agent_loop.run_agent_loop = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider TLS failed"))
             try:
                 bridge.run_agent_generation_job(client, "chat-fail-rework", session_dir, log_dir, "gpt-test", 5)
             finally:
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                planner_agent.plan_pipeline = original_plan
+                agent_loop.run_agent_loop = original_loop
 
             saved = bridge.load_session(session_dir, "chat-fail-rework")
             self.assertEqual("rework_blocked", saved["generation"]["status"])

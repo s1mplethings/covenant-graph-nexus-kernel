@@ -35,6 +35,24 @@ Canonical actions are only `resume`, `rework_project`, `recheck_evidence`,
 project issues to Provider, evidence/identity issues to canonical rechecking,
 and actual CGKN defects to a separate governed kernel-repair execution.
 
+The production bridge MUST consume the router receipt rather than convert a
+non-resume audit into an ordinary Provider exception. `rework_project` writes a
+bounded repair plan and resumes the existing production leaf executor for only
+the affected jobs, then repeats Provider validation and the original audit.
+`recheck_evidence` invokes no Provider: it invalidates the affected stale
+canonical receipts, reruns their canonical producer/verifier, and repeats the
+original audit. `repair_kernel` invokes the governed repair path, requires its
+regression checks to pass, and repeats the original audit. `user_decision`
+enters waiting-user-review and `halt` stops explicitly. The hard constant
+`MAX_SUPERVISION_REWORK_ROUNDS=2` means that two consecutive audit refusals at
+one recovery checkpoint produce `NEEDS_REWORK`; no recovery loop is unbounded.
+
+`scripts/provider_jobs.py` is a pure ProviderJob/PatchSet contract and ownership
+validator. It MUST NOT own a worker pool or scheduler. The dependency-wave,
+bounded-concurrency split-file leaf executor in
+`scripts/run_local_pipeline_impl.py` is the single production ProviderJob
+execution authority, including same-run affected-only repair and PASS reuse.
+
 Governed kernel repair runs outside the read-only assessment turn in an
 allowlisted isolated mirror. It requires a reproduction check and regression
 test target, may copy back only declared CGKN-owned source/test/doc/schema or

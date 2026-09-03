@@ -131,7 +131,11 @@ def check_codex(results: list[CheckResult]) -> None:
         ", ".join(missing + agent_default_forbidden),
     )
 
-    provider_job = function_body(text, "run_provider_generation_job") + function_body(text, "run_provider_execute_with_retries")
+    provider_job = (
+        function_body(text, "run_provider_generation_job")
+        + function_body(text, "run_provider_execute_with_retries")
+        + function_body(text, "execute_validated_provider_round")
+    )
     ok, missing = contains_all(
         provider_job,
         [

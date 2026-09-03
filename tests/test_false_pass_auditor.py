@@ -15,6 +15,7 @@ for value in (ROOT, SCRIPTS):
 
 import cgkn_runtime_supervisor as runtime
 import cgkn_supervision_protocol as protocol
+import codex_conversation as production_bridge
 import governed_kernel_repair
 
 
@@ -209,3 +210,214 @@ def test_clean_happy_path_uses_exactly_two_sparse_audits() -> None:
     metrics = json.loads((state_dir / "supervision_metrics.json").read_text(encoding="utf-8"))
     assert metrics["codex_supervisor_invocation_count"] == 2
     assert metrics["codex_kernel_repair_invocation_count"] == 0
+
+
+def _emit_result(
+    state_dir: pathlib.Path,
+    draft: dict,
+    *,
+    checkpoint_type: str = "integration_complete",
+) -> tuple[dict, InjectedAuditor]:
+    protocol.emit_checkpoint(
+        state_dir,
+        checkpoint_type,
+        repository_root=ROOT,
+        reason="production recovery checkpoint",
+        requested_action="resume",
+        context_refs=[{"role": "evidence", "ref": "evidence.json", "sha256": "d" * 64}],
+    )
+    adapter = InjectedAuditor(draft)
+    result = runtime.SupervisorHost(ROOT, state_dir, adapter).process_next()
+    assert result is not None
+    return result, adapter
+
+
+def test_production_recovery_a_provider_repair_reaudits_and_resumes(monkeypatch, tmp_path: pathlib.Path) -> None:
+    monkeypatch.setattr(production_bridge, "RUNTIME_SUPERVISOR_DIR", str(tmp_path))
+    initial, first = _emit_result(
+        tmp_path,
+        _draft("rework_project", "integration", targets=["integration.api_contract"]),
+    )
+    provider_calls: list[str] = []
+    auditors = [first]
+
+    def repair(audit: dict, route: dict) -> dict:
+        provider_calls.extend(route["repair_targets"])
+        return {"status": "provider_repair_validated"}
+
+    def reaudit() -> dict:
+        result, adapter = _emit_result(tmp_path, _draft("resume", "none"))
+        auditors.append(adapter)
+        return result
+
+    outcome = production_bridge.run_supervision_recovery_cycle(
+        initial,
+        reaudit=reaudit,
+        handlers={"rework_project": repair},
+    )
+    assert outcome["outcome"] == "resumed"
+    assert provider_calls == ["integration.api_contract"]
+    assert outcome["audit_count"] == 2
+    assert sum(item.calls for item in auditors) == 2
+    assert not (tmp_path / "routes" / "pending_provider_repair.json").exists()
+
+
+def test_production_recovery_b_stale_evidence_reruns_verifier_without_provider(monkeypatch, tmp_path: pathlib.Path) -> None:
+    state_dir = tmp_path / "state"
+    project_dir = tmp_path / "project"
+    run_dir = tmp_path / "run"
+    project_dir.mkdir()
+    stale_evidence = run_dir / "provider_validation_receipt.json"
+    stale_evidence.parent.mkdir()
+    stale_evidence.write_text('{"status":"stale"}\n', encoding="utf-8")
+    monkeypatch.setattr(production_bridge, "RUNTIME_SUPERVISOR_DIR", str(state_dir))
+    initial, first = _emit_result(
+        state_dir,
+        _draft("recheck_evidence", "identity", evidence_ref=str(stale_evidence)),
+        checkpoint_type="pre_public_delivery",
+    )
+    verifier_calls = 0
+    provider_calls = 0
+    auditors = [first]
+
+    def verify(audit: dict, route: dict) -> dict:
+        nonlocal verifier_calls
+        verifier_calls += 1
+        invalidation = production_bridge.invalidate_supervision_evidence(
+            audit,
+            route,
+            project_dir=project_dir,
+            production_run_dir=run_dir,
+        )
+        return {
+            **invalidation,
+            "status": "canonical_verifier_rerun",
+            "provider_invocation_count": 0,
+        }
+
+    def reaudit() -> dict:
+        result, adapter = _emit_result(
+            state_dir, _draft("resume", "none"), checkpoint_type="pre_public_delivery"
+        )
+        auditors.append(adapter)
+        return result
+
+    outcome = production_bridge.run_supervision_recovery_cycle(
+        initial,
+        reaudit=reaudit,
+        handlers={"recheck_evidence": verify},
+    )
+    assert outcome["outcome"] == "resumed"
+    assert verifier_calls == 1
+    assert provider_calls == 0
+    assert not stale_evidence.exists()
+    assert sum(item.calls for item in auditors) == 2
+    assert not (state_dir / "routes" / "pending_evidence_recheck.json").exists()
+
+
+def test_production_recovery_c_governed_kernel_repair_reaudits_and_resumes(monkeypatch, tmp_path: pathlib.Path) -> None:
+    state_dir = tmp_path / "state"
+    repository = tmp_path / "repository"
+    (repository / "scripts").mkdir(parents=True)
+    (repository / "tests").mkdir()
+    (repository / "scripts" / "validator.py").write_text("ACCEPTS_STALE = True\n", encoding="utf-8")
+    (repository / "tests" / "test_validator.py").write_text("def test_stale(): pass\n", encoding="utf-8")
+    monkeypatch.setattr(production_bridge, "RUNTIME_SUPERVISOR_DIR", str(state_dir))
+    initial, first = _emit_result(
+        state_dir,
+        _draft(
+            "repair_kernel",
+            "kernel",
+            targets=["scripts/validator.py", "tests/test_validator.py"],
+        ),
+        checkpoint_type="pre_public_delivery",
+    )
+    real_execute = governed_kernel_repair.execute_repair
+    repair_calls = 0
+
+    def fake_codex(argv, **kwargs):
+        isolated = pathlib.Path(argv[argv.index("--cd") + 1])
+        (isolated / "scripts" / "validator.py").write_text("ACCEPTS_STALE = False\n", encoding="utf-8")
+        (isolated / "tests" / "test_validator.py").write_text("def test_stale(): assert True\n", encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, stdout="fixed", stderr="")
+
+    def fake_test(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout="1 passed", stderr="")
+
+    def execute_through_real_governance(request, _root, **kwargs):
+        nonlocal repair_calls
+        repair_calls += 1
+        return real_execute(
+            request,
+            repository,
+            runner=fake_codex,
+            test_runner=fake_test,
+            metrics_state_dir=kwargs.get("metrics_state_dir"),
+        )
+
+    monkeypatch.setattr(governed_kernel_repair, "execute_repair", execute_through_real_governance)
+    auditors = [first]
+
+    def reaudit() -> dict:
+        result, adapter = _emit_result(
+            state_dir, _draft("resume", "none"), checkpoint_type="pre_public_delivery"
+        )
+        auditors.append(adapter)
+        return result
+
+    outcome = production_bridge.run_supervision_recovery_cycle(
+        initial,
+        reaudit=reaudit,
+        handlers={"repair_kernel": production_bridge.execute_governed_supervision_repair},
+    )
+    assert outcome["outcome"] == "resumed"
+    assert repair_calls == 1
+    assert sum(item.calls for item in auditors) == 2
+    metrics = json.loads((state_dir / "supervision_metrics.json").read_text(encoding="utf-8"))
+    assert metrics["codex_supervisor_invocation_count"] == 2
+    assert metrics["codex_kernel_repair_invocation_count"] == 1
+
+
+def test_production_recovery_d_two_refusals_stop_at_needs_rework(monkeypatch, tmp_path: pathlib.Path) -> None:
+    monkeypatch.setattr(production_bridge, "RUNTIME_SUPERVISOR_DIR", str(tmp_path))
+    rejected = _draft("rework_project", "project", targets=["frontend"])
+    initial, first = _emit_result(tmp_path, rejected)
+    provider_calls = 0
+    auditors = [first]
+
+    def repair(_audit: dict, _route: dict) -> dict:
+        nonlocal provider_calls
+        provider_calls += 1
+        return {"status": "provider_repair_validated"}
+
+    def reaudit() -> dict:
+        result, adapter = _emit_result(tmp_path, rejected)
+        auditors.append(adapter)
+        return result
+
+    outcome = production_bridge.run_supervision_recovery_cycle(
+        initial,
+        reaudit=reaudit,
+        handlers={"rework_project": repair},
+    )
+    assert outcome["outcome"] == "needs_rework"
+    assert outcome["evidence_status"] == "NEEDS_REWORK"
+    assert outcome["refusal_count"] == production_bridge.MAX_SUPERVISION_REWORK_ROUNDS == 2
+    assert provider_calls == 1
+    assert sum(item.calls for item in auditors) == 2
+
+
+def test_production_recovery_e_ordinary_provider_failure_has_zero_codex_calls(tmp_path: pathlib.Path) -> None:
+    checkpoint = protocol.emit_checkpoint(
+        tmp_path,
+        "provider_failure",
+        repository_root=ROOT,
+        reason="ordinary provider failure",
+        requested_action="resume",
+    )
+    adapter = InjectedAuditor(_draft("halt", "safety"))
+    result = runtime.SupervisorHost(ROOT, tmp_path, adapter).process_next()
+    assert result is not None and result["action"] == "resume"
+    assert adapter.calls == 0
+    assert not (tmp_path / "supervision_metrics.json").exists()
+    assert (tmp_path / "routes" / f"{checkpoint['checkpoint_id']}.json").is_file()

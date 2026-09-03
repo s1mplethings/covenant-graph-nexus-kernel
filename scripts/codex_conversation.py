@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import json
 import os
 import pathlib
@@ -17,7 +18,7 @@ import time
 import uuid
 import zlib
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -54,6 +55,8 @@ import production_candidate_provenance
 import public_narration
 import codex_design_supervision
 import cgkn_supervision_protocol
+import cgkn_supervision_router
+import governed_kernel_repair
 
 DEFAULT_SESSION_DIR = ROOT / "examples" / "test_results" / "codex_sessions"
 DEFAULT_LOG_DIR = ROOT / "examples" / "test_results" / "codex_logs"
@@ -72,6 +75,7 @@ DOC_ONLY_SUFFIXES = {".md", ".rst", ".txt", ".json", ".jsonl", ".log", ".yaml", 
 RUNNABLE_ENTRYPOINTS = ("main.py", "app.py", "package.json", "index.html")
 RUNTIME_SUPERVISOR_DIR = str(os.environ.get("CGKN_RUNTIME_SUPERVISOR_DIR", "")).strip()
 SUPERVISION_POLICY = str(os.environ.get("CGKN_SUPERVISION_POLICY", "disabled")).strip().lower()
+MAX_SUPERVISION_REWORK_ROUNDS = 2
 try:
     SUPERVISION_GATE_TIMEOUT = float(os.environ.get("CGKN_SUPERVISION_GATE_TIMEOUT", "600"))
 except ValueError:
@@ -478,6 +482,258 @@ def run_positive_transition_audit(
             "checkpoint_id": checkpoint.get("checkpoint_id", ""),
         }
     return {**result, "audit_status": "completed"}
+
+
+def _canonical_doc_hash(value: dict[str, Any], hash_key: str) -> str:
+    core = {key: item for key, item in value.items() if key != hash_key}
+    raw = json.dumps(core, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def load_supervision_route_receipt(audit_result: dict[str, Any]) -> dict[str, Any]:
+    """Load the router-owned receipt bound to this exact positive-transition result."""
+    checkpoint_id = str(audit_result.get("checkpoint_id", "")).strip()
+    if not checkpoint_id or not RUNTIME_SUPERVISOR_DIR:
+        raise RuntimeError("supervision_route_receipt_unavailable")
+    state_root = pathlib.Path(RUNTIME_SUPERVISOR_DIR).resolve()
+    checkpoints = {
+        str(item.get("checkpoint_id", "")): item
+        for item in cgkn_supervision_protocol.load_checkpoints(state_root)
+    }
+    checkpoint = checkpoints.get(checkpoint_id)
+    if checkpoint is None:
+        raise RuntimeError("supervision_route_checkpoint_missing")
+    result_errors = cgkn_supervision_protocol.validate_result(audit_result, checkpoint)
+    if result_errors:
+        raise RuntimeError("invalid_supervision_result:" + ",".join(result_errors))
+    route_path = state_root / "routes" / f"{checkpoint_id}.json"
+    route = read_json(route_path, {})
+    if not isinstance(route, dict):
+        route = {}
+    route_errors = cgkn_supervision_router.validate_route_input(route)
+    if (
+        route_errors
+        or route.get("kind") != "CGKNSupervisionRouteReceipt"
+        or route.get("checkpoint_id") != checkpoint_id
+        or route.get("checkpoint_sha256") != audit_result.get("checkpoint_sha256")
+        or route.get("result_sha256") != audit_result.get("result_sha256")
+        or route.get("action") != audit_result.get("action")
+        or route.get("scope") != audit_result.get("scope")
+        or route.get("route_sha256") != _canonical_doc_hash(route, "route_sha256")
+    ):
+        raise RuntimeError("invalid_supervision_route_receipt")
+    return route
+
+
+def complete_supervision_route(
+    route: dict[str, Any],
+    *,
+    outcome: str,
+    recovery_receipt: dict[str, Any] | None = None,
+) -> pathlib.Path:
+    """Consume one pending route exactly once and retain an auditable completion receipt."""
+    root = pathlib.Path(RUNTIME_SUPERVISOR_DIR).resolve() / "routes"
+    checkpoint_id = str(route.get("checkpoint_id", ""))
+    completed = {
+        **route,
+        "kind": "CGKNSupervisionRouteConsumptionReceipt",
+        "consumed_at": now(),
+        "outcome": outcome,
+        "recovery_receipt": recovery_receipt or {},
+        "formal_evidence_authorized": False,
+        "package_authorized": False,
+        "delivery_authorized": False,
+    }
+    completed.pop("route_sha256", None)
+    completed["consumption_sha256"] = _canonical_doc_hash(completed, "consumption_sha256")
+    path = root / f"{checkpoint_id}.consumed.json"
+    write_json(path, completed)
+    pending_name = {
+        "rework_project": "pending_provider_repair.json",
+        "recheck_evidence": "pending_evidence_recheck.json",
+        "repair_kernel": "pending_kernel_repair.json",
+    }.get(str(route.get("action", "")), "")
+    if pending_name:
+        pending_path = root / pending_name
+        pending = read_json(pending_path, {})
+        if isinstance(pending, dict) and pending.get("checkpoint_id") == checkpoint_id:
+            pending_path.unlink(missing_ok=True)
+    return path
+
+
+def run_supervision_recovery_cycle(
+    initial_audit: dict[str, Any],
+    *,
+    reaudit: Callable[[], dict[str, Any]],
+    handlers: dict[str, Callable[[dict[str, Any], dict[str, Any]], dict[str, Any] | None]],
+) -> dict[str, Any]:
+    """Consume deterministic routes and re-emit the same checkpoint within a hard budget."""
+    audit = dict(initial_audit)
+    audit_count = 1
+    refusal_count = 0
+    recovery_counts = {
+        "rework_project": 0,
+        "recheck_evidence": 0,
+        "repair_kernel": 0,
+    }
+    while True:
+        if audit.get("action") == "resume" and audit.get("audit_status") != "completed":
+            return {
+                "outcome": "resumed",
+                "workflow_state": "running",
+                "evidence_status": "NOT_EVALUATED",
+                "audit": audit,
+                "audit_count": audit_count,
+                "refusal_count": refusal_count,
+                "recovery_counts": recovery_counts,
+            }
+        route = load_supervision_route_receipt(audit)
+        action = str(route.get("action", "halt"))
+        if action == "resume":
+            complete_supervision_route(route, outcome="resumed")
+            return {
+                "outcome": "resumed",
+                "workflow_state": "running",
+                "evidence_status": "NOT_EVALUATED",
+                "audit": audit,
+                "audit_count": audit_count,
+                "refusal_count": refusal_count,
+                "recovery_counts": recovery_counts,
+            }
+        refusal_count += 1
+        if refusal_count >= MAX_SUPERVISION_REWORK_ROUNDS:
+            complete_supervision_route(route, outcome="rework_budget_exhausted")
+            return {
+                "outcome": "needs_rework",
+                "workflow_state": "rework_blocked",
+                "evidence_status": "NEEDS_REWORK",
+                "audit": audit,
+                "audit_count": audit_count,
+                "refusal_count": refusal_count,
+                "recovery_counts": recovery_counts,
+            }
+        if action == "user_decision":
+            complete_supervision_route(route, outcome="waiting_user_decision")
+            return {
+                "outcome": "waiting_user_decision",
+                "workflow_state": "waiting_user_review",
+                "evidence_status": "NOT_EVALUATED",
+                "audit": audit,
+                "audit_count": audit_count,
+                "refusal_count": refusal_count,
+                "recovery_counts": recovery_counts,
+            }
+        if action == "halt":
+            complete_supervision_route(route, outcome="halted")
+            return {
+                "outcome": "halted",
+                "workflow_state": "rework_blocked",
+                "evidence_status": "BLOCKED",
+                "audit": audit,
+                "audit_count": audit_count,
+                "refusal_count": refusal_count,
+                "recovery_counts": recovery_counts,
+            }
+        handler = handlers.get(action)
+        if handler is None:
+            raise RuntimeError(f"supervision_route_consumer_missing:{action}")
+        recovery_receipt = handler(audit, route) or {}
+        nested_stop = recovery_receipt.get("cycle_stop") if isinstance(recovery_receipt, dict) else None
+        complete_supervision_route(route, outcome="recovery_completed", recovery_receipt=recovery_receipt)
+        if isinstance(nested_stop, dict):
+            return nested_stop
+        recovery_counts[action] += 1
+        audit = dict(reaudit())
+        audit_count += 1
+
+
+def invalidate_supervision_evidence(
+    audit_result: dict[str, Any],
+    route: dict[str, Any],
+    *,
+    project_dir: pathlib.Path,
+    production_run_dir: pathlib.Path,
+) -> dict[str, Any]:
+    """Move only canonical evidence receipts out of the active chain before a real rerun."""
+    protected_roles = {
+        "provider_generation_result",
+        "provider_request",
+        "provider_response",
+        "implementation_decision",
+        "implementation_patch",
+        "patch_application",
+    }
+    allowed_roots = (project_dir.resolve(), production_run_dir.resolve())
+    checkpoint_id = safe_id(str(route.get("checkpoint_id", "checkpoint")))
+    invalidated_root = production_run_dir / "artifacts" / "invalidated_supervision" / checkpoint_id
+    moved: list[dict[str, str]] = []
+    for index, item in enumerate(route.get("evidence_refs", [])):
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).lower()
+        if role in protected_roles:
+            continue
+        raw_ref = str(item.get("ref", "")).strip()
+        if not raw_ref:
+            continue
+        source = pathlib.Path(raw_ref).resolve()
+        try:
+            inside = any(source.is_relative_to(root) for root in allowed_roots)
+        except AttributeError:  # pragma: no cover - Python < 3.9 compatibility
+            inside = any(str(source).startswith(str(root) + os.sep) for root in allowed_roots)
+        if not inside or not source.is_file() or source.is_symlink():
+            continue
+        invalidated_root.mkdir(parents=True, exist_ok=True)
+        destination = invalidated_root / f"{index:02d}-{safe_id(role)}-{source.name}"
+        source.replace(destination)
+        moved.append({"role": role, "from": str(source), "to": str(destination)})
+    receipt = {
+        "kind": "CGKNSupervisionEvidenceInvalidationReceipt",
+        "created_at": now(),
+        "checkpoint_id": str(audit_result.get("checkpoint_id", "")),
+        "scope": str(route.get("scope", "evidence")),
+        "invalidated": moved,
+        "provider_invocation_count": 0,
+        "formal_evidence_authorized": False,
+    }
+    receipt_path = production_run_dir / "artifacts" / f"{checkpoint_id}_evidence_invalidation.json"
+    write_json(receipt_path, receipt)
+    return {**receipt, "receipt_ref": str(receipt_path.resolve())}
+
+
+def execute_governed_supervision_repair(
+    audit_result: dict[str, Any], route: dict[str, Any]
+) -> dict[str, Any]:
+    checkpoint = {
+        "checkpoint_id": audit_result.get("checkpoint_id", ""),
+        "checkpoint_sha256": audit_result.get("checkpoint_sha256", ""),
+    }
+    test_targets = [
+        str(target)
+        for target in route.get("repair_targets", [])
+        if str(target).replace("\\", "/").startswith("tests/")
+    ]
+    reproduction_checks = [f"python -m pytest {target} -q" for target in test_targets]
+    request = governed_kernel_repair.build_repair_request(
+        audit_result,
+        checkpoint,
+        reproduction_checks=reproduction_checks,
+    )
+    routes_dir = pathlib.Path(RUNTIME_SUPERVISOR_DIR).resolve() / "routes"
+    request_path = routes_dir / f"{route['checkpoint_id']}.kernel_repair_request.json"
+    write_json(request_path, request)
+    receipt = governed_kernel_repair.execute_repair(
+        request,
+        ROOT,
+        metrics_state_dir=RUNTIME_SUPERVISOR_DIR,
+    )
+    receipt_path = routes_dir / f"{route['checkpoint_id']}.kernel_repair_receipt.json"
+    write_json(receipt_path, receipt)
+    return {
+        **receipt,
+        "request_ref": str(request_path.resolve()),
+        "receipt_ref": str(receipt_path.resolve()),
+    }
 
 
 def load_session(session_dir: pathlib.Path, conversation_id: int | str) -> dict[str, Any]:
@@ -5769,6 +6025,250 @@ def run_provider_execute_with_retries(
     raise RuntimeError(f"provider_api_request_failed: {last_error}" if last_error else "provider_api_request_failed")
 
 
+def write_provider_validation_receipt(
+    *,
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    result_path: pathlib.Path,
+    provider_result: dict[str, Any],
+    identity: dict[str, str],
+    generation_receipt: pathlib.Path,
+    causal_artifact_refs: list[dict[str, Any]],
+) -> tuple[dict[str, Any], pathlib.Path]:
+    validation_started_at = now()
+    provider_validation = validate_provider_generation_output(
+        project_dir, provider_result, result_path
+    )
+    if provider_validation["status"] != "PASS":
+        raise RuntimeError(
+            "provider_output_validation_failed:"
+            + ",".join(provider_validation["failures"])
+        )
+    validation_receipt = production_candidate_provenance.write_stage_receipt(
+        run_dir,
+        stage="provider_validation",
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+        candidate_root=project_dir,
+        started_at=validation_started_at,
+        finished_at=now(),
+        artifact_refs=[
+            {
+                "role": "provider_generation_result",
+                "ref": str(result_path.resolve()),
+                "hash": canonical_evidence_hash.sha256_file(result_path),
+            },
+            {
+                "role": "provider_generation_receipt",
+                "ref": str(generation_receipt.resolve()),
+                "hash": canonical_evidence_hash.sha256_file(generation_receipt),
+            },
+            *causal_artifact_refs,
+        ],
+    )
+    return provider_validation, validation_receipt
+
+
+def execute_validated_provider_round(
+    args: argparse.Namespace,
+    *,
+    session_dir: pathlib.Path,
+    conversation_id: int | str,
+    phase_log_path: pathlib.Path,
+    project_dir: pathlib.Path,
+    provider_staging_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    result_path: pathlib.Path,
+    identity: dict[str, str],
+    model: str,
+    formal_entry: bool,
+) -> dict[str, Any]:
+    """Run the established Provider leaf lane once, then validate its exact output."""
+    provider_generation_started_at = now()
+    provider_request_capture = provider_causal_trace.begin_provider_request(
+        candidate_dir=project_dir,
+        production_run_dir=run_dir,
+        identity=identity,
+        goal=str(getattr(args, "goal", "")),
+        model=model,
+        request_started_at=provider_generation_started_at,
+    )
+    provider_result = run_provider_execute_with_retries(
+        args,
+        session_dir=session_dir,
+        conversation_id=conversation_id,
+        phase_log_path=phase_log_path,
+    )
+    if not result_path.is_file():
+        write_json(result_path, provider_result)
+    causal_capture = provider_causal_trace.consume_provider_response(
+        candidate_dir=project_dir,
+        provider_staging_dir=provider_staging_dir,
+        production_run_dir=run_dir,
+        provider_result_path=result_path,
+        identity=identity,
+        provider_request_capture=provider_request_capture,
+        response_received_at=now(),
+    )
+    provider_result = dict(provider_result)
+    provider_result["project_dir"] = str(project_dir)
+    provider_result["provider_staging_dir"] = str(provider_staging_dir)
+    provider_result["provider_causal_artifacts"] = {
+        key: str(pathlib.Path(value).resolve()) if key.endswith("_ref") else value
+        for key, value in causal_capture.items()
+    }
+    write_json(result_path, provider_result)
+    provider_result_hash = canonical_evidence_hash.sha256_file(result_path)
+    causal_artifact_refs = [
+        {
+            "role": role,
+            "ref": str(pathlib.Path(causal_capture[key]).resolve()),
+            "hash": canonical_evidence_hash.sha256_file(causal_capture[key]),
+        }
+        for role, key in (
+            ("provider_request", "request_ref"),
+            ("provider_response", "response_ref"),
+            ("implementation_decision", "decision_ref"),
+            ("implementation_patch", "patch_ref"),
+            ("patch_application", "application_ref"),
+        )
+    ]
+    generation_receipt = production_candidate_provenance.write_stage_receipt(
+        run_dir,
+        stage="provider_generation",
+        run_id=identity["run_id"],
+        candidate_id=identity["candidate_id"],
+        commit_sha=identity["commit_sha"],
+        candidate_root=project_dir,
+        started_at=provider_generation_started_at,
+        finished_at=now(),
+        artifact_refs=[
+            {
+                "role": "provider_generation_result",
+                "ref": str(result_path.resolve()),
+                "hash": provider_result_hash,
+            },
+            *causal_artifact_refs,
+        ],
+    )
+    if not formal_entry:
+        raise RuntimeError(
+            "canonical_production_entry_receipt_missing:"
+            "generation must start through start_generation_from_income"
+        )
+    provider_validation, validation_receipt = write_provider_validation_receipt(
+        project_dir=project_dir,
+        run_dir=run_dir,
+        result_path=result_path,
+        provider_result=provider_result,
+        identity=identity,
+        generation_receipt=generation_receipt,
+        causal_artifact_refs=causal_artifact_refs,
+    )
+    write_provider_phase_event(
+        phase_log_path,
+        {
+            "kind": "provider_phase",
+            "stage": "api_provider_project_generation",
+            "status": "completed",
+            "project_dir": str(project_dir),
+            "resume_repair": bool(getattr(args, "resume_run_dir", "")),
+        },
+    )
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "api-provider-project-generated",
+            "role": "tool",
+            "result_path": str(result_path),
+            "project_dir": str(project_dir),
+            "resume_repair": bool(getattr(args, "resume_run_dir", "")),
+        },
+    )
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "provider-output-validated",
+            "role": "tool",
+            "provider_semantic_review": provider_result.get("provider_semantic_review", {}),
+            "canonical_validation": provider_validation,
+            "validation_receipt": str(validation_receipt),
+        },
+    )
+    return {
+        "provider_result": provider_result,
+        "provider_result_hash": provider_result_hash,
+        "causal_capture": causal_capture,
+        "causal_artifact_refs": causal_artifact_refs,
+        "generation_receipt": generation_receipt,
+        "provider_validation": provider_validation,
+        "validation_receipt": validation_receipt,
+    }
+
+
+def finish_supervision_recovery_stop(
+    client: CodexConversation,
+    conversation_id: int | str,
+    session_dir: pathlib.Path,
+    *,
+    identity: dict[str, str],
+    project_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    entry_ref: pathlib.Path,
+    formal_entry: bool,
+    recovery: dict[str, Any],
+) -> None:
+    audit = recovery.get("audit", {}) if isinstance(recovery.get("audit"), dict) else {}
+    action = str(audit.get("action", "halt"))
+    workflow_state = str(recovery.get("workflow_state", "rework_blocked"))
+    gate = {
+        "delivery_allowed": False,
+        "verdict": str(recovery.get("evidence_status", "NEEDS_REWORK")),
+        "missing": [f"false_pass_recovery:{recovery.get('outcome', 'needs_rework')}:{action}"],
+        "supervision_route": action,
+        "supervision_recovery": recovery,
+    }
+    session = load_session(session_dir, conversation_id)
+    session["generation"] = {
+        "status": workflow_state,
+        "driver": "api_provider_project_generation",
+        "finished_at": now(),
+        **identity,
+        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
+        "project_dir": str(project_dir),
+        "provider_run_dir": str(run_dir),
+        "delivery_allowed": False,
+        "delivery_gate": gate,
+        "supervision_recovery": recovery,
+    }
+    if formal_entry:
+        session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
+        session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
+    update_active_run_status(
+        session,
+        workflow_state,
+        driver="api_provider_project_generation",
+        delivery_allowed=False,
+        delivery_gate=gate,
+        project_dir=str(project_dir),
+    )
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "false_pass_recovery_stopped",
+            "role": "system",
+            "recovery": recovery,
+        },
+    )
+    append_memory_event(session, "provider_generation_rework_blocked", data={"delivery_gate": gate})
+    save_session(session_dir, session)
+    mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
+
+
 def run_provider_generation_job(
     client: CodexConversation,
     conversation_id: int | str,
@@ -5858,192 +6358,215 @@ def run_provider_generation_job(
             phase_log_path=str(phase_log_path),
             codex_capability_brief="",
         )
-        provider_generation_started_at = now()
-        provider_request_capture = provider_causal_trace.begin_provider_request(
-            candidate_dir=project_dir,
-            production_run_dir=run_dir,
-            identity=identity,
-            goal=requirement,
-            model=model,
-            request_started_at=provider_generation_started_at,
-        )
-        provider_result = run_provider_execute_with_retries(
+        round_state = execute_validated_provider_round(
             args,
             session_dir=session_dir,
             conversation_id=conversation_id,
             phase_log_path=phase_log_path,
-        )
-        if not result_path.is_file():
-            write_json(result_path, provider_result)
-        provider_response_received_at = now()
-        causal_capture = provider_causal_trace.consume_provider_response(
-            candidate_dir=project_dir,
+            project_dir=project_dir,
             provider_staging_dir=provider_staging_dir,
-            production_run_dir=run_dir,
-            provider_result_path=result_path,
+            run_dir=run_dir,
+            result_path=result_path,
             identity=identity,
-            provider_request_capture=provider_request_capture,
-            response_received_at=provider_response_received_at,
+            model=model,
+            formal_entry=formal_entry,
         )
-        provider_result = dict(provider_result)
-        provider_result["project_dir"] = str(project_dir)
-        provider_result["provider_staging_dir"] = str(provider_staging_dir)
-        provider_result["provider_causal_artifacts"] = {
-            key: str(pathlib.Path(value).resolve())
-            if key.endswith("_ref")
-            else value
-            for key, value in causal_capture.items()
-        }
-        write_json(result_path, provider_result)
-        provider_result_hash = canonical_evidence_hash.sha256_file(result_path)
-        causal_artifact_refs = [
-            {
-                "role": role,
-                "ref": str(pathlib.Path(causal_capture[key]).resolve()),
-                "hash": canonical_evidence_hash.sha256_file(
-                    causal_capture[key]
-                ),
+
+        def integration_audit_once() -> dict[str, Any]:
+            audit = run_positive_transition_audit(
+                session_dir,
+                conversation_id,
+                session,
+                "integration_complete",
+                reason="Provider jobs, deterministic merge, and Provider semantic review claim integration is complete.",
+                context_refs=[
+                    {
+                        "role": "provider_generation_result",
+                        "ref": str(result_path.resolve()),
+                        "sha256": str(round_state["provider_result_hash"]),
+                    },
+                    {
+                        "role": "provider_validation_receipt",
+                        "ref": str(pathlib.Path(round_state["validation_receipt"]).resolve()),
+                        "sha256": canonical_evidence_hash.sha256_file(round_state["validation_receipt"]),
+                    },
+                ],
+            )
+            append_agent_session_event(
+                session_dir,
+                conversation_id,
+                {"kind": "false_pass_integration_audit", "role": "system", "result": audit},
+            )
+            return audit
+
+        def repair_provider(audit: dict[str, Any], _route: dict[str, Any]) -> dict[str, Any]:
+            nonlocal round_state
+            preparation = provider_project_pipeline.prepare_supervision_provider_repair(
+                run_dir,
+                audit,
+                user_goal=requirement,
+            )
+            args.resume_run_dir = str(run_dir)
+            round_state = execute_validated_provider_round(
+                args,
+                session_dir=session_dir,
+                conversation_id=conversation_id,
+                phase_log_path=phase_log_path,
+                project_dir=project_dir,
+                provider_staging_dir=provider_staging_dir,
+                run_dir=run_dir,
+                result_path=result_path,
+                identity=identity,
+                model=model,
+                formal_entry=formal_entry,
+            )
+            return {
+                **preparation,
+                "status": "provider_repair_validated",
+                "provider_validation_ref": str(round_state["validation_receipt"]),
             }
-            for role, key in (
-                ("provider_request", "request_ref"),
-                ("provider_response", "response_ref"),
-                ("implementation_decision", "decision_ref"),
-                ("implementation_patch", "patch_ref"),
-                ("patch_application", "application_ref"),
+
+        def recheck_provider_evidence(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+            nonlocal round_state
+            invalidation = invalidate_supervision_evidence(
+                audit,
+                route,
+                project_dir=project_dir,
+                production_run_dir=run_dir,
             )
-        ]
-        generation_receipt = production_candidate_provenance.write_stage_receipt(
-            run_dir,
-            stage="provider_generation",
-            run_id=identity["run_id"],
-            candidate_id=identity["candidate_id"],
-            commit_sha=identity["commit_sha"],
-            candidate_root=project_dir,
-            started_at=provider_generation_started_at,
-            finished_at=now(),
-            artifact_refs=[
-                {
-                    "role": "provider_generation_result",
-                    "ref": str(result_path.resolve()),
-                    "hash": provider_result_hash,
-                },
-                *causal_artifact_refs,
-            ],
-        )
-        validation_started_at = now()
-        provider_validation = validate_provider_generation_output(
-            project_dir, provider_result, result_path
-        )
-        if provider_validation["status"] != "PASS":
-            raise RuntimeError(
-                "provider_output_validation_failed:"
-                + ",".join(provider_validation["failures"])
+            validation, receipt = write_provider_validation_receipt(
+                project_dir=project_dir,
+                run_dir=run_dir,
+                result_path=result_path,
+                provider_result=round_state["provider_result"],
+                identity=identity,
+                generation_receipt=round_state["generation_receipt"],
+                causal_artifact_refs=round_state["causal_artifact_refs"],
             )
-        if not formal_entry:
-            raise RuntimeError(
-                "canonical_production_entry_receipt_missing:"
-                "generation must start through start_generation_from_income"
+            round_state["provider_validation"] = validation
+            round_state["validation_receipt"] = receipt
+            return {
+                **invalidation,
+                "status": "canonical_provider_validation_rerun",
+                "provider_validation_ref": str(receipt.resolve()),
+                "provider_invocation_count": 0,
+            }
+
+        def repair_kernel_and_revalidate(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+            nonlocal round_state
+            repair_receipt = execute_governed_supervision_repair(audit, route)
+            validation, receipt = write_provider_validation_receipt(
+                project_dir=project_dir,
+                run_dir=run_dir,
+                result_path=result_path,
+                provider_result=round_state["provider_result"],
+                identity=identity,
+                generation_receipt=round_state["generation_receipt"],
+                causal_artifact_refs=round_state["causal_artifact_refs"],
             )
-        validation_receipt = production_candidate_provenance.write_stage_receipt(
-            run_dir,
-            stage="provider_validation",
-            run_id=identity["run_id"],
-            candidate_id=identity["candidate_id"],
-            commit_sha=identity["commit_sha"],
-            candidate_root=project_dir,
-            started_at=validation_started_at,
-            finished_at=now(),
-            artifact_refs=[
-                {
-                    "role": "provider_generation_result",
-                    "ref": str(result_path.resolve()),
-                    "hash": provider_result_hash,
-                },
-                {
-                    "role": "provider_generation_receipt",
-                    "ref": str(generation_receipt.resolve()),
-                    "hash": canonical_evidence_hash.sha256_file(
-                        generation_receipt
-                    ),
-                },
-                *causal_artifact_refs,
-            ],
-        )
-        write_provider_phase_event(
-            phase_log_path,
-            {"kind": "provider_phase", "stage": "api_provider_project_generation", "status": "completed", "project_dir": str(project_dir)},
-        )
-        append_agent_session_event(session_dir, conversation_id, {"kind": "api-provider-project-generated", "role": "tool", "result_path": str(result_path), "project_dir": str(project_dir)})
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {
-                "kind": "provider-output-validated",
-                "role": "tool",
-                "provider_semantic_review": provider_result.get(
-                    "provider_semantic_review", {}
-                ),
-                "canonical_validation": provider_validation,
-                "validation_receipt": str(validation_receipt),
+            round_state["provider_validation"] = validation
+            round_state["validation_receipt"] = receipt
+            return {**repair_receipt, "provider_validation_ref": str(receipt.resolve())}
+
+        integration_recovery = run_supervision_recovery_cycle(
+            integration_audit_once(),
+            reaudit=integration_audit_once,
+            handlers={
+                "rework_project": repair_provider,
+                "recheck_evidence": recheck_provider_evidence,
+                "repair_kernel": repair_kernel_and_revalidate,
             },
         )
-        integration_audit = run_positive_transition_audit(
-            session_dir,
-            conversation_id,
-            session,
-            "integration_complete",
-            reason="Provider jobs, deterministic merge, and Provider semantic review claim integration is complete.",
-            context_refs=[
-                {
-                    "role": "provider_generation_result",
-                    "ref": str(result_path.resolve()),
-                    "sha256": provider_result_hash,
-                },
-                {
-                    "role": "provider_validation_receipt",
-                    "ref": str(validation_receipt.resolve()),
-                    "sha256": canonical_evidence_hash.sha256_file(validation_receipt),
-                },
-            ],
-        )
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {
-                "kind": "false_pass_integration_audit",
-                "role": "system",
-                "result": integration_audit,
-            },
-        )
-        if integration_audit.get("action") != "resume":
-            raise RuntimeError(
-                "false_pass_audit_route:"
-                + str(integration_audit.get("action", "halt"))
+        if integration_recovery.get("outcome") != "resumed":
+            finish_supervision_recovery_stop(
+                client,
+                conversation_id,
+                session_dir,
+                identity=identity,
+                project_dir=project_dir,
+                run_dir=run_dir,
+                entry_ref=entry_ref,
+                formal_entry=formal_entry,
+                recovery=integration_recovery,
             )
+            return
+        provider_result = round_state["provider_result"]
         append_agent_session_event(session_dir, conversation_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
         append_agent_session_event(session_dir, conversation_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
-        runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
         write_provider_phase_event(
             phase_log_path,
             {"kind": "provider_phase", "stage": "post_build_finalize", "status": "started", "project_dir": str(project_dir)},
         )
-        finalize = post_build_finalize_provider_project(
-            project_dir,
-            provider_result,
-            runtime_artifacts,
-            session,
-            session_dir=session_dir,
-            conversation_id=conversation_id,
-            production_identity=identity,
-            production_run_dir=run_dir,
-            stage_receipts={
-                "production_entry": entry_receipt,
-                "provider_generation": generation_receipt,
-                "provider_validation": validation_receipt,
+        finalize: dict[str, Any] = {}
+
+        def finalize_once() -> dict[str, Any]:
+            nonlocal finalize, provider_result
+            provider_result = round_state["provider_result"]
+            runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
+            finalize = post_build_finalize_provider_project(
+                project_dir,
+                provider_result,
+                runtime_artifacts,
+                session,
+                session_dir=session_dir,
+                conversation_id=conversation_id,
+                production_identity=identity,
+                production_run_dir=run_dir,
+                stage_receipts={
+                    "production_entry": entry_receipt,
+                    "provider_generation": round_state["generation_receipt"],
+                    "provider_validation": round_state["validation_receipt"],
+                },
+                provider_result_path=result_path,
+                provider_causal_capture=round_state["causal_capture"],
+            )
+            return dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
+
+        def repair_provider_before_final(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+            preparation = repair_provider(audit, route)
+            nested = run_supervision_recovery_cycle(
+                integration_audit_once(),
+                reaudit=integration_audit_once,
+                handlers={
+                    "rework_project": repair_provider,
+                    "recheck_evidence": recheck_provider_evidence,
+                    "repair_kernel": repair_kernel_and_revalidate,
+                },
+            )
+            if nested.get("outcome") != "resumed":
+                return {**preparation, "cycle_stop": nested}
+            return {**preparation, "integration_recovery": nested}
+
+        def recheck_final_evidence(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
+            return invalidate_supervision_evidence(
+                audit,
+                route,
+                project_dir=project_dir,
+                production_run_dir=run_dir,
+            )
+
+        final_recovery = run_supervision_recovery_cycle(
+            finalize_once(),
+            reaudit=finalize_once,
+            handlers={
+                "rework_project": repair_provider_before_final,
+                "recheck_evidence": recheck_final_evidence,
+                "repair_kernel": execute_governed_supervision_repair,
             },
-            provider_result_path=result_path,
-            provider_causal_capture=causal_capture,
         )
+        if final_recovery.get("outcome") != "resumed":
+            finish_supervision_recovery_stop(
+                client,
+                conversation_id,
+                session_dir,
+                identity=identity,
+                project_dir=project_dir,
+                run_dir=run_dir,
+                entry_ref=entry_ref,
+                formal_entry=formal_entry,
+                recovery=final_recovery,
+            )
+            return
         write_provider_phase_event(
             phase_log_path,
             {
@@ -6243,10 +6766,16 @@ def run_agent_generation_job(
     max_turns: int = 12,
 ) -> None:
     # SUPPORT/EXPERIMENTAL ONLY: imports stay out of the production module graph.
-    import agent_conversation_loop
-    import dynamic_pipeline_runner
-    import pipeline_manifest as pipeline_manifest_module
-    import pipeline_planner_agent
+    try:
+        from . import agent_conversation_loop
+        from . import dynamic_pipeline_runner
+        from . import pipeline_manifest as pipeline_manifest_module
+        from . import pipeline_planner_agent
+    except ImportError:  # pragma: no cover - direct script execution
+        import agent_conversation_loop
+        import dynamic_pipeline_runner
+        import pipeline_manifest as pipeline_manifest_module
+        import pipeline_planner_agent
 
     session = load_session(session_dir, conversation_id)
     requirement = combined_requirement(session)

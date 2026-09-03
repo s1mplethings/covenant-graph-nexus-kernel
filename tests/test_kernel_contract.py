@@ -165,7 +165,11 @@ class KernelContractTests(unittest.TestCase):
         source = read_source("scripts/codex_conversation.py")
         start = function_body(source, "start_agent_generation")
         agent_job = function_body(source, "run_agent_generation_job")
-        provider_job = function_body(source, "run_provider_generation_job") + function_body(source, "run_provider_execute_with_retries")
+        provider_job = (
+            function_body(source, "run_provider_generation_job")
+            + function_body(source, "run_provider_execute_with_retries")
+            + function_body(source, "execute_validated_provider_round")
+        )
 
         self.assertIn('"driver": "api_provider_project_generation"', start)
         self.assertIn("target=run_provider_generation_job", start)
@@ -202,21 +206,23 @@ class KernelContractTests(unittest.TestCase):
     def test_provider_response_is_staged_and_causally_applied_before_evidence(self) -> None:
         source = read_source("scripts/codex_conversation.py")
         provider_job = function_body(source, "run_provider_generation_job")
+        provider_round = function_body(source, "execute_validated_provider_round")
         finalize = function_body(source, "post_build_finalize_provider_project")
         contract = read_source("docs/00_kernel_contract.md")
 
         self.assertIn("provider_response_staging", provider_job)
         self.assertIn("out_dir=str(provider_staging_dir)", provider_job)
-        self.assertIn("provider_causal_trace.begin_provider_request", provider_job)
-        self.assertIn("provider_causal_trace.consume_provider_response", provider_job)
+        self.assertIn("execute_validated_provider_round", provider_job)
+        self.assertIn("provider_causal_trace.begin_provider_request", provider_round)
+        self.assertIn("provider_causal_trace.consume_provider_response", provider_round)
         self.assertIn("provider_causal_trace.finalize", finalize)
         self.assertLess(
-            provider_job.find("provider_causal_trace.begin_provider_request"),
-            provider_job.find("run_provider_execute_with_retries"),
+            provider_round.find("provider_causal_trace.begin_provider_request"),
+            provider_round.find("run_provider_execute_with_retries"),
         )
         self.assertLess(
-            provider_job.find("provider_causal_trace.consume_provider_response"),
-            provider_job.find("validate_provider_generation_output"),
+            provider_round.find("provider_causal_trace.consume_provider_response"),
+            provider_round.find("write_provider_validation_receipt"),
         )
         self.assertIn("CGKNProviderCausalTrace", contract)
         self.assertIn("direct provider writes to the final candidate cannot substitute", contract)
@@ -1551,6 +1557,11 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("provider_start_supervision_decision", bridge)
         self.assertNotIn("auto_resume_supervised_intakes", bridge)
         self.assertIn("run_positive_transition_audit", bridge)
+        self.assertIn("MAX_SUPERVISION_REWORK_ROUNDS = 2", bridge)
+        self.assertIn("run_supervision_recovery_cycle", bridge)
+        self.assertIn("prepare_supervision_provider_repair", bridge)
+        self.assertIn("invalidate_supervision_evidence", bridge)
+        self.assertIn("execute_governed_supervision_repair", bridge)
         self.assertIn("AUDIT_CHECKPOINT_TYPES", protocol)
         self.assertIn("cgkn_supervision_router.dispatch", host)
         self.assertIn("validate_provider_generation_output", bridge)

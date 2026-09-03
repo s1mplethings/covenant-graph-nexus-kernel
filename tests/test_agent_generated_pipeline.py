@@ -500,9 +500,9 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             make_session(session_dir, "chat-pipeline")
             client = FakeCodexConversation()
             calls: list[str] = []
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_plan = planner_agent.plan_pipeline
+            original_runner = dynamic_runner.run_dynamic_pipeline
+            original_loop = agent_loop.run_agent_loop
 
             def fake_plan(*args, **kwargs):
                 calls.append("planner")
@@ -516,15 +516,15 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 calls.append("old_loop")
                 raise AssertionError("old loop should not run before planner and runner")
 
-            bridge.pipeline_planner_agent.plan_pipeline = fake_plan
-            bridge.dynamic_pipeline_runner.run_dynamic_pipeline = fake_runner
-            bridge.agent_conversation_loop.run_agent_loop = forbidden_loop
+            planner_agent.plan_pipeline = fake_plan
+            dynamic_runner.run_dynamic_pipeline = fake_runner
+            agent_loop.run_agent_loop = forbidden_loop
             try:
                 bridge.run_agent_generation_job(client, "chat-pipeline", session_dir, log_dir, "gpt-test", 5)
             finally:
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                planner_agent.plan_pipeline = original_plan
+                dynamic_runner.run_dynamic_pipeline = original_runner
+                agent_loop.run_agent_loop = original_loop
 
             self.assertEqual(["planner", "runner"], calls)
             self.assertFalse(client.documents)
@@ -537,11 +537,11 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             make_session(session_dir, "chat-fallback")
             client = FakeCodexConversation()
             called = {"fallback": False}
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_plan = planner_agent.plan_pipeline
+            original_runner = dynamic_runner.run_dynamic_pipeline
+            original_loop = agent_loop.run_agent_loop
 
-            bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            planner_agent.plan_pipeline = lambda *args, **kwargs: pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
 
             def failing_runner(**kwargs):
                 raise RuntimeError("runner exploded")
@@ -550,14 +550,14 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
                 called["fallback"] = True
                 return package_result(pathlib.Path(project_dir))
 
-            bridge.dynamic_pipeline_runner.run_dynamic_pipeline = failing_runner
-            bridge.agent_conversation_loop.run_agent_loop = fake_loop
+            dynamic_runner.run_dynamic_pipeline = failing_runner
+            agent_loop.run_agent_loop = fake_loop
             try:
                 bridge.run_agent_generation_job(client, "chat-fallback", session_dir, log_dir, "gpt-test", 5)
             finally:
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                planner_agent.plan_pipeline = original_plan
+                dynamic_runner.run_dynamic_pipeline = original_runner
+                agent_loop.run_agent_loop = original_loop
 
             self.assertTrue(called["fallback"])
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-fallback"))
@@ -570,19 +570,19 @@ class AgentGeneratedPipelineTests(unittest.TestCase):
             log_dir = root / "logs"
             make_session(session_dir, "chat-manifest")
             client = FakeCodexConversation()
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
+            original_plan = planner_agent.plan_pipeline
+            original_runner = dynamic_runner.run_dynamic_pipeline
 
-            bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
-            bridge.dynamic_pipeline_runner.run_dynamic_pipeline = (
+            planner_agent.plan_pipeline = lambda *args, **kwargs: pipeline_manifest.default_minimal_pipeline_manifest({"project_summary": "demo"})
+            dynamic_runner.run_dynamic_pipeline = (
                 lambda *, session_path, project_dir, pipeline_manifest, model, timeout, max_turns: package_result(pathlib.Path(project_dir))
                 | {"pipeline_manifest": pipeline_manifest, "driver": "agent_generated_pipeline"}
             )
             try:
                 bridge.run_agent_generation_job(client, "chat-manifest", session_dir, log_dir, "gpt-test", 5)
             finally:
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
+                planner_agent.plan_pipeline = original_plan
+                dynamic_runner.run_dynamic_pipeline = original_runner
 
             manifest_path = log_dir / "agent_projects" / "chat-manifest" / "pipeline_manifest.json"
             self.assertTrue(manifest_path.exists())

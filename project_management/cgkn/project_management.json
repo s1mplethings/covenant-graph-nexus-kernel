@@ -1105,7 +1105,9 @@
       "value_score": 10,
       "risk_reduction_score": 10,
       "state": "done",
-      "dependencies": ["PB-042"],
+      "dependencies": [
+        "PB-042"
+      ],
       "acceptance_criteria": [
         "ProviderJob DAG execution proves request overlap, dependency ordering, ownership enforcement, deterministic merge, isolated failure, localized retry, and PASS reuse.",
         "Only requirement freeze, integration complete, and pre-public-delivery are Codex audit checkpoints; ordinary Provider or test failures bypass Codex.",
@@ -1113,7 +1115,36 @@
         "Customer-project semantic repair is no longer called from Codex conversation post-build finalization.",
         "False-pass injections A through E and focused kernel/provider/evidence regressions pass."
       ],
-      "quality_metric_ids": ["QM-FALSE-PASS", "QM-INTEGRATION", "QM-REGRESSION"]
+      "quality_metric_ids": [
+        "QM-FALSE-PASS",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-044",
+      "title": "Close production false-pass recovery routes",
+      "outcome": "Every non-resume positive-transition audit is consumed by the existing production route, bounded to two refusals, and returned to the same checkpoint after the authority-correct repair or recheck.",
+      "priority": 44,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-043"
+      ],
+      "acceptance_criteria": [
+        "Project false-pass findings invoke only the existing Provider leaf execution route for affected repair scope before validation and re-audit.",
+        "Evidence false-pass findings invoke no Provider and rerun the corresponding canonical evidence before re-audit.",
+        "Kernel false-pass findings invoke governed kernel repair, require regression PASS, and then re-audit.",
+        "User-decision and halt routes terminate explicitly, while two consecutive audit refusals become NEEDS_REWORK.",
+        "Production retains exactly one ProviderJob scheduler and ordinary Provider failures invoke zero Codex calls.",
+        "Production recovery cases A through E, focused verification, and quick verification pass."
+      ],
+      "quality_metric_ids": [
+        "QM-FALSE-PASS",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -1329,7 +1360,8 @@
     "iterations/ITER-050.json",
     "iterations/ITER-051.json",
     "iterations/ITER-052.json",
-    "iterations/ITER-053.json"
+    "iterations/ITER-053.json",
+    "iterations/ITER-054.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",
@@ -1370,7 +1402,8 @@
     "After the existing working tree is reviewed and committed, publish the branch and run one private-chat supervisor smoke from the edition launcher.",
     "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history.",
     "Keep the Codex-only repository scan in the default test profile and reject any future detached conversation launcher or credential.",
-    "Resume a comparable supported Qwen project at its tests component and verify the aggregate cross-validation receipt appears before post-build without weakening the split-test anchor contract."
+    "Resume a comparable supported Qwen project at its tests component and verify the aggregate cross-validation receipt appears before post-build without weakening the split-test anchor contract.",
+    "On the next credentialed Provider run, inject one audited leaf-level contradiction and measure affected-only Provider calls plus checkpoint reuse."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

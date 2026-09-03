@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Minimal deterministic ProviderJob DAG executor.
+"""Pure ProviderJob/PatchSet contracts for the production leaf executor.
 
-Provider workers receive immutable inputs and return PatchSets.  Only this
-executor validates ownership and merges successful outputs into the candidate.
+Scheduling belongs only to ``run_local_pipeline_impl``.  This module validates
+job graphs and isolated PatchSets but deliberately owns no worker pool.
 """
 
 from __future__ import annotations
@@ -11,11 +11,8 @@ import hashlib
 import json
 import os
 import pathlib
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping
+from dataclasses import dataclass
+from typing import Any, Mapping
 
 
 def _hash(value: Any) -> str:
@@ -72,28 +69,6 @@ class ProviderJob:
 class PatchSet:
     job_id: str
     files: Mapping[str, str]
-
-
-@dataclass
-class ProviderJobResult:
-    job_id: str
-    status: str
-    job_sha256: str
-    patch_set: PatchSet | None = None
-    error: str = ""
-    reused: bool = False
-    repaired: bool = False
-    started_at_monotonic: float = 0.0
-    finished_at_monotonic: float = 0.0
-
-
-@dataclass
-class ProviderExecutionResult:
-    status: str
-    files: dict[str, str]
-    jobs: dict[str, ProviderJobResult]
-    metrics: dict[str, Any]
-    merge_order: list[str] = field(default_factory=list)
 
 
 def _normalize_path(value: Any) -> str:
@@ -173,152 +148,6 @@ def _coerce_patch(job: ProviderJob, value: PatchSet | Mapping[str, str]) -> Patc
 def validate_patch_set(job: ProviderJob, value: PatchSet | Mapping[str, str]) -> PatchSet:
     """Public ownership boundary used by the production Provider leaf lane."""
     return _coerce_patch(job, value)
-
-
-def execute_provider_jobs(
-    jobs: list[ProviderJob | Mapping[str, Any]],
-    worker: Callable[[ProviderJob, Mapping[str, str]], PatchSet | Mapping[str, str]],
-    *,
-    base_candidate: Mapping[str, str] | None = None,
-    prior_results: Mapping[str, ProviderJobResult] | None = None,
-    retry_job_ids: set[str] | None = None,
-    parallelism: int | None = None,
-) -> ProviderExecutionResult:
-    normalized_jobs = [item if isinstance(item, ProviderJob) else ProviderJob.from_dict(item) for item in jobs]
-    errors = validate_jobs(normalized_jobs)
-    if errors:
-        raise ValueError("invalid ProviderJob DAG: " + ",".join(errors))
-    by_id = {job.id: job for job in normalized_jobs}
-    prior = dict(prior_results or {})
-    retry = set(retry_job_ids or set())
-    cap = max(1, min(int(parallelism or configured_parallelism()), 16))
-    results: dict[str, ProviderJobResult] = {}
-    completed: set[str] = set()
-    failed: set[str] = set()
-    active = 0
-    peak = 0
-    lock = threading.Lock()
-    provider_calls = 0
-    jobs_reused = 0
-    jobs_repaired = 0
-    started = time.monotonic()
-
-    for job in normalized_jobs:
-        old = prior.get(job.id)
-        if (
-            job.id not in retry
-            and old is not None
-            and old.status == "PASS"
-            and old.job_sha256 == job.contract_sha256
-            and old.patch_set is not None
-        ):
-            results[job.id] = ProviderJobResult(
-                job_id=job.id,
-                status="PASS",
-                job_sha256=job.contract_sha256,
-                patch_set=_coerce_patch(job, old.patch_set),
-                reused=True,
-            )
-            completed.add(job.id)
-            jobs_reused += 1
-
-    def run_one(job: ProviderJob, context: Mapping[str, str]) -> ProviderJobResult:
-        nonlocal active, peak, provider_calls
-        began = time.monotonic()
-        with lock:
-            active += 1
-            peak = max(peak, active)
-            provider_calls += 1
-        try:
-            patch = _coerce_patch(job, worker(job, dict(context)))
-            return ProviderJobResult(
-                job_id=job.id,
-                status="PASS",
-                job_sha256=job.contract_sha256,
-                patch_set=patch,
-                repaired=job.id in retry,
-                started_at_monotonic=began,
-                finished_at_monotonic=time.monotonic(),
-            )
-        except Exception as exc:
-            return ProviderJobResult(
-                job_id=job.id,
-                status="FAIL",
-                job_sha256=job.contract_sha256,
-                error=str(exc),
-                repaired=job.id in retry,
-                started_at_monotonic=began,
-                finished_at_monotonic=time.monotonic(),
-            )
-        finally:
-            with lock:
-                active -= 1
-
-    while len(completed | failed) < len(normalized_jobs):
-        ready = [
-            job
-            for job in normalized_jobs
-            if job.id not in completed | failed
-            and all(dependency in completed for dependency in job.depends_on)
-        ]
-        blocked = [
-            job for job in normalized_jobs
-            if job.id not in completed | failed and any(dependency in failed for dependency in job.depends_on)
-        ]
-        for job in blocked:
-            results[job.id] = ProviderJobResult(job.id, "BLOCKED", job.contract_sha256, error="dependency_failed")
-            failed.add(job.id)
-        if not ready:
-            if len(completed | failed) < len(normalized_jobs):
-                raise RuntimeError("ProviderJob scheduler made no progress")
-            break
-        context = dict(base_candidate or {})
-        for job_id in sorted(completed):
-            patch = results[job_id].patch_set
-            if patch:
-                for path in sorted(patch.files):
-                    context[path] = patch.files[path]
-        with ThreadPoolExecutor(max_workers=min(cap, len(ready)), thread_name_prefix="cgkn-provider") as executor:
-            futures = {executor.submit(run_one, job, context): job for job in ready}
-            wave_results: dict[str, ProviderJobResult] = {}
-            for future in as_completed(futures):
-                item = future.result()
-                wave_results[item.job_id] = item
-        for job in ready:
-            item = wave_results[job.id]
-            results[job.id] = item
-            if item.status == "PASS":
-                completed.add(job.id)
-                if item.repaired:
-                    jobs_repaired += 1
-            else:
-                failed.add(job.id)
-
-    files = dict(base_candidate or {})
-    merge_order: list[str] = []
-    for job_id in sorted(completed):
-        patch = results[job_id].patch_set
-        if patch is None:
-            continue
-        for path in sorted(patch.files):
-            files[path] = patch.files[path]
-            merge_order.append(f"{job_id}:{path}")
-    elapsed = time.monotonic() - started
-    metrics = {
-        "provider_api_call_count": provider_calls,
-        "provider_peak_concurrency": peak,
-        "provider_jobs_total": len(normalized_jobs),
-        "provider_jobs_repaired": jobs_repaired,
-        "provider_jobs_reused_after_pass": jobs_reused,
-        "wall_clock_stage_timing": {"provider_jobs_seconds": round(elapsed, 6)},
-    }
-    return ProviderExecutionResult(
-        status="PASS" if not failed else "NEEDS_REWORK",
-        files=files,
-        jobs=results,
-        metrics=metrics,
-        merge_order=merge_order,
-    )
 
 
 def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -> list[ProviderJob]:

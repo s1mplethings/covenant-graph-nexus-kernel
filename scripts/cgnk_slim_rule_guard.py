@@ -195,12 +195,24 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "ProviderJob DAG owns parallel project work",
+        "production leaf executor is the only ProviderJob scheduler",
         "class ProviderJob" in provider_jobs
         and "CGKN_PROVIDER_PARALLELISM" in provider_jobs
-        and "ThreadPoolExecutor" in provider_jobs
+        and "ThreadPoolExecutor" not in provider_jobs
+        and "execute_provider_jobs" not in provider_jobs
+        and "ThreadPoolExecutor" in provider_impl
         and "validate_patch_set" in provider_impl,
-        "ProviderJob contract, deterministic parallelism, or production ownership boundary is missing",
+        "ProviderJob contract, unique production scheduler, or ownership boundary is missing",
+    )
+    add(
+        checks,
+        "production bridge consumes bounded false-pass routes",
+        "MAX_SUPERVISION_REWORK_ROUNDS = 2" in bridge
+        and "run_supervision_recovery_cycle" in bridge
+        and "prepare_supervision_provider_repair" in bridge
+        and "invalidate_supervision_evidence" in bridge
+        and "execute_governed_supervision_repair" in bridge,
+        "bounded production false-pass consumer is incomplete",
     )
     post_build_body = function_body(bridge, "post_build_finalize_provider_project")
     forbidden_kernel_repairs = [
@@ -223,7 +235,13 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         ", ".join(forbidden_kernel_repairs) or "Provider repair routing marker missing",
     )
 
-    provider_route_body = function_body(bridge, "run_provider_generation_job") + "\n" + function_body(bridge, "run_provider_execute_with_retries")
+    provider_route_body = "\n".join(
+        (
+            function_body(bridge, "run_provider_generation_job"),
+            function_body(bridge, "run_provider_execute_with_retries"),
+            function_body(bridge, "execute_validated_provider_round"),
+        )
+    )
     missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in provider_route_body]
     add(
         checks,
