@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pathlib
 import sys
 
@@ -12,6 +13,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import provider_jobs
+import run_local_pipeline_impl
 
 
 def _job(job_id: str, owns: str, depends_on: tuple[str, ...] = ()) -> provider_jobs.ProviderJob:
@@ -71,3 +73,77 @@ def test_provider_job_module_has_no_scheduler_authority() -> None:
     assert "ThreadPoolExecutor" not in source
     assert "ThreadPoolExecutor" in production
     assert "provider_jobs.validate_patch_set" in production
+
+
+def test_supervision_provider_repair_maps_exact_leaf_id_to_one_file(tmp_path: pathlib.Path) -> None:
+    artifacts = tmp_path / "artifacts"
+    components = artifacts / "provider_components"
+    (components / "leaf_work_graphs").mkdir(parents=True)
+    (artifacts / "generation_plan_checkpoint.json").write_text(
+        json.dumps(
+            {
+                "plan_doc": {
+                    "pipeline_plan": {
+                        "payload": {
+                            "component_pipeline": {
+                                "components": [
+                                    {
+                                        "id": "backend",
+                                        "purpose": "backend",
+                                        "depends_on": [],
+                                        "required_paths": ["src/a.py", "src/b.py"],
+                                        "acceptance": [],
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    (components / "backend_files.json").write_text(
+        json.dumps(
+            {
+                "component_id": "backend",
+                "files": [
+                    {"path": "src/a.py", "content": "A = 1\n"},
+                    {"path": "src/b.py", "content": "B = 1\n"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (components / "leaf_work_graphs" / "backend.json").write_text(
+        json.dumps(
+            {
+                "component_id": "backend",
+                "leaves": [
+                    {"leaf_id": "backend:a", "path": "src/a.py"},
+                    {"leaf_id": "backend:b", "path": "src/b.py"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    receipt = run_local_pipeline_impl.prepare_supervision_provider_repair(
+        tmp_path,
+        {
+            "checkpoint_id": "checkpoint-1",
+            "result_sha256": "a" * 64,
+            "scope": "project",
+            "summary": "A is inconsistent",
+            "diagnosis": ["Repair only A"],
+            "guidance": [],
+            "repair_targets": ["backend:a"],
+            "acceptance_checks": ["A passes"],
+        },
+        user_goal="build a backend",
+    )
+    pending = json.loads(
+        (artifacts / "pending_repair_plan.json").read_text(encoding="utf-8")
+    )
+    assert receipt["affected_components"] == ["backend"]
+    assert receipt["affected_files"] == ["src/a.py"]
+    assert [action["path"] for action in pending["provider_actions"]] == ["src/a.py"]

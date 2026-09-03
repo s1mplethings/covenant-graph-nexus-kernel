@@ -23299,10 +23299,9 @@ def prepare_supervision_provider_repair(
         if isinstance(item, dict) and str(item.get("path", "")).strip()
     }
     leaf_owner: dict[str, tuple[str, str]] = {}
+    leaf_graph_dir = checkpoint_dir / "leaf_work_graphs"
     for graph_path in (
-        checkpoint_dir.rglob("*leaf_work_graph*.json")
-        if checkpoint_dir.exists()
-        else []
+        leaf_graph_dir.glob("*.json") if leaf_graph_dir.exists() else []
     ):
         try:
             graph = load_json(graph_path)
