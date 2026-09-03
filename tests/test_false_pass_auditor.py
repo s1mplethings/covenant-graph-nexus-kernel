@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import subprocess
 import sys
 import tempfile
 
@@ -94,12 +95,12 @@ def test_case_c_stale_visual_evidence_rechecks_without_provider() -> None:
 
 
 def test_case_d_actual_kernel_bug_enters_governed_repair() -> None:
-    result, route, _ = _run(
+    result, route, state_dir = _run(
         _draft(
             "repair_kernel",
             "kernel",
             evidence_ref="validator-stale-identity.json",
-            targets=["scripts/canonical_evidence_hash.py", "tests/test_false_pass_auditor.py"],
+            targets=["scripts/validator.py", "tests/test_validator.py"],
         ),
         checkpoint_type="pre_public_delivery",
     )
@@ -112,6 +113,47 @@ def test_case_d_actual_kernel_bug_enters_governed_repair() -> None:
     assert route["route_type"] == "governed_kernel_repair_required"
     assert request["workflow"][0] == "reproduce_false_pass"
     assert all(not target.startswith("generated/") for target in request["repair_targets"])
+
+    with tempfile.TemporaryDirectory() as raw_repository:
+        repository = pathlib.Path(raw_repository)
+        (repository / "scripts").mkdir()
+        (repository / "tests").mkdir()
+        (repository / "scripts" / "validator.py").write_text("ACCEPTS_STALE = True\n", encoding="utf-8")
+        (repository / "tests" / "test_validator.py").write_text("def test_stale(): pass\n", encoding="utf-8")
+
+        def fake_codex(argv, **kwargs):
+            isolated = pathlib.Path(argv[argv.index("--cd") + 1])
+            (isolated / "scripts" / "validator.py").write_text("ACCEPTS_STALE = False\n", encoding="utf-8")
+            (isolated / "tests" / "test_validator.py").write_text("def test_stale(): assert True\n", encoding="utf-8")
+            return subprocess.CompletedProcess(argv, 0, stdout="fixed", stderr="")
+
+        def fake_test(argv, **kwargs):
+            return subprocess.CompletedProcess(argv, 0, stdout="1 passed", stderr="")
+
+        repair_receipt = governed_kernel_repair.execute_repair(
+            request,
+            repository,
+            runner=fake_codex,
+            test_runner=fake_test,
+            metrics_state_dir=state_dir,
+        )
+        assert repair_receipt["status"] == "PASS"
+        assert repair_receipt["original_checkpoint_must_be_reemitted"] is True
+
+    protocol.emit_checkpoint(
+        state_dir,
+        "pre_public_delivery",
+        repository_root=ROOT,
+        reason="original checkpoint re-emitted after governed kernel repair",
+        requested_action="resume",
+        context_refs=[{"role": "regression", "ref": "test_validator.py", "sha256": "c" * 64}],
+    )
+    resume_adapter = InjectedAuditor(_draft("resume", "none"))
+    resumed = runtime.SupervisorHost(ROOT, state_dir, resume_adapter).process_next()
+    assert resumed is not None and resumed["action"] == "resume"
+    metrics = json.loads((state_dir / "supervision_metrics.json").read_text(encoding="utf-8"))
+    assert metrics["codex_supervisor_invocation_count"] == 2
+    assert metrics["codex_kernel_repair_invocation_count"] == 1
 
 
 def test_case_e_clean_positive_transition_resumes() -> None:
