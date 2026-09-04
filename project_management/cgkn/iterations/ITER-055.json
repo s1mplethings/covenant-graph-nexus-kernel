@@ -1,0 +1,77 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-055",
+  "project_id": "cgkn",
+  "goal": "Remove two production blockers found by the real Local Project Board acceptance without changing the Provider route or delivery architecture.",
+  "backlog_item_ids": [
+    "PB-013",
+    "PB-044"
+  ],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
+  "acceptance_criteria": [
+    "Browser-local static backend manifest prompting and validation use the exact canonical launcher path instead of a hard-coded root main.py path.",
+    "A non-PASS Provider result stops before causal response consumption and preserves the original Provider blocker.",
+    "Focused manifest, Provider recovery, False-Pass, and kernel contract regressions pass.",
+    "The original qwen3.7-plus production acceptance is rerun through the same Codex conversation route with no new scheduler, pipeline, supervisor, or delivery exit."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "canonical manifest path consistency",
+      "target": "prompt, pruning, and static-backend validation agree on the same required path",
+      "method": "provider manifest regression with app/main.py and bounded over-generation"
+    },
+    {
+      "id": "QM-DIAGNOSTIC",
+      "measure": "blocked Provider result fidelity",
+      "target": "the original blocker is reported before causal capture",
+      "method": "production-round regression with absent candidate staging"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "affected contract regression",
+      "target": "all focused tests and the kernel guard pass",
+      "method": "targeted pytest profiles and cgnk_slim_rule_guard"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Use canonical required-path authority as the single source for Provider prompts and validation."
+    ],
+    "assurance": [
+      "Preserve the reviewed Provider route, response staging, causal trace boundary, and local_packager exit."
+    ],
+    "control": [
+      "Reproduce both failures, add regressions, run focused tests, then rerun the original live acceptance."
+    ],
+    "improvement": [
+      "Record whether the live rerun reaches candidate, evidence, and delivery or stops at a new bounded blocker."
+    ]
+  },
+  "interface_expectations": [
+    "scripts/run_local_pipeline_impl.py continues to own the sole production leaf worker pool.",
+    "scripts/codex_conversation.py consumes only PASS Provider output into the causal trace.",
+    "Provider output validation, canonical evidence, local_packager, public delivery gate, and delivery receipt ordering remain unchanged."
+  ],
+  "evidence_refs": [
+    "project_management/cgkn/iterations/ITER-055_RUNTIME_EVIDENCE.md"
+  ],
+  "review": {
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "The real production run isolated one exact manifest contract contradiction and retained the original failed artifacts."
+    ],
+    "did_not_work": [
+      "The canonical launcher app/main.py was rejected by a hard-coded main.py check, and the resulting BLOCKED document was obscured by causal capture."
+    ],
+    "experiments": [
+      "Rerun the same frozen goal in API-only routing mode and compare component repair/reuse plus delivery identity."
+    ]
+  }
+}

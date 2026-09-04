@@ -6102,6 +6102,18 @@ def execute_validated_provider_round(
     )
     if not result_path.is_file():
         write_json(result_path, provider_result)
+    if str(provider_result.get("status", "")).upper() != "PASS":
+        diagnostics = (
+            provider_result.get("diagnostics", {})
+            if isinstance(provider_result.get("diagnostics"), dict)
+            else {}
+        )
+        blockers = diagnostics.get("blockers", [])
+        blocker = next(
+            (str(item).strip() for item in blockers if str(item).strip()),
+            str(provider_result.get("reason") or provider_result.get("final_verdict") or "provider result is not PASS"),
+        )
+        raise RuntimeError(f"provider_generation_blocked:{blocker}")
     causal_capture = provider_causal_trace.consume_provider_response(
         candidate_dir=project_dir,
         provider_staging_dir=provider_staging_dir,

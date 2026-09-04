@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import argparse
 import os
 import pathlib
 import shutil
@@ -219,6 +220,63 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             self.assertEqual([], client.photos)
             self.assertEqual([], client.documents)
             self.assertEqual([], client.videos)
+
+    def test_blocked_provider_result_stops_before_causal_capture(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project_dir = root / "candidate"
+            project_dir.mkdir()
+            run_dir = root / "run"
+            result_path = run_dir / "provider_generation_result.json"
+            original_runner = bridge.run_provider_execute_with_retries
+            original_candidate_root = (
+                bridge.provider_causal_trace.production_candidate_provenance.PRODUCTION_CANDIDATE_ROOT
+            )
+
+            def blocked_runner(args, **kwargs):
+                return {
+                    "status": "BLOCKED",
+                    "diagnostics": {
+                        "status": "blocked",
+                        "stage": "provider_semantic_review",
+                        "blockers": [
+                            "provider static-only backend manifest must contain exactly app/main.py"
+                        ],
+                    },
+                }
+
+            bridge.run_provider_execute_with_retries = blocked_runner
+            bridge.provider_causal_trace.production_candidate_provenance.PRODUCTION_CANDIDATE_ROOT = root
+            try:
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "provider_generation_blocked.*app/main.py",
+                ) as caught:
+                    bridge.execute_validated_provider_round(
+                        argparse.Namespace(goal="Build a local task board"),
+                        session_dir=root / "sessions",
+                        conversation_id="blocked-result",
+                        phase_log_path=run_dir / "provider_phase_log.jsonl",
+                        project_dir=project_dir,
+                        provider_staging_dir=root / "missing-staging",
+                        run_dir=run_dir,
+                        result_path=result_path,
+                        identity={
+                            "run_id": "run-blocked",
+                            "candidate_id": "candidate-blocked",
+                            "commit_sha": "a" * 40,
+                        },
+                        model="gpt-test",
+                        formal_entry=True,
+                    )
+            finally:
+                bridge.run_provider_execute_with_retries = original_runner
+                bridge.provider_causal_trace.production_candidate_provenance.PRODUCTION_CANDIDATE_ROOT = (
+                    original_candidate_root
+                )
+
+            self.assertNotIn("causal capture", str(caught.exception))
+            self.assertTrue(result_path.is_file())
 
 
 if __name__ == "__main__":

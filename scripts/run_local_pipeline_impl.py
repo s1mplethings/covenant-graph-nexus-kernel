@@ -13626,6 +13626,9 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
     browser_local_static = bool(
         (component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {}).get("browser_local_static")
     )
+    static_backend_paths = (
+        component_required_manifest_paths(component_id, component) or ["main.py"]
+    )
     payload["manifest_rules"] = [
         "List only files owned by this component.",
         "Every path is relative to the project root. Never prefix a path with component/, components/, or the component id.",
@@ -13646,7 +13649,9 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
     ]
     if component_id == "backend" and browser_local_static:
         payload["manifest_rules"].append(
-            "This is a browser-local static application: return exactly main.py for the backend component and no backend/** files."
+            "This is a browser-local static application: return exactly "
+            + ", ".join(static_backend_paths)
+            + " for the backend component and no other files."
         )
     messages = [
         {"role": "system", "content": system},
@@ -13821,9 +13826,14 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
             f"provider manifest file count below contract for component {component_id}: "
             f"{len(manifest)} < {minimum_file_count}"
         )
-    if component_id == "backend" and browser_local_static and seen != {"main.py"}:
+    if (
+        component_id == "backend"
+        and browser_local_static
+        and seen != set(static_backend_paths)
+    ):
         raise ProviderOutputContractError(
-            "provider static-only backend manifest must contain exactly main.py",
+            "provider static-only backend manifest must contain exactly "
+            + ", ".join(static_backend_paths),
             raw_output=raw,
             parsed_result=doc,
         )

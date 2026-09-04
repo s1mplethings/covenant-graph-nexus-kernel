@@ -2424,6 +2424,58 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
                 ),
             )
 
+    def test_browser_local_static_backend_uses_canonical_launcher_path(self) -> None:
+        original_provider_text = run_local_pipeline_impl.provider_text
+
+        def fake_provider_text(messages, model, timeout, **kwargs):
+            return json.dumps(
+                {
+                    "component": "backend",
+                    "files": [
+                        {"path": "app/main.py", "purpose": "canonical static launcher"},
+                        {"path": "src/create_task.py", "purpose": "foreign over-generation"},
+                    ],
+                }
+            )
+
+        component = {
+            "id": "backend",
+            "required_paths": ["app/main.py"],
+            "minimum_file_count": 1,
+            "required_path_authority": "canonical_goal_project_plan",
+            "canonical_goal_spec": {
+                "package_name": "app",
+                "domain": "custom_local_application",
+            },
+            "contract_slice": {"browser_local_static": True},
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            phase_log = pathlib.Path(temp_dir) / "provider_phase_log.jsonl"
+            run_local_pipeline_impl.provider_text = fake_provider_text
+            try:
+                manifest = run_local_pipeline_impl.provider_component_file_manifest(
+                    goal="Build a browser-local task board",
+                    component=component,
+                    component_pipeline={"components": [component]},
+                    prior_manifest=[],
+                    repair_errors=[],
+                    model="gpt-5.5",
+                    timeout=30,
+                    phase_log_path=phase_log,
+                    routing_policy=run_local_pipeline_impl.ProviderModelRoutingPolicy(),
+                )
+            finally:
+                run_local_pipeline_impl.provider_text = original_provider_text
+
+            self.assertEqual(["app/main.py"], [row["path"] for row in manifest])
+            events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines()]
+            normalized = [
+                event
+                for event in events
+                if event.get("reason") == "named_package_manifest_scope_normalization"
+            ]
+            self.assertEqual(["src/create_task.py"], normalized[0]["pruned_paths"])
+
     def test_named_package_backend_manifest_prunes_unplanned_legacy_paths_after_required_coverage(self) -> None:
         original_provider_text = run_local_pipeline_impl.provider_text
         required_paths = [

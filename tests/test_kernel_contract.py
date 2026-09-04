@@ -226,6 +226,8 @@ class KernelContractTests(unittest.TestCase):
         )
         self.assertIn("CGKNProviderCausalTrace", contract)
         self.assertIn("direct provider writes to the final candidate cannot substitute", contract)
+        self.assertIn("non-PASS Provider result must stop before response consumption", contract)
+        self.assertIn("must use the same canonical required-path authority", contract)
 
     def test_candidate_hash_prunes_excluded_environment_directories(self) -> None:
         source = read_source("scripts/canonical_evidence_hash.py")
