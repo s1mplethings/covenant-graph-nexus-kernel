@@ -6712,6 +6712,19 @@ def try_local_provider_text(
     )
     if not task or not (local_enabled or fallback_enabled):
         return None
+    if force_transport_fallback:
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "fallback_executed",
+                "stage": stage,
+                "component": component,
+                "target_file": target_file,
+                "from": "api_provider",
+                "to": "local_model",
+                "task": task,
+            },
+        )
     prompt_required_paths: list[str] | None = None
     if str(stage or "").strip().lower() == "component_file_manifest":
         try:
@@ -7921,7 +7934,7 @@ def provider_text(
             append_provider_event_log(
                 phase_log_path,
                 {
-                    "event": "pipeline_fallback",
+                    "event": "fallback_considered",
                     "stage": stage,
                     "component": component,
                     "target_file": target_file,
@@ -7941,6 +7954,32 @@ def provider_text(
                 force_transport_fallback=True,
             )
             if fallback_raw is not None:
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "fallback_selected",
+                        "stage": stage,
+                        "component": component,
+                        "target_file": target_file,
+                        "from": "api_provider",
+                        "to": "local_model",
+                        "task": routed_task,
+                        "reason": "provider_missing_config",
+                    },
+                )
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "pipeline_fallback",
+                        "stage": stage,
+                        "component": component,
+                        "target_file": target_file,
+                        "from": "api_provider",
+                        "to": "local_model",
+                        "task": routed_task,
+                        "reason": "provider_missing_config",
+                    },
+                )
                 return fallback_raw
         raise RuntimeError(missing_config_error)
     root = str(creds.get("base_url", "")).rstrip("/")
@@ -7992,6 +8031,21 @@ def provider_text(
                     "reason": route.get("model_routing_reason", ""),
                 },
             )
+        payload = check_connectivity._build_openai_compatible_payload(
+            root,
+            {
+                "model": selected_model,
+                "messages": attempt_messages,
+                "temperature": 0.2,
+                "max_tokens": effective_max_tokens,
+            },
+            model=selected_model,
+            reasoning_effort=reasoning_effort,
+        )
+        request_input_hash = formal_model_contract.stable_hash(attempt_messages)
+        request_body_bytes = len(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        )
         append_provider_event_log(
             phase_log_path,
             {
@@ -7999,6 +8053,8 @@ def provider_text(
                 "stage": stage,
                 "component": component,
                 "target_file": target_file,
+                "request_input_sha256": request_input_hash,
+                "request_body_bytes": request_body_bytes,
                 "prompt_chars": int(request_profile.get("effective_prompt_chars", legacy_prompt_chars)),
                 "legacy_prompt_chars": legacy_prompt_chars,
                 "effective_prompt_chars": int(request_profile.get("effective_prompt_chars", legacy_prompt_chars)),
@@ -8011,24 +8067,35 @@ def provider_text(
                 "requested_max_tokens": int(max_tokens),
                 "reasoning_effort": reasoning_effort or "provider_default",
                 "payload_mode": payload_mode,
+                "timeout_seconds": int(timeout),
             },
-        )
-        payload = check_connectivity._build_openai_compatible_payload(
-            root,
-            {
-                "model": selected_model,
-                "messages": attempt_messages,
-                "temperature": 0.2,
-                "max_tokens": effective_max_tokens,
-            },
-            model=selected_model,
-            reasoning_effort=reasoning_effort,
         )
         with provider_execution_metrics.provider_api_call(
             phase_log_path,
             stage=stage,
         ):
             doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_transport_attempt",
+                "stage": stage,
+                "component": component,
+                "target_file": target_file,
+                "request_input_sha256": request_input_hash,
+                "request_body_bytes": request_body_bytes,
+                "selected_model": selected_model,
+                "timeout_seconds": int(timeout),
+                "status": "ok" if doc is not None else "failed",
+                "response_id": str((doc or {}).get("id", "")),
+                "response_usage": (
+                    (doc or {}).get("usage", {})
+                    if isinstance((doc or {}).get("usage", {}), dict)
+                    else {}
+                ),
+                "transport_timing": check_connectivity.last_transport_timing(),
+            },
+        )
         if doc is not None:
             final_status = "ok"
             break
@@ -8043,7 +8110,7 @@ def provider_text(
             append_provider_event_log(
                 phase_log_path,
                 {
-                    "event": "pipeline_fallback",
+                    "event": "fallback_considered",
                     "stage": stage,
                     "component": component,
                     "target_file": target_file,
@@ -8063,6 +8130,32 @@ def provider_text(
                 force_transport_fallback=True,
             )
             if fallback_raw is not None:
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "fallback_selected",
+                        "stage": stage,
+                        "component": component,
+                        "target_file": target_file,
+                        "from": "api_provider",
+                        "to": "local_model",
+                        "task": routed_task,
+                        "reason": fallback_reason,
+                    },
+                )
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "pipeline_fallback",
+                        "stage": stage,
+                        "component": component,
+                        "target_file": target_file,
+                        "from": "api_provider",
+                        "to": "local_model",
+                        "task": routed_task,
+                        "reason": fallback_reason,
+                    },
+                )
                 return fallback_raw
             last_error_text = (
                 last_error_text
@@ -17880,7 +17973,7 @@ def provider_local_fallback_observed(phase_log_path: pathlib.Path | str | None) 
         except json.JSONDecodeError:
             continue
         if (
-            event.get("event") == "pipeline_fallback"
+            event.get("event") == "fallback_executed"
             and event.get("to") == "local_model"
             and event.get("task") == "component_generation"
         ):

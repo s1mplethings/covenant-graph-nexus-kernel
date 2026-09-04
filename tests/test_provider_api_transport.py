@@ -12,6 +12,42 @@ import scripts.check_connectivity as check_connectivity
 
 
 class ProviderApiTransportTests(unittest.TestCase):
+    def test_post_json_records_redacted_response_phase_timing(self) -> None:
+        original_urlopen = check_connectivity._urlopen
+
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return b'{"id":"resp-timed","output_text":"ok"}'
+
+        try:
+            check_connectivity._urlopen = lambda _request, _timeout: FakeResponse()
+            doc, error = check_connectivity._post_json(
+                "https://api.example.test/v1/responses",
+                {"model": "test", "input": "hello"},
+                "secret-not-recorded",
+                9,
+            )
+        finally:
+            check_connectivity._urlopen = original_urlopen
+
+        timing = check_connectivity.last_transport_timing()
+        self.assertEqual("", error)
+        self.assertEqual("resp-timed", doc["id"])
+        self.assertEqual(9, timing["timeout_seconds"])
+        self.assertTrue(timing["response_headers_received"])
+        self.assertTrue(timing["response_body_received"])
+        self.assertGreater(timing["request_body_bytes"], 0)
+        self.assertGreaterEqual(timing["total_elapsed_ms"], 0)
+        self.assertNotIn("secret-not-recorded", str(timing))
+
     def test_gptsapi_v1_base_url_is_preserved(self) -> None:
         self.assertEqual("https://gptsapi.net/v1", check_connectivity._normalize_base_url("https://gptsapi.net/v1/"))
         self.assertTrue(check_connectivity._is_gptsapi_base_url("https://gptsapi.net/v1"))

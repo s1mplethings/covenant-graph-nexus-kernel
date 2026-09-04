@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from scripts import local_model_router, run_local_pipeline_impl
 
 
@@ -147,6 +149,47 @@ def test_provider_transport_failure_records_local_pipeline_fallback(
     assert fallback["from"] == "api_provider"
     assert fallback["to"] == "local_model"
     assert fallback["task"] == "component_repair"
+
+
+def test_api_only_timeout_is_considered_but_does_not_execute_fallback_or_reduce_workers(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("CGNK_MODEL_ROUTING_PROFILE", "api_only")
+    monkeypatch.setenv("CGKN_PROVIDER_PARALLELISM", "4")
+    monkeypatch.setenv("CGKN_PROVIDER_RETRY_FAST", "1")
+    monkeypatch.setattr(
+        run_local_pipeline_impl.check_connectivity,
+        "_resolve_api_credentials",
+        lambda: {"api_key": "test-key", "base_url": "https://api.example/v1"},
+    )
+    monkeypatch.setattr(
+        run_local_pipeline_impl.check_connectivity,
+        "_post_json",
+        lambda *_args, **_kwargs: (None, "request failed: TimeoutError [retryable=true]"),
+    )
+    phase_log = tmp_path / "provider_phase_log.jsonl"
+
+    with pytest.raises(RuntimeError, match="provider_api_request_failed"):
+        run_local_pipeline_impl.provider_text(
+            [{"role": "user", "content": "generate"}],
+            "gpt-test",
+            5,
+            max_attempts=1,
+            stage="component_file_generation",
+            component="frontend",
+            target_file="frontend/styles.css",
+            phase_log_path=phase_log,
+        )
+
+    events = [
+        json.loads(line)
+        for line in phase_log.read_text(encoding="utf-8").splitlines()
+    ]
+    assert any(event.get("event") == "fallback_considered" for event in events)
+    assert not any(event.get("event") == "fallback_executed" for event in events)
+    assert not any(event.get("event") == "fallback_selected" for event in events)
+    assert not any(event.get("event") == "pipeline_fallback" for event in events)
+    assert run_local_pipeline_impl.provider_leaf_max_workers(phase_log) == 4
 
 
 def test_provider_quota_failure_records_local_pipeline_fallback(

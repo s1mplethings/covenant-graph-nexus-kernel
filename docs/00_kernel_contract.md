@@ -66,6 +66,11 @@ Every run records `codex_supervisor_invocation_count`,
 `provider_peak_concurrency`, `provider_jobs_total`, `provider_jobs_repaired`,
 `provider_jobs_reused_after_pass`, and wall-clock stage timing as support
 metrics. These metrics cannot replace canonical evidence.
+Provider transport diagnostics record redacted request identity/body size and
+thread-local response-header/body timing without credentials. Fallback
+observability distinguishes consideration, execution, and successful
+selection; concurrency may be reduced for a local Provider only after an
+actual fallback execution event, never from consideration alone.
 
 This contract defines the stable kernel boundary for CovenantGraph Nexus Kernel. Future changes may add capabilities around the kernel, but they must not replace the generation mainline or bypass the safety and delivery boundaries described here.
 

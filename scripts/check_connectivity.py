@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -27,6 +28,17 @@ DEFAULT_NOTES_PATH = ROOT / ".agent_private" / "NOTES.md"
 EMBEDDED_BASE_URL = "https://api.gptsapi.net/v1"
 DEFAULT_TEST_MODEL = model_policy.select_model("connectivity")
 PROVIDER_PROBE_MAX_OUTPUT_TOKENS = 128
+_TRANSPORT_TIMING = threading.local()
+
+
+def _set_last_transport_timing(value: dict[str, Any]) -> None:
+    _TRANSPORT_TIMING.value = dict(value)
+
+
+def last_transport_timing() -> dict[str, Any]:
+    """Return redacted phase timing for the latest request on this worker thread."""
+    value = getattr(_TRANSPORT_TIMING, "value", {})
+    return dict(value) if isinstance(value, dict) else {}
 
 
 def _write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -354,6 +366,15 @@ def _resolve_api_credentials() -> dict[str, str]:
 
 def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: int) -> tuple[dict[str, Any] | None, str]:
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    started = time.monotonic()
+    timing: dict[str, Any] = {
+        "request_started_at": datetime.now(timezone.utc).isoformat(),
+        "request_body_bytes": len(data),
+        "timeout_seconds": int(timeout_sec),
+        "response_headers_received": False,
+        "response_body_received": False,
+    }
+    _set_last_transport_timing(timing)
     req = urllib.request.Request(
         endpoint,
         data=data,
@@ -366,16 +387,44 @@ def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: 
             "Connection": "close",
         },
     )
+    response_opened = False
     try:
         with _urlopen(req, timeout_sec) as resp:
+            response_opened = True
+            timing["response_headers_received"] = True
+            timing["response_headers_elapsed_ms"] = round(
+                (time.monotonic() - started) * 1000
+            )
+            timing["response_status"] = int(getattr(resp, "status", 0) or 0)
             body = resp.read().decode("utf-8", errors="replace")
+            timing["response_body_received"] = bool(body)
+            timing["response_body_bytes"] = len(body.encode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace").strip()
+        timing["failure_phase"] = "http_response"
+        timing["response_headers_received"] = True
+        timing["response_status"] = int(getattr(exc, "code", 0) or 0)
+        timing["response_body_received"] = bool(detail)
+        timing["response_body_bytes"] = len(detail.encode("utf-8"))
+        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
+        _set_last_transport_timing(timing)
         return None, _http_error_summary(exc, endpoint, detail)
     except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError) as exc:
+        timing["failure_phase"] = (
+            "response_body" if response_opened else "connect_or_response_headers"
+        )
+        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
+        _set_last_transport_timing(timing)
         return None, f"request failed: {_request_error_summary(exc, endpoint)}"
     except Exception as exc:
+        timing["failure_phase"] = (
+            "response_body" if response_opened else "connect_or_response_headers"
+        )
+        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
+        _set_last_transport_timing(timing)
         return None, f"request failed: {_request_error_summary(exc, endpoint)}"
+    timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
+    _set_last_transport_timing(timing)
     try:
         doc = json.loads(body)
     except Exception as exc:
