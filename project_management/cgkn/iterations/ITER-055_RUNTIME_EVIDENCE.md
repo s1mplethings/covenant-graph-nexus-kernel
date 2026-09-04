@@ -25,12 +25,26 @@ or formal public PASS.
 - No Provider scheduler, generation route, supervisor, fallback, or delivery
   exit was added.
 
-## Verification to date
+## Verification
 
 - Direct reproduced regressions: 3 passed.
 - Focused manifest profile: 5 passed, 143 deselected.
 - Provider recovery, False-Pass, and kernel contract profile: 49 passed.
-- Live production rerun: pending.
+- Live production rerun `production-5f7461ae22b542b98656bf087953e41d`
+  accepted the canonical `app/main.py` backend manifest and completed the
+  foundation, backend, data, and first frontend leaf checkpoints.
+- The rerun planned 16 Provider jobs, made 18 real API calls, and recorded peak
+  concurrency 2. It then stopped without candidate promotion when
+  `qwen3.7-plus` timed out on `frontend/styles.css` on all three bounded
+  attempts.
+- The preserved terminal diagnostic is
+  `provider_generation_blocked:provider_fact_blocked`; causal response capture
+  did not replace it.
+- No Codex supervision or kernel-repair call occurred for the ordinary Provider
+  failure. No runtime, canonical visual/test evidence, package, delivery gate
+  PASS, or receipt was emitted.
+- Iteration result: the two scoped production defects are fixed and regression
+  verified; the full customer acceptance is externally `BLOCKED_PROVIDER`.
 
 ## Experience usage
 

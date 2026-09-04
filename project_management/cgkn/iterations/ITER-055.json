@@ -8,8 +8,8 @@
     "PB-013",
     "PB-044"
   ],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "Browser-local static backend manifest prompting and validation use the exact canonical launcher path instead of a hard-coded root main.py path.",
     "A non-PASS Provider result stops before causal response consumption and preserves the original Provider blocker.",
@@ -59,9 +59,15 @@
     "project_management/cgkn/iterations/ITER-055_RUNTIME_EVIDENCE.md"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Focused regressions passed and the live rerun accepted canonical app/main.py, preserving the original Provider timeout when generation later stopped.",
+      "The final customer acceptance remains BLOCKED_PROVIDER because qwen3.7-plus timed out three times on frontend/styles.css before candidate materialization."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-013",
+      "PB-044"
+    ]
   },
   "retrospective": {
     "worked": [
@@ -71,7 +77,7 @@
       "The canonical launcher app/main.py was rejected by a hard-coded main.py check, and the resulting BLOCKED document was obscured by causal capture."
     ],
     "experiments": [
-      "Rerun the same frozen goal in API-only routing mode and compare component repair/reuse plus delivery identity."
+      "The API-only rerun reached frontend generation with 16 planned jobs, 18 API calls, and peak concurrency 2 before the bounded Provider timeout stopped the formal chain."
     ]
   }
 }
