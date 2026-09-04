@@ -1363,7 +1363,8 @@
     "iterations/ITER-053.json",
     "iterations/ITER-054.json",
     "iterations/ITER-055.json",
-    "iterations/ITER-056.json"
+    "iterations/ITER-056.json",
+    "iterations/ITER-057.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",

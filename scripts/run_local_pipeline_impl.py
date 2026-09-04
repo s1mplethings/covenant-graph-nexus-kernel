@@ -10720,8 +10720,150 @@ def _declared_dependency_paths(values: Any, available_paths: list[str]) -> list[
     return resolved
 
 
+def provider_leaf_owned_paths(leaf: dict[str, Any]) -> list[str]:
+    """Canonicalize new multi-path jobs and legacy single-path checkpoints."""
+    raw_paths = leaf.get("paths", leaf.get("owns", []))
+    if not raw_paths and str(leaf.get("path", "")).strip():
+        raw_paths = [leaf.get("path")]
+    return list(
+        dict.fromkeys(
+            str(item).replace("\\", "/").strip()
+            for item in raw_paths
+            if str(item).strip()
+        )
+    )
+
+
+def provider_manifest_entries_from_graph(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    """Read canonical job entries while adapting legacy one-path leaf graphs."""
+    entries: list[dict[str, Any]] = []
+    for leaf in graph.get("leaves", []):
+        if not isinstance(leaf, dict):
+            continue
+        stored_entries = leaf.get("manifest_entries", [])
+        if isinstance(stored_entries, list) and stored_entries:
+            entries.extend(dict(item) for item in stored_entries if isinstance(item, dict))
+            continue
+        for path in provider_leaf_owned_paths(leaf):
+            entries.append({**leaf, "path": path})
+    return entries
+
+
+def provider_manifest_entry_expected_chars(entry: dict[str, Any]) -> int:
+    """Return a bounded, explainable output-size estimate for ownership planning."""
+    try:
+        explicit = int(entry.get("expected_output_chars", 0) or 0)
+    except (TypeError, ValueError):
+        explicit = 0
+    if explicit > 0:
+        return max(400, min(explicit, 40000))
+    path = pathlib.PurePosixPath(str(entry.get("path", "")))
+    suffix = path.suffix.lower()
+    complexity = str(entry.get("estimated_complexity", "medium")).strip().lower()
+    if suffix in {".toml", ".txt", ".ini", ".cfg", ".css", ".scss"}:
+        estimates = {"low": 1200, "medium": 3200, "high": 6500}
+    elif suffix in {".json", ".yaml", ".yml"}:
+        estimates = {"low": 1600, "medium": 3800, "high": 8000}
+    elif suffix in {".md", ".rst"}:
+        estimates = {"low": 1800, "medium": 4200, "high": 9000}
+    else:
+        estimates = {"low": 2600, "medium": 5200, "high": 12000}
+    return estimates.get(complexity, estimates["medium"])
+
+
+def provider_job_output_token_budget(entries: list[dict[str, Any]]) -> int:
+    """Size one request cap without changing the transport timeout policy."""
+    expected_chars = sum(provider_manifest_entry_expected_chars(entry) for entry in entries)
+    return max(1200, min(7000, (expected_chars + 2) // 3))
+
+
+def _provider_entry_boundary(entry: dict[str, Any]) -> tuple[str, str]:
+    path = pathlib.PurePosixPath(str(entry.get("path", "")))
+    suffix = path.suffix.lower()
+    if suffix in {".html", ".htm", ".css", ".scss", ".js", ".mjs", ".jsx", ".ts", ".tsx"}:
+        kind = "web_interface"
+    elif suffix in {".toml", ".txt", ".ini", ".cfg"}:
+        kind = "configuration"
+    elif suffix in {".json", ".yaml", ".yml"}:
+        kind = "data_contract"
+    elif suffix in {".md", ".rst"}:
+        kind = "documentation"
+    elif path.name.startswith("test_") or "tests" in path.parts:
+        kind = "test"
+    else:
+        kind = "source"
+    return (path.parent.as_posix(), kind)
+
+
+def _provider_entry_can_share_job(entry: dict[str, Any]) -> bool:
+    return not any(
+        (
+            str(entry.get("generation_role", "")).strip(),
+            entry.get("feature_contracts"),
+            entry.get("submodules"),
+            str(entry.get("fragmentation_reason", "")).strip(),
+        )
+    )
+
+
+def plan_provider_ownership_units(
+    entries: list[dict[str, Any]],
+    dependency_map: dict[str, list[str]],
+) -> list[list[dict[str, Any]]]:
+    """Group files into small, independently verifiable ownership/change units."""
+    max_files = 4
+    max_expected_chars = 14000
+    units: list[list[dict[str, Any]]] = []
+    for entry in entries:
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        placed = False
+        for unit in reversed(units):
+            unit_paths = {
+                str(item.get("path", "")).replace("\\", "/").strip()
+                for item in unit
+            }
+            prospective_paths = {*unit_paths, path}
+            same_boundary = _provider_entry_boundary(unit[0]) == _provider_entry_boundary(entry)
+            dependency_sets = {
+                tuple(dependency_map.get(item_path, []))
+                for item_path in prospective_paths
+            }
+            external_sets = {
+                tuple(dep for dep in dependency_map.get(item_path, []) if dep not in prospective_paths)
+                for item_path in prospective_paths
+            }
+            expected_chars = sum(
+                provider_manifest_entry_expected_chars(item) for item in [*unit, entry]
+            )
+            unit_output_limit = (
+                22000
+                if _provider_entry_boundary(entry)[1] == "web_interface"
+                else max_expected_chars
+            )
+            if (
+                len(unit) < max_files
+                and expected_chars <= unit_output_limit
+                and same_boundary
+                and (
+                    len(dependency_sets) == 1
+                    or (
+                        _provider_entry_boundary(entry)[1] == "web_interface"
+                        and len(external_sets) == 1
+                    )
+                )
+                and _provider_entry_can_share_job(entry)
+                and all(_provider_entry_can_share_job(item) for item in unit)
+            ):
+                unit.append(entry)
+                placed = True
+                break
+        if not placed:
+            units.append([entry])
+    return units
+
+
 def build_component_leaf_work_graph(component_id: str, manifest: list[dict[str, Any]]) -> dict[str, Any]:
-    """Turn one component manifest into stable, dependency-ordered file leaves."""
+    """Turn one component manifest into stable ownership/change-unit jobs."""
     entries = [item for item in manifest if isinstance(item, dict) and str(item.get("path", "")).strip()]
     paths = [str(item.get("path", "")).replace("\\", "/").strip() for item in entries]
     entry_by_path = {
@@ -10795,59 +10937,109 @@ def build_component_leaf_work_graph(component_id: str, manifest: list[dict[str, 
         for path in ready:
             ordered.append(path)
             remaining.remove(path)
+    ordered_entries = [entry_by_path[path] for path in ordered]
+    ownership_units = plan_provider_ownership_units(ordered_entries, dependency_map)
     leaves = []
-    for index, path in enumerate(ordered, start=1):
-        entry = entry_by_path[path]
+    for index, unit_entries in enumerate(ownership_units, start=1):
+        unit_paths = [
+            str(entry.get("path", "")).replace("\\", "/").strip()
+            for entry in unit_entries
+        ]
+        unit_path_set = set(unit_paths)
+        external_dependencies = list(
+            dict.fromkeys(
+                dependency
+                for path in unit_paths
+                for dependency in dependency_map[path]
+                if dependency not in unit_path_set
+            )
+        )
+        purposes = [str(entry.get("purpose", "")).strip() for entry in unit_entries]
+        complexity_rank = {"low": 1, "medium": 2, "high": 3}
+        estimated_complexity = max(
+            (
+                str(entry.get("estimated_complexity", "medium")).strip().lower()
+                for entry in unit_entries
+            ),
+            key=lambda value: complexity_rank.get(value, 2),
+            default="medium",
+        )
         leaves.append(
             {
                 "leaf_id": f"{component_id}.leaf.{index:03d}",
-                "path": path,
-                "purpose": str(entry.get("purpose", "")).strip()[:1000],
-                "depends_on": dependency_map[path],
-                "declared_dependencies": [
-                    str(item).strip()[:500]
-                    for item in entry.get("dependencies", [])
-                    if str(item).strip()
-                ][:16],
-                "estimated_complexity": str(entry.get("estimated_complexity", "")).strip()[:80],
+                "paths": unit_paths,
+                "owns": unit_paths,
+                "purpose": " | ".join(item for item in purposes if item)[:1000],
+                "depends_on": external_dependencies,
+                "declared_dependencies": list(
+                    dict.fromkeys(
+                        str(item).strip()[:500]
+                        for entry in unit_entries
+                        for item in entry.get("dependencies", [])
+                        if str(item).strip()
+                    )
+                )[:16],
+                "estimated_complexity": estimated_complexity[:80],
+                "expected_output_chars": sum(
+                    provider_manifest_entry_expected_chars(entry)
+                    for entry in unit_entries
+                ),
+                "output_token_cap": provider_job_output_token_budget(unit_entries),
                 "responsibilities": [
                     str(item).strip()[:500]
+                    for entry in unit_entries
                     for item in entry.get("responsibilities", [])
                     if str(item).strip()
-                ][:8] if isinstance(entry.get("responsibilities", []), list) else [],
+                ][:16],
                 "acceptance_checks": [
                     str(item).strip()[:500]
+                    for entry in unit_entries
                     for item in entry.get("acceptance_checks", [])
                     if str(item).strip()
-                ][:8] if isinstance(entry.get("acceptance_checks", []), list) else [],
+                ][:16],
                 "expected_symbols": [
                     str(item).strip()[:200]
+                    for entry in unit_entries
                     for item in entry.get("expected_symbols", [])
                     if str(item).strip()
-                ][:12] if isinstance(entry.get("expected_symbols", []), list) else [],
-                "generation_role": str(entry.get("generation_role", "")).strip()[:80],
-                "expansion_parent": str(entry.get("expansion_parent", "")).replace("\\", "/").strip(),
+                ][:24],
+                "generation_role": (
+                    str(unit_entries[0].get("generation_role", "")).strip()[:80]
+                    if len(unit_entries) == 1
+                    else "ownership_unit"
+                ),
+                "expansion_parent": (
+                    str(unit_entries[0].get("expansion_parent", "")).replace("\\", "/").strip()
+                    if len(unit_entries) == 1
+                    else ""
+                ),
                 "facade_children": [
                     str(item).replace("\\", "/").strip()
+                    for entry in unit_entries
                     for item in entry.get("facade_children", [])
                     if str(item).strip()
-                ][:8] if isinstance(entry.get("facade_children", []), list) else [],
+                ][:8],
                 "feature_contracts": [
                     item
+                    for entry in unit_entries
                     for item in entry.get("feature_contracts", [])
                     if isinstance(item, dict) and str(item.get("feature_id", "")).strip()
                 ][:8],
                 "feature_test_contract": (
-                    entry.get("feature_test_contract", {})
-                    if isinstance(entry.get("feature_test_contract", {}), dict)
+                    unit_entries[0].get("feature_test_contract", {})
+                    if len(unit_entries) == 1
+                    and isinstance(unit_entries[0].get("feature_test_contract", {}), dict)
                     else {}
                 ),
-                "feature_interface_freeze_sha256": str(
-                    entry.get("feature_interface_freeze_sha256", "")
-                ).strip(),
+                "feature_interface_freeze_sha256": (
+                    str(unit_entries[0].get("feature_interface_freeze_sha256", "")).strip()
+                    if len(unit_entries) == 1
+                    else ""
+                ),
+                "manifest_entries": [dict(entry) for entry in unit_entries],
                 "execution_plan": {
-                    "builder": "provider_leaf_builder",
-                    "verifier": "deterministic_leaf_boundary_verifier",
+                    "builder": "provider_ownership_unit_builder",
+                    "verifier": "deterministic_owned_file_boundary_verifier",
                     "integrator": "project_interface_registry_publisher",
                     "stages": ["build", "verify", "publish"],
                 },
@@ -10858,13 +11050,23 @@ def build_component_leaf_work_graph(component_id: str, manifest: list[dict[str, 
         "schema_version": 1,
         "component_id": component_id,
         "leaf_count": len(leaves),
-        "max_files_per_leaf": 1,
+        "max_files_per_leaf": max((len(provider_leaf_owned_paths(leaf)) for leaf in leaves), default=0),
         "leaves": leaves,
         "ordering_warnings": ordering_warnings,
     }
     graph["provider_jobs"] = [
         job.as_dict() for job in provider_jobs.provider_jobs_from_leaf_graph(component_id, graph)
     ]
+    wave_widths = [len(batch) for batch in component_leaf_ready_batches(graph)]
+    owned_files_total = len(paths)
+    graph["quality_metrics"] = {
+        "provider_jobs_total": len(leaves),
+        "provider_owned_files_total": owned_files_total,
+        "provider_avg_files_per_job": round(owned_files_total / len(leaves), 3) if leaves else 0.0,
+        "provider_dag_wave_widths": wave_widths,
+        "provider_dag_critical_path_waves": len(wave_widths),
+        "provider_fragmentation_ratio": round(len(leaves) / owned_files_total, 3) if owned_files_total else 0.0,
+    }
     canonical = json.dumps(graph, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     graph["graph_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return graph
@@ -10875,10 +11077,10 @@ def component_leaf_ready_batches(leaf_work_graph: dict[str, Any]) -> list[list[d
     leaves = [
         leaf
         for leaf in leaf_work_graph.get("leaves", [])
-        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+        if isinstance(leaf, dict) and provider_leaf_owned_paths(leaf)
     ]
     remaining = {
-        str(leaf.get("path", "")): leaf
+        str(leaf.get("leaf_id", "")) or provider_leaf_owned_paths(leaf)[0]: leaf
         for leaf in leaves
     }
     completed: set[str] = set()
@@ -10886,16 +11088,16 @@ def component_leaf_ready_batches(leaf_work_graph: dict[str, Any]) -> list[list[d
     while remaining:
         ready = [
             leaf
-            for path, leaf in remaining.items()
+            for _leaf_id, leaf in remaining.items()
             if all(str(dependency) in completed for dependency in leaf.get("depends_on", []))
         ]
         if not ready:
             ready = [next(iter(remaining.values()))]
         batches.append(ready)
         for leaf in ready:
-            path = str(leaf.get("path", ""))
-            completed.add(path)
-            remaining.pop(path, None)
+            completed.update(provider_leaf_owned_paths(leaf))
+            leaf_id = str(leaf.get("leaf_id", "")) or provider_leaf_owned_paths(leaf)[0]
+            remaining.pop(leaf_id, None)
     return batches
 
 
@@ -10907,9 +11109,9 @@ def component_leaf_downstream_closure(
     leaves = [
         leaf
         for leaf in leaf_work_graph.get("leaves", [])
-        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+        if isinstance(leaf, dict) and provider_leaf_owned_paths(leaf)
     ]
-    known = {str(leaf.get("path", "")) for leaf in leaves}
+    known = {path for leaf in leaves for path in provider_leaf_owned_paths(leaf)}
     affected = {
         str(path).replace("\\", "/").strip()
         for path in changed_paths
@@ -10919,21 +11121,28 @@ def component_leaf_downstream_closure(
     while changed:
         changed = False
         for leaf in leaves:
-            path = str(leaf.get("path", ""))
+            owned_paths = provider_leaf_owned_paths(leaf)
             dependencies = {
                 str(item)
                 for item in leaf.get("depends_on", [])
                 if not (
-                    pathlib.PurePosixPath(path).suffix.lower()
-                    in JAVASCRIPT_MODULE_SUFFIXES
+                    any(
+                        pathlib.PurePosixPath(path).suffix.lower()
+                        in JAVASCRIPT_MODULE_SUFFIXES
+                        for path in owned_paths
+                    )
                     and pathlib.PurePosixPath(str(item)).suffix.lower()
                     in {".css", ".scss"}
                 )
             }
-            if path not in affected and dependencies.intersection(affected):
-                affected.add(path)
+            if not affected.intersection(owned_paths) and dependencies.intersection(affected):
+                affected.update(owned_paths)
                 changed = True
-    return [str(leaf.get("path", "")) for leaf in leaves if str(leaf.get("path", "")) in affected]
+        for leaf in leaves:
+            owned_paths = provider_leaf_owned_paths(leaf)
+            if affected.intersection(owned_paths):
+                affected.update(owned_paths)
+    return [path for leaf in leaves for path in provider_leaf_owned_paths(leaf) if path in affected]
 
 
 def provider_auto_submodule_policy() -> dict[str, int | bool]:
@@ -11059,6 +11268,7 @@ def automatic_test_manifest_submodules(
                 "expansion_parent": parent_path,
                 "generation_role": "bounded_test_module",
                 "automatic_expansion": True,
+                "fragmentation_reason": "high_complexity_test_suite_exceeds_bounded_output_budget",
             }
         )
         known_paths.add(child_path)
@@ -11102,6 +11312,14 @@ def automatic_manifest_submodules(
         if str(item).strip()
     ] if isinstance(entry.get("expected_symbols", []), list) else []
     is_javascript_product_leaf = source_suffix in {".js", ".mjs"}
+    estimated_symbol_output_chars = len(expected_symbols) * 1800
+    explicit_fragmentation_reason = str(entry.get("fragmentation_reason", "")).strip()
+    if is_javascript_product_leaf and not (
+        explicit_fragmentation_reason
+        or estimated_symbol_output_chars > 16000
+        or int(entry.get("expected_output_chars", 0) or 0) > 16000
+    ):
+        return []
     minimum_symbols = (
         min(3, int(policy["minimum_expected_symbols"]))
         if is_javascript_product_leaf
@@ -11173,6 +11391,10 @@ def automatic_manifest_submodules(
                 "expansion_parent": parent_path,
                 "generation_role": "bounded_submodule",
                 "automatic_expansion": True,
+                "fragmentation_reason": (
+                    explicit_fragmentation_reason
+                    or "expected_output_exceeds_bounded_job_budget"
+                ),
             }
         )
         known_paths.add(child_path)
@@ -11289,6 +11511,9 @@ def expand_component_manifest_submodules(
         child_paths: list[str] = []
         raw_children = entry.get("submodules", [])
         automatic_children_selected = False
+        fragmentation_reason = str(entry.get("fragmentation_reason", "")).strip()
+        if raw_children and not fragmentation_reason:
+            raw_children = []
         if not raw_children:
             automatic_children = automatic_manifest_submodules(
                 component_id,
@@ -11352,6 +11577,9 @@ def expand_component_manifest_submodules(
                         "expansion_parent": parent_path,
                         "generation_role": str(child.get("generation_role", "bounded_submodule")).strip()[:80],
                         "automatic_expansion": bool(child.get("automatic_expansion", False)),
+                        "fragmentation_reason": str(
+                            child.get("fragmentation_reason", fragmentation_reason)
+                        ).strip()[:300],
                     }
                 )
                 seen.add(child_path)
@@ -11366,6 +11594,18 @@ def expand_component_manifest_submodules(
         ] if isinstance(parent.get("dependencies", []), list) else []
         parent["dependencies"] = list(dict.fromkeys([*dependencies, *child_paths]))
         if child_paths:
+            parent["fragmentation_reason"] = (
+                fragmentation_reason
+                or next(
+                    (
+                        str(child.get("fragmentation_reason", "")).strip()
+                        for child in raw_children
+                        if isinstance(child, dict)
+                        and str(child.get("fragmentation_reason", "")).strip()
+                    ),
+                    "",
+                )
+            )
             expected_symbols = [
                 str(item).strip()[:200]
                 for item in parent.get("expected_symbols", [])
@@ -11631,7 +11871,11 @@ def query_generation_context_librarian(
 ) -> dict[str, Any]:
     """Retrieve only the contracts and source excerpts required by one leaf."""
     leaf = leaf or {}
-    target_path = str(leaf.get("path", "")).replace("\\", "/").strip()
+    owned_paths = provider_leaf_owned_paths(leaf)
+    target_path = (
+        str(leaf.get("path", "")).replace("\\", "/").strip()
+        or (owned_paths[0] if owned_paths else "")
+    )
     target_suffix = pathlib.PurePosixPath(target_path).suffix.lower()
     target_tokens = {
         token
@@ -11887,12 +12131,18 @@ def build_leaf_interface_contract(
     selected_available_paths = [
         path for path in available_paths if not librarian_context_pack or path in selected_paths
     ]
+    owned_paths = provider_leaf_owned_paths(leaf)
+    target_path = (
+        str(leaf.get("path", "")).replace("\\", "/").strip()
+        or (owned_paths[0] if owned_paths else "")
+    )
     contract: dict[str, Any] = {
         "kind": "CGKNLeafInterfaceContract",
         "schema_version": 1,
         "component_id": component_id,
         "leaf_id": str(leaf.get("leaf_id", "")),
-        "target_path": str(leaf.get("path", "")),
+        "target_path": target_path,
+        "owned_paths": owned_paths,
         "declared_dependencies": declared_dependencies,
         "resolved_dependency_paths": direct_paths,
         "available_implemented_paths": selected_available_paths[-24:],
@@ -13683,6 +13933,7 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
                 "purpose": "why this file is needed",
                 "dependencies": ["short dependency or contract summaries"],
                 "estimated_complexity": "low|medium|high",
+                "expected_output_chars": "optional bounded estimate used only for ownership-unit sizing",
                 "responsibilities": [
                     "specific behavior owned by this file",
                     "second independently testable behavior for medium/high complexity files",
@@ -13701,8 +13952,10 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
                         "responsibilities": ["specific behavior owned by the child"],
                         "acceptance_checks": ["observable condition proving the child works"],
                         "expected_symbols": ["public symbols exposed by the child"],
+                        "fragmentation_reason": "specific output/interface reason requiring a separate file",
                     }
                 ],
+                "fragmentation_reason": "required only when submodules are requested",
             }
         ],
     }
@@ -13731,8 +13984,8 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
         "Do not include binary screenshot/video/zip outputs; include scripts that create them when this component owns media automation.",
         "The manifest file count must be at least minimum_file_count and must cover the supplied complexity_contract_slice.",
         "When one planned file depends on another planned or upstream file, name that exact relative path in dependencies; dependency paths determine leaf generation order and interface feedforward.",
-        "A high-complexity file may declare at most four owned submodules. Keep the parent as a facade/entry file; submodules stay inside the same component ownership boundary.",
-        "A high-complexity Python file with six or more expected public symbols should declare two to four cohesive owned submodules, with no more than four expected symbols per child; the parent must remain a compatibility facade.",
+        "Declare submodules only when expected output clearly exceeds the bounded output budget and record a concrete fragmentation_reason; stable public interfaces and real parallel value are required.",
+        "Do not create app_part_01-style JavaScript fragments or a compatibility facade merely to satisfy file-level generation. Keep a cohesive logical JavaScript module intact unless its recorded size/interface reason requires a split.",
         "For Python files, expected_symbols must contain exact importable identifiers, never prose such as 'pytest fixtures' or 'public generator functions'.",
         "Use expected_symbols only for Python module names, JavaScript exports, HTML ids, or CSS custom properties. For Markdown, text, JSON, TOML, or YAML, leave expected_symbols empty and use expected_anchors for required human-readable terms.",
         "Keep each Python test file bounded and cohesive: prefer parametrized cases and shared fixtures over duplicating product validation logic in tests.",
@@ -13873,6 +14126,12 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
                     if str(value).strip()
                 ][:12] if isinstance(item.get("expected_anchors", []), list) else [],
                 "submodules": item.get("submodules", []) if isinstance(item.get("submodules", []), list) else [],
+                "fragmentation_reason": str(item.get("fragmentation_reason", "")).strip()[:300],
+                "expected_output_chars": (
+                    provider_manifest_entry_expected_chars(item)
+                    if item.get("expected_output_chars") not in (None, "", 0)
+                    else 0
+                ),
             }
         )
     if foreign_paths:
@@ -17467,7 +17726,7 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         stage="component_file_generation",
         component=component_id,
         target_file=target_file,
-        max_tokens=int(provider_component_prompt_policy()["max_tokens_file"]),
+        max_tokens=provider_job_output_token_budget([manifest_entry]),
         payload_mode="split_file",
         phase_log_path=phase_log_path,
         routing_policy=routing_policy,
@@ -17759,6 +18018,205 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
     return validated, raw
 
 
+def provider_generate_component_job(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    manifest_entries: list[dict[str, Any]],
+    prior_manifest: list[str],
+    completed_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None = None,
+    component_file_manifest: list[dict[str, Any]] | None = None,
+    repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None = None,
+    leaf_interface_contract: dict[str, Any] | None = None,
+    librarian_context_pack: dict[str, Any] | None = None,
+    model: str,
+    timeout: int,
+    phase_log_path: pathlib.Path | str | None,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    last_transport_error: Any = None,
+) -> tuple[list[dict[str, str]], str]:
+    """Generate one natural multi-file ownership unit in one Provider call."""
+    component_id = str(component.get("id", "")).strip()
+    entries = [dict(entry) for entry in manifest_entries if isinstance(entry, dict)]
+    owned_paths = [
+        str(entry.get("path", "")).replace("\\", "/").strip()
+        for entry in entries
+        if str(entry.get("path", "")).strip()
+    ]
+    if len(owned_paths) < 2 or len(set(owned_paths)) != len(owned_paths):
+        raise ValueError("multi-file Provider job requires at least two unique owned paths")
+    payload = summarize_component_context_for_split(
+        goal=goal,
+        component=component,
+        component_pipeline=component_pipeline,
+        prior_manifest=prior_manifest,
+        repair_errors=repair_errors,
+        integration_feedforward=integration_feedforward,
+        librarian_context_pack=librarian_context_pack,
+    )
+    payload["provider_job"] = {
+        "owns": owned_paths,
+        "files": [
+            {
+                "path": str(entry.get("path", "")),
+                "purpose": str(entry.get("purpose", "")),
+                "dependencies": entry.get("dependencies", []),
+                "responsibilities": entry.get("responsibilities", []),
+                "acceptance_checks": entry.get("acceptance_checks", []),
+                "expected_symbols": entry.get("expected_symbols", []),
+                "implementation_depth_contract": leaf_implementation_depth_contract(entry),
+            }
+            for entry in entries
+        ],
+        "leaf_interface_contract": leaf_interface_contract or {},
+        "output_token_cap": provider_job_output_token_budget(entries),
+    }
+    payload["strict_rules"] = [
+        "Return strict JSON with one files array and no commentary.",
+        "Return every owned path exactly once and no path outside provider_job.owns.",
+        "Produce only the required files with concise cohesive implementations.",
+        "Keep cross-file names and interfaces internally consistent.",
+        "Do not include TODO, placeholder, future-work, binary data, screenshots, or delivery claims.",
+        "Use only supplied dependency interfaces and standard/runtime packages allowed by the project.",
+    ]
+    suffixes = {pathlib.PurePosixPath(path).suffix.lower() for path in owned_paths}
+    if suffixes.intersection({".html", ".htm", ".css", ".scss", ".js", ".mjs"}):
+        payload["strict_rules"].extend(
+            [
+                "HTML must contain the visible semantic interface and stable ids used by JavaScript.",
+                "HTML owns stylesheet/script loading; browser JavaScript must not import CSS.",
+                "CSS must define reusable tokens, responsive layout, visible :focus-visible, hover feedback, and prefers-reduced-motion behavior.",
+                "JavaScript must bind only ids created by the returned HTML, implement real interactions, and remain self-contained unless an allowed dependency is supplied.",
+            ]
+        )
+    system = (
+        "You generate one component-owned multi-file change unit for CGKN.\n"
+        "Return strict JSON only as {\"files\":[{\"path\":\"...\",\"content\":\"...\"}]}.\n"
+        "Return exactly the owned files, no commentary and no additional paths. Keep the implementation concise.\n"
+    )
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
+    ]
+    raw = provider_text(
+        messages,
+        model,
+        timeout,
+        max_attempts=1,
+        stage="component_file_generation",
+        component=component_id,
+        target_file=owned_paths[0],
+        max_tokens=provider_job_output_token_budget(entries),
+        payload_mode="multi_file",
+        phase_log_path=phase_log_path,
+        routing_policy=routing_policy,
+        last_error=last_transport_error,
+    )
+    try:
+        doc = parse_json_object(raw)
+    except RuntimeError as exc:
+        raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
+    files = doc.get("files", [])
+    if not isinstance(files, list):
+        raise ProviderOutputContractError(
+            "multi-file Provider job missing files array",
+            raw_output=raw,
+            parsed_result=doc,
+        )
+    response_paths = [
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in files
+        if isinstance(item, dict)
+    ]
+    if len(response_paths) != len(files) or set(response_paths) != set(owned_paths) or len(set(response_paths)) != len(response_paths):
+        raise ProviderOutputContractError(
+            "multi-file Provider job must return every owned path exactly once and no other path",
+            raw_output=raw,
+            parsed_result=doc,
+        )
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in files
+        if isinstance(item, dict)
+    }
+    completed_paths = {
+        str(row.get("path", "")).replace("\\", "/").strip()
+        for row in completed_files
+        if isinstance(row, dict)
+    }
+    declared_paths = [
+        *(
+            component.get("required_paths", [])
+            if isinstance(component.get("required_paths", []), list)
+            else []
+        ),
+        *owned_paths,
+    ]
+    validated_files: list[dict[str, str]] = []
+    for path in owned_paths:
+        validated = validate_split_file_for_component(
+            component_id=component_id,
+            target_file=path,
+            file_item=by_path[path],
+            prior_manifest=prior_manifest,
+            completed_paths=completed_paths,
+            declared_paths=declared_paths,
+            declared_package=component_declared_package_for_path_validation(component),
+        )
+        if pathlib.PurePosixPath(path).suffix.lower() == ".py":
+            safety_blockers = generated_python_safety_violations(
+                path, str(validated.get("content", ""))
+            )
+            if safety_blockers:
+                raise RuntimeError(
+                    "generated Python execution safety contract mismatch: "
+                    + "; ".join(safety_blockers)
+                )
+        if pathlib.PurePosixPath(path).name.lower() == "pyproject.toml":
+            try:
+                tomllib.loads(str(validated.get("content", "")))
+            except tomllib.TOMLDecodeError as exc:
+                raise RuntimeError(f"pyproject TOML contract mismatch: {exc}") from exc
+        validated_files.append(validated)
+    combined_files = [*completed_files, *validated_files]
+    manifest_by_path = {
+        str(entry.get("path", "")).replace("\\", "/").strip(): entry
+        for entry in entries
+    }
+    failed_receipts = [
+        receipt
+        for receipt in (
+            build_leaf_boundary_check_receipt(
+                component_id=component_id,
+                target_file=path,
+                component_files=combined_files,
+                prior_files=prior_files,
+                manifest_paths=[
+                    str(entry.get("path", ""))
+                    for entry in (component_file_manifest or entries)
+                    if isinstance(entry, dict)
+                ],
+                manifest_entry=manifest_by_path[path],
+            )
+            for path in owned_paths
+        )
+        if receipt.get("status") != "PASS"
+    ]
+    if failed_receipts:
+        raise RuntimeError(
+            "multi-file Provider job boundary mismatch: "
+            + "; ".join(
+                str(blocker)
+                for receipt in failed_receipts
+                for blocker in receipt.get("blockers", [])
+            )[:2000]
+        )
+    return validated_files, raw
+
+
 def write_pending_component_file_generation(
     path: pathlib.Path,
     *,
@@ -17928,9 +18386,10 @@ def recover_component_manifest_from_split_checkpoints(
     except Exception:
         return None
     graph_paths = [
-        str(leaf.get("path", "")).replace("\\", "/").strip()
+        path
         for leaf in graph.get("leaves", [])
-        if isinstance(leaf, dict) and str(leaf.get("path", "")).strip()
+        if isinstance(leaf, dict)
+        for path in provider_leaf_owned_paths(leaf)
     ]
     if not graph_paths:
         return None
@@ -18250,6 +18709,174 @@ def _provider_generate_leaf_with_retry(
     raise RuntimeError(f"component {component_id} generation failed without a leaf result")
 
 
+def _provider_generate_job_with_retry(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    component_pipeline: dict[str, Any],
+    leaf: dict[str, Any],
+    entries: list[dict[str, Any]],
+    prior_manifest: list[str],
+    completed_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None,
+    manifest: list[dict[str, Any]],
+    repair_errors: list[str],
+    integration_feedforward: dict[str, Any] | None,
+    interface_registry: dict[str, Any],
+    librarian_index: dict[str, Any],
+    model: str,
+    timeout: int,
+    deadline: float | ProgressDeadline | None,
+    phase_log_path: pathlib.Path | str | None,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    pending_context: dict[str, Any],
+    last_transport_error: Any,
+) -> dict[str, Any]:
+    owned_paths = provider_leaf_owned_paths(leaf)
+    if len(owned_paths) == 1:
+        result = _provider_generate_leaf_with_retry(
+            goal=goal,
+            component=component,
+            component_pipeline=component_pipeline,
+            leaf={**leaf, "path": owned_paths[0]},
+            entry=entries[0],
+            prior_manifest=prior_manifest,
+            completed_files=completed_files,
+            prior_files=prior_files,
+            manifest=manifest,
+            repair_errors=repair_errors,
+            integration_feedforward=integration_feedforward,
+            interface_registry=interface_registry,
+            librarian_index=librarian_index,
+            model=model,
+            timeout=timeout,
+            deadline=deadline,
+            phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
+            pending_context=pending_context,
+            last_transport_error=last_transport_error,
+        )
+        return {**result, "file_items": [result["file_item"]]}
+    component_id = str(component.get("id", "")).strip()
+    primary_path = owned_paths[0]
+    leaf_view = {**leaf, "path": primary_path}
+    librarian_context_pack = query_generation_context_librarian(
+        librarian_index,
+        leaf=leaf_view,
+        query_kind="leaf_generation",
+    )
+    leaf_interface_contract = build_leaf_interface_contract(
+        component_id=component_id,
+        leaf=leaf_view,
+        completed_files=completed_files,
+        prior_files=prior_files,
+        integration_feedforward=integration_feedforward,
+        interface_registry=interface_registry,
+        librarian_context_pack=librarian_context_pack,
+    )
+    pending_target = str(pending_context.get("target_file", "")).replace("\\", "/").strip()
+    last_error_text = (
+        str(last_transport_error or pending_context.get("last_transport_error", "") or "")
+        if pending_target in owned_paths
+        else ""
+    )
+    rejection_history = [last_error_text] if last_error_text else []
+    attempt_limit = provider_transport_repair_attempts()
+    for attempt in range(attempt_limit):
+        route_prompt_chars = len(
+            json.dumps(
+                {
+                    "goal": goal,
+                    "manifest_entries": entries,
+                    "leaf_interface_contract": leaf_interface_contract,
+                    "librarian_context": librarian_context_pack,
+                    "previous_generation_error": last_error_text,
+                },
+                ensure_ascii=False,
+                default=str,
+            )
+        )
+        route = choose_provider_model(
+            "component_file_generation",
+            route_prompt_chars,
+            model,
+            routing_policy,
+            last_error=last_error_text,
+            attempt_number=attempt + 1,
+        )
+        call_model = str(route.get("selected_model") or model)
+        try:
+            leaf_timeout_cap = provider_component_file_timeout_cap()
+            call_timeout = (
+                remaining_timeout(deadline, timeout, floor=5, cap=leaf_timeout_cap)
+                if deadline
+                else min(timeout, leaf_timeout_cap)
+            )
+            file_items, raw = provider_generate_component_job(
+                goal=goal,
+                component=component,
+                component_pipeline=component_pipeline,
+                manifest_entries=entries,
+                prior_manifest=prior_manifest,
+                completed_files=completed_files,
+                prior_files=prior_files,
+                component_file_manifest=manifest,
+                repair_errors=repair_errors,
+                integration_feedforward=integration_feedforward,
+                leaf_interface_contract=leaf_interface_contract,
+                librarian_context_pack=librarian_context_pack,
+                model=call_model,
+                timeout=call_timeout,
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                last_transport_error=last_error_text,
+            )
+            return {
+                "file_items": file_items,
+                "raw_output": raw,
+                "leaf_interface_contract": leaf_interface_contract,
+                "librarian_context_pack": librarian_context_pack,
+                "selected_model": call_model,
+            }
+        except (RuntimeError, TimeoutError) as exc:
+            current_error_text = str(exc)
+            if current_error_text and current_error_text not in rejection_history:
+                rejection_history.append(current_error_text)
+            last_error_text = (
+                "ALL REJECTED CANDIDATE VIOLATIONS (fix every item; do not regress):\n- "
+                + "\n- ".join(reversed(rejection_history[-6:]))
+            )[:1500]
+            error_type = provider_exception_error_type(exc)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "component_leaf_attempt_failed",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "target_file": primary_path,
+                    "target_files": owned_paths,
+                    "attempt": attempt + 1,
+                    "attempt_limit": attempt_limit,
+                    "error_type": error_type,
+                    "error_summary": bounded_provider_diagnostic_output(
+                        current_error_text, max_chars=1500
+                    ),
+                    "retryable": provider_component_error_is_retryable(
+                        error_type, current_error_text
+                    ),
+                },
+            )
+            if not provider_component_error_is_retryable(error_type, current_error_text):
+                raise
+            if attempt == attempt_limit - 1:
+                raise ProviderLeafRepairExhaustedError(
+                    f"provider ownership-unit repair exhausted for {component_id}:{','.join(owned_paths)}: {current_error_text}"
+                ) from exc
+            if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
+                time.sleep(min(20.0, 2.0 * (2**attempt)))
+    raise RuntimeError(f"component {component_id} generation failed without a job result")
+
+
 def provider_generate_project_component_split(
     *,
     goal: str,
@@ -18367,12 +18994,17 @@ def provider_generate_project_component_split(
         component_id, manifest, component
     )
     leaf_work_graph = build_component_leaf_work_graph(component_id, manifest)
-    provider_execution_metrics.declare_jobs(
+    provider_job_docs = [
+        item
+        for item in leaf_work_graph.get("provider_jobs", [])
+        if isinstance(item, dict)
+    ]
+    provider_execution_metrics.declare_job_graph(
         phase_log_path,
-        [
-            str(item.get("id", ""))
-            for item in leaf_work_graph.get("provider_jobs", [])
-            if isinstance(item, dict)
+        component_id=component_id,
+        jobs=provider_job_docs,
+        wave_widths=[
+            len(batch) for batch in component_leaf_ready_batches(leaf_work_graph)
         ],
     )
     provider_job_by_id = {
@@ -18396,6 +19028,8 @@ def provider_generate_project_component_split(
             "stage": "project_generation",
             "component": component_id,
             "leaf_count": leaf_work_graph.get("leaf_count", 0),
+            "owned_file_count": len(manifest),
+            "dag_quality_metrics": leaf_work_graph.get("quality_metrics", {}),
             "graph_sha256": leaf_work_graph.get("graph_sha256", ""),
             "ordering_warnings": leaf_work_graph.get("ordering_warnings", []),
         },
@@ -18419,9 +19053,10 @@ def provider_generate_project_component_split(
         if isinstance(item, dict) and str(item.get("path", "")).strip()
     }
     graph_paths = [
-        str(leaf.get("path", "")).replace("\\", "/").strip()
+        path
         for leaf in leaf_work_graph.get("leaves", [])
         if isinstance(leaf, dict)
+        for path in provider_leaf_owned_paths(leaf)
     ]
     cache_scan: list[dict[str, str]] = []
     for rel in graph_paths:
@@ -18447,19 +19082,6 @@ def provider_generate_project_component_split(
         if cached is not None:
             completed_files.append(cached)
             completed_paths.add(rel)
-            leaf_id = next(
-                (
-                    str(item.get("leaf_id", ""))
-                    for item in leaf_work_graph.get("leaves", [])
-                    if isinstance(item, dict) and str(item.get("path", "")) == rel
-                ),
-                f"{component_id}:{rel}",
-            )
-            provider_execution_metrics.record_job(
-                phase_log_path,
-                leaf_id,
-                reused=True,
-            )
         cache_scan.append(
             {
                 "path": rel,
@@ -18481,16 +19103,14 @@ def provider_generate_project_component_split(
     )
     cache_invalidated_paths: set[str] = set()
     if not repair_targets:
-        first_cache_miss_index = next(
-            (index for index, path in enumerate(graph_paths) if path not in completed_paths),
-            None,
-        )
-        if first_cache_miss_index is not None:
-            cache_invalidated_paths.update(
-                path
-                for path in graph_paths[first_cache_miss_index:]
-                if path in completed_paths
+        missing_paths = [path for path in graph_paths if path not in completed_paths]
+        cache_invalidated_paths.update(
+            path
+            for path in component_leaf_downstream_closure(
+                leaf_work_graph, missing_paths
             )
+            if path in completed_paths
+        )
     cached_interface_violations = python_leaf_interface_violations(
         [*(prior_files or []), *completed_files],
         source_paths=set(completed_paths),
@@ -18545,10 +19165,20 @@ def provider_generate_project_component_split(
                 "reason": (
                     "cached_interface_contract_mismatch"
                     if invalid_cached_sources
-                    else "non_contiguous_component_checkpoint"
+                    else "incomplete_or_dependency_affected_ownership_unit"
                 ),
             },
         )
+    for leaf in leaf_work_graph.get("leaves", []):
+        if not isinstance(leaf, dict):
+            continue
+        owned_paths = provider_leaf_owned_paths(leaf)
+        if owned_paths and all(path in completed_paths for path in owned_paths):
+            provider_execution_metrics.record_job(
+                phase_log_path,
+                str(leaf.get("leaf_id", "")) or f"{component_id}:{owned_paths[0]}",
+                reused=True,
+            )
     interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
     boundary_receipts: list[dict[str, Any]] = []
     librarian_query_packs: list[dict[str, Any]] = []
@@ -18558,7 +19188,7 @@ def provider_generate_project_component_split(
         pending_leaves = [
             leaf
             for leaf in batch
-            if str(leaf.get("path", "")).replace("\\", "/").strip() not in completed_paths
+            if any(path not in completed_paths for path in provider_leaf_owned_paths(leaf))
         ]
         if not pending_leaves:
             continue
@@ -18594,7 +19224,10 @@ def provider_generate_project_component_split(
                 "component": component_id,
                 "batch_index": batch_index,
                 "worker_count": worker_count,
-                "leaf_paths": [str(leaf.get("path", "")) for leaf in pending_leaves],
+                "leaf_paths": [
+                    path for leaf in pending_leaves for path in provider_leaf_owned_paths(leaf)
+                ],
+                "provider_job_ids": [str(leaf.get("leaf_id", "")) for leaf in pending_leaves],
             },
         )
         results: dict[str, dict[str, Any]] = {}
@@ -18605,12 +19238,15 @@ def provider_generate_project_component_split(
         ) as executor:
             future_to_leaf = {
                 executor.submit(
-                    _provider_generate_leaf_with_retry,
+                    _provider_generate_job_with_retry,
                     goal=goal,
                     component=component,
                     component_pipeline=component_pipeline,
                     leaf=leaf,
-                    entry=manifest_by_path[str(leaf.get("path", "")).replace("\\", "/").strip()],
+                    entries=[
+                        manifest_by_path[path]
+                        for path in provider_leaf_owned_paths(leaf)
+                    ],
                     prior_manifest=prior_manifest,
                     completed_files=completed_snapshot,
                     prior_files=prior_files,
@@ -18631,49 +19267,59 @@ def provider_generate_project_component_split(
             }
             for future in as_completed(future_to_leaf):
                 leaf = future_to_leaf[future]
-                target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
+                leaf_id = str(leaf.get("leaf_id", ""))
                 try:
-                    results[target_file] = future.result()
+                    results[leaf_id] = future.result()
                 except BaseException as exc:
-                    failures[target_file] = exc
+                    failures[leaf_id] = exc
         for leaf in pending_leaves:
-            target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
-            leaf_result = results.get(target_file)
+            leaf_id = str(leaf.get("leaf_id", ""))
+            owned_paths = provider_leaf_owned_paths(leaf)
+            target_file = owned_paths[0]
+            leaf_result = results.get(leaf_id)
             if leaf_result is None:
                 continue
-            file_item = leaf_result["file_item"]
-            provider_job = provider_job_by_id[str(leaf.get("leaf_id", ""))]
+            file_items = leaf_result["file_items"]
+            provider_job = provider_job_by_id[leaf_id]
             patch_set = provider_jobs.validate_patch_set(
                 provider_job,
-                {target_file: str(file_item.get("content", ""))},
+                {
+                    str(file_item.get("path", "")): str(file_item.get("content", ""))
+                    for file_item in file_items
+                },
             )
-            write_split_file_checkpoint(
-                checkpoint_dir,
-                component_id=component_id,
-                spec_hash=spec_hash,
-                file_item=file_item,
-                manifest_entry=manifest_by_path[target_file],
-            )
-            completed_files.append(file_item)
-            completed_paths.add(target_file)
+            for file_item in file_items:
+                item_path = str(file_item.get("path", "")).replace("\\", "/").strip()
+                write_split_file_checkpoint(
+                    checkpoint_dir,
+                    component_id=component_id,
+                    spec_hash=spec_hash,
+                    file_item=file_item,
+                    manifest_entry=manifest_by_path[item_path],
+                )
+                completed_files.append(file_item)
+                completed_paths.add(item_path)
             provider_execution_metrics.record_job(
                 phase_log_path,
-                str(leaf.get("leaf_id", "")) or f"{component_id}:{target_file}",
+                leaf_id or f"{component_id}:{target_file}",
                 repaired=(
-                    target_file in affected_repair_paths
+                    bool(set(owned_paths).intersection(affected_repair_paths))
                     or force_leaf_regeneration
                     or bool(repair_errors)
                 ),
             )
-            receipt = build_leaf_boundary_check_receipt(
-                component_id=component_id,
-                target_file=target_file,
-                component_files=completed_files,
-                prior_files=prior_files,
-                manifest_paths=list(manifest_by_path),
-                manifest_entry=manifest_by_path[target_file],
-            )
-            boundary_receipts.append(receipt)
+            receipts = [
+                build_leaf_boundary_check_receipt(
+                    component_id=component_id,
+                    target_file=item_path,
+                    component_files=completed_files,
+                    prior_files=prior_files,
+                    manifest_paths=list(manifest_by_path),
+                    manifest_entry=manifest_by_path[item_path],
+                )
+                for item_path in owned_paths
+            ]
+            boundary_receipts.extend(receipts)
             librarian_pack = leaf_result.get("librarian_context_pack", {})
             if isinstance(librarian_pack, dict) and librarian_pack:
                 librarian_query_packs.append(librarian_pack)
@@ -18685,6 +19331,7 @@ def provider_generate_project_component_split(
                     "component": component_id,
                     "leaf_id": leaf.get("leaf_id", ""),
                     "target_file": target_file,
+                    "target_files": owned_paths,
                     "patch_set_sha256": hashlib.sha256(
                         json.dumps(
                             dict(patch_set.files),
@@ -18695,7 +19342,12 @@ def provider_generate_project_component_split(
                     ).hexdigest(),
                     "execution_plan": leaf.get("execution_plan", {}),
                     "interface_contract_sha256": leaf_result["leaf_interface_contract"].get("contract_sha256", ""),
-                    "boundary_receipt_sha256": receipt.get("receipt_sha256", ""),
+                    "boundary_receipt_sha256": hashlib.sha256(
+                        json.dumps(
+                            [receipt.get("receipt_sha256", "") for receipt in receipts],
+                            sort_keys=True,
+                        ).encode("utf-8")
+                    ).hexdigest(),
                     "librarian_query_sha256": str(librarian_pack.get("query_sha256", "")) if isinstance(librarian_pack, dict) else "",
                     "librarian_context_chars": int(
                         (librarian_pack.get("context_budget", {}) if isinstance(librarian_pack, dict) else {}).get(
@@ -18704,28 +19356,33 @@ def provider_generate_project_component_split(
                         )
                         or 0
                     ),
-                    "published_interface": generated_file_interface_summary(file_item),
+                    "published_interfaces": [
+                        generated_file_interface_summary(file_item)
+                        for file_item in file_items
+                    ],
                 },
             )
-            if run_dir is not None and archive_completed_pending_component_leaf(
-                run_dir,
-                component_id=component_id,
-                target_file=target_file,
-            ):
-                append_provider_event_log(
-                    phase_log_path,
-                    {
-                        "event": "pending_component_leaf_repair_completed",
-                        "stage": "project_generation",
-                        "component": component_id,
-                        "target_file": target_file,
-                    },
-                )
+            if run_dir is not None:
+                for item_path in owned_paths:
+                    if archive_completed_pending_component_leaf(
+                        run_dir,
+                        component_id=component_id,
+                        target_file=item_path,
+                    ):
+                        append_provider_event_log(
+                            phase_log_path,
+                            {
+                                "event": "pending_component_leaf_repair_completed",
+                                "stage": "project_generation",
+                                "component": component_id,
+                                "target_file": item_path,
+                            },
+                        )
             mark_generation_progress(
                 deadline,
                 "project_generation",
-                f"Provider split file {component_id}:{target_file} returned.",
-                [target_file],
+                f"Provider ownership unit {component_id}:{','.join(owned_paths)} returned.",
+                owned_paths,
             )
         interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
         write_leaf_orchestration_artifacts(
@@ -18746,10 +19403,11 @@ def provider_generate_project_component_split(
             failed_leaf = next(
                 leaf
                 for leaf in pending_leaves
-                if str(leaf.get("path", "")).replace("\\", "/").strip() in failures
+                if str(leaf.get("leaf_id", "")) in failures
             )
-            target_file = str(failed_leaf.get("path", "")).replace("\\", "/").strip()
-            exc = failures[target_file]
+            failed_paths = provider_leaf_owned_paths(failed_leaf)
+            target_file = failed_paths[0]
+            exc = failures[str(failed_leaf.get("leaf_id", ""))]
             error_text = str(exc)
             next_route = choose_provider_model(
                 "component_file_generation",
@@ -18772,6 +19430,7 @@ def provider_generate_project_component_split(
                     component_contract_hash=component_checkpoint_contract_hash(component),
                     component_spec_hash=spec_hash,
                     leaf_work_graph=leaf_work_graph,
+                    target_files=failed_paths,
                 )
             if isinstance(exc, ProviderOutputContractError):
                 raise ProviderOutputContractError(
@@ -18844,7 +19503,7 @@ def provider_generate_project_component_split(
     )
     result = {
         "component_id": component_id,
-        "summary": f"{component_id} generated through dependency-ordered leaf file requests.",
+        "summary": f"{component_id} generated through dependency-ordered ownership-unit requests.",
         "files": completed_files,
         "component_file_manifest": manifest,
         "public_contract": {
@@ -18863,6 +19522,7 @@ def provider_generate_project_component_split(
             ],
         },
         "leaf_work_graph": leaf_work_graph,
+        "provider_dag_quality_metrics": leaf_work_graph.get("quality_metrics", {}),
         "interface_registry": interface_registry,
         "boundary_check_receipts": boundary_receipts,
         "repair_scope": {
@@ -18872,7 +19532,7 @@ def provider_generate_project_component_split(
             ],
         },
         "parallel_batches": [
-            [str(leaf.get("path", "")) for leaf in batch]
+            [path for leaf in batch for path in provider_leaf_owned_paths(leaf)]
             for batch in ready_batches
         ],
         "context_librarian": {
@@ -19263,9 +19923,14 @@ def provider_generate_project_by_components(
                 files=cached_files,
                 prior_files=prior_files,
                 manifest_entries=(
-                    cached_result.get("leaf_work_graph", {}).get("leaves", [])
-                    if isinstance(cached_result.get("leaf_work_graph"), dict)
-                    else []
+                    cached_result.get("component_file_manifest", [])
+                    if isinstance(cached_result.get("component_file_manifest"), list)
+                    and cached_result.get("component_file_manifest")
+                    else provider_manifest_entries_from_graph(
+                        cached_result.get("leaf_work_graph", {})
+                        if isinstance(cached_result.get("leaf_work_graph"), dict)
+                        else {}
+                    )
                 ),
                 design_context=component_pipeline.get("design_context", {}),
                 component_contract=component,
@@ -19564,9 +20229,14 @@ def provider_generate_project_by_components(
                     files=files,
                     prior_files=prior_files,
                     manifest_entries=(
-                        result.get("leaf_work_graph", {}).get("leaves", [])
-                        if isinstance(result.get("leaf_work_graph"), dict)
-                        else []
+                        result.get("component_file_manifest", [])
+                        if isinstance(result.get("component_file_manifest"), list)
+                        and result.get("component_file_manifest")
+                        else provider_manifest_entries_from_graph(
+                            result.get("leaf_work_graph", {})
+                            if isinstance(result.get("leaf_work_graph"), dict)
+                            else {}
+                        )
                     ),
                     design_context=component_pipeline.get("design_context", {}),
                     component_contract=component,
@@ -19592,9 +20262,11 @@ def provider_generate_project_by_components(
                             if isinstance(result.get("component_file_manifest", []), list)
                             and result.get("component_file_manifest", [])
                             else (
-                                result.get("leaf_work_graph", {}).get("leaves", [])
-                                if isinstance(result.get("leaf_work_graph", {}), dict)
-                                else []
+                                provider_manifest_entries_from_graph(
+                                    result.get("leaf_work_graph", {})
+                                    if isinstance(result.get("leaf_work_graph", {}), dict)
+                                    else {}
+                                )
                             )
                         )
                         completed_for_repair = [
@@ -23401,7 +24073,7 @@ def prepare_supervision_provider_repair(
         for item in rows
         if isinstance(item, dict) and str(item.get("path", "")).strip()
     }
-    leaf_owner: dict[str, tuple[str, str]] = {}
+    leaf_owner: dict[str, tuple[str, list[str]]] = {}
     leaf_graph_dir = checkpoint_dir / "leaf_work_graphs"
     for graph_path in (
         leaf_graph_dir.glob("*.json") if leaf_graph_dir.exists() else []
@@ -23415,9 +24087,8 @@ def prepare_supervision_provider_repair(
             if not isinstance(leaf, dict):
                 continue
             leaf_id = str(leaf.get("leaf_id", "")).strip()
-            path = str(leaf.get("path", "")).replace("\\", "/").strip()
             if leaf_id and component_id:
-                leaf_owner[leaf_id] = (component_id, path)
+                leaf_owner[leaf_id] = (component_id, provider_leaf_owned_paths(leaf))
     narrative = "\n".join(
         [
             str(audit_result.get("summary", "")),
@@ -23440,9 +24111,9 @@ def prepare_supervision_provider_repair(
             target_components = [file_owner[target]]
             files_hint = [target]
         elif target in leaf_owner:
-            owner, path = leaf_owner[target]
+            owner, paths = leaf_owner[target]
             target_components = [owner]
-            files_hint = [path] if path else []
+            files_hint = paths
         elif target in components:
             target_components = [target]
         else:
@@ -23902,10 +24573,6 @@ def run_provider_semantic_review_with_repair(
                         continue
             attempted_repairs[-1]["regenerated_files"] = sorted(set(regenerated))
         files = validate_provider_files(generation)
-        provider_execution_metrics.declare_jobs(
-            phase_log_path,
-            ["integration.semantic_review"],
-        )
         try:
             provider_review = provider_review_project(
                 user_goal,

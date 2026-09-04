@@ -33,6 +33,11 @@ def _default() -> dict[str, Any]:
         "provider_api_call_count": 0,
         "provider_peak_concurrency": 0,
         "provider_jobs_total": 0,
+        "provider_owned_files_total": 0,
+        "provider_avg_files_per_job": 0.0,
+        "provider_dag_wave_widths": [],
+        "provider_dag_critical_path_waves": 0,
+        "provider_fragmentation_ratio": 0.0,
         "provider_jobs_repaired": 0,
         "provider_jobs_reused_after_pass": 0,
         "wall_clock_stage_timing": {},
@@ -40,6 +45,8 @@ def _default() -> dict[str, Any]:
         "_job_ids": [],
         "_repaired_ids": [],
         "_reused_ids": [],
+        "_job_owns": {},
+        "_component_waves": {},
     }
 
 
@@ -64,6 +71,56 @@ def declare_jobs(phase_log_path: pathlib.Path | str | None, job_ids: list[str]) 
         known.update(str(item) for item in job_ids if str(item).strip())
         state["_job_ids"] = sorted(known)
         state["provider_jobs_total"] = len(known)
+        _persist(key)
+
+
+def declare_job_graph(
+    phase_log_path: pathlib.Path | str | None,
+    *,
+    component_id: str,
+    jobs: list[dict[str, Any]],
+    wave_widths: list[int],
+) -> None:
+    """Persist diagnostic DAG quality metrics without granting PASS authority."""
+    key = _key(phase_log_path)
+    with _LOCK:
+        state = _STATE.setdefault(key, _default())
+        job_owns = state["_job_owns"]
+        for job in jobs:
+            job_id = str(job.get("id", "")).strip()
+            if job_id:
+                job_owns[job_id] = list(
+                    dict.fromkeys(
+                        str(path).replace("\\", "/").strip()
+                        for path in job.get("owns", [])
+                        if str(path).strip()
+                    )
+                )
+        state["_job_ids"] = sorted(job_owns)
+        state["_component_waves"][str(component_id)] = [
+            max(0, int(width)) for width in wave_widths
+        ]
+        owned_paths = {
+            path for paths in job_owns.values() for path in paths
+        }
+        job_count = len(job_owns)
+        owned_count = len(owned_paths)
+        component_waves = state["_component_waves"]
+        combined_waves = [
+            width
+            for component in component_waves
+            for width in component_waves[component]
+        ]
+        state["provider_jobs_total"] = job_count
+        state["provider_owned_files_total"] = owned_count
+        state["provider_avg_files_per_job"] = round(
+            owned_count / job_count, 3
+        ) if job_count else 0.0
+        state["provider_dag_wave_widths"] = combined_waves
+        state["provider_dag_critical_path_waves"] = len(combined_waves)
+        state["provider_fragmentation_ratio"] = round(
+            job_count / owned_count, 3
+        ) if owned_count else 0.0
         _persist(key)
 
 

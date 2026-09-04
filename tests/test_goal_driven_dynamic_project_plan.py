@@ -502,7 +502,7 @@ def test_frozen_independent_features_share_one_parallel_batch_and_isolate_repair
     )
     graph = run_local_pipeline_impl.build_component_leaf_work_graph("backend", manifest)
     batches = [
-        [leaf["path"] for leaf in batch]
+        [path for leaf in batch for path in leaf["paths"]]
         for batch in run_local_pipeline_impl.component_leaf_ready_batches(graph)
     ]
 

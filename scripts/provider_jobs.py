@@ -41,11 +41,14 @@ class ProviderJob:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ProviderJob":
+        raw_owns = value.get("owns", value.get("paths", []))
+        if not raw_owns and str(value.get("path", "")).strip():
+            raw_owns = [value.get("path")]
         return cls(
             id=str(value.get("id", "")).strip(),
             goal=str(value.get("goal", "")).strip(),
             depends_on=tuple(str(item).strip() for item in value.get("depends_on", []) if str(item).strip()),
-            owns=tuple(_normalize_path(item) for item in value.get("owns", []) if _normalize_path(item)),
+            owns=tuple(_normalize_path(item) for item in raw_owns if _normalize_path(item)),
             interfaces=tuple(str(item).strip() for item in value.get("interfaces", []) if str(item).strip()),
             acceptance=tuple(str(item).strip() for item in value.get("acceptance", []) if str(item).strip()),
         )
@@ -152,21 +155,40 @@ def validate_patch_set(job: ProviderJob, value: PatchSet | Mapping[str, str]) ->
 
 def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -> list[ProviderJob]:
     jobs: list[ProviderJob] = []
-    path_to_id = {
-        str(leaf.get("path", "")): str(leaf.get("leaf_id", ""))
-        for leaf in graph.get("leaves", [])
-        if isinstance(leaf, Mapping)
-    }
+    path_to_id: dict[str, str] = {}
     for leaf in graph.get("leaves", []):
         if not isinstance(leaf, Mapping):
             continue
-        path = str(leaf.get("path", ""))
+        raw_paths = leaf.get("paths", leaf.get("owns", []))
+        if not raw_paths and str(leaf.get("path", "")).strip():
+            raw_paths = [leaf.get("path")]
+        for raw_path in raw_paths:
+            path = _normalize_path(raw_path)
+            if path:
+                path_to_id[path] = str(leaf.get("leaf_id", ""))
+    for leaf in graph.get("leaves", []):
+        if not isinstance(leaf, Mapping):
+            continue
+        raw_paths = leaf.get("paths", leaf.get("owns", []))
+        if not raw_paths and str(leaf.get("path", "")).strip():
+            raw_paths = [leaf.get("path")]
+        paths = tuple(
+            path for path in (_normalize_path(item) for item in raw_paths) if path
+        )
+        primary_path = paths[0] if paths else ""
         jobs.append(
             ProviderJob(
                 id=str(leaf.get("leaf_id", "")),
-                goal=str(leaf.get("purpose", "")) or f"Build {path} for {component_id}",
-                depends_on=tuple(path_to_id[item] for item in leaf.get("depends_on", []) if item in path_to_id),
-                owns=(path,),
+                goal=str(leaf.get("purpose", "")) or f"Build {primary_path} for {component_id}",
+                depends_on=tuple(
+                    dict.fromkeys(
+                        path_to_id[item]
+                        for item in leaf.get("depends_on", [])
+                        if item in path_to_id
+                        and path_to_id[item] != str(leaf.get("leaf_id", ""))
+                    )
+                ),
+                owns=paths,
                 interfaces=tuple(str(item) for item in leaf.get("expected_symbols", []) if str(item).strip()),
                 acceptance=tuple(str(item) for item in leaf.get("acceptance_checks", []) if str(item).strip()),
             )

@@ -738,7 +738,7 @@ def test_api_owned_run_switches_to_single_leaf_worker_after_local_fallback(
     phase_log.write_text(
         json.dumps(
             {
-                "event": "pipeline_fallback",
+                "event": "fallback_executed",
                 "to": "local_model",
                 "task": "component_generation",
                 "reason": "provider_key_usage_limit",
@@ -4206,7 +4206,7 @@ def test_split_leaf_generation_orders_dependencies_and_repairs_interface_mismatc
         "backend/service.py",
         "backend/service.py",
     ]
-    assert [leaf["path"] for leaf in result["leaf_work_graph"]["leaves"]] == [
+    assert [path for leaf in result["leaf_work_graph"]["leaves"] for path in leaf["paths"]] == [
         "backend/model.py",
         "backend/service.py",
     ]
@@ -4284,7 +4284,7 @@ def test_twelve_leaf_chain_keeps_interfaces_ordered_bounded_and_checkpointed(
         original_prompt_chars=90000,
     )
 
-    assert [leaf["path"] for leaf in result["leaf_work_graph"]["leaves"]] == paths
+    assert [path for leaf in result["leaf_work_graph"]["leaves"] for path in leaf["paths"]] == paths
     assert [item["path"] for item in result["files"]] == paths
     assert generated_targets == [*paths[:7], paths[6], *paths[7:]]
     assert attempts_by_target[paths[6]] == 2
@@ -4570,7 +4570,13 @@ def test_independent_leaves_run_in_parallel_and_publish_receipts(
                 {
                     "component": "backend",
                     "files": [
-                        {"path": path, "purpose": "independent", "dependencies": []}
+                        {
+                            "path": path,
+                            "purpose": "independent",
+                            "dependencies": [],
+                            "estimated_complexity": "low",
+                            "expected_output_chars": 15000,
+                        }
                         for path in paths
                     ],
                 }
@@ -4582,7 +4588,12 @@ def test_independent_leaves_run_in_parallel_and_publish_receipts(
         time.sleep(0.05)
         with lock:
             active -= 1
-        return json.dumps({"path": target, "content": "READY = True\n"})
+        return json.dumps(
+            {
+                "path": target,
+                "content": "READY = True\nNAME = 'parallel'\nCOUNT = 1\nENABLED = True\n",
+            }
+        )
 
     monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
     monkeypatch.setenv("CGKN_PROVIDER_LEAF_MAX_WORKERS", "3")
@@ -4644,9 +4655,27 @@ def test_repair_regenerates_only_target_and_transitive_consumers(
             "        return self.upstream.run()\n"
         )
 
-    def fake_provider_text(_messages, *_args, **kwargs):
+    def fake_provider_text(messages, *_args, **kwargs):
         if kwargs.get("stage") == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
+        if kwargs.get("payload_mode") == "multi_file":
+            owns = json.loads(messages[-1]["content"])["provider_job"]["owns"]
+            generated.extend(owns)
+            return json.dumps(
+                {
+                    "files": [
+                        {
+                            "path": path,
+                            "content": (
+                                f"class {pathlib.PurePosixPath(path).stem.title()}:\n"
+                                "    def run(self):\n"
+                                "        return True\n"
+                            ),
+                        }
+                        for path in owns
+                    ]
+                }
+            )
         target = str(kwargs.get("target_file"))
         generated.append(target)
         return json.dumps({"path": target, "content": content_for(target)})
@@ -4694,9 +4723,27 @@ def test_forced_component_repair_regenerates_all_split_leaves(
     ]
     generated: list[str] = []
 
-    def fake_provider_text(_messages, *_args, **kwargs):
+    def fake_provider_text(messages, *_args, **kwargs):
         if kwargs.get("stage") == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
+        if kwargs.get("payload_mode") == "multi_file":
+            owns = json.loads(messages[-1]["content"])["provider_job"]["owns"]
+            generated.extend(owns)
+            return json.dumps(
+                {
+                    "files": [
+                        {
+                            "path": path,
+                            "content": (
+                                f"class {pathlib.PurePosixPath(path).stem.title()}:\n"
+                                "    def run(self):\n"
+                                "        return True\n"
+                            ),
+                        }
+                        for path in owns
+                    ]
+                }
+            )
         target = str(kwargs.get("target_file"))
         generated.append(target)
         symbol = pathlib.PurePosixPath(target).stem.title()
@@ -4758,6 +4805,7 @@ def test_manifest_submodules_expand_inside_component_boundary(monkeypatch) -> No
                         "purpose": "facade",
                         "estimated_complexity": "high",
                         "dependencies": [],
+                        "fragmentation_reason": "stable run-state and recovery interfaces exceed one bounded orchestrator output",
                         "submodules": [
                             {
                                 "path": "backend/run_state.py",
@@ -4948,6 +4996,7 @@ def test_high_complexity_javascript_leaf_auto_expands_into_real_modules() -> Non
             "initStoryEditor",
             "persistStoryGraph",
         ],
+        "expected_output_chars": 20000,
     }
 
     expanded = run_local_pipeline_impl.expand_component_manifest_submodules(
@@ -4975,7 +5024,7 @@ def test_high_complexity_javascript_leaf_auto_expands_into_real_modules() -> Non
         "frontend",
         expanded,
     )
-    assert [leaf["path"] for leaf in graph["leaves"]] == [
+    assert [path for leaf in graph["leaves"] for path in leaf["paths"]] == [
         "src/app_part_01.js",
         "src/app_part_02.js",
         "src/app_part_03.js",
@@ -5039,7 +5088,7 @@ def test_automatic_stage_siblings_keep_shared_provider_without_split_order_depen
         )
         for entry in children
     )
-def test_high_complexity_javascript_controller_with_three_symbols_still_splits() -> None:
+def test_high_complexity_javascript_controller_with_three_symbols_stays_natural() -> None:
     expanded = run_local_pipeline_impl.expand_component_manifest_submodules(
         "frontend",
         [
@@ -5063,18 +5112,13 @@ def test_high_complexity_javascript_controller_with_three_symbols_still_splits()
         ],
     )
 
-    assert [item["path"] for item in expanded] == [
-        "src/app_part_01.js",
-        "src/app_part_02.js",
-        "src/app_part_03.js",
-        "src/app.js",
+    assert [item["path"] for item in expanded] == ["src/app.js"]
+    assert expanded[0]["expected_symbols"] == [
+        "bootstrapApp",
+        "renderStudioApp",
+        "StudioController",
     ]
-    assert [item["expected_symbols"] for item in expanded[:-1]] == [
-        ["bootstrapApp"],
-        ["renderStudioApp"],
-        ["StudioController"],
-    ]
-    assert expanded[-1]["generation_role"] == "compatibility_facade"
+    assert "generation_role" not in expanded[0]
 
 
 def test_canonical_backend_domain_model_leaf_inherits_owned_bounded_submodules() -> None:
@@ -6812,7 +6856,7 @@ def test_backend_stage_manifest_receives_canonical_dependency_edges() -> None:
     graph = run_local_pipeline_impl.build_component_leaf_work_graph(
         "backend", normalized
     )
-    ordered_paths = [leaf["path"] for leaf in graph["leaves"]]
+    ordered_paths = [path for leaf in graph["leaves"] for path in leaf["paths"]]
     assert graph["ordering_warnings"] == []
     assert ordered_paths[-3:] == [
         "backend/stages.py",

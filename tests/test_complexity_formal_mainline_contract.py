@@ -173,7 +173,7 @@ def test_component_leaf_work_graph_orders_exact_path_dependencies() -> None:
 
     assert graph["kind"] == "CGKNComponentLeafWorkGraph"
     assert graph["max_files_per_leaf"] == 1
-    assert [leaf["path"] for leaf in graph["leaves"]] == [
+    assert [path for leaf in graph["leaves"] for path in leaf["paths"]] == [
         "core/model.py",
         "core/service.py",
         "core/cli.py",
@@ -200,14 +200,14 @@ def test_frontend_leaf_work_graph_breaks_asset_dom_dependency_cycle() -> None:
         ],
     )
 
-    assert [leaf["path"] for leaf in graph["leaves"]] == [
+    assert [path for leaf in graph["leaves"] for path in leaf["paths"]] == [
         "index.html",
         "src/styles.css",
         "src/app.js",
     ]
     assert graph["leaves"][0]["depends_on"] == []
+    assert graph["leaves"][1]["paths"] == ["src/styles.css", "src/app.js"]
     assert graph["leaves"][1]["depends_on"] == ["index.html"]
-    assert graph["leaves"][2]["depends_on"] == ["index.html", "src/styles.css"]
     assert any(
         warning.startswith("frontend_generation_dependency_normalized:")
         for warning in graph["ordering_warnings"]
@@ -219,7 +219,7 @@ def test_frontend_leaf_work_graph_breaks_asset_dom_dependency_cycle() -> None:
     assert run_local_pipeline_impl.component_leaf_downstream_closure(
         graph,
         ["src/styles.css"],
-    ) == ["src/styles.css"]
+    ) == ["src/styles.css", "src/app.js"]
     assert run_local_pipeline_impl.component_leaf_downstream_closure(
         graph,
         ["index.html"],
@@ -238,7 +238,7 @@ def test_leaf_ready_batches_and_downstream_closure_are_dependency_scoped() -> No
     )
 
     assert [
-        [leaf["path"] for leaf in batch]
+        [path for leaf in batch for path in leaf["paths"]]
         for batch in run_local_pipeline_impl.component_leaf_ready_batches(graph)
     ] == [
         ["backend/a.py", "backend/b.py"],
@@ -248,7 +248,7 @@ def test_leaf_ready_batches_and_downstream_closure_are_dependency_scoped() -> No
     assert run_local_pipeline_impl.component_leaf_downstream_closure(
         graph,
         ["backend/a.py"],
-    ) == ["backend/a.py", "backend/c.py", "backend/d.py"]
+    ) == ["backend/a.py", "backend/b.py", "backend/c.py", "backend/d.py"]
 
 
 def test_interface_registry_records_python_javascript_and_html_consumers() -> None:
