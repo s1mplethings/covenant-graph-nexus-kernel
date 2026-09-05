@@ -80,6 +80,10 @@ def select_cases(catalog: dict[str, Any], args: argparse.Namespace) -> list[dict
         selected = [case for case in cases if case["level"] == args.level.upper()]
     elif args.all:
         selected = cases
+    elif args.pilot:
+        selected = [case for case in cases if case["case_id"] in {
+            "CASE_01_CSV_DATA_CLEANER", "CASE_03_LOCAL_PROJECT_BOARD", "CASE_10_CUSTOMER_FEEDBACK_MANAGER"
+        }]
     elif args.dry_run:
         selected = [case for case in cases if case["case_id"] in {"CASE_01_CSV_DATA_CLEANER", "CASE_03_LOCAL_PROJECT_BOARD"}]
     else:
@@ -366,7 +370,7 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
     output_root = args.output_root.resolve()
     run_dir = output_root / run_id
     manifest_path = run_dir / "run_manifest.json"
-    selection_unspecified = not (args.case or args.level or args.all or args.dry_run)
+    selection_unspecified = not (args.case or args.level or args.all or args.pilot or args.dry_run)
     if args.report_only and selection_unspecified:
         if not args.run_id or not manifest_path.is_file():
             raise ValueError("--report-only without a selection requires an existing --run-id")
@@ -422,6 +426,7 @@ def build_parser() -> argparse.ArgumentParser:
     selection.add_argument("--case", default="")
     selection.add_argument("--level", choices=["L1", "L2", "L3", "L4", "L5"], default="")
     selection.add_argument("--all", action="store_true")
+    selection.add_argument("--pilot", action="store_true", help="Select the fixed CASE_01/CASE_03/CASE_10 live pilot")
     parser.add_argument("--dry-run", action="store_true", help="Validate the harness with non-live CASE_01/CASE_03 fixtures")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--report-only", action="store_true")

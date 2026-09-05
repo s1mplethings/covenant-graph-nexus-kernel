@@ -273,9 +273,11 @@ def test_case_and_level_selection_are_deterministic() -> None:
     parser = build_parser()
     case_args = parser.parse_args(["--case", "03"])
     level_args = parser.parse_args(["--level", "L3"])
+    pilot_args = parser.parse_args(["--pilot"])
     assert normalize_case_selector("3") == "CASE_03_"
     assert [item["case_id"] for item in select_cases(_catalog(), case_args)] == ["CASE_03_LOCAL_PROJECT_BOARD"]
     assert len(select_cases(_catalog(), level_args)) == 3
+    assert [item["case_id"][:7] for item in select_cases(_catalog(), pilot_args)] == ["CASE_01", "CASE_03", "CASE_10"]
 
 
 def test_contamination_guard_detects_fixture_marker_in_production_tree(tmp_path: pathlib.Path) -> None:

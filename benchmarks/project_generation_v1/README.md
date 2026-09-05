@@ -11,6 +11,7 @@ Typical commands:
 python benchmarks/project_generation_v1/run_benchmark.py --dry-run
 python benchmarks/project_generation_v1/run_benchmark.py --case 03
 python benchmarks/project_generation_v1/run_benchmark.py --level L2
+python benchmarks/project_generation_v1/run_benchmark.py --pilot
 python benchmarks/project_generation_v1/run_benchmark.py --all
 python benchmarks/project_generation_v1/run_benchmark.py --resume --run-id <id> --all
 python benchmarks/project_generation_v1/run_benchmark.py --report-only --run-id <id>
