@@ -236,6 +236,7 @@ def test_dry_run_report_validates_and_never_claims_cgkn_pass(tmp_path: pathlib.P
     assert report["summary"]["counts"]["NOT_EVALUATED"] == 2
     assert all(item["harness_probe_status"] == "PASS" for item in report["case_results"])
     assert all(item["result"] != "PROJECT_PASS" for item in report["case_results"])
+    assert [item["score"] for item in report["case_results"]] == [85, 85]
     assert report["harness_checks"]["overall"] == "PASS"
     assert (run_dir / "benchmark_report.md").is_file()
 

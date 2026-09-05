@@ -218,9 +218,9 @@ def _probe_csv(case: dict[str, Any], run_id: str, candidate: pathlib.Path, work:
         _observation(case, run_id, candidate, "csv.clean", ok and cleaned, "benchmark_process_probe", f"rows={rows}", ["R1","R2","R3"]),
         _observation(case, run_id, candidate, "csv.missing", missing, "benchmark_process_probe", f"summary={summary}", ["R3"]),
         _observation(case, run_id, candidate, "csv.preview", preview, "benchmark_process_probe", f"summary={summary}", ["R4"]),
-        _observation(case, run_id, candidate, "csv.malformed", malformed, "benchmark_process_probe", f"summary={summary}", ["R4"]),
-        _observation(case, run_id, candidate, "csv.persist", persisted, "benchmark_persistence_probe", f"output_exists_after_exit={output.is_file()}", ["R1","R2"]),
-        _observation(case, run_id, candidate, "csv.integration", integrated, "benchmark_file_probe", f"summary={summary}; rows={len(rows)-1}", ["R2","R4"]),
+        _observation(case, run_id, candidate, "csv.malformed", malformed, "benchmark_process_probe", f"summary={summary}", ["R6"]),
+        _observation(case, run_id, candidate, "csv.persist", persisted, "benchmark_persistence_probe", f"output_exists_after_exit={output.is_file()}", ["R5"]),
+        _observation(case, run_id, candidate, "csv.integration", integrated, "benchmark_file_probe", f"summary={summary}; rows={len(rows)-1}", ["R2","R4","R5","R6"]),
     ]
 
 
