@@ -112,6 +112,14 @@ def test_evaluator_has_no_production_verdict_parameter_or_runtime_import() -> No
     assert "production_verdict_used" in source
 
 
+def test_live_runner_pins_requested_model_and_parallelism() -> None:
+    source = inspect.getsource(__import__("benchmarks.project_generation_v1.run_benchmark", fromlist=["invoke_production"]).invoke_production)
+    assert '"--small-model", args.model' in source
+    assert '"--large-model", args.model' in source
+    assert '"--disable-model-routing"' in source
+    assert 'production_env["CGKN_PROVIDER_PARALLELISM"] = str(args.parallelism)' in source
+
+
 def test_external_process_and_http_runtime_probes_are_real(tmp_path: pathlib.Path) -> None:
     _, _, csv_observations = _fixture_result(tmp_path / "csv", 1, run_id="RUNTIME")
     _, _, board_observations = _fixture_result(tmp_path / "board", 3, run_id="RUNTIME")

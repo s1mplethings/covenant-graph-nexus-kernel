@@ -131,8 +131,11 @@ def invoke_production(case: dict[str, Any], *, run_dir: pathlib.Path, case_dir: 
         sys.executable, str(args.production_script), "--goal", str(case["user_goal"]),
         "--out-dir", str(candidate_slot), "--run-dir", str(production_run), "--result", str(result_path),
         "--allow-network", "--allow-provider", "--use-api", "--model", args.model,
+        "--small-model", args.model, "--large-model", args.model, "--disable-model-routing",
         "--timeout", str(args.production_timeout), "--json",
     ]
+    production_env = os.environ.copy()
+    production_env["CGKN_PROVIDER_PARALLELISM"] = str(args.parallelism)
     write_json(case_dir / "production_context_receipt.json", {
         "kind": "BenchmarkProductionContextReceipt",
         "visible_keys": ["user_goal"],
@@ -142,7 +145,10 @@ def invoke_production(case: dict[str, Any], *, run_dir: pathlib.Path, case_dir: 
     })
     started = time.perf_counter()
     try:
-        completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=args.production_timeout + 60, check=False)
+        completed = subprocess.run(
+            command, cwd=ROOT, env=production_env, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=args.production_timeout + 60, check=False,
+        )
         raw_error = "\n".join([completed.stdout[-4000:], completed.stderr[-4000:]])
         return_code = completed.returncode
     except subprocess.TimeoutExpired as exc:
