@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 36,
-      "successful_usage_count": 36,
+      "usage_count": 37,
+      "successful_usage_count": 37,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -771,6 +771,16 @@
       "outcome": "successful",
       "evidence_refs": [
         "project_management/cgkn/iterations/ITER-054_RUNTIME_EVIDENCE.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-058",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/cgkn/iterations/ITER-058_RUNTIME_EVIDENCE.md"
       ]
     }
   ]

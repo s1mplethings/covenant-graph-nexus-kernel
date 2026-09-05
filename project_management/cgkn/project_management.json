@@ -1148,12 +1148,12 @@
     },
     {
       "id": "PB-045",
-      "title": "Establish the project-generation benchmark baseline",
+      "title": "Establish Project Generation Benchmark v1",
       "outcome": "CGKN project generation is measured across ten fixed greenfield goals by an evaluator that trusts only real candidate files, processes, HTTP/browser behavior, persistence, repair scope, and runnable delivery packages.",
       "priority": 45,
       "value_score": 10,
       "risk_reduction_score": 10,
-      "state": "active",
+      "state": "done",
       "dependencies": [
         "PB-044"
       ],
@@ -1438,7 +1438,8 @@
     "If a writable sibling parent becomes available, use git worktree move to relocate the Codex Edition directory without changing its branch or history.",
     "Keep the Codex-only repository scan in the default test profile and reject any future detached conversation launcher or credential.",
     "Resume a comparable supported Qwen project at its tests component and verify the aggregate cross-validation receipt appears before post-build without weakening the split-test anchor contract.",
-    "On the next credentialed Provider run, inject one audited leaf-level contradiction and measure affected-only Provider calls plus checkpoint reuse."
+    "On the next credentialed Provider run, inject one audited leaf-level contradiction and measure affected-only Provider calls plus checkpoint reuse.",
+    "Reuse one non-retryable readiness result to classify the fixed pilot before spending three known-to-fail generation requests."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

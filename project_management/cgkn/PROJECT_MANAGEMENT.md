@@ -55,7 +55,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-042` [done] Add executable cross-validation and feedforward to real project generation
 - `PB-043` [done] Converge on ProviderJob execution and sparse false-pass auditing
 - `PB-044` [done] Close production false-pass recovery routes
-- `PB-045` [active] Establish the project-generation benchmark baseline
+- `PB-045` [done] Establish Project Generation Benchmark v1
 
 ## Definition of done
 
