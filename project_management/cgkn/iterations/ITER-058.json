@@ -1,0 +1,71 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-058",
+  "project_id": "cgkn",
+  "goal": "Establish and execute CGKN Project Generation Benchmark v1 as an independent evaluation layer without changing the production generation route.",
+  "backlog_item_ids": [
+    "PB-045"
+  ],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
+  "acceptance_criteria": [
+    "A three-case live pilot is attempted only when Provider readiness permits; Provider quota, TLS, timeout, or availability failures are reported as BLOCKED_PROVIDER rather than project failure.",
+    "CASE_01 and CASE_03 non-live dry-runs validate harness isolation, runtime, persistence, scoring, reporting, and blocked handling without claiming a CGKN score.",
+    "Independent black-box evidence, exact candidate identity, hard-fail overrides, Provider blocker classification, controlled repair scope, and runnable delivery inspection determine benchmark outcomes without trusting CGKN verdicts.",
+    "Ten fixed L1-L5 cases validate against one versioned schema while hidden acceptance remains inaccessible to production generation.",
+    "The CLI supports case, level, all, resume, and report-only modes with immutable run identity, version binding, long-term metrics, baseline comparison, and no overwrite of prior case results.",
+    "The production tree contains no benchmark case markers or fixture-specific branches and the formal generation, Provider scheduling, evidence, packaging, and delivery contracts are unchanged."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-PROJECT-BENCHMARK",
+      "measure": "independent greenfield project-generation quality, recovery, delivery, and efficiency",
+      "target": "ten fixed cases report one-shot success, controlled-repair success, category scores, hard failures, runtime, persistence, integration, package usability, Provider/Codex calls, attempts, latency, tokens/cost, job reuse, repair-scope accuracy, and stale-evidence rejection without production contamination",
+      "method": "version-bound black-box process, HTTP, browser, persistence, package, candidate-hash, and controlled-fault evaluation with immutable per-run reports and baseline deltas"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [],
+  "review": {
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [],
+    "did_not_work": [],
+    "experiments": []
+  }
+}

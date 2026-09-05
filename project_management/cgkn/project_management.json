@@ -1145,6 +1145,31 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-045",
+      "title": "Establish the project-generation benchmark baseline",
+      "outcome": "CGKN project generation is measured across ten fixed greenfield goals by an evaluator that trusts only real candidate files, processes, HTTP/browser behavior, persistence, repair scope, and runnable delivery packages.",
+      "priority": 45,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "active",
+      "dependencies": [
+        "PB-044"
+      ],
+      "acceptance_criteria": [
+        "Ten fixed L1-L5 cases validate against one versioned schema while hidden acceptance remains inaccessible to production generation.",
+        "Independent black-box evidence, exact candidate identity, hard-fail overrides, Provider blocker classification, controlled repair scope, and runnable delivery inspection determine benchmark outcomes without trusting CGKN verdicts.",
+        "The CLI supports case, level, all, resume, and report-only modes with immutable run identity, version binding, long-term metrics, baseline comparison, and no overwrite of prior case results.",
+        "CASE_01 and CASE_03 non-live dry-runs validate harness isolation, runtime, persistence, scoring, reporting, and blocked handling without claiming a CGKN score.",
+        "The production tree contains no benchmark case markers or fixture-specific branches and the formal generation, Provider scheduling, evidence, packaging, and delivery contracts are unchanged.",
+        "A three-case live pilot is attempted only when Provider readiness permits; Provider quota, TLS, timeout, or availability failures are reported as BLOCKED_PROVIDER rather than project failure."
+      ],
+      "quality_metric_ids": [
+        "QM-PROJECT-BENCHMARK",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -1264,6 +1289,12 @@
         "measure": "sparse adversarial audit accuracy and ProviderJob parallel execution",
         "target": "five false-pass injections route correctly, clean claims resume, ordinary failures make zero Codex calls, and two independent Provider jobs overlap with peak concurrency of at least two",
         "method": "fault-injection supervisor fixtures, barrier-based concurrency tests, route receipt inspection, kernel repair isolation tests, and bounded production call-graph guards"
+      },
+      {
+        "id": "QM-PROJECT-BENCHMARK",
+        "measure": "independent greenfield project-generation quality, recovery, delivery, and efficiency",
+        "target": "ten fixed cases report one-shot success, controlled-repair success, category scores, hard failures, runtime, persistence, integration, package usability, Provider/Codex calls, attempts, latency, tokens/cost, job reuse, repair-scope accuracy, and stale-evidence rejection without production contamination",
+        "method": "version-bound black-box process, HTTP, browser, persistence, package, candidate-hash, and controlled-fault evaluation with immutable per-run reports and baseline deltas"
       }
     ],
     "assurance_activities": [
@@ -1364,7 +1395,8 @@
     "iterations/ITER-054.json",
     "iterations/ITER-055.json",
     "iterations/ITER-056.json",
-    "iterations/ITER-057.json"
+    "iterations/ITER-057.json",
+    "iterations/ITER-058.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",

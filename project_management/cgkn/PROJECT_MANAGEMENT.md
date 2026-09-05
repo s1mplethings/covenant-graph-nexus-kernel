@@ -53,6 +53,9 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-040` [done] Split API-only and CGKN Codex Edition into separate worktrees
 - `PB-041` [done] Remove external messaging and retain the Codex conversation interface
 - `PB-042` [done] Add executable cross-validation and feedforward to real project generation
+- `PB-043` [done] Converge on ProviderJob execution and sparse false-pass auditing
+- `PB-044` [done] Close production false-pass recovery routes
+- `PB-045` [active] Establish the project-generation benchmark baseline
 
 ## Definition of done
 

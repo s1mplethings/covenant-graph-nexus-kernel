@@ -1,0 +1,107 @@
+{
+  "kind": "CGKNProjectGenerationBenchmarkCaseCatalog",
+  "schema_version": "1.0.0",
+  "benchmark_id": "CGKN_PROJECT_GENERATION_BENCHMARK_V1",
+  "cases": [
+    {
+      "case_id": "CASE_01_CSV_DATA_CLEANER", "level": "L1", "title": "CSV Data Cleaner",
+      "user_goal": "Create a local tool that cleans CSV files, removes duplicate rows, normalizes whitespace, reports malformed rows, and writes a clean CSV plus a concise summary.",
+      "allowed_assumptions": ["UTF-8 CSV input", "A single local user", "No cloud service is required"],
+      "hard_requirements": [{"id":"R1","description":"Accept a CSV input path and output path"},{"id":"R2","description":"Remove exact duplicate data rows while preserving the header"},{"id":"R3","description":"Normalize surrounding cell whitespace"},{"id":"R4","description":"Report malformed rows without silently corrupting data"}],
+      "hidden_acceptance": [{"id":"csv.clean","category":"functional","description":"A real process cleans a mixed CSV correctly","hard":true,"requirement_ids":["R1","R2","R3"]},{"id":"csv.malformed","category":"functional","description":"Malformed input is explicitly reported","hard":true,"requirement_ids":["R4"]},{"id":"csv.runtime","category":"runtime","description":"Documented local entry point starts and exits correctly","hard":true,"requirement_ids":["R1"]},{"id":"csv.persist","category":"persistence","description":"The emitted CSV remains readable after the cleaner process exits","hard":true,"requirement_ids":["R1","R2"]},{"id":"csv.integration","category":"integration","description":"Summary counts match the actual emitted file","hard":true,"requirement_ids":["R2","R4"]}],
+      "runtime_requirements": ["Run offline from the delivered project", "Return a non-zero status for unusable input"],
+      "visual_requirements": ["Human-readable console summary; a GUI is not required"],
+      "delivery_requirements": ["Runnable package includes source, README, and test instructions"]
+    },
+    {
+      "case_id": "CASE_02_MARKDOWN_BATCH_CONVERTER", "level": "L1", "title": "Markdown Batch Converter",
+      "user_goal": "Build a local batch converter that turns a folder of Markdown files into readable HTML files, preserves links and code blocks, and produces an index of converted documents.",
+      "allowed_assumptions": ["CommonMark-style Markdown", "Local files only", "Output may use a shared stylesheet"],
+      "hard_requirements": [{"id":"R1","description":"Convert every Markdown file in an input folder"},{"id":"R2","description":"Preserve links and fenced code blocks"},{"id":"R3","description":"Generate a navigable output index"}],
+      "hidden_acceptance": [{"id":"md.batch","category":"functional","description":"Nested mixed documents are converted","hard":true,"requirement_ids":["R1"]},{"id":"md.fidelity","category":"functional","description":"Links and code remain semantically intact","hard":true,"requirement_ids":["R2"]},{"id":"md.runtime","category":"runtime","description":"Batch command executes on a clean local environment","hard":true,"requirement_ids":["R1"]},{"id":"md.persist","category":"persistence","description":"Generated pages remain usable after the converter process exits","hard":true,"requirement_ids":["R1"]},{"id":"md.index","category":"integration","description":"Every generated page is linked from the index","hard":true,"requirement_ids":["R3"]}],
+      "runtime_requirements": ["One documented local command processes a folder"],
+      "visual_requirements": ["Generated HTML is readable at desktop and mobile widths"],
+      "delivery_requirements": ["Package includes examples, README, and test instructions"]
+    },
+    {
+      "case_id": "CASE_03_LOCAL_PROJECT_BOARD", "level": "L2", "title": "Local Project Board",
+      "user_goal": "Create a local project board where I can add, edit, delete, and move task cards between To Do, In Progress, and Done, with data preserved after restart and an export option.",
+      "allowed_assumptions": ["Single local user", "Three fixed workflow columns", "JSON export is acceptable"],
+      "hard_requirements": [{"id":"R1","description":"Create, edit, and delete task cards"},{"id":"R2","description":"Move cards among all three columns"},{"id":"R3","description":"Persist board data across restart"},{"id":"R4","description":"Export the board without losing fields"}],
+      "hidden_acceptance": [{"id":"board.crud","category":"functional","description":"External actions exercise create, edit, and delete","hard":true,"requirement_ids":["R1"]},{"id":"board.move","category":"functional","description":"A card moves through the workflow","hard":true,"requirement_ids":["R2"]},{"id":"board.runtime","category":"runtime","description":"The local application responds over its documented interface","hard":true,"requirement_ids":["R1"]},{"id":"board.persist","category":"persistence","description":"State survives a fresh process","hard":true,"requirement_ids":["R3"]},{"id":"board.export","category":"integration","description":"Export matches stored card state","hard":true,"requirement_ids":["R4"]}],
+      "runtime_requirements": ["Start locally without an external database", "State remains after a process restart"],
+      "visual_requirements": ["Three columns and card actions are visibly distinguishable", "No overlapping controls at 1280x720"],
+      "delivery_requirements": ["Runnable package includes source, README, and reset instructions"]
+    },
+    {
+      "case_id": "CASE_04_PERSONAL_INVENTORY_MANAGER", "level": "L2", "title": "Personal Inventory Manager",
+      "user_goal": "Build a local personal inventory manager for items, quantities, locations, categories, and notes, with search, low-stock visibility, editing, deletion, and CSV import/export.",
+      "allowed_assumptions": ["Single local user", "Quantity is a non-negative number", "CSV is the interchange format"],
+      "hard_requirements": [{"id":"R1","description":"Manage all requested item fields"},{"id":"R2","description":"Search and filter inventory"},{"id":"R3","description":"Identify low-stock items"},{"id":"R4","description":"Round-trip CSV import and export"}],
+      "hidden_acceptance": [{"id":"inventory.crud","category":"functional","description":"Items can be created, edited, and deleted","hard":true,"requirement_ids":["R1"]},{"id":"inventory.search","category":"functional","description":"Search finds only matching items","hard":true,"requirement_ids":["R2"]},{"id":"inventory.runtime","category":"runtime","description":"Application starts locally","hard":true,"requirement_ids":["R1"]},{"id":"inventory.persist","category":"persistence","description":"Changes survive restart","hard":true,"requirement_ids":["R1"]},{"id":"inventory.csv","category":"integration","description":"CSV round trip preserves values","hard":true,"requirement_ids":["R4"]},{"id":"inventory.low","category":"functional","description":"Low-stock calculation is accurate","hard":true,"requirement_ids":["R3"]}],
+      "runtime_requirements": ["Local persistent storage", "Validation rejects negative quantities"],
+      "visual_requirements": ["Inventory table/list, filters, and low-stock state are clear"],
+      "delivery_requirements": ["Runnable package includes a sample CSV and README"]
+    },
+    {
+      "case_id": "CASE_05_PERSONAL_FINANCE_TRACKER", "level": "L3", "title": "Personal Finance Tracker",
+      "user_goal": "Create a privacy-first local personal finance tracker for income and expenses, categories, monthly budgets, recurring entries, filters, summaries, and CSV import/export.",
+      "allowed_assumptions": ["Single currency per workspace", "Single local user", "No bank connection is required"],
+      "hard_requirements": [{"id":"R1","description":"Record income and expense transactions"},{"id":"R2","description":"Calculate monthly summaries and budget remaining"},{"id":"R3","description":"Apply recurring entries deterministically"},{"id":"R4","description":"Round-trip CSV without changing amounts"}],
+      "hidden_acceptance": [{"id":"finance.ledger","category":"functional","description":"Transaction lifecycle and filters work","hard":true,"requirement_ids":["R1"]},{"id":"finance.math","category":"functional","description":"Signed totals and budgets are exact","hard":true,"requirement_ids":["R2"]},{"id":"finance.runtime","category":"runtime","description":"Application runs locally","hard":true,"requirement_ids":["R1"]},{"id":"finance.persist","category":"persistence","description":"Ledger survives restart","hard":true,"requirement_ids":["R1"]},{"id":"finance.recur","category":"integration","description":"Recurring entries do not duplicate on rerun","hard":true,"requirement_ids":["R3"]},{"id":"finance.csv","category":"integration","description":"CSV round trip preserves decimal amounts","hard":true,"requirement_ids":["R4"]}],
+      "runtime_requirements": ["All finance data stays local", "Decimal arithmetic is stable"],
+      "visual_requirements": ["Monthly balance, category spend, and budget state are readily readable"],
+      "delivery_requirements": ["Runnable package includes schema/migration notes and README"]
+    },
+    {
+      "case_id": "CASE_06_NOTES_SEARCH_WORKSPACE", "level": "L3", "title": "Notes + Search Workspace",
+      "user_goal": "Build a local notes workspace with folders or tags, Markdown notes, full-text search, editing, deletion, recent notes, and import/export that keeps note metadata.",
+      "allowed_assumptions": ["Single local user", "UTF-8 Markdown", "Folders, tags, or both may organize notes"],
+      "hard_requirements": [{"id":"R1","description":"Create and edit Markdown notes with metadata"},{"id":"R2","description":"Search note titles and bodies"},{"id":"R3","description":"Show recent notes in deterministic order"},{"id":"R4","description":"Import/export preserves metadata"}],
+      "hidden_acceptance": [{"id":"notes.crud","category":"functional","description":"Notes and organization metadata are editable","hard":true,"requirement_ids":["R1"]},{"id":"notes.search","category":"functional","description":"Search handles title and body matches","hard":true,"requirement_ids":["R2"]},{"id":"notes.runtime","category":"runtime","description":"Workspace runs locally","hard":true,"requirement_ids":["R1"]},{"id":"notes.persist","category":"persistence","description":"Notes survive restart","hard":true,"requirement_ids":["R1"]},{"id":"notes.recent","category":"integration","description":"Recent order reflects edits","hard":true,"requirement_ids":["R3"]},{"id":"notes.transfer","category":"integration","description":"Export/import preserves metadata and Markdown","hard":true,"requirement_ids":["R4"]}],
+      "runtime_requirements": ["Search works on a clean restart", "No remote service is needed"],
+      "visual_requirements": ["Navigation, editor, rendered content, and search results are distinct"],
+      "delivery_requirements": ["Runnable package includes backup/restore instructions"]
+    },
+    {
+      "case_id": "CASE_07_IMAGE_BATCH_PROCESSOR", "level": "L3", "title": "Image Batch Processor",
+      "user_goal": "Create a local image batch processor that resizes, crops, rotates, renames, and converts common image formats, preserves originals by default, previews planned work, and reports failures per file.",
+      "allowed_assumptions": ["PNG and JPEG are required", "EXIF preservation is optional", "Operations may be configured per batch"],
+      "hard_requirements": [{"id":"R1","description":"Perform resize, crop, rotate, rename, and format conversion"},{"id":"R2","description":"Preserve originals unless explicitly overridden"},{"id":"R3","description":"Preview the planned batch"},{"id":"R4","description":"Continue safely and report per-file failures"}],
+      "hidden_acceptance": [{"id":"image.ops","category":"functional","description":"Pixel dimensions and formats match requested operations","hard":true,"requirement_ids":["R1"]},{"id":"image.originals","category":"functional","description":"Source hashes remain unchanged by default","hard":true,"requirement_ids":["R2"]},{"id":"image.runtime","category":"runtime","description":"Batch process runs locally on real images","hard":true,"requirement_ids":["R1"]},{"id":"image.preview","category":"integration","description":"Preview corresponds to executed outputs","hard":true,"requirement_ids":["R3"]},{"id":"image.errors","category":"integration","description":"A bad file does not corrupt successful outputs","hard":true,"requirement_ids":["R4"]}],
+      "runtime_requirements": ["Process multiple images in one invocation", "Avoid partial overwrite of originals"],
+      "visual_requirements": ["Preview communicates source, operation, and destination clearly"],
+      "delivery_requirements": ["Runnable package declares image dependencies and includes test instructions"]
+    },
+    {
+      "case_id": "CASE_08_RSS_READING_DASHBOARD", "level": "L4", "title": "RSS Reading Dashboard",
+      "user_goal": "Build a local RSS reading dashboard where I can manage feeds, refresh articles, filter unread or saved items, mark reading state, search, and continue using previously fetched data when offline.",
+      "allowed_assumptions": ["RSS and Atom feeds", "Single local user", "Network is available only during refresh"],
+      "hard_requirements": [{"id":"R1","description":"Add, edit, delete, and refresh feeds"},{"id":"R2","description":"Deduplicate articles across refreshes"},{"id":"R3","description":"Persist read and saved state"},{"id":"R4","description":"Browse cached articles offline"}],
+      "hidden_acceptance": [{"id":"rss.feeds","category":"functional","description":"Feed lifecycle works against controlled HTTP feeds","hard":true,"requirement_ids":["R1"]},{"id":"rss.dedupe","category":"functional","description":"Repeat refresh produces no duplicates","hard":true,"requirement_ids":["R2"]},{"id":"rss.runtime","category":"runtime","description":"Dashboard and refresh worker start together","hard":true,"requirement_ids":["R1"]},{"id":"rss.persist","category":"persistence","description":"Reading state survives restart","hard":true,"requirement_ids":["R3"]},{"id":"rss.offline","category":"integration","description":"Cached content remains usable with feed server stopped","hard":true,"requirement_ids":["R4"]}],
+      "runtime_requirements": ["Controlled feed refresh over HTTP", "Graceful offline operation"],
+      "visual_requirements": ["Feed list, article list, detail view, and state indicators are usable"],
+      "delivery_requirements": ["Runnable package includes local storage and network configuration guidance"]
+    },
+    {
+      "case_id": "CASE_09_LOCAL_REST_SERVICE_DASHBOARD", "level": "L4", "title": "Local REST Service + Dashboard",
+      "user_goal": "Create a local REST service and browser dashboard for managing records with validation, filtering, pagination, durable storage, clear API errors, health status, and setup documentation.",
+      "allowed_assumptions": ["JSON REST API", "Single-node local deployment", "A simple record domain may be chosen and documented"],
+      "hard_requirements": [{"id":"R1","description":"REST CRUD returns correct status codes and JSON"},{"id":"R2","description":"Validation, filtering, and pagination are enforced server-side"},{"id":"R3","description":"Dashboard uses the REST API rather than separate state"},{"id":"R4","description":"Records persist across server restart"}],
+      "hidden_acceptance": [{"id":"rest.crud","category":"functional","description":"External HTTP client verifies CRUD and errors","hard":true,"requirement_ids":["R1"]},{"id":"rest.query","category":"functional","description":"Filtering and pagination return correct subsets","hard":true,"requirement_ids":["R2"]},{"id":"rest.runtime","category":"runtime","description":"Service health and dashboard respond","hard":true,"requirement_ids":["R1"]},{"id":"rest.persist","category":"persistence","description":"API data survives a process restart","hard":true,"requirement_ids":["R4"]},{"id":"rest.dashboard","category":"integration","description":"Dashboard mutations are visible through the API","hard":true,"requirement_ids":["R3"]}],
+      "runtime_requirements": ["Bind to a configurable local port", "Health endpoint reports readiness"],
+      "visual_requirements": ["Dashboard supports list, create, edit, errors, and pagination without overlap"],
+      "delivery_requirements": ["Runnable package includes API examples, setup, and test instructions"]
+    },
+    {
+      "case_id": "CASE_10_CUSTOMER_FEEDBACK_MANAGER", "level": "L5", "title": "Customer Feedback Manager",
+      "user_goal": "I need a practical local application that helps a small product team collect, organize, understand, and act on customer feedback.",
+      "allowed_assumptions": ["A small co-located team", "Local-first operation", "The product should explain its chosen workflow"],
+      "hard_requirements": [{"id":"R1","description":"Turn the ambiguous goal into a coherent end-to-end feedback workflow"},{"id":"R2","description":"Preserve feedback records and meaningful action state"},{"id":"R3","description":"Provide useful organization and understanding, not storage alone"},{"id":"R4","description":"Enable traceable follow-up actions"}],
+      "hidden_acceptance": [{"id":"feedback.coherence","category":"functional","description":"A dynamic evaluator can complete a coherent feedback-to-action workflow","hard":true,"requirement_ids":["R1","R4"]},{"id":"feedback.depth","category":"functional","description":"Organization and insight features add demonstrated value","hard":true,"requirement_ids":["R3"]},{"id":"feedback.runtime","category":"runtime","description":"The chosen product starts and remains usable locally","hard":true,"requirement_ids":["R1"]},{"id":"feedback.persist","category":"persistence","description":"Feedback and action state survive restart","hard":true,"requirement_ids":["R2","R4"]},{"id":"feedback.integration","category":"integration","description":"Collection, understanding, and action states remain connected","hard":true,"requirement_ids":["R1","R4"]}],
+      "runtime_requirements": ["Run locally with durable state", "The evaluator may create an unseen multi-step scenario"],
+      "visual_requirements": ["Information hierarchy makes intake, analysis, and action understandable", "Dynamic visual evaluation is required"],
+      "delivery_requirements": ["Runnable package includes rationale, setup, and operational guidance"]
+    }
+  ]
+}
