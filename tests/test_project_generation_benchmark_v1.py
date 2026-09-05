@@ -50,7 +50,7 @@ def _repair_receipt() -> dict:
 
 
 def _metrics() -> dict:
-    return {"provider_api_calls": 3, "codex_invocations": 1, "elapsed_seconds": 2.5, "total_tokens": 700, "estimated_cost": 0.02}
+    return {"provider_api_calls": 3, "codex_invocations": 1, "elapsed_seconds": 2.5, "total_tokens": 700, "actual_cost": 0.02, "provider_generation_wall_time": 2.0}
 
 
 def _add_visual_observation(case: dict, candidate: pathlib.Path, observations: list[dict], run_id: str) -> None:
@@ -71,9 +71,25 @@ def test_case_catalog_validates_against_schema_and_has_exact_fixed_shape() -> No
 
 def test_case_10_keeps_only_the_ambiguous_user_goal() -> None:
     case = _case(10)
-    assert case["user_goal"] == "I need a practical local application that helps a small product team collect, organize, understand, and act on customer feedback."
+    assert case["user_goal"] == "帮我做一个适合小团队使用的客户反馈管理工具。我们平时会收集客户提的问题和建议，希望能整理、跟踪处理情况，以后方便查找。你自己设计第一版。"
     assert "dashboard" not in case["user_goal"].lower()
     assert "workflow" not in case["user_goal"].lower()
+
+
+def test_all_ten_user_goals_are_the_fixed_benchmark_inputs() -> None:
+    expected = [
+        "帮我做一个本地工具，可以导入 CSV，自动处理空值、重复行和明显格式问题，让我预览清洗前后差异，最后导出清洗后的 CSV。",
+        "做一个批量处理 Markdown 文档的小工具，可以读取一个目录，生成 HTML，保留标题、列表、代码块和链接，最后输出到另一个目录。",
+        "做一个我自己本机使用的项目任务看板，可以创建、编辑、删除和移动任务，关闭以后重新打开数据还在，并且能把当前任务导出成 JSON。",
+        "帮我做一个个人物品管理工具，记录物品名称、分类、数量、购买日期和备注，可以搜索和筛选，数量改变以后保存，还可以导出数据。",
+        "我想要一个本地个人收支管理工具，记录收入和支出，按月份和类别查看，有简单图表，可以导入和导出数据。",
+        "做一个本地笔记工具，可以创建多篇笔记，加标签，快速搜索内容，支持 Markdown，关掉以后内容不能丢。",
+        "做一个本地批量图片处理工具，我选一个文件夹，可以统一缩放图片，改输出格式，设置输出目录，并看到处理成功和失败的结果。",
+        "做一个我自己用的 RSS 阅读工具，可以添加几个 RSS 地址，拉取文章，按来源查看，标记已读，下次打开还能记住。",
+        "我想要一个本地运行的小服务，可以通过 API 管理一些记录，同时提供一个简单网页让我查看和编辑，API 和网页必须操作同一份数据。",
+        "帮我做一个适合小团队使用的客户反馈管理工具。我们平时会收集客户提的问题和建议，希望能整理、跟踪处理情况，以后方便查找。你自己设计第一版。",
+    ]
+    assert [case["user_goal"] for case in _catalog()["cases"]] == expected
 
 
 def test_hidden_acceptance_is_not_forwarded_to_fake_production(tmp_path: pathlib.Path) -> None:
@@ -255,12 +271,12 @@ def test_report_only_does_not_execute_or_overwrite_case_results(tmp_path: pathli
 
 
 def test_baseline_comparison_reports_long_term_deltas() -> None:
-    current = {"run_id": "new", "summary": {"pass_rate": 0.8, "average_score": 84, "provider_api_calls": 12, "codex_invocations": 3, "elapsed_seconds": 100, "estimated_cost": 1.2}}
-    baseline = {"run_id": "old", "summary": {"pass_rate": 0.6, "average_score": 75, "provider_api_calls": 15, "codex_invocations": 4, "elapsed_seconds": 120, "estimated_cost": 1.5}}
+    current = {"run_id": "new", "summary": {"pass_rate": 0.8, "one_shot_success_rate": 0.7, "repair_success_rate": 0.9, "requirement_coverage": 0.95, "median_provider_calls": 12, "median_provider_wall_time": 100, "median_codex_calls": 3}}
+    baseline = {"run_id": "old", "summary": {"pass_rate": 0.6, "one_shot_success_rate": 0.5, "repair_success_rate": 0.8, "requirement_coverage": 0.9, "median_provider_calls": 15, "median_provider_wall_time": 120, "median_codex_calls": 4}}
     comparison = evaluator.compare_reports(current, baseline)
     assert comparison["baseline_run_id"] == "old"
     assert comparison["deltas"]["pass_rate"] == pytest.approx(0.2)
-    assert comparison["deltas"]["provider_api_calls"] == -3
+    assert comparison["deltas"]["median_provider_calls"] == -3
 
 
 def test_provider_readiness_file_blocks_without_running_cases(tmp_path: pathlib.Path) -> None:
@@ -285,7 +301,7 @@ def test_contamination_guard_detects_fixture_marker_in_production_tree(tmp_path:
     scripts.mkdir()
     (scripts / "bad.py").write_text('CASE_NAME = "CASE_01_CSV_DATA_CLEANER"\n', encoding="utf-8")
     findings = evaluator.scan_production_contamination(tmp_path)
-    assert findings == [{"path": "scripts/bad.py", "marker": "CASE_01_CSV_DATA_CLEANER"}]
+    assert findings == [{"path": "scripts/bad.py", "marker": "case_01"}]
 
 
 def test_current_production_tree_has_no_benchmark_contamination() -> None:

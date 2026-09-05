@@ -20,7 +20,7 @@
     },
     "summary": {
       "type": "object",
-      "required": ["case_count", "counts", "pass_rate", "average_score", "provider_api_calls", "codex_invocations", "total_tokens", "estimated_cost", "elapsed_seconds"]
+      "required": ["case_count", "counts", "pass_rate", "average_score", "provider_api_calls", "codex_invocations", "total_tokens", "actual_cost", "elapsed_seconds", "one_shot_success_rate", "repair_success_rate", "requirement_coverage", "median_provider_calls", "median_provider_wall_time", "median_codex_calls", "overall_score"]
     },
     "case_results": {
       "type": "array",

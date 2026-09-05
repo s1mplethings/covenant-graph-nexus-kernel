@@ -37,12 +37,13 @@ def main():
         print(json.dumps({"error": "empty_csv"}))
         return 2
     header = [cell.strip() for cell in rows[0]]
-    seen, clean, malformed = set(), [], 0
+    seen, clean, malformed, missing_values = set(), [], 0, 0
     for row in rows[1:]:
         if len(row) != len(header):
             malformed += 1
             continue
         normalized = tuple(cell.strip() for cell in row)
+        missing_values += sum(not cell for cell in normalized)
         if normalized not in seen:
             seen.add(normalized)
             clean.append(normalized)
@@ -51,7 +52,7 @@ def main():
         writer = csv.writer(handle)
         writer.writerow(header)
         writer.writerows(clean)
-    print(json.dumps({"input_rows": len(rows)-1, "output_rows": len(clean), "duplicates_removed": len(rows)-1-malformed-len(clean), "malformed_rows": malformed}))
+    print(json.dumps({"input_rows": len(rows)-1, "output_rows": len(clean), "duplicates_removed": len(rows)-1-malformed-len(clean), "malformed_rows": malformed, "missing_values": missing_values, "before_preview": rows[1:3], "after_preview": clean[:2]}))
     return 0
 
 if __name__ == "__main__":
@@ -64,7 +65,7 @@ import argparse
 import json
 import pathlib
 
-COLUMNS = {"todo", "in_progress", "done"}
+COLUMNS = {"todo", "doing", "done"}
 
 def load(path):
     if not path.exists():
@@ -116,7 +117,7 @@ BOARD_HTML = '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Local Project Board</title><link rel="stylesheet" href="styles.css"></head>
 <body><header><h1>Project Board</h1><button id="add">Add task</button><button id="export">Export</button></header>
-<main id="board"><section><h2>To Do</h2></section><section><h2>In Progress</h2></section><section><h2>Done</h2></section></main>
+<main id="board"><section><h2>TODO</h2></section><section><h2>DOING</h2></section><section><h2>DONE</h2></section></main>
 <script src="app.js"></script></body></html>
 '''
 
@@ -199,20 +200,24 @@ def _observation(case: dict[str, Any], run_id: str, candidate: pathlib.Path, cri
 
 def _probe_csv(case: dict[str, Any], run_id: str, candidate: pathlib.Path, work: pathlib.Path) -> list[dict[str, Any]]:
     source, output = work / "mixed.csv", work / "clean.csv"
-    _write(source, "name,email\n Alice , a@example.test \nAlice,a@example.test\nBob,b@example.test,EXTRA\nCarol,c@example.test\n")
+    _write(source, "name,email\n Alice , a@example.test \nAlice,a@example.test\nBob,b@example.test,EXTRA\nCarol,c@example.test\nDave,\n")
     ok, process_output, elapsed = run_process_probe([sys.executable, "app.py", str(source), str(output)], cwd=candidate)
     rows = list(csv.reader(output.open(newline="", encoding="utf-8"))) if output.is_file() else []
-    cleaned = rows == [["name", "email"], ["Alice", "a@example.test"], ["Carol", "c@example.test"]]
+    cleaned = rows == [["name", "email"], ["Alice", "a@example.test"], ["Carol", "c@example.test"], ["Dave", ""]]
     try:
         summary = json.loads(process_output.splitlines()[-1])
     except (ValueError, IndexError):
         summary = {}
     malformed = summary.get("malformed_rows") == 1
+    missing = summary.get("missing_values") == 1
+    preview = bool(summary.get("before_preview")) and bool(summary.get("after_preview"))
     integrated = summary.get("output_rows") == max(0, len(rows) - 1) and summary.get("duplicates_removed") == 1
     persisted = output.is_file() and output.read_text(encoding="utf-8").startswith("name,email")
     return [
         _observation(case, run_id, candidate, "csv.runtime", ok, "benchmark_process_probe", process_output, ["R1"], elapsed),
         _observation(case, run_id, candidate, "csv.clean", ok and cleaned, "benchmark_process_probe", f"rows={rows}", ["R1","R2","R3"]),
+        _observation(case, run_id, candidate, "csv.missing", missing, "benchmark_process_probe", f"summary={summary}", ["R3"]),
+        _observation(case, run_id, candidate, "csv.preview", preview, "benchmark_process_probe", f"summary={summary}", ["R4"]),
         _observation(case, run_id, candidate, "csv.malformed", malformed, "benchmark_process_probe", f"summary={summary}", ["R4"]),
         _observation(case, run_id, candidate, "csv.persist", persisted, "benchmark_persistence_probe", f"output_exists_after_exit={output.is_file()}", ["R1","R2"]),
         _observation(case, run_id, candidate, "csv.integration", integrated, "benchmark_file_probe", f"summary={summary}; rows={len(rows)-1}", ["R2","R4"]),
@@ -228,7 +233,7 @@ def _free_port() -> int:
 def _probe_board(case: dict[str, Any], run_id: str, candidate: pathlib.Path, work: pathlib.Path) -> list[dict[str, Any]]:
     state, exported = work / "board.json", work / "export.json"
     base = [sys.executable, "board_cli.py", "--state", str(state)]
-    commands = [base + ["add", "--title", "First"], base + ["edit", "--id", "1", "--title", "Revised"], base + ["move", "--id", "1", "--column", "done"]]
+    commands = [base + ["add", "--title", "First"], base + ["edit", "--id", "1", "--title", "Revised"], base + ["move", "--id", "1", "--column", "doing"], base + ["move", "--id", "1", "--column", "done"]]
     command_results = [run_process_probe(command, cwd=candidate) for command in commands]
     listed = run_process_probe(base + ["list"], cwd=candidate)
     exported_result = run_process_probe(base + ["export", "--output", str(exported)], cwd=candidate)
@@ -250,7 +255,7 @@ def _probe_board(case: dict[str, Any], run_id: str, candidate: pathlib.Path, wor
             try:
                 with urllib.request.urlopen(f"http://127.0.0.1:{port}/index.html", timeout=1) as response:
                     body = response.read().decode("utf-8", errors="replace")
-                    http_ok = response.status == 200 and all(label in body for label in ("To Do", "In Progress", "Done"))
+                    http_ok = response.status == 200 and all(label in body for label in ("TODO", "DOING", "DONE"))
                     details = f"HTTP {response.status}; columns={http_ok}"
                     break
             except Exception:

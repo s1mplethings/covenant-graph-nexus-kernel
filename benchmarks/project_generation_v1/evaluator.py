@@ -11,6 +11,7 @@ import hashlib
 import json
 import pathlib
 import re
+import statistics
 import subprocess
 import sys
 import time
@@ -51,9 +52,11 @@ PROVIDER_BLOCKER_PATTERNS = (
 )
 FORBIDDEN_PRODUCTION_MARKERS = (
     "CGKN_PROJECT_GENERATION_BENCHMARK_V1",
-    "CASE_01_CSV_DATA_CLEANER",
-    "CASE_03_LOCAL_PROJECT_BOARD",
-    "CASE_10_CUSTOMER_FEEDBACK_MANAGER",
+    "case_01",
+    "case_03",
+    "case_10_customer_feedback_manager",
+    "customer_feedback_manager benchmark",
+    "local project board benchmark",
     "CGKN_PROJECT_BENCHMARK_CASE_",
 )
 
@@ -277,8 +280,11 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
     provider_ids: set[str] = set()
     codex_ids: set[str] = set()
     token_total = 0
-    cost_total = 0.0
+    actual_cost_total = 0.0
+    actual_cost_observed = False
     jobs: set[str] = set()
+    peak_concurrency = jobs_total = jobs_reused = jobs_repaired = 0
+    provider_wall_time = repair_wall_time = 0.0
     for path in case_dir.rglob("*.json"):
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
@@ -304,16 +310,31 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
                 job_id = str(item.get("job_id", "")).strip()
                 if job_id:
                     jobs.add(job_id)
+                peak_concurrency = max(peak_concurrency, int(item.get("provider_peak_concurrency", item.get("actual_peak_concurrency", 0)) or 0))
+                jobs_total = max(jobs_total, int(item.get("provider_jobs_total", item.get("unique_provider_jobs", 0)) or 0))
+                jobs_reused = max(jobs_reused, int(item.get("provider_jobs_reused_after_pass", item.get("reused_jobs", 0)) or 0))
+                jobs_repaired = max(jobs_repaired, int(item.get("provider_jobs_repaired", item.get("repaired_jobs", 0)) or 0))
+                provider_wall_time = max(provider_wall_time, float(item.get("provider_generation_wall_time", 0.0) or 0.0))
+                repair_wall_time = max(repair_wall_time, float(item.get("repair_wall_time", 0.0) or 0.0))
                 usage = item.get("usage")
                 if isinstance(usage, dict):
                     token_total += int(usage.get("total_tokens", 0) or 0)
-                    cost_total += float(usage.get("estimated_cost", 0.0) or 0.0)
+                    if isinstance(usage.get("actual_cost"), (int, float)):
+                        actual_cost_total += float(usage["actual_cost"])
+                        actual_cost_observed = True
     return {
         "provider_api_calls": len(provider_ids),
         "codex_invocations": len(codex_ids),
         "total_tokens": token_total,
-        "estimated_cost": round(cost_total, 6),
-        "distinct_jobs": len(jobs),
+        "actual_cost": round(actual_cost_total, 6) if actual_cost_observed else None,
+        "cost_currency": "provider_reported" if actual_cost_observed else None,
+        "distinct_jobs": max(len(jobs), jobs_total),
+        "provider_jobs_total": max(len(jobs), jobs_total),
+        "provider_peak_concurrency": peak_concurrency,
+        "provider_jobs_reused_after_pass": jobs_reused,
+        "provider_jobs_repaired": jobs_repaired,
+        "provider_generation_wall_time": provider_wall_time,
+        "repair_wall_time": repair_wall_time,
     }
 
 
@@ -341,6 +362,7 @@ def evaluate_case(
             "schema_version": SCHEMA_VERSION,
             "case_id": case_id,
             "level": case["level"],
+            "user_goal": case["user_goal"],
             "result": "BLOCKED_PROVIDER",
             "score": None,
             "hard_failures": [],
@@ -430,6 +452,7 @@ def evaluate_case(
         "evaluated_at": utc_now(),
         "case_id": case_id,
         "level": case["level"],
+        "user_goal": case["user_goal"],
         "result": result,
         "harness_probe_status": "PASS" if dry_run and not hard_failures else "FAIL" if dry_run else None,
         "score": score,
@@ -452,7 +475,8 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     counts = {key: 0 for key in ("PROJECT_PASS", "PROJECT_FAIL", "BLOCKED_PROVIDER", "NOT_EVALUATED")}
     live_scores: list[float] = []
     provider_calls = codex_calls = tokens = 0
-    cost = elapsed = 0.0
+    actual_cost = elapsed = 0.0
+    actual_cost_known = True
     attempted_repairs = successful_repairs = one_shot_passes = 0
     attempts: list[float] = []
     reuse_values: list[float] = []
@@ -467,7 +491,10 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         provider_calls += int(metrics.get("provider_api_calls", 0) or 0)
         codex_calls += int(metrics.get("codex_invocations", 0) or 0)
         tokens += int(metrics.get("total_tokens", 0) or 0)
-        cost += float(metrics.get("estimated_cost", 0.0) or 0.0)
+        if isinstance(metrics.get("actual_cost"), (int, float)):
+            actual_cost += float(metrics["actual_cost"])
+        else:
+            actual_cost_known = False
         elapsed += float(metrics.get("elapsed_seconds", 0.0) or 0.0)
         if isinstance(metrics.get("attempts_to_success"), (int, float)):
             attempts.append(float(metrics["attempts_to_success"]))
@@ -491,7 +518,7 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         if result.get("result") == "BLOCKED_PROVIDER":
             failure_taxonomy["provider_blocker"] = failure_taxonomy.get("provider_blocker", 0) + 1
     evaluated = counts["PROJECT_PASS"] + counts["PROJECT_FAIL"]
-    return {
+    summary = {
         "case_count": len(results),
         "counts": counts,
         "pass_rate": round(counts["PROJECT_PASS"] / evaluated, 4) if evaluated else None,
@@ -499,7 +526,7 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         "provider_api_calls": provider_calls,
         "codex_invocations": codex_calls,
         "total_tokens": tokens,
-        "estimated_cost": round(cost, 6),
+        "actual_cost": round(actual_cost, 6) if actual_cost_known and results else None,
         "elapsed_seconds": round(elapsed, 3),
         "one_shot_success_rate": round(one_shot_passes / evaluated, 4) if evaluated else None,
         "repair_success_rate": round(successful_repairs / attempted_repairs, 4) if attempted_repairs else None,
@@ -511,13 +538,27 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         "stale_evidence_rejection_rate": round(stale_rejections / rejected_total, 4) if rejected_total else None,
         "failure_taxonomy": dict(sorted(failure_taxonomy.items())),
     }
+    successful = [result for result in results if result.get("result") == "PROJECT_PASS"]
+    evaluated_results = [result for result in results if result.get("result") in {"PROJECT_PASS", "PROJECT_FAIL"}]
+    successful_metrics = [result.get("metrics", {}) for result in successful]
+    summary["requirement_coverage"] = round(statistics.mean(float(result.get("score_breakdown", {}).get("requirement_coverage", 0)) / 20 for result in evaluated_results), 4) if evaluated_results else None
+    summary["median_provider_calls"] = statistics.median(int(item.get("provider_api_calls", 0) or 0) for item in successful_metrics) if successful_metrics else None
+    summary["median_provider_wall_time"] = statistics.median(float(item.get("provider_generation_wall_time", 0.0) or 0.0) for item in successful_metrics) if successful_metrics else None
+    summary["median_codex_calls"] = statistics.median(int(item.get("codex_invocations", 0) or 0) for item in successful_metrics) if successful_metrics else None
+    successful_costs = [float(item["actual_cost"]) for item in successful_metrics if isinstance(item.get("actual_cost"), (int, float))]
+    summary["cost_per_successful_project"] = round(sum(successful_costs) / len(successful_costs), 6) if len(successful_costs) == len(successful) and successful else None
+    summary["overall_score"] = summary["average_score"]
+    return summary
 
 
 def compare_reports(current: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
     current_summary = current.get("summary", {})
     baseline_summary = baseline.get("summary", {})
     deltas: dict[str, Any] = {}
-    for field in ("pass_rate", "average_score", "provider_api_calls", "codex_invocations", "elapsed_seconds", "estimated_cost"):
+    for field in (
+        "pass_rate", "one_shot_success_rate", "repair_success_rate", "requirement_coverage",
+        "median_provider_calls", "median_provider_wall_time", "median_codex_calls",
+    ):
         left, right = current_summary.get(field), baseline_summary.get(field)
         deltas[field] = round(float(left) - float(right), 6) if isinstance(left, (int, float)) and isinstance(right, (int, float)) else None
     return {"baseline_run_id": baseline.get("run_id"), "deltas": deltas}
@@ -536,8 +577,9 @@ def scan_production_contamination(repo_root: pathlib.Path) -> list[dict[str, str
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
+            lowered = text.lower()
             for marker in FORBIDDEN_PRODUCTION_MARKERS:
-                if marker in text:
+                if marker.lower() in lowered:
                     findings.append({"path": path.relative_to(repo_root).as_posix(), "marker": marker})
     return findings
 

@@ -231,6 +231,7 @@ def blocked_case_result(case: dict[str, Any], blocker: str, *, dry_run: bool = F
     return {
         "kind": "ProjectGenerationBenchmarkCaseResult", "schema_version": SCHEMA_VERSION,
         "evaluated_at": utc_now(), "case_id": case["case_id"], "level": case["level"],
+        "user_goal": case["user_goal"],
         "result": "BLOCKED_PROVIDER", "score": None, "score_breakdown": {}, "hard_failures": [],
         "runtime_status": "NOT_EVALUATED", "delivery_status": "NOT_EVALUATED", "candidate_sha256": "",
         "provider_blocker": blocker[-4000:], "accepted_observation_count": 0, "rejected_observations": [],
@@ -254,7 +255,7 @@ def run_case(case: dict[str, Any], *, run_id: str, run_dir: pathlib.Path, args: 
     if args.dry_run:
         candidate = create_fake_candidate(case, case_dir, _public_context(case))
         observations = run_dry_case_probes(case, run_id, candidate, case_dir)
-        metrics = {"provider_api_calls": 0, "codex_invocations": 0, "total_tokens": 0, "estimated_cost": 0.0, "elapsed_seconds": 0.0}
+        metrics = {"provider_api_calls": 0, "codex_invocations": 0, "total_tokens": 0, "actual_cost": None, "elapsed_seconds": 0.0}
         result = evaluate_case(case, run_id=run_id, candidate_dir=candidate, observations=observations, metrics=metrics, dry_run=True)
     else:
         candidate, provider_error, metrics = invoke_production(case, run_dir=run_dir, case_dir=case_dir, args=args)
@@ -340,26 +341,42 @@ def build_report(run_id: str, manifest: dict[str, Any], cases: list[dict[str, An
 def report_markdown(report: dict[str, Any]) -> str:
     summary = report["summary"]
     lines = [
-        "# CGKN Project Generation Benchmark v1", "", f"- Run: `{report['run_id']}`", f"- Mode: `{report['mode']}`",
-        f"- Repository: `{report['version_binding']['repo_sha']}` on `{report['version_binding']['branch']}`",
+        "# CGKN Project Generation Benchmark v1", "",
+        f"- Repository SHA: `{report['version_binding']['repo_sha']}`",
         f"- Provider/model: `{report['version_binding']['provider']}` / `{report['version_binding']['model']}`",
-        f"- Hidden acceptance isolation: `{report['hidden_acceptance_isolation']}`",
-        f"- Independent evaluator: `{report['evaluator_independent']}`",
-        f"- Production contamination: `{report['production_contamination']['status']}`", "", "## Summary", "",
-        f"- Cases: {summary['case_count']}", f"- Counts: `{json.dumps(summary['counts'], sort_keys=True)}`",
-        f"- Pass rate: `{summary['pass_rate']}`", f"- Average score: `{summary['average_score']}`",
-        f"- Provider API calls: `{summary['provider_api_calls']}`", f"- Codex invocations: `{summary['codex_invocations']}`",
-        f"- Tokens / estimated cost: `{summary['total_tokens']}` / `{summary['estimated_cost']}`",
-        f"- One-shot / repair success: `{summary['one_shot_success_rate']}` / `{summary['repair_success_rate']}`",
-        f"- Average attempts: `{summary['average_attempts_to_success']}`",
-        f"- Job reuse / repair-scope accuracy: `{summary['job_reuse_rate']}` / `{summary['repair_scope_accuracy']}`",
-        f"- Stale-evidence rejection: `{summary['stale_evidence_rejection_rate']}`",
-        f"- Failure taxonomy: `{json.dumps(summary['failure_taxonomy'], sort_keys=True)}`", "", "## Cases", "",
+        f"- Benchmark run id: `{report['run_id']}`",
+        f"- Projects PASS / FAIL / BLOCKED: `{summary['counts']['PROJECT_PASS']}` / `{summary['counts']['PROJECT_FAIL']}` / `{summary['counts']['BLOCKED_PROVIDER']}`",
+        f"- Project Pass Rate: `{summary['pass_rate']}`",
+        f"- First-run Success Rate: `{summary['one_shot_success_rate']}`",
+        f"- Repair Recovery Rate: `{summary['repair_success_rate']}`",
+        f"- Requirement Coverage: `{summary['requirement_coverage']}`",
+        f"- Median Provider Calls: `{summary['median_provider_calls']}`",
+        f"- Median Provider Wall Time: `{summary['median_provider_wall_time']}`",
+        f"- Median Codex Calls: `{summary['median_codex_calls']}`",
+        f"- Overall Score: `{summary['overall_score']}`", "", "## Cases", "",
         "| Case | Level | Result | Score | Runtime | Delivery |", "|---|---:|---|---:|---|---|",
     ]
     for result in report["case_results"]:
         lines.append(f"| {result['case_id']} | {result['level']} | {result['result']} | {result.get('score')} | {result.get('runtime_status')} | {result.get('delivery_status')} |")
-    lines.extend(["", "Dry-run results validate only the harness and are never counted as CGKN project-generation PASS.", ""])
+    for result in report["case_results"]:
+        metrics = result.get("metrics", {})
+        lines.extend([
+            "", f"### {result['case_id']}", "", f"Goal: {result.get('user_goal', '')}", "",
+            f"- Verdict / score: `{result.get('result')}` / `{result.get('score')}`",
+            f"- Score breakdown: `{json.dumps(result.get('score_breakdown', {}), sort_keys=True)}`",
+            f"- Provider jobs / calls / peak concurrency: `{metrics.get('provider_jobs_total')}` / `{metrics.get('provider_api_calls')}` / `{metrics.get('provider_peak_concurrency')}`",
+            f"- Codex calls / wall time: `{metrics.get('codex_invocations')}` / `{metrics.get('elapsed_seconds')}`",
+            f"- Failure reason: `{json.dumps(result.get('hard_failures') or result.get('criteria_not_evaluated') or result.get('provider_blocker', ''), ensure_ascii=False)}`",
+        ])
+    lines.extend([
+        "", "## Evaluation integrity", "",
+        f"- Hidden acceptance isolation: `{report['hidden_acceptance_isolation']}`",
+        f"- Independent evaluator: `{report['evaluator_independent']}`",
+        f"- Production contamination: `{report['production_contamination']['status']}`",
+        f"- Actual provider-reported cost: `{summary['actual_cost']}`; token count: `{summary['total_tokens']}`",
+        f"- Failure taxonomy: `{json.dumps(summary['failure_taxonomy'], sort_keys=True)}`", "",
+        "Dry-run results validate only the harness and are never counted as CGKN project-generation PASS.", "",
+    ])
     return "\n".join(lines)
 
 
