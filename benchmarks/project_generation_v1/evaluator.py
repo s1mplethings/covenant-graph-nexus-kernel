@@ -284,6 +284,7 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
     actual_cost_observed = False
     jobs: set[str] = set()
     peak_concurrency = jobs_total = jobs_reused = jobs_repaired = 0
+    canonical_provider_calls = codex_supervisor_calls = codex_kernel_calls = 0
     provider_wall_time = repair_wall_time = 0.0
     for path in case_dir.rglob("*.json"):
         try:
@@ -311,10 +312,18 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
                 if job_id:
                     jobs.add(job_id)
                 peak_concurrency = max(peak_concurrency, int(item.get("provider_peak_concurrency", item.get("actual_peak_concurrency", 0)) or 0))
+                canonical_provider_calls = max(canonical_provider_calls, int(item.get("provider_api_call_count", 0) or 0))
+                codex_supervisor_calls = max(codex_supervisor_calls, int(item.get("codex_supervisor_invocation_count", 0) or 0))
+                codex_kernel_calls = max(codex_kernel_calls, int(item.get("codex_kernel_repair_invocation_count", 0) or 0))
                 jobs_total = max(jobs_total, int(item.get("provider_jobs_total", item.get("unique_provider_jobs", 0)) or 0))
                 jobs_reused = max(jobs_reused, int(item.get("provider_jobs_reused_after_pass", item.get("reused_jobs", 0)) or 0))
                 jobs_repaired = max(jobs_repaired, int(item.get("provider_jobs_repaired", item.get("repaired_jobs", 0)) or 0))
-                provider_wall_time = max(provider_wall_time, float(item.get("provider_generation_wall_time", 0.0) or 0.0))
+                stage_timing = item.get("wall_clock_stage_timing", {}) if isinstance(item.get("wall_clock_stage_timing"), dict) else {}
+                provider_wall_time = max(
+                    provider_wall_time,
+                    float(item.get("provider_generation_wall_time", 0.0) or 0.0),
+                    float(stage_timing.get("component_file_generation", 0.0) or 0.0),
+                )
                 repair_wall_time = max(repair_wall_time, float(item.get("repair_wall_time", 0.0) or 0.0))
                 usage = item.get("usage")
                 if isinstance(usage, dict):
@@ -323,8 +332,10 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
                         actual_cost_total += float(usage["actual_cost"])
                         actual_cost_observed = True
     return {
-        "provider_api_calls": len(provider_ids),
-        "codex_invocations": len(codex_ids),
+        "provider_api_calls": max(len(provider_ids), canonical_provider_calls),
+        "codex_invocations": max(len(codex_ids), codex_supervisor_calls + codex_kernel_calls),
+        "codex_supervisor_invocation_count": codex_supervisor_calls,
+        "codex_kernel_repair_invocation_count": codex_kernel_calls,
         "total_tokens": token_total,
         "actual_cost": round(actual_cost_total, 6) if actual_cost_observed else None,
         "cost_currency": "provider_reported" if actual_cost_observed else None,

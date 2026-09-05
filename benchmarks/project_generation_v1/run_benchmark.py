@@ -408,7 +408,22 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
         if not manifest_path.is_file():
             raise FileNotFoundError(f"run manifest missing: {manifest_path}")
         manifest = read_json(manifest_path)
-        results = [read_json(run_dir / "cases" / str(case["case_id"]) / "case_result.json") for case in selected]
+        results = []
+        for case in selected:
+            case_dir = run_dir / "cases" / str(case["case_id"])
+            result = read_json(case_dir / "case_result.json")
+            execution_receipt_path = case_dir / "production_execution_receipt.json"
+            if execution_receipt_path.is_file():
+                execution_receipt = read_json(execution_receipt_path)
+                relative_result = pathlib.Path(str(execution_receipt.get("result_path", "")))
+                production_slot = (run_dir / relative_result).parent
+                refreshed_metrics = collect_invocation_metrics(production_slot)
+                refreshed_metrics["elapsed_seconds"] = float(execution_receipt.get("elapsed_seconds", 0.0) or 0.0)
+                refreshed_metrics["production_return_code"] = int(execution_receipt.get("return_code", 0) or 0)
+                result = dict(result)
+                result["metrics"] = refreshed_metrics
+                result["metrics_refreshed_for_report"] = True
+            results.append(result)
     else:
         run_dir.mkdir(parents=True, exist_ok=args.resume)
         if manifest_path.is_file():

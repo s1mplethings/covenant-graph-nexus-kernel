@@ -226,6 +226,21 @@ def test_provider_and_codex_invocations_are_counted_by_unique_receipt_id(tmp_pat
     assert metrics["total_tokens"] == 15
 
 
+def test_canonical_provider_execution_metrics_are_collected(tmp_path: pathlib.Path) -> None:
+    evaluator.write_json(tmp_path / "provider_execution_metrics.json", {
+        "kind": "CGKNProviderExecutionMetrics", "provider_api_call_count": 17,
+        "provider_peak_concurrency": 2, "provider_jobs_total": 4,
+        "provider_jobs_reused_after_pass": 1, "provider_jobs_repaired": 2,
+        "wall_clock_stage_timing": {"component_file_generation": 285.077},
+        "codex_supervisor_invocation_count": 1, "codex_kernel_repair_invocation_count": 1,
+    })
+    metrics = evaluator.collect_invocation_metrics(tmp_path)
+    assert metrics["provider_api_calls"] == 17
+    assert metrics["provider_peak_concurrency"] == 2
+    assert metrics["provider_generation_wall_time"] == 285.077
+    assert metrics["codex_invocations"] == 2
+
+
 def test_aggregation_keeps_pass_fail_blocked_and_not_evaluated_separate() -> None:
     values = [{"result": value, "score": score, "metrics": {}} for value, score in [
         ("PROJECT_PASS", 90), ("PROJECT_FAIL", 40), ("BLOCKED_PROVIDER", None), ("NOT_EVALUATED", None)
