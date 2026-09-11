@@ -285,6 +285,10 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
     jobs: set[str] = set()
     peak_concurrency = jobs_total = jobs_reused = jobs_repaired = 0
     canonical_provider_calls = codex_supervisor_calls = codex_kernel_calls = 0
+    primary_provider_calls = fallback_provider_calls = 0
+    fallback_executed = fallback_selected = 0
+    files_authored_by_primary: set[str] = set()
+    files_authored_by_fallback: set[str] = set()
     provider_wall_time = repair_wall_time = 0.0
     for path in case_dir.rglob("*.json"):
         try:
@@ -313,6 +317,14 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
                     jobs.add(job_id)
                 peak_concurrency = max(peak_concurrency, int(item.get("provider_peak_concurrency", item.get("actual_peak_concurrency", 0)) or 0))
                 canonical_provider_calls = max(canonical_provider_calls, int(item.get("provider_api_call_count", 0) or 0))
+                primary_provider_calls = max(primary_provider_calls, int(item.get("primary_provider_calls", 0) or 0))
+                fallback_provider_calls = max(fallback_provider_calls, int(item.get("fallback_provider_calls", 0) or 0))
+                fallback_executed = max(fallback_executed, int(item.get("fallback_executed", 0) or 0))
+                fallback_selected = max(fallback_selected, int(item.get("fallback_selected", 0) or 0))
+                if isinstance(item.get("files_authored_by_primary"), list):
+                    files_authored_by_primary.update(str(path) for path in item["files_authored_by_primary"] if str(path).strip())
+                if isinstance(item.get("files_authored_by_fallback"), list):
+                    files_authored_by_fallback.update(str(path) for path in item["files_authored_by_fallback"] if str(path).strip())
                 codex_supervisor_calls = max(codex_supervisor_calls, int(item.get("codex_supervisor_invocation_count", 0) or 0))
                 codex_kernel_calls = max(codex_kernel_calls, int(item.get("codex_kernel_repair_invocation_count", 0) or 0))
                 jobs_total = max(jobs_total, int(item.get("provider_jobs_total", item.get("unique_provider_jobs", 0)) or 0))
@@ -333,6 +345,12 @@ def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
                         actual_cost_observed = True
     return {
         "provider_api_calls": max(len(provider_ids), canonical_provider_calls),
+        "primary_provider_calls": primary_provider_calls,
+        "fallback_provider_calls": fallback_provider_calls,
+        "fallback_executed": fallback_executed,
+        "fallback_selected": fallback_selected,
+        "files_authored_by_primary": sorted(files_authored_by_primary),
+        "files_authored_by_fallback": sorted(files_authored_by_fallback),
         "codex_invocations": max(len(codex_ids), codex_supervisor_calls + codex_kernel_calls),
         "codex_supervisor_invocation_count": codex_supervisor_calls,
         "codex_kernel_repair_invocation_count": codex_kernel_calls,
