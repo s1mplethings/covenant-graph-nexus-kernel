@@ -463,6 +463,37 @@ def test_split_file_retry_receives_previous_dom_contract_error(monkeypatch) -> N
     assert "All validators remain unchanged" in captured_system["content"]
 
 
+def test_split_file_retry_expands_self_imposed_truncation_cap(monkeypatch) -> None:
+    captured_cap: list[int] = []
+
+    def fake_provider_text(_messages, *_args, **kwargs):
+        captured_cap.append(int(kwargs["max_tokens"]))
+        return '{"path":"app/main.py","content":"def main():\\n    return 0\\n"}'
+
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
+    item, _raw = run_local_pipeline_impl.provider_generate_component_file(
+        goal="serve a local app",
+        component={"id": "backend", "required_paths": ["app/main.py"]},
+        component_pipeline={"components": [{"id": "backend"}]},
+        manifest_entry={"path": "app/main.py", "expected_output_chars": 3000},
+        prior_manifest=[],
+        completed_files=[],
+        repair_errors=[],
+        model="qwen3.7-flash",
+        timeout=10,
+        phase_log_path=None,
+        routing_policy=None,
+        last_transport_error=(
+            "provider output truncated before contract validation: "
+            "finish_reason=max_output_tokens"
+        ),
+        retry_attempt=2,
+    )
+
+    assert item["path"] == "app/main.py"
+    assert captured_cap == [1800]
+
+
 def test_leaf_retry_accumulates_distinct_rejections_without_regression(monkeypatch) -> None:
     received_errors: list[str] = []
     attempts = 0

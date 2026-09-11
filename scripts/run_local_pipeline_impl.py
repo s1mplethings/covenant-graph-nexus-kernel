@@ -11714,18 +11714,15 @@ def provider_emission_estimated_tokens(entry: dict[str, Any]) -> int:
     return max(180, (provider_manifest_entry_expected_chars(entry) + 2) // 3 + 160)
 
 
-def plan_provider_job_emissions(
+def provider_retry_output_token_cap(
     entries: list[dict[str, Any]],
     *,
     model: str,
-    phase_log_path: pathlib.Path | str | None = None,
     previous_generation_error: str = "",
-) -> dict[str, Any]:
-    """Pack transport emissions inside one stable ProviderJob ownership unit."""
-    normalized_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
-    estimated_cap = provider_job_output_token_budget(normalized_entries)
+) -> int:
+    """Correct a self-imposed truncation inside the existing bounded retry."""
+    requested_cap = provider_job_output_token_budget(entries)
     model_cap = provider_model_reliable_output_cap(model)
-    requested_cap = estimated_cap
     normalized_error = str(previous_generation_error or "").strip().lower()
     if (
         requested_cap < model_cap
@@ -11739,6 +11736,25 @@ def plan_provider_job_emissions(
             model_cap,
             max(requested_cap + 400, (requested_cap * 3 + 1) // 2),
         )
+    return requested_cap
+
+
+def plan_provider_job_emissions(
+    entries: list[dict[str, Any]],
+    *,
+    model: str,
+    phase_log_path: pathlib.Path | str | None = None,
+    previous_generation_error: str = "",
+) -> dict[str, Any]:
+    """Pack transport emissions inside one stable ProviderJob ownership unit."""
+    normalized_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
+    estimated_cap = provider_job_output_token_budget(normalized_entries)
+    model_cap = provider_model_reliable_output_cap(model)
+    requested_cap = provider_retry_output_token_cap(
+        normalized_entries,
+        model=model,
+        previous_generation_error=previous_generation_error,
+    )
     observation = provider_observed_output_limit(phase_log_path, model)
     observed_cap = int(observation.get("derived_reliable_cap", 0) or 0)
     reliable_cap = min(
@@ -17926,6 +17942,11 @@ def provider_generate_component_file(
 ) -> tuple[dict[str, str], str]:
     component_id = str(component.get("id", "")).strip()
     target_file = str(manifest_entry.get("path", "")).replace("\\", "/").strip()
+    requested_output_cap = provider_retry_output_token_cap(
+        [manifest_entry],
+        model=model,
+        previous_generation_error=str(last_transport_error or ""),
+    )
     system = """You generate one component-owned file for CGNK.
 Return strict JSON only. Generate exactly one file and no other files.
 Do not emit screenshots, videos, zip files, or binary data; generate source/docs/scripts only.
@@ -19257,7 +19278,7 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         stage="component_file_generation",
         component=component_id,
         target_file=target_file,
-        max_tokens=provider_job_output_token_budget([manifest_entry]),
+        max_tokens=requested_output_cap,
         payload_mode="split_file",
         phase_log_path=phase_log_path,
         routing_policy=routing_policy,
@@ -19271,7 +19292,7 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             stage="component_file_generation",
             component=component_id,
             target_file=target_file,
-            max_tokens=provider_job_output_token_budget([manifest_entry]),
+            max_tokens=requested_output_cap,
             phase_log_path=phase_log_path,
             routing_policy=routing_policy,
         )
