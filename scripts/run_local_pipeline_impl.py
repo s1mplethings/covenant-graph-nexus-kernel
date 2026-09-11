@@ -11719,11 +11719,26 @@ def plan_provider_job_emissions(
     *,
     model: str,
     phase_log_path: pathlib.Path | str | None = None,
+    previous_generation_error: str = "",
 ) -> dict[str, Any]:
     """Pack transport emissions inside one stable ProviderJob ownership unit."""
     normalized_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
-    requested_cap = provider_job_output_token_budget(normalized_entries)
+    estimated_cap = provider_job_output_token_budget(normalized_entries)
     model_cap = provider_model_reliable_output_cap(model)
+    requested_cap = estimated_cap
+    normalized_error = str(previous_generation_error or "").strip().lower()
+    if (
+        requested_cap < model_cap
+        and "truncated" in normalized_error
+        and any(
+            marker in normalized_error
+            for marker in ("max_output_tokens", "max_tokens", "finish_reason=length")
+        )
+    ):
+        requested_cap = min(
+            model_cap,
+            max(requested_cap + 400, (requested_cap * 3 + 1) // 2),
+        )
     observation = provider_observed_output_limit(phase_log_path, model)
     observed_cap = int(observation.get("derived_reliable_cap", 0) or 0)
     reliable_cap = min(
@@ -11756,6 +11771,7 @@ def plan_provider_job_emissions(
         "model": model,
         "ownership_paths": [str(entry.get("path", "")) for entry in normalized_entries],
         "requested_output_cap": requested_cap,
+        "estimated_output_cap": estimated_cap,
         "model_reliable_output_cap": model_cap,
         "effective_reliable_output_cap": reliable_cap,
         "previous_observed_output": observation,
@@ -13764,6 +13780,21 @@ def generated_python_safety_violations(path: str, content: str) -> list[str]:
     if dangerous:
         violations.append(
             f"{path} uses unsafe dynamic execution: {', '.join(dangerous)}"
+        )
+    mutates_builtins_namespace = any(
+        isinstance(node, ast.Call)
+        and (
+            (isinstance(node.func, ast.Name) and node.func.id == "patch")
+            or (isinstance(node.func, ast.Attribute) and node.func.attr == "patch")
+        )
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "builtins.__dict__"
+        for node in ast.walk(tree)
+    )
+    if mutates_builtins_namespace:
+        violations.append(
+            f"{path} attempts to replace the read-only Python builtins namespace"
         )
     if re.search(
         r"(?im)^\s*#\s*(?:simulate\b.*(?:logic|workflow)|dummy implementation\b|placeholder implementation\b)",
@@ -19632,6 +19663,11 @@ def provider_generate_component_job(
         "leaf_interface_contract": leaf_interface_contract or {},
         "output_token_cap": requested_cap,
     }
+    previous_generation_error = bounded_provider_diagnostic_output(
+        str(last_transport_error or ""), max_chars=1500
+    ).strip()
+    if previous_generation_error:
+        payload["previous_generation_error"] = previous_generation_error
     repair_sources = [
         {
             "path": path,
@@ -19662,8 +19698,15 @@ def provider_generate_component_job(
             ]
         )
     if component_id == "tests":
+        payload["strict_rules"].extend(
+            [
+                "Test observable behavior and public integration contracts. Never assert a Provider-selected private helper name or declaration text unless provider_job.files.generated_test_symbol_authority explicitly lists that name.",
+                "For browser/JavaScript behavior, execute the generated application through its real JavaScript/DOM surface; do not reimplement the product behavior as test-local Python functions and never patch or replace builtins.__dict__.",
+            ]
+        )
+    if previous_generation_error:
         payload["strict_rules"].append(
-            "Test observable behavior and public integration contracts. Never assert a Provider-selected private helper name or declaration text unless provider_job.files.generated_test_symbol_authority explicitly lists that name."
+            "Correct every item in previous_generation_error in this response; do not repeat the rejected path set, envelope, or incomplete output."
         )
     if completion_only:
         payload["strict_rules"].insert(
@@ -20961,6 +21004,7 @@ def _provider_generate_job_with_retry(
                 remaining_entries,
                 model=call_model,
                 phase_log_path=phase_log_path,
+                previous_generation_error=last_error_text,
             )
             final_emission_plan = {
                 key: value

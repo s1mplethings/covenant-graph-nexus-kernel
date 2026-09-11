@@ -366,6 +366,9 @@ def test_multi_file_provider_job_repair_keeps_current_emission_source(
         timeout=30,
         phase_log_path=None,
         routing_policy=None,
+        last_transport_error=(
+            "Provider emission may return only requested owned paths and no duplicates"
+        ),
         current_target_sources={
             "app/main.py": {
                 "path": "app/main.py",
@@ -378,6 +381,11 @@ def test_multi_file_provider_job_repair_keeps_current_emission_source(
     assert captured["current_target_sources"][0]["path"] == "app/main.py"
     assert "UTF8-SIG" in captured["current_target_sources"][0]["content"]
     assert any("affected-only repair" in rule for rule in captured["strict_rules"])
+    assert "requested owned paths" in captured["previous_generation_error"]
+    assert any(
+        "Correct every item in previous_generation_error" in rule
+        for rule in captured["strict_rules"]
+    )
 
 
 def test_build_coherence_finds_codec_dom_and_static_root_contradictions() -> None:
@@ -1013,6 +1021,29 @@ def test_provider_enforced_truncation_below_request_updates_reliable_cap(
     )
 
     assert observed["derived_reliable_cap"] == 1800
+
+
+def test_existing_retry_expands_self_imposed_truncation_cap_without_new_job() -> None:
+    entries = [{"path": "app/main.py", "expected_output_chars": 3000}]
+
+    initial = run_local_pipeline_impl.plan_provider_job_emissions(
+        entries,
+        model="qwen3.7-flash",
+    )
+    retry = run_local_pipeline_impl.plan_provider_job_emissions(
+        entries,
+        model="qwen3.7-flash",
+        previous_generation_error=(
+            "provider output truncated before contract validation: "
+            "finish_reason=max_output_tokens"
+        ),
+    )
+
+    assert initial["requested_output_cap"] == 1200
+    assert retry["estimated_output_cap"] == 1200
+    assert retry["requested_output_cap"] == 1800
+    assert retry["emissions"][0]["requested_output_cap"] == 1800
+    assert retry["ownership_paths"] == initial["ownership_paths"]
 
 
 def _frontend_contract_fixture() -> tuple[list[dict], list[dict]]:

@@ -7235,6 +7235,24 @@ def test_python_safety_rejects_runtime_annotation_shadowing_in_post_build(
     )
 
 
+def test_python_safety_rejects_replacing_builtins_namespace() -> None:
+    blockers = run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_browser_behavior.py",
+        (
+            "from unittest.mock import patch\n"
+            "def test_browser_behavior():\n"
+            "    with patch('builtins.__dict__', {}):\n"
+            "        pass\n"
+        ),
+    )
+
+    assert any("builtins namespace" in blocker for blocker in blockers)
+    assert not run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_diagnostic_text.py",
+        "def emit(value):\n    return value\nemit('builtins.__dict__')\n",
+    )
+
+
 def test_post_build_command_retains_actionable_pytest_diagnostics(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:
