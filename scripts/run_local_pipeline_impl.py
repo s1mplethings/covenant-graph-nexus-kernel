@@ -11244,6 +11244,31 @@ def provider_contract_repair_output_token_budget(
     )
 
 
+def provider_emission_output_token_cap(
+    entries: list[dict[str, Any]],
+    planned_cap: int,
+    *,
+    model: str,
+    current_target_sources: dict[str, dict[str, str]] | None = None,
+) -> int:
+    """Size an affected-only emission for complete replacements, when present."""
+    output_cap = max(1, int(planned_cap))
+    source_map = current_target_sources or {}
+    for entry in entries:
+        path = str(entry.get("path", "")).replace("\\", "/").strip()
+        current_source = str(source_map.get(path, {}).get("content", ""))
+        if current_source:
+            output_cap = max(
+                output_cap,
+                provider_contract_repair_output_token_budget(
+                    entry,
+                    current_source,
+                    model=model,
+                ),
+            )
+    return min(provider_model_reliable_output_cap(model), output_cap)
+
+
 def provider_model_reliable_output_cap(model: str) -> int:
     """Return a conservative transport cap for model families observed in production."""
     normalized = str(model or "").strip().lower()
@@ -13812,6 +13837,21 @@ def generated_python_safety_violations(path: str, content: str) -> list[str]:
         violations.append(
             f"{path} attempts to replace the read-only Python builtins namespace"
         )
+    normalized_path = pathlib.PurePosixPath(str(path).replace("\\", "/"))
+    is_test_path = normalized_path.name.startswith("test_") or "tests" in normalized_path.parts
+    if is_test_path:
+        for class_node in (node for node in tree.body if isinstance(node, ast.ClassDef)):
+            public_methods = [
+                member.name
+                for member in class_node.body
+                if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and not member.name.startswith("_")
+            ]
+            if class_node.name.lower().startswith(("mock", "fake")) and len(public_methods) >= 3:
+                violations.append(
+                    f"{path} defines test-local product surrogate {class_node.name}: "
+                    + ", ".join(public_methods[:8])
+                )
     if re.search(
         r"(?im)^\s*#\s*(?:simulate\b.*(?:logic|workflow)|dummy implementation\b|placeholder implementation\b)",
         content,
@@ -18585,6 +18625,7 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             "Tests must be deterministic and match the source and interface entries selected by librarian_context.",
             "Keep the complete test module at or below implementation_depth_contract.maximum_nonblank_lines; use parametrization and shared local helpers instead of repeating cases.",
             "Test public behavior through generated-project interfaces; do not reimplement the product's schemas, parser, feature math, or scoring algorithms inside the test module.",
+            "Never define a Mock/Fake application, board, service, repository, state machine, or other test-local product surrogate; execute the generated product's actual public interface or observable runtime instead.",
             "Use built-in pytest fixtures and custom fixtures actually confirmed by librarian_context or the declared conftest dependency; define only additional fixtures owned by this leaf.",
             "Do not assume an httpd, client, app, or server fixture exists unless the supplied conftest interface explicitly defines it.",
             "Do not assume Flask/FastAPI/Django APIs unless the prior code actually imports that framework.",
@@ -21050,6 +21091,12 @@ def _provider_generate_job_with_retry(
                     for entry in emission_entries
                 ]
                 emission_receipt = final_emission_plan["emissions"][emission_index - 1]
+                emission_output_cap = provider_emission_output_token_cap(
+                    emission_entries,
+                    int(emission_receipt["requested_output_cap"]),
+                    model=call_model,
+                    current_target_sources=repair_current_files,
+                )
                 has_later_emissions = emission_index < len(emission_chunks)
                 priority_completion = bool(completed_job_files) and (
                     not has_later_emissions and not completion_used
@@ -21093,7 +21140,7 @@ def _provider_generate_job_with_retry(
                         ownership_unit_paths=owned_paths,
                         completed_owned_paths=list(completed_job_files),
                         completion_only=priority_completion,
-                        output_token_cap=int(emission_receipt["requested_output_cap"]),
+                        output_token_cap=emission_output_cap,
                         budget_deadline=call_budget_deadline,
                         current_target_sources=repair_current_files,
                     )
@@ -21195,6 +21242,12 @@ def _provider_generate_job_with_retry(
                     completion_cap = min(
                         int(emission_plan["effective_reliable_output_cap"]),
                         provider_job_output_token_budget(completion_entries),
+                    )
+                    completion_cap = provider_emission_output_token_cap(
+                        completion_entries,
+                        completion_cap,
+                        model=call_model,
+                        current_target_sources=repair_current_files,
                     )
                     completion_budget_deadline = provider_emission_budget_deadline(
                         deadline,

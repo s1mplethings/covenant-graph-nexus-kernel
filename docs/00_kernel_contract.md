@@ -88,6 +88,11 @@ the model's existing reliable ceiling; it cannot add a retry, scheduler, job,
 timeout, ownership path, or alternate generation route. An incomplete emission
 retains its validated `completed_owned_paths` and receives at most one completion call
 for only its `missing_owned_paths`; CGKN never authors the missing customer code.
+Affected-only repair emissions size their bounded response for the complete current
+target source before applying the same model ceiling; they must not reuse a smaller
+greenfield estimate that cannot carry a complete replacement. Generated tests must
+exercise actual product interfaces or runtime behavior and cannot implement a
+multi-method Mock/Fake product surrogate as a substitute for the generated project.
 Every validated partial emission is durably checkpointed before the ownership
 unit finishes. A missing co-owned path does not invalidate verified peer paths
 unless an explicit manifest dependency makes the peer its consumer; resume and

@@ -7284,6 +7284,24 @@ def test_python_safety_rejects_replacing_builtins_namespace() -> None:
     )
 
 
+def test_python_safety_rejects_test_local_product_surrogate() -> None:
+    blockers = run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_board.py",
+        (
+            "class MockTaskBoard:\n"
+            "    def add_task(self): return None\n"
+            "    def move_task(self): return None\n"
+            "    def delete_task(self): return None\n"
+        ),
+    )
+
+    assert any("test-local product surrogate MockTaskBoard" in item for item in blockers)
+    assert not run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_client.py",
+        "class FakeResponse:\n    def json(self): return {}\n",
+    )
+
+
 def test_post_build_command_retains_actionable_pytest_diagnostics(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:

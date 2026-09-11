@@ -1046,6 +1046,33 @@ def test_existing_retry_expands_self_imposed_truncation_cap_without_new_job() ->
     assert retry["ownership_paths"] == initial["ownership_paths"]
 
 
+def test_affected_only_emission_cap_fits_complete_current_source() -> None:
+    entry = {"path": "frontend/app.js", "expected_output_chars": 3000}
+    current_source = "const value = 'working';\n" * 240
+
+    output_cap = run_local_pipeline_impl.provider_emission_output_token_cap(
+        [entry],
+        1200,
+        model="qwen3.7-flash",
+        current_target_sources={
+            "frontend/app.js": {
+                "path": "frontend/app.js",
+                "content": current_source,
+            }
+        },
+    )
+
+    assert output_cap > 1200
+    assert output_cap <= run_local_pipeline_impl.provider_model_reliable_output_cap(
+        "qwen3.7-flash"
+    )
+    assert run_local_pipeline_impl.provider_emission_output_token_cap(
+        [entry],
+        1200,
+        model="qwen3.7-flash",
+    ) == 1200
+
+
 def _frontend_contract_fixture() -> tuple[list[dict], list[dict]]:
     manifest = [
         {
