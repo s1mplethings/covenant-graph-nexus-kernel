@@ -83,9 +83,11 @@ is a self-imposed insufficient request, not evidence of a lower model cap;
 only truncation below the requested cap may lower the observed reliable limit.
 Within the existing bounded retry budget, every rejected ownership-unit attempt
 must feed its bounded validation error into the next Provider request. An
-explicit self-imposed truncation may raise only that retry's output cap up to
-the model's existing reliable ceiling; it cannot add a retry, scheduler, job,
-timeout, ownership path, or alternate generation route. An incomplete emission
+explicit self-imposed truncation may step each successive existing attempt's
+output cap up to the model's existing reliable ceiling; it cannot add a retry,
+scheduler, job, timeout, ownership path, or alternate generation route. A
+single-file affected-only repair also sizes that bounded replacement from the
+complete current target source while remaining under the same model ceiling. An incomplete emission
 retains its validated `completed_owned_paths` and receives at most one completion call
 for only its `missing_owned_paths`; CGKN never authors the missing customer code.
 Affected-only repair emissions size their bounded response for the complete current

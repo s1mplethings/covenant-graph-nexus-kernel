@@ -1038,12 +1038,48 @@ def test_existing_retry_expands_self_imposed_truncation_cap_without_new_job() ->
             "finish_reason=max_output_tokens"
         ),
     )
+    final_retry = run_local_pipeline_impl.plan_provider_job_emissions(
+        entries,
+        model="qwen3.7-flash",
+        previous_generation_error=(
+            "provider output truncated before contract validation: "
+            "finish_reason=max_output_tokens"
+        ),
+        attempt_number=3,
+    )
 
     assert initial["requested_output_cap"] == 1200
     assert retry["estimated_output_cap"] == 1200
     assert retry["requested_output_cap"] == 1800
     assert retry["emissions"][0]["requested_output_cap"] == 1800
     assert retry["ownership_paths"] == initial["ownership_paths"]
+    assert final_retry["requested_output_cap"] == 2700
+    assert final_retry["emissions"][0]["requested_output_cap"] == 2700
+    assert final_retry["ownership_paths"] == initial["ownership_paths"]
+
+
+def test_existing_plus_retry_reaches_reliable_cap_without_extra_attempt() -> None:
+    entries = [{"path": "tests/test_goal_behavior_tests_part_03.py", "expected_output_chars": 5200}]
+    error = (
+        "provider output truncated before contract validation: "
+        "finish_reason=max_output_tokens"
+    )
+
+    second = run_local_pipeline_impl.provider_retry_output_token_cap(
+        entries,
+        model="qwen3.7-plus",
+        previous_generation_error=error,
+        attempt_number=2,
+    )
+    third = run_local_pipeline_impl.provider_retry_output_token_cap(
+        entries,
+        model="qwen3.7-plus",
+        previous_generation_error=error,
+        attempt_number=3,
+    )
+
+    assert second == 2601
+    assert third == 3000
 
 
 def test_affected_only_emission_cap_fits_complete_current_source() -> None:

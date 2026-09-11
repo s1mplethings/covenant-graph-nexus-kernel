@@ -11744,23 +11744,27 @@ def provider_retry_output_token_cap(
     *,
     model: str,
     previous_generation_error: str = "",
+    attempt_number: int = 1,
 ) -> int:
     """Correct a self-imposed truncation inside the existing bounded retry."""
     requested_cap = provider_job_output_token_budget(entries)
     model_cap = provider_model_reliable_output_cap(model)
     normalized_error = str(previous_generation_error or "").strip().lower()
-    if (
+    self_imposed_truncation = (
         requested_cap < model_cap
         and "truncated" in normalized_error
         and any(
             marker in normalized_error
             for marker in ("max_output_tokens", "max_tokens", "finish_reason=length")
         )
-    ):
-        requested_cap = min(
-            model_cap,
-            max(requested_cap + 400, (requested_cap * 3 + 1) // 2),
-        )
+    )
+    if self_imposed_truncation:
+        growth_steps = max(1, int(attempt_number or 1) - 1)
+        for _ in range(growth_steps):
+            requested_cap = min(
+                model_cap,
+                max(requested_cap + 400, (requested_cap * 3 + 1) // 2),
+            )
     return requested_cap
 
 
@@ -11770,6 +11774,7 @@ def plan_provider_job_emissions(
     model: str,
     phase_log_path: pathlib.Path | str | None = None,
     previous_generation_error: str = "",
+    attempt_number: int = 1,
 ) -> dict[str, Any]:
     """Pack transport emissions inside one stable ProviderJob ownership unit."""
     normalized_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
@@ -11779,6 +11784,7 @@ def plan_provider_job_emissions(
         normalized_entries,
         model=model,
         previous_generation_error=previous_generation_error,
+        attempt_number=attempt_number,
     )
     observation = provider_observed_output_limit(phase_log_path, model)
     observed_cap = int(observation.get("derived_reliable_cap", 0) or 0)
@@ -17986,6 +17992,17 @@ def provider_generate_component_file(
         [manifest_entry],
         model=model,
         previous_generation_error=str(last_transport_error or ""),
+        attempt_number=retry_attempt,
+    )
+    requested_output_cap = provider_emission_output_token_cap(
+        [manifest_entry],
+        requested_output_cap,
+        model=model,
+        current_target_sources=(
+            {target_file: {"path": target_file, "content": current_target_source}}
+            if current_target_source
+            else None
+        ),
     )
     system = """You generate one component-owned file for CGNK.
 Return strict JSON only. Generate exactly one file and no other files.
@@ -21067,6 +21084,7 @@ def _provider_generate_job_with_retry(
                 model=call_model,
                 phase_log_path=phase_log_path,
                 previous_generation_error=last_error_text,
+                attempt_number=attempt + 1,
             )
             final_emission_plan = {
                 key: value

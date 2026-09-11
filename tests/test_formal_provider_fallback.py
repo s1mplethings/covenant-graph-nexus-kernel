@@ -494,6 +494,38 @@ def test_split_file_retry_expands_self_imposed_truncation_cap(monkeypatch) -> No
     assert captured_cap == [1800]
 
 
+def test_split_file_final_retry_scales_cap_and_fits_current_source(monkeypatch) -> None:
+    captured_cap: list[int] = []
+
+    def fake_provider_text(_messages, *_args, **kwargs):
+        captured_cap.append(int(kwargs["max_tokens"]))
+        return '{"path":"frontend/app.js","content":"const ready = true;\\n"}'
+
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
+    item, _raw = run_local_pipeline_impl.provider_generate_component_file(
+        goal="repair the existing local app",
+        component={"id": "frontend", "required_paths": ["frontend/app.js"]},
+        component_pipeline={"components": [{"id": "frontend"}]},
+        manifest_entry={"path": "frontend/app.js", "expected_output_chars": 3000},
+        prior_manifest=[],
+        completed_files=[],
+        repair_errors=[],
+        model="qwen3.7-flash",
+        timeout=10,
+        phase_log_path=None,
+        routing_policy=None,
+        last_transport_error=(
+            "provider output truncated before contract validation: "
+            "finish_reason=max_output_tokens"
+        ),
+        retry_attempt=3,
+        current_target_source="const existing = 'preserve all behavior';\n" * 160,
+    )
+
+    assert item["path"] == "frontend/app.js"
+    assert captured_cap == [2700]
+
+
 def test_leaf_retry_accumulates_distinct_rejections_without_regression(monkeypatch) -> None:
     received_errors: list[str] = []
     attempts = 0
