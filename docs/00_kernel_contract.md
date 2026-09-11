@@ -54,6 +54,53 @@ validator. It MUST NOT own a worker pool or scheduler. The dependency-wave,
 bounded-concurrency split-file leaf executor in
 `scripts/run_local_pipeline_impl.py` is the single production ProviderJob
 execution authority, including same-run affected-only repair and PASS reuse.
+Affected-only repair sends the exact current target source and evidence-bound
+failure facts through that same leaf executor. Before any returned patch is
+written, deterministic affected-behavior coherence checks must show the
+targeted contradiction is gone and no new contradiction was introduced.
+Validation and acceptance remain ProviderJob-scoped: one rejected peer job
+cannot erase a separately verified job delta, and any accepted subset is
+re-audited before another bounded repair round or release decision.
+
+A valid product-shaped but ambiguous goal is not a user-decision blocker merely
+because its technical stack, page layout, database, entity fields, status names,
+workflow labels, or first-release scope are unspecified. The requirement lane
+must infer coherent conservative v1 defaults, record those assumptions in the
+frozen ProjectSpec, and set `ready_to_generate=true`. It may block autonomous
+ProjectSpec creation only for contradictory requirements, a critical external
+fact that cannot reasonably be inferred, required credentials or authority, a
+high-risk or irreversible decision, or a choice the user explicitly reserved.
+
+`ProviderJob` remains the natural ownership and validation unit; a bounded
+Provider emission is only a transport detail inside that same stable job id.
+Emission grouping uses expected source size, file type, file count, a
+model-specific reliable output cap, and observed truncation without creating
+synthetic project fragments or scheduler jobs. Each bounded emission requests
+the already-computed effective reliable model cap so estimate variance does not
+become an artificial truncation; grouping still uses the per-path estimates and
+the reliable cap remains binding. Output truncated exactly at CGKN's requested cap
+is a self-imposed insufficient request, not evidence of a lower model cap;
+only truncation below the requested cap may lower the observed reliable limit.
+An incomplete emission retains
+its validated `completed_owned_paths` and receives at most one completion call
+for only its `missing_owned_paths`; CGKN never authors the missing customer code.
+Every validated partial emission is durably checkpointed before the ownership
+unit finishes. A missing co-owned path does not invalidate verified peer paths
+unless an explicit manifest dependency makes the peer its consumer; resume and
+the next bounded attempt request only the missing paths. The fixed generation
+budget has a `MIN_COMPLETION_RESERVE` of 95 seconds measured against the original
+hard deadline, which progress reporting cannot extend. Earlier emission chains
+must stop at that reserve; once an ownership unit has verified partial output,
+its last remaining bounded emission is the one prioritized completion and
+ordinary retry cannot run ahead of it. Completion failure blocks the job and
+cannot create fake materialization.
+The foundation and component response boundary may strip a Markdown fence and
+leading/trailing commentary around exactly one complete JSON object. Any other
+malformed contract gets at most one Provider envelope-repair request, with no
+field or source invention. Transport evidence records `requested_output_cap`,
+`actual_output_tokens`, and `finish_reason`; attribution separately records
+primary and fallback call counts, fallback execution/selection, and files
+authored by each source.
 
 Governed kernel repair runs outside the read-only assessment turn in an
 allowlisted isolated mirror. It requires a reproduction check and regression
@@ -71,6 +118,80 @@ Every run records `codex_supervisor_invocation_count`,
 `provider_dag_critical_path_waves`, `provider_fragmentation_ratio`, and
 wall-clock stage timing as support metrics. These metrics cannot replace
 canonical evidence.
+
+## Candidate-first production lifecycle (normative)
+
+The one production route is ordered `BUILD FIRST -> INGEST -> AUDIT -> REPAIR
+-> RELEASE`. `BUILD_COMPLETE` is a workflow state meaning that the frozen
+required file set is complete, paths and ownership are legal, and the bytes are
+safe to save. It is never an EvidenceStatus, never means functionally correct,
+and never authorizes packaging or delivery. `RELEASE_READY` is reached only
+after every applicable canonical runtime, hidden acceptance, persistence,
+integration, visual, package, identity, and positive Codex audit gate passes.
+
+Only missing required paths, exhausted Provider generation, ownership
+violations, unsaveable output, indeterminate candidate file sets, and explicit
+permission or safety blockers are `BUILD_HARD`. User requirements, real public
+APIs, and actual cross-component integration are `RELEASE_HARD`; Provider
+implementation choices, internal symbols, style, and unused interfaces are
+`ADVISORY`. A Provider manifest cannot promote its own declaration to
+`BUILD_HARD`. Visual-design documentation added after the canonical project
+plan is `RELEASE_HARD`: it remains mandatory before release but cannot prevent
+the first immutable candidate from being ingested.
+
+Once `BUILD_COMPLETE` is established, CGKN immediately records an immutable
+provisional candidate with candidate id/hash, repository commit, ProjectSpec
+hash, known issues, and Provider provenance. Repairs never rewrite a stored
+version: an affected-only repair creates a child version bound to its parent and
+issue ids. The mutable working projection is not candidate-version authority.
+Every candidate must be closed over obvious local executable references before
+materialization or versioning. Python local imports, declarative test-suite
+parts, HTML script/stylesheet links, and local JavaScript module imports must
+resolve inside the candidate unless they are external dependencies. A
+BUILD-FIRST manifest projection must retain the transitive local dependencies
+of every included entry. Recovery may promote only Provider emissions whose
+paths are both canonically owned and successfully validated; an arbitrary
+staging file cannot enter a candidate. Missing closure is `BUILD_HARD`, not a
+reason to delete the reference, invent a test, or weaken delivery evidence.
+
+Post-build evaluation collects every technically executable test, runtime,
+browser, hidden-acceptance adapter, persistence restart, integration, visual,
+contract, startup/README, and package-readiness result before Provider repair.
+The canonical isolated customer-runtime probe recognizes both a root
+`index.html` and the common `frontend/index.html` static-project entrypoint;
+both are served from the clean copied project root and inspected at their
+declared customer path before packaging. This recognition does not create a
+second runtime or delivery route. Canonical pytest execution also pins
+`--rootdir` and config discovery to the candidate project, so a candidate under
+a repository artifact directory cannot inherit a parent repository's exclusion
+rules and be falsely reported as zero tests collected. A pytest execution that
+collects zero tests is always `FAIL`; only a successful non-pytest executable
+probe may represent its one command as one passed check.
+Generated tests may assert an exact project symbol identity only when the
+symbol is explicitly backed by a public API, a cross-component frozen
+interface, or acceptance. Provider-selected private helper names are
+implementation detail and must be exercised indirectly through observable
+behavior; renaming one without changing behavior cannot invalidate the suite.
+It writes one issue ledger containing requirement, symptom, evidence, severity,
+owner, affected ProviderJob, and repairability. Issues sharing a ProviderJob are
+sent in one bounded repair request through that existing ownership unit; passed
+unrelated jobs are reused. The existing bounded repair-round policy remains in
+force. Diagnostic productivity metrics have no PASS authority.
+
+Repair truth is ordered `hidden acceptance -> runtime/browser -> integration ->
+ProjectSpec/user requirement -> internal validator`. The issue ledger must bind
+each symptom to the exact user action, expected and observed behavior, evaluator
+evidence, affected owned paths, and a root-cause key before routing. Symptoms
+sharing a root cause or ProviderJob form one repair bundle. Each bundle receives
+at most two Provider API calls through the existing split-file leaf executor;
+non-target components and co-owned peer files are immutable source context, not
+generation targets. Evidence contradictions rerun canonical evidence without a
+Provider call. A Provider result is applied patch-first only to declared owned
+targets; no actual source change is a failed attempt and cannot create a new
+candidate version. Runtime test caches such as `__pycache__`, `.pytest_cache`,
+and compiled Python bytecode are neither candidate source identity nor snapshot
+content. All accepted bundle deltas are validated before one child
+candidate is recorded, and the same evaluator is rerun against its new identity.
 Provider transport diagnostics record redacted request identity/body size and
 thread-local response-header/body timing without credentials. Fallback
 observability distinguishes consideration, execution, and successful
@@ -182,7 +303,7 @@ The provider interface writes only to a run-unique response staging directory. `
 
 Provider component manifest prompts and validators must use the same canonical required-path authority. In particular, a browser-local static backend launcher may live at a canonical package path such as `app/main.py`; validation must not replace that frozen path with a hard-coded root `main.py` contract.
 
-API/provider detection remains required operational support. The canonical persistent credential is the Windows User-level `CGKN_OPENAI_API_KEY`; it takes precedence over stale inherited process values, while the explicit one-run `CGKN_OPENAI_API_KEY_OVERRIDE` remains the only higher-priority override. Provider credentials must never be recovered from `.agent_private/NOTES.md`. Credential replacement must atomically set the canonical User value, clear User-level `CGNK_OPENAI_API_KEY` and `OPENAI_API_KEY` compatibility copies, scrub legacy note secrets, and report unresolved process or machine conflicts without logging their values. The CGKN plugin MCP manifest must pass the canonical `CGKN_OPENAI_API_KEY` and `CGKN_OPENAI_BASE_URL` process variables rather than requiring a cleared compatibility key, and both its guarded generation entry and direct diagnostic probe must use the canonical resolver while retaining process-level override and legacy compatibility resolution. The bounded probe requires explicit `RUN_PROVIDER_PROBE`, makes one minimal live request with the normal retry policy, classifies missing credentials, authentication, quota/permission, model, and transport failures, writes no candidate or delivery artifact, and always remains formal evidence `NOT_EVALUATED`. Its provider-compatible output floor is 128 Tokens; the bounded Alibaba Model Studio Qwen3.8 diagnostic request sets `reasoning.effort=none` so the probe observes a reply without spending its cap on reasoning. Qualified Qwen3.8 component-file generation uses the separately contracted compact-leaf reasoning policy below, while other Provider generation payloads remain unchanged. `gpt-4.1-mini` smoke tests may call `https://api.gptsapi.net/v1/chat/completions`, and retryable provider transport errors such as `SSLError`, `SSLV3_ALERT_BAD_RECORD_MAC`, timeouts, connection resets, 502, 503, 504, or empty responses must be retried before declaring NEEDS_REWORK. Provider support must not write API keys to logs or project files, and must not create fake delivery assets after retry exhaustion.
+API/provider detection remains required operational support. The canonical persistent credential is the Windows User-level `CGKN_OPENAI_API_KEY`; it takes precedence over stale inherited process values, while the explicit one-run `CGKN_OPENAI_API_KEY_OVERRIDE` remains the only higher-priority override. Provider credentials must never be recovered from `.agent_private/NOTES.md`. Credential replacement must atomically set the canonical User value, clear User-level `CGNK_OPENAI_API_KEY` and `OPENAI_API_KEY` compatibility copies, scrub legacy note secrets, and report unresolved process or machine conflicts without logging their values. The CGKN plugin MCP manifest must pass the canonical `CGKN_OPENAI_API_KEY` and `CGKN_OPENAI_BASE_URL` process variables rather than requiring a cleared compatibility key, and both its guarded generation entry and direct diagnostic probe must use the canonical resolver while retaining process-level override and legacy compatibility resolution. The bounded probe requires explicit `RUN_PROVIDER_PROBE`, makes one minimal live request with the normal retry policy, classifies missing credentials, authentication, quota/permission, model, and transport failures, writes no candidate or delivery artifact, and always remains formal evidence `NOT_EVALUATED`. Its provider-compatible output floor is 128 Tokens; the bounded Alibaba Model Studio Qwen3.8 diagnostic request sets `reasoning.effort=none` so the probe observes a reply without spending its cap on reasoning. Alibaba Responses Qwen3.5 through Qwen3.8 component-file manifest and component-file generation requests also set `reasoning.effort=none`; this narrow transport policy is independently disableable, does not qualify `qwen-plus` or other model families, and does not change ProviderJob ownership, scheduling, validation, packaging, or delivery authority. Qualified Qwen3.8 component-file generation alone uses the separately contracted compact-leaf request envelope below, while other Provider generation payloads remain unchanged. `gpt-4.1-mini` smoke tests may call `https://api.gptsapi.net/v1/chat/completions`, and retryable provider transport errors such as `SSLError`, `SSLV3_ALERT_BAD_RECORD_MAC`, timeouts, connection resets, 502, 503, 504, or empty responses must be retried before declaring NEEDS_REWORK. Provider support must not write API keys to logs or project files, and must not create fake delivery assets after retry exhaustion.
 
 The `pipeline_manifest` is retained as an agent-generated support/experimental lane from `whiteboard` and `agent_session`. `dynamic_pipeline_runner` may interpret that manifest through `local_agent_actions` and `local_agent_skills`, but Codex conversation default generation must not treat CFO documents alone as final project generation.
 
@@ -264,7 +385,7 @@ Within split provider generation, the validated component manifest is expanded i
 
 Every new component-file pending plan carries one `resume_identity` that binds the component contract, component specification, exact ordered expanded manifest, failed target manifest entry, and leaf work graph. Runtime resume accepts an automatically expanded target when that exact saved manifest still owns the target and covers the current component contract; it does not require the target to be one of the earlier coarse component paths. The MCP diagnosis uses the same current identity-bound pending plan instead of treating superseded historical component hashes as an active drift blocker, while legacy pending plans retain the stricter manifest-coverage fallback. Its `resume.safe`, `resume.reason`, and `recommended_next_action` must express one decision: unrelated historical drift may remain contributing evidence but cannot turn a complete current identity-bound checkpoint's recommendation into “do not resume”; Provider authentication or account-availability blockers must be resolved before that safe checkpoint is resumed. Design-research artifacts keep their timestamped full manifest hash for traceability, but component checkpoint identity consumes a timestamp-free semantic design hash. When a passing `GoalDrivenProjectPlan` assigns concrete outputs to a component, those outputs are the canonical path authority and complexity enrichment cannot add a parallel backend architecture; exact declared paths may cross the generic ownership defaults only for their assigned component, and that exact assignment outranks generic directory ownership guesses even when a package hint is also present. An automatically named bounded submodule may inherit its exact canonical parent leaf's ownership only when it remains in the same directory, keeps the same suffix, and uses the `<parent>_part_<n>` name; arbitrary provider child paths do not inherit that exception. Automatically expanded sibling leaves inherit real shared providers but never depend on a previous sibling merely because of split numbering, and dependency normalization is repeated after expansion. Initial `component_file_generation` and `component_manifest_generation` calls use the interface-capable Provider route even for a small leaf or manifest payload; semantic review and repair stages also keep that capability floor. A saved `next_retry_model` cannot lower a current large-model capability floor after policy or semantic repair requires it. Ordinary advisory prose such as `symbol contracts` cannot create code-symbol authority; only exact `required code symbol Name` wording can do so. These rules preserve the existing Provider validation, post-build, packaging, and delivery route.
 
-The same split route maintains a hashed `CGKNProjectInterfaceRegistry` with provider files and Python, JavaScript, or HTML consumer edges. Each successful ownership unit writes one `CGKNLeafBoundaryCheckReceipt` per owned file before its interface is published. Job execution follows explicit Builder, Verifier, and Integrator responsibilities inside the same provider call/validation boundary; these are orchestration roles, not agents with independent generation or delivery authority. Dependency-ready jobs may run in bounded parallel batches controlled by `CGKN_PROVIDER_PARALLELISM`, while dependent jobs wait for upstream publication. A file-level failure invalidates its whole stable ownership unit and the transitive consumer closure; unrelated passing units remain reusable. Every split-file checkpoint binds both the project specification hash and the normalized manifest-entry hash, so old single-path checkpoints remain readable while new job graphs remain canonical multi-path. A manifest entry may declare bounded submodules only with a concrete `fragmentation_reason`, subject to the global expansion budget `CGKN_PROVIDER_MAX_DYNAMIC_LEAVES`; illegal ownership, duplicate paths, and expansion beyond the bound are ignored before generation. High-complexity Python with enough stable public symbols and broad pytest suites may still expand into independently verifiable modules. Browser JavaScript does not split merely because it has several symbols: automatic fragmentation requires an explicit technical reason or an expected output above the safe bounded budget, and the resulting parts must retain stable interfaces. The component-wide automatic expansion budget defaults to 16 paths and remains capped at 32. Each justified child remains an ordinary validated unit with librarian context, interface publication, boundary receipt, checkpoint, and affected-work repair closure. Interface registries, boundary receipts, batch plans, repair closures, diagnostic DAG metrics, and bounded expansions are internal evidence and planning structures in the reviewed Provider route. They cannot bypass post-build finalization, `local_packager`, or the public delivery gate.
+The same split route maintains a hashed `CGKNProjectInterfaceRegistry` with provider files and Python, JavaScript, or HTML consumer edges. Each successful ownership unit writes one `CGKNLeafBoundaryCheckReceipt` per owned file before its interface is published. Job execution follows explicit Builder, Verifier, and Integrator responsibilities inside the same provider call/validation boundary; these are orchestration roles, not agents with independent generation or delivery authority. Dependency-ready jobs may run in bounded parallel batches controlled by `CGKN_PROVIDER_PARALLELISM`, while dependent jobs wait for upstream publication. A file-level failure invalidates its whole stable ownership unit and the transitive consumer closure; unrelated passing units remain reusable. Every split-file checkpoint binds both the project specification hash and the normalized manifest-entry hash, so old single-path checkpoints remain readable while new job graphs remain canonical multi-path. A manifest entry may declare bounded submodules only with a concrete `fragmentation_reason`, subject to the global expansion budget `CGKN_PROVIDER_MAX_DYNAMIC_LEAVES`; illegal ownership, duplicate paths, and expansion beyond the bound are ignored before generation. High-complexity Python with enough stable public symbols and broad pytest suites may still expand into independently verifiable modules. Browser/source JavaScript never receives automatic `app_part_NN` fragmentation to satisfy a transport budget; the product-defined JavaScript path remains intact and bounded emissions handle transport sizing without changing the final file structure. The component-wide automatic expansion budget defaults to 16 paths and remains capped at 32. Each justified non-JavaScript child remains an ordinary validated unit with librarian context, interface publication, boundary receipt, checkpoint, and affected-work repair closure. Interface registries, boundary receipts, batch plans, repair closures, diagnostic DAG metrics, and bounded expansions are internal evidence and planning structures in the reviewed Provider route. They cannot bypass post-build finalization, `local_packager`, or the public delivery gate.
 
 Provider leaf generation uses a local `CGKNGenerationContextLibrarianIndex`, following the earlier local-librarian and knowledge-retrieval design, instead of copying the whole project context into every request. The full feedforward snapshot, source catalog, manifest, and registry remain local indexed evidence. A leaf receives only a hashed `CGKNLibrarianContextPack` containing the global/current contracts, its own manifest entry, direct dependency interfaces, and a bounded number of relevant source excerpts. `CGKN_PROVIDER_LIBRARIAN_MAX_ITEMS` defaults to 8 and is capped at 16; `CGKN_PROVIDER_LIBRARIAN_MAX_CHARS` defaults to 8000 and is capped at 16000; source excerpts are independently bounded by `CGKN_PROVIDER_LIBRARIAN_SOURCE_EXCERPT_CHARS`. A component request larger than `CGKN_PROVIDER_LIBRARIAN_SPLIT_PROMPT_CHARS`, default 16000, is routed through the same manifest/leaf split so a large whole-component prompt is not sent. Excluded entries are counted as retrieval evidence rather than copied into the prompt. The provider receives only feedforward and librarian hashes outside the selected pack. Librarian indexes and query receipts are written under the existing provider checkpoint directory without persisting source excerpts. This is context selection inside the reviewed provider split route, not a new generation path, planner, agent authority, or delivery exit.
 
@@ -391,7 +512,7 @@ Public narration is allowed only at Codex conversation reply boundaries. It may 
 
 Fallback to a single agent loop is allowed only when pipeline planning or runner execution fails, and it must record `pipeline_fallback`.
 
-Cross-file Python callable mismatch feedback includes the authoritative expected signature so repair does not have to infer positional, keyword-only, variadic, or required parameters. Uniform stage-leaf prompts also require every return branch to directly yield a literal result mapping with a literal `success` or `error` status and a mapping output. Orchestrator repair publishes the exact statically inspectable `result = stage(state)` loop shape and result-field reads. Application-entry repair feedback publishes the exact required stage-list expression and requires a literal list or tuple so the executable graph remains statically inspectable. HTML expected symbols are translated into exact visible literal `id` contracts, while CSS `--*` expected symbols become exact `:root` custom-property contracts; language-specific publication meaning is never left for a Provider to guess. HTML ids, CSS tokens, JavaScript exports, local module imports, and unimported sibling calls are checked at each leaf boundary rather than deferred to whole-component review. Frontend CSS generation receives the same measurable design-system signals used by the final quality gate: eight or more tokens, a responsive focal composition, visible focus treatment, and reduced-motion handling. A high-complexity JavaScript product leaf with at least three published symbols is deterministically split into bounded symbol-owner modules plus its compatibility facade even when it falls below the general six-symbol expansion threshold. Bounded JavaScript symbol owners receive both nonblank-line and source-character ceilings in their initial prompts and validation receipts; any remaining unsplit high-complexity JavaScript leaf is bounded the same way so it cannot consume the entire Provider token allowance before validation. On an outer component retry, the formal route reloads the latest pending leaf target before computing the repair closure, preserving newly completed prefix checkpoints instead of replaying a stale earlier leaf. Larger responsibility sets must therefore become manifest submodules rather than a larger context window. These are generic leaf-repair rules and cannot become project-specific compatibility patches.
+Cross-file Python callable mismatch feedback includes the authoritative expected signature so repair does not have to infer positional, keyword-only, variadic, or required parameters. Uniform stage-leaf prompts also require every return branch to directly yield a literal result mapping with a literal `success` or `error` status and a mapping output. Orchestrator repair publishes the exact statically inspectable `result = stage(state)` loop shape and result-field reads. Application-entry repair feedback publishes the exact required stage-list expression and requires a literal list or tuple so the executable graph remains statically inspectable. HTML expected symbols are translated into exact visible literal `id` contracts, while CSS `--*` expected symbols become exact `:root` custom-property contracts; language-specific publication meaning is never left for a Provider to guess. A Provider-authored JavaScript `expected_symbols` list describes implementation bindings only and cannot create a hard ES-export requirement by itself. JavaScript hard exports are the union of symbols actually imported by another generated module and symbols independently declared by the ProjectSpec or acceptance authority through `public_api_symbols_by_path` or `acceptance_required_symbols_by_path`; internal or unconsumed names remain manifest description. The deterministic gate checks browser loading semantics and rejects ES import/export syntax or a hard ES-export contract when the referenced source is loaded by a classic script rather than `type="module"`. Capability behavior, actual consumers, runtime coherence, and then authoritative implementation interfaces are evaluated separately so a Provider cannot expand project requirements by writing its own manifest. HTML ids, CSS tokens, authoritative JavaScript exports, local module imports, and unimported sibling calls are checked at each leaf boundary rather than deferred to whole-component review. Frontend CSS generation receives the same measurable design-system signals used by the final quality gate: eight or more tokens, a responsive focal composition, visible focus treatment, and reduced-motion handling. A high-complexity JavaScript product leaf with at least three published symbols is deterministically split into bounded symbol-owner modules plus its compatibility facade even when it falls below the general six-symbol expansion threshold. Bounded JavaScript symbol owners receive both nonblank-line and source-character ceilings in their initial prompts and validation receipts; any remaining unsplit high-complexity JavaScript leaf is bounded the same way so it cannot consume the entire Provider token allowance before validation. On an outer component retry, the formal route reloads the latest pending leaf target before computing the repair closure, preserving newly completed prefix checkpoints instead of replaying a stale earlier leaf. Larger responsibility sets must therefore become manifest submodules rather than a larger context window. These are generic leaf-repair rules and cannot become project-specific compatibility patches.
 
 ## Legacy Code Policy
 
@@ -652,3 +773,21 @@ Model defaults must be selected through `model_policy` for provider generation a
 Old `BLOCKED` and gate terminology must not be user-visible.
 
 `backend_controls` are compatibility logs only, never execution queues.
+
+## ProviderJob contract-guided source repair
+
+A complete ProviderJob output that fails a deterministic source boundary may be retained only as a non-formal diagnostic repair base. Its formal evidence remains `NOT_EVALUATED`; `REPAIRABLE_FAILED` and `UNUSABLE` are repair classifications, never evidence statuses, verified artifacts, candidate files, or delivery authority.
+
+The existing boundary validator is the single contract authority. A machine-consumable violation carries `rule_id`, owned `path`, frozen `symbol`, a determinable `line`, `expected`, `observed`, and a constraint-only `repair_hint`. JavaScript string/template contents and arrow syntax cannot be misreported as const reassignment. Frontend expected symbols come from the Provider manifest frozen into the ProviderJob/interface graph; no benchmark-specific symbol may enter production validation.
+
+Contract-guided repair stays inside the same ProviderJob execution path. It sends only the affected current source, the necessary frozen goal/interface projection, peer interface summaries, and the latest structured violations. It may request at most two complete replacements for that one owned path, always re-runs the full original boundary, and never asks Provider to regenerate already-correct co-owned HTML/CSS. Kernel does not author or patch customer source. A verified ProviderJob emits ordinary split checkpoints and clears only its own stale diagnostic repair base.
+
+Provider execution metrics distinguish generation, prioritized completion, contract repair, and transport retry calls. Snapshot reconciliation may rebuild these counters and distinct PASS-job reuse from the append-only phase log; `provider_jobs_reused_after_pass` counts unique job ids while `provider_job_reuse_events` counts checkpoint-read events. This observability does not change scheduling, ownership, fallback, timeout, validation, or delivery behavior.
+
+## ProviderJob issue-level partial improvement acceptance
+
+Post-build Provider repair remains on the existing split-file ProviderJob execution path. Each returned owned leaf is evaluated against the issue facts bound into its repair bundle. A delta may advance the candidate lineage when at least one corresponding deterministic coherence failure disappears or measurably decreases, even if a different issue on the same path remains. Whole-component cleanup and whole-case score improvement are not leaf-acceptance conditions.
+
+Partial acceptance is still fail-closed: the path must be owned and traversal-safe, source syntax and ordinary Provider output validation must pass, the source must contain a real delta, no equal-or-higher coherence blocker may be introduced, and previously passing behavior evidence may not regress. Delivery archives, manifests, evidence artifacts, empty/core-deleting source, and mock-only replacements are never candidate repair deltas. Every decision records the issue id/type, target, expected and observed behavior, coherence and behavior checks before and after, fixed-by-delta result, introduced blockers, and `safe_to_accept_partial`. The final evaluator, packaging route, and public delivery gate remain unchanged and independently authoritative.
+
+A Provider project payload that is still non-JSON after the one allowed envelope-only schema repair is classified `BLOCKED_PROVIDER_NON_JSON_PAYLOAD` under formal `BLOCKED_PROVIDER`. Its bounded diagnostic records the redacted raw excerpt, expected schema, response classification, and the single repair attempt. It does not enter semantic retry, materialize a candidate, synthesize evidence, or create a delivery artifact.

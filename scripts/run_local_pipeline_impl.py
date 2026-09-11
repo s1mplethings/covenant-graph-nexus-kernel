@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import ast
 import builtins
+import codecs
 import csv
 import hashlib
 import json
@@ -20,7 +21,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
@@ -49,6 +50,7 @@ import post_build_repair
 import post_build_finalize
 import provider_execution_metrics
 import provider_jobs
+import repair_acceptance
 import online_input_agent
 import requirement_blueprint
 import requirement_decision_lane
@@ -525,6 +527,9 @@ def generation_deadline(args: argparse.Namespace) -> float:
     return time.time() + max(30, int(getattr(args, "timeout", 360)))
 
 
+MIN_COMPLETION_RESERVE_SECONDS = 95
+
+
 class ProgressDeadline:
     def __init__(
         self,
@@ -534,6 +539,7 @@ class ProgressDeadline:
         phase_log_path: pathlib.Path | str | None = None,
     ) -> None:
         self.deadline = float(deadline)
+        self.hard_deadline = float(deadline)
         self.extension_seconds = max(30, int(extension_seconds))
         self.phase_log_path = phase_log_path
         self.progress_events: list[dict[str, Any]] = []
@@ -565,6 +571,44 @@ def deadline_timestamp(deadline: float | ProgressDeadline) -> float:
     if isinstance(deadline, ProgressDeadline):
         return deadline.deadline
     return float(deadline)
+
+
+def hard_deadline_timestamp(deadline: float | ProgressDeadline) -> float:
+    if isinstance(deadline, ProgressDeadline):
+        return deadline.hard_deadline
+    return float(deadline)
+
+
+def timeout_before_absolute_deadline(
+    requested: int,
+    absolute_deadline: float | None,
+    *,
+    floor: int = 1,
+) -> int:
+    if absolute_deadline is None:
+        return max(floor, int(requested))
+    remaining = int(float(absolute_deadline) - time.time())
+    if remaining < floor:
+        raise TimeoutError("generation budget exhausted before starting Provider call")
+    return max(floor, min(int(requested), remaining))
+
+
+def provider_emission_budget_deadline(
+    deadline: float | ProgressDeadline | None,
+    *,
+    reserve_completion: bool,
+) -> float | None:
+    if deadline is None:
+        return None
+    hard_deadline = hard_deadline_timestamp(deadline)
+    if reserve_completion:
+        hard_deadline -= MIN_COMPLETION_RESERVE_SECONDS
+    if hard_deadline <= time.time():
+        raise TimeoutError(
+            "generation budget cannot start another emission without consuming "
+            "MIN_COMPLETION_RESERVE"
+        )
+    return hard_deadline
 
 
 def mark_generation_progress(deadline: float | ProgressDeadline | None, phase: str, message: str, artifacts_written: list[str] | None = None) -> None:
@@ -836,10 +880,35 @@ def parse_json_object(text: str) -> dict[str, Any]:
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
     candidates = [raw]
-    first = raw.find("{")
-    last = raw.rfind("}")
-    if first >= 0 and last > first:
-        candidates.append(raw[first : last + 1])
+    depth = 0
+    start = -1
+    in_string = False
+    escaped = False
+    extracted: list[str] = []
+    for index, character in enumerate(raw):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character == "{":
+            if depth == 0:
+                start = index
+            depth += 1
+        elif character == "}" and depth:
+            depth -= 1
+            if depth == 0 and start >= 0:
+                extracted.append(raw[start : index + 1])
+                start = -1
+    if len(extracted) == 1 and extracted[0] != raw:
+        candidates.append(extracted[0])
+    elif len(extracted) > 1:
+        raise RuntimeError("provider returned multiple top-level JSON objects")
     for candidate in candidates:
         try:
             doc = json.loads(candidate)
@@ -861,6 +930,10 @@ class ProviderOutputContractError(RuntimeError):
 
 class ProviderLeafRepairExhaustedError(RuntimeError):
     """The bounded leaf repair loop already consumed its retries."""
+
+
+class ProviderContractRepairExhaustedError(ProviderOutputContractError):
+    """One allowed JSON-envelope repair request failed."""
 
 
 def bounded_provider_diagnostic_output(raw_output: str, max_chars: int = 12000) -> str:
@@ -966,6 +1039,15 @@ def local_model_task_for_provider_request(stage: str, prompt: str) -> str:
 
 
 def component_required_manifest_paths(component_id: str, component: dict[str, Any] | None = None) -> list[str]:
+    build_dynamic = component.get("build_required_paths", []) if isinstance(component, dict) else []
+    if isinstance(build_dynamic, list) and build_dynamic:
+        return list(
+            dict.fromkeys(
+                str(path).replace("\\", "/").strip()
+                for path in build_dynamic
+                if str(path).strip()
+            )
+        )
     dynamic = component.get("required_paths", []) if isinstance(component, dict) else []
     if isinstance(dynamic, list) and dynamic:
         return list(dict.fromkeys(str(path).replace("\\", "/").strip() for path in dynamic if str(path).strip()))
@@ -978,6 +1060,107 @@ def component_required_manifest_paths(component_id: str, component: dict[str, An
         "tests": ["tests/test_app.py"],
         "docs": ["README.md", "TEST_PLAN.md"],
     }.get(str(component_id or "").strip(), [])
+
+
+def build_first_manifest_projection(
+    component_id: str,
+    component: dict[str, Any] | None,
+    manifest: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Prevent a Provider manifest from promoting optional files to BUILD_HARD."""
+    required = set(component_required_manifest_paths(component_id, component))
+    paths = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in manifest
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    if not required or not required.issubset(paths):
+        return [dict(item) for item in manifest if isinstance(item, dict)], []
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in manifest
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    included = set(required)
+    changed = True
+    while changed:
+        changed = False
+        for path, item in by_path.items():
+            parent = str(item.get("expansion_parent", "")).replace("\\", "/").strip()
+            structural_children = {
+                str(child).replace("\\", "/").strip()
+                for child in item.get("facade_children", [])
+                if str(child).strip()
+            }
+            local_dependencies = {
+                str(dependency).replace("\\", "/").strip()
+                for dependency in item.get("dependencies", [])
+                if str(dependency).strip()
+                and str(dependency).replace("\\", "/").strip() in paths
+            }
+            if (parent and parent in included) or (
+                path in included and structural_children - included
+            ):
+                additions = structural_children if path in included else {path}
+                before = len(included)
+                included.update(child for child in additions if child in paths)
+                changed = changed or len(included) != before
+            if path in included and local_dependencies - included:
+                before = len(included)
+                included.update(local_dependencies)
+                changed = changed or len(included) != before
+    projected = [
+        {
+            **item,
+            "dependencies": [
+                dependency
+                for dependency in item.get("dependencies", [])
+                if (
+                    str(dependency).replace("\\", "/").strip() not in paths
+                    or str(dependency).replace("\\", "/").strip() in included
+                )
+            ],
+        }
+        for item in manifest
+        if isinstance(item, dict)
+        and str(item.get("path", "")).replace("\\", "/").strip() in included
+    ]
+    return projected, sorted(paths - included)
+
+
+def manifest_missing_structural_children(
+    manifest: list[dict[str, Any]],
+) -> list[str]:
+    paths = {
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in manifest
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    return sorted(
+        {
+            str(child).replace("\\", "/").strip()
+            for item in manifest
+            if isinstance(item, dict)
+            for child in item.get("facade_children", [])
+            if str(child).strip()
+            and str(child).replace("\\", "/").strip() not in paths
+        }
+    )
+
+
+def build_first_component_contract(
+    component_id: str,
+    component: dict[str, Any],
+) -> dict[str, Any]:
+    """Return a request-only BUILD contract without weakening RELEASE scope."""
+    build_paths = component_required_manifest_paths(component_id, component)
+    if not build_paths:
+        return dict(component)
+    projected = dict(component)
+    projected["required_paths"] = build_paths
+    projected["minimum_file_count"] = len(build_paths)
+    projected["contract_level"] = "BUILD_HARD"
+    return projected
 
 
 def normalize_goal_plan_manifest_dependency_contract(
@@ -1847,6 +2030,18 @@ def local_provider_contract_prompt(
             f"The manifest must include these required paths: {json.dumps(manifest_required_paths, ensure_ascii=False)}."
         )
     if normalized == "component_file_generation":
+        emission_paths = [
+            str(path).replace("\\", "/").strip()
+            for path in (required_paths or [])
+            if str(path).strip()
+        ]
+        if len(emission_paths) > 1:
+            return (
+                "Return one strict JSON object with a non-empty files array. Return only these emission paths, "
+                f"with each path at most once: {json.dumps(emission_paths, ensure_ascii=False)}. "
+                "Every returned file needs complete non-empty content. A partial subset is allowed only so the "
+                "existing ProviderJob can request its one bounded missing-path completion. Return no markdown."
+            )
         contract = (
             "Return one strict JSON object for exactly one source file. The preferred and smallest shape is "
             "{\"path\":\"EXACT_PATH\",\"content\":\"COMPLETE_SOURCE_TEXT\"}. "
@@ -3872,6 +4067,52 @@ def local_provider_contract_error(doc: Any, *, stage: str, component: str, targe
     elif normalized == "component_file_generation":
         files = doc.get("files")
         if files is not None:
+            try:
+                prompt_doc = json.loads(str(prompt_text or ""))
+            except (json.JSONDecodeError, TypeError):
+                prompt_doc = {}
+            provider_job = (
+                prompt_doc.get("provider_job", {})
+                if isinstance(prompt_doc, dict)
+                and isinstance(prompt_doc.get("provider_job", {}), dict)
+                else {}
+            )
+            emission_paths = [
+                str(path).replace("\\", "/").strip()
+                for path in provider_job.get("emission_paths", [])
+                if str(path).strip()
+            ] if isinstance(provider_job.get("emission_paths", []), list) else []
+            if len(emission_paths) > 1:
+                if not isinstance(files, list) or not files or any(
+                    not isinstance(item, dict) for item in files
+                ):
+                    return "local multi-file emission requires a non-empty files array"
+                actual_paths = [
+                    str(item.get("path", "")).replace("\\", "/").strip()
+                    for item in files
+                ]
+                if (
+                    len(set(actual_paths)) != len(actual_paths)
+                    or not set(actual_paths).issubset(set(emission_paths))
+                ):
+                    return "local multi-file emission returned duplicate or unrequested paths"
+                for item in files:
+                    item_path = str(item.get("path", "")).replace("\\", "/").strip()
+                    single_prompt = dict(prompt_doc)
+                    single_prompt["provider_job"] = {
+                        **provider_job,
+                        "emission_paths": [item_path],
+                    }
+                    item_error = local_provider_contract_error(
+                        item,
+                        stage=stage,
+                        component=component,
+                        target_file=item_path,
+                        prompt_text=json.dumps(single_prompt, ensure_ascii=False),
+                    )
+                    if item_error:
+                        return item_error
+                return ""
             if not isinstance(files, list) or len(files) != 1 or not isinstance(files[0], dict):
                 return "local split-file response must contain exactly one file"
             item = files[0]
@@ -6713,6 +6954,7 @@ def try_local_provider_text(
     if not task or not (local_enabled or fallback_enabled):
         return None
     if force_transport_fallback:
+        provider_execution_metrics.record_fallback_event(phase_log_path)
         append_provider_event_log(
             phase_log_path,
             {
@@ -6726,7 +6968,10 @@ def try_local_provider_text(
             },
         )
     prompt_required_paths: list[str] | None = None
-    if str(stage or "").strip().lower() == "component_file_manifest":
+    if str(stage or "").strip().lower() in {
+        "component_file_manifest",
+        "component_file_generation",
+    }:
         try:
             prompt_doc = json.loads(prompt)
         except (json.JSONDecodeError, TypeError):
@@ -6735,6 +6980,20 @@ def try_local_provider_text(
             prompt_required_paths = [
                 str(path).replace("\\", "/").strip()
                 for path in prompt_doc["required_paths"]
+                if str(path).strip()
+            ]
+        provider_job = (
+            prompt_doc.get("provider_job", {})
+            if isinstance(prompt_doc, dict)
+            and isinstance(prompt_doc.get("provider_job", {}), dict)
+            else {}
+        )
+        if "emission_paths" in provider_job and isinstance(
+            provider_job.get("emission_paths"), list
+        ):
+            prompt_required_paths = [
+                str(path).replace("\\", "/").strip()
+                for path in provider_job["emission_paths"]
                 if str(path).strip()
             ]
     contract = local_provider_contract_prompt(
@@ -7252,12 +7511,23 @@ def try_local_provider_text(
                 + contract
             )
             call_user_prompt = json.dumps(exact_manifest, ensure_ascii=False, separators=(",", ":"))
-        result = call_local(
-            task,
-            call_system_prompt,
-            call_user_prompt,
-            local_timeout,
-        )
+        if force_transport_fallback:
+            with provider_execution_metrics.fallback_provider_call(
+                phase_log_path, stage=stage
+            ):
+                result = call_local(
+                    task,
+                    call_system_prompt,
+                    call_user_prompt,
+                    local_timeout,
+                )
+        else:
+            result = call_local(
+                task,
+                call_system_prompt,
+                call_user_prompt,
+                local_timeout,
+            )
         raw = str(result.get("text") or "")
         if bool(result.get("ok")) and raw.strip():
             received_invalid_local_output = True
@@ -7397,11 +7667,22 @@ def provider_qwen_feature_unit_review_enabled(base_url: str, model: str, stage: 
     )
 
 
+def provider_qwen_bounded_generation_reasoning_none_enabled(base_url: str, model: str, stage: str) -> bool:
+    """Disable reasoning only for bounded manifest/file generation on qualified Qwen Responses models."""
+    return bool(
+        env_bool("CGKN_QWEN_BOUNDED_GENERATION_REASONING_NONE", True)
+        and str(stage or "").strip().lower() in {"component_file_manifest", "component_file_generation"}
+        and check_connectivity._is_alibaba_model_studio_base_url(base_url)
+        and check_connectivity._supports_alibaba_qwen_reasoning_none(model)
+        and check_connectivity._selected_provider_api_method(base_url, model) == "responses"
+    )
+
+
 def provider_reasoning_effort(base_url: str, model: str, stage: str) -> str:
     """Return an explicit effort only for bounded deterministic Qwen requests."""
     return (
         "none"
-        if provider_qwen_compact_leaf_enabled(base_url, model, stage)
+        if provider_qwen_bounded_generation_reasoning_none_enabled(base_url, model, stage)
         or provider_qwen_feature_unit_review_enabled(base_url, model, stage)
         else ""
     )
@@ -7538,9 +7819,22 @@ def compact_provider_leaf_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     repair_acceptance = payload.get("repair_acceptance", {})
     repair_acceptance = repair_acceptance if isinstance(repair_acceptance, dict) else {}
+    repair_error_rows = [
+        str(item).strip()
+        for item in payload.get("repair_errors_summary", [])
+        if str(item).strip()
+    ]
     repair_error = latest_provider_leaf_repair_error(
         payload.get("previous_generation_error", "")
         or repair_acceptance.get("must_fix", "")
+        or ("\n".join(repair_error_rows[-8:]) if repair_error_rows else "")
+    )
+    current_target_source = payload.get("current_target_source", {})
+    current_target_source = (
+        current_target_source
+        if isinstance(current_target_source, dict)
+        and str(current_target_source.get("content", ""))
+        else {}
     )
     compact: dict[str, Any] = {
         "kind": "CGKNCompactProviderLeafRequest",
@@ -7601,6 +7895,18 @@ def compact_provider_leaf_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "local_validation_required": True,
         },
     }
+    if current_target_source:
+        compact["current_target_source"] = {
+            "path": str(current_target_source.get("path", "")),
+            "content": str(current_target_source.get("content", "")),
+            "authority": "current_saved_candidate",
+        }
+        compact["generic_rules"].extend(
+            [
+                "Edit current_target_source and return its complete corrected replacement; this is not a greenfield rewrite.",
+                "Preserve unrelated working behavior and fix every repair.must_fix fact without inventing new endpoints or interfaces.",
+            ]
+        )
     if compact_advisory:
         compact["advisory"] = compact_advisory
     if not compact.get("feature_contracts"):
@@ -7765,6 +8071,11 @@ def fit_compact_provider_leaf_payload(
             "response": response,
             "local_authority": fitted.get("local_authority", {}),
         }
+        current_target_source = compact_payload.get("current_target_source", {})
+        if isinstance(current_target_source, dict) and str(
+            current_target_source.get("content", "")
+        ):
+            fitted["current_target_source"] = current_target_source
         if repair:
             fitted["repair"] = {
                 "attempt": repair.get("attempt", 1),
@@ -7885,6 +8196,22 @@ def provider_response_finish_reason(doc: dict[str, Any] | None) -> str:
     return ""
 
 
+def provider_response_output_tokens(doc: dict[str, Any] | None) -> int:
+    if not isinstance(doc, dict):
+        return 0
+    usage = doc.get("usage", {})
+    if not isinstance(usage, dict):
+        return 0
+    for key in ("output_tokens", "completion_tokens"):
+        try:
+            value = int(usage.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            value = 0
+        if value > 0:
+            return value
+    return 0
+
+
 def provider_text(
     messages: list[dict[str, str]],
     model: str,
@@ -7895,10 +8222,12 @@ def provider_text(
     component: str = "",
     max_tokens: int = 12000,
     payload_mode: str = "full",
+    metric_call_kind: str = "",
     target_file: str = "",
     phase_log_path: pathlib.Path | str | None = None,
     routing_policy: ProviderModelRoutingPolicy | None = None,
     last_error: Any = None,
+    budget_deadline: float | None = None,
 ) -> str:
     routed_task = local_model_task_for_provider_stage(stage)
     local_stage_enabled = bool(routed_task and local_model_router.task_enabled(routed_task))
@@ -7916,15 +8245,17 @@ def provider_text(
                 "owner": local_model_router.task_model_owner(routed_task),
             },
         )
+    initial_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
     local_raw = try_local_provider_text(
         messages,
         stage=stage,
         component=component,
         target_file=target_file,
-        timeout=timeout,
+        timeout=initial_timeout,
         phase_log_path=phase_log_path,
     )
     if local_raw is not None:
+        provider_execution_metrics.mark_call_origin("primary")
         return local_raw
     creds = check_connectivity._resolve_api_credentials()
     token = str(creds.get("api_key", "")).strip()
@@ -7944,16 +8275,24 @@ def provider_text(
                     "reason": "provider_missing_config",
                 },
             )
+            fallback_timeout = timeout_before_absolute_deadline(
+                provider_local_fallback_timeout(stage, initial_timeout),
+                budget_deadline,
+            )
             fallback_raw = try_local_provider_text(
                 messages,
                 stage=stage,
                 component=component,
                 target_file=target_file,
-                timeout=provider_local_fallback_timeout(stage, timeout),
+                timeout=fallback_timeout,
                 phase_log_path=phase_log_path,
                 force_transport_fallback=True,
             )
             if fallback_raw is not None:
+                provider_execution_metrics.record_fallback_event(
+                    phase_log_path, selected=True
+                )
+                provider_execution_metrics.mark_call_origin("fallback")
                 append_provider_event_log(
                     phase_log_path,
                     {
@@ -7998,6 +8337,7 @@ def provider_text(
     sent_max_tokens = int(max_tokens)
     sent_reasoning_effort = ""
     for attempt in range(max(1, max_attempts)):
+        attempt_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
         route = choose_provider_model(stage, legacy_prompt_chars, model, routing_policy, last_error=last_error_text)
         selected_model = str(route.get("selected_model") or model)
         attempt_messages = messages
@@ -8065,16 +8405,22 @@ def provider_text(
                 "model_routing_reason": route.get("model_routing_reason", ""),
                 "max_tokens": effective_max_tokens,
                 "requested_max_tokens": int(max_tokens),
+                "requested_output_cap": effective_max_tokens,
                 "reasoning_effort": reasoning_effort or "provider_default",
                 "payload_mode": payload_mode,
-                "timeout_seconds": int(timeout),
+                "metric_call_kind": metric_call_kind or payload_mode,
+                "timeout_seconds": int(attempt_timeout),
             },
         )
         with provider_execution_metrics.provider_api_call(
             phase_log_path,
             stage=stage,
+            payload_mode=metric_call_kind or payload_mode,
+            transport_retry=attempt > 0,
         ):
-            doc, error = check_connectivity._post_json(endpoint, payload, token, timeout)
+            doc, error = check_connectivity._post_json(
+                endpoint, payload, token, attempt_timeout
+            )
         append_provider_event_log(
             phase_log_path,
             {
@@ -8085,14 +8431,19 @@ def provider_text(
                 "request_input_sha256": request_input_hash,
                 "request_body_bytes": request_body_bytes,
                 "selected_model": selected_model,
-                "timeout_seconds": int(timeout),
+                "requested_output_cap": effective_max_tokens,
+                "timeout_seconds": int(attempt_timeout),
                 "status": "ok" if doc is not None else "failed",
+                "actual_output_tokens": provider_response_output_tokens(doc),
+                "finish_reason": provider_response_finish_reason(doc),
                 "response_id": str((doc or {}).get("id", "")),
                 "response_usage": (
                     (doc or {}).get("usage", {})
                     if isinstance((doc or {}).get("usage", {}), dict)
                     else {}
                 ),
+                "payload_mode": payload_mode,
+                "metric_call_kind": metric_call_kind or payload_mode,
                 "transport_timing": check_connectivity.last_transport_timing(),
             },
         )
@@ -8120,16 +8471,24 @@ def provider_text(
                     "reason": fallback_reason,
                 },
             )
+            fallback_timeout = timeout_before_absolute_deadline(
+                provider_local_fallback_timeout(stage, attempt_timeout),
+                budget_deadline,
+            )
             fallback_raw = try_local_provider_text(
                 messages,
                 stage=stage,
                 component=component,
                 target_file=target_file,
-                timeout=provider_local_fallback_timeout(stage, timeout),
+                timeout=fallback_timeout,
                 phase_log_path=phase_log_path,
                 force_transport_fallback=True,
             )
             if fallback_raw is not None:
+                provider_execution_metrics.record_fallback_event(
+                    phase_log_path, selected=True
+                )
+                provider_execution_metrics.mark_call_origin("fallback")
                 append_provider_event_log(
                     phase_log_path,
                     {
@@ -8181,6 +8540,9 @@ def provider_text(
                 "legacy_prompt_chars": legacy_prompt_chars,
                 "effective_prompt_chars": sent_request_profile.get("effective_prompt_chars", legacy_prompt_chars),
                 "max_tokens": sent_max_tokens,
+                "requested_output_cap": sent_max_tokens,
+                "actual_output_tokens": 0,
+                "finish_reason": "",
                 "reasoning_effort": sent_reasoning_effort or "provider_default",
             },
         )
@@ -8207,10 +8569,13 @@ def provider_text(
                 "finish_reason": finish_reason,
                 "request_profile": sent_request_profile.get("profile", "full"),
                 "max_tokens": sent_max_tokens,
+                "requested_output_cap": sent_max_tokens,
+                "actual_output_tokens": provider_response_output_tokens(doc),
                 "reasoning_effort": sent_reasoning_effort or "provider_default",
             },
         )
-        raise ProviderOutputContractError(error, raw_output=text)
+        if payload_mode != "multi_file" or not text:
+            raise ProviderOutputContractError(error, raw_output=text)
     if not text:
         record_model_call_from_phase_log(
             phase_log_path,
@@ -8229,6 +8594,9 @@ def provider_text(
                 "target_file": target_file,
                 "request_profile": sent_request_profile.get("profile", "full"),
                 "max_tokens": sent_max_tokens,
+                "requested_output_cap": sent_max_tokens,
+                "actual_output_tokens": provider_response_output_tokens(doc),
+                "finish_reason": finish_reason,
                 "reasoning_effort": sent_reasoning_effort or "provider_default",
             },
         )
@@ -8252,10 +8620,91 @@ def provider_text(
             "legacy_prompt_chars": legacy_prompt_chars,
             "effective_prompt_chars": sent_request_profile.get("effective_prompt_chars", legacy_prompt_chars),
             "max_tokens": sent_max_tokens,
+            "requested_output_cap": sent_max_tokens,
+            "actual_output_tokens": provider_response_output_tokens(doc),
             "reasoning_effort": sent_reasoning_effort or "provider_default",
         },
     )
+    provider_execution_metrics.mark_call_origin("primary")
     return text
+
+
+def parse_provider_json_object_with_one_repair(
+    raw: str,
+    *,
+    model: str,
+    timeout: int,
+    stage: str,
+    component: str,
+    target_file: str,
+    max_tokens: int,
+    phase_log_path: pathlib.Path | str | None,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    budget_deadline: float | None = None,
+) -> tuple[dict[str, Any], str]:
+    """Parse a single JSON object, requesting one envelope repair if necessary."""
+    try:
+        return parse_json_object(raw), raw
+    except RuntimeError as first_error:
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_contract_repair_requested",
+                "stage": stage,
+                "component": component,
+                "target_file": target_file,
+                "reason": str(first_error),
+                "repair_limit": 1,
+            },
+        )
+        try:
+            repair_raw = provider_text(
+                [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Repair only the JSON response envelope. Return exactly one complete top-level "
+                            "JSON object and no Markdown or commentary. Preserve every path and source-content "
+                            "character from the supplied response; do not invent customer code or missing fields."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(
+                            {
+                                "parse_error": str(first_error),
+                                "response_to_reemit": bounded_provider_diagnostic_output(raw),
+                            },
+                            ensure_ascii=False,
+                        ),
+                    },
+                ],
+                model,
+                timeout,
+                max_attempts=1,
+                stage=stage,
+                component=component,
+                target_file=target_file,
+                max_tokens=max_tokens,
+                payload_mode="contract_repair",
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                budget_deadline=budget_deadline,
+            )
+        except (RuntimeError, TimeoutError) as repair_request_error:
+            raise ProviderContractRepairExhaustedError(
+                "provider contract repair exhausted after one request: "
+                + str(repair_request_error),
+                raw_output=raw,
+            ) from repair_request_error
+        try:
+            return parse_json_object(repair_raw), repair_raw
+        except RuntimeError as repair_error:
+            raise ProviderContractRepairExhaustedError(
+                "provider contract repair exhausted after one request: "
+                + str(repair_error),
+                raw_output=repair_raw,
+            ) from repair_error
 
 
 def provider_generate_project(
@@ -9310,9 +9759,10 @@ def provider_component_semantic_review(
 
 
 def provider_leaf_repair_exhausted(error: Any) -> bool:
-    return isinstance(error, ProviderLeafRepairExhaustedError) or (
-        "provider leaf repair exhausted" in str(error or "").lower()
-    )
+    lowered = str(error or "").lower()
+    return isinstance(
+        error, (ProviderLeafRepairExhaustedError, ProviderContractRepairExhaustedError)
+    ) or "provider leaf repair exhausted" in lowered or "provider contract repair exhausted" in lowered
 
 
 def provider_component_error_is_retryable(error_type: str, error_text: str) -> bool:
@@ -10233,7 +10683,9 @@ def apply_design_context_to_component_pipeline(
         acceptance = [str(item) for item in component.get("acceptance", []) if str(item).strip()]
         required_paths = [str(item) for item in component.get("required_paths", []) if str(item).strip()]
         if component_id == "docs":
+            component["build_required_paths"] = list(dict.fromkeys(required_paths))
             required_paths.extend(required_docs)
+            component["release_required_paths"] = list(dict.fromkeys(required_paths))
             acceptance.extend(
                 [
                     "Document searched design references, their use boundaries, three considered directions, and the selected visual direction.",
@@ -10777,6 +11229,549 @@ def provider_job_output_token_budget(entries: list[dict[str, Any]]) -> int:
     return max(1200, min(7000, (expected_chars + 2) // 3))
 
 
+def provider_contract_repair_output_token_budget(
+    entry: dict[str, Any],
+    current_source: str,
+    *,
+    model: str,
+) -> int:
+    """Budget a complete replacement without changing normal emission planning."""
+    declared_budget = provider_job_output_token_budget([entry])
+    replacement_budget = max(1200, (len(current_source) + 2) // 3 + 320)
+    return min(
+        provider_model_reliable_output_cap(model),
+        max(declared_budget, replacement_budget),
+    )
+
+
+def provider_model_reliable_output_cap(model: str) -> int:
+    """Return a conservative transport cap for model families observed in production."""
+    normalized = str(model or "").strip().lower()
+    if "qwen3.8-flash" in normalized:
+        return 1500
+    if "qwen2.5" in normalized and "7b" in normalized:
+        return 1800
+    if "qwen3.7-plus" in normalized or "qwen3-coder-plus" in normalized:
+        return 3000
+    return 5000
+
+
+def provider_observed_output_limit(
+    phase_log_path: pathlib.Path | str | None,
+    model: str,
+) -> dict[str, Any]:
+    raw_path = str(phase_log_path or "").strip()
+    if not raw_path or not pathlib.Path(raw_path).exists():
+        return {}
+    normalized_model = str(model or "").strip().lower()
+    observations: list[dict[str, Any]] = []
+    try:
+        lines = pathlib.Path(raw_path).read_text(encoding="utf-8").splitlines()[-1000:]
+    except OSError:
+        return {}
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (
+            event.get("event") != "provider_transport_attempt"
+            or str(event.get("selected_model", "")).strip().lower() != normalized_model
+        ):
+            continue
+        actual = int(event.get("actual_output_tokens", 0) or 0)
+        finish_reason = str(event.get("finish_reason", "")).strip().lower()
+        requested = int(event.get("requested_output_cap", 0) or 0)
+        observations.append(
+            {
+                "actual_output_tokens": actual,
+                "requested_output_cap": requested,
+                "finish_reason": finish_reason,
+            }
+        )
+    if not observations:
+        return {}
+    truncated = [
+        item
+        for item in observations
+        if item["finish_reason"] in {"length", "max_tokens", "max_output_tokens", "incomplete"}
+    ]
+    derived_cap = min(
+        [
+            int(item["actual_output_tokens"])
+            for item in truncated
+            if int(item["actual_output_tokens"]) > 0
+            and int(item["requested_output_cap"]) > 0
+            and int(item["actual_output_tokens"]) < int(item["requested_output_cap"])
+        ]
+        or [0]
+    )
+    return {
+        "sample_count": len(observations),
+        "truncated_count": len(truncated),
+        "derived_reliable_cap": derived_cap,
+        "last_actual_output_tokens": observations[-1]["actual_output_tokens"],
+        "last_finish_reason": observations[-1]["finish_reason"],
+    }
+
+
+def _bounded_javascript_symbols(values: Any) -> list[str]:
+    if not isinstance(values, (list, tuple, set)):
+        return []
+    return list(
+        dict.fromkeys(
+            str(item).strip().rsplit(".", 1)[-1]
+            for item in values
+            if re.fullmatch(
+                r"[A-Za-z_$][\w$]*",
+                str(item).strip().rsplit(".", 1)[-1],
+            )
+        )
+    )[:24]
+
+
+def component_javascript_interface_authority(
+    component_contract: dict[str, Any] | None,
+    path: str,
+) -> dict[str, list[str]]:
+    """Read only ProjectSpec/acceptance-owned JavaScript interface authority.
+
+    Provider manifest ``expected_symbols`` are deliberately absent here. A
+    Provider may describe implementation bindings, but it cannot promote its
+    own names into a hard project interface merely by returning a manifest.
+    """
+    contract = component_contract if isinstance(component_contract, dict) else {}
+    contract_slice = (
+        contract.get("contract_slice", {})
+        if isinstance(contract.get("contract_slice", {}), dict)
+        else {}
+    )
+    normalized_path = str(path).replace("\\", "/").strip()
+
+    def selected(key: str) -> list[str]:
+        values: list[str] = []
+        for owner in (contract, contract_slice):
+            mapping = owner.get(key, {})
+            if isinstance(mapping, dict):
+                values.extend(
+                    _bounded_javascript_symbols(mapping.get(normalized_path, []))
+                )
+        return _bounded_javascript_symbols(values)
+
+    return {
+        "public_api_symbols": selected("public_api_symbols_by_path"),
+        "acceptance_required_symbols": selected(
+            "acceptance_required_symbols_by_path"
+        ),
+    }
+
+
+def javascript_hard_export_contract(
+    *,
+    provider_path: str,
+    project_files: list[dict[str, str]],
+    public_api_symbols: Any = None,
+    acceptance_required_symbols: Any = None,
+) -> dict[str, Any]:
+    """Derive hard ES exports from consumers or non-Provider authorities."""
+    normalized_provider = str(provider_path).replace("\\", "/").strip()
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(
+            item.get("content", "")
+        )
+        for item in project_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    consumer_symbols: list[str] = []
+    consumers: list[dict[str, Any]] = []
+    for consumer_path, source in sorted(by_path.items()):
+        if consumer_path == normalized_provider:
+            continue
+        if pathlib.PurePosixPath(consumer_path).suffix.lower() not in JAVASCRIPT_MODULE_SUFFIXES:
+            continue
+        for dependency in javascript_module_contract(source)["imports"]:
+            specifier = str(dependency.get("specifier", "")).strip()
+            if not specifier.startswith(("./", "../")):
+                continue
+            target = _resolve_relative_project_path(consumer_path, specifier)
+            candidates = {
+                target,
+                target + ".js",
+                target + ".mjs",
+                target + ".ts",
+                target + ".tsx",
+                target + "/index.js",
+                target + "/index.ts",
+            }
+            if normalized_provider not in candidates:
+                continue
+            symbols = _bounded_javascript_symbols(
+                [
+                    item
+                    for item in dependency.get("imported_symbols", [])
+                    if str(item) not in {"*", "default"}
+                ]
+            )
+            consumer_symbols.extend(symbols)
+            consumers.append(
+                {
+                    "consumer_path": consumer_path,
+                    "usage_type": str(dependency.get("kind", "import")),
+                    "symbols": symbols,
+                }
+            )
+    public_symbols = _bounded_javascript_symbols(public_api_symbols)
+    acceptance_symbols = _bounded_javascript_symbols(acceptance_required_symbols)
+    hard_required = _bounded_javascript_symbols(
+        [*consumer_symbols, *public_symbols, *acceptance_symbols]
+    )
+    return {
+        "provider_path": normalized_provider,
+        "hard_required_symbols": hard_required,
+        "cross_component_required_symbols": _bounded_javascript_symbols(
+            consumer_symbols
+        ),
+        "public_api_symbols": public_symbols,
+        "acceptance_required_symbols": acceptance_symbols,
+        "consumers": consumers[:24],
+    }
+
+
+def javascript_runtime_coherence_violations(
+    project_files: list[dict[str, str]],
+    *,
+    hard_contracts: dict[str, dict[str, Any]] | None = None,
+) -> list[str]:
+    """Reject ES-module source loaded by an ordinary browser script tag."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(
+            item.get("content", "")
+        )
+        for item in project_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    violations: list[str] = []
+    script_pattern = re.compile(r"<script\b([^>]*)\bsrc\s*=\s*['\"]([^'\"]+)['\"]([^>]*)>", re.I)
+    for html_path, html in sorted(by_path.items()):
+        if pathlib.PurePosixPath(html_path).suffix.lower() not in {".html", ".htm"}:
+            continue
+        for match in script_pattern.finditer(html):
+            attrs = f"{match.group(1)} {match.group(3)}"
+            source_ref = match.group(2).strip()
+            if source_ref.startswith(("http://", "https://", "//", "data:")):
+                continue
+            provider_path = _resolve_relative_project_path(
+                html_path, source_ref.lstrip("/")
+            )
+            source = by_path.get(provider_path)
+            if source is None:
+                continue
+            type_match = re.search(r"\btype\s*=\s*['\"]([^'\"]+)['\"]", attrs, re.I)
+            script_type = str(type_match.group(1) if type_match else "").strip().lower()
+            module = javascript_module_contract(source)
+            hard_symbols = _bounded_javascript_symbols(
+                (hard_contracts or {}).get(provider_path, {}).get(
+                    "hard_required_symbols", []
+                )
+            )
+            uses_module_syntax = bool(module["imports"] or module["exports"])
+            if script_type != "module" and (uses_module_syntax or hard_symbols):
+                reason = (
+                    "contains ES import/export syntax"
+                    if uses_module_syntax
+                    else "has hard ES exports " + ", ".join(hard_symbols)
+                )
+                violations.append(
+                    f"CONTRACT_RUNTIME_CONTRADICTION: {html_path} loads {provider_path} "
+                    f"as a classic script but it {reason}"
+                )
+    return violations
+
+
+def project_build_coherence_issues(
+    project_files: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Find cheap cross-file contradictions without claiming runtime PASS."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(
+            item.get("content", "")
+        )
+        for item in project_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    issues: list[dict[str, Any]] = []
+
+    def add(
+        *,
+        kind: str,
+        path: str,
+        message: str,
+        expected: str,
+        observed: str,
+        related_paths: list[str] | None = None,
+        user_action: str = "Start and use the generated project",
+    ) -> None:
+        issues.append(
+            {
+                "kind": kind,
+                "component_id": "frontend" if path.startswith("frontend/") else "backend",
+                "path": path,
+                "related_paths": list(related_paths or []),
+                "message": message,
+                "user_action": user_action,
+                "expected_behavior": expected,
+                "observed_behavior": observed,
+                "repair_route": "provider",
+                "authority": "deterministic_build_coherence",
+            }
+        )
+
+    for path, source in sorted(by_path.items()):
+        if pathlib.PurePosixPath(path).suffix.lower() != ".py":
+            continue
+        for match in re.finditer(r"\.decode\(\s*['\"]([^'\"]+)['\"]", source):
+            codec = match.group(1)
+            try:
+                codecs.lookup(codec)
+            except LookupError:
+                add(
+                    kind="invalid_literal_codec",
+                    path=path,
+                    message=f"{path}: unknown literal codec {codec}",
+                    expected="Uploaded text is decoded with a registered Python codec.",
+                    observed=f"The source calls bytes.decode({codec!r}), which raises LookupError.",
+                    user_action="Upload a text or CSV file",
+                )
+
+    html_ids: dict[str, set[str]] = {}
+    html_scripts: dict[str, set[str]] = {}
+    for html_path, html in sorted(by_path.items()):
+        if pathlib.PurePosixPath(html_path).suffix.lower() not in {".html", ".htm"}:
+            continue
+        html_ids[html_path] = set(
+            re.findall(r"\bid\s*=\s*['\"]([^'\"]+)['\"]", html, flags=re.I)
+        )
+        html_scripts[html_path] = {
+            _resolve_relative_project_path(html_path, ref.lstrip("/"))
+            for ref in re.findall(
+                r"<script\b[^>]*\bsrc\s*=\s*['\"]([^'\"]+)['\"]",
+                html,
+                flags=re.I,
+            )
+            if not ref.startswith(("http://", "https://", "//", "data:"))
+        }
+        missing_scripts = sorted(
+            script_path
+            for script_path in html_scripts[html_path]
+            if script_path not in by_path
+        )
+        if missing_scripts:
+            add(
+                kind="html_script_reference_missing",
+                path=html_path,
+                related_paths=missing_scripts,
+                message=(
+                    f"{html_path}: referenced local scripts do not exist: "
+                    + ", ".join(missing_scripts)
+                ),
+                expected="Every local script referenced by HTML exists in the candidate tree.",
+                observed="Missing script paths: " + ", ".join(missing_scripts),
+                user_action="Open the generated page",
+            )
+    for script_path, source in sorted(by_path.items()):
+        if pathlib.PurePosixPath(script_path).suffix.lower() not in JAVASCRIPT_MODULE_SUFFIXES:
+            continue
+        consumers = [
+            html_path
+            for html_path, scripts in html_scripts.items()
+            if script_path in scripts
+        ]
+        if not consumers:
+            continue
+        published_ids = set().union(*(html_ids[path] for path in consumers))
+        required_ids = set(
+            re.findall(
+                r"getElementById\(\s*['\"]([^'\"]+)['\"]\s*\)",
+                source,
+            )
+        )
+        missing_ids = sorted(required_ids - published_ids)
+        if missing_ids:
+            add(
+                kind="dom_id_contract_mismatch",
+                path=script_path,
+                related_paths=consumers,
+                message=(
+                    f"{script_path}: JavaScript references HTML ids not published by its page: "
+                    + ", ".join(missing_ids)
+                ),
+                expected="Every literal DOM id used by JavaScript exists in the linked HTML page.",
+                observed="Missing DOM ids: " + ", ".join(missing_ids),
+                user_action="Open the page and use its primary controls",
+            )
+
+    routes: set[str] = set()
+    route_paths: dict[str, str] = {}
+    for path, source in sorted(by_path.items()):
+        if pathlib.PurePosixPath(path).suffix.lower() != ".py":
+            continue
+        for route in re.findall(r"@\w+\.route\(\s*['\"]([^'\"]+)['\"]", source):
+            routes.add(route)
+            route_paths.setdefault(route, path)
+    for script_path, source in sorted(by_path.items()):
+        if pathlib.PurePosixPath(script_path).suffix.lower() not in JAVASCRIPT_MODULE_SUFFIXES:
+            continue
+        requested = set(re.findall(r"/api/[A-Za-z0-9_./{}-]+", source))
+        literal_bases = {
+            name: value.rstrip("/")
+            for name, value in re.findall(
+                r"(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*['\"]([^'\"]+)['\"]",
+                source,
+            )
+        }
+        for name, suffix in re.findall(
+            r"\$\{([A-Za-z_$][\w$]*)\}(/?[A-Za-z0-9_./{}-]+)",
+            source,
+        ):
+            if name in literal_bases:
+                requested.add(literal_bases[name] + "/" + suffix.lstrip("/"))
+        for endpoint in sorted(requested - routes):
+            backend_path = next(iter(route_paths.values()), "app/main.py")
+            if backend_path not in by_path:
+                continue
+            add(
+                kind="frontend_backend_endpoint_mismatch",
+                path=backend_path,
+                related_paths=[script_path],
+                message=f"{script_path}: requests {endpoint}, but no backend route publishes it",
+                expected=f"The backend publishes the frontend-consumed endpoint {endpoint}.",
+                observed="Published backend routes: " + ", ".join(sorted(routes)),
+                user_action="Submit the primary frontend form",
+            )
+
+    frontend_entries = sorted(
+        path
+        for path in by_path
+        if path.startswith("frontend/")
+        and pathlib.PurePosixPath(path).name == "index.html"
+    )
+    for path, source in sorted(by_path.items()):
+        if not frontend_entries or pathlib.PurePosixPath(path).suffix.lower() != ".py":
+            continue
+        if "SimpleHTTPRequestHandler" not in source or "directory=directory" not in source:
+            continue
+        if "frontend" in source or "chdir(" in source:
+            continue
+        if pathlib.PurePosixPath(path).parent.as_posix() == pathlib.PurePosixPath(frontend_entries[0]).parent.as_posix():
+            continue
+        add(
+            kind="static_server_root_mismatch",
+            path=path,
+            related_paths=frontend_entries,
+            message=f"{path}: static server root is the entrypoint directory, not {frontend_entries[0]}",
+            expected="The documented startup URL serves the generated frontend entry page.",
+            observed="SimpleHTTPRequestHandler is rooted beside the Python entrypoint while the page is under frontend/.",
+            user_action="Start the documented server and open its root URL",
+        )
+    return issues
+
+
+def candidate_build_coherence_issues(project_dir: pathlib.Path) -> list[dict[str, Any]]:
+    files: list[dict[str, str]] = []
+    for path in sorted(project_dir.rglob("*")):
+        if not path.is_file() or any(
+            part in {"__pycache__", ".pytest_cache", ".git"} for part in path.parts
+        ):
+            continue
+        if path.suffix.lower() not in {".py", ".js", ".mjs", ".html", ".htm"}:
+            continue
+        files.append(
+            {
+                "path": path.relative_to(project_dir).as_posix(),
+                "content": path.read_text(encoding="utf-8", errors="replace"),
+            }
+        )
+    return project_build_coherence_issues(files)
+
+
+def provider_repair_source_syntax_safe(path: str, content: str) -> bool:
+    """Apply the local syntax checks available without creating a second verifier."""
+    suffix = pathlib.PurePosixPath(path).suffix.lower()
+    if suffix == ".py":
+        try:
+            ast.parse(str(content or ""), filename=path)
+        except (SyntaxError, ValueError, TypeError):
+            return False
+    if suffix == ".json":
+        try:
+            json.loads(str(content or ""))
+        except (json.JSONDecodeError, TypeError):
+            return False
+    return True
+
+
+def provider_emission_estimated_tokens(entry: dict[str, Any]) -> int:
+    return max(180, (provider_manifest_entry_expected_chars(entry) + 2) // 3 + 160)
+
+
+def plan_provider_job_emissions(
+    entries: list[dict[str, Any]],
+    *,
+    model: str,
+    phase_log_path: pathlib.Path | str | None = None,
+) -> dict[str, Any]:
+    """Pack transport emissions inside one stable ProviderJob ownership unit."""
+    normalized_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
+    requested_cap = provider_job_output_token_budget(normalized_entries)
+    model_cap = provider_model_reliable_output_cap(model)
+    observation = provider_observed_output_limit(phase_log_path, model)
+    observed_cap = int(observation.get("derived_reliable_cap", 0) or 0)
+    reliable_cap = min(
+        requested_cap,
+        model_cap,
+        observed_cap if observed_cap > 0 else model_cap,
+    )
+    packing_limit = max(700, int(reliable_cap * 0.82))
+    emissions: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    current_tokens = 0
+    for entry in normalized_entries:
+        estimate = provider_emission_estimated_tokens(entry)
+        suffix = pathlib.PurePosixPath(str(entry.get("path", ""))).suffix.lower()
+        isolate_large_script = suffix in {".js", ".mjs", ".jsx", ".ts", ".tsx"} and estimate > reliable_cap * 0.55
+        if current and (current_tokens + estimate > packing_limit or isolate_large_script):
+            emissions.append(current)
+            current = []
+            current_tokens = 0
+        current.append(entry)
+        current_tokens += estimate
+        if estimate >= packing_limit:
+            emissions.append(current)
+            current = []
+            current_tokens = 0
+    if current:
+        emissions.append(current)
+    return {
+        "kind": "CGKNProviderJobEmissionPlan",
+        "model": model,
+        "ownership_paths": [str(entry.get("path", "")) for entry in normalized_entries],
+        "requested_output_cap": requested_cap,
+        "model_reliable_output_cap": model_cap,
+        "effective_reliable_output_cap": reliable_cap,
+        "previous_observed_output": observation,
+        "emissions": [
+            {
+                "emission_index": index,
+                "paths": [str(entry.get("path", "")) for entry in chunk],
+                "estimated_output_tokens": sum(provider_emission_estimated_tokens(entry) for entry in chunk),
+                "requested_output_cap": reliable_cap,
+            }
+            for index, chunk in enumerate(emissions, start=1)
+        ],
+        "_entry_chunks": emissions,
+    }
+
+
 def _provider_entry_boundary(entry: dict[str, Any]) -> tuple[str, str]:
     path = pathlib.PurePosixPath(str(entry.get("path", "")))
     suffix = path.suffix.lower()
@@ -10796,6 +11791,14 @@ def _provider_entry_boundary(entry: dict[str, Any]) -> tuple[str, str]:
 
 
 def _provider_entry_can_share_job(entry: dict[str, Any]) -> bool:
+    if _provider_entry_boundary(entry)[1] == "web_interface":
+        return not any(
+            (
+                str(entry.get("generation_role", "")).strip(),
+                entry.get("feature_contracts"),
+                entry.get("submodules"),
+            )
+        )
     return not any(
         (
             str(entry.get("generation_role", "")).strip(),
@@ -10840,9 +11843,13 @@ def plan_provider_ownership_units(
                 if _provider_entry_boundary(entry)[1] == "web_interface"
                 else max_expected_chars
             )
+            web_ownership_unit = (
+                _provider_entry_boundary(entry)[1] == "web_interface"
+                and same_boundary
+            )
             if (
                 len(unit) < max_files
-                and expected_chars <= unit_output_limit
+                and (web_ownership_unit or expected_chars <= unit_output_limit)
                 and same_boundary
                 and (
                     len(dependency_sets) == 1
@@ -11145,6 +12152,39 @@ def component_leaf_downstream_closure(
     return [path for leaf in leaves for path in provider_leaf_owned_paths(leaf) if path in affected]
 
 
+def component_manifest_missing_path_dependents(
+    manifest: list[dict[str, Any]],
+    missing_paths: list[str] | set[str],
+) -> list[str]:
+    """Invalidate only explicit consumers of missing paths, not co-owned peers."""
+    ordered_paths = [
+        str(entry.get("path", "")).replace("\\", "/").strip()
+        for entry in manifest
+        if isinstance(entry, dict) and str(entry.get("path", "")).strip()
+    ]
+    affected = {
+        str(path).replace("\\", "/").strip()
+        for path in missing_paths
+        if str(path).strip()
+    }
+    changed = True
+    while changed:
+        changed = False
+        for entry in manifest:
+            if not isinstance(entry, dict):
+                continue
+            path = str(entry.get("path", "")).replace("\\", "/").strip()
+            dependencies = {
+                str(item).replace("\\", "/").strip()
+                for item in entry.get("dependencies", [])
+                if str(item).strip()
+            }
+            if path and path not in affected and dependencies.intersection(affected):
+                affected.add(path)
+                changed = True
+    return [path for path in ordered_paths if path in affected]
+
+
 def provider_auto_submodule_policy() -> dict[str, int | bool]:
     """Bound automatic file-leaf expansion without creating another generation route."""
     return {
@@ -11312,26 +12352,15 @@ def automatic_manifest_submodules(
         if str(item).strip()
     ] if isinstance(entry.get("expected_symbols", []), list) else []
     is_javascript_product_leaf = source_suffix in {".js", ".mjs"}
-    estimated_symbol_output_chars = len(expected_symbols) * 1800
-    explicit_fragmentation_reason = str(entry.get("fragmentation_reason", "")).strip()
-    if is_javascript_product_leaf and not (
-        explicit_fragmentation_reason
-        or estimated_symbol_output_chars > 16000
-        or int(entry.get("expected_output_chars", 0) or 0) > 16000
-    ):
+    # Keep the product-defined JavaScript path intact. Bounded Provider emissions
+    # are the transport boundary; app_part_NN files are not a transport mechanism.
+    if is_javascript_product_leaf:
         return []
-    minimum_symbols = (
-        min(3, int(policy["minimum_expected_symbols"]))
-        if is_javascript_product_leaf
-        else int(policy["minimum_expected_symbols"])
-    )
+    explicit_fragmentation_reason = str(entry.get("fragmentation_reason", "")).strip()
+    minimum_symbols = int(policy["minimum_expected_symbols"])
     if len(expected_symbols) < minimum_symbols:
         return []
-    symbols_per_leaf = (
-        1
-        if is_javascript_product_leaf and len(expected_symbols) <= 4
-        else int(policy["symbols_per_submodule"])
-    )
+    symbols_per_leaf = int(policy["symbols_per_submodule"])
     symbol_groups = [
         expected_symbols[index : index + symbols_per_leaf]
         for index in range(0, len(expected_symbols), symbols_per_leaf)
@@ -13473,6 +14502,18 @@ def write_split_file_checkpoint(
     )
 
 
+def remove_split_file_checkpoints(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    paths: list[str] | set[str],
+) -> None:
+    for path_value in paths:
+        path = split_file_checkpoint_path(checkpoint_dir, component_id, path_value)
+        if path is not None:
+            path.unlink(missing_ok=True)
+
+
 def load_split_file_checkpoint(
     checkpoint_dir: pathlib.Path | None,
     *,
@@ -13481,6 +14522,7 @@ def load_split_file_checkpoint(
     path_value: str,
     manifest_entry: dict[str, Any] | None = None,
     allow_spec_mismatch: bool = False,
+    allow_manifest_mismatch: bool = False,
 ) -> dict[str, str] | None:
     path = split_file_checkpoint_path(checkpoint_dir, component_id, path_value)
     if path is None or not path.exists():
@@ -13501,7 +14543,7 @@ def load_split_file_checkpoint(
             stored_manifest_hash = split_file_manifest_entry_hash(
                 doc.get("manifest_entry") if isinstance(doc.get("manifest_entry"), dict) else {}
             )
-        if stored_manifest_hash != expected_manifest_hash:
+        if stored_manifest_hash != expected_manifest_hash and not allow_manifest_mismatch:
             return None
     item = doc.get("file")
     if not isinstance(item, dict):
@@ -13987,10 +15029,10 @@ Provider output must be source code, scripts, tests, and docs only. Do not claim
         "Declare submodules only when expected output clearly exceeds the bounded output budget and record a concrete fragmentation_reason; stable public interfaces and real parallel value are required.",
         "Do not create app_part_01-style JavaScript fragments or a compatibility facade merely to satisfy file-level generation. Keep a cohesive logical JavaScript module intact unless its recorded size/interface reason requires a split.",
         "For Python files, expected_symbols must contain exact importable identifiers, never prose such as 'pytest fixtures' or 'public generator functions'.",
-        "Use expected_symbols only for Python module names, JavaScript exports, HTML ids, or CSS custom properties. For Markdown, text, JSON, TOML, or YAML, leave expected_symbols empty and use expected_anchors for required human-readable terms.",
+        "Use expected_symbols only for Python module names, JavaScript implementation bindings, HTML ids, or CSS custom properties. A JavaScript name is a hard ES export only when a real JavaScript consumer imports it or the ProjectSpec/acceptance contract independently declares it as public or test-required. For Markdown, text, JSON, TOML, or YAML, leave expected_symbols empty and use expected_anchors for required human-readable terms.",
         "Keep each Python test file bounded and cohesive: prefer parametrized cases and shared fixtures over duplicating product validation logic in tests.",
         "Every source or test file must declare concrete responsibilities and observable acceptance_checks. Medium/high files must own multiple non-trivial behaviors rather than acting as empty shells.",
-        "List expected_symbols when the file owns a public class, function, command, route, schema, or UI controller. Do not invent symbols owned by dependency files.",
+        "List expected_symbols when the file owns a class, function, command, route, schema, or UI controller. This describes implementation shape and cannot by itself create a hard public interface. Do not invent symbols owned by dependency files.",
         "Keep responsibilities, acceptance_checks, and expected_symbols concise: normally one item for low complexity and two or three for medium/high complexity.",
     ]
     if component_id == "backend" and browser_local_static:
@@ -15627,6 +16669,158 @@ def python_test_suite_anchor_violations(path: str, content: str) -> list[str]:
     return violations
 
 
+def generated_test_symbol_authority(
+    component_contract: dict[str, Any] | None,
+    manifest_entry: dict[str, Any] | None = None,
+) -> dict[str, list[str]]:
+    """Return only explicit authorities that may justify symbol-identity tests."""
+    component = component_contract if isinstance(component_contract, dict) else {}
+    entry = manifest_entry if isinstance(manifest_entry, dict) else {}
+    contract_slice = component.get("contract_slice", {}) if isinstance(component.get("contract_slice", {}), dict) else {}
+    goal_spec = component.get("canonical_goal_spec", {}) if isinstance(component.get("canonical_goal_spec", {}), dict) else {}
+    executable = component.get("executable_interface_graph", {}) if isinstance(component.get("executable_interface_graph", {}), dict) else {}
+    stage_callable = executable.get("stage_callable", {}) if isinstance(executable.get("stage_callable", {}), dict) else {}
+
+    def symbols(*values: Any) -> list[str]:
+        return list(
+            dict.fromkeys(
+                str(item).strip().rsplit(".", 1)[-1]
+                for value in values
+                for item in (value if isinstance(value, list) else [])
+                if str(item).strip()
+            )
+        )
+
+    def mapped_symbols(*values: Any) -> list[str]:
+        return symbols(
+            *[
+                item
+                for value in values
+                for item in (value.values() if isinstance(value, dict) else [])
+            ]
+        )
+
+    return {
+        "public_api_symbols": symbols(
+            component.get("public_api_symbols"),
+            contract_slice.get("public_api_symbols"),
+            goal_spec.get("public_api_symbols"),
+            entry.get("public_api_symbols"),
+            mapped_symbols(
+                component.get("public_api_symbols_by_path"),
+                contract_slice.get("public_api_symbols_by_path"),
+                entry.get("public_api_symbols_by_path"),
+            ),
+        ),
+        "cross_component_symbols": symbols(
+            stage_callable.get("symbols"),
+            component.get("cross_component_required_symbols"),
+            entry.get("cross_component_required_symbols"),
+        ),
+        "acceptance_required_symbols": symbols(
+            component.get("acceptance_required_symbols"),
+            contract_slice.get("acceptance_required_symbols"),
+            goal_spec.get("acceptance_required_symbols"),
+            entry.get("acceptance_required_symbols"),
+            mapped_symbols(
+                component.get("acceptance_required_symbols_by_path"),
+                contract_slice.get("acceptance_required_symbols_by_path"),
+                entry.get("acceptance_required_symbols_by_path"),
+            ),
+        ),
+    }
+
+
+def _asserted_source_symbol_identities(test_source: str) -> list[dict[str, Any]]:
+    """Find direct source/name assertions, not ordinary behavioral calls."""
+    try:
+        tree = ast.parse(test_source)
+    except (SyntaxError, ValueError):
+        return []
+    found: list[dict[str, Any]] = []
+
+    def record(raw: str, line: int) -> None:
+        text = str(raw).strip()
+        match = re.fullmatch(
+            r"(?:(?:async\s+)?function|class|def|const|let|var)\s+([A-Za-z_$][\w$]*)",
+            text,
+        )
+        symbol = match.group(1) if match else text
+        if re.fullmatch(r"[A-Za-z_$][\w$]*", symbol):
+            found.append({"symbol": symbol, "line": int(line)})
+
+    for assertion in (node for node in ast.walk(tree) if isinstance(node, ast.Assert)):
+        for node in ast.walk(assertion.test):
+            if (
+                isinstance(node, ast.Compare)
+                and len(node.ops) == 1
+                and isinstance(node.ops[0], (ast.In, ast.NotIn))
+                and isinstance(node.left, ast.Constant)
+                and isinstance(node.left.value, str)
+            ):
+                right = ast.unparse(node.comparators[0]).lower()
+                if any(marker in right for marker in ("source", "content", "text", "code", "body", "module")):
+                    record(node.left.value, assertion.lineno)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in {"getattr", "hasattr"}
+                and len(node.args) >= 2
+                and isinstance(node.args[1], ast.Constant)
+                and isinstance(node.args[1].value, str)
+            ):
+                record(node.args[1].value, assertion.lineno)
+    unique: dict[tuple[str, int], dict[str, Any]] = {}
+    for item in found:
+        unique[(item["symbol"], item["line"])] = item
+    return list(unique.values())
+
+
+def assess_generated_test_symbol_contract(
+    test_source: str,
+    *,
+    implementation_sources: dict[str, str] | None = None,
+    public_api_symbols: list[str] | None = None,
+    cross_component_symbols: list[str] | None = None,
+    acceptance_required_symbols: list[str] | None = None,
+) -> dict[str, Any]:
+    """Reject invented identity assertions and retain explicit interface failures."""
+    authority = {
+        str(symbol).strip().rsplit(".", 1)[-1]
+        for group in (
+            public_api_symbols or [],
+            cross_component_symbols or [],
+            acceptance_required_symbols or [],
+        )
+        for symbol in group
+        if str(symbol).strip()
+    }
+    direct = _asserted_source_symbol_identities(test_source)
+    over_coupled = [item for item in direct if str(item.get("symbol", "")) not in authority]
+    missing: list[str] = []
+    if implementation_sources is not None:
+        implementation = "\n".join(str(value) for value in implementation_sources.values())
+        missing = sorted(
+            symbol
+            for symbol in authority
+            if re.search(rf"(?<![\w$]){re.escape(symbol)}(?![\w$])", implementation) is None
+        )
+    blockers = [
+        "OVER_COUPLED_GENERATED_TEST: direct identity assertion for non-authoritative "
+        f"symbol {item['symbol']} at line {item['line']}"
+        for item in over_coupled
+    ]
+    blockers.extend(f"AUTHORITATIVE_TEST_SYMBOL_MISSING: {symbol}" for symbol in missing)
+    return {
+        "status": "PASS" if not blockers else "FAIL",
+        "authority_symbols": sorted(authority),
+        "direct_identity_assertions": direct,
+        "over_coupled_assertions": over_coupled,
+        "missing_authoritative_symbols": missing,
+        "blockers": blockers,
+    }
+
+
 def validate_generated_component_quality(
     *,
     component_id: str,
@@ -15754,6 +16948,34 @@ def validate_generated_component_quality(
     if test_type_blockers:
         checks.append("pytest_published_type_contracts")
         blockers.extend(test_type_blockers)
+    if component_id == "tests":
+        checks.append("generated_test_symbol_authority")
+        for path in sorted(
+            item
+            for item in python_paths
+            if item.startswith("tests/") and not item.endswith("conftest.py")
+        ):
+            entry = next(
+                (
+                    item
+                    for item in (manifest_entries or [])
+                    if isinstance(item, dict)
+                    and str(item.get("path", "")).replace("\\", "/").strip() == path
+                ),
+                {},
+            )
+            authority = generated_test_symbol_authority(component_contract, entry)
+            symbol_result = assess_generated_test_symbol_contract(
+                combined_by_path[path]["content"],
+                public_api_symbols=authority["public_api_symbols"],
+                cross_component_symbols=authority["cross_component_symbols"],
+                acceptance_required_symbols=authority["acceptance_required_symbols"],
+            )
+            if symbol_result["blockers"]:
+                affected_files.add(path)
+                blockers.extend(
+                    f"{path}: {blocker}" for blocker in symbol_result["blockers"]
+                )
     manifests_by_path = {
         str(item.get("path", "")).replace("\\", "/").strip(): item
         for item in (manifest_entries or [])
@@ -15829,7 +17051,9 @@ def validate_generated_component_quality(
             suffix = pathlib.PurePosixPath(path).suffix.lower()
             published: set[str] = set()
             if suffix in JAVASCRIPT_MODULE_SUFFIXES:
-                published.update(javascript_module_contract(content)["exports"])
+                javascript_contract = javascript_module_contract(content)
+                published.update(javascript_contract["declared_bindings"])
+                published.update(javascript_contract["exports"])
             elif suffix == ".py":
                 try:
                     tree = ast.parse(content)
@@ -15874,8 +17098,28 @@ def validate_generated_component_quality(
             if missing_expected:
                 affected_files.add(path)
                 blockers.append(
-                    f"{path} does not publish expected symbols: "
+                    f"{path} does not implement expected symbols: "
                     + ", ".join(missing_expected[:12])
+                )
+        if pathlib.PurePosixPath(path).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES:
+            authority = component_javascript_interface_authority(component_contract, path)
+            hard_contract = javascript_hard_export_contract(
+                provider_path=path,
+                project_files=combined_files,
+                public_api_symbols=authority["public_api_symbols"],
+                acceptance_required_symbols=authority[
+                    "acceptance_required_symbols"
+                ],
+            )
+            missing_exports = sorted(
+                set(hard_contract["hard_required_symbols"])
+                - set(javascript_module_contract(content)["exports"])
+            )
+            if missing_exports:
+                affected_files.add(path)
+                blockers.append(
+                    f"{path} does not publish hard-required exports: "
+                    + ", ".join(missing_exports[:12])
                 )
         expected_anchors = [
             str(item).strip()
@@ -15895,6 +17139,29 @@ def validate_generated_component_quality(
                     f"{path} omits expected documentation/config anchors: "
                     + ", ".join(missing_anchors[:12])
                 )
+    hard_javascript_contracts: dict[str, dict[str, Any]] = {}
+    for path in sorted(combined_by_path):
+        if pathlib.PurePosixPath(path).suffix.lower() not in JAVASCRIPT_MODULE_SUFFIXES:
+            continue
+        authority = component_javascript_interface_authority(component_contract, path)
+        hard_javascript_contracts[path] = javascript_hard_export_contract(
+            provider_path=path,
+            project_files=combined_files,
+            public_api_symbols=authority["public_api_symbols"],
+            acceptance_required_symbols=authority["acceptance_required_symbols"],
+        )
+    runtime_coherence_blockers = javascript_runtime_coherence_violations(
+        combined_files,
+        hard_contracts=hard_javascript_contracts,
+    )
+    if runtime_coherence_blockers:
+        checks.append("javascript_runtime_coherence")
+        blockers.extend(runtime_coherence_blockers)
+        for blocker in runtime_coherence_blockers:
+            match = re.search(r"loads ([^ ]+) as a classic script", blocker)
+            if match:
+                affected_files.add(match.group(1))
+
     for path in sorted(current_paths):
         if pathlib.PurePosixPath(path).suffix.lower() != ".json":
             continue
@@ -15935,6 +17202,23 @@ def validate_generated_component_quality(
             if str(blocker).startswith(path) or f" {path} " in f" {blocker} "
         )
 
+    build_hard_markers = (
+        "component has no files",
+        "duplicate component paths",
+        "invalid python syntax",
+        "invalid json syntax",
+        "invalid toml syntax",
+        "unsafe dynamic execution",
+        "conflicting component ownership",
+    )
+    build_hard_blockers = [
+        str(item)
+        for item in blockers
+        if any(marker in str(item).lower() for marker in build_hard_markers)
+    ]
+    release_hard_blockers = [
+        str(item) for item in blockers if str(item) not in build_hard_blockers
+    ]
     receipt: dict[str, Any] = {
         "kind": "CGKNGeneratedComponentQualityValidation",
         "schema_version": 1,
@@ -15943,6 +17227,8 @@ def validate_generated_component_quality(
         "checks": checks,
         "validated_paths": sorted(current_paths),
         "blockers": list(dict.fromkeys(blockers)),
+        "build_hard_blockers": list(dict.fromkeys(build_hard_blockers)),
+        "release_hard_blockers": list(dict.fromkeys(release_hard_blockers)),
         "affected_files": sorted(affected_files),
         "design_quality_validation": design_quality_validation,
     }
@@ -15994,21 +17280,32 @@ def validate_assembled_project_quality(
                 f"conflicting component ownership for {path}: "
                 + ", ".join(component for component, _ in owners)
             )
+    release_hard_blockers: list[str] = []
     for receipt in component_receipts:
         if str(receipt.get("status", "")).lower() != "pass":
-            blockers.append(
-                f"component quality validation failed: {receipt.get('component_id', '')}"
-            )
+            summary = f"component quality validation failed: {receipt.get('component_id', '')}"
+            if receipt.get("build_hard_blockers"):
+                blockers.append(summary)
+            else:
+                release_hard_blockers.append(summary)
     merged_validation = validate_generated_component_quality(
         component_id="assembled_project",
         files=files,
         design_context=design_context or {},
     )
-    blockers.extend(str(item) for item in merged_validation.get("blockers", []))
+    blockers.extend(str(item) for item in merged_validation.get("build_hard_blockers", []))
+    release_hard_blockers.extend(
+        str(item)
+        for receipt in component_receipts
+        for item in receipt.get("release_hard_blockers", [])
+    )
+    release_hard_blockers.extend(
+        str(item) for item in merged_validation.get("release_hard_blockers", [])
+    )
     receipt: dict[str, Any] = {
         "kind": "CGKNAssembledProjectQualityValidation",
         "schema_version": 1,
-        "status": "pass" if not blockers else "fail",
+        "status": "pass" if not blockers and not release_hard_blockers else "fail",
         "checks": [
             "component_quality_receipts",
             "cross_component_path_ownership",
@@ -16024,7 +17321,9 @@ def validate_assembled_project_quality(
         ],
         "merged_validation": merged_validation,
         "design_quality_validation": merged_validation.get("design_quality_validation", {}),
-        "blockers": list(dict.fromkeys(blockers)),
+        "blockers": list(dict.fromkeys([*blockers, *release_hard_blockers])),
+        "build_hard_blockers": list(dict.fromkeys(blockers)),
+        "release_hard_blockers": list(dict.fromkeys(release_hard_blockers)),
     }
     canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -16231,30 +17530,71 @@ def validate_task_board_interaction_contract(files: list[dict[str, str]]) -> str
     return ""
 
 
-def validate_javascript_const_reassignment(files: list[dict[str, str]]) -> str:
-    javascript = "\n".join(
-        str(item.get("content", ""))
-        for item in files
-        if isinstance(item, dict)
-        and pathlib.PurePosixPath(str(item.get("path", "")).replace("\\", "/")).suffix.lower() in {".js", ".mjs"}
-    )
-    if not javascript:
-        return ""
-    stripped = re.sub(r"/\*.*?\*/|//[^\n]*", " ", javascript, flags=re.S)
-    const_names = set(re.findall(r"\bconst\s+([A-Za-z_$][\w$]*)\s*=", stripped))
-    reassigned: list[str] = []
-    for name in sorted(const_names):
-        without_declarations = re.sub(
-            rf"\b(?:const|let|var)\s+{re.escape(name)}\s*=",
-            "",
-            stripped,
+def javascript_const_reassignment_violations(
+    files: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    violations: list[dict[str, Any]] = []
+    for item in files:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path", "")).replace("\\", "/").strip()
+        if pathlib.PurePosixPath(path).suffix.lower() not in {".js", ".mjs"}:
+            continue
+        source = str(item.get("content", ""))
+        stripped = re.sub(
+            r"/\*.*?\*/|//[^\n]*",
+            lambda match: "\n" * match.group(0).count("\n") or " ",
+            source,
+            flags=re.S,
         )
-        if re.search(rf"(?<![.\w$]){re.escape(name)}\s*=(?!=)", without_declarations):
-            reassigned.append(name)
-    if reassigned:
+        stripped = re.sub(
+            r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|`(?:\\.|[^`\\])*`",
+            lambda match: "\n" * match.group(0).count("\n") or "''",
+            stripped,
+            flags=re.S,
+        )
+        const_names = set(
+            re.findall(r"\bconst\s+([A-Za-z_$][\w$]*)\s*=", stripped)
+        )
+        for name in sorted(const_names):
+            assignment = re.compile(
+                rf"(?<![.\w$]){re.escape(name)}\s*=(?![=>])"
+            )
+            for line_number, line in enumerate(stripped.splitlines(), start=1):
+                without_declaration = re.sub(
+                    rf"\b(?:const|let|var)\s+{re.escape(name)}\s*=",
+                    "",
+                    line,
+                )
+                if assignment.search(without_declaration):
+                    violations.append(
+                        {
+                            "rule_id": "CONST_REASSIGNMENT",
+                            "path": path,
+                            "symbol": name,
+                            "line": line_number,
+                            "expected": (
+                                f"{name} remains immutable after its const declaration"
+                            ),
+                            "observed": f"{name} is assigned again",
+                            "repair_hint": (
+                                "Declare the binding with let only when replacement is required, "
+                                "or mutate the existing value without reassigning the const binding."
+                            ),
+                        }
+                    )
+                    break
+    return violations
+
+
+def validate_javascript_const_reassignment(files: list[dict[str, str]]) -> str:
+    violations = javascript_const_reassignment_violations(files)
+    if violations:
         return (
             "javascript const reassignment: "
-            + ", ".join(reassigned)
+            + ", ".join(
+                str(item.get("symbol", "")) for item in violations
+            )
             + ". Declare the variable with let when replacing the collection, or mutate the existing value without reassignment."
         )
     return ""
@@ -16315,6 +17655,59 @@ def validate_frontend_module_self_import(files: list[dict[str, str]]) -> str:
     return ""
 
 
+def frontend_symbol_publication_violations(
+    *,
+    path: str,
+    content: str,
+    expected_symbols: set[str],
+    published_symbols: set[str],
+) -> list[dict[str, Any]]:
+    violations: list[dict[str, Any]] = []
+    for symbol in sorted(expected_symbols - published_symbols):
+        declaration = re.search(
+            rf"(?m)^\s*(?:async\s+)?(?:function|const|let|var|class)\s+{re.escape(symbol)}\b",
+            content,
+        )
+        violations.append(
+            {
+                "rule_id": "REQUIRED_EXPORT_MISSING",
+                "path": path,
+                "symbol": symbol,
+                "line": (
+                    content.count("\n", 0, declaration.start()) + 1
+                    if declaration is not None
+                    else None
+                ),
+                "expected": f"the frozen symbol {symbol} is exported by {path}",
+                "observed": (
+                    f"{symbol} is declared but not exported"
+                    if declaration is not None
+                    else f"{symbol} is not published"
+                ),
+                "repair_hint": (
+                    f"Export the existing {symbol} declaration using the frozen symbol name."
+                    if declaration is not None
+                    else f"Publish {symbol} using the frozen symbol name without renaming it."
+                ),
+            }
+        )
+    return violations
+
+
+def generic_frontend_contract_violation(
+    *, rule_id: str, path: str, observed: str
+) -> dict[str, Any]:
+    return {
+        "rule_id": rule_id,
+        "path": path,
+        "symbol": "",
+        "line": None,
+        "expected": "the existing frozen frontend boundary contract passes",
+        "observed": observed,
+        "repair_hint": "Satisfy only the reported frozen frontend constraint without changing unrelated behavior or symbols.",
+    }
+
+
 def build_leaf_boundary_check_receipt(
     *,
     component_id: str,
@@ -16323,10 +17716,13 @@ def build_leaf_boundary_check_receipt(
     prior_files: list[dict[str, str]] | None = None,
     manifest_paths: list[str] | None = None,
     manifest_entry: dict[str, Any] | None = None,
+    public_api_symbols: Any = None,
+    acceptance_required_symbols: Any = None,
 ) -> dict[str, Any]:
     """Run deterministic provider/consumer checks for one completed leaf."""
     checks = ["provider_output_shape", "component_path_ownership"]
     blockers: list[str] = []
+    structured_violations: list[dict[str, Any]] = []
     target_content = next(
         (
             str(item.get("content", ""))
@@ -16336,6 +17732,7 @@ def build_leaf_boundary_check_receipt(
         "",
     )
     implementation_depth_receipt: dict[str, Any] = {}
+    hard_export_contract: dict[str, Any] = {}
     if manifest_entry is not None:
         checks.append("implementation_depth")
         implementation_contract = leaf_implementation_depth_contract(manifest_entry)
@@ -16356,6 +17753,13 @@ def build_leaf_boundary_check_receipt(
         suffix = pathlib.PurePosixPath(target_file).suffix.lower()
         published_symbols: set[str] = set()
         if suffix in JAVASCRIPT_MODULE_SUFFIXES:
+            hard_export_contract = javascript_hard_export_contract(
+                provider_path=target_file,
+                project_files=[*(prior_files or []), *component_files],
+                public_api_symbols=public_api_symbols,
+                acceptance_required_symbols=acceptance_required_symbols,
+            )
+            expected_symbols = set(hard_export_contract["hard_required_symbols"])
             published_symbols.update(javascript_module_contract(target_content)["exports"])
         elif suffix in {".html", ".htm"}:
             published_symbols.update(
@@ -16376,6 +17780,31 @@ def build_leaf_boundary_check_receipt(
                 f"{target_file} does not publish expected symbols: "
                 + ", ".join(missing_published[:12])
             )
+            if suffix in JAVASCRIPT_MODULE_SUFFIXES:
+                structured_violations.extend(
+                    frontend_symbol_publication_violations(
+                        path=target_file,
+                        content=target_content,
+                        expected_symbols=expected_symbols,
+                        published_symbols=published_symbols,
+                    )
+                )
+        if suffix in JAVASCRIPT_MODULE_SUFFIXES:
+            runtime_blockers = javascript_runtime_coherence_violations(
+                [*(prior_files or []), *component_files],
+                hard_contracts={target_file: hard_export_contract},
+            )
+            if runtime_blockers:
+                checks.append("javascript_runtime_coherence")
+                blockers.extend(runtime_blockers)
+                structured_violations.extend(
+                    generic_frontend_contract_violation(
+                        rule_id="CONTRACT_RUNTIME_CONTRADICTION",
+                        path=target_file,
+                        observed=blocker,
+                    )
+                    for blocker in runtime_blockers
+                )
     if pathlib.PurePosixPath(target_file).suffix.lower() == ".py":
         checks.extend(["python_syntax", "python_local_imports", "python_class_methods"])
         blockers.extend(
@@ -16400,10 +17829,6 @@ def build_leaf_boundary_check_receipt(
                 lambda: validate_frontend_asset_contract(component_files, manifest_paths),
             ),
             (
-                "javascript_const_reassignment",
-                lambda: validate_javascript_const_reassignment(component_files),
-            ),
-            (
                 "frontend_module_self_import",
                 lambda: validate_frontend_module_self_import(component_files),
             ),
@@ -16417,6 +17842,18 @@ def build_leaf_boundary_check_receipt(
             error = validator()
             if error:
                 blockers.append(error)
+                structured_violations.append(
+                    generic_frontend_contract_violation(
+                        rule_id=label.upper(),
+                        path=target_file,
+                        observed=error,
+                    )
+                )
+        checks.append("javascript_const_reassignment")
+        const_violations = javascript_const_reassignment_violations(component_files)
+        if const_violations:
+            blockers.append(validate_javascript_const_reassignment(component_files))
+            structured_violations.extend(const_violations)
     receipt: dict[str, Any] = {
         "kind": "CGKNLeafBoundaryCheckReceipt",
         "schema_version": 1,
@@ -16425,7 +17862,9 @@ def build_leaf_boundary_check_receipt(
         "status": "PASS" if not blockers else "FAIL",
         "checks": checks,
         "blockers": blockers[:16],
+        "structured_violations": structured_violations[:32],
         "implementation_depth": implementation_depth_receipt,
+        "javascript_hard_export_contract": hard_export_contract,
     }
     canonical = json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     receipt["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -16452,6 +17891,7 @@ def provider_generate_component_file(
     routing_policy: ProviderModelRoutingPolicy | None,
     last_transport_error: Any = None,
     retry_attempt: int = 1,
+    current_target_source: str = "",
 ) -> tuple[dict[str, str], str]:
     component_id = str(component.get("id", "")).strip()
     target_file = str(manifest_entry.get("path", "")).replace("\\", "/").strip()
@@ -16708,6 +18148,19 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             ],
         }
     )
+    if current_target_source:
+        payload["current_target_source"] = {
+            "path": target_file,
+            "content": current_target_source,
+            "authority": "current_saved_candidate",
+        }
+        payload["strict_rules"].extend(
+            [
+                "This is a repair of current_target_source, not a greenfield rewrite.",
+                "Return the complete corrected target file while preserving unrelated working behavior.",
+                "Fix every evidenced repair error assigned to this exact target and do not invent a different endpoint, DOM id, codec, or startup contract.",
+            ]
+        )
     depth_minimum_lines = int(
         implementation_depth_contract.get("minimum_nonblank_lines", 0) or 0
     )
@@ -16772,24 +18225,16 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         if str(item).strip()
     ]
     target_suffix = pathlib.PurePosixPath(target_file).suffix.lower()
-    if expected_symbols and target_suffix in ({".py"} | JAVASCRIPT_MODULE_SUFFIXES):
+    if expected_symbols and target_suffix == ".py":
         declaration_forms: list[str] = []
         for symbol in expected_symbols:
             if re.fullmatch(r"[A-Z][A-Za-z0-9_]*", symbol):
-                declaration_forms.append(
-                    ("class " if target_suffix == ".py" else "export class ") + symbol
-                )
-            elif target_suffix == ".py":
-                declaration_forms.append(f"def {symbol}(...)")
+                declaration_forms.append("class " + symbol)
             else:
-                declaration_forms.append(f"export function {symbol}(...)")
+                declaration_forms.append(f"def {symbol}(...)")
         payload["required_symbol_contract"] = {
             "exact_names": expected_symbols,
-            "publication_rule": (
-                "Define each exact name at Python module top level."
-                if target_suffix == ".py"
-                else "Export each exact name from this JavaScript module; a private declaration is not published."
-            ),
+            "publication_rule": "Define each exact name at Python module top level.",
             "declaration_forms": declaration_forms,
             "precedence_rule": (
                 "This current target manifest overrides historical names found in librarian "
@@ -16805,6 +18250,51 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             + ". Define every exact name in the returned file. The current target manifest "
             "overrides any different historical name in librarian context, cached files, "
             "prior receipts, or examples. A synonym is a validation failure.\n"
+        )
+    elif expected_symbols and target_suffix in JAVASCRIPT_MODULE_SUFFIXES:
+        authority = component_javascript_interface_authority(component, target_file)
+        hard_export_contract = javascript_hard_export_contract(
+            provider_path=target_file,
+            project_files=[
+                *(prior_files or []),
+                *completed_files,
+                {"path": target_file, "content": ""},
+            ],
+            public_api_symbols=authority["public_api_symbols"],
+            acceptance_required_symbols=authority[
+                "acceptance_required_symbols"
+            ],
+        )
+        hard_exports = set(hard_export_contract["hard_required_symbols"])
+        javascript_symbols = list(dict.fromkeys([*expected_symbols, *sorted(hard_exports)]))
+        declaration_forms = [
+            (
+                ("export class " if symbol in hard_exports else "class ")
+                if re.fullmatch(r"[A-Z][A-Za-z0-9_]*", symbol)
+                else (
+                    f"export function {symbol}(...)"
+                    if symbol in hard_exports
+                    else f"function {symbol}(...)"
+                )
+            )
+            for symbol in javascript_symbols
+        ]
+        payload["implementation_symbol_contract"] = {
+            "exact_names": javascript_symbols,
+            "declaration_forms": declaration_forms,
+            "rule": "Implement every exact binding; Provider manifest names are not hard ES exports by themselves.",
+        }
+        payload["hard_export_contract"] = hard_export_contract
+        payload["strict_rules"].append(
+            "Implement every implementation_symbol_contract name, but add ES export syntax only for hard_export_contract.hard_required_symbols."
+        )
+        system += (
+            "\nCURRENT JAVASCRIPT IMPLEMENTATION CONTRACT (highest precedence): "
+            + "; ".join(declaration_forms)
+            + ". Implement every exact name. Only names explicitly shown with export are hard "
+            "interfaces backed by an actual import consumer, ProjectSpec public API, or acceptance "
+            "contract; do not convert internal names into ES exports merely because the Provider "
+            "manifest listed them.\n"
         )
     elif expected_symbols and target_suffix in {".html", ".htm"}:
         payload["required_html_id_contract"] = {
@@ -17030,6 +18520,15 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         ]
         system += "\nFor this Python file, localStorage is browser-only. Generate a minimal static-file server of at most 60 nonblank lines using SimpleHTTPRequestHandler. Never reference localStorage, define task models, or implement task CRUD endpoints/do_POST/do_PUT/do_DELETE in Python.\n"
     if component_id == "tests" and target_file.lower().endswith(".py"):
+        test_symbol_authority = generated_test_symbol_authority(component, manifest_entry)
+        payload["generated_test_symbol_authority"] = {
+            **test_symbol_authority,
+            "rule": (
+                "A generated test may assert an exact project symbol name only when that name "
+                "comes from a public API, a cross-component frozen interface, or explicit acceptance. "
+                "All other implementation helpers must be tested indirectly through observable behavior."
+            ),
+        }
         payload["target_specific_rules"] = list(payload.get("target_specific_rules", [])) + [
             "Tests must be deterministic and match the source and interface entries selected by librarian_context.",
             "Keep the complete test module at or below implementation_depth_contract.maximum_nonblank_lines; use parametrization and shared local helpers instead of repeating cases.",
@@ -17040,8 +18539,9 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             "Do not call serve_forever synchronously inside a test or fixture; use static assertions or a background process/thread with cleanup and timeout.",
             "Import every referenced name and keep the file free of undefined Python names.",
             "Never expect a Python function named __main__; __name__ == '__main__' is a module guard, not a function contract.",
+            "Do not assert exact private helper names or source declaration text. Direct symbol-identity assertions are allowed only for generated_test_symbol_authority names; verify all other behavior by executing public interfaces, integration flows, or observable outputs.",
         ]
-        system += "\nFor test files, use only defined or built-in fixtures and match the supplied real code excerpts. Never invent an httpd/client/app fixture or framework API.\n"
+        system += "\nFor test files, use only defined or built-in fixtures and match the supplied real code excerpts. Never invent an httpd/client/app fixture or framework API. Never turn a Provider-selected private helper name into a hard assertion; exact-name assertions require the supplied public, cross-component, or acceptance authority.\n"
         if "localStorage as the sole task persistence layer" in constraints_text:
             payload["target_specific_rules"] += [
                 "This is a static localStorage web app: do not start an HTTP server and do not make network requests in pytest.",
@@ -17733,8 +19233,20 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
         last_error=last_transport_error,
     )
     try:
-        doc = parse_json_object(raw)
+        doc, raw = parse_provider_json_object_with_one_repair(
+            raw,
+            model=model,
+            timeout=timeout,
+            stage="component_file_generation",
+            component=component_id,
+            target_file=target_file,
+            max_tokens=provider_job_output_token_budget([manifest_entry]),
+            phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
+        )
     except RuntimeError as exc:
+        if isinstance(exc, ProviderOutputContractError):
+            raise
         raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
     if "files" in doc:
         files = doc.get("files", [])
@@ -18037,17 +19549,34 @@ def provider_generate_component_job(
     phase_log_path: pathlib.Path | str | None,
     routing_policy: ProviderModelRoutingPolicy | None,
     last_transport_error: Any = None,
-) -> tuple[list[dict[str, str]], str]:
-    """Generate one natural multi-file ownership unit in one Provider call."""
+    provider_job_id: str = "",
+    ownership_unit_paths: list[str] | None = None,
+    completed_owned_paths: list[str] | None = None,
+    completion_only: bool = False,
+    output_token_cap: int | None = None,
+    budget_deadline: float | None = None,
+    current_target_sources: dict[str, dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Generate one bounded emission inside a natural multi-file ownership unit."""
     component_id = str(component.get("id", "")).strip()
     entries = [dict(entry) for entry in manifest_entries if isinstance(entry, dict)]
-    owned_paths = [
+    emission_paths = [
         str(entry.get("path", "")).replace("\\", "/").strip()
         for entry in entries
         if str(entry.get("path", "")).strip()
     ]
-    if len(owned_paths) < 2 or len(set(owned_paths)) != len(owned_paths):
-        raise ValueError("multi-file Provider job requires at least two unique owned paths")
+    all_owned_paths = list(
+        dict.fromkeys(
+            str(path).replace("\\", "/").strip()
+            for path in (ownership_unit_paths or emission_paths)
+            if str(path).strip()
+        )
+    )
+    if not emission_paths or len(set(emission_paths)) != len(emission_paths):
+        raise ValueError("Provider emission requires unique owned paths")
+    if not set(emission_paths).issubset(set(all_owned_paths)):
+        raise ValueError("Provider emission escaped its ownership unit")
+    requested_cap = int(output_token_cap or provider_job_output_token_budget(entries))
     payload = summarize_component_context_for_split(
         goal=goal,
         component=component,
@@ -18057,32 +19586,91 @@ def provider_generate_component_job(
         integration_feedforward=integration_feedforward,
         librarian_context_pack=librarian_context_pack,
     )
-    payload["provider_job"] = {
-        "owns": owned_paths,
-        "files": [
-            {
-                "path": str(entry.get("path", "")),
-                "purpose": str(entry.get("purpose", "")),
-                "dependencies": entry.get("dependencies", []),
-                "responsibilities": entry.get("responsibilities", []),
-                "acceptance_checks": entry.get("acceptance_checks", []),
-                "expected_symbols": entry.get("expected_symbols", []),
-                "implementation_depth_contract": leaf_implementation_depth_contract(entry),
+
+    def provider_job_file_contract(entry: dict[str, Any]) -> dict[str, Any]:
+        entry_path = str(entry.get("path", "")).replace("\\", "/").strip()
+        projected = {
+            "path": entry_path,
+            "purpose": str(entry.get("purpose", "")),
+            "dependencies": entry.get("dependencies", []),
+            "responsibilities": entry.get("responsibilities", []),
+            "acceptance_checks": entry.get("acceptance_checks", []),
+            "expected_symbols": entry.get("expected_symbols", []),
+            "implementation_depth_contract": leaf_implementation_depth_contract(entry),
+        }
+        if pathlib.PurePosixPath(entry_path).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES:
+            authority = component_javascript_interface_authority(component, entry_path)
+            projected["javascript_symbol_authority"] = javascript_hard_export_contract(
+                provider_path=entry_path,
+                project_files=[
+                    *(prior_files or []),
+                    *completed_files,
+                    *(
+                        {"path": path, "content": ""}
+                        for path in all_owned_paths
+                    ),
+                ],
+                public_api_symbols=authority["public_api_symbols"],
+                acceptance_required_symbols=authority[
+                    "acceptance_required_symbols"
+                ],
+            )
+        if component_id == "tests" and entry_path.lower().endswith(".py"):
+            projected["generated_test_symbol_authority"] = {
+                **generated_test_symbol_authority(component, entry),
+                "rule": "Only explicit public, cross-component, or acceptance authority permits an exact project-symbol assertion; otherwise execute observable behavior.",
             }
-            for entry in entries
-        ],
+        return projected
+
+    payload["provider_job"] = {
+        "id": provider_job_id,
+        "owns": all_owned_paths,
+        "emission_paths": emission_paths,
+        "completed_owned_paths": list(completed_owned_paths or []),
+        "completion_only": bool(completion_only),
+        "files": [provider_job_file_contract(entry) for entry in entries],
         "leaf_interface_contract": leaf_interface_contract or {},
-        "output_token_cap": provider_job_output_token_budget(entries),
+        "output_token_cap": requested_cap,
     }
+    repair_sources = [
+        {
+            "path": path,
+            "content": str(
+                (current_target_sources or {}).get(path, {}).get("content", "")
+            ),
+            "authority": "current_saved_candidate",
+        }
+        for path in emission_paths
+        if str((current_target_sources or {}).get(path, {}).get("content", ""))
+    ]
+    if repair_sources:
+        payload["current_target_sources"] = repair_sources
     payload["strict_rules"] = [
         "Return strict JSON with one files array and no commentary.",
-        "Return every owned path exactly once and no path outside provider_job.owns.",
+        "Return only provider_job.emission_paths and no path outside provider_job.owns.",
         "Produce only the required files with concise cohesive implementations.",
         "Keep cross-file names and interfaces internally consistent.",
         "Do not include TODO, placeholder, future-work, binary data, screenshots, or delivery claims.",
         "Use only supplied dependency interfaces and standard/runtime packages allowed by the project.",
+        "For JavaScript, expected_symbols describe implementation bindings; export only javascript_symbol_authority.hard_required_symbols.",
     ]
-    suffixes = {pathlib.PurePosixPath(path).suffix.lower() for path in owned_paths}
+    if repair_sources:
+        payload["strict_rules"].extend(
+            [
+                "This is an affected-only repair: edit each current_target_sources file instead of regenerating it from scratch.",
+                "Return complete corrected replacements, preserve unrelated behavior, and fix every evidence-bound repair error for the emitted path.",
+            ]
+        )
+    if component_id == "tests":
+        payload["strict_rules"].append(
+            "Test observable behavior and public integration contracts. Never assert a Provider-selected private helper name or declaration text unless provider_job.files.generated_test_symbol_authority explicitly lists that name."
+        )
+    if completion_only:
+        payload["strict_rules"].insert(
+            1,
+            "This is the only missing-path completion. Do not rewrite completed_owned_paths; return only emission_paths.",
+        )
+    suffixes = {pathlib.PurePosixPath(path).suffix.lower() for path in emission_paths}
     if suffixes.intersection({".html", ".htm", ".css", ".scss", ".js", ".mjs"}):
         payload["strict_rules"].extend(
             [
@@ -18095,7 +19683,7 @@ def provider_generate_component_job(
     system = (
         "You generate one component-owned multi-file change unit for CGKN.\n"
         "Return strict JSON only as {\"files\":[{\"path\":\"...\",\"content\":\"...\"}]}.\n"
-        "Return exactly the owned files, no commentary and no additional paths. Keep the implementation concise.\n"
+        "Return only the requested emission paths, no commentary and no additional paths. Keep the implementation concise.\n"
     )
     messages = [
         {"role": "system", "content": system},
@@ -18108,16 +19696,31 @@ def provider_generate_component_job(
         max_attempts=1,
         stage="component_file_generation",
         component=component_id,
-        target_file=owned_paths[0],
-        max_tokens=provider_job_output_token_budget(entries),
+        target_file=emission_paths[0],
+        max_tokens=requested_cap,
         payload_mode="multi_file",
+        metric_call_kind="completion" if completion_only else "generation",
         phase_log_path=phase_log_path,
         routing_policy=routing_policy,
         last_error=last_transport_error,
+        budget_deadline=budget_deadline,
     )
     try:
-        doc = parse_json_object(raw)
+        doc, parsed_raw = parse_provider_json_object_with_one_repair(
+            raw,
+            model=model,
+            timeout=timeout,
+            stage="component_file_generation",
+            component=component_id,
+            target_file=emission_paths[0],
+            max_tokens=requested_cap,
+            phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
+            budget_deadline=budget_deadline,
+        )
     except RuntimeError as exc:
+        if isinstance(exc, ProviderOutputContractError):
+            raise
         raise ProviderOutputContractError(str(exc), raw_output=raw) from exc
     files = doc.get("files", [])
     if not isinstance(files, list):
@@ -18131,10 +19734,14 @@ def provider_generate_component_job(
         for item in files
         if isinstance(item, dict)
     ]
-    if len(response_paths) != len(files) or set(response_paths) != set(owned_paths) or len(set(response_paths)) != len(response_paths):
+    if (
+        len(response_paths) != len(files)
+        or not set(response_paths).issubset(set(emission_paths))
+        or len(set(response_paths)) != len(response_paths)
+    ):
         raise ProviderOutputContractError(
-            "multi-file Provider job must return every owned path exactly once and no other path",
-            raw_output=raw,
+            "Provider emission may return only requested owned paths and no duplicates",
+            raw_output=parsed_raw,
             parsed_result=doc,
         )
     by_path = {
@@ -18153,10 +19760,12 @@ def provider_generate_component_job(
             if isinstance(component.get("required_paths", []), list)
             else []
         ),
-        *owned_paths,
+        *all_owned_paths,
     ]
     validated_files: list[dict[str, str]] = []
-    for path in owned_paths:
+    for path in emission_paths:
+        if path not in by_path:
+            continue
         validated = validate_split_file_for_component(
             component_id=component_id,
             target_file=path,
@@ -18181,40 +19790,16 @@ def provider_generate_component_job(
             except tomllib.TOMLDecodeError as exc:
                 raise RuntimeError(f"pyproject TOML contract mismatch: {exc}") from exc
         validated_files.append(validated)
-    combined_files = [*completed_files, *validated_files]
-    manifest_by_path = {
-        str(entry.get("path", "")).replace("\\", "/").strip(): entry
-        for entry in entries
+        completed_paths.add(path)
+    missing_paths = [path for path in emission_paths if path not in by_path]
+    return {
+        "file_items": validated_files,
+        "raw_output": parsed_raw,
+        "completed_owned_paths": response_paths,
+        "missing_owned_paths": missing_paths,
+        "author_origin": provider_execution_metrics.last_call_origin() or "primary",
+        "requested_output_cap": requested_cap,
     }
-    failed_receipts = [
-        receipt
-        for receipt in (
-            build_leaf_boundary_check_receipt(
-                component_id=component_id,
-                target_file=path,
-                component_files=combined_files,
-                prior_files=prior_files,
-                manifest_paths=[
-                    str(entry.get("path", ""))
-                    for entry in (component_file_manifest or entries)
-                    if isinstance(entry, dict)
-                ],
-                manifest_entry=manifest_by_path[path],
-            )
-            for path in owned_paths
-        )
-        if receipt.get("status") != "PASS"
-    ]
-    if failed_receipts:
-        raise RuntimeError(
-            "multi-file Provider job boundary mismatch: "
-            + "; ".join(
-                str(blocker)
-                for receipt in failed_receipts
-                for blocker in receipt.get("blockers", [])
-            )[:2000]
-        )
-    return validated_files, raw
 
 
 def write_pending_component_file_generation(
@@ -18412,6 +19997,8 @@ def recover_component_manifest_from_split_checkpoints(
         ):
             return None
         manifest.append(entry)
+    if manifest_missing_structural_children(manifest):
+        return None
     return manifest
 
 
@@ -18565,6 +20152,7 @@ def _provider_generate_leaf_with_retry(
     routing_policy: ProviderModelRoutingPolicy | None,
     pending_context: dict[str, Any],
     last_transport_error: Any,
+    current_target_source: str = "",
 ) -> dict[str, Any]:
     component_id = str(component.get("id", "")).strip()
     target_file = str(leaf.get("path", "")).replace("\\", "/").strip()
@@ -18662,6 +20250,7 @@ def _provider_generate_leaf_with_retry(
                 routing_policy=routing_policy,
                 last_transport_error=last_error_text,
                 retry_attempt=attempt + 1,
+                current_target_source=current_target_source,
             )
             return {
                 "file_item": file_item,
@@ -18709,6 +20298,478 @@ def _provider_generate_leaf_with_retry(
     raise RuntimeError(f"component {component_id} generation failed without a leaf result")
 
 
+MAX_CONTRACT_REPAIR_ATTEMPTS = 2
+
+
+def provider_job_boundary_receipts(
+    *,
+    component_id: str,
+    owned_paths: list[str],
+    files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None,
+    manifest: list[dict[str, Any]],
+    manifest_by_path: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        build_leaf_boundary_check_receipt(
+            component_id=component_id,
+            target_file=path,
+            component_files=files,
+            prior_files=prior_files,
+            manifest_paths=[
+                str(entry.get("path", ""))
+                for entry in manifest
+                if isinstance(entry, dict)
+            ],
+            manifest_entry=manifest_by_path[path],
+        )
+        for path in owned_paths
+    ]
+
+
+def structured_provider_job_violations(
+    receipts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    unique: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for receipt in receipts:
+        for violation in receipt.get("structured_violations", []):
+            if not isinstance(violation, dict):
+                continue
+            normalized = {
+                "rule_id": str(violation.get("rule_id", "")).strip(),
+                "path": str(violation.get("path", "")).replace("\\", "/").strip(),
+                "symbol": str(violation.get("symbol", "")).strip(),
+                "line": violation.get("line"),
+                "expected": str(violation.get("expected", "")).strip(),
+                "observed": str(violation.get("observed", "")).strip(),
+                "repair_hint": str(violation.get("repair_hint", "")).strip(),
+            }
+            key = (
+                normalized["rule_id"],
+                normalized["path"],
+                normalized["symbol"],
+                normalized["line"],
+                normalized["observed"],
+            )
+            unique.setdefault(key, normalized)
+    return list(unique.values())
+
+
+def repairable_failed_provider_job_path(
+    checkpoint_dir: pathlib.Path | None,
+    component_id: str,
+    provider_job_id: str,
+) -> pathlib.Path | None:
+    if checkpoint_dir is None:
+        return None
+    safe_component = provider_component_checkpoint_id(component_id)
+    safe_job = provider_component_checkpoint_id(provider_job_id or "provider-job")
+    return checkpoint_dir / "repairable_failed" / safe_component / f"{safe_job}.json"
+
+
+def clear_repairable_failed_provider_job(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    provider_job_id: str,
+) -> None:
+    """Remove a diagnostic repair base only after its ProviderJob verifies."""
+    path = repairable_failed_provider_job_path(
+        checkpoint_dir, component_id, provider_job_id
+    )
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
+def write_repairable_failed_provider_job(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    provider_job_id: str,
+    spec_hash: str,
+    owned_paths: list[str],
+    files: list[dict[str, str]],
+    violations: list[dict[str, Any]],
+    manifest_by_path: dict[str, dict[str, Any]],
+) -> pathlib.Path | None:
+    path = repairable_failed_provider_job_path(
+        checkpoint_dir, component_id, provider_job_id
+    )
+    if path is None:
+        return None
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(
+            item.get("content", "")
+        )
+        for item in files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    repair_paths = sorted(
+        {
+            str(item.get("path", "")).replace("\\", "/").strip()
+            for item in violations
+            if isinstance(item, dict) and str(item.get("path", "")).strip()
+        }
+    )
+    repair_classification = "REPAIRABLE_FAILED"
+    if (
+        set(by_path) != set(owned_paths)
+        or len(repair_paths) != 1
+        or repair_paths[0] not in by_path
+        or pathlib.PurePosixPath(repair_paths[0]).suffix.lower()
+        not in JAVASCRIPT_MODULE_SUFFIXES
+        or not by_path[repair_paths[0]].strip()
+    ):
+        repair_classification = "UNUSABLE"
+    doc = {
+        "kind": "CGKNRepairableFailedProviderJob",
+        "schema_version": 1,
+        "created_at": now(),
+        "component_id": component_id,
+        "provider_job_id": provider_job_id,
+        "spec_hash": spec_hash,
+        "evidence_status": "NOT_EVALUATED",
+        "repair_classification": repair_classification,
+        "owned_paths": owned_paths,
+        "repair_paths": repair_paths,
+        "files": [
+            {
+                "path": item_path,
+                "content": by_path[item_path],
+                "source_sha256": hashlib.sha256(
+                    by_path[item_path].encode("utf-8")
+                ).hexdigest(),
+                "manifest_entry_sha256": split_file_manifest_entry_hash(
+                    manifest_by_path.get(item_path)
+                ),
+            }
+            for item_path in owned_paths
+            if item_path in by_path
+        ],
+        "structured_violations": violations,
+        "verified_artifact": False,
+        "candidate_eligible": False,
+    }
+    canonical = json.dumps(doc, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    doc["receipt_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    write_json(path, doc)
+    return path
+
+
+def load_repairable_failed_provider_job(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component_id: str,
+    provider_job_id: str,
+    spec_hash: str,
+    owned_paths: list[str],
+    manifest_by_path: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    path = repairable_failed_provider_job_path(
+        checkpoint_dir, component_id, provider_job_id
+    )
+    if path is None or not path.exists():
+        return None
+    try:
+        doc = load_json(path)
+    except Exception:
+        return None
+    if (
+        doc.get("kind") != "CGKNRepairableFailedProviderJob"
+        or doc.get("evidence_status") != "NOT_EVALUATED"
+        or doc.get("repair_classification") != "REPAIRABLE_FAILED"
+        or str(doc.get("component_id", "")) != component_id
+        or str(doc.get("provider_job_id", "")) != provider_job_id
+        or str(doc.get("spec_hash", "")) != spec_hash
+        or list(doc.get("owned_paths", [])) != owned_paths
+    ):
+        return None
+    files = doc.get("files", [])
+    if not isinstance(files, list) or len(files) != len(owned_paths):
+        return None
+    for item in files:
+        if not isinstance(item, dict):
+            return None
+        item_path = str(item.get("path", "")).replace("\\", "/").strip()
+        content = str(item.get("content", ""))
+        if (
+            item_path not in owned_paths
+            or hashlib.sha256(content.encode("utf-8")).hexdigest()
+            != str(item.get("source_sha256", ""))
+            or split_file_manifest_entry_hash(manifest_by_path.get(item_path))
+            != str(item.get("manifest_entry_sha256", ""))
+        ):
+            return None
+    return doc
+
+
+def repair_provider_job_contract(
+    *,
+    goal: str,
+    component: dict[str, Any],
+    provider_job_id: str,
+    owned_paths: list[str],
+    current_files: list[dict[str, str]],
+    prior_files: list[dict[str, str]] | None,
+    manifest: list[dict[str, Any]],
+    manifest_by_path: dict[str, dict[str, Any]],
+    leaf_interface_contract: dict[str, Any],
+    violations: list[dict[str, Any]],
+    model: str,
+    timeout: int,
+    deadline: float | ProgressDeadline | None,
+    phase_log_path: pathlib.Path | str | None,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    checkpoint_dir: pathlib.Path | None,
+    spec_hash: str,
+) -> dict[str, Any]:
+    component_id = str(component.get("id", "")).strip()
+    current_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): dict(item)
+        for item in current_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    repair_paths = sorted(
+        {
+            str(item.get("path", "")).replace("\\", "/").strip()
+            for item in violations
+            if isinstance(item, dict) and str(item.get("path", "")).strip()
+        }
+    )
+    if len(repair_paths) != 1 or repair_paths[0] not in current_by_path:
+        raise ProviderContractRepairExhaustedError(
+            "provider contract repair exhausted: deterministic violations do not identify one owned source path"
+        )
+    target_path = repair_paths[0]
+    if target_path not in owned_paths:
+        raise ProviderContractRepairExhaustedError(
+            "provider contract repair exhausted: violation target escaped ProviderJob ownership"
+        )
+    latest_violations = violations
+    attempts: list[dict[str, Any]] = []
+    for attempt in range(1, MAX_CONTRACT_REPAIR_ATTEMPTS + 1):
+        attempt_started = time.monotonic()
+        current_source = str(current_by_path[target_path].get("content", ""))
+        required_exports = _bounded_javascript_symbols(
+            [
+                item.get("symbol", "")
+                for item in latest_violations
+                if isinstance(item, dict)
+                and str(item.get("rule_id", "")) == "REQUIRED_EXPORT_MISSING"
+            ]
+        )
+        payload = {
+            "kind": "CGKNProviderContractGuidedRepairRequest",
+            "project_spec_summary": {
+                "goal": goal,
+                "component_id": component_id,
+                "target_purpose": str(manifest_by_path[target_path].get("purpose", "")),
+                "responsibilities": manifest_by_path[target_path].get(
+                    "responsibilities", []
+                ),
+                "acceptance_checks": manifest_by_path[target_path].get(
+                    "acceptance_checks", []
+                ),
+            },
+            "frozen_frontend_interface": {
+                "target_path": target_path,
+                "expected_symbols": required_exports,
+                "implementation_symbols": manifest_by_path[target_path].get(
+                    "expected_symbols", []
+                ),
+                "leaf_interface_contract": leaf_interface_contract,
+                "peer_interface_summaries": [
+                    generated_file_interface_summary(item)
+                    for path, item in current_by_path.items()
+                    if path != target_path
+                ],
+            },
+            "current_source": current_source,
+            "structured_violations": latest_violations,
+            "strict_rules": [
+                "Preserve already-correct behavior and fix only the listed violations.",
+                "Do not rename frozen symbols or change another owned path.",
+                f"Return only {target_path} in one strict JSON files array.",
+                "Return no commentary.",
+            ],
+        }
+        request_bytes = len(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        )
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_contract_repair_started",
+                "stage": "component_file_generation",
+                "component": component_id,
+                "provider_job_id": provider_job_id,
+                "attempt": attempt,
+                "attempt_limit": MAX_CONTRACT_REPAIR_ATTEMPTS,
+                "target_path": target_path,
+                "prompt_bytes": request_bytes,
+                "violations_in": latest_violations,
+            },
+        )
+        raw = ""
+        try:
+            call_deadline = (
+                hard_deadline_timestamp(deadline) if deadline is not None else None
+            )
+            call_timeout = timeout_before_absolute_deadline(
+                min(timeout, provider_component_file_timeout_cap()),
+                call_deadline,
+                floor=5,
+            )
+            raw = provider_text(
+                [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Repair one existing ProviderJob source file against frozen deterministic constraints. "
+                            "Return strict JSON only with one files entry and no commentary."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(payload, ensure_ascii=False, indent=2),
+                    },
+                ],
+                model,
+                call_timeout,
+                max_attempts=1,
+                stage="component_file_generation",
+                component=component_id,
+                target_file=target_path,
+                max_tokens=provider_contract_repair_output_token_budget(
+                    manifest_by_path[target_path],
+                    current_source,
+                    model=model,
+                ),
+                payload_mode="contract_repair",
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                budget_deadline=call_deadline,
+            )
+            doc = parse_json_object(raw)
+            returned = doc.get("files", [])
+            if (
+                not isinstance(returned, list)
+                or len(returned) != 1
+                or not isinstance(returned[0], dict)
+                or str(returned[0].get("path", "")).replace("\\", "/").strip()
+                != target_path
+            ):
+                raise ProviderOutputContractError(
+                    "contract repair must return exactly the requested source path",
+                    raw_output=raw,
+                    parsed_result=doc,
+                )
+            repaired = validate_split_file_for_component(
+                component_id=component_id,
+                target_file=target_path,
+                file_item=returned[0],
+                prior_manifest=[],
+                completed_paths=set(owned_paths) - {target_path},
+                declared_paths=owned_paths,
+                declared_package=component_declared_package_for_path_validation(
+                    component
+                ),
+            )
+            current_by_path[target_path] = repaired
+            candidate_files = [current_by_path[path] for path in owned_paths]
+            receipts = provider_job_boundary_receipts(
+                component_id=component_id,
+                owned_paths=owned_paths,
+                files=candidate_files,
+                prior_files=prior_files,
+                manifest=manifest,
+                manifest_by_path=manifest_by_path,
+            )
+            latest_violations = structured_provider_job_violations(receipts)
+            blockers = [
+                str(blocker)
+                for receipt in receipts
+                if receipt.get("status") != "PASS"
+                for blocker in receipt.get("blockers", [])
+            ]
+            attempt_receipt = {
+                "attempt": attempt,
+                "prompt_bytes": request_bytes,
+                "duration_seconds": round(time.monotonic() - attempt_started, 6),
+                "source_sha256": hashlib.sha256(
+                    str(repaired.get("content", "")).encode("utf-8")
+                ).hexdigest(),
+                "violations_out": latest_violations,
+                "status": "PASS" if not blockers else "FAIL",
+            }
+            attempts.append(attempt_receipt)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_contract_repair_completed",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "provider_job_id": provider_job_id,
+                    "target_path": target_path,
+                    **attempt_receipt,
+                },
+            )
+            if not blockers:
+                return {
+                    "files": candidate_files,
+                    "attempts": attempts,
+                    "boundary_receipts": receipts,
+                    "target_path": target_path,
+                }
+            write_repairable_failed_provider_job(
+                checkpoint_dir,
+                component_id=component_id,
+                provider_job_id=provider_job_id,
+                spec_hash=spec_hash,
+                owned_paths=owned_paths,
+                files=candidate_files,
+                violations=latest_violations,
+                manifest_by_path=manifest_by_path,
+            )
+        except (RuntimeError, TimeoutError) as exc:
+            latest_violations = [
+                {
+                    "rule_id": "CONTRACT_REPAIR_RESPONSE_INVALID",
+                    "path": target_path,
+                    "symbol": "",
+                    "line": None,
+                    "expected": "one complete valid replacement for the requested path",
+                    "observed": bounded_provider_diagnostic_output(str(exc), max_chars=1200),
+                    "repair_hint": "Return only the requested complete source file in the required JSON envelope.",
+                }
+            ]
+            attempts.append(
+                {
+                    "attempt": attempt,
+                    "prompt_bytes": request_bytes,
+                    "duration_seconds": round(time.monotonic() - attempt_started, 6),
+                    "violations_out": latest_violations,
+                    "status": "FAIL",
+                }
+            )
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_contract_repair_completed",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "provider_job_id": provider_job_id,
+                    "target_path": target_path,
+                    **attempts[-1],
+                },
+            )
+    raise ProviderContractRepairExhaustedError(
+        f"provider contract repair exhausted after {MAX_CONTRACT_REPAIR_ATTEMPTS} requests for {component_id}:{target_path}",
+        raw_output=raw,
+        parsed_result={"attempts": attempts},
+    )
+
+
 def _provider_generate_job_with_retry(
     *,
     goal: str,
@@ -18731,6 +20792,11 @@ def _provider_generate_job_with_retry(
     routing_policy: ProviderModelRoutingPolicy | None,
     pending_context: dict[str, Any],
     last_transport_error: Any,
+    checkpoint_dir: pathlib.Path | None = None,
+    spec_hash: str = "",
+    repair_base_candidate: dict[str, Any] | None = None,
+    defer_release_hard: bool = False,
+    repair_current_files: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     owned_paths = provider_leaf_owned_paths(leaf)
     if len(owned_paths) == 1:
@@ -18755,8 +20821,20 @@ def _provider_generate_job_with_retry(
             routing_policy=routing_policy,
             pending_context=pending_context,
             last_transport_error=last_transport_error,
+            current_target_source=str(
+                (repair_current_files or {}).get(owned_paths[0], {}).get(
+                    "content", ""
+                )
+            ),
         )
-        return {**result, "file_items": [result["file_item"]]}
+        return {
+            **result,
+            "file_items": [result["file_item"]],
+            "file_origins": {
+                owned_paths[0]: provider_execution_metrics.last_call_origin()
+                or "primary"
+            },
+        }
     component_id = str(component.get("id", "")).strip()
     primary_path = owned_paths[0]
     leaf_view = {**leaf, "path": primary_path}
@@ -18781,8 +20859,81 @@ def _provider_generate_job_with_retry(
         else ""
     )
     rejection_history = [last_error_text] if last_error_text else []
+    completed_job_files: dict[str, dict[str, str]] = {
+        path: item
+        for item in completed_files
+        if isinstance(item, dict)
+        and (path := str(item.get("path", "")).replace("\\", "/").strip())
+        in owned_paths
+    }
+    file_origins: dict[str, str] = {
+        path: "checkpoint" for path in completed_job_files
+    }
+    manifest_by_owned_path = {
+        str(entry.get("path", "")).replace("\\", "/").strip(): entry
+        for entry in entries
+        if isinstance(entry, dict) and str(entry.get("path", "")).strip()
+    }
+    provider_job_id = str(leaf.get("leaf_id", ""))
+    if isinstance(repair_base_candidate, dict):
+        base_files = [
+            {"path": str(item.get("path", "")), "content": str(item.get("content", ""))}
+            for item in repair_base_candidate.get("files", [])
+            if isinstance(item, dict)
+        ]
+        base_violations = [
+            item
+            for item in repair_base_candidate.get("structured_violations", [])
+            if isinstance(item, dict)
+        ]
+        if base_files and base_violations:
+            repaired = repair_provider_job_contract(
+                goal=goal,
+                component=component,
+                provider_job_id=provider_job_id,
+                owned_paths=owned_paths,
+                current_files=base_files,
+                prior_files=prior_files,
+                manifest=manifest,
+                manifest_by_path=manifest_by_owned_path,
+                leaf_interface_contract=leaf_interface_contract,
+                violations=base_violations,
+                model=model,
+                timeout=timeout,
+                deadline=deadline,
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                checkpoint_dir=checkpoint_dir,
+                spec_hash=spec_hash,
+            )
+            repaired_paths = {str(repaired.get("target_path", ""))}
+            return {
+                "file_items": repaired["files"],
+                "file_origins": {
+                    path: ("primary" if path in repaired_paths else "checkpoint")
+                    for path in owned_paths
+                },
+                "raw_output": "",
+                "leaf_interface_contract": leaf_interface_contract,
+                "librarian_context_pack": librarian_context_pack,
+                "selected_model": model,
+                "emission_plan": {},
+                "missing_path_recovery_calls": 0,
+                "contract_repair_attempts": repaired["attempts"],
+            }
+    raw_outputs: list[str] = []
+    completion_used = False
+    final_emission_plan: dict[str, Any] = {}
     attempt_limit = provider_transport_repair_attempts()
     for attempt in range(attempt_limit):
+        remaining_entries = [
+            entry
+            for entry in entries
+            if str(entry.get("path", "")).replace("\\", "/").strip()
+            not in completed_job_files
+        ]
+        if not remaining_entries:
+            break
         route_prompt_chars = len(
             json.dumps(
                 {
@@ -18806,40 +20957,414 @@ def _provider_generate_job_with_retry(
         )
         call_model = str(route.get("selected_model") or model)
         try:
-            leaf_timeout_cap = provider_component_file_timeout_cap()
-            call_timeout = (
-                remaining_timeout(deadline, timeout, floor=5, cap=leaf_timeout_cap)
-                if deadline
-                else min(timeout, leaf_timeout_cap)
-            )
-            file_items, raw = provider_generate_component_job(
-                goal=goal,
-                component=component,
-                component_pipeline=component_pipeline,
-                manifest_entries=entries,
-                prior_manifest=prior_manifest,
-                completed_files=completed_files,
-                prior_files=prior_files,
-                component_file_manifest=manifest,
-                repair_errors=repair_errors,
-                integration_feedforward=integration_feedforward,
-                leaf_interface_contract=leaf_interface_contract,
-                librarian_context_pack=librarian_context_pack,
+            emission_plan = plan_provider_job_emissions(
+                remaining_entries,
                 model=call_model,
-                timeout=call_timeout,
                 phase_log_path=phase_log_path,
-                routing_policy=routing_policy,
-                last_transport_error=last_error_text,
             )
-            return {
-                "file_items": file_items,
-                "raw_output": raw,
-                "leaf_interface_contract": leaf_interface_contract,
-                "librarian_context_pack": librarian_context_pack,
-                "selected_model": call_model,
+            final_emission_plan = {
+                key: value
+                for key, value in emission_plan.items()
+                if not key.startswith("_")
             }
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_job_emission_plan",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "provider_job_id": str(leaf.get("leaf_id", "")),
+                    "attempt": attempt + 1,
+                    **final_emission_plan,
+                },
+            )
+            emission_chunks = list(emission_plan.get("_entry_chunks", []))
+            for emission_index, emission_entries in enumerate(emission_chunks, start=1):
+                emission_paths = [
+                    str(entry.get("path", "")).replace("\\", "/").strip()
+                    for entry in emission_entries
+                ]
+                emission_receipt = final_emission_plan["emissions"][emission_index - 1]
+                has_later_emissions = emission_index < len(emission_chunks)
+                priority_completion = bool(completed_job_files) and (
+                    not has_later_emissions and not completion_used
+                )
+                if priority_completion:
+                    completion_used = True
+                call_budget_deadline = provider_emission_budget_deadline(
+                    deadline,
+                    reserve_completion=has_later_emissions,
+                )
+                leaf_timeout_cap = provider_component_file_timeout_cap()
+                call_timeout = (
+                    timeout_before_absolute_deadline(
+                        min(timeout, leaf_timeout_cap),
+                        call_budget_deadline,
+                        floor=5,
+                    )
+                    if call_budget_deadline is not None
+                    else min(timeout, leaf_timeout_cap)
+                )
+                try:
+                    emission_result = provider_generate_component_job(
+                        goal=goal,
+                        component=component,
+                        component_pipeline=component_pipeline,
+                        manifest_entries=emission_entries,
+                        prior_manifest=prior_manifest,
+                        completed_files=[*completed_files, *completed_job_files.values()],
+                        prior_files=prior_files,
+                        component_file_manifest=manifest,
+                        repair_errors=repair_errors,
+                        integration_feedforward=integration_feedforward,
+                        leaf_interface_contract=leaf_interface_contract,
+                        librarian_context_pack=librarian_context_pack,
+                        model=call_model,
+                        timeout=call_timeout,
+                        phase_log_path=phase_log_path,
+                        routing_policy=routing_policy,
+                        last_transport_error=last_error_text,
+                        provider_job_id=str(leaf.get("leaf_id", "")),
+                        ownership_unit_paths=owned_paths,
+                        completed_owned_paths=list(completed_job_files),
+                        completion_only=priority_completion,
+                        output_token_cap=int(emission_receipt["requested_output_cap"]),
+                        budget_deadline=call_budget_deadline,
+                        current_target_sources=repair_current_files,
+                    )
+                except (RuntimeError, TimeoutError) as emission_error:
+                    if priority_completion:
+                        append_provider_event_log(
+                            phase_log_path,
+                            {
+                                "event": "provider_job_missing_path_completion",
+                                "stage": "component_file_generation",
+                                "component": component_id,
+                                "provider_job_id": str(leaf.get("leaf_id", "")),
+                                "requested_paths": emission_paths,
+                                "completed_owned_paths": [],
+                                "missing_owned_paths": emission_paths,
+                                "completion_call_limit": 1,
+                                "status": "failed",
+                            },
+                        )
+                        raise ProviderLeafRepairExhaustedError(
+                            "provider leaf repair exhausted after prioritized missing-path completion: "
+                            + str(emission_error)
+                        ) from emission_error
+                    raise
+                raw_outputs.append(str(emission_result.get("raw_output", "")))
+                origin = str(emission_result.get("author_origin", "primary"))
+                for item in emission_result.get("file_items", []):
+                    path = str(item.get("path", "")).replace("\\", "/").strip()
+                    completed_job_files[path] = item
+                    file_origins[path] = origin
+                    write_split_file_checkpoint(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        spec_hash=spec_hash,
+                        file_item=item,
+                        manifest_entry=manifest_by_owned_path[path],
+                    )
+                provider_execution_metrics.record_authored_files(
+                    phase_log_path,
+                    {
+                        str(item.get("path", "")): origin
+                        for item in emission_result.get("file_items", [])
+                        if str(item.get("path", "")).strip()
+                    },
+                )
+                missing_paths = [
+                    path
+                    for path in emission_paths
+                    if path not in completed_job_files
+                ]
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "provider_job_emission_completed",
+                        "stage": "component_file_generation",
+                        "component": component_id,
+                        "provider_job_id": str(leaf.get("leaf_id", "")),
+                        "emission_index": emission_index,
+                        "requested_paths": emission_paths,
+                        "completed_owned_paths": [
+                            path for path in emission_paths if path in completed_job_files
+                        ],
+                        "missing_owned_paths": missing_paths,
+                        "requested_output_cap": emission_receipt["requested_output_cap"],
+                        "author_origin": origin,
+                    },
+                )
+                if priority_completion:
+                    append_provider_event_log(
+                        phase_log_path,
+                        {
+                            "event": "provider_job_missing_path_completion",
+                            "stage": "component_file_generation",
+                            "component": component_id,
+                            "provider_job_id": str(leaf.get("leaf_id", "")),
+                            "requested_paths": emission_paths,
+                            "completed_owned_paths": [
+                                path for path in emission_paths if path in completed_job_files
+                            ],
+                            "missing_owned_paths": missing_paths,
+                            "completion_call_limit": 1,
+                            "status": "pass" if not missing_paths else "failed",
+                            "author_origin": origin,
+                        },
+                    )
+                if missing_paths:
+                    if completion_used:
+                        raise ProviderLeafRepairExhaustedError(
+                            "provider leaf repair exhausted: bounded missing-path completion already used"
+                        )
+                    completion_used = True
+                    missing_set = set(missing_paths)
+                    completion_entries = [
+                        entry
+                        for entry in entries
+                        if str(entry.get("path", "")).replace("\\", "/").strip()
+                        in missing_set
+                    ]
+                    completion_cap = min(
+                        int(emission_plan["effective_reliable_output_cap"]),
+                        provider_job_output_token_budget(completion_entries),
+                    )
+                    completion_budget_deadline = provider_emission_budget_deadline(
+                        deadline,
+                        reserve_completion=False,
+                    )
+                    completion_timeout = (
+                        timeout_before_absolute_deadline(
+                            min(timeout, leaf_timeout_cap),
+                            completion_budget_deadline,
+                            floor=5,
+                        )
+                        if completion_budget_deadline is not None
+                        else call_timeout
+                    )
+                    try:
+                        completion_result = provider_generate_component_job(
+                            goal=goal,
+                            component=component,
+                            component_pipeline=component_pipeline,
+                            manifest_entries=completion_entries,
+                            prior_manifest=prior_manifest,
+                            completed_files=[*completed_files, *completed_job_files.values()],
+                            prior_files=prior_files,
+                            component_file_manifest=manifest,
+                            repair_errors=repair_errors,
+                            integration_feedforward=integration_feedforward,
+                            leaf_interface_contract=leaf_interface_contract,
+                            librarian_context_pack=librarian_context_pack,
+                            model=call_model,
+                            timeout=completion_timeout,
+                            phase_log_path=phase_log_path,
+                            routing_policy=routing_policy,
+                            last_transport_error="missing_owned_paths:" + ",".join(missing_paths),
+                            provider_job_id=str(leaf.get("leaf_id", "")),
+                            ownership_unit_paths=owned_paths,
+                            completed_owned_paths=list(completed_job_files),
+                            completion_only=True,
+                            output_token_cap=completion_cap,
+                            budget_deadline=completion_budget_deadline,
+                            current_target_sources=repair_current_files,
+                        )
+                    except (RuntimeError, TimeoutError) as completion_error:
+                        raise ProviderLeafRepairExhaustedError(
+                            "provider leaf repair exhausted after one missing-path completion: "
+                            + str(completion_error)
+                        ) from completion_error
+                    raw_outputs.append(str(completion_result.get("raw_output", "")))
+                    completion_origin = str(
+                        completion_result.get("author_origin", "primary")
+                    )
+                    for item in completion_result.get("file_items", []):
+                        path = str(item.get("path", "")).replace("\\", "/").strip()
+                        completed_job_files[path] = item
+                        file_origins[path] = completion_origin
+                        write_split_file_checkpoint(
+                            checkpoint_dir,
+                            component_id=component_id,
+                            spec_hash=spec_hash,
+                            file_item=item,
+                            manifest_entry=manifest_by_owned_path[path],
+                        )
+                    provider_execution_metrics.record_authored_files(
+                        phase_log_path,
+                        {
+                            str(item.get("path", "")): completion_origin
+                            for item in completion_result.get("file_items", [])
+                            if str(item.get("path", "")).strip()
+                        },
+                    )
+                    still_missing = [
+                        path for path in missing_paths if path not in completed_job_files
+                    ]
+                    append_provider_event_log(
+                        phase_log_path,
+                        {
+                            "event": "provider_job_missing_path_completion",
+                            "stage": "component_file_generation",
+                            "component": component_id,
+                            "provider_job_id": str(leaf.get("leaf_id", "")),
+                            "requested_paths": missing_paths,
+                            "completed_owned_paths": [
+                                path for path in missing_paths if path in completed_job_files
+                            ],
+                            "missing_owned_paths": still_missing,
+                            "completion_call_limit": 1,
+                            "author_origin": completion_origin,
+                        },
+                    )
+                    if still_missing:
+                        raise ProviderLeafRepairExhaustedError(
+                            "provider leaf repair exhausted after one missing-path completion: "
+                            + ",".join(still_missing)
+                        )
+            if set(completed_job_files) == set(owned_paths):
+                ordered_items = [completed_job_files[path] for path in owned_paths]
+                combined_files = [*completed_files, *ordered_items]
+                manifest_by_path = {
+                    str(entry.get("path", "")).replace("\\", "/").strip(): entry
+                    for entry in entries
+                }
+                receipts = provider_job_boundary_receipts(
+                    component_id=component_id,
+                    owned_paths=owned_paths,
+                    files=combined_files,
+                    prior_files=prior_files,
+                    manifest=manifest,
+                    manifest_by_path=manifest_by_path,
+                )
+                failed_receipts = [
+                    receipt for receipt in receipts if receipt.get("status") != "PASS"
+                ]
+                if failed_receipts:
+                    remove_split_file_checkpoints(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        paths=owned_paths,
+                    )
+                    structured_violations = structured_provider_job_violations(
+                        failed_receipts
+                    )
+                    repair_base_path = write_repairable_failed_provider_job(
+                        checkpoint_dir,
+                        component_id=component_id,
+                        provider_job_id=provider_job_id,
+                        spec_hash=spec_hash,
+                        owned_paths=owned_paths,
+                        files=ordered_items,
+                        violations=structured_violations,
+                        manifest_by_path=manifest_by_path,
+                    )
+                    append_provider_event_log(
+                        phase_log_path,
+                        {
+                            "event": "provider_job_boundary_rejected",
+                            "stage": "component_file_generation",
+                            "component": component_id,
+                            "provider_job_id": provider_job_id,
+                            "repair_base_path": str(repair_base_path or ""),
+                            "structured_violations": structured_violations,
+                        },
+                    )
+                    if (
+                        repair_base_path is not None
+                        and structured_violations
+                        and len(
+                            {
+                                str(item.get("path", ""))
+                                for item in structured_violations
+                            }
+                        )
+                        == 1
+                    ):
+                        repaired = repair_provider_job_contract(
+                            goal=goal,
+                            component=component,
+                            provider_job_id=provider_job_id,
+                            owned_paths=owned_paths,
+                            current_files=ordered_items,
+                            prior_files=prior_files,
+                            manifest=manifest,
+                            manifest_by_path=manifest_by_path,
+                            leaf_interface_contract=leaf_interface_contract,
+                            violations=structured_violations,
+                            model=call_model,
+                            timeout=timeout,
+                            deadline=deadline,
+                            phase_log_path=phase_log_path,
+                            routing_policy=routing_policy,
+                            checkpoint_dir=checkpoint_dir,
+                            spec_hash=spec_hash,
+                        )
+                        repaired_target = str(repaired.get("target_path", ""))
+                        return {
+                            "file_items": repaired["files"],
+                            "file_origins": {
+                                path: (
+                                    provider_execution_metrics.last_call_origin()
+                                    or "primary"
+                                    if path == repaired_target
+                                    else file_origins.get(path, "primary")
+                                )
+                                for path in owned_paths
+                            },
+                            "raw_output": "\n".join(raw_outputs),
+                            "leaf_interface_contract": leaf_interface_contract,
+                            "librarian_context_pack": librarian_context_pack,
+                            "selected_model": call_model,
+                            "emission_plan": final_emission_plan,
+                            "missing_path_recovery_calls": 1 if completion_used else 0,
+                            "contract_repair_attempts": repaired["attempts"],
+                        }
+                    if not defer_release_hard:
+                        raise RuntimeError(
+                            "multi-file Provider job boundary mismatch: "
+                            + "; ".join(
+                                str(blocker)
+                                for receipt in failed_receipts
+                                for blocker in receipt.get("blockers", [])
+                            )[:2000]
+                        )
+                    return {
+                        "file_items": ordered_items,
+                        "file_origins": file_origins,
+                        "raw_output": "\n".join(raw_outputs),
+                        "leaf_interface_contract": leaf_interface_contract,
+                        "librarian_context_pack": librarian_context_pack,
+                        "selected_model": call_model,
+                        "emission_plan": final_emission_plan,
+                        "missing_path_recovery_calls": 1 if completion_used else 0,
+                        "deferred_boundary_receipts": failed_receipts,
+                    }
+                return {
+                    "file_items": ordered_items,
+                    "file_origins": file_origins,
+                    "raw_output": "\n".join(raw_outputs),
+                    "leaf_interface_contract": leaf_interface_contract,
+                    "librarian_context_pack": librarian_context_pack,
+                    "selected_model": call_model,
+                    "emission_plan": final_emission_plan,
+                    "missing_path_recovery_calls": 1 if completion_used else 0,
+                }
         except (RuntimeError, TimeoutError) as exc:
+            if isinstance(
+                exc,
+                (ProviderLeafRepairExhaustedError, ProviderContractRepairExhaustedError),
+            ):
+                raise
             current_error_text = str(exc)
+            # A complete but boundary-rejected ownership unit is not reusable.
+            # Partial transport success remains reusable; only a fully materialized
+            # rejected candidate is cleared before the existing bounded retry.
+            if set(completed_job_files) == set(owned_paths):
+                completed_job_files.clear()
+                file_origins.clear()
+                raw_outputs.clear()
             if current_error_text and current_error_text not in rejection_history:
                 rejection_history.append(current_error_text)
             last_error_text = (
@@ -18854,7 +21379,10 @@ def _provider_generate_job_with_retry(
                     "stage": "component_file_generation",
                     "component": component_id,
                     "target_file": primary_path,
-                    "target_files": owned_paths,
+                    "target_files": [
+                        path for path in owned_paths if path not in completed_job_files
+                    ],
+                    "completed_owned_paths": list(completed_job_files),
                     "attempt": attempt + 1,
                     "attempt_limit": attempt_limit,
                     "error_type": error_type,
@@ -18874,7 +21402,10 @@ def _provider_generate_job_with_retry(
                 ) from exc
             if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
                 time.sleep(min(20.0, 2.0 * (2**attempt)))
-    raise RuntimeError(f"component {component_id} generation failed without a job result")
+    raise RuntimeError(
+        f"component {component_id} generation failed without a complete job result; "
+        f"completed={list(completed_job_files)}"
+    )
 
 
 def provider_generate_project_component_split(
@@ -18902,8 +21433,14 @@ def provider_generate_project_component_split(
     existing_component_files: list[dict[str, str]] | None = None,
     recover_manifest_from_checkpoints: bool = False,
     force_leaf_regeneration: bool = False,
+    defer_release_hard: bool = False,
 ) -> dict[str, Any]:
     component_id = str(component.get("id", "")).strip()
+    generation_component = (
+        build_first_component_contract(component_id, component)
+        if defer_release_hard
+        else component
+    )
     append_provider_event_log(
         phase_log_path,
         {
@@ -18915,6 +21452,21 @@ def provider_generate_project_component_split(
     )
     pending_context = pending_context or {}
     manifest = pending_file_manifest_for_component(pending_context, component_id)
+    if (not isinstance(manifest, list) or not manifest) and repair_target_files:
+        manifest = recover_component_manifest_from_split_checkpoints(
+            checkpoint_dir,
+            component_id,
+        )
+        if manifest:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "repair_component_manifest_checkpoint_reused",
+                    "stage": "component_file_generation",
+                    "component": component_id,
+                    "file_count": len(manifest),
+                },
+            )
     if (
         (not isinstance(manifest, list) or not manifest)
         and recover_manifest_from_checkpoints
@@ -18936,7 +21488,7 @@ def provider_generate_project_component_split(
     if isinstance(manifest, list) and manifest:
         missing_current_manifest_paths = component_manifest_missing_required_paths(
             component_id,
-            component,
+            generation_component,
             manifest,
         )
         if missing_current_manifest_paths:
@@ -18959,7 +21511,7 @@ def provider_generate_project_component_split(
         )
         manifest = provider_component_file_manifest(
             goal=goal,
-            component=component,
+            component=generation_component,
             component_pipeline=component_pipeline,
             prior_manifest=prior_manifest,
             repair_errors=repair_errors,
@@ -18971,16 +21523,16 @@ def provider_generate_project_component_split(
             last_transport_error=last_transport_error,
         )
     if component_id == "tests":
-        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest, component)
-    manifest = normalize_goal_plan_manifest_dependency_contract(manifest, component)
-    manifest = normalize_direct_cli_manifest_contract(component_id, manifest, component)
+        manifest = normalize_test_manifest_dependency_contract(manifest, prior_manifest, generation_component)
+    manifest = normalize_goal_plan_manifest_dependency_contract(manifest, generation_component)
+    manifest = normalize_direct_cli_manifest_contract(component_id, manifest, generation_component)
     manifest = normalize_backend_stage_dependency_contract(
-        component_id, manifest, component
+        component_id, manifest, generation_component
     )
     manifest = normalize_executable_media_manifest_contract(
-        component_id, manifest, component
+        component_id, manifest, generation_component
     )
-    contract_slice = component.get("contract_slice", {}) if isinstance(component.get("contract_slice"), dict) else {}
+    contract_slice = generation_component.get("contract_slice", {}) if isinstance(generation_component.get("contract_slice"), dict) else {}
     manifest = expand_component_manifest_submodules(
         component_id,
         manifest,
@@ -18991,8 +21543,25 @@ def provider_generate_project_component_split(
         ),
     )
     manifest = normalize_backend_stage_dependency_contract(
-        component_id, manifest, component
+        component_id, manifest, generation_component
     )
+    if defer_release_hard:
+        manifest, optional_paths = build_first_manifest_projection(
+            component_id, component, manifest
+        )
+        if optional_paths:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_manifest_advisory_paths_deferred",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "required_build_paths": component_required_manifest_paths(
+                        component_id, component
+                    ),
+                    "deferred_advisory_paths": optional_paths,
+                },
+            )
     leaf_work_graph = build_component_leaf_work_graph(component_id, manifest)
     provider_job_docs = [
         item
@@ -19039,12 +21608,45 @@ def provider_generate_project_component_split(
         for entry in manifest
         if isinstance(entry, dict)
     }
+    repair_base_by_leaf: dict[str, dict[str, Any]] = {}
+    for leaf in leaf_work_graph.get("leaves", []):
+        if not isinstance(leaf, dict):
+            continue
+        leaf_id = str(leaf.get("leaf_id", ""))
+        owned_paths = provider_leaf_owned_paths(leaf)
+        candidate = load_repairable_failed_provider_job(
+            checkpoint_dir,
+            component_id=component_id,
+            provider_job_id=leaf_id,
+            spec_hash=spec_hash,
+            owned_paths=owned_paths,
+            manifest_by_path=manifest_by_path,
+        )
+        if candidate is not None:
+            repair_base_by_leaf[leaf_id] = candidate
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "repairable_failed_provider_job_reused",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "provider_job_id": leaf_id,
+                    "repair_paths": candidate.get("repair_paths", []),
+                },
+            )
     repair_targets = [
         str(path).replace("\\", "/").strip()
         for path in (repair_target_files or [])
         if str(path).strip()
     ]
-    affected_repair_paths = set(component_leaf_downstream_closure(leaf_work_graph, repair_targets))
+    # A repair bundle already carries evaluator-proven exact paths. Co-ownership
+    # keeps validation atomic, but it must not turn unrelated peer files into
+    # generation targets. Only real manifest consumers join the repair closure.
+    affected_repair_paths = (
+        set(component_manifest_missing_path_dependents(manifest, repair_targets))
+        if repair_targets
+        else set(component_leaf_downstream_closure(leaf_work_graph, repair_targets))
+    )
     completed_files: list[dict[str, str]] = []
     completed_paths: set[str] = set()
     existing_by_path = {
@@ -19073,6 +21675,9 @@ def provider_generate_project_component_split(
             path_value=rel,
             manifest_entry=manifest_by_path.get(rel),
             allow_spec_mismatch=bool(recover_manifest_from_checkpoints),
+            allow_manifest_mismatch=bool(
+                defer_release_hard and recover_manifest_from_checkpoints
+            ),
         )
         cache_source = "split_checkpoint" if cached is not None else ""
         if cached is None:
@@ -19106,8 +21711,8 @@ def provider_generate_project_component_split(
         missing_paths = [path for path in graph_paths if path not in completed_paths]
         cache_invalidated_paths.update(
             path
-            for path in component_leaf_downstream_closure(
-                leaf_work_graph, missing_paths
+            for path in component_manifest_missing_path_dependents(
+                manifest, missing_paths
             )
             if path in completed_paths
         )
@@ -19135,7 +21740,7 @@ def provider_generate_project_component_split(
             manifest_paths=graph_paths,
             manifest_entry=manifest_by_path[cached_path],
         )
-        if cached_receipt.get("status") != "PASS":
+        if cached_receipt.get("status") != "PASS" and not defer_release_hard:
             invalid_cached_sources.add(cached_path)
     if invalid_cached_sources:
         cache_invalidated_paths.update(
@@ -19262,6 +21867,17 @@ def provider_generate_project_component_split(
                     routing_policy=routing_policy,
                     pending_context=pending_context,
                     last_transport_error=last_transport_error,
+                    checkpoint_dir=checkpoint_dir,
+                    spec_hash=spec_hash,
+                    repair_base_candidate=repair_base_by_leaf.get(
+                        str(leaf.get("leaf_id", ""))
+                    ),
+                    defer_release_hard=defer_release_hard,
+                    repair_current_files={
+                        path: existing_by_path[path]
+                        for path in provider_leaf_owned_paths(leaf)
+                        if path in affected_repair_paths and path in existing_by_path
+                    },
                 ): leaf
                 for leaf in pending_leaves
             }
@@ -19288,6 +21904,24 @@ def provider_generate_project_component_split(
                     for file_item in file_items
                 },
             )
+            provider_execution_metrics.record_authored_files(
+                phase_log_path,
+                {
+                    path: str(leaf_result.get("file_origins", {}).get(path, "primary"))
+                    for path in patch_set.files
+                },
+            )
+            returned_paths = {
+                str(file_item.get("path", "")).replace("\\", "/").strip()
+                for file_item in file_items
+                if isinstance(file_item, dict)
+            }
+            completed_files = [
+                item
+                for item in completed_files
+                if str(item.get("path", "")).replace("\\", "/").strip()
+                not in returned_paths
+            ]
             for file_item in file_items:
                 item_path = str(file_item.get("path", "")).replace("\\", "/").strip()
                 write_split_file_checkpoint(
@@ -19299,6 +21933,11 @@ def provider_generate_project_component_split(
                 )
                 completed_files.append(file_item)
                 completed_paths.add(item_path)
+            clear_repairable_failed_provider_job(
+                checkpoint_dir,
+                component_id=component_id,
+                provider_job_id=leaf_id or f"{component_id}:{target_file}",
+            )
             provider_execution_metrics.record_job(
                 phase_log_path,
                 leaf_id or f"{component_id}:{target_file}",
@@ -19332,6 +21971,13 @@ def provider_generate_project_component_split(
                     "leaf_id": leaf.get("leaf_id", ""),
                     "target_file": target_file,
                     "target_files": owned_paths,
+                    "emission_plan": leaf_result.get("emission_plan", {}),
+                    "missing_path_recovery_calls": int(
+                        leaf_result.get("missing_path_recovery_calls", 0) or 0
+                    ),
+                    "contract_repair_attempts": leaf_result.get(
+                        "contract_repair_attempts", []
+                    ),
                     "patch_set_sha256": hashlib.sha256(
                         json.dumps(
                             dict(patch_set.files),
@@ -19432,6 +22078,12 @@ def provider_generate_project_component_split(
                     leaf_work_graph=leaf_work_graph,
                     target_files=failed_paths,
                 )
+            if isinstance(exc, ProviderContractRepairExhaustedError):
+                raise ProviderContractRepairExhaustedError(
+                    f"component {component_id} generation failed: {exc}",
+                    raw_output=exc.raw_output,
+                    parsed_result=exc.parsed_result,
+                ) from exc
             if isinstance(exc, ProviderOutputContractError):
                 raise ProviderOutputContractError(
                     f"component {component_id} generation failed: {exc}",
@@ -19477,7 +22129,7 @@ def provider_generate_project_component_split(
         for receipt in boundary_receipts
         if str(receipt.get("status", "")) != "PASS"
     ]
-    if failed_receipts:
+    if failed_receipts and not defer_release_hard:
         blockers = [
             str(blocker)
             for receipt in failed_receipts
@@ -19525,6 +22177,7 @@ def provider_generate_project_component_split(
         "provider_dag_quality_metrics": leaf_work_graph.get("quality_metrics", {}),
         "interface_registry": interface_registry,
         "boundary_check_receipts": boundary_receipts,
+        "release_hard_boundary_receipts": failed_receipts,
         "repair_scope": {
             "requested_paths": repair_targets,
             "downstream_closure": [
@@ -19634,6 +22287,9 @@ def provider_generate_project_by_components(
     semantic_repair_attempts_used: int = 0,
     model_base_url: str = "",
     routing_policy: ProviderModelRoutingPolicy | None = None,
+    defer_release_hard: bool = False,
+    repair_base_files_by_component: dict[str, list[dict[str, str]]] | None = None,
+    repair_only_components: bool = False,
 ) -> dict[str, Any]:
     components = [row for row in component_pipeline.get("components", []) if isinstance(row, dict)]
     if not components:
@@ -19760,6 +22416,52 @@ def provider_generate_project_by_components(
         component_id = str(component.get("id", "")).strip()
         if not component_id:
             raise RuntimeError("component missing id")
+        if repair_only_components and component_id not in forced:
+            supplied_files = (
+                repair_base_files_by_component.get(component_id, [])
+                if isinstance(repair_base_files_by_component, dict)
+                else []
+            )
+            reused_files = [
+                dict(item)
+                for item in supplied_files
+                if isinstance(item, dict)
+                and str(item.get("path", "")).strip()
+                and isinstance(item.get("content"), str)
+            ]
+            if not reused_files:
+                reused_files = component_files_from_checkpoints(checkpoint_dir).get(
+                    component_id, []
+                )
+            if not reused_files:
+                raise RuntimeError(
+                    "targeted ProviderJob repair lacks an immutable source base for "
+                    + component_id
+                )
+            component_results.append(
+                {
+                    "component_id": component_id,
+                    "files": reused_files,
+                    "repair_only_reuse": True,
+                }
+            )
+            prior_manifest.extend(
+                item["path"]
+                for item in reused_files
+                if item["path"] not in prior_manifest
+            )
+            completed_components.append(component_id)
+            skipped_from_checkpoint.append(component_id)
+            append_provider_event_log(
+                provider_phase_log_path,
+                {
+                    "event": "repair_only_component_source_reused",
+                    "stage": "project_generation",
+                    "component": component_id,
+                    "files": [item["path"] for item in reused_files],
+                },
+            )
+            continue
         current_component_contract_hash = component_checkpoint_contract_hash(component)
         prior_files = merge_component_files(component_results)
         integration_feedforward = build_integration_feedforward_snapshot(
@@ -19935,7 +22637,13 @@ def provider_generate_project_by_components(
                 design_context=component_pipeline.get("design_context", {}),
                 component_contract=component,
             )
-            if cached_quality_validation.get("status") != "pass":
+            if (
+                cached_quality_validation.get("build_hard_blockers")
+                or (
+                    not defer_release_hard
+                    and cached_quality_validation.get("status") != "pass"
+                )
+            ):
                 component_errors.setdefault(component_id, []).extend(
                     "cached component quality validation failed: " + str(item)
                     for item in cached_quality_validation.get("blockers", [])
@@ -19999,6 +22707,32 @@ def provider_generate_project_by_components(
             result = dict(result)
             result["files"] = files
             result["module_quality_validation"] = cached_quality_validation
+            reused_graph = (
+                result.get("leaf_work_graph", {})
+                if isinstance(result.get("leaf_work_graph", {}), dict)
+                else {}
+            )
+            reused_jobs = [
+                item
+                for item in reused_graph.get("provider_jobs", [])
+                if isinstance(item, dict)
+            ]
+            if reused_jobs:
+                provider_execution_metrics.declare_job_graph(
+                    provider_phase_log_path,
+                    component_id=component_id,
+                    jobs=reused_jobs,
+                    wave_widths=[
+                        len(batch)
+                        for batch in component_leaf_ready_batches(reused_graph)
+                    ],
+                )
+                for reused_job in reused_jobs:
+                    provider_execution_metrics.record_job(
+                        provider_phase_log_path,
+                        str(reused_job.get("id", "")),
+                        reused=True,
+                    )
             prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
             component_results.append(result)
             completed_components.append(component_id)
@@ -20021,6 +22755,12 @@ def provider_generate_project_by_components(
         local_repairs = list(repair_errors) + list(repair_by_component.get(component_id, [])) + component_errors.get(component_id, [])
         repair_actions = repair_actions_for_component(plan_for_repair, component_id)
         existing_component_files = component_files_from_checkpoints(checkpoint_dir).get(component_id, [])
+        if component_id in forced and isinstance(repair_base_files_by_component, dict):
+            supplied_repair_base = repair_base_files_by_component.get(component_id, [])
+            if isinstance(supplied_repair_base, list) and supplied_repair_base:
+                existing_component_files = [
+                    dict(item) for item in supplied_repair_base if isinstance(item, dict)
+                ]
         target_files = repair_target_files_for_component(plan_for_repair, component_id)
         prompt_payload = provider_component_payload(
             goal=goal,
@@ -20169,6 +22909,7 @@ def provider_generate_project_by_components(
                         force_leaf_regeneration=(
                             component_id in forced and not target_files
                         ),
+                        defer_release_hard=defer_release_hard,
                     )
                 else:
                     result = provider_generate_project_component(
@@ -20210,20 +22951,35 @@ def provider_generate_project_by_components(
                     result["files"] = files
                 semantic_review = provider_component_semantic_review(result, files, component_id=component_id)
                 if semantic_review.get("status") != "pass":
-                    write_provider_component_checkpoint(
-                        checkpoint_dir,
-                        component_id=component_id,
-                        spec_hash=spec_hash,
-                        status="failed",
-                        raw_output=raw_output,
-                        parsed_result=result,
-                        files=files,
-                        semantic_review=semantic_review,
-                        error="component semantic review failed",
-                        provider_error_type="PROVIDER_COMPONENT_SEMANTIC_FAIL",
-                        contract_hash=current_component_contract_hash,
-                    )
-                    raise RuntimeError(f"component semantic review failed: {component_id}")
+                    semantic_build_hard = [
+                        str(item)
+                        for item in semantic_review.get("blockers", [])
+                        if str(item) == "no_valid_files"
+                    ]
+                    if semantic_build_hard or not defer_release_hard:
+                        write_provider_component_checkpoint(
+                            checkpoint_dir,
+                            component_id=component_id,
+                            spec_hash=spec_hash,
+                            status="failed",
+                            raw_output=raw_output,
+                            parsed_result=result,
+                            files=files,
+                            semantic_review=semantic_review,
+                            error="component semantic review failed",
+                            provider_error_type="PROVIDER_COMPONENT_SEMANTIC_FAIL",
+                            contract_hash=current_component_contract_hash,
+                        )
+                        raise RuntimeError(f"component semantic review failed: {component_id}")
+                    result["provider_semantic_release_audit"] = semantic_review
+                    semantic_review = {
+                        **semantic_review,
+                        "status": "pass",
+                        "workflow_disposition": "DEFER_TO_POST_BUILD_AUDIT",
+                        "release_hard_blockers": list(
+                            semantic_review.get("blockers", [])
+                        ),
+                    }
                 module_quality_validation = validate_generated_component_quality(
                     component_id=component_id,
                     files=files,
@@ -20242,7 +22998,13 @@ def provider_generate_project_by_components(
                     component_contract=component,
                 )
                 result["module_quality_validation"] = module_quality_validation
-                if module_quality_validation.get("status") != "pass":
+                if (
+                    module_quality_validation.get("build_hard_blockers")
+                    or (
+                        not defer_release_hard
+                        and module_quality_validation.get("status") != "pass"
+                    )
+                ):
                     quality_error = (
                         f"component quality validation failed: {component_id}: "
                         + "; ".join(
@@ -20318,6 +23080,21 @@ def provider_generate_project_by_components(
                         contract_hash=current_component_contract_hash,
                     )
                     raise RuntimeError(quality_error)
+                if defer_release_hard and module_quality_validation.get("release_hard_blockers"):
+                    append_provider_event_log(
+                        provider_phase_log_path,
+                        {
+                            "event": "component_release_hard_deferred_to_post_build",
+                            "stage": "project_generation",
+                            "component": component_id,
+                            "affected_files": module_quality_validation.get(
+                                "affected_files", []
+                            ),
+                            "blockers": module_quality_validation.get(
+                                "release_hard_blockers", []
+                            )[:12],
+                        },
+                    )
                 cross_validation_receipt = cross_validate_component_for_feedforward(
                     component=component,
                     result=result,
@@ -20333,20 +23110,35 @@ def provider_generate_project_by_components(
                             for item in cross_validation_receipt.get("blockers", [])[:8]
                         )
                     )
-                    write_provider_component_checkpoint(
-                        checkpoint_dir,
-                        component_id=component_id,
-                        spec_hash=spec_hash,
-                        status="failed",
-                        raw_output=raw_output,
-                        parsed_result=result,
-                        files=files,
-                        semantic_review=semantic_review,
-                        error="component cross-validation and feedforward failed",
-                        provider_error_type="PROVIDER_COMPONENT_QUALITY_FAIL",
-                        contract_hash=current_component_contract_hash,
+                    if not defer_release_hard:
+                        write_provider_component_checkpoint(
+                            checkpoint_dir,
+                            component_id=component_id,
+                            spec_hash=spec_hash,
+                            status="failed",
+                            raw_output=raw_output,
+                            parsed_result=result,
+                            files=files,
+                            semantic_review=semantic_review,
+                            error="component cross-validation and feedforward failed",
+                            provider_error_type="PROVIDER_COMPONENT_QUALITY_FAIL",
+                            contract_hash=current_component_contract_hash,
+                        )
+                        raise RuntimeError(cross_validation_error)
+                    result["cross_validation_release_audit"] = {
+                        **cross_validation_receipt,
+                        "workflow_disposition": "DEFER_TO_POST_BUILD_AUDIT",
+                        "severity": "RELEASE_HARD",
+                    }
+                    append_provider_event_log(
+                        provider_phase_log_path,
+                        {
+                            "event": "component_cross_validation_deferred_to_post_build",
+                            "stage": "project_generation",
+                            "component": component_id,
+                            "blockers": cross_validation_receipt.get("blockers", [])[:12],
+                        },
                     )
-                    raise RuntimeError(cross_validation_error)
                 write_provider_component_checkpoint(
                     checkpoint_dir,
                     component_id=component_id,
@@ -20502,7 +23294,10 @@ def provider_generate_project_by_components(
         files,
         design_context=component_pipeline.get("design_context", {}),
     )
-    if assembled_quality_validation.get("status") != "pass":
+    if assembled_quality_validation.get("build_hard_blockers") or (
+        not defer_release_hard
+        and assembled_quality_validation.get("status") != "pass"
+    ):
         raise RuntimeError(
             "assembled project quality validation failed: "
             + "; ".join(
@@ -20545,7 +23340,7 @@ def provider_generate_project_by_components(
             "blockers": project_cross_validation_feedforward.get("blockers", [])[:12],
         },
     )
-    if project_cross_validation_feedforward.get("status") != "pass":
+    if project_cross_validation_feedforward.get("status") != "pass" and not defer_release_hard:
         raise RuntimeError(
             "project cross-validation and feedforward failed: "
             + "; ".join(
@@ -20553,6 +23348,69 @@ def provider_generate_project_by_components(
                 for item in project_cross_validation_feedforward.get("blockers", [])[:12]
             )
         )
+    deferred_release_issues = [
+        {
+            "kind": "component_semantic_release_issue",
+            "severity": "RELEASE_HARD",
+            "component": str(result.get("component_id", "")),
+            "files": [],
+            "message": str(item),
+        }
+        for result in component_results
+        for item in (
+            result.get("provider_semantic_release_audit", {}).get("blockers", [])
+            if isinstance(result.get("provider_semantic_release_audit", {}), dict)
+            else []
+        )
+    ]
+    deferred_release_issues.extend(
+        {
+            "kind": "component_quality_release_issue",
+            "severity": "RELEASE_HARD",
+            "component": str(result.get("component_id", "")),
+            "files": list(
+                (result.get("module_quality_validation", {}) or {}).get(
+                    "affected_files", []
+                )
+            ),
+            "message": str(item),
+        }
+        for result in component_results
+        for item in (
+            result.get("module_quality_validation", {}).get(
+                "release_hard_blockers", []
+            )
+            if isinstance(result.get("module_quality_validation", {}), dict)
+            else []
+        )
+    )
+    deferred_release_issues.extend(
+        {
+            "kind": "provider_job_boundary_release_issue",
+            "severity": "RELEASE_HARD",
+            "component": str(result.get("component_id", "")),
+            "files": [str(receipt.get("target_file", ""))],
+            "message": str(item),
+        }
+        for result in component_results
+        for receipt in (
+            result.get("release_hard_boundary_receipts", [])
+            if isinstance(result.get("release_hard_boundary_receipts", []), list)
+            else []
+        )
+        if isinstance(receipt, dict)
+        for item in receipt.get("blockers", [])
+    )
+    deferred_release_issues.extend(
+        {
+            "kind": "integration_feedforward_release_issue",
+            "severity": "RELEASE_HARD",
+            "component": "integration",
+            "files": [],
+            "message": str(item),
+        }
+        for item in project_cross_validation_feedforward.get("blockers", [])
+    )
     mark_generation_progress(
         deadline,
         "project_generation",
@@ -20582,6 +23440,7 @@ def provider_generate_project_by_components(
         "component_checkpoint_summary": checkpoint_summary(),
         "module_quality_validation": assembled_quality_validation,
         "cross_validation_feedforward_receipt": project_cross_validation_feedforward,
+        "post_build_release_issues": deferred_release_issues,
         "manual_checks": [
             check
             for result in component_results
@@ -22166,10 +25025,13 @@ def run_candidate_post_build_finalize(
         "pass",
         "skipped",
     }
-    candidate_contract_issues = candidate_direct_cli_leaf_contract_issues(
-        project_dir,
-        component_pipeline,
-    )
+    candidate_contract_issues = [
+        *candidate_direct_cli_leaf_contract_issues(
+            project_dir,
+            component_pipeline,
+        ),
+        *candidate_build_coherence_issues(project_dir),
+    ]
 
     try:
         agent_usage = run_project_usage_agent(
@@ -22350,6 +25212,18 @@ def run_candidate_post_build_finalize(
     result = {
         "status": status,
         "candidate_only": True,
+        "evaluation_coverage": {
+            "candidate_tests": "executed" if str(test_result.get("status", "")).lower() != "skipped" else "not_applicable",
+            "runtime": "reached" if str(agent_usage.get("status", "")).lower() not in {"", "skipped"} else "not_reached",
+            "browser": "reached" if bool(screenshot_capture.get("attempts")) or bool(screenshots) else ("not_applicable" if not visual_surface_required else "not_reached"),
+            "hidden_acceptance": "NOT_EVALUATED",
+            "persistence_restart": "reached" if str(fixture_result.get("status", "")).lower() not in {"", "skipped"} else "not_reached",
+            "integration": "reached",
+            "visual": "reached" if bool(screenshots) else ("not_applicable" if not visual_surface_required else "not_reached"),
+            "contract_validation": "reached",
+            "readme_startup": "reached",
+            "package_readiness": "reached",
+        },
         "visual_surface_required": visual_surface_required,
         "test_result": test_result,
         "candidate_contract_issues": candidate_contract_issues,
@@ -24328,6 +27202,423 @@ def write_provider_semantic_review_failure(
     return diagnostics
 
 
+def provider_non_json_payload_diagnostics(
+    exc: BaseException,
+    *,
+    component: str = "",
+) -> dict[str, Any]:
+    """Describe a response that failed the one allowed JSON-envelope repair."""
+    raw_output = (
+        exc.raw_output if isinstance(exc, ProviderOutputContractError) else ""
+    )
+    return {
+        "evidence_status": "BLOCKED_PROVIDER",
+        "provider_failure_classification": "BLOCKED_PROVIDER_NON_JSON_PAYLOAD",
+        "response_classification": "non_json_after_single_schema_repair",
+        "failed_component": str(component or ""),
+        "schema_repair_attempted": True,
+        "schema_repair_attempts": 1,
+        "schema_repair_limit": 1,
+        "expected_schema": {
+            "type": "object",
+            "required": ["files"],
+            "files": [{"path": "declared owned path", "content": "complete source text"}],
+        },
+        "raw_response_excerpt": bounded_provider_diagnostic_output(
+            raw_output, max_chars=4000
+        ),
+        "materialized": False,
+        "candidate_created": False,
+    }
+
+
+def write_provider_non_json_payload_failure(
+    run_dir: pathlib.Path,
+    requested_project_dir: pathlib.Path,
+    exc: BaseException,
+    attempted_repairs: list[dict[str, Any]],
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    component: str = "",
+) -> dict[str, Any]:
+    classification = provider_non_json_payload_diagnostics(
+        exc, component=component
+    )
+    provider_review = {
+        "status": "fail",
+        "issues": [classification["provider_failure_classification"]],
+        "structured_blockers": [classification],
+        "review_summary": (
+            "Provider returned a non-JSON project payload after the single allowed "
+            "schema-envelope repair. No candidate was materialized."
+        ),
+    }
+    diagnostics = write_provider_semantic_review_failure(
+        run_dir,
+        requested_project_dir,
+        provider_review,
+        attempted_repairs,
+        checkpoint_dir,
+        [],
+        provider_status="blocked_provider_non_json_payload",
+    )
+    diagnostics.update(classification)
+    write_json(
+        run_dir / "artifacts" / "provider_semantic_review_failure.json",
+        diagnostics,
+    )
+    write_json(
+        run_dir / "artifacts" / "provider_non_json_payload_failure.json",
+        diagnostics,
+    )
+    return diagnostics
+
+
+def execute_provider_job_patch_generation(
+    *,
+    candidate_dir: pathlib.Path,
+    repair_plan: dict[str, Any],
+    user_goal: str,
+    component_pipeline: dict[str, Any],
+    plan_doc: dict[str, Any],
+    blueprint: dict[str, Any],
+    online_inputs: dict[str, Any],
+    market_research: dict[str, Any],
+    model: str,
+    timeout: int,
+    internal_context: str,
+    deadline: float | ProgressDeadline,
+    run_dir: pathlib.Path,
+    phase_log_path: pathlib.Path | str,
+    routing_policy: ProviderModelRoutingPolicy | None = None,
+) -> dict[str, Any]:
+    """Generate and apply only evidenced owned deltas through existing ProviderJobs."""
+    started = time.perf_counter()
+    prepared_plan = {
+        **repair_plan,
+        "stage": "provider_semantic_repair",
+        "raw_user_goal": user_goal,
+    }
+    provider_actions = [
+        dict(item)
+        for item in prepared_plan.get("provider_actions", [])
+        if isinstance(item, dict)
+    ]
+    target_files = sorted(
+        {
+            str(item.get("path", "")).replace("\\", "/").strip()
+            for item in provider_actions
+            if str(item.get("path", "")).strip()
+        }
+    )
+    force_components = {
+        str(item.get("component", "")).strip()
+        for item in provider_actions
+        if str(item.get("component", "")).strip()
+    }
+    if not target_files or not force_components:
+        return {
+            "status": "failed",
+            "reason": "WRONG_REPAIR_SCOPE",
+            "changed_files": [],
+            "provider_calls": 0,
+        }
+    ownership = post_build_repair.provider_job_ownership_map(component_pipeline)
+    if any(path not in ownership for path in target_files):
+        return {
+            "status": "failed",
+            "reason": "OWNERSHIP_REJECT",
+            "changed_files": [],
+            "provider_calls": 0,
+        }
+    repair_base: dict[str, list[dict[str, str]]] = {}
+    for path, job_id in ownership.items():
+        component_id = job_id.split(".", 1)[0]
+        source = (candidate_dir / pathlib.Path(*pathlib.PurePosixPath(path).parts)).resolve()
+        try:
+            source.relative_to(candidate_dir.resolve())
+        except ValueError:
+            continue
+        if source.is_file():
+            repair_base.setdefault(component_id, []).append(
+                {"path": path, "content": source.read_text(encoding="utf-8")}
+            )
+    instructions = repair_plan_component_instructions(prepared_plan)
+    repair_errors = list(
+        dict.fromkeys(
+            str(item.get("instruction", "")).strip()
+            for item in provider_actions
+            if str(item.get("instruction", "")).strip()
+        )
+    )
+    calls_before = int(
+        provider_execution_metrics.snapshot(phase_log_path).get(
+            "provider_api_call_count", 0
+        )
+        or 0
+    )
+    try:
+        generation = provider_generate_project_by_components(
+            user_goal,
+            component_pipeline,
+            plan_doc,
+            blueprint,
+            online_inputs,
+            market_research,
+            [],
+            model,
+            timeout,
+            internal_context=internal_context,
+            deadline=deadline,
+            checkpoint_dir=run_dir / "artifacts" / "provider_components",
+            force_components=force_components,
+            component_repair_instructions=instructions,
+            pending_repair_plan=prepared_plan,
+            run_dir=run_dir,
+            repair_attempt_number=int(prepared_plan.get("attempt_number", 1) or 1),
+            model_base_url=provider_base_url_for_diagnostics(),
+            routing_policy=(
+                routing_policy
+                or ProviderModelRoutingPolicy(
+                    small_model=model,
+                    large_model=model,
+                    enable_model_routing=False,
+                )
+            ),
+            defer_release_hard=True,
+            repair_base_files_by_component=repair_base,
+            repair_only_components=True,
+        )
+        files = validate_provider_files(generation)
+    except Exception as exc:
+        calls_after = int(
+            provider_execution_metrics.snapshot(phase_log_path).get(
+                "provider_api_call_count", 0
+            )
+            or 0
+        )
+        return {
+            "status": "failed",
+            "reason": str(exc),
+            "changed_files": [],
+            "provider_calls": max(0, calls_after - calls_before),
+            "requested_files": target_files,
+            "files_supplied": sorted(
+                item["path"] for rows in repair_base.values() for item in rows
+            ),
+            "prompt_bytes": len("\n".join(repair_errors).encode("utf-8")),
+            "evidence_included": bool(repair_errors),
+            "parse_status": "failed",
+            "validation_status": "failed",
+            "patch_accepted": False,
+            "duration": round(time.perf_counter() - started, 3),
+        }
+    returned = {str(item["path"]): str(item["content"]) for item in files}
+    missing = [path for path in target_files if path not in returned]
+    if missing:
+        return {
+            "status": "failed",
+            "reason": "PROVIDER_OUTPUT_INVALID: missing requested repair paths "
+            + ", ".join(missing),
+            "changed_files": [],
+            "provider_calls": max(
+                0,
+                int(provider_execution_metrics.snapshot(phase_log_path).get("provider_api_call_count", 0) or 0)
+                - calls_before,
+            ),
+            "requested_files": target_files,
+            "parse_status": "pass",
+            "validation_status": "failed",
+            "patch_accepted": False,
+            "duration": round(time.perf_counter() - started, 3),
+        }
+    coherence_before = candidate_build_coherence_issues(candidate_dir)
+    candidate_source_files: list[dict[str, str]] = []
+    for source_path in sorted(candidate_dir.rglob("*")):
+        if not source_path.is_file() or any(
+            part in {"__pycache__", ".pytest_cache", ".git"}
+            for part in source_path.parts
+        ):
+            continue
+        if source_path.suffix.lower() not in {".py", ".js", ".mjs", ".html", ".htm"}:
+            continue
+        relative_path = source_path.relative_to(candidate_dir).as_posix()
+        candidate_source_files.append(
+            {
+                "path": relative_path,
+                "content": source_path.read_text(encoding="utf-8", errors="replace"),
+            }
+        )
+
+    accepted_target_files: list[str] = []
+    rejected_target_files: dict[str, dict[str, Any]] = {}
+    issue_acceptance_records: list[dict[str, Any]] = []
+    accepted_partial_deltas = 0
+    issues_fixed_by_partial_acceptance = 0
+    issues_rejected_after_partial_validation = 0
+    actions_by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): item
+        for item in provider_actions
+    }
+    for target_file in target_files:
+        prospective_files = [
+            {
+                "path": str(item["path"]),
+                "content": (
+                    returned[target_file]
+                    if str(item["path"]) == target_file
+                    else str(item["content"])
+                ),
+            }
+            for item in candidate_source_files
+        ]
+        coherence_after = project_build_coherence_issues(prospective_files)
+        destination = (
+            candidate_dir / pathlib.Path(*pathlib.PurePosixPath(target_file).parts)
+        ).resolve()
+        before_content = (
+            destination.read_text(encoding="utf-8", errors="replace")
+            if destination.is_file()
+            else ""
+        )
+        action = actions_by_path.get(target_file, {})
+        acceptance = repair_acceptance.assess_provider_job_partial_acceptance(
+            target_file=target_file,
+            before_content=before_content,
+            after_content=returned[target_file],
+            coherence_before=coherence_before,
+            coherence_after=coherence_after,
+            evidence_facts=(
+                action.get("evidence_facts", [])
+                if isinstance(action.get("evidence_facts", []), list)
+                else []
+            ),
+            owned_paths=set(ownership),
+            syntax_safe=provider_repair_source_syntax_safe(
+                target_file, returned[target_file]
+            ),
+        )
+        issue_acceptance_records.extend(acceptance["issue_acceptance"])
+        issues_fixed_by_partial_acceptance += int(
+            acceptance["issues_fixed_by_partial_acceptance"]
+        )
+        issues_rejected_after_partial_validation += int(
+            acceptance["issues_rejected_after_partial_validation"]
+        )
+        if acceptance["safe_to_accept_partial"]:
+            accepted_target_files.append(target_file)
+            accepted_partial_deltas += 1
+        else:
+            rejected_target_files[target_file] = acceptance
+    if not accepted_target_files:
+        calls_after = int(
+            provider_execution_metrics.snapshot(phase_log_path).get(
+                "provider_api_call_count", 0
+            )
+            or 0
+        )
+        rejection_reasons = {
+            str(item.get("reason", ""))
+            for item in rejected_target_files.values()
+            if isinstance(item, dict)
+        }
+        return {
+            "status": "failed",
+            "reason": (
+                "NO_ACTUAL_CHANGE"
+                if rejection_reasons == {"NO_ACTUAL_CHANGE"}
+                else "AFFECTED_BEHAVIOR_VALIDATION_FAILED"
+            ),
+            "changed_files": [],
+            "provider_calls": max(0, calls_after - calls_before),
+            "requested_files": target_files,
+            "files_supplied": sorted(
+                item["path"] for rows in repair_base.values() for item in rows
+            ),
+            "prompt_bytes": len("\n".join(repair_errors).encode("utf-8")),
+            "evidence_included": bool(repair_errors),
+            "parse_status": "pass",
+            "validation_status": "failed",
+            "patch_accepted": False,
+            "rejected_target_files": rejected_target_files,
+            "issue_acceptance": issue_acceptance_records,
+            "issues_fixed_by_partial_acceptance": 0,
+            "issues_rejected_after_partial_validation": issues_rejected_after_partial_validation,
+            "accepted_partial_deltas": 0,
+            "accepted_without_target_issue_improvement": 0,
+            "duration": round(time.perf_counter() - started, 3),
+        }
+    changed_files: list[str] = []
+    for path in accepted_target_files:
+        destination = (
+            candidate_dir / pathlib.Path(*pathlib.PurePosixPath(path).parts)
+        ).resolve()
+        destination.relative_to(candidate_dir.resolve())
+        before = destination.read_text(encoding="utf-8") if destination.is_file() else ""
+        if before == returned[path]:
+            continue
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(returned[path], encoding="utf-8")
+        changed_files.append(path)
+    calls_after = int(
+        provider_execution_metrics.snapshot(phase_log_path).get(
+            "provider_api_call_count", 0
+        )
+        or 0
+    )
+    if not changed_files:
+        return {
+            "status": "failed",
+            "reason": "NO_ACTUAL_CHANGE",
+            "changed_files": [],
+            "provider_calls": max(0, calls_after - calls_before),
+            "requested_files": target_files,
+            "files_supplied": sorted(
+                item["path"] for rows in repair_base.values() for item in rows
+            ),
+            "prompt_bytes": len("\n".join(repair_errors).encode("utf-8")),
+            "evidence_included": bool(repair_errors),
+            "parse_status": "pass",
+            "validation_status": "pass",
+            "patch_accepted": False,
+            "duration": round(time.perf_counter() - started, 3),
+        }
+    return {
+        "status": "applied",
+        "partial_application": bool(rejected_target_files),
+        "reason": (
+            "AFFECTED_BEHAVIOR_VALIDATION_FAILED_FOR_SOME_PROVIDER_JOBS"
+            if rejected_target_files
+            else ""
+        ),
+        "changed_files": changed_files,
+        "rejected_target_files": rejected_target_files,
+        "issue_acceptance": issue_acceptance_records,
+        "issues_fixed_by_partial_acceptance": issues_fixed_by_partial_acceptance,
+        "issues_rejected_after_partial_validation": issues_rejected_after_partial_validation,
+        "accepted_partial_deltas": accepted_partial_deltas,
+        "accepted_without_target_issue_improvement": 0,
+        "provider_calls": max(0, calls_after - calls_before),
+        "requested_files": target_files,
+        "files_supplied": sorted(
+            item["path"] for rows in repair_base.values() for item in rows
+        ),
+        "prompt_bytes": len("\n".join(repair_errors).encode("utf-8")),
+        "evidence_included": bool(repair_errors),
+        "parse_status": "pass",
+        "validation_status": "pass",
+        "patch_accepted": True,
+        "validation_order": [
+            "syntax_and_ownership",
+            "affected_real_behavior",
+            "integration",
+            "full_evaluation_later",
+        ],
+        "duration": round(time.perf_counter() - started, 3),
+        "execution_path": "provider_generate_project_by_components.split_file_provider_jobs",
+    }
+
+
 def run_provider_semantic_review_with_repair(
     *,
     user_goal: str,
@@ -24348,6 +27639,8 @@ def run_provider_semantic_review_with_repair(
     phase_log_path: pathlib.Path | str,
     initial_repair_plan: dict[str, Any] | None = None,
     routing_policy: ProviderModelRoutingPolicy | None = None,
+    candidate_first: bool = False,
+    on_build_complete: Callable[[dict[str, Any], list[dict[str, str]]], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     checkpoint_dir = run_dir / "artifacts" / "provider_components"
     attempted_repairs: list[dict[str, Any]] = []
@@ -24398,9 +27691,76 @@ def run_provider_semantic_review_with_repair(
                 semantic_repair_attempts_used=len(attempted_repairs),
                 model_base_url=provider_base_url_for_diagnostics(),
                 routing_policy=routing_policy,
+                defer_release_hard=candidate_first,
             )
         except (RuntimeError, TimeoutError) as exc:
             issues = [str(exc)]
+            if isinstance(exc, ProviderContractRepairExhaustedError):
+                failed_component_match = re.search(
+                    r"\bcomponent\s+([A-Za-z0-9_.-]+)\s+generation\s+failed\b",
+                    str(exc),
+                    flags=re.I,
+                )
+                failed_component = (
+                    failed_component_match.group(1).strip()
+                    if failed_component_match
+                    else (sorted(force_components)[0] if len(force_components) == 1 else "")
+                )
+                diagnostics = write_provider_non_json_payload_failure(
+                    run_dir,
+                    out_dir,
+                    exc,
+                    attempted_repairs,
+                    checkpoint_dir,
+                    component=failed_component,
+                )
+                update_provider_component_checkpoint_summary(
+                    checkpoint_dir,
+                    {
+                        "semantic_review_status": "blocked_provider_non_json_payload",
+                        "semantic_review_attempts": semantic_attempt + 1,
+                        "attempted_repairs": attempted_repairs,
+                        "remaining_blockers": ["BLOCKED_PROVIDER_NON_JSON_PAYLOAD"],
+                        "failure_diagnostics": str(
+                            (
+                                run_dir
+                                / "artifacts"
+                                / "provider_non_json_payload_failure.json"
+                            ).resolve()
+                        ),
+                    },
+                )
+                append_phase_log(
+                    phase_log_path,
+                    "project_generation",
+                    "blocked_provider_non_json_payload",
+                    (
+                        "Provider project payload remained non-JSON after one bounded "
+                        "schema repair; no candidate was materialized."
+                    ),
+                    [
+                        str(
+                            run_dir
+                            / "artifacts"
+                            / "provider_non_json_payload_failure.json"
+                        )
+                    ],
+                    started_at=generation_started,
+                )
+                return {
+                    "status": "blocked",
+                    "evidence_status": "BLOCKED_PROVIDER",
+                    "provider_failure_classification": "BLOCKED_PROVIDER_NON_JSON_PAYLOAD",
+                    "generation": last_generation,
+                    "files": [],
+                    "provider_review": {
+                        "status": "fail",
+                        "issues": ["BLOCKED_PROVIDER_NON_JSON_PAYLOAD"],
+                        "review_summary": "Provider response contract could not be recovered.",
+                    },
+                    "attempted_repairs": attempted_repairs,
+                    "diagnostics": diagnostics,
+                }
             transport = provider_transport_error_info(str(exc))
             if transport.get("is_transport"):
                 diagnostics = write_provider_transport_blocked_failure(
@@ -24573,6 +27933,9 @@ def run_provider_semantic_review_with_repair(
                         continue
             attempted_repairs[-1]["regenerated_files"] = sorted(set(regenerated))
         files = validate_provider_files(generation)
+        build_receipt: dict[str, Any] = {}
+        if on_build_complete is not None:
+            build_receipt = on_build_complete(generation, files)
         try:
             provider_review = provider_review_project(
                 user_goal,
@@ -24717,6 +28080,30 @@ def run_provider_semantic_review_with_repair(
                 "attempted_repairs": attempted_repairs,
                 "diagnostics": diagnostics,
             }
+        deferred_release_issues = [
+            dict(item)
+            for item in generation.get("post_build_release_issues", [])
+            if isinstance(item, dict)
+        ] if candidate_first else []
+        if deferred_release_issues:
+            existing_blockers = provider_review.get("structured_blockers", [])
+            if not isinstance(existing_blockers, list):
+                existing_blockers = []
+            existing_issues = provider_review.get("issues", [])
+            if not isinstance(existing_issues, list):
+                existing_issues = [str(existing_issues)] if str(existing_issues).strip() else []
+            provider_review["structured_blockers"] = [
+                *existing_blockers,
+                *deferred_release_issues,
+            ]
+            provider_review["issues"] = [
+                *existing_issues,
+                *[str(item.get("message", item)) for item in deferred_release_issues],
+            ]
+            provider_review["status"] = "fail"
+            provider_review["review_summary"] = (
+                "Complete Provider file set contains RELEASE_HARD findings deferred to the post-build issue ledger."
+            )
         deterministic_blockers = deterministic_complexity_blockers(
             goal=user_goal,
             plan_doc=plan_doc,
@@ -24779,6 +28166,32 @@ def run_provider_semantic_review_with_repair(
                 "files": files,
                 "provider_review": provider_review,
                 "attempted_repairs": attempted_repairs,
+                "build_receipt": build_receipt,
+            }
+        if candidate_first and build_receipt.get("candidate_materialized"):
+            diagnostics = write_provider_semantic_review_failure(
+                run_dir,
+                out_dir,
+                provider_review,
+                attempted_repairs,
+                checkpoint_dir,
+                files,
+            )
+            append_phase_log(
+                phase_log_path,
+                "provider_semantic_review",
+                "post_build_issue",
+                "Complete candidate was ingested before semantic audit; audit findings were deferred to the post-build issue ledger.",
+                [str(run_dir / "artifacts" / "provider_semantic_review_failure.json")],
+            )
+            return {
+                "status": "post_build_issue",
+                "generation": generation,
+                "files": files,
+                "provider_review": provider_review,
+                "attempted_repairs": attempted_repairs,
+                "diagnostics": diagnostics,
+                "build_receipt": build_receipt,
             }
         if semantic_attempt >= max_repair_attempts:
             diagnostics = write_provider_semantic_review_failure(
@@ -26053,6 +29466,8 @@ def write_provider_long_context_artifacts(
 
 
 def execute(args: argparse.Namespace) -> dict[str, Any]:
+    production_started_at = now()
+    production_started_monotonic = time.perf_counter()
     resume_run_dir = str(getattr(args, "resume_run_dir", "") or "").strip()
     if resume_run_dir:
         args.run_dir = resume_run_dir
@@ -26204,6 +29619,12 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             + json.dumps(codex_brief_projection, ensure_ascii=False, indent=2)
         ).strip()
     phase_log_path = str(getattr(args, "phase_log_path", "") or (run_dir / "provider_phase_log.jsonl"))
+    provider_calls_at_production_start = int(
+        provider_execution_metrics.snapshot(phase_log_path).get(
+            "provider_api_call_count", 0
+        )
+        or 0
+    )
     if codex_brief_projection:
         append_provider_event_log(
             phase_log_path,
@@ -26604,6 +30025,202 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     generated_files: list[str] = []
     example_outputs: dict[str, Any] = {}
     agent_usage: dict[str, Any] = {}
+    candidate_materialization: dict[str, Any] = {}
+    candidate_store_dir = run_dir / "artifacts" / "candidate_store"
+    commit_result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    production_commit_sha = commit_result.stdout.strip() if commit_result.returncode == 0 else "unknown"
+
+    def ingest_build_complete_candidate(
+        provider_generation: dict[str, Any],
+        provider_files: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        nonlocal candidate_materialization
+        if candidate_materialization.get("candidate_materialized"):
+            return candidate_materialization
+        required_paths = [
+            str(item).replace("\\", "/").strip()
+            for item in project_plan.get("expected_project_structure", [])
+            if str(item).strip()
+        ] if isinstance(project_plan, dict) else []
+        build_assessment = candidate_materializer.assess_build_complete(
+            provider_files,
+            required_paths=required_paths,
+            safety_blockers=detect_provider_hard_fact_blockers(provider_files),
+        )
+        if not build_assessment.get("build_complete"):
+            candidate_materialization = {
+                "candidate_materialized": False,
+                "build_assessment": build_assessment,
+            }
+            return candidate_materialization
+        project_spec_payload = {
+            "goal_spec": goal_spec,
+            "project_plan": project_plan,
+            "acceptance_contract": acceptance_contract,
+        }
+        project_spec_hash = hashlib.sha256(
+            json.dumps(
+                project_spec_payload,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        provider_metrics = provider_execution_metrics.snapshot(phase_log_path)
+        build_coherence_issues = project_build_coherence_issues(provider_files)
+        materialized = candidate_materializer.run(
+            candidate_dir=out_dir,
+            files=provider_files,
+            semantic_classes={},
+            sanitize_result={},
+            store_dir=candidate_store_dir,
+            version_metadata={
+                "commit_sha": production_commit_sha,
+                "project_spec_hash": project_spec_hash,
+                "known_issues": [],
+                "provider_provenance": {
+                    "model": str(args.model),
+                    "generation_summary": str(provider_generation.get("summary", ""))[:1000],
+                },
+                "provider_calls": int(provider_metrics.get("provider_api_call_count", 0) or 0),
+            },
+        )
+        record = materialized.get("candidate_record", {}) if isinstance(materialized.get("candidate_record"), dict) else {}
+        candidate_materialization = {
+            **materialized,
+            "candidate_materialized": True,
+            "build_assessment": build_assessment,
+            "first_candidate_created": str(record.get("created_at", now())),
+            "time_to_first_candidate": round(time.perf_counter() - production_started_monotonic, 3),
+            "provider_calls_to_first_candidate": max(
+                0,
+                int(provider_metrics.get("provider_api_call_count", 0) or 0)
+                - provider_calls_at_production_start,
+            ),
+            "build_coherence": {
+                "status": "PASS" if not build_coherence_issues else "NEEDS_REWORK",
+                "release_authority": False,
+                "candidate_creation_blocked": False,
+                "issues": build_coherence_issues,
+            },
+        }
+        write_json(
+            run_dir / "artifacts" / "build_complete_receipt.json",
+            {
+                "kind": "CGKNBuildCompleteReceipt",
+                "workflow_state": "BUILD_COMPLETE",
+                "evidence_status": "NOT_EVALUATED",
+                "release_ready": False,
+                "not_final_delivery": True,
+                **candidate_materialization,
+            },
+        )
+        append_phase_log(
+            phase_log_path,
+            "candidate_ingest",
+            "build_complete",
+            "Project files are complete and the provisional candidate was ingested; release validation is still pending.",
+            [str(out_dir), str(candidate_store_dir)],
+        )
+        return candidate_materialization
+
+    def execute_existing_provider_job_batch_repair(
+        *,
+        candidate_dir: pathlib.Path,
+        repair_plan: dict[str, Any],
+        issue_ledger: dict[str, Any],
+        attempt: int,
+    ) -> dict[str, Any]:
+        """Consume a post-build plan through the existing split-file ProviderJob DAG."""
+        provider_actions = [
+            dict(item)
+            for item in repair_plan.get("provider_actions", [])
+            if isinstance(item, dict)
+        ]
+        job_batches = [
+            dict(item)
+            for item in repair_plan.get("provider_job_batches", [])
+            if isinstance(item, dict)
+        ]
+        if not provider_actions:
+            return {
+                "status": "skipped",
+                "reason": "no_provider_actions",
+                "changed_files": [],
+                "provider_calls": 0,
+            }
+        if not job_batches or any(not str(item.get("component", "")).strip() for item in provider_actions):
+            return {
+                "status": "failed",
+                "reason": "provider_job_ownership_unresolved",
+                "changed_files": [],
+                "provider_calls": 0,
+            }
+        issue_lines = [
+            json.dumps(item, ensure_ascii=False, sort_keys=True, default=str)
+            for item in issue_ledger.get("issues", [])
+            if isinstance(item, dict)
+        ]
+        prepared_plan = {
+            **repair_plan,
+            "status": "pending",
+            "stage": "provider_semantic_repair",
+            "raw_user_goal": user_goal,
+            "blockers": issue_lines,
+            "affected_components": sorted(
+                {
+                    str(item.get("component", "")).strip()
+                    for item in provider_actions
+                    if str(item.get("component", "")).strip()
+                }
+            ),
+            "affected_files": sorted(
+                {
+                    str(item.get("path", "")).replace("\\", "/").strip()
+                    for item in provider_actions
+                    if str(item.get("path", "")).strip()
+                }
+            ),
+            "provider_actions": provider_actions,
+            "repair_round": attempt,
+            "issue_ledger_ref": str(
+                run_dir
+                / "artifacts"
+                / f"post_build_issue_ledger_attempt_{attempt}.json"
+            ),
+        }
+        write_pending_repair_context(
+            run_dir / "artifacts" / "pending_repair_plan.json",
+            prepared_plan,
+        )
+        repaired = execute_provider_job_patch_generation(
+            candidate_dir=candidate_dir,
+            repair_plan=prepared_plan,
+            user_goal=user_goal,
+            component_pipeline=component_pipeline,
+            plan_doc=plan_doc,
+            blueprint=blueprint,
+            online_inputs=online_inputs,
+            market_research=market_research,
+            model=str(args.model),
+            timeout=int(args.timeout),
+            internal_context=internal_context,
+            deadline=exec_deadline,
+            run_dir=run_dir,
+            phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
+        )
+        return {
+            **repaired,
+            "provider_job_batches": job_batches,
+        }
+
     semantic_result = run_provider_semantic_review_with_repair(
         user_goal=user_goal,
         plan_doc=plan_doc,
@@ -26623,11 +30240,23 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         phase_log_path=phase_log_path,
         initial_repair_plan=resume_pending_plan,
         routing_policy=routing_policy,
+        candidate_first=True,
+        on_build_complete=ingest_build_complete_candidate,
     )
     generation = semantic_result.get("generation", {}) if isinstance(semantic_result.get("generation"), dict) else {}
     files = semantic_result.get("files", []) if isinstance(semantic_result.get("files"), list) else []
     provider_review = semantic_result.get("provider_review", {}) if isinstance(semantic_result.get("provider_review"), dict) else {}
-    if semantic_result.get("status") != "pass":
+    leaf_graph_dir = run_dir / "artifacts" / "provider_components" / "leaf_work_graphs"
+    for component in component_pipeline.get("components", []):
+        if not isinstance(component, dict):
+            continue
+        graph_path = leaf_graph_dir / f"{str(component.get('id', '')).strip()}.json"
+        if graph_path.is_file():
+            graph = load_json(graph_path)
+            component["leaf_work_graph"] = {
+                key: value for key, value in graph.items() if key != "spec_hash"
+            }
+    if semantic_result.get("status") not in {"pass", "post_build_issue"}:
         diagnostics = semantic_result.get("diagnostics", {})
         original_file_count = len(files)
         files = recover_candidate_files_from_checkpoints(run_dir, files)
@@ -26643,17 +30272,25 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         fatal_fact_blockers = list(semantic_classes.get("fatal_fact_blocker", [])) + static_fatal_fact_blockers
         repairable_fact_blockers = list(semantic_classes.get("repairable_fact_blocker", [])) + static_repairable_fact_blockers
         sanitize_result: dict[str, Any] = {"status": "pass", "files": files, "sanitized_fact_blockers": [], "changed_paths": []}
-        if files and not fatal_fact_blockers and repairable_fact_blockers:
+        if files and not fatal_fact_blockers and repairable_fact_blockers and not candidate_materialization.get("candidate_materialized"):
             sanitize_result = candidate_sanitizer.run(files, repairable_fact_blockers)
             files = sanitize_result.get("files", files) if isinstance(sanitize_result.get("files"), list) else files
             fatal_fact_blockers = list(sanitize_result.get("fatal_fact_blockers", []))
         if files and not fatal_fact_blockers:
-            candidate_dir = candidate_project_dir_for(out_dir)
-            materialized_candidate = candidate_materializer.run(
+            candidate_dir = out_dir if candidate_materialization.get("candidate_materialized") else candidate_project_dir_for(out_dir)
+            materialized_candidate = candidate_materialization or candidate_materializer.run(
                 candidate_dir=candidate_dir,
                 files=files,
                 semantic_classes=semantic_classes,
                 sanitize_result=sanitize_result,
+                store_dir=candidate_store_dir,
+                version_metadata={
+                    "commit_sha": production_commit_sha,
+                    "project_spec_hash": hashlib.sha256(json.dumps({"goal_spec": goal_spec, "project_plan": project_plan, "acceptance_contract": acceptance_contract}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
+                    "known_issues": [issue_text(item) for item in provider_review_issues(provider_review)],
+                    "provider_provenance": {"model": str(args.model)},
+                    "provider_calls": int(provider_execution_metrics.snapshot(phase_log_path).get("provider_api_call_count", 0) or 0),
+                },
             )
             generated_files = list(materialized_candidate.get("metadata", {}).get("generated_files", []))
             generation["provider_semantic_review"] = provider_review
@@ -26674,6 +30311,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 routing_policy=routing_policy,
                 component_pipeline=component_pipeline,
             )
+            initial_issue_ledger = post_build_repair.compile_issue_ledger(
+                candidate_dir,
+                post_build,
+                component_pipeline=component_pipeline,
+            )
+            write_json(run_dir / "artifacts" / "post_build_issue_ledger_v0.json", initial_issue_ledger)
+            first_candidate_record = materialized_candidate.get("candidate_record", {}) if isinstance(materialized_candidate.get("candidate_record"), dict) else {}
             post_build = run_candidate_post_build_repair_loop(
                 candidate_dir=candidate_dir,
                 run_dir=run_dir,
@@ -26690,7 +30334,21 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 initial_post_build=post_build,
                 max_attempts=post_build_repair_attempts(args),
                 component_pipeline=component_pipeline,
+                candidate_store_dir=candidate_store_dir,
+                current_candidate_id=str(first_candidate_record.get("candidate_id", "")),
+                version_metadata={
+                    "commit_sha": production_commit_sha,
+                    "project_spec_hash": str(first_candidate_record.get("project_spec_hash", "")),
+                    "provider_provenance": first_candidate_record.get("provider_provenance", {}),
+                },
+                provider_repair_executor=execute_existing_provider_job_batch_repair,
             )
+            final_issue_ledger = post_build_repair.compile_issue_ledger(
+                candidate_dir,
+                post_build,
+                component_pipeline=component_pipeline,
+            )
+            write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
             final_bundle_exists = (candidate_dir / "final_project_bundle.zip").exists()
             delivery_manifest_exists = (candidate_dir / "delivery_manifest.json").exists()
             final_truth = final_delivery_truth.run_if_applicable(
@@ -26748,12 +30406,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "candidate_only": True,
                 "not_final_delivery": True,
                 "candidate_materialized": True,
+                "build_state": "BUILD_COMPLETE",
+                "release_ready": False,
+                "candidate_record": post_build.get("candidate_record", first_candidate_record),
+                "initial_issue_ledger": initial_issue_ledger,
+                "final_issue_ledger": final_issue_ledger,
                 "materialized": False,
                 "generated_files": generated_files,
                 "candidate_files_recovered_from_checkpoints": recovered_candidate_files,
                 "fatal_fact_blockers": [],
                 "repairable_fact_blockers": repairable_fact_blockers,
-                "hard_fact_blockers": repairable_fact_blockers,
+                "hard_fact_blockers": [],
+                "post_build_issues": repairable_fact_blockers,
                 "sanitized_fact_blockers": sanitize_result.get("sanitized_fact_blockers", []),
                 "sanitized_files": sanitize_result.get("changed_paths", []),
                 "runtime_blockers": semantic_classes.get("runtime_blocker", []),
@@ -26813,7 +30477,16 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         write_json(result_path, blocked)
         return blocked
     generation["provider_semantic_review_attempted_repairs"] = semantic_result.get("attempted_repairs", [])
-    generated_files = write_provider_files(out_dir, files)
+    if not candidate_materialization.get("candidate_materialized"):
+        candidate_materialization = ingest_build_complete_candidate(generation, files)
+    if not candidate_materialization.get("candidate_materialized"):
+        raise RuntimeError(
+            "BUILD_HARD_BLOCKED:"
+            + json.dumps(candidate_materialization.get("build_assessment", {}).get("blockers", []), ensure_ascii=False)
+        )
+    generated_files = list(
+        candidate_materialization.get("metadata", {}).get("generated_files", [])
+    )
     mark_generation_progress(
         exec_deadline,
         "project_generation",
@@ -26857,22 +30530,131 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         write_json(result_path, blocked)
         append_phase_log(phase_log_path, "delivery_bundle", "failed", "Project type mismatch blocked delivery.", [str(result_path)])
         return blocked
-    agent_usage = run_project_usage_agent(
-        user_goal,
-        out_dir,
-        run_dir,
-        generated_files,
-        online_inputs,
-        example_outputs,
-        str(args.model),
-        remaining_timeout(exec_deadline, int(args.timeout), floor=5, cap=180),
-        allow_model_usage_planning=bool(getattr(args, "allow_model_usage_planning", False)),
+    semantic_classes = classify_semantic_blockers(provider_review)
+    post_build = post_build_finalize.run(
+        project_dir=out_dir,
+        run_dir=run_dir,
+        user_goal=user_goal,
+        generated_files=generated_files,
+        online_inputs=online_inputs,
+        example_outputs=example_outputs,
+        model=str(args.model),
+        timeout=int(args.timeout),
         phase_log_path=phase_log_path,
         deadline=exec_deadline,
+        classifications=semantic_classes,
         routing_policy=routing_policy,
+        component_pipeline=component_pipeline,
     )
-    if agent_usage.get("status") == "failed":
-        raise RuntimeError(f"agent project usage failed: {json.dumps(agent_usage.get('failure_summary') or agent_usage.get('events', [])[-8:], ensure_ascii=False)}")
+    initial_issue_ledger = post_build_repair.compile_issue_ledger(
+        out_dir,
+        post_build,
+        component_pipeline=component_pipeline,
+    )
+    write_json(run_dir / "artifacts" / "post_build_issue_ledger_v0.json", initial_issue_ledger)
+    first_candidate_record = candidate_materialization.get("candidate_record", {}) if isinstance(candidate_materialization.get("candidate_record"), dict) else {}
+    post_build = run_candidate_post_build_repair_loop(
+        candidate_dir=out_dir,
+        run_dir=run_dir,
+        user_goal=user_goal,
+        generated_files=generated_files,
+        online_inputs=online_inputs,
+        example_outputs=example_outputs,
+        model=str(args.model),
+        timeout=int(args.timeout),
+        phase_log_path=phase_log_path,
+        deadline=exec_deadline,
+        classifications=semantic_classes,
+        routing_policy=routing_policy,
+        initial_post_build=post_build,
+        max_attempts=post_build_repair_attempts(args),
+        component_pipeline=component_pipeline,
+        candidate_store_dir=candidate_store_dir,
+        current_candidate_id=str(first_candidate_record.get("candidate_id", "")),
+        version_metadata={
+            "commit_sha": production_commit_sha,
+            "project_spec_hash": str(first_candidate_record.get("project_spec_hash", "")),
+            "provider_provenance": first_candidate_record.get("provider_provenance", {}),
+        },
+        provider_repair_executor=execute_existing_provider_job_batch_repair,
+    )
+    final_issue_ledger = post_build_repair.compile_issue_ledger(
+        out_dir,
+        post_build,
+        component_pipeline=component_pipeline,
+    )
+    write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
+    agent_usage = post_build.get("agent_usage", {}) if isinstance(post_build.get("agent_usage"), dict) else {}
+    candidate_index_path = candidate_store_dir / "candidate_versions.json"
+    candidate_index = load_json(candidate_index_path) if candidate_index_path.is_file() else {"candidates": []}
+    candidates = candidate_index.get("candidates", []) if isinstance(candidate_index.get("candidates", []), list) else []
+    final_candidate_record = candidates[-1] if candidates and isinstance(candidates[-1], dict) else first_candidate_record
+    provider_metrics = provider_execution_metrics.snapshot(phase_log_path)
+    initial_issues = int(initial_issue_ledger.get("issues_total", 0) or 0)
+    final_issues = int(final_issue_ledger.get("issues_total", 0) or 0)
+    repair_history = post_build.get("post_build_repair_history", []) if isinstance(post_build.get("post_build_repair_history", []), list) else []
+    repair_provider_calls = sum(
+        int(
+            item.get("repair_result", {}).get("provider_calls", 0)
+            or item.get("repair_result", {}).get("provider", {}).get("provider_calls", 0)
+            or (1 if item.get("repair_result", {}).get("provider", {}).get("status") == "applied" else 0)
+        )
+        for item in repair_history
+        if isinstance(item, dict) and isinstance(item.get("repair_result", {}), dict)
+    )
+    provider_repair_results = [
+        item.get("repair_result", {}).get("provider", item.get("repair_result", {}))
+        for item in repair_history
+        if isinstance(item, dict) and isinstance(item.get("repair_result", {}), dict)
+    ]
+    accepted_partial_deltas = sum(
+        int(item.get("accepted_partial_deltas", 0) or 0)
+        for item in provider_repair_results
+        if isinstance(item, dict)
+    )
+    issues_fixed_by_partial_acceptance = sum(
+        int(item.get("issues_fixed_by_partial_acceptance", 0) or 0)
+        for item in provider_repair_results
+        if isinstance(item, dict)
+    )
+    issues_rejected_after_partial_validation = sum(
+        int(item.get("issues_rejected_after_partial_validation", 0) or 0)
+        for item in provider_repair_results
+        if isinstance(item, dict)
+    )
+    accepted_without_target_issue_improvement = sum(
+        int(item.get("accepted_without_target_issue_improvement", 0) or 0)
+        for item in provider_repair_results
+        if isinstance(item, dict)
+    )
+    productivity = {
+        "kind": "CGKNProductionProductivityMetrics",
+        "first_candidate_created": candidate_materialization.get("first_candidate_created", ""),
+        "time_to_first_candidate": candidate_materialization.get("time_to_first_candidate", 0.0),
+        "provider_calls_to_first_candidate": candidate_materialization.get("provider_calls_to_first_candidate", 0),
+        "candidate_versions_total": len(candidates),
+        "issues_found_after_first_candidate": initial_issues,
+        "issues_repaired": max(0, initial_issues - final_issues),
+        "repair_provider_calls": repair_provider_calls,
+        "issues_repaired_per_provider_call": round(max(0, initial_issues - final_issues) / repair_provider_calls, 3) if repair_provider_calls else 0.0,
+        "accepted_partial_deltas": accepted_partial_deltas,
+        "issues_fixed_by_partial_acceptance": issues_fixed_by_partial_acceptance,
+        "issues_rejected_after_partial_validation": issues_rejected_after_partial_validation,
+        "accepted_without_target_issue_improvement": accepted_without_target_issue_improvement,
+        "first_candidate_functional_score": 100 if initial_issues == 0 else 0,
+        "final_candidate_functional_score": 100 if final_issues == 0 and str(post_build.get("status", "")).lower() == "pass" else 0,
+        "total_wall_time": round(time.perf_counter() - production_started_monotonic, 3),
+        "provider_api_call_count": max(
+            0,
+            int(provider_metrics.get("provider_api_call_count", 0) or 0)
+            - provider_calls_at_production_start,
+        ),
+        "provider_api_call_count_cumulative": int(
+            provider_metrics.get("provider_api_call_count", 0) or 0
+        ),
+        "pass_authority": False,
+    }
+    write_json(run_dir / "artifacts" / "production_productivity_metrics.json", productivity)
     generation["provider_semantic_review"] = provider_review
     artifact_refs = write_runtime_artifacts(run_dir, user_goal, plan_doc, blueprint, generation, generated_files, online_inputs, market_research, example_outputs, agent_usage)
     artifact_refs.update(
@@ -26889,12 +30671,28 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     result = {
         "kind": "RuntimeExecutionResult",
         **generation_only_success_boundary(),
+        "workflow_state": "post_build_evaluation_complete",
+        "evidence_status": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
+        "release_ready": False,
+        "final_delivery_allowed": False,
+        "final_verdict": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
         "generated_at": now(),
+        "production_started_at": production_started_at,
         "goal": user_goal,
         "generation_context_goal": goal,
         "project_dir": str(out_dir),
         "run_dir": str(run_dir),
         "generated_files": generated_files,
+        "candidate_materialized": True,
+        "candidate_only": True,
+        "not_final_delivery": True,
+        "candidate_project_dir": str(out_dir),
+        "candidate_record": final_candidate_record,
+        "candidate_versions_total": len(candidates),
+        "post_build_finalize": post_build,
+        "initial_issue_ledger": initial_issue_ledger,
+        "final_issue_ledger": final_issue_ledger,
+        "productivity": productivity,
         "online_input_examples": online_inputs,
         "market_research": market_research,
         "design_research": design_research,

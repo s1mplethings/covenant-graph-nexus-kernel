@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import ast
+import csv
 import pathlib
 import importlib
 import json
+import hashlib
 import re
 from typing import Any
 
@@ -483,7 +485,642 @@ def default_post_build_targets(candidate_dir: pathlib.Path, failures: list[str])
     return candidates
 
 
-def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result: dict[str, Any]) -> dict[str, Any]:
+def provider_job_ownership_map(component_pipeline: dict[str, Any] | None) -> dict[str, str]:
+    ownership: dict[str, str] = {}
+    pipeline = component_pipeline if isinstance(component_pipeline, dict) else {}
+    for component in pipeline.get("components", []):
+        if not isinstance(component, dict):
+            continue
+        component_id = str(component.get("id", "")).strip() or "unassigned"
+        graph = component.get("leaf_work_graph", {}) if isinstance(component.get("leaf_work_graph", {}), dict) else {}
+        leaves = graph.get("leaves", []) if isinstance(graph.get("leaves", []), list) else []
+        for leaf in leaves:
+            if not isinstance(leaf, dict):
+                continue
+            job_id = str(leaf.get("leaf_id", "")).strip() or component_id
+            for path in leaf.get("owns", leaf.get("paths", [])):
+                rel = str(path).replace("\\", "/").strip()
+                if rel:
+                    ownership[rel] = job_id
+        for path in component.get("required_paths", []):
+            rel = str(path).replace("\\", "/").strip()
+            if rel:
+                ownership.setdefault(rel, component_id)
+    return ownership
+
+
+def owner_for_issue_path(path: str, ownership: dict[str, str]) -> tuple[str, str]:
+    rel = str(path or "").replace("\\", "/").strip()
+    job_id = ownership.get(rel, "")
+    if not job_id:
+        prefix = rel.split("/", 1)[0] if "/" in rel else ""
+        job_id = prefix if prefix in {"frontend", "backend", "tests", "docs", "foundation", "media"} else "unassigned"
+    owner = job_id.split(".", 1)[0]
+    if owner == "tests":
+        owner = "integration"
+    return owner, job_id
+
+
+def _evaluation_issue_evidence(finalize_result: dict[str, Any]) -> list[dict[str, Any]]:
+    records = finalize_result.get("evaluation_issue_evidence", [])
+    if not isinstance(records, list):
+        return []
+    return [dict(item) for item in records if isinstance(item, dict)]
+
+
+def enrich_issue_ledger_with_evaluator_evidence(
+    ledger: dict[str, Any],
+    evidence_records: list[dict[str, Any]],
+    component_pipeline: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Bind production issues to higher-priority user-flow evidence without inventing PASS."""
+    ownership = provider_job_ownership_map(component_pipeline)
+    enriched: list[dict[str, Any]] = []
+    for issue in ledger.get("issues", []):
+        if not isinstance(issue, dict):
+            continue
+        requirement = str(issue.get("requirement", ""))
+        matches = [
+            record
+            for record in evidence_records
+            if requirement
+            in {
+                str(item)
+                for item in record.get("applies_to_requirements", [])
+            }
+        ]
+        updated = dict(issue)
+        if matches:
+            primary = matches[0]
+            affected_files = list(
+                dict.fromkeys(
+                    str(path).replace("\\", "/").strip()
+                    for record in matches
+                    for path in record.get("affected_files", [])
+                    if str(path).strip()
+                )
+            )
+            owned_files = [path for path in affected_files if path in ownership]
+            if owned_files:
+                owner, job_id = owner_for_issue_path(owned_files[0], ownership)
+                updated["owner"] = owner
+                updated["affected_provider_job"] = job_id
+            statuses = {str(record.get("status", "")).upper() for record in matches}
+            contradicted = bool(statuses) and statuses <= {"PASS"}
+            route = str(primary.get("repair_route", "")).strip().lower()
+            if not route:
+                route = "evidence_recheck" if contradicted else "provider"
+            updated.update(
+                {
+                    "failed_requirement": str(
+                        primary.get("failed_requirement")
+                        or primary.get("criterion_id")
+                        or requirement
+                    ),
+                    "user_action": str(primary.get("user_action", "")),
+                    "expected_behavior": str(primary.get("expected_behavior", "")),
+                    "observed_behavior": str(primary.get("observed_behavior", "")),
+                    "affected_files": affected_files,
+                    "root_cause_key": str(
+                        primary.get("root_cause_key")
+                        or ("stale_evidence" if contradicted else requirement)
+                    ),
+                    "repair_route": route,
+                    "repairable": bool(owned_files) and route == "provider",
+                    "evidence_priority": "runtime_browser_evaluator",
+                    "external_evidence": matches,
+                    "evidence_disposition": (
+                        "SUPERSEDED_BY_PASSING_EXTERNAL_EVIDENCE"
+                        if contradicted
+                        else "OBSERVED_PRODUCT_FAILURE"
+                    ),
+                }
+            )
+            evidence = dict(updated.get("evidence", {}))
+            evidence["paths"] = affected_files or list(evidence.get("paths", []))
+            evidence["evaluator"] = matches
+            updated["evidence"] = evidence
+        else:
+            updated.setdefault("failed_requirement", requirement)
+            updated.setdefault("user_action", "")
+            updated.setdefault("expected_behavior", "")
+            updated.setdefault("observed_behavior", str(updated.get("symptom", "")))
+            updated.setdefault("affected_files", list((updated.get("evidence") or {}).get("paths", [])))
+            updated.setdefault("root_cause_key", requirement)
+            updated.setdefault("repair_route", "provider" if updated.get("repairable") else "halt")
+            updated.setdefault("evidence_priority", "internal_validator")
+        enriched.append(updated)
+    result = {**ledger, "issues": enriched}
+    result["owner_distribution"] = {
+        owner: sum(1 for issue in enriched if str(issue.get("owner", "")) == owner)
+        for owner in sorted({str(issue.get("owner", "")) for issue in enriched})
+    }
+    return result
+
+
+def cluster_issue_root_causes(
+    ledger: dict[str, Any],
+    component_pipeline: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Cluster all symptoms first, then create at most one bundle per owned ProviderJob."""
+    ownership = provider_job_ownership_map(component_pipeline)
+    clusters: dict[str, list[dict[str, Any]]] = {}
+    provider_groups: dict[str, list[dict[str, Any]]] = {}
+    for issue in ledger.get("issues", []):
+        if not isinstance(issue, dict):
+            continue
+        root_key = str(issue.get("root_cause_key") or issue.get("requirement") or "unclassified")
+        clusters.setdefault(root_key, []).append(issue)
+        job_id = str(issue.get("affected_provider_job", "")).strip()
+        if bool(issue.get("repairable")) and str(issue.get("repair_route", "provider")) == "provider" and job_id:
+            provider_groups.setdefault(job_id, []).append(issue)
+
+    bundles: list[dict[str, Any]] = []
+    for job_id, issues in sorted(provider_groups.items()):
+        issue_ids = sorted({str(item.get("issue_id", "")) for item in issues if str(item.get("issue_id", ""))})
+        candidate_paths = [
+            str(path).replace("\\", "/").strip()
+            for issue in issues
+            for path in issue.get("affected_files", [])
+            if str(path).strip()
+        ]
+        paths = sorted({path for path in candidate_paths if ownership.get(path) == job_id})
+        if not paths:
+            continue
+        bundle_seed = "|".join([job_id, *issue_ids])
+        bundle_id = f"REPAIR-BUNDLE-{hashlib.sha256(bundle_seed.encode('utf-8')).hexdigest()[:12]}"
+        facts = [
+            {
+                "issue_id": str(issue.get("issue_id", "")),
+                "failed_requirement": str(issue.get("failed_requirement", issue.get("requirement", ""))),
+                "user_action": str(issue.get("user_action", "")),
+                "expected_behavior": str(issue.get("expected_behavior", "")),
+                "observed_behavior": str(issue.get("observed_behavior", issue.get("symptom", ""))),
+                "evidence": issue.get("external_evidence", issue.get("evidence", {})),
+            }
+            for issue in issues
+        ]
+        instruction = (
+            "Fix the observed product failure, not an unrelated validator preference. "
+            "Preserve passing behavior and modify only the owned paths.\n"
+            + json.dumps(facts, ensure_ascii=False, sort_keys=True, default=str)
+        )
+        bundles.append(
+            {
+                "bundle_id": bundle_id,
+                "issue_ids": issue_ids,
+                "root_cause_keys": sorted({str(item.get("root_cause_key", "")) for item in issues}),
+                "ownership_unit": job_id,
+                "component": job_id.split(".", 1)[0],
+                "affected_files": paths,
+                "acceptance_conditions": [
+                    str(item.get("expected_behavior", ""))
+                    for item in issues
+                    if str(item.get("expected_behavior", ""))
+                ],
+                "evidence_facts": facts,
+                "instruction": instruction,
+                "max_provider_calls": 2,
+            }
+        )
+    return {
+        **ledger,
+        "root_causes_total": len(clusters),
+        "root_cause_clusters": [
+            {
+                "root_cause_key": key,
+                "issue_ids": sorted(
+                    str(item.get("issue_id", ""))
+                    for item in items
+                    if str(item.get("issue_id", ""))
+                ),
+                "repair_route": (
+                    "provider"
+                    if any(bool(item.get("repairable")) for item in items)
+                    else str(items[0].get("repair_route", "halt"))
+                ),
+            }
+            for key, items in sorted(clusters.items())
+        ],
+        "repair_bundles_total": len(bundles),
+        "repair_bundles": bundles,
+    }
+
+
+def repair_rejection_category(result: dict[str, Any]) -> str:
+    text = " ".join(
+        str(result.get(key, ""))
+        for key in ("reason", "error", "validation_status", "reject_reason")
+    ).lower()
+    if not result.get("changed_files") and (
+        str(result.get("status", "")).lower() == "applied"
+        or "no actual change" in text
+        or "no_tree_delta" in text
+    ):
+        return "NO_ACTUAL_CHANGE"
+    if "timeout" in text or "timed out" in text:
+        return "PROVIDER_TIMEOUT"
+    if "ownership" in text or "escaped" in text:
+        return "OWNERSHIP_REJECT"
+    if "parse" in text or "json" in text or "output contract" in text:
+        return "PROVIDER_OUTPUT_INVALID"
+    if "validator" in text or "validation" in text or "quality" in text:
+        return "INTERNAL_VALIDATOR_REJECT"
+    if "scope" in text or "unresolved" in text:
+        return "WRONG_REPAIR_SCOPE"
+    if "patch" in text or "apply" in text:
+        return "PATCH_APPLICATION_DEFECT"
+    if "prompt" in text or "under" in text:
+        return "REPAIR_PROMPT_UNDER_SPECIFIED"
+    return "OTHER"
+
+
+def write_repair_call_accounting(
+    artifacts_dir: pathlib.Path,
+    history: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Persist issue-level repair decisions from the existing ProviderJob path."""
+    rows: list[dict[str, Any]] = []
+    for attempt_row in history:
+        if not isinstance(attempt_row, dict):
+            continue
+        attempt = int(attempt_row.get("attempt_number", 0) or 0)
+        raw_result = attempt_row.get("repair_result", {})
+        if not isinstance(raw_result, dict):
+            continue
+        result = raw_result.get("provider", raw_result)
+        if not isinstance(result, dict):
+            continue
+        accepted_targets = {
+            str(path).replace("\\", "/")
+            for path in result.get("changed_files", [])
+        }
+        decisions: dict[str, list[dict[str, Any]]] = {}
+        for record in result.get("issue_acceptance", []):
+            if not isinstance(record, dict):
+                continue
+            targets = record.get("target_files", [])
+            target = str(targets[0]).replace("\\", "/") if targets else ""
+            decisions.setdefault(target, []).append(record)
+        for target, records in decisions.items():
+            fixed = any(bool(record.get("fixed_by_delta")) for record in records)
+            introduced = any(bool(record.get("introduced_new_blockers")) for record in records)
+            accepted = target in accepted_targets and any(
+                bool(record.get("safe_to_accept_partial")) for record in records
+            )
+            rows.append(
+                {
+                    "repair_call_index": len(rows) + 1,
+                    "attempt": attempt,
+                    "target_file": target,
+                    "issue_ids": [str(record.get("issue_id", "")) for record in records],
+                    "issue_level_acceptance": True,
+                    "partial_improvement_detected": fixed,
+                    "partial_improvement_accepted": accepted,
+                    "coherence_failures_before": sum(
+                        len(record.get("coherence_checks_before", [])) for record in records
+                    ),
+                    "coherence_failures_after": sum(
+                        len(record.get("coherence_checks_after", [])) for record in records
+                    ),
+                    "target_issue_fixed": fixed,
+                    "new_blockers_introduced": introduced,
+                    "case_score_required_for_acceptance": False,
+                    "provider_calls_in_batch": int(result.get("provider_calls", 0) or 0),
+                    "accepted_without_target_issue_improvement": bool(accepted and not fixed),
+                    "pre_acceptance_failure": "",
+                }
+            )
+        provider_calls = int(result.get("provider_calls", 0) or 0)
+        unaccounted_calls = max(0, provider_calls - len(decisions))
+        plan = attempt_row.get("plan", {})
+        plan_actions = (
+            plan.get("provider_actions", []) if isinstance(plan, dict) else []
+        )
+        requested_targets = [
+            str(item.get("path", "")).replace("\\", "/")
+            for item in plan_actions
+            if isinstance(item, dict) and str(item.get("path", "")).strip()
+        ]
+        issue_ids = [
+            str(issue_id)
+            for item in plan_actions
+            if isinstance(item, dict)
+            for issue_id in item.get("issue_ids", [])
+        ]
+        for offset in range(unaccounted_calls):
+            rows.append(
+                {
+                    "repair_call_index": len(rows) + 1,
+                    "attempt": attempt,
+                    "target_file": (
+                        requested_targets[offset % len(requested_targets)]
+                        if requested_targets
+                        else ""
+                    ),
+                    "issue_ids": list(dict.fromkeys(issue_ids)),
+                    "issue_level_acceptance": False,
+                    "partial_improvement_detected": False,
+                    "partial_improvement_accepted": False,
+                    "coherence_failures_before": 0,
+                    "coherence_failures_after": 0,
+                    "target_issue_fixed": False,
+                    "new_blockers_introduced": False,
+                    "case_score_required_for_acceptance": False,
+                    "provider_calls_in_batch": provider_calls,
+                    "accepted_without_target_issue_improvement": False,
+                    "pre_acceptance_failure": str(
+                        result.get("reason", result.get("error", ""))
+                    )[:1000],
+                }
+            )
+    summary = {
+        "kind": "CGKNRepairCallAccounting",
+        "schema_version": 1,
+        "partial_improvement_detected_count": sum(
+            bool(row["partial_improvement_detected"]) for row in rows
+        ),
+        "partial_improvement_accepted_count": sum(
+            bool(row["partial_improvement_accepted"]) for row in rows
+        ),
+        "partial_improvement_rejected_count": sum(
+            bool(row["partial_improvement_detected"])
+            and not bool(row["partial_improvement_accepted"])
+            for row in rows
+        ),
+        "accepted_partial_without_case_score_improvement": sum(
+            bool(row["partial_improvement_accepted"])
+            and not bool(row["case_score_required_for_acceptance"])
+            for row in rows
+        ),
+        "accepted_without_target_issue_improvement": sum(
+            bool(row["accepted_without_target_issue_improvement"]) for row in rows
+        ),
+        "rows": rows,
+    }
+    json_path = artifacts_dir / "repair_call_accounting.json"
+    csv_path = artifacts_dir / "repair_call_accounting.csv"
+    json_path.write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    fields = list(rows[0]) if rows else [
+        "repair_call_index",
+        "attempt",
+        "target_file",
+        "issue_ids",
+        "issue_level_acceptance",
+        "partial_improvement_detected",
+        "partial_improvement_accepted",
+        "coherence_failures_before",
+        "coherence_failures_after",
+        "target_issue_fixed",
+        "new_blockers_introduced",
+        "case_score_required_for_acceptance",
+        "provider_calls_in_batch",
+        "accepted_without_target_issue_improvement",
+        "pre_acceptance_failure",
+    ]
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    key: json.dumps(value, ensure_ascii=False)
+                    if isinstance(value, list)
+                    else value
+                    for key, value in row.items()
+                }
+            )
+    return summary
+
+
+def compile_issue_ledger(
+    candidate_dir: pathlib.Path,
+    finalize_result: dict[str, Any],
+    *,
+    component_pipeline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Summarize the completed evaluation before any Provider repair call."""
+    failures = classify_post_build_failures(finalize_result)
+    log = post_build_failure_log(finalize_result)
+    ownership = provider_job_ownership_map(component_pipeline)
+    candidate_contract_issues = [
+        item for item in finalize_result.get("candidate_contract_issues", []) if isinstance(item, dict)
+    ]
+    paths = extract_post_build_target_files(candidate_dir, log)
+    paths.extend(
+        str(item.get("path", "")).replace("\\", "/").strip()
+        for item in candidate_contract_issues
+        if str(item.get("path", "")).strip()
+    )
+    paths = list(dict.fromkeys(path for path in paths if path))
+    issues: list[dict[str, Any]] = []
+    for contract_issue in candidate_contract_issues:
+        path = str(contract_issue.get("path", "")).replace("\\", "/").strip()
+        related_paths = [
+            str(item).replace("\\", "/").strip()
+            for item in contract_issue.get("related_paths", [])
+            if str(item).strip()
+        ]
+        owner, provider_job = owner_for_issue_path(path, ownership)
+        seed = json.dumps(contract_issue, ensure_ascii=False, sort_keys=True, default=str)
+        issues.append(
+            {
+                "issue_id": f"ISSUE-{hashlib.sha256(seed.encode('utf-8')).hexdigest()[:12]}",
+                "requirement": "build_coherence_failure",
+                "failed_requirement": str(contract_issue.get("kind", "build_coherence")),
+                "symptom": str(contract_issue.get("message", "build coherence failure")),
+                "user_action": str(contract_issue.get("user_action", "Start and use the generated project")),
+                "expected_behavior": str(contract_issue.get("expected_behavior", "Cross-file contracts agree.")),
+                "observed_behavior": str(contract_issue.get("observed_behavior", contract_issue.get("message", ""))),
+                "evidence": {
+                    "paths": [path, *related_paths] if path else related_paths,
+                    "deterministic_build_coherence": contract_issue,
+                },
+                "severity": "RELEASE_HARD",
+                "owner": owner,
+                "affected_provider_job": provider_job,
+                "affected_files": [path] if path else [],
+                "root_cause_key": str(contract_issue.get("kind", "build_coherence")) + ":" + path,
+                "repair_route": str(contract_issue.get("repair_route", "provider")),
+                "repairable": bool(path and provider_job and provider_job != "unassigned"),
+                "evidence_priority": "deterministic_build_coherence",
+                "external_evidence": [contract_issue],
+                "evidence_disposition": "OBSERVED_BUILD_CONTRADICTION",
+            }
+        )
+    for index, failure_type in enumerate(failures, start=1):
+        affected = paths[index - 1:index] or paths[:1]
+        owner, provider_job = owner_for_issue_path(affected[0] if affected else "", ownership)
+        if failure_type in {"dependency_failure", "browser_unavailable"}:
+            owner, provider_job = "environment", ""
+        elif failure_type in {"screenshot_failure", "page_blank", "ui_quality_failure"} and not affected:
+            owner, provider_job = "frontend", "frontend"
+        elif failure_type in {"persistence_failure"}:
+            owner = "persistence"
+        severity = "RELEASE_HARD" if failure_type not in {"screenshot_failure"} else "RELEASE_HARD"
+        seed = f"{failure_type}|{affected}|{log[:500]}"
+        issues.append(
+            {
+                "issue_id": f"ISSUE-{hashlib.sha256(seed.encode('utf-8')).hexdigest()[:12]}",
+                "requirement": failure_type,
+                "symptom": failure_type.replace("_", " "),
+                "evidence": {
+                    "paths": affected,
+                    "test_status": str((finalize_result.get("test_result") or {}).get("status", "")),
+                    "runtime_status": str((finalize_result.get("runtime_result") or {}).get("status", "")),
+                    "excerpt": log[:1200],
+                },
+                "severity": severity,
+                "owner": owner,
+                "affected_provider_job": provider_job,
+                "repairable": owner not in {"environment"},
+            }
+        )
+    ledger = {
+        "kind": "CGKNPostBuildIssueLedger",
+        "schema_version": "1.0",
+        "evaluation_completed_before_repair": True,
+        "status": "PASS" if not issues else "NEEDS_REWORK",
+        "issues_total": len(issues),
+        "issues": issues,
+        "owner_distribution": {
+            owner: sum(1 for issue in issues if issue["owner"] == owner)
+            for owner in sorted({str(issue["owner"]) for issue in issues})
+        },
+        "release_authority": False,
+    }
+    evidence_records = _evaluation_issue_evidence(finalize_result)
+    if evidence_records:
+        ledger = enrich_issue_ledger_with_evaluator_evidence(
+            ledger,
+            evidence_records,
+            component_pipeline,
+        )
+    return cluster_issue_root_causes(ledger, component_pipeline)
+
+
+def provider_job_repair_batches(
+    target_files: list[str],
+    component_pipeline: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    ownership = provider_job_ownership_map(component_pipeline)
+    if not ownership:
+        return []
+    batches: dict[str, list[str]] = {}
+    for path in target_files:
+        rel = str(path).replace("\\", "/").strip()
+        if not rel:
+            continue
+        job_id = ownership.get(rel, "")
+        if not job_id:
+            return []
+        batches.setdefault(job_id, []).append(rel)
+    return [
+        {"provider_job_id": job_id, "target_files": list(dict.fromkeys(paths))}
+        for job_id, paths in batches.items()
+    ]
+
+
+def bind_repair_plan_to_issue_ledger(
+    plan: dict[str, Any],
+    ledger: dict[str, Any],
+    component_pipeline: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Route the complete ledger only through existing ProviderJob ownership."""
+    ownership = provider_job_ownership_map(component_pipeline)
+    if not ownership:
+        return plan
+    bundles = [
+        dict(item)
+        for item in ledger.get("repair_bundles", [])
+        if isinstance(item, dict)
+    ]
+    if bundles:
+        actions = [
+            {
+                "path": path,
+                "component": str(bundle.get("component", "")),
+                "provider_job_id": str(bundle.get("ownership_unit", "")),
+                "bundle_id": str(bundle.get("bundle_id", "")),
+                "issue_ids": list(bundle.get("issue_ids", [])),
+                "instruction": str(bundle.get("instruction", "")),
+                "acceptance_conditions": list(bundle.get("acceptance_conditions", [])),
+                "evidence_facts": list(bundle.get("evidence_facts", [])),
+                "issue_acceptance_contract": {
+                    "unit": "provider_job_owned_issue",
+                    "requires_target_issue_improvement": True,
+                    "requires_whole_case_score_improvement": False,
+                    "rejects_new_equal_or_higher_blockers": True,
+                    "rejects_passing_evidence_regression": True,
+                },
+                "evaluator_evidence_included": any(
+                    isinstance(fact.get("evidence"), list)
+                    for fact in bundle.get("evidence_facts", [])
+                    if isinstance(fact, dict)
+                ),
+                "expected_observed_behavior_included": any(
+                    str(fact.get("expected_behavior", "")).strip()
+                    and str(fact.get("observed_behavior", "")).strip()
+                    for fact in bundle.get("evidence_facts", [])
+                    if isinstance(fact, dict)
+                ),
+            }
+            for bundle in bundles
+            for path in bundle.get("affected_files", [])
+            if str(path).replace("\\", "/").strip() in ownership
+            and ownership[str(path).replace("\\", "/").strip()]
+            == str(bundle.get("ownership_unit", ""))
+        ]
+        if actions:
+            target_files = [str(action["path"]).replace("\\", "/") for action in actions]
+            return {
+                **plan,
+                "status": "planned",
+                "target_files": target_files,
+                "provider_actions": actions,
+                "provider_job_batches": provider_job_repair_batches(
+                    target_files, component_pipeline
+                ),
+                "repair_bundles": bundles,
+                "root_causes_total": int(ledger.get("root_causes_total", 0) or 0),
+                "repair_bundles_total": len(bundles),
+                "deterministic_actions": [],
+                "repair_authority": "existing_provider_job_scheduler_only",
+                "repair_truth_priority": [
+                    "hidden_acceptance",
+                    "runtime_browser",
+                    "integration",
+                    "project_spec_user_requirement",
+                    "internal_validator",
+                ],
+                "partial_acceptance_policy": {
+                    "authority": "deterministic_issue_level_validation",
+                    "whole_component_acceptance_required": False,
+                    "whole_case_score_improvement_required": False,
+                    "no_improvement_patch_allowed": False,
+                    "final_release_gate_unchanged": True,
+                },
+            }
+    return {
+        **plan,
+        "status": "no_evidence_bound_provider_job_repair_targets",
+        "target_files": [],
+        "provider_actions": [],
+        "provider_job_batches": [],
+        "deterministic_actions": [],
+        "repair_authority": "existing_provider_job_scheduler_only",
+        "scope_guard": "generic failure classes cannot expand to entire components",
+    }
+
+
+def compile_post_build_repair_plan(
+    candidate_dir: pathlib.Path,
+    finalize_result: dict[str, Any],
+    *,
+    component_pipeline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     failures = classify_post_build_failures(finalize_result)
     if "missing_package_json" in failures and not (candidate_dir / "package.json").exists():
         if has_runnable_candidate_source(candidate_dir):
@@ -752,6 +1389,17 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         else:
             source = log
         target_diagnostics[rel] = focused_failure_excerpt(source, rel)
+    ownership = provider_job_ownership_map(component_pipeline)
+    for action in provider_actions:
+        rel = str(action.get("path", "")).replace("\\", "/").strip()
+        provider_job_id = ownership.get(rel, "")
+        if provider_job_id:
+            action["provider_job_id"] = provider_job_id
+            action["component"] = provider_job_id.split(".", 1)[0]
+    job_batches = provider_job_repair_batches(
+        [str(item.get("path", "")) for item in provider_actions],
+        component_pipeline,
+    )
     return {
         "stage": "post_build_repair",
         "created_at": _legacy_call("now"),
@@ -768,6 +1416,7 @@ def compile_post_build_repair_plan(candidate_dir: pathlib.Path, finalize_result:
         "atomic_repair_required": bool(implementation_owner_targets and evidenced_test_targets),
         "atomic_repair_target_limit": target_limit,
         "provider_actions": provider_actions[:target_limit],
+        "provider_job_batches": job_batches,
         "deterministic_actions": deterministic_actions,
         "validation_commands": validation_commands,
         "must_disappear_failures": must_disappear,
@@ -3434,20 +4083,122 @@ def run_candidate_post_build_repair_loop(
     initial_post_build: dict[str, Any],
     max_attempts: int,
     component_pipeline: dict[str, Any] | None = None,
+    candidate_store_dir: pathlib.Path | None = None,
+    current_candidate_id: str = "",
+    version_metadata: dict[str, Any] | None = None,
+    provider_repair_executor: Any | None = None,
 ) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     current = initial_post_build
     artifacts_dir = run_dir / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
+    latest_candidate_id = str(current_candidate_id or "")
+    provider_calls_consumed = 0
 
     def snapshot(value: Any) -> Any:
         return json.loads(json.dumps(value, ensure_ascii=False, default=str))
 
+    def persist_repaired_version(
+        *,
+        attempt: int,
+        ledger: dict[str, Any],
+        changed_files: list[str],
+        post_repair_ledger: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        nonlocal latest_candidate_id
+        if candidate_store_dir is None or not changed_files:
+            return {}
+        try:
+            from candidate_materializer import snapshot_version
+        except ModuleNotFoundError:  # pragma: no cover - package import path
+            from scripts.candidate_materializer import snapshot_version
+        issue_ids = [
+            str(item.get("issue_id", ""))
+            for item in ledger.get("issues", [])
+            if isinstance(item, dict) and str(item.get("issue_id", ""))
+        ]
+        metadata = dict(version_metadata or {})
+        current_ledger = (
+            post_repair_ledger
+            if isinstance(post_repair_ledger, dict)
+            else ledger
+        )
+        metadata["known_issues"] = list(current_ledger.get("issues", []))
+        record = snapshot_version(
+            candidate_dir=candidate_dir,
+            store_dir=pathlib.Path(candidate_store_dir),
+            parent_candidate_id=latest_candidate_id,
+            repair_issue_ids=issue_ids,
+            metadata=metadata,
+        )
+        if not bool(record.get("version_created", True)):
+            _legacy_call(
+                "append_phase_log",
+                phase_log_path,
+                "candidate_ingest",
+                "candidate_version_skipped_no_tree_delta",
+                f"Repair attempt {attempt} produced no candidate source-tree delta; candidate history was not advanced.",
+                [str(record.get("candidate_path", ""))],
+            )
+            return record
+        latest_candidate_id = str(record.get("candidate_id", ""))
+        _legacy_call(
+            "append_phase_log",
+            phase_log_path,
+            "candidate_ingest",
+            "candidate_version_created",
+            f"Immutable Candidate v{record.get('candidate_version')} created after repair attempt {attempt}.",
+            [str(record.get("candidate_path", ""))],
+        )
+        return record
+
     for attempt in range(1, max(0, int(max_attempts)) + 1):
         if str(current.get("status", "")).lower() != "needs_rework":
             break
-        plan = compile_post_build_repair_plan(candidate_dir, current)
+        ledger = compile_issue_ledger(
+            candidate_dir,
+            current,
+            component_pipeline=component_pipeline,
+        )
+        ledger_path = artifacts_dir / f"post_build_issue_ledger_attempt_{attempt}.json"
+        _legacy_call("write_json", ledger_path, ledger)
+        plan = compile_post_build_repair_plan(
+            candidate_dir,
+            current,
+            component_pipeline=component_pipeline,
+        )
+        plan = bind_repair_plan_to_issue_ledger(
+            plan,
+            ledger,
+            component_pipeline,
+        )
+        if history and isinstance(history[-1].get("repair_result"), dict):
+            previous_rejection = history[-1]["repair_result"]
+            rejection_summary = json.dumps(
+                {
+                    "category": previous_rejection.get("rejection_category", "OTHER"),
+                    "reason": previous_rejection.get("reason", previous_rejection.get("error", "")),
+                    "changed_files": previous_rejection.get("changed_files", []),
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                default=str,
+            )
+            for action in plan.get("provider_actions", []):
+                if isinstance(action, dict):
+                    action["instruction"] = (
+                        str(action.get("instruction", ""))
+                        + "\nTargeted second repair. The first repair was rejected: "
+                        + rejection_summary
+                        + ". Use the latest supplied source and return an actual owned file delta."
+                    )
         plan["attempt_number"] = attempt
+        plan["issue_ledger_ref"] = str(ledger_path)
+        plan["repair_issue_ids"] = [
+            str(item.get("issue_id", ""))
+            for item in ledger.get("issues", [])
+            if isinstance(item, dict) and str(item.get("issue_id", ""))
+        ]
         _legacy_call("write_json", artifacts_dir / f"post_build_repair_plan_attempt_{attempt}.json", plan)
         _legacy_call("write_json", candidate_dir / "repair_plan.json", plan)
         _legacy_call("append_phase_log", phase_log_path, "post_build_repair", str(plan.get("status", "planned")), f"Post-build repair attempt {attempt} planned.", plan.get("target_files", []))
@@ -3484,22 +4235,78 @@ def run_candidate_post_build_repair_loop(
                 current["post_build_repair_plan"] = plan
                 current["post_build_repair_result"] = {"status": "applied", "deterministic": deterministic_result, "provider": {"status": "skipped"}}
                 current["candidate_review_ready"] = post_build_candidate_review_ready(current)
+                record = persist_repaired_version(
+                    attempt=attempt,
+                    ledger=ledger,
+                    changed_files=list(deterministic_result.get("changed_files", [])),
+                    post_repair_ledger=compile_issue_ledger(
+                        candidate_dir,
+                        current,
+                        component_pipeline=component_pipeline,
+                    ),
+                )
+                if record:
+                    current["candidate_record"] = record
             history.append({"attempt_number": attempt, "plan": snapshot(plan), "repair_result": {"status": "skipped", "reason": "no provider file-level repair targets", "deterministic": snapshot(deterministic_result)}, "post_build": snapshot(current)})
             if deterministic_result.get("changed_files") and str(current.get("status", "")).lower() == "needs_rework" and attempt < max(0, int(max_attempts)):
                 continue
             break
+        allowed_provider_calls = sum(
+            int(bundle.get("max_provider_calls", 2) or 2)
+            for bundle in plan.get("repair_bundles", [])
+            if isinstance(bundle, dict)
+        )
         try:
-            repair_result = _legacy_call(
-                "provider_post_build_file_repair",
-                candidate_dir=candidate_dir,
-                repair_plan=plan,
-                model=model,
-                timeout=min(timeout, 180),
-                phase_log_path=phase_log_path,
-                routing_policy=routing_policy,
-            )
+            if allowed_provider_calls and provider_calls_consumed >= allowed_provider_calls:
+                repair_result = {
+                    "status": "failed",
+                    "reason": "REPAIR_CALL_BUDGET_EXHAUSTED",
+                    "changed_files": [],
+                    "provider_calls": 0,
+                    "allowed_provider_calls": allowed_provider_calls,
+                    "provider_calls_consumed": provider_calls_consumed,
+                }
+            elif provider_repair_executor is not None:
+                repair_result = provider_repair_executor(
+                    candidate_dir=candidate_dir,
+                    repair_plan=plan,
+                    issue_ledger=ledger,
+                    attempt=attempt,
+                )
+            else:
+                repair_result = _legacy_call(
+                    "provider_post_build_file_repair",
+                    candidate_dir=candidate_dir,
+                    repair_plan=plan,
+                    model=model,
+                    timeout=min(timeout, 180),
+                    phase_log_path=phase_log_path,
+                    routing_policy=routing_policy,
+                )
         except Exception as exc:
             repair_result = {"status": "failed", "error": str(exc), "changed_files": []}
+        if repair_result.get("status") == "applied" and not repair_result.get("changed_files"):
+            repair_result = {
+                **repair_result,
+                "status": "failed",
+                "reason": "NO_ACTUAL_CHANGE",
+            }
+        provider_calls_consumed += int(repair_result.get("provider_calls", 0) or 0)
+        repair_result["provider_calls_consumed"] = provider_calls_consumed
+        if (
+            allowed_provider_calls
+            and provider_calls_consumed > allowed_provider_calls
+        ):
+            repair_result = {
+                **repair_result,
+                "status": "failed",
+                "reason": "REPAIR_CALL_BUDGET_EXCEEDED",
+                "allowed_provider_calls": allowed_provider_calls,
+            }
+        if repair_result.get("status") != "applied":
+            repair_result["rejection_category"] = repair_rejection_category(
+                repair_result
+            )
         if repair_result.get("status") != "applied":
             if deterministic_result.get("changed_files"):
                 import post_build_finalize
@@ -3523,7 +4330,21 @@ def run_candidate_post_build_repair_loop(
                 current["post_build_repair_plan"] = plan
                 current["post_build_repair_result"] = {"status": "partial", "deterministic": deterministic_result, "provider": repair_result}
                 current["candidate_review_ready"] = post_build_candidate_review_ready(current)
+                record = persist_repaired_version(
+                    attempt=attempt,
+                    ledger=ledger,
+                    changed_files=list(deterministic_result.get("changed_files", [])),
+                    post_repair_ledger=compile_issue_ledger(
+                        candidate_dir,
+                        current,
+                        component_pipeline=component_pipeline,
+                    ),
+                )
+                if record:
+                    current["candidate_record"] = record
             history.append({"attempt_number": attempt, "plan": snapshot(plan), "repair_result": snapshot(repair_result), "post_build": snapshot(current)})
+            if attempt < max(0, int(max_attempts)):
+                continue
             break
         import post_build_finalize
 
@@ -3546,11 +4367,32 @@ def run_candidate_post_build_repair_loop(
         current["post_build_repair_plan"] = plan
         current["post_build_repair_result"] = {"status": "applied", "deterministic": deterministic_result, "provider": repair_result}
         current["candidate_review_ready"] = post_build_candidate_review_ready(current)
+        record = persist_repaired_version(
+            attempt=attempt,
+            ledger=ledger,
+            changed_files=list(
+                dict.fromkeys(
+                    [
+                        *deterministic_result.get("changed_files", []),
+                        *repair_result.get("changed_files", []),
+                    ]
+                )
+            ),
+            post_repair_ledger=compile_issue_ledger(
+                candidate_dir,
+                current,
+                component_pipeline=component_pipeline,
+            ),
+        )
+        if record:
+            current["candidate_record"] = record
         history.append({"attempt_number": attempt, "plan": snapshot(plan), "repair_result": snapshot(repair_result), "post_build": snapshot(current)})
     if history:
         current["post_build_repair_history"] = history
         current["candidate_review_ready"] = post_build_candidate_review_ready(current)
         _legacy_call("write_json", artifacts_dir / "post_build_repair_history.json", {"attempts": history, "final_post_build": current})
+        repair_accounting = write_repair_call_accounting(artifacts_dir, history)
+        current["repair_call_accounting"] = repair_accounting
         if isinstance(history[-1].get("plan"), dict):
             _legacy_call("write_json", candidate_dir / "repair_plan.json", history[-1]["plan"])
     return current
