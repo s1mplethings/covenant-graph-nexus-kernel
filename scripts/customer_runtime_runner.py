@@ -173,7 +173,7 @@ def _wait_for_health(url: str, seconds: float = 5.0) -> tuple[int, str]:
 
 
 def _startup_for(project: pathlib.Path, port: int) -> list[str]:
-    if (project / "index.html").exists():
+    if (project / "index.html").exists() or (project / "frontend" / "index.html").exists():
         return [sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"]
     return []
 
