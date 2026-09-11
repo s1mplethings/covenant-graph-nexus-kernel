@@ -1113,6 +1113,7 @@ class KernelContractTests(unittest.TestCase):
         post_build = read_source("scripts/post_build_finalize.py")
         final_verdict = read_source("scripts/acceptance_verifier.py")
         codex = read_source("scripts/codex_conversation.py")
+        connectivity = read_source("scripts/check_connectivity.py")
 
         self.assertIn("one canonical `GoalSpec`", doc)
         self.assertIn("`INSUFFICIENT_GOAL_PLAN`", doc)
@@ -1145,6 +1146,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGKNFeatureUnitSemanticReviewRequest", pipeline)
         self.assertIn("provider_qwen_feature_unit_review_enabled", pipeline)
         self.assertIn("provider_qwen_bounded_generation_reasoning_none_enabled", pipeline)
+        self.assertIn("def _supports_alibaba_qwen_reasoning_none", connectivity)
         self.assertIn("CGKN_QWEN_BOUNDED_GENERATION_REASONING_NONE", pipeline)
         self.assertIn('"semantic_feature_unit_review"', pipeline)
         self.assertIn("max_tokens=1800 if is_feature_unit_review", pipeline)

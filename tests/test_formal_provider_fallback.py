@@ -6090,6 +6090,27 @@ def test_qwen_feature_unit_review_uses_reasoning_none() -> None:
     )
 
 
+def test_qualified_qwen_bounded_generation_uses_reasoning_none_only_in_scope() -> None:
+    base_url = "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+
+    for model in ("qwen3.5-flash", "qwen3.6-plus", "qwen3.7-flash", "qwen3.7-plus", "qwen3.8-max"):
+        assert run_local_pipeline_impl.provider_reasoning_effort(
+            base_url, model, "component_file_manifest"
+        ) == "none"
+        assert run_local_pipeline_impl.provider_reasoning_effort(
+            base_url, model, "component_file_generation"
+        ) == "none"
+    assert run_local_pipeline_impl.provider_reasoning_effort(
+        base_url, "qwen-plus", "component_file_generation"
+    ) == ""
+    assert run_local_pipeline_impl.provider_reasoning_effort(
+        base_url, "qwen3.7-flash", "semantic_review"
+    ) == ""
+    assert run_local_pipeline_impl.provider_reasoning_effort(
+        "https://api.example.test/v1", "qwen3.7-flash", "component_file_generation"
+    ) == ""
+
+
 def test_nonvisual_post_build_failure_never_invents_html_repair(tmp_path: pathlib.Path) -> None:
     test_file = tmp_path / "tests" / "test_feature.py"
     test_file.parent.mkdir(parents=True)

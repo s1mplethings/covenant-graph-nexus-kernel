@@ -79,6 +79,11 @@ def _is_alibaba_model_studio_base_url(value: str) -> bool:
     )
 
 
+def _supports_alibaba_qwen_reasoning_none(model: str) -> bool:
+    """Return whether the qualified Alibaba Qwen family accepts explicit no-reasoning."""
+    return bool(re.match(r"^qwen3\.(?:5|6|7|8)(?:[-.]|$)", str(model or "").strip().lower()))
+
+
 def _join_endpoint(base_url: str, path: str) -> str:
     root = _normalize_base_url(base_url)
     suffix = "/" + str(path or "").lstrip("/")
@@ -149,7 +154,7 @@ def _build_openai_compatible_payload(
         if (
             effort
             and _is_alibaba_model_studio_base_url(base_url)
-            and str(model).strip().lower().startswith("qwen3.8")
+            and _supports_alibaba_qwen_reasoning_none(model)
         ):
             request_payload["reasoning"] = {"effort": effort}
     return request_payload

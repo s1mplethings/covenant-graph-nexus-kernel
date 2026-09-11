@@ -139,20 +139,22 @@ class ProviderApiTransportTests(unittest.TestCase):
         )
 
     def test_alibaba_qwen_generation_payload_accepts_explicit_reasoning_policy(self) -> None:
-        payload = check_connectivity._build_openai_compatible_payload(
-            "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
-            {
-                "model": "qwen3.8-max",
-                "messages": [{"role": "user", "content": "generate one file"}],
-                "max_tokens": 1800,
-            },
-            model="qwen3.8-max",
-            reasoning_effort="none",
-        )
+        for model in ("qwen3.5-flash", "qwen3.6-plus", "qwen3.7-flash", "qwen3.7-plus", "qwen3.8-max"):
+            with self.subTest(model=model):
+                payload = check_connectivity._build_openai_compatible_payload(
+                    "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+                    {
+                        "model": model,
+                        "messages": [{"role": "user", "content": "generate one file"}],
+                        "max_tokens": 1800,
+                    },
+                    model=model,
+                    reasoning_effort="none",
+                )
 
-        self.assertEqual({"effort": "none"}, payload["reasoning"])
-        self.assertEqual(1800, payload["max_output_tokens"])
-        self.assertNotIn("messages", payload)
+                self.assertEqual({"effort": "none"}, payload["reasoning"])
+                self.assertEqual(1800, payload["max_output_tokens"])
+                self.assertNotIn("messages", payload)
 
     def test_reasoning_policy_does_not_change_other_models_or_providers(self) -> None:
         non_qwen = check_connectivity._build_openai_compatible_payload(
@@ -167,9 +169,16 @@ class ProviderApiTransportTests(unittest.TestCase):
             model="qwen3.8-max",
             reasoning_effort="none",
         )
+        unsupported_qwen = check_connectivity._build_openai_compatible_payload(
+            "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            {"model": "qwen-plus", "messages": [{"role": "user", "content": "ping"}]},
+            model="qwen-plus",
+            reasoning_effort="none",
+        )
 
         self.assertNotIn("reasoning", non_qwen)
         self.assertNotIn("reasoning", non_alibaba)
+        self.assertNotIn("reasoning", unsupported_qwen)
 
     def test_provider_probe_uses_qwen_compatible_responses_budget_without_reasoning(self) -> None:
         payload = check_connectivity._build_provider_probe_payload(
