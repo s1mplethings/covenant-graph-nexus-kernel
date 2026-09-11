@@ -7334,6 +7334,102 @@ def test_python_safety_rejects_test_local_product_surrogate() -> None:
     )
 
 
+def test_python_safety_rejects_test_local_selenium_browser_lane() -> None:
+    blockers = run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_board_behavior.py",
+        (
+            "from selenium import webdriver\n"
+            "from selenium.webdriver.common.by import By\n"
+            "def test_board():\n"
+            "    assert webdriver.Chrome and By.ID\n"
+        ),
+    )
+
+    assert any("test-local browser driver dependency selenium" in item for item in blockers)
+    assert not run_local_pipeline_impl.generated_python_safety_violations(
+        "tests/test_board_state.py",
+        "def test_board_state():\n    assert {'tasks': []}['tasks'] == []\n",
+    )
+
+
+def test_source_stage_artifacts_require_presence_not_json_fixture(tmp_path: pathlib.Path) -> None:
+    project_dir = tmp_path / "candidate"
+    run_dir = tmp_path / "run"
+    (project_dir / "src").mkdir(parents=True)
+    (run_dir / "discovery").mkdir(parents=True)
+    (run_dir / "artifacts").mkdir(parents=True)
+    (project_dir / "src" / "create_task.py").write_text(
+        "def create_task(title):\n    return {'title': title}\n",
+        encoding="utf-8",
+    )
+    (run_dir / "discovery" / "complexity_project_contract.json").write_text(
+        json.dumps(
+            {
+                "required_pipeline_stages": ["create_task"],
+                "required_stage_artifacts": ["src/create_task.py"],
+                "required_artifact_fields": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    receipt = run_local_pipeline_impl.run_generated_project_fixture(
+        project_dir,
+        run_dir,
+    )
+
+    assert receipt["status"] == "pass"
+    assert receipt["fixture"] == ""
+    assert receipt["artifacts"][0]["status"] == "pass"
+    assert not receipt["blockers"]
+
+
+def test_issue_ledger_routes_exact_provider_job_without_external_evidence(
+    tmp_path: pathlib.Path,
+) -> None:
+    candidate_dir = tmp_path / "candidate"
+    test_path = candidate_dir / "tests" / "test_board.py"
+    test_path.parent.mkdir(parents=True)
+    test_path.write_text("def test_board():\n    assert False\n", encoding="utf-8")
+    pipeline = {
+        "components": [
+            {
+                "id": "tests",
+                "required_paths": ["tests/test_board.py"],
+                "leaf_work_graph": {
+                    "leaves": [
+                        {
+                            "leaf_id": "tests.leaf.001",
+                            "owns": ["tests/test_board.py"],
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+    finalize = {
+        "test_result": {
+            "status": "failed",
+            "stdout_tail": "FAILED tests/test_board.py::test_board - assert False",
+            "stderr_tail": "",
+        },
+        "evaluation_coverage": {"browser": "not_reached"},
+        "visual_surface_required": True,
+        "screenshots": [],
+    }
+
+    ledger = post_build_repair.compile_issue_ledger(
+        candidate_dir,
+        finalize,
+        component_pipeline=pipeline,
+    )
+
+    assert ledger["repair_bundles_total"] == 1
+    assert ledger["repair_bundles"][0]["ownership_unit"] == "tests.leaf.001"
+    assert ledger["repair_bundles"][0]["affected_files"] == ["tests/test_board.py"]
+    assert {issue["requirement"] for issue in ledger["issues"]} == {"test_failure"}
+
+
 def test_post_build_command_retains_actionable_pytest_diagnostics(
     tmp_path: pathlib.Path, monkeypatch
 ) -> None:

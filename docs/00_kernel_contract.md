@@ -95,6 +95,16 @@ target source before applying the same model ceiling; they must not reuse a smal
 greenfield estimate that cannot carry a complete replacement. Generated tests must
 exercise actual product interfaces or runtime behavior and cannot implement a
 multi-method Mock/Fake product surrogate as a substitute for the generated project.
+Generated Python tests must not embed a Selenium-owned browser driver lane. Browser
+and visual evidence remains the canonical CGKN verifier's responsibility, so a
+Provider test leaf that imports `selenium` is rejected inside its existing bounded
+ownership-unit validation. Project source paths listed as required stage artifacts
+are existence contracts, not JSON runtime receipts: only declared structured JSON
+artifacts or artifacts with required record fields require JSON parsing and a
+generated fixture. Issue-ledger normalization runs even when no external evaluator
+record is present, preserving exact affected ProviderJob routing; test failure cannot
+manufacture runtime or screenshot issues when those evaluations were not independently
+reached.
 Every validated partial emission is durably checkpointed before the ownership
 unit finishes. A missing co-owned path does not invalidate verified peer paths
 unless an explicit manifest dependency makes the peer its consumer; resume and

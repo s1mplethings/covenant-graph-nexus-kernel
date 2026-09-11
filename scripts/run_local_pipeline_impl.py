@@ -13846,6 +13846,26 @@ def generated_python_safety_violations(path: str, content: str) -> list[str]:
     normalized_path = pathlib.PurePosixPath(str(path).replace("\\", "/"))
     is_test_path = normalized_path.name.startswith("test_") or "tests" in normalized_path.parts
     if is_test_path:
+        browser_driver_imports = sorted(
+            {
+                str(node.module or "").split(".", 1)[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom)
+                and str(node.module or "").split(".", 1)[0] == "selenium"
+            }
+            | {
+                str(alias.name).split(".", 1)[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+                if str(alias.name).split(".", 1)[0] == "selenium"
+            }
+        )
+        if browser_driver_imports:
+            violations.append(
+                f"{path} imports test-local browser driver dependency selenium; "
+                "browser and visual evidence must use the canonical CGKN verifier"
+            )
         for class_node in (node for node in tree.body if isinstance(node, ast.ClassDef)):
             public_methods = [
                 member.name
@@ -24940,6 +24960,12 @@ def run_generated_project_fixture(
         "generate_background_assets",
         "generate_sprite_assets",
     }.issubset(required_stages)
+    structured_artifacts = {
+        artifact_name
+        for artifact_name in required_artifacts
+        if pathlib.PurePosixPath(artifact_name).suffix.lower() == ".json"
+    }
+    fixture_execution_required = bool(required_fields) or bool(structured_artifacts) or media_required
     applicable = fixture_path.exists() or bool(required_artifacts) or media_required
     receipt: dict[str, Any] = {
         "kind": "CGKNGeneratedProjectFixtureReceipt",
@@ -24957,9 +24983,9 @@ def run_generated_project_fixture(
     }
     if not applicable:
         receipt["reason"] = "no generated fixture or complexity fixture contract"
-    elif not fixture_path.exists():
+    elif fixture_execution_required and not fixture_path.exists():
         receipt["blockers"].append("demo/run_fixture.py is required but missing")
-    else:
+    elif fixture_path.exists():
         receipt["command"] = run_allowed_command(
             [sys.executable, "-m", "demo.run_fixture"],
             project_dir,
@@ -24998,6 +25024,11 @@ def run_generated_project_fixture(
         if not matches:
             receipt["blockers"].append(f"required stage artifact missing: {artifact_name}")
         else:
+            parse_as_record = bool(required_fields) or artifact_name in structured_artifacts
+            if not parse_as_record:
+                artifact_receipt["status"] = "pass"
+                receipt["artifacts"].append(artifact_receipt)
+                continue
             try:
                 artifact_doc = json.loads(
                     matches[0].read_text(encoding="utf-8", errors="strict")

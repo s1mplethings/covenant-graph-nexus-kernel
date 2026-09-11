@@ -153,6 +153,8 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
     fixture_result = finalize_result.get("fixture_result", {}) if isinstance(finalize_result.get("fixture_result"), dict) else {}
     goal_acceptance = finalize_result.get("goal_acceptance", {}) if isinstance(finalize_result.get("goal_acceptance"), dict) else {}
     goal_test_result = finalize_result.get("goal_test_result", {}) if isinstance(finalize_result.get("goal_test_result"), dict) else {}
+    runtime_result = finalize_result.get("runtime_result", {}) if isinstance(finalize_result.get("runtime_result"), dict) else {}
+    evaluation_coverage = finalize_result.get("evaluation_coverage", {}) if isinstance(finalize_result.get("evaluation_coverage"), dict) else {}
     log = post_build_failure_log(finalize_result).lower()
     if str(test_result.get("status", "")).lower() == "failed":
         failures.add("test_failure")
@@ -236,7 +238,14 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
         or "eaddrinuse" in log
     ):
         failures.add("startup_failure")
-    if visual_surface_required and not finalize_result.get("screenshots"):
+    browser_coverage = str(evaluation_coverage.get("browser", "")).strip().lower()
+    browser_was_reached = browser_coverage not in {
+        "not_reached",
+        "not evaluated",
+        "not_evaluated",
+        "skipped",
+    }
+    if visual_surface_required and browser_was_reached and not finalize_result.get("screenshots"):
         failures.add("screenshot_failure")
     if visual_surface_required and ("browser_unavailable" in log or "playwright install" in log or "executable doesn't exist" in log):
         failures.add("browser_unavailable")
@@ -279,7 +288,13 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
         failures.add("ui_quality_failure")
     if visual_surface_required and any(token in log for token in ("requestfailed", "/api", "api unavailable", "failed to fetch", "net::err_connection_refused")):
         failures.add("frontend_backend_start_mismatch")
-    if any(token in log for token in ("todo", "doing", "done", "filter", "local json", "persistence", "assertionerror", "expected")):
+    runtime_failed = str(runtime_result.get("status", "")).strip().lower() in {
+        "fail",
+        "failed",
+        "needs_rework",
+    }
+    tests_passed = str(test_result.get("status", "")).strip().lower() == "pass"
+    if (runtime_failed or tests_passed) and any(token in log for token in ("todo", "doing", "done", "filter", "local json", "persistence", "assertionerror", "expected")):
         failures.add("runtime_feature_failure")
     return sorted(failures)
 
@@ -992,12 +1007,11 @@ def compile_issue_ledger(
         "release_authority": False,
     }
     evidence_records = _evaluation_issue_evidence(finalize_result)
-    if evidence_records:
-        ledger = enrich_issue_ledger_with_evaluator_evidence(
-            ledger,
-            evidence_records,
-            component_pipeline,
-        )
+    ledger = enrich_issue_ledger_with_evaluator_evidence(
+        ledger,
+        evidence_records,
+        component_pipeline,
+    )
     return cluster_issue_root_causes(ledger, component_pipeline)
 
 
