@@ -102,9 +102,6 @@ def _pytest_counts(stdout: str, stderr: str, exit_code: int) -> dict[str, int]:
     passed = sum(int(n) for n in re.findall(r"(\d+)\s+passed", text))
     failed = sum(int(n) for n in re.findall(r"(\d+)\s+failed", text))
     skipped = sum(int(n) for n in re.findall(r"(\d+)\s+skipped", text))
-    if collected == 0 and exit_code == 0 and passed == 0:
-        passed = 1
-        collected = 1
     if collected == 0:
         collected = passed + failed + skipped
     return {"collected": collected, "passed": passed, "failed": failed, "skipped": skipped}
@@ -119,9 +116,41 @@ def _skip_reasons(stdout: str, stderr: str) -> dict[str, int]:
     return reasons
 
 
-def _normalize_command(command: list[str], python_executable: str | pathlib.Path | None) -> list[str]:
+def _pytest_config(project: pathlib.Path) -> str | None:
+    for name in ("pytest.ini", ".pytest.ini", "tox.ini", "setup.cfg"):
+        path = project / name
+        if path.is_file():
+            return str(path.resolve())
+    pyproject = project / "pyproject.toml"
+    if pyproject.is_file() and "[tool.pytest.ini_options]" in pyproject.read_text(
+        encoding="utf-8", errors="replace"
+    ):
+        return str(pyproject.resolve())
+    return None
+
+
+def _normalize_command(
+    command: list[str],
+    python_executable: str | pathlib.Path | None,
+    project: pathlib.Path | None = None,
+    isolated_config: pathlib.Path | None = None,
+) -> list[str]:
     if command[:3] == ["python", "-m", "pytest"]:
-        return [str(python_executable or sys.executable), "-m", "pytest", *command[3:]]
+        pytest_args: list[str] = []
+        if project is not None:
+            pytest_args = [
+                "--rootdir",
+                str(project.resolve()),
+                "-c",
+                _pytest_config(project) or str(pathlib.Path(isolated_config).resolve()),
+            ]
+        return [
+            str(python_executable or sys.executable),
+            "-m",
+            "pytest",
+            *pytest_args,
+            *command[3:],
+        ]
     return [str(item) for item in command]
 
 
@@ -149,7 +178,19 @@ def run_tests(
     commit_sha = commit_sha or current_commit_sha(project)
     started = _now()
     commands = detect_commands(project)
-    argv = _normalize_command(commands[0], python_executable) if commands else []
+    isolated_pytest_config: pathlib.Path | None = None
+    if commands and commands[0][:3] == ["python", "-m", "pytest"] and _pytest_config(project) is None:
+        descriptor, isolated_name = tempfile.mkstemp(prefix="cgkn_pytest_", suffix=".ini")
+        os.close(descriptor)
+        isolated_pytest_config = pathlib.Path(isolated_name)
+        isolated_pytest_config.write_text("[pytest]\n", encoding="utf-8")
+    argv = (
+        _normalize_command(
+            commands[0], python_executable, project, isolated_pytest_config
+        )
+        if commands
+        else []
+    )
     stdout = ""
     stderr = ""
     exit_code: int | None = None
@@ -170,19 +211,26 @@ def run_tests(
             python_paths.append(env["PYTHONPATH"])
         env["PYTHONPATH"] = os.pathsep.join(python_paths)
         env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-        with tempfile.TemporaryDirectory(prefix="cgkn_test_outputs_") as test_output_dir:
-            env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
-            try:
-                proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
-                stdout = proc.stdout or ""
-                stderr = proc.stderr or ""
-                exit_code = int(proc.returncode)
-            except subprocess.TimeoutExpired as exc:
-                stdout = str(exc.stdout or "")
-                stderr = str(exc.stderr or "test command timed out")
-                exit_code = 124
-                timed_out = True
+        try:
+            with tempfile.TemporaryDirectory(prefix="cgkn_test_outputs_") as test_output_dir:
+                env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
+                try:
+                    proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
+                    stdout = proc.stdout or ""
+                    stderr = proc.stderr or ""
+                    exit_code = int(proc.returncode)
+                except subprocess.TimeoutExpired as exc:
+                    stdout = str(exc.stdout or "")
+                    stderr = str(exc.stderr or "test command timed out")
+                    exit_code = 124
+                    timed_out = True
+        finally:
+            if isolated_pytest_config is not None:
+                isolated_pytest_config.unlink(missing_ok=True)
         counts = _pytest_counts(stdout, stderr, int(exit_code))
+        is_pytest = len(argv) >= 3 and argv[1:3] == ["-m", "pytest"]
+        if not is_pytest and exit_code == 0 and counts["collected"] == 0:
+            counts = {**counts, "collected": 1, "passed": 1}
         minimum_collected = max(1, int(minimum_collected or 1))
         status = (
             "PASS"

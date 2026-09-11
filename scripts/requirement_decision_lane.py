@@ -439,6 +439,154 @@ def _workflow_entity_symbols(clauses: list[str]) -> list[str]:
     return symbols[:12]
 
 
+AMBIGUOUS_RECORD_DOMAINS: tuple[tuple[tuple[str, ...], str, str], ...] = (
+    (("customer feedback", "feedback manager", "客户反馈", "客户建议", "客户问题"), "customer_feedback", "FeedbackItem"),
+    (("appointment", "booking", "预约", "预订"), "appointment_management", "Appointment"),
+    (("lab sample", "laboratory sample", "实验室样品", "样品记录"), "laboratory_sample_records", "Sample"),
+    (("equipment loan", "equipment checkout", "设备借用", "器材借用"), "equipment_loan_management", "EquipmentLoan"),
+    (("reading manager", "reading tracker", "阅读管理", "阅读记录", "书籍管理"), "personal_reading_management", "ReadingItem"),
+    (("customer contact", "contact manager", "客户联系人", "联系人管理"), "contact_management", "Contact"),
+    (("photo organizer", "photo manager", "照片整理", "图片整理", "相册管理"), "photo_organization", "PhotoAsset"),
+    (("knowledge base", "knowledge manager", "知识库", "知识管理"), "local_knowledge_base", "KnowledgeEntry"),
+)
+
+
+def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
+    """Return only user-owned facts or decisions that make autonomous v1 unsafe."""
+    goal = product_domain_goal(raw_goal)
+    blockers: list[dict[str, str]] = []
+    contradiction_pairs = (
+        (("must be online", "requires internet", "必须联网"), ("must be offline", "no network", "完全离线", "禁止联网")),
+        (("never store", "must not persist", "不能保存", "禁止存储"), ("must persist", "permanent history", "永久保存", "持久化保存")),
+        (("irreversible delete", "永久删除", "不可恢复删除"), ("must be recoverable", "可恢复", "必须恢复")),
+    )
+    for positive, negative in contradiction_pairs:
+        if any(term in goal for term in positive) and any(term in goal for term in negative):
+            blockers.append(
+                {
+                    "kind": "contradictory_requirements",
+                    "reason": "The goal contains requirements that cannot both be satisfied.",
+                    "question": "Which of the conflicting requirements should govern the first version?",
+                }
+            )
+            break
+    credential_signals = (
+        "api key", "access token", "client secret", "production password", "login credential",
+        "api 密钥", "访问令牌", "客户端密钥", "生产密码", "登录凭证", "账号授权",
+    )
+    credential_supplied = any(
+        marker in goal
+        for marker in ("credential is provided", "credentials are provided", "token is provided", "已提供凭证", "已提供令牌")
+    )
+    if any(term in goal for term in credential_signals) and not credential_supplied:
+        blockers.append(
+            {
+                "kind": "missing_required_credential",
+                "reason": "The requested live integration requires a credential or authority that CGKN cannot infer.",
+                "question": "Provide the required credential through the approved secret channel or remove the live integration from v1.",
+            }
+        )
+    external_fact_signals = (
+        "exact internal policy", "our unpublished schema", "our private catalog", "company-specific legal rule",
+        "精确内部规则", "未提供的内部字段", "公司私有目录", "内部合规政策",
+    )
+    if any(term in goal for term in external_fact_signals):
+        blockers.append(
+            {
+                "kind": "missing_critical_external_fact",
+                "reason": "A critical external fact is required and was not supplied.",
+                "question": "Provide the referenced private rule, schema, or catalog needed to freeze the ProjectSpec.",
+            }
+        )
+    irreversible_signals = (
+        "charge real customers", "transfer real money", "publish to all users", "delete production records permanently",
+        "permanently delete production records",
+        "向真实客户扣款", "转账真实资金", "发布给所有用户", "永久删除生产数据",
+    )
+    if any(term in goal for term in irreversible_signals):
+        blockers.append(
+            {
+                "kind": "irreversible_user_decision_required",
+                "reason": "The goal delegates a high-risk or irreversible production action without a confirmed user choice.",
+                "question": "Confirm the exact irreversible action and its authorization boundary before implementation.",
+            }
+        )
+    user_owned_signals = (
+        "wait for me to choose", "i will decide", "leave the final choice to me", "等我选择", "由我决定", "最后我来选",
+    )
+    if any(term in goal for term in user_owned_signals):
+        blockers.append(
+            {
+                "kind": "explicit_user_owned_decision_pending",
+                "reason": "The user explicitly retained a decision that has not yet been provided.",
+                "question": "Provide the decision you reserved before CGKN freezes the ProjectSpec.",
+            }
+        )
+    unique: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for blocker in blockers:
+        if blocker["kind"] not in seen:
+            seen.add(blocker["kind"])
+            unique.append(blocker)
+    return unique
+
+
+def _ambiguous_record_application_profile(raw_goal: str) -> dict[str, Any] | None:
+    """Infer a conservative local CRUD/workflow v1 from a valid product-shaped goal."""
+    goal = product_domain_goal(raw_goal)
+    product_signals = (
+        "tool", "app", "application", "system", "manager", "tracker", "organizer", "workspace",
+        "工具", "应用", "系统", "管理", "记录", "整理", "跟踪", "工作台", "知识库",
+    )
+    selected: tuple[str, str] | None = None
+    for signals, domain_label, entity_name in AMBIGUOUS_RECORD_DOMAINS:
+        if any(signal in goal for signal in signals):
+            selected = (domain_label, entity_name)
+            break
+    if selected is None or not any(signal in goal for signal in product_signals):
+        return None
+    domain_label, entity_name = selected
+    human_subject = domain_label.replace("_", " ")
+    return {
+        "domain": "custom_local_application",
+        "product_domain": domain_label,
+        "capabilities": [
+            "create_domain_record",
+            "edit_domain_record",
+            "track_domain_status",
+            "search_domain_records",
+            "filter_domain_records",
+            "archive_domain_record",
+        ],
+        "user_flows": [
+            f"create and edit a {human_subject} record",
+            "move the record through a small explicit status workflow",
+            "search and filter saved records",
+            "open a record history and archive a resolved record",
+        ],
+        "entities": [entity_name, "StatusHistory", "SavedFilter"],
+        "interfaces": ["web", "record_dashboard", "record_editor", "status_board", "search_and_archive"],
+        "interaction_modes": ["web"],
+        "entrypoints": ["app.main"],
+        "runtime_dependencies": [],
+        "constraints": ["local_first", "sqlite_persistence", "single_workspace_v1", "no_unrequested_external_service"],
+        "assumptions": [
+            "The first version is a local single-workspace web application.",
+            "SQLite is the default persistence boundary because no database was specified.",
+            "The initial status workflow is new, in_progress, resolved, and archived.",
+            f"The minimum {human_subject} fields are an id, title, details, status, created_at, and updated_at.",
+            "Layout and visual styling are implementation choices and do not require user confirmation before ProjectSpec freeze.",
+        ],
+        "acceptance_behaviors": [
+            f"a valid {human_subject} record can be created and edited",
+            "record status changes are persisted with history",
+            "search and filters return matching saved records",
+            "archived records remain retrievable and do not appear in the active default view",
+            "records and status history survive an application restart",
+        ],
+    }
+
+
 def _mixed_workflow_goal_profile(raw_goal: str) -> dict[str, Any] | None:
     """Preserve broad explicit products when one secondary feature matches a fixed profile."""
     clauses = _explicit_workflow_clauses(raw_goal)
@@ -976,6 +1124,9 @@ def _goal_profile(
             "constraints": ["local_first", "source_traceability"],
             "acceptance_behaviors": ["an imported source retains provenance", "notes remain linked to sources", "topics group related notes", "the exported brief cites its evidence"],
         }
+    inferred_record_profile = _ambiguous_record_application_profile(goal)
+    if inferred_record_profile is not None:
+        return inferred_record_profile
     words = re.findall(r"[a-z][a-z0-9_-]+|[\u4e00-\u9fff]{2,}", lowered)
     capability_rules = (
         ("create", "create_domain_record"), ("edit", "edit_domain_record"),
@@ -1002,6 +1153,25 @@ def _goal_profile(
 def build_goal_spec(
     raw_goal: str, planning_contract: dict[str, Any] | None = None
 ) -> dict[str, Any]:
+    blockers = goal_decision_blockers(raw_goal)
+    if blockers:
+        return {
+            "kind": "GoalSpec",
+            "status": "NEEDS_REWORK",
+            "reason": "USER_DECISION_REQUIRED",
+            "goal": str(raw_goal or "").strip(),
+            "domain": "generic_custom",
+            "capabilities": [],
+            "user_flows": [],
+            "entities": [],
+            "interfaces": [],
+            "constraints": [],
+            "assumptions": [],
+            "decision_blockers": blockers,
+            "blocking_questions": [item["question"] for item in blockers],
+            "ready_to_generate": False,
+            "acceptance_behaviors": [],
+        }
     profile = _goal_profile(raw_goal, planning_contract)
     if profile is None:
         return {
@@ -1015,12 +1185,23 @@ def build_goal_spec(
             "entities": [],
             "interfaces": [],
             "constraints": [],
+            "assumptions": [],
+            "decision_blockers": [],
+            "blocking_questions": [],
+            "ready_to_generate": False,
             "acceptance_behaviors": [],
         }
     return {
         "kind": "GoalSpec",
         "status": "PASS",
         "goal": str(raw_goal or "").strip(),
+        "assumptions": list(profile.get("assumptions", [])) or [
+            "Unspecified implementation details use conservative local-first defaults.",
+            "Unspecified layout, storage fields, and first-version scope remain revisable implementation choices.",
+        ],
+        "decision_blockers": [],
+        "blocking_questions": [],
+        "ready_to_generate": True,
         **profile,
     }
 
@@ -1977,7 +2158,9 @@ def select_requirement(candidates: dict[str, Any] | list[dict[str, Any]], scorec
         "mvp_scope": candidate["mvp_features"],
         "non_goals": candidate["non_goals"],
         "acceptance_summary": candidate["acceptance_summary"],
-        "known_assumptions": ["The selected MVP can be revised if the customer rejects the chosen direction."],
+        "known_assumptions": list((candidate.get("goal_spec", {}) or {}).get("assumptions", [])) or [
+            "The selected MVP can be revised if the customer rejects the chosen direction."
+        ],
         "open_questions_not_blocking": ["Confirm exact runtime platform and preferred UI style before final polish."],
         "decision_confidence": "high" if int(best.get("total_score", 0)) >= 80 else "medium",
         "goal_spec": candidate.get("goal_spec", {}),
@@ -2196,6 +2379,7 @@ def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict
     }
     result = {
         "status": status,
+        "ready_to_generate": status == "PASS" and bool(goal_spec.get("ready_to_generate", True)),
         "raw_goal": raw_goal,
         "goal_spec": goal_spec,
         "project_plan": project_plan,
