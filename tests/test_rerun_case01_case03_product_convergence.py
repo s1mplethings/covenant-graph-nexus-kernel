@@ -8,7 +8,7 @@ from scripts import rerun_case01_case03_product_convergence as convergence
 
 def args(tmp_path):
     return argparse.Namespace(
-        model="qwen3.8-flash",
+        model="",
         run_id="fresh-convergence-test",
         output_root=tmp_path,
     )
@@ -23,10 +23,7 @@ def test_provider_quota_blocks_before_any_fresh_case(tmp_path, monkeypatch) -> N
     monkeypatch.setattr(
         convergence,
         "run_provider_preflight",
-        lambda model: {
-            "ok": False,
-            "api": {"error": "HTTP 403: Free quota exhausted"},
-        },
+        lambda model: {"status": "fail", "metadata": {"live_generation_allowed": False, "all_provider_blocked": True}},
     )
     monkeypatch.setattr(
         convergence,
@@ -38,7 +35,7 @@ def test_provider_quota_blocks_before_any_fresh_case(tmp_path, monkeypatch) -> N
 
     report_path, report = convergence.execute(args(tmp_path))
 
-    assert report["status"] == "BLOCKED_PROVIDER_HTTP_403"
+    assert report["status"] == "BLOCKED_NO_AVAILABLE_PROVIDER"
     assert report["workflow_state"] == "WAITING_FOR_PROVIDER_QUOTA"
     assert report["case_runs"] == []
     assert json.loads(report_path.read_text(encoding="utf-8"))["case_runs"] == []
@@ -54,7 +51,16 @@ def test_provider_ok_runs_fresh_case01_then_case03(tmp_path, monkeypatch) -> Non
     monkeypatch.setattr(
         convergence,
         "run_provider_preflight",
-        lambda model: {"ok": True, "api": {"status": "connected"}},
+        lambda model: {
+            "status": "pass",
+            "metadata": {
+                "live_generation_allowed": True,
+                "selected_model": "available-large",
+                "selected_role": "large",
+                "endpoint": "https://provider.example/v1/responses",
+                "selected_provider": {"name": "backup"},
+            },
+        },
     )
 
     def fake_run(selector, *, run_id, output_root, model):
@@ -77,6 +83,7 @@ def test_provider_ok_runs_fresh_case01_then_case03(tmp_path, monkeypatch) -> Non
     assert report["status"] == "COMPLETE"
     assert [row["score"] for row in report["case_runs"]] == [34, 26]
     assert report["benchmark_hash_unchanged"] is True
+    assert report["model"] == "available-large"
 
 
 def test_frozen_benchmark_hash_mismatch_blocks_preflight(tmp_path, monkeypatch) -> None:
@@ -106,3 +113,15 @@ def test_convergence_wrapper_does_not_add_provider_scheduler() -> None:
     assert "ThreadPoolExecutor" not in source
     assert "ProcessPoolExecutor" not in source
     assert "execute_provider_jobs" not in source
+
+
+def test_fresh_validation_does_not_hardcode_qwen_flash() -> None:
+    paths = [
+        convergence.ROOT / "scripts" / "check_connectivity.py",
+        convergence.ROOT / "scripts" / "rerun_case01_case03_product_convergence.py",
+        convergence.ROOT / "scripts" / "run_live_project_regression.py",
+        convergence.ROOT / "scripts" / "run_acfv_scale_benchmark.py",
+        convergence.ROOT / "scripts" / "run_commercial_readiness.py",
+    ]
+    for path in paths:
+        assert 'default="qwen3.8-flash"' not in path.read_text(encoding="utf-8")

@@ -160,15 +160,27 @@ def _build_openai_compatible_payload(
     return request_payload
 
 
-def _build_provider_probe_payload(base_url: str, model: str) -> dict[str, Any]:
+def _build_provider_probe_payload(base_url: str, model: str, *, structured: bool = False) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "model": model,
-        "messages": [{"role": "user", "content": "Reply with exactly: pong"}],
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    'Reply with exactly this JSON object and no markdown: {"cgkn_probe":"ok"}'
+                    if structured
+                    else "Reply with exactly: pong"
+                ),
+            }
+        ],
         "max_tokens": PROVIDER_PROBE_MAX_OUTPUT_TOKENS,
     }
-    if _is_alibaba_model_studio_base_url(base_url) and str(model).strip().lower().startswith("qwen3.8"):
-        payload["reasoning"] = {"effort": "none"}
-    return _build_openai_compatible_payload(base_url, payload, model=model)
+    return _build_openai_compatible_payload(
+        base_url,
+        payload,
+        model=model,
+        reasoning_effort="none",
+    )
 
 
 def _tls_verify_enabled() -> bool:
@@ -520,7 +532,20 @@ def _extract_text(doc: dict[str, Any]) -> str:
     return ""
 
 
-def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
+def _structured_probe_valid(text: str) -> bool:
+    candidate = str(text or "").strip()
+    if candidate.startswith("```"):
+        lines = candidate.splitlines()
+        if len(lines) >= 3:
+            candidate = "\n".join(lines[1:-1]).strip()
+    try:
+        parsed = json.loads(candidate)
+    except Exception:
+        return False
+    return isinstance(parsed, dict) and parsed.get("cgkn_probe") == "ok"
+
+
+def check_api(live: bool, timeout_sec: int, model: str, *, structured: bool = False) -> dict[str, Any]:
     creds = _resolve_api_credentials()
     token = creds["api_key"]
     root = creds["base_url"]
@@ -544,7 +569,7 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
         return result
     endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
     endpoint = _openai_compatible_endpoint(root)
-    payload = _build_provider_probe_payload(root, model)
+    payload = _build_provider_probe_payload(root, model, structured=structured)
     doc: dict[str, Any] | None = None
     error = ""
     attempts = 0
@@ -565,6 +590,8 @@ def check_api(live: bool, timeout_sec: int, model: str) -> dict[str, Any]:
     result["ok"] = bool(text)
     result["status"] = "connected" if text else "empty_response"
     result["response_preview"] = text[:80]
+    if structured:
+        result["structured_output_valid"] = _structured_probe_valid(text)
     result["request_id"] = str(doc.get("id", "")).strip()
     return result
 
@@ -585,10 +612,24 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Run live OpenAI-compatible API probe.")
     parser.add_argument("--live-api", action="store_true", help="Run live OpenAI-compatible API probe.")
-    parser.add_argument("--model", default=model_policy.select_model("connectivity"))
+    parser.add_argument("--model", default="", help="Optional explicit model; omit to auto-select configured models.")
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+    if not args.model:
+        try:
+            import provider_resilience
+        except ModuleNotFoundError:  # pragma: no cover - package import path
+            from scripts import provider_resilience
+        report = provider_resilience.provider_preflight(
+            goal="connectivity and structured output capability",
+            live=bool(args.live or args.live_api),
+            required_role="generation",
+            timeout=max(1, args.timeout),
+        )
+        provider_resilience.write_health_report(report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report.get("metadata", {}).get("live_generation_allowed") else 1
     result = run(args)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

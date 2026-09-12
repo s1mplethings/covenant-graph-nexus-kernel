@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quota-gated fresh CASE01/CASE03 convergence through the frozen benchmark runner."""
+"""Quota-gated fresh two-project convergence through the frozen benchmark runner."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from benchmarks.project_generation_v1 import run_benchmark  # noqa: E402
-from scripts import check_connectivity  # noqa: E402
+from scripts import provider_resilience  # noqa: E402
 
 
 EXPECTED_BENCHMARK_HASHES = {
@@ -42,21 +42,23 @@ def benchmark_hashes() -> dict[str, str]:
     return {name: file_sha256(path) for name, path in BENCHMARK_PATHS.items()}
 
 
-def run_provider_preflight(model: str) -> dict[str, Any]:
-    return check_connectivity.run(
-        argparse.Namespace(live=False, live_api=True, timeout=20, model=model)
+def run_provider_preflight(model: str = "") -> dict[str, Any]:
+    report = provider_resilience.provider_preflight(
+        goal="fresh product generation and bounded repair convergence",
+        live=True,
+        requested_model=model,
+        required_role="generation",
+        timeout=20,
     )
+    provider_resilience.write_health_report(report)
+    return report
 
 
 def provider_gate(preflight: dict[str, Any]) -> tuple[str, str]:
-    if bool(preflight.get("ok")):
+    metadata = preflight.get("metadata", {}) if isinstance(preflight.get("metadata"), dict) else {}
+    if metadata.get("live_generation_allowed") and metadata.get("selected_model"):
         return "PASS", ""
-    api = preflight.get("api", {}) if isinstance(preflight.get("api"), dict) else {}
-    error = str(api.get("error", ""))
-    normalized = error.lower()
-    if "http 403" in normalized or "free quota exhausted" in normalized or "key usage limit exceeded" in normalized:
-        return "BLOCKED_PROVIDER_HTTP_403", "WAITING_FOR_PROVIDER_QUOTA"
-    return "BLOCKED_PROVIDER", "WAITING_FOR_PROVIDER"
+    return "BLOCKED_NO_AVAILABLE_PROVIDER", "WAITING_FOR_PROVIDER_QUOTA"
 
 
 def run_fresh_case(
@@ -89,7 +91,7 @@ def write_json(path: pathlib.Path, value: dict[str, Any]) -> None:
 def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
     current_hashes = benchmark_hashes()
     run_id = args.run_id or datetime.now(timezone.utc).strftime(
-        "CGKN_CASE01_CASE03_PRODUCT_CONVERGENCE_%Y%m%dT%H%M%SZ"
+        "CGKN_FRESH_PRODUCT_CONVERGENCE_%Y%m%dT%H%M%SZ"
     )
     convergence_dir = args.output_root.resolve() / run_id
     report_path = convergence_dir / "fresh_convergence_report.json"
@@ -97,7 +99,7 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
         "kind": "CGKNCase01Case03ProductConvergenceReport",
         "created_at": utc_now(),
         "run_id": run_id,
-        "model": args.model,
+        "requested_model": args.model,
         "benchmark_hash_before": current_hashes,
         "benchmark_hash_expected": EXPECTED_BENCHMARK_HASHES,
         "benchmark_hash_unchanged": current_hashes == EXPECTED_BENCHMARK_HASHES,
@@ -119,6 +121,13 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
     preflight = run_provider_preflight(args.model)
     write_json(convergence_dir / "provider_preflight.json", preflight)
     provider_status, workflow_state = provider_gate(preflight)
+    provider_meta = preflight.get("metadata", {}) if isinstance(preflight.get("metadata"), dict) else {}
+    selected_model = str(provider_meta.get("selected_model") or "")
+    report["provider_auto_select"] = provider_meta
+    report["model"] = selected_model
+    report["selected_provider"] = str((provider_meta.get("selected_provider") or {}).get("name") or "")
+    report["selected_role"] = str(provider_meta.get("selected_role") or "")
+    report["endpoint"] = str(provider_meta.get("endpoint") or "")
     report["provider_status"] = provider_status
     report["workflow_state"] = workflow_state or "RUNNING"
     if provider_status != "PASS":
@@ -130,18 +139,18 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
         write_json(report_path, report)
         return report_path, report
 
-    for selector, case_name in (("01", "CASE_01_CSV_DATA_CLEANER"), ("03", "CASE_03_LOCAL_PROJECT_BOARD")):
-        case_run_id = f"{run_id}_{case_name}"
+    for selector, run_label in (("01", "PROJECT_A"), ("03", "PROJECT_B")):
+        case_run_id = f"{run_id}_{run_label}"
         case_run_dir, case_report = run_fresh_case(
             selector,
             run_id=case_run_id,
             output_root=convergence_dir / "benchmark_runs",
-            model=args.model,
+            model=selected_model,
         )
         case_result = dict((case_report.get("case_results") or [{}])[0])
         report["case_runs"].append(
             {
-                "case_id": case_name,
+                "case_id": str(case_result.get("case_id") or selector),
                 "run_id": case_run_id,
                 "run_dir": str(case_run_dir),
                 "benchmark_report": str(case_run_dir / "benchmark_report.json"),
@@ -182,7 +191,7 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", default="qwen3.8-flash")
+    parser.add_argument("--model", default="", help="Optional explicit model; omit to auto-select.")
     parser.add_argument("--run-id", default="")
     parser.add_argument("--output-root", type=pathlib.Path, default=DEFAULT_OUTPUT_ROOT)
     return parser

@@ -1370,7 +1370,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGKN_OPENAI_API_KEY_OVERRIDE", connectivity)
         self.assertIn("PROVIDER_PROBE_MAX_OUTPUT_TOKENS = 128", connectivity)
         self.assertIn("_is_alibaba_model_studio_base_url", connectivity)
-        self.assertIn('payload["reasoning"] = {"effort": "none"}', connectivity)
+        self.assertIn('reasoning_effort="none"', connectivity)
         self.assertIn("provider-compatible output floor is 128 Tokens", doc)
         self.assertNotIn('out["api_key"]', function_body(connectivity, "_load_local_notes_defaults"))
         self.assertIn("api_key_conflict_sources", connectivity)
@@ -1696,6 +1696,21 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("generated_test_symbol_authority", production)
         self.assertIn('"release_ready": False', production)
         self.assertIn('"final_delivery_allowed": False', production)
+
+    def test_provider_auto_select_preserves_the_single_execution_path(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        resilience = read_source("scripts/provider_resilience.py")
+        convergence = read_source("scripts/rerun_case01_case03_product_convergence.py")
+        acfv = read_source("scripts/run_complexity_scale_benchmark.py")
+
+        self.assertIn("select at provider/model granularity", kernel)
+        self.assertIn("existing production split-file leaf executor", kernel)
+        self.assertIn("NO_AVAILABLE_PROVIDER_MODEL", resilience)
+        self.assertIn('"candidates_checked"', resilience)
+        self.assertIn('default="", help="Optional explicit model; omit to auto-select."', convergence)
+        self.assertIn("requested_model=model", acfv)
+        self.assertNotIn("ThreadPoolExecutor", resilience)
+        self.assertNotIn("execute_provider_jobs", resilience)
 
 
 if __name__ == "__main__":

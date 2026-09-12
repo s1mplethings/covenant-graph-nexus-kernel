@@ -128,3 +128,90 @@ def test_primary_preflight_uses_canonical_provider_credentials(monkeypatch) -> N
 
     assert result["verdict"] == provider_resilience.PROVIDER_OK
     assert result["metadata"]["live_generation_allowed"] is True
+
+
+def test_provider_auto_select_uses_available_backup_when_primary_model_403() -> None:
+    cfg = {
+        "providers": [
+            {
+                "name": "primary",
+                "models": {"small": "primary-small", "large": "primary-large"},
+                "model_candidates": [
+                    {"model": "primary-large", "role": "large"},
+                    {"model": "primary-small", "role": "small"},
+                ],
+            },
+            {
+                "name": "backup",
+                "models": {"large": "backup-large"},
+                "model_candidates": [{"model": "backup-large", "role": "large"}],
+            },
+        ]
+    }
+
+    def model_probe(provider: dict, candidate: dict) -> dict:
+        status = provider_resilience.PROVIDER_OK if provider["name"] == "backup" else provider_resilience.PROVIDER_QUOTA_EXCEEDED
+        return {"name": provider["name"], "model": candidate["model"], "status": status, "structured_output_verified": status == provider_resilience.PROVIDER_OK}
+
+    result = provider_resilience.provider_preflight(cfg, live=True, model_probe=model_probe)
+
+    assert result["metadata"]["selected_provider"]["name"] == "backup"
+    assert result["metadata"]["selected_model"] == "backup-large"
+    assert result["metadata"]["all_provider_blocked"] is False
+
+
+def test_provider_auto_select_checks_multiple_models_before_quota_blocked() -> None:
+    checked: list[str] = []
+
+    def model_probe(provider: dict, candidate: dict) -> dict:
+        checked.append(candidate["model"])
+        return {"name": provider["name"], "status": provider_resilience.PROVIDER_QUOTA_EXCEEDED}
+
+    result = provider_resilience.provider_preflight(config(), live=True, model_probe=model_probe)
+
+    assert checked == ["small", "large"]
+    assert result["metadata"]["all_provider_blocked"] is True
+    assert result["metadata"]["blocker_reason"] == "NO_AVAILABLE_PROVIDER_MODEL"
+
+
+def test_provider_auto_select_prefers_structured_output_capable_model() -> None:
+    cfg = {
+        "providers": [
+            {
+                "name": "primary",
+                "models": {"large": "weak", "small": "structured"},
+                "model_candidates": [
+                    {"model": "weak", "role": "large", "structured_output_capable": False},
+                    {"model": "structured", "role": "small", "structured_output_capable": True},
+                ],
+            }
+        ]
+    }
+    result = provider_resilience.provider_preflight(
+        cfg,
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_OK,
+            "structured_output_verified": True,
+        },
+    )
+
+    assert result["metadata"]["selected_model"] == "structured"
+    weak = next(row for row in result["metadata"]["candidates_checked"] if row["model"] == "weak")
+    assert weak["status"] == provider_resilience.PROVIDER_UNAVAILABLE
+
+
+def test_all_provider_models_blocked_reports_waiting_for_provider_quota() -> None:
+    result = provider_resilience.provider_preflight(
+        config(backup_enabled=True),
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_QUOTA_EXCEEDED,
+        },
+    )
+
+    assert result["verdict"] == provider_resilience.PROVIDER_QUOTA_EXCEEDED
+    assert result["metadata"]["all_provider_blocked"] is True
+    assert result["metadata"]["user_visible_status"]

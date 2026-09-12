@@ -91,7 +91,16 @@ def run_verify(project_dir: pathlib.Path, *, timeout: int = 300) -> dict[str, An
     return {"status": "fail", "reason": "verify_script_missing", "argv": [], "returncode": None, "stdout": "", "stderr": ""}
 
 
-def generate_live_project(spec: dict[str, Any], out_dir: pathlib.Path, run_dir: pathlib.Path, timeout: int) -> dict[str, Any]:
+def generate_live_project(
+    spec: dict[str, Any],
+    out_dir: pathlib.Path,
+    run_dir: pathlib.Path,
+    timeout: int,
+    *,
+    model: str,
+    small_model: str = "",
+    large_model: str = "",
+) -> dict[str, Any]:
     goal = str(spec.get("project_brief") or spec.get("goal") or "complexity-scale Local Media Evidence Pipeline")
     args = argparse.Namespace(
         plan="",
@@ -103,9 +112,9 @@ def generate_live_project(spec: dict[str, Any], out_dir: pathlib.Path, run_dir: 
         allow_network=True,
         allow_provider=True,
         use_api=True,
-        model="gpt-5.5",
-        small_model="",
-        large_model="",
+        model=model,
+        small_model=small_model or model,
+        large_model=large_model or model,
         disable_model_routing=False,
         video=True,
         timeout=timeout,
@@ -169,10 +178,18 @@ def run_benchmark(
     out_dir: pathlib.Path = DEFAULT_OUT_DIR,
     run_dir: pathlib.Path = DEFAULT_RUN_DIR,
     timeout: int = 900,
+    model: str = "",
 ) -> dict[str, Any]:
     spec = read_json(spec_path)
     spec_status = validate_spec(spec)
-    provider = provider_resilience.provider_preflight(goal=str(spec.get("goal") or spec.get("project_brief") or "complexity-scale pipeline benchmark"))
+    provider = provider_resilience.provider_preflight(
+        goal=str(spec.get("goal") or spec.get("project_brief") or "complexity-scale pipeline benchmark"),
+        live=live,
+        requested_model=model,
+        required_role="generation",
+        timeout=min(max(20, timeout), 120),
+    )
+    provider_resilience.write_health_report(provider)
     provider_meta = provider.get("metadata", {})
     generation: dict[str, Any] = {"status": "skipped", "reason": "live false"}
     project_dir: pathlib.Path | None = None
@@ -181,7 +198,17 @@ def run_benchmark(
     final: dict[str, Any] = {"status": "skipped", "verdict": skipped_verdict}
 
     if live and provider_meta.get("live_generation_allowed"):
-        generation = generate_live_project(spec, out_dir, run_dir, timeout)
+        selected = provider_meta.get("selected_provider", {}) if isinstance(provider_meta.get("selected_provider"), dict) else {}
+        selected_models = selected.get("models", {}) if isinstance(selected.get("models"), dict) else {}
+        generation = generate_live_project(
+            spec,
+            out_dir,
+            run_dir,
+            timeout,
+            model=str(provider_meta.get("selected_model") or ""),
+            small_model=str(selected_models.get("small") or ""),
+            large_model=str(selected_models.get("large") or ""),
+        )
         project_dir = _project_from_generation(generation)
         if project_dir and project_dir.exists():
             verify = run_verify(project_dir, timeout=min(timeout, 600))
@@ -219,12 +246,15 @@ def run_benchmark(
         run_live=False,
         run_pytest=False,
         formal_project_result=final if final.get("status") != "skipped" else {"status": "skipped", "reason": "complexity benchmark final not reached"},
+        provider_preflight_result=provider,
     )
     final_bundle = str(final.get("metadata", {}).get("final_project_bundle", "")) if isinstance(final.get("metadata"), dict) else ""
     delivery_manifest = str(final.get("metadata", {}).get("delivery_manifest", "")) if isinstance(final.get("metadata"), dict) else ""
     report = {
         "complexity_scale_benchmark": {
             "provider_status": provider_meta,
+            "selected_provider": str((provider_meta.get("selected_provider") or {}).get("name") or ""),
+            "selected_model": str(provider_meta.get("selected_model") or ""),
             "benchmark_spec": spec_status,
             "candidate_materialized": bool(project_dir and project_dir.exists()),
             "pipeline_stage_count": product.get("pipeline_stage_count", 0),
@@ -271,6 +301,7 @@ def main() -> int:
     parser.add_argument("--run-dir", default=str(DEFAULT_RUN_DIR))
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--model", default="", help="Optional explicit model; omit to auto-select.")
     args = parser.parse_args()
     report = run_benchmark(
         spec_path=pathlib.Path(args.spec),
@@ -279,6 +310,7 @@ def main() -> int:
         out_dir=pathlib.Path(args.out_dir),
         run_dir=pathlib.Path(args.run_dir),
         timeout=args.timeout,
+        model=args.model,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     verdict = str(report.get("complexity_scale_benchmark", {}).get("final_verdict", ""))

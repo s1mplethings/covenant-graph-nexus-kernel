@@ -117,10 +117,23 @@ def assess_commercial_readiness(
     run_live: bool = False,
     run_pytest: bool = False,
     formal_project_result: dict[str, Any] | None = None,
+    provider_preflight_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     candidate = pathlib.Path(candidate_dir or (ROOT / "generated" / "cgnk_generated_project_candidate"))
     environment = check_test_environment.check_environment(candidate)
-    provider = provider_resilience.provider_preflight(provider_config, goal="commercial readiness formal project")
+    if isinstance(provider_preflight_result, dict):
+        provider = provider_preflight_result
+    elif provider_config is None and not run_live:
+        provider = provider_resilience.load_fresh_health_report() or provider_resilience.provider_preflight(
+            goal="commercial readiness formal project"
+        )
+    else:
+        provider = provider_resilience.provider_preflight(
+            provider_config,
+            goal="commercial readiness formal project",
+            live=run_live,
+            required_role="generation",
+        )
     provider_meta = provider.get("metadata", {})
     security = sandbox_security.scan_project(candidate if candidate.exists() else ROOT / "scripts", write_block_file=False)
     tests = run_command([sys.executable, "-m", "pytest", "-k", "provider_resilience or sandbox_security or commercial_warning or product_acceptance or customer_status or conversation_delivery or commercial_readiness or final_delivery_truth or artifact_integrity or candidate or screenshot or video or package or fake or kernel_contract", "-q"], timeout=240) if run_pytest else {"status": "skipped", "reason": "run_pytest false"}

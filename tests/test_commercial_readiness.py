@@ -154,6 +154,38 @@ def test_commercial_readiness_beta_when_provider_quota_blocked(monkeypatch) -> N
     assert report["provider"]["report_status"] == "COMMERCIAL_BETA_PROVIDER_BLOCKED"
 
 
+def test_commercial_readiness_not_blocked_by_one_failed_model_if_backup_ok(monkeypatch) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        project = make_project(pathlib.Path(temp_dir))
+        provider_result = {
+            "status": "pass",
+            "verdict": "PROVIDER_OK",
+            "metadata": {
+                "status": "PROVIDER_OK",
+                "selected_model": "backup-large",
+                "selected_provider": {"name": "backup", "model": "backup-large"},
+                "live_generation_allowed": True,
+                "commercial_blocker": "",
+                "candidates_checked": [
+                    {"provider": "primary", "model": "primary-large", "status": "PROVIDER_QUOTA_EXCEEDED"},
+                    {"provider": "backup", "model": "backup-large", "status": "PROVIDER_OK"},
+                ],
+            },
+        }
+        monkeypatch.setattr(run_commercial_readiness.check_test_environment, "check_environment", lambda candidate: {"status": "pass"})
+        monkeypatch.setattr(run_commercial_readiness.artifact_integrity, "scan_no_fake_pass", lambda root: {"status": "pass", "blockers": []})
+
+        report = run_commercial_readiness.assess_commercial_readiness(
+            candidate_dir=project,
+            run_live=False,
+            run_pytest=False,
+            provider_preflight_result=provider_result,
+        )
+
+    assert "provider_quota" not in report["beta_reasons"]
+    assert report["provider"]["selected_model"] == "backup-large"
+
+
 def test_commercial_readiness_blocked_when_security_fails(monkeypatch) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         project = make_project(pathlib.Path(temp_dir))
