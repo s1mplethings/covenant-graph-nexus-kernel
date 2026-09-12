@@ -215,3 +215,90 @@ def test_all_provider_models_blocked_reports_waiting_for_provider_quota() -> Non
     assert result["verdict"] == provider_resilience.PROVIDER_QUOTA_EXCEEDED
     assert result["metadata"]["all_provider_blocked"] is True
     assert result["metadata"]["user_visible_status"]
+
+
+def _capability_probe(provider: dict, candidate: dict) -> dict:
+    scores = {
+        "weak": (30, 20, 80),
+        "project-best": (95, 90, 55),
+        "repair-best": (70, 75, 98),
+    }
+    project, multi, repair = scores[candidate["model"]]
+    return {
+        "name": provider["name"],
+        "status": provider_resilience.PROVIDER_OK,
+        "structured_output_verified": True,
+        "structured_json_score": 100,
+        "project_generation_score": project,
+        "multi_file_consistency_score": multi,
+        "repair_patch_score": repair,
+        "capability_probe_used": True,
+    }
+
+
+def _capability_config() -> dict:
+    return {
+        "providers": [
+            {
+                "name": "primary",
+                "model_candidates": [
+                    {"model": "weak", "role": "large", "priority": 1},
+                    {"model": "project-best", "role": "large", "priority": 2},
+                    {"model": "repair-best", "role": "small", "priority": 3},
+                ],
+            }
+        ]
+    }
+
+
+def test_provider_auto_select_uses_capability_score_not_just_availability() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe
+    )
+
+    assert result["metadata"]["selected_model"] == "project-best"
+    assert result["metadata"]["capability_probe_used"] is True
+
+
+def test_generation_model_selected_by_project_generation_score() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe, required_role="generation"
+    )
+
+    assert result["metadata"]["selected_generation_model"] == "project-best"
+
+
+def test_repair_model_selected_by_repair_patch_score() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe, required_role="repair"
+    )
+
+    assert result["metadata"]["selected_model"] == "repair-best"
+    assert result["metadata"]["selected_repair_model"] == "repair-best"
+
+
+def test_provider_probe_rejects_non_json_project_payload_model() -> None:
+    result = provider_resilience.provider_preflight(
+        {
+            "providers": [
+                {
+                    "name": "primary",
+                    "model_candidates": [
+                        {"model": "non-json", "role": "large"},
+                        {"model": "valid", "role": "large"},
+                    ],
+                }
+            ]
+        },
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_OK,
+            "structured_output_verified": candidate["model"] == "valid",
+            "project_generation_score": 100,
+        },
+    )
+
+    rejected = next(row for row in result["metadata"]["candidates_checked"] if row["model"] == "non-json")
+    assert rejected["status"] == provider_resilience.PROVIDER_UNAVAILABLE
+    assert result["metadata"]["selected_model"] == "valid"

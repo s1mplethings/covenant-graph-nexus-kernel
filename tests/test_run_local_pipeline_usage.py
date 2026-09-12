@@ -1693,6 +1693,39 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual("gpt-5.5", routed["selected_model"])
         self.assertEqual("pending_model_capability_floor", routed["model_routing_reason"])
 
+    def test_semantic_repair_uses_capability_selected_repair_model(self) -> None:
+        policy = run_local_pipeline_impl.ProviderModelRoutingPolicy(
+            large_model="generation-best",
+            repair_model="repair-best",
+        )
+
+        route = run_local_pipeline_impl.choose_provider_model(
+            "file_repair",
+            12000,
+            "generation-best",
+            policy,
+        )
+
+        self.assertEqual("repair-best", route["selected_model"])
+        self.assertEqual("repair_capability_selection", route["model_routing_reason"])
+
+    def test_explicit_repair_model_survives_disabled_payload_routing(self) -> None:
+        policy = run_local_pipeline_impl.ProviderModelRoutingPolicy(
+            large_model="generation-best",
+            repair_model="repair-best",
+            enable_model_routing=False,
+        )
+
+        route = run_local_pipeline_impl.choose_provider_model(
+            "semantic_repair",
+            12000,
+            "generation-best",
+            policy,
+        )
+
+        self.assertEqual("repair-best", route["selected_model"])
+        self.assertEqual("explicit_repair_capability_selection", route["model_routing_reason"])
+
     def test_goal_plan_multi_file_component_manifest_call_uses_large_model(self) -> None:
         original_component = run_local_pipeline_impl.provider_generate_project_component
         required_paths = ["app/main.py"] + [

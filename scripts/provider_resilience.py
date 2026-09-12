@@ -124,6 +124,84 @@ def _model_capability_defaults(candidate: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _score(value: Any, default: int = 0) -> int:
+    try:
+        number = int(round(float(value)))
+    except (TypeError, ValueError):
+        number = default
+    return max(0, min(number, 100))
+
+
+def _capability_probe_scores(probe: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    capability = _model_capability_defaults(candidate)
+    explicit_fields = {
+        key
+        for key in (
+            "structured_json_score",
+            "project_generation_score",
+            "multi_file_consistency_score",
+            "repair_patch_score",
+        )
+        if key in probe
+    }
+    structured_default = 100 if probe.get("structured_output_verified") else 0
+    project_default = 50 if structured_default and capability["project_generation_suitable"] else 0
+    repair_default = 50 if structured_default and capability["repair_generation_suitable"] else 0
+    return {
+        "structured_json_score": _score(probe.get("structured_json_score"), structured_default),
+        "project_generation_score": _score(probe.get("project_generation_score"), project_default),
+        "multi_file_consistency_score": _score(probe.get("multi_file_consistency_score"), project_default),
+        "repair_patch_score": _score(probe.get("repair_patch_score"), repair_default),
+        "output_budget_score": _score(
+            probe.get("output_budget_score"),
+            round(min(1.0, capability["max_output_tokens"] / 5_000) * 100),
+        ),
+        "context_budget_score": _score(
+            probe.get("context_budget_score"),
+            round(min(1.0, capability["context_length"] / 131_072) * 100),
+        ),
+        "capability_probe_used": bool(probe.get("capability_probe_used") or explicit_fields),
+    }
+
+
+def candidate_capability_score(row: dict[str, Any], required_role: str) -> float:
+    if required_role == "repair":
+        weighted = (
+            0.45 * _score(row.get("repair_patch_score"))
+            + 0.20 * _score(row.get("structured_json_score"))
+            + 0.10 * _score(row.get("multi_file_consistency_score"))
+            + 0.15 * _score(row.get("output_budget_score"))
+            + 0.10 * _score(row.get("context_budget_score"))
+        )
+    else:
+        weighted = (
+            0.35 * _score(row.get("project_generation_score"))
+            + 0.25 * _score(row.get("multi_file_consistency_score"))
+            + 0.15 * _score(row.get("structured_json_score"))
+            + 0.15 * _score(row.get("output_budget_score"))
+            + 0.10 * _score(row.get("context_budget_score"))
+        )
+    return round(weighted, 3)
+
+
+def select_capable_candidate(
+    candidates: list[dict[str, Any]],
+    required_role: str,
+) -> dict[str, Any] | None:
+    preferred_role = "small" if required_role == "repair" else "large"
+    eligible = [row for row in candidates if row.get("status") == PROVIDER_OK]
+    eligible.sort(
+        key=lambda row: (
+            -candidate_capability_score(row, required_role),
+            row.get("role") != preferred_role,
+            int(row.get("provider_index", 0)),
+            int(row.get("priority", 0)),
+            int(row.get("model_index", 0)),
+        )
+    )
+    return eligible[0] if eligible else None
+
+
 def _provider_model_candidates(provider: dict[str, Any], requested_model: str = "") -> list[dict[str, Any]]:
     requested = str(requested_model or "").strip()
     configured = provider.get("model_candidates")
@@ -281,6 +359,34 @@ def default_model_probe(provider: dict[str, Any], candidate: dict[str, Any], tim
     if status == PROVIDER_OK and api.get("structured_output_valid") is not True:
         status = PROVIDER_UNAVAILABLE
         reason = "structured output probe returned non-JSON content"
+    structured = api.get("structured_output", {}) if isinstance(api.get("structured_output"), dict) else {}
+    project = structured.get("project", {}) if isinstance(structured.get("project"), dict) else {}
+    files = [str(path).replace("\\", "/").strip() for path in project.get("files", []) if str(path).strip()]
+    entrypoint = str(project.get("entrypoint") or "").replace("\\", "/").strip()
+    patch = structured.get("patch", {}) if isinstance(structured.get("patch"), dict) else {}
+    patch_path = str(patch.get("path") or "").replace("\\", "/").strip()
+    replacement = str(patch.get("replacement") or "").strip()
+    has_backend = any(path.startswith(("app/", "backend/", "src/")) for path in files)
+    has_frontend = any(path.startswith("frontend/") or path.endswith((".html", ".js", ".ts")) for path in files)
+    has_tests = any(path.startswith("tests/") or "test" in pathlib.PurePosixPath(path).name.lower() for path in files)
+    project_score = (
+        (25 if len(set(files)) >= 4 else 0)
+        + (25 if has_backend else 0)
+        + (25 if has_frontend else 0)
+        + (25 if has_tests else 0)
+    )
+    multi_file_score = (
+        (25 if len(set(files)) >= 4 else 0)
+        + (25 if entrypoint and entrypoint in files else 0)
+        + (25 if patch_path and patch_path in files else 0)
+        + (25 if has_backend and has_frontend else 0)
+    )
+    repair_score = (
+        (25 if patch_path and patch_path in files else 0)
+        + (35 if replacement and len(replacement) >= 30 else 0)
+        + (25 if any(token in replacement.lower() for token in ("route", "def ", "function ", "return ")) else 0)
+        + (15 if patch_path and not patch_path.startswith("/") and ".." not in pathlib.PurePosixPath(patch_path).parts else 0)
+    )
     return {
         "name": str(provider.get("name") or "provider"),
         "model": model,
@@ -292,6 +398,17 @@ def default_model_probe(provider: dict[str, Any], candidate: dict[str, Any], tim
         "quota_ok": status != PROVIDER_QUOTA_EXCEEDED,
         "transport_ok": status not in {PROVIDER_TRANSPORT_UNSTABLE},
         "structured_output_verified": bool(api.get("structured_output_valid")),
+        "structured_json_score": 100 if api.get("structured_output_strict") and api.get("structured_output_valid") else (60 if api.get("structured_output_valid") else 0),
+        "project_generation_score": project_score,
+        "multi_file_consistency_score": multi_file_score,
+        "repair_patch_score": repair_score,
+        "capability_probe_used": bool(structured),
+        "capability_probe_summary": {
+            "project_file_count": len(set(files)),
+            "entrypoint_bound": bool(entrypoint and entrypoint in files),
+            "patch_path_bound": bool(patch_path and patch_path in files),
+            "patch_chars": len(replacement),
+        },
         "request_id": str(api.get("request_id") or ""),
     }
 
@@ -348,6 +465,7 @@ def provider_preflight(
                 else:
                     probe_doc = dict(raw)
             capability = _model_capability_defaults(candidate)
+            capability_scores = _capability_probe_scores(probe_doc, candidate)
             row = {
                 "provider": str(probe_doc.get("name") or provider.get("name") or "provider"),
                 "model": str(candidate.get("model") or ""),
@@ -371,10 +489,16 @@ def provider_preflight(
                 "provider_index": provider_index,
                 "model_index": model_index,
                 "token_cost_estimate": estimate_cost_tokens(goal, str(candidate.get("model") or "")),
+                **capability_scores,
             }
+            row["generation_capability_score"] = candidate_capability_score(row, "generation")
+            row["repair_capability_score"] = candidate_capability_score(row, "repair")
             if not capability_ok:
                 row["status"] = PROVIDER_UNAVAILABLE
                 row["reason"] = ";".join(capability_reasons)
+            elif live and row["status"] == PROVIDER_OK and not row["structured_output_verified"]:
+                row["status"] = PROVIDER_UNAVAILABLE
+                row["reason"] = "structured output probe returned non-JSON project payload"
             provider_rows.append(row)
             candidates_checked.append(row)
         provider_statuses = [row["status"] for row in provider_rows]
@@ -387,10 +511,9 @@ def provider_preflight(
             }
         )
 
-    preferred_role = "small" if required_role == "repair" else "large"
-    eligible = [row for row in candidates_checked if row["status"] == PROVIDER_OK]
-    eligible.sort(key=lambda row: (row["role"] != preferred_role, row["provider_index"], row["priority"], row["model_index"]))
-    selected_row = eligible[0] if eligible else None
+    selected_row = select_capable_candidate(candidates_checked, required_role)
+    selected_generation_row = select_capable_candidate(candidates_checked, "generation")
+    selected_repair_row = select_capable_candidate(candidates_checked, "repair")
     selected: dict[str, Any] | None = None
     if selected_row:
         provider = providers[int(selected_row["provider_index"])]
@@ -419,6 +542,12 @@ def provider_preflight(
         "selected_provider": selected,
         "selected_model": selected.get("model", "") if selected else "",
         "selected_role": selected.get("role", "") if selected else "",
+        "selected_generation_model": str((selected_generation_row or {}).get("model") or ""),
+        "selected_repair_model": str((selected_repair_row or {}).get("model") or ""),
+        "generation_selection_score": candidate_capability_score(selected_generation_row, "generation") if selected_generation_row else 0,
+        "repair_selection_score": candidate_capability_score(selected_repair_row, "repair") if selected_repair_row else 0,
+        "capability_probe_used": any(bool(row.get("capability_probe_used")) for row in candidates_checked),
+        "selection_reason": "highest eligible capability score for requested role" if selected else "no eligible provider/model",
         "endpoint": selected.get("endpoint", "") if selected else "",
         "fallback_used": fallback_used,
         "providers": results,

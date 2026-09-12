@@ -12,9 +12,11 @@ from typing import Any
 
 try:
     from pipeline_contracts import RepairResult, base_result
+    import issue_ledger as issue_ledger_mapping
     import ui_semantic_adapter
 except ModuleNotFoundError:  # pragma: no cover - package import path
     from scripts.pipeline_contracts import RepairResult, base_result
+    from scripts import issue_ledger as issue_ledger_mapping
     from scripts import ui_semantic_adapter
 
 
@@ -551,19 +553,22 @@ def enrich_issue_ledger_with_evaluator_evidence(
     """Bind production issues to higher-priority user-flow evidence without inventing PASS."""
     ownership = provider_job_ownership_map(component_pipeline)
     enriched: list[dict[str, Any]] = []
+    matched_evidence_indexes: set[int] = set()
     for issue in ledger.get("issues", []):
         if not isinstance(issue, dict):
             continue
         requirement = str(issue.get("requirement", ""))
-        matches = [
-            record
-            for record in evidence_records
+        matching_indexes = [
+            index
+            for index, record in enumerate(evidence_records)
             if requirement
             in {
                 str(item)
                 for item in record.get("applies_to_requirements", [])
             }
         ]
+        matches = [evidence_records[index] for index in matching_indexes]
+        matched_evidence_indexes.update(matching_indexes)
         updated = dict(issue)
         if matches:
             primary = matches[0]
@@ -625,7 +630,14 @@ def enrich_issue_ledger_with_evaluator_evidence(
             updated.setdefault("repair_route", "provider" if updated.get("repairable") else "halt")
             updated.setdefault("evidence_priority", "internal_validator")
         enriched.append(updated)
+    for index, record in enumerate(evidence_records):
+        if index in matched_evidence_indexes:
+            continue
+        enriched.extend(
+            issue_ledger_mapping.issues_from_evaluator_failure(record, ownership)
+        )
     result = {**ledger, "issues": enriched}
+    result["issues_total"] = len(enriched)
     result["owner_distribution"] = {
         owner: sum(1 for issue in enriched if str(issue.get("owner", "")) == owner)
         for owner in sorted({str(issue.get("owner", "")) for issue in enriched})

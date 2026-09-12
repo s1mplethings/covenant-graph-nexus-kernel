@@ -11,6 +11,7 @@ def args(tmp_path):
         model="",
         run_id="fresh-convergence-test",
         output_root=tmp_path,
+        parallelism=4,
     )
 
 
@@ -56,6 +57,8 @@ def test_provider_ok_runs_fresh_case01_then_case03(tmp_path, monkeypatch) -> Non
             "metadata": {
                 "live_generation_allowed": True,
                 "selected_model": "available-large",
+                "selected_generation_model": "generation-best",
+                "selected_repair_model": "repair-best",
                 "selected_role": "large",
                 "endpoint": "https://provider.example/v1/responses",
                 "selected_provider": {"name": "backup"},
@@ -63,8 +66,9 @@ def test_provider_ok_runs_fresh_case01_then_case03(tmp_path, monkeypatch) -> Non
         },
     )
 
-    def fake_run(selector, *, run_id, output_root, model):
+    def fake_run(selector, *, run_id, output_root, model, parallelism):
         calls.append(selector)
+        assert parallelism == 4
         run_dir = output_root / run_id
         return run_dir, {
             "case_results": [
@@ -83,7 +87,9 @@ def test_provider_ok_runs_fresh_case01_then_case03(tmp_path, monkeypatch) -> Non
     assert report["status"] == "COMPLETE"
     assert [row["score"] for row in report["case_runs"]] == [34, 26]
     assert report["benchmark_hash_unchanged"] is True
-    assert report["model"] == "available-large"
+    assert report["model"] == "generation-best"
+    assert report["selected_generation_model"] == "generation-best"
+    assert report["selected_repair_model"] == "repair-best"
 
 
 def test_frozen_benchmark_hash_mismatch_blocks_preflight(tmp_path, monkeypatch) -> None:
@@ -113,6 +119,7 @@ def test_convergence_wrapper_does_not_add_provider_scheduler() -> None:
     assert "ThreadPoolExecutor" not in source
     assert "ProcessPoolExecutor" not in source
     assert "execute_provider_jobs" not in source
+    assert "provider_jobs.configured_parallelism()" in source
 
 
 def test_fresh_validation_does_not_hardcode_qwen_flash() -> None:

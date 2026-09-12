@@ -1,0 +1,52 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-066",
+  "project_id": "cgkn",
+  "goal": "Trace independent evaluator failures into exact ProviderJob repair and select generation and repair models by measured capability.",
+  "backlog_item_ids": [
+    "PB-045"
+  ],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
+  "acceptance_criteria": [
+    "Every observed evaluator failure is traceable through issue, ProviderJob, Provider call, delta, and acceptance or has an explicit missing-boundary reason.",
+    "Unmatched product failures create repair issues only for one or two exact existing ProviderJob-owned files.",
+    "Generation and repair model selection use bounded capability scores rather than availability alone.",
+    "Fresh CASE01 and CASE03 preserve one Provider scheduler, frozen benchmark hashes, and unchanged final gates."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-FAILURE-TO-REPAIR",
+      "measure": "mapped failures, created jobs, returned deltas, accepted deltas, and fixed failures",
+      "target": "no silent failure-to-repair drop and zero generic component expansion",
+      "method": "failure-to-repair audit, focused contract tests, and fresh independent CASE01/CASE03 evaluation"
+    }
+  ],
+  "quality_activities": {
+    "prevention": ["Keep evaluator mapping deterministic, path-bounded, and separate from Provider scheduling."],
+    "assurance": ["Compare score-33, score-23, and fresh candidates before changing production behavior."],
+    "control": ["Run environment, rule, kernel, focused pytest, py_compile, and frozen hash checks."],
+    "improvement": ["Use one cheap structured manifest-plus-patch probe to select models by task fitness."]
+  },
+  "interface_expectations": [
+    "The existing production split-file leaf executor remains the only ProviderJob execution path.",
+    "The read-only audit cannot mutate candidate, evidence, package, or delivery state.",
+    "External evaluator evidence without exact ownership remains non-repairable."
+  ],
+  "evidence_refs": [
+    "scripts/audit_failure_to_repair.py",
+    "scripts/issue_ledger.py",
+    "tests/test_failure_to_repair.py",
+    "tests/test_provider_resilience.py"
+  ],
+  "review": {
+    "outcome": "pending",
+    "feedback": []
+  },
+  "retrospective": {
+    "worked": [],
+    "did_not_work": [],
+    "experiments": ["Compare capability-selected generation and repair models on fresh CASE01/CASE03 only."]
+  }
+}

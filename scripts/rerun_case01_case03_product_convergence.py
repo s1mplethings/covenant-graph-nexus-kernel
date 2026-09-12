@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import sys
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from benchmarks.project_generation_v1 import run_benchmark  # noqa: E402
-from scripts import provider_resilience  # noqa: E402
+from scripts import provider_jobs, provider_resilience  # noqa: E402
 
 
 EXPECTED_BENCHMARK_HASHES = {
@@ -67,6 +68,7 @@ def run_fresh_case(
     run_id: str,
     output_root: pathlib.Path,
     model: str,
+    parallelism: int,
 ) -> tuple[pathlib.Path, dict[str, Any]]:
     benchmark_args = run_benchmark.build_parser().parse_args(
         [
@@ -78,6 +80,8 @@ def run_fresh_case(
             str(output_root),
             "--model",
             model,
+            "--parallelism",
+            str(parallelism),
         ]
     )
     return run_benchmark.execute(benchmark_args)
@@ -108,6 +112,7 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
         "case_runs": [],
         "manual_candidate_patch": False,
         "provider_execution_path": "existing production split-file leaf executor",
+        "provider_parallelism": args.parallelism,
     }
     if current_hashes != EXPECTED_BENCHMARK_HASHES:
         report.update(
@@ -122,9 +127,12 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
     write_json(convergence_dir / "provider_preflight.json", preflight)
     provider_status, workflow_state = provider_gate(preflight)
     provider_meta = preflight.get("metadata", {}) if isinstance(preflight.get("metadata"), dict) else {}
-    selected_model = str(provider_meta.get("selected_model") or "")
+    selected_model = str(provider_meta.get("selected_generation_model") or provider_meta.get("selected_model") or "")
+    selected_repair_model = str(provider_meta.get("selected_repair_model") or selected_model)
     report["provider_auto_select"] = provider_meta
     report["model"] = selected_model
+    report["selected_generation_model"] = selected_model
+    report["selected_repair_model"] = selected_repair_model
     report["selected_provider"] = str((provider_meta.get("selected_provider") or {}).get("name") or "")
     report["selected_role"] = str(provider_meta.get("selected_role") or "")
     report["endpoint"] = str(provider_meta.get("endpoint") or "")
@@ -139,29 +147,38 @@ def execute(args: argparse.Namespace) -> tuple[pathlib.Path, dict[str, Any]]:
         write_json(report_path, report)
         return report_path, report
 
-    for selector, run_label in (("01", "PROJECT_A"), ("03", "PROJECT_B")):
-        case_run_id = f"{run_id}_{run_label}"
-        case_run_dir, case_report = run_fresh_case(
-            selector,
-            run_id=case_run_id,
-            output_root=convergence_dir / "benchmark_runs",
-            model=selected_model,
-        )
-        case_result = dict((case_report.get("case_results") or [{}])[0])
-        report["case_runs"].append(
-            {
-                "case_id": str(case_result.get("case_id") or selector),
-                "run_id": case_run_id,
-                "run_dir": str(case_run_dir),
-                "benchmark_report": str(case_run_dir / "benchmark_report.json"),
-                "result": case_result.get("result", "NOT_EVALUATED"),
-                "score": case_result.get("score"),
-            }
-        )
-        if case_result.get("result") == "BLOCKED_PROVIDER":
-            report["provider_status"] = "BLOCKED_PROVIDER"
-            report["workflow_state"] = "WAITING_FOR_PROVIDER"
-            break
+    prior_repair_model = os.environ.get("CGKN_PROVIDER_REPAIR_MODEL")
+    os.environ["CGKN_PROVIDER_REPAIR_MODEL"] = selected_repair_model
+    try:
+        for selector, run_label in (("01", "PROJECT_A"), ("03", "PROJECT_B")):
+            case_run_id = f"{run_id}_{run_label}"
+            case_run_dir, case_report = run_fresh_case(
+                selector,
+                run_id=case_run_id,
+                output_root=convergence_dir / "benchmark_runs",
+                model=selected_model,
+                parallelism=args.parallelism,
+            )
+            case_result = dict((case_report.get("case_results") or [{}])[0])
+            report["case_runs"].append(
+                {
+                    "case_id": str(case_result.get("case_id") or selector),
+                    "run_id": case_run_id,
+                    "run_dir": str(case_run_dir),
+                    "benchmark_report": str(case_run_dir / "benchmark_report.json"),
+                    "result": case_result.get("result", "NOT_EVALUATED"),
+                    "score": case_result.get("score"),
+                }
+            )
+            if case_result.get("result") == "BLOCKED_PROVIDER":
+                report["provider_status"] = "BLOCKED_PROVIDER"
+                report["workflow_state"] = "WAITING_FOR_PROVIDER"
+                break
+    finally:
+        if prior_repair_model is None:
+            os.environ.pop("CGKN_PROVIDER_REPAIR_MODEL", None)
+        else:
+            os.environ["CGKN_PROVIDER_REPAIR_MODEL"] = prior_repair_model
 
     final_hashes = benchmark_hashes()
     report["benchmark_hash_after"] = final_hashes
@@ -194,6 +211,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model", default="", help="Optional explicit model; omit to auto-select.")
     parser.add_argument("--run-id", default="")
     parser.add_argument("--output-root", type=pathlib.Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument(
+        "--parallelism",
+        type=int,
+        default=provider_jobs.configured_parallelism(),
+        help="Worker count for the existing production split-file leaf executor.",
+    )
     return parser
 
 

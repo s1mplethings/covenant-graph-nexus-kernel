@@ -717,6 +717,7 @@ def provider_local_fallback_timeout(stage: str, requested_timeout: int) -> int:
 class ProviderModelRoutingPolicy:
     small_model: str = "gpt-5.4-nano"
     large_model: str = "gpt-5.5"
+    repair_model: str = ""
     small_payload_chars: int = 20000
     large_payload_chars: int = 40000
     enable_model_routing: bool = True
@@ -747,6 +748,7 @@ def provider_model_routing_policy_from_args(args: argparse.Namespace | None = No
     policy = ProviderModelRoutingPolicy(
         small_model=str(os.environ.get("CGNK_PROVIDER_SMALL_MODEL") or ProviderModelRoutingPolicy.small_model),
         large_model=str(os.environ.get("CGNK_PROVIDER_LARGE_MODEL") or ProviderModelRoutingPolicy.large_model),
+        repair_model=str(os.environ.get("CGKN_PROVIDER_REPAIR_MODEL") or ""),
         small_payload_chars=env_int("CGNK_PROVIDER_SMALL_PAYLOAD_CHARS", ProviderModelRoutingPolicy.small_payload_chars),
         large_payload_chars=env_int("CGNK_PROVIDER_LARGE_PAYLOAD_CHARS", ProviderModelRoutingPolicy.large_payload_chars),
         enable_model_routing=env_bool("CGNK_PROVIDER_MODEL_ROUTING", ProviderModelRoutingPolicy.enable_model_routing),
@@ -758,6 +760,9 @@ def provider_model_routing_policy_from_args(args: argparse.Namespace | None = No
             policy.small_model = small_model
         if large_model:
             policy.large_model = large_model
+        repair_model = str(getattr(args, "repair_model", "") or "").strip()
+        if repair_model:
+            policy.repair_model = repair_model
         if bool(getattr(args, "disable_model_routing", False)):
             policy.enable_model_routing = False
     return policy
@@ -796,7 +801,21 @@ def choose_provider_model(
 ) -> dict[str, Any]:
     policy = routing_policy or ProviderModelRoutingPolicy()
     requested = str(requested_model or "").strip() or policy.small_model
+    normalized_stage = str(stage or "").strip().lower()
     if not policy.enable_model_routing:
+        if policy.repair_model and normalized_stage in {
+            "semantic_repair",
+            "file_repair",
+            "semantic_review",
+            "provider_semantic_review",
+        }:
+            return ProviderModelRoute(
+                {
+                    "selected_model": policy.repair_model,
+                    "model_routing_reason": "explicit_repair_capability_selection",
+                    "requested_model": requested,
+                }
+            )
         return ProviderModelRoute({"selected_model": requested, "model_routing_reason": "routing_disabled", "requested_model": requested})
 
     transport_reason = provider_transport_model_route_reason(last_error)
@@ -812,7 +831,6 @@ def choose_provider_model(
             }
         )
 
-    normalized_stage = str(stage or "").strip().lower()
     if policy.downgrade_for_connectivity and normalized_stage in {"connectivity", "ping", "lightweight_summary", "lightweight summary"}:
         return ProviderModelRoute({"selected_model": policy.small_model, "model_routing_reason": "connectivity_small_model", "requested_model": requested})
 
@@ -836,8 +854,8 @@ def choose_provider_model(
     }:
         return ProviderModelRoute(
             {
-                "selected_model": policy.large_model,
-                "model_routing_reason": "semantic_stage_capability",
+                "selected_model": policy.repair_model or policy.large_model,
+                "model_routing_reason": "repair_capability_selection" if policy.repair_model else "semantic_stage_capability",
                 "requested_model": requested,
             }
         )
@@ -863,9 +881,10 @@ def apply_pending_retry_model_floor(
         return route
     policy = routing_policy or ProviderModelRoutingPolicy()
     selected_current = str(route.get("selected_model", "")).strip()
+    capability_floor = str(policy.repair_model or policy.large_model).strip()
     if (
-        selected_current == str(policy.large_model).strip()
-        and selected_pending != str(policy.large_model).strip()
+        selected_current == capability_floor
+        and selected_pending != capability_floor
     ):
         route["model_routing_reason"] = "pending_model_capability_floor"
         return route
@@ -30915,6 +30934,7 @@ def main() -> int:
     parser.add_argument("--model", default="gpt-5.4-nano")
     parser.add_argument("--small-model", default="")
     parser.add_argument("--large-model", default="")
+    parser.add_argument("--repair-model", default="")
     parser.add_argument("--disable-model-routing", action="store_true")
     parser.add_argument("--timeout", type=int, default=360)
     parser.add_argument("--provider-semantic-repair-attempts", type=int, default=None)

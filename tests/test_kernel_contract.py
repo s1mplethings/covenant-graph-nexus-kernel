@@ -1707,10 +1707,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("existing production split-file leaf executor", kernel)
         self.assertIn("NO_AVAILABLE_PROVIDER_MODEL", resilience)
         self.assertIn('"candidates_checked"', resilience)
+        self.assertIn("candidate_capability_score", resilience)
+        self.assertIn('"selected_repair_model"', resilience)
         self.assertIn('default="", help="Optional explicit model; omit to auto-select."', convergence)
         self.assertIn("requested_model=model", acfv)
         self.assertNotIn("ThreadPoolExecutor", resilience)
         self.assertNotIn("execute_provider_jobs", resilience)
+        self.assertIn("structured capability probe", kernel)
+        self.assertIn("same production split-file leaf executor", kernel)
 
 
 if __name__ == "__main__":

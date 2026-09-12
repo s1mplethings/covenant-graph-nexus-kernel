@@ -167,13 +167,17 @@ def _build_provider_probe_payload(base_url: str, model: str, *, structured: bool
             {
                 "role": "user",
                 "content": (
-                    'Reply with exactly this JSON object and no markdown: {"cgkn_probe":"ok"}'
+                    "Reply with exactly one JSON object and no markdown or commentary. "
+                    "Use only keys cgkn_probe, project, patch. cgkn_probe must be ok. "
+                    "Design project.files with at least four coherent relative paths spanning backend, frontend, and tests for a local CSV web tool; "
+                    "project.entrypoint must be one listed file. patch.path must be one listed file and "
+                    "patch.replacement must contain a small runnable root-route code change."
                     if structured
                     else "Reply with exactly: pong"
                 ),
             }
         ],
-        "max_tokens": PROVIDER_PROBE_MAX_OUTPUT_TOKENS,
+        "max_tokens": 256 if structured else PROVIDER_PROBE_MAX_OUTPUT_TOKENS,
     }
     return _build_openai_compatible_payload(
         base_url,
@@ -532,8 +536,9 @@ def _extract_text(doc: dict[str, Any]) -> str:
     return ""
 
 
-def _structured_probe_valid(text: str) -> bool:
+def _structured_probe_document(text: str) -> tuple[dict[str, Any], bool]:
     candidate = str(text or "").strip()
+    strict = not candidate.startswith("```")
     if candidate.startswith("```"):
         lines = candidate.splitlines()
         if len(lines) >= 3:
@@ -541,8 +546,13 @@ def _structured_probe_valid(text: str) -> bool:
     try:
         parsed = json.loads(candidate)
     except Exception:
-        return False
-    return isinstance(parsed, dict) and parsed.get("cgkn_probe") == "ok"
+        return {}, False
+    return (parsed, strict) if isinstance(parsed, dict) else ({}, False)
+
+
+def _structured_probe_valid(text: str) -> bool:
+    parsed, _strict = _structured_probe_document(text)
+    return parsed.get("cgkn_probe") == "ok"
 
 
 def check_api(live: bool, timeout_sec: int, model: str, *, structured: bool = False) -> dict[str, Any]:
@@ -591,7 +601,10 @@ def check_api(live: bool, timeout_sec: int, model: str, *, structured: bool = Fa
     result["status"] = "connected" if text else "empty_response"
     result["response_preview"] = text[:80]
     if structured:
-        result["structured_output_valid"] = _structured_probe_valid(text)
+        structured_doc, strict = _structured_probe_document(text)
+        result["structured_output_valid"] = structured_doc.get("cgkn_probe") == "ok"
+        result["structured_output_strict"] = strict and bool(structured_doc)
+        result["structured_output"] = structured_doc
     result["request_id"] = str(doc.get("id", "")).strip()
     return result
 

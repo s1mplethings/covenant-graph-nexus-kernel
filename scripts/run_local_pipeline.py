@@ -144,6 +144,7 @@ def main() -> int:
     parser.add_argument("--model", default="gpt-4.1")
     parser.add_argument("--small-model", default="")
     parser.add_argument("--large-model", default="")
+    parser.add_argument("--repair-model", default="")
     parser.add_argument("--disable-model-routing", action="store_true")
     parser.add_argument("--timeout", type=int, default=360)
     parser.add_argument("--allow-model-usage-planning", action="store_true")
