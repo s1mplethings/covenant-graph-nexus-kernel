@@ -7,8 +7,8 @@
   "backlog_item_ids": [
     "PB-045"
   ],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "Every observed evaluator failure is traceable through issue, ProviderJob, Provider call, delta, and acceptance or has an explicit missing-boundary reason.",
     "Unmatched product failures create repair issues only for one or two exact existing ProviderJob-owned files.",
@@ -38,15 +38,28 @@
     "scripts/audit_failure_to_repair.py",
     "scripts/issue_ledger.py",
     "tests/test_failure_to_repair.py",
-    "tests/test_provider_resilience.py"
+    "tests/test_provider_resilience.py",
+    "D:/CGKN/artifacts/project_generation_benchmark/CGKN_FRESH_PRODUCT_CONVERGENCE_CAPABILITY_R2_20260912/failure_to_repair_audit.json",
+    "D:/CGKN/artifacts/project_generation_benchmark/CGKN_FRESH_PRODUCT_CONVERGENCE_CAPABILITY_R2_20260912/fresh_convergence_report.json"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Deterministic mapping, capability-based selection, one-scheduler ownership, and failure-to-repair observability passed focused regression.",
+      "Fresh CASE01 and CASE03 remained PROJECT_FAIL at score 5, so product convergence is not accepted as complete."
+    ]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
-    "experiments": ["Compare capability-selected generation and repair models on fresh CASE01/CASE03 only."]
+    "worked": [
+      "Capability probing found four usable models and selected separate generation and repair roles without adding an execution path.",
+      "CASE01 reached bounded post-build repair and accepted one exact DOM-coherence improvement without a new blocker."
+    ],
+    "did_not_work": [
+      "CASE01 business repairs failed affected-behavior validation after the accepted DOM delta.",
+      "CASE03 test generation imported Selenium and exhausted leaf repair before candidate materialization, so post-build repair could not start."
+    ],
+    "experiments": [
+      "Next increment should make the existing semantic-review repair handoff correct the exact forbidden test dependency before candidate materialization; no new scheduler or retry layer."
+    ]
   }
 }

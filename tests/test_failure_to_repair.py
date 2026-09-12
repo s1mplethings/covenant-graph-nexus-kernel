@@ -167,4 +167,55 @@ def test_case03_timeout_explains_zero_repair_calls(tmp_path) -> None:
     audited = audit_failure_to_repair.audit_case(run)
 
     assert audited["case03_no_repair_reason"] == "production_timeout_before_post_build_issue_ledger"
+    assert audited["case03_repair_skipped"]["evaluator_failures_seen"] == 1
+    assert audited["case03_repair_skipped"]["fix_required_module"] == "production_stage_before_post_build"
     assert audited["unmapped_failure_count"] == 1
+
+
+def test_case03_semantic_review_block_explains_zero_post_build_repair(tmp_path) -> None:
+    run = tmp_path / "case03"
+    case = run / "cases" / "CASE_03_LOCAL_PROJECT_BOARD"
+    slot = run / "production_slots" / "slot"
+    case.mkdir(parents=True)
+    slot.mkdir(parents=True)
+    (case / "case_result.json").write_text(
+        json.dumps(
+            {
+                "case_id": "CASE_03_LOCAL_PROJECT_BOARD",
+                "score": 5,
+                "hard_failures": ["candidate_missing"],
+                "metrics": {"production_return_code": 1},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (slot / "production_result.json").write_text(
+        json.dumps(
+            {
+                "candidate_materialized": False,
+                "diagnostics": {"stage": "provider_semantic_review", "status": "blocked"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    audited = audit_failure_to_repair.audit_case(run)
+
+    skipped = audited["case03_repair_skipped"]
+    assert skipped["case03_repair_skipped"] is True
+    assert skipped["skip_reason"] == "candidate_not_materialized_provider_semantic_review_blocked_before_post_build"
+    assert skipped["issues_extracted"] == 0
+    assert skipped["provider_jobs_planned"] == 0
+    assert skipped["fix_required_module"] == "scripts/run_local_pipeline_impl.py:run_provider_semantic_review_with_repair"
+
+
+def test_score_drop_route_audit_recognizes_factory_app_variable() -> None:
+    source = """
+@app_instance.route('/health', methods=['GET'])
+def health(): ...
+
+@api.post('/upload')
+def upload(): ...
+"""
+
+    assert audit_failure_to_repair.routes(source) == ["/health", "/upload"]

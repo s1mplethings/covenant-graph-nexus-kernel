@@ -107,6 +107,8 @@ def event_has_target(event: dict[str, Any], targets: list[str]) -> bool:
 
 def audit_case(run_dir: pathlib.Path) -> dict[str, Any]:
     result_path, case_result = case_result_from_run(run_dir)
+    production_result_path = first_path(run_dir / "production_slots", "production_result.json")
+    production_result = read_json(production_result_path)
     ledger_path = latest_path(run_dir, "post_build_issue_ledger_attempt_*.json") or latest_path(run_dir, "post_build_issue_ledger_v0.json")
     plan_path = latest_path(run_dir, "post_build_repair_plan_attempt_*.json") or latest_path(run_dir, "repair_plan.json")
     accounting_path = latest_path(run_dir, "repair_call_accounting.json")
@@ -180,28 +182,51 @@ def audit_case(run_dir: pathlib.Path) -> dict[str, Any]:
         "no_job_failure_count": sum(row["failure_repair_status"] == "no_job" for row in records),
         "rejected_delta_count": sum(row["failure_repair_status"] == "rejected" for row in records),
     }
+    candidate_materialized = bool(production_result.get("candidate_materialized")) or first_path(
+        run_dir / "cases", "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json"
+    ) is not None
+    diagnostics = production_result.get("diagnostics", {})
+    diagnostic_stage = str(diagnostics.get("stage") or "") if isinstance(diagnostics, dict) else ""
     no_repair_reason = ""
-    if not ledger and return_code == 124:
+    fix_required_module = ""
+    if not ledger and not candidate_materialized and diagnostic_stage == "provider_semantic_review":
+        no_repair_reason = "candidate_not_materialized_provider_semantic_review_blocked_before_post_build"
+        fix_required_module = "scripts/run_local_pipeline_impl.py:run_provider_semantic_review_with_repair"
+    elif not ledger and return_code == 124:
         no_repair_reason = "production_timeout_before_post_build_issue_ledger"
+        fix_required_module = "production_stage_before_post_build"
     elif ledger and not plan.get("provider_actions"):
         no_repair_reason = "issue_ledger_has_no_evidence_bound_provider_jobs"
+        fix_required_module = "scripts/post_build_repair.py"
     elif not ledger:
         no_repair_reason = "post_build_issue_ledger_not_emitted"
+        fix_required_module = "scripts/post_build_repair.py"
+    case03_repair_skipped = {
+        "case03_repair_skipped": not bool(accounting_rows),
+        "skip_reason": no_repair_reason,
+        "evaluator_failures_seen": len(records),
+        "issues_extracted": len(issue_rows),
+        "repairable_issues": sum(bool(row.get("repairable")) for row in issue_rows),
+        "provider_jobs_planned": len(actions),
+        "fix_required_module": fix_required_module,
+    }
     return {
         "case_id": str(case_result.get("case_id") or ""),
         "run_dir": str(run_dir),
         "case_result": str(result_path or ""),
         "score": case_result.get("score"),
         "production_return_code": return_code,
-        "candidate_materialized": first_path(run_dir / "cases", "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json") is not None,
+        "candidate_materialized": candidate_materialized,
         **counts,
         "case03_no_repair_reason": no_repair_reason if "CASE_03" in str(case_result.get("case_id")) else "",
+        "case03_repair_skipped": case03_repair_skipped if "CASE_03" in str(case_result.get("case_id")) else {},
         "inputs": {
             "issue_ledger": str(ledger_path or ""),
             "provider_job_ledger": str(plan_path or ""),
             "repair_call_accounting": str(accounting_path or ""),
             "phase_log": str(phase_log_path or ""),
             "build_coherence_report": str(latest_path(run_dir, "*coherence*.json") or ""),
+            "production_result": str(production_result_path or ""),
         },
         "failure_records": records,
         "criteria_not_evaluated": list(case_result.get("criteria_not_evaluated", [])),
@@ -224,7 +249,14 @@ def read_text(root: pathlib.Path | None, relative: str) -> str:
 
 
 def routes(text: str) -> list[str]:
-    return sorted(set(re.findall(r"@app\.route\(['\"]([^'\"]+)", text)))
+    return sorted(
+        set(
+            re.findall(
+                r"@[A-Za-z_][A-Za-z0-9_]*\.(?:route|get|post|put|patch|delete)\(\s*['\"]([^'\"]+)",
+                text,
+            )
+        )
+    )
 
 
 def dom_identity(root: pathlib.Path | None) -> dict[str, list[str]]:
@@ -265,6 +297,23 @@ def score_drop_analysis(
     if fresh_dom["js_ids_missing_from_html"]:
         broken_entrypoints.append("frontend/app.js references DOM ids absent from frontend/index.html")
     lost_features = [f"route:{route}" for route in sorted(set(old_routes) - set(fresh_routes))]
+    fresh_metrics = fresh_result.get("metrics") or {}
+    previous_metrics = previous_eval.get("metrics") or {}
+    fresh_peak = fresh_metrics.get("provider_peak_concurrency")
+    previous_peak = previous_metrics.get("provider_peak_concurrency")
+    fresh_return_code = fresh_metrics.get("production_return_code")
+    if fresh_return_code == 124 and previous_peak and fresh_peak and fresh_peak < previous_peak:
+        finding = (
+            f"fresh production peak concurrency fell from {previous_peak} to {fresh_peak} and timed out before "
+            "delivery; the generated app also lost root/static route coverage"
+        )
+    elif fresh_return_code:
+        finding = (
+            f"fresh production reached validation with peak concurrency {fresh_peak}, but exited {fresh_return_code}; "
+            "the generated app lost root/static route coverage and bounded repair left candidate tests failing"
+        )
+    else:
+        finding = "fresh candidate lost root/static route coverage relative to the score-33 baseline"
     return {
         "missing_files": sorted(old_files - fresh_files),
         "broken_entrypoints": broken_entrypoints,
@@ -281,13 +330,13 @@ def score_drop_analysis(
         "evaluator_failures_new": sorted(set(fresh_result.get("hard_failures", [])) - set(old_eval.get("hard_failures", []))),
         "generation_prompt_or_model_difference": {
             "old_provider_calls": (old_eval.get("metrics") or {}).get("provider_api_calls"),
-            "previous_provider_calls": (previous_eval.get("metrics") or {}).get("provider_api_calls"),
-            "fresh_provider_calls": (fresh_result.get("metrics") or {}).get("provider_api_calls"),
+            "previous_provider_calls": previous_metrics.get("provider_api_calls"),
+            "fresh_provider_calls": fresh_metrics.get("provider_api_calls"),
             "old_provider_peak_concurrency": (old_eval.get("metrics") or {}).get("provider_peak_concurrency"),
-            "previous_provider_peak_concurrency": (previous_eval.get("metrics") or {}).get("provider_peak_concurrency"),
-            "fresh_provider_peak_concurrency": (fresh_result.get("metrics") or {}).get("provider_peak_concurrency"),
-            "fresh_production_return_code": (fresh_result.get("metrics") or {}).get("production_return_code"),
-            "finding": "fresh validation fell from prior peak concurrency 3 to 1 and timed out before delivery; its generated app also lost root/static and DOM consistency",
+            "previous_provider_peak_concurrency": previous_peak,
+            "fresh_provider_peak_concurrency": fresh_peak,
+            "fresh_production_return_code": fresh_return_code,
+            "finding": finding,
         },
         "provider_selected_model": selected_model,
     }
