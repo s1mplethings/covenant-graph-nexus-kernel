@@ -10,6 +10,8 @@ Do not put provider, repair, screenshot, video, package, or delivery truth logic
 
 All project changes are direct modification, generation, or deletion of bounded modules or generated candidate files. That is the underlying mutation model. An agent must identify the responsible module first, then modify only that module and its module-level tests.
 
+When debugging or modifying generation/repair behavior, start from the decomposition tree: `failure -> tree node -> issue ledger -> ProviderJob -> evidence update`. Do not patch generated project files directly. Do not create broad repair jobs without a tree node.
+
 ## B. Module Responsibility Table
 
 | Problem Type | Module To Modify | Modules Not To Modify |
@@ -18,6 +20,7 @@ All project changes are direct modification, generation, or deletion of bounded 
 | candidate write / candidate marker / snapshot | `candidate_materializer.py` | `final_delivery_truth.py` |
 | fake zip / fake manifest / fake screenshot claim | `candidate_sanitizer.py` or `artifact_integrity.py` | Do not bypass `final_delivery_truth.py` |
 | npm test failure / vitest missing / Windows ESM import | `post_build_repair.py` | `run_local_pipeline.py` |
+| plan/issue/evidence node mapping or tree evidence update | `decomposition_tree.py`, `issue_ledger.py`, `repair_acceptance.py` | Do not add a scheduler or change the final gate |
 | startup failure / npm test / TEST_REPORT / known_limits | `post_build_finalize.py` | `final_delivery_truth.py` |
 | screenshot blank / screenshot diagnostics / video blocked | `visual_evidence.py` | `run_local_pipeline.py` |
 | ASK_USER_REVIEW candidate send | `candidate_review_delivery.py` | public final delivery gate |
@@ -48,11 +51,12 @@ Truth modules can be made stricter or clearer. They must not be weakened so a ca
 1. Determine `failure_stage`.
 2. Route to the matching module.
 3. Check `pipeline_contracts.py` for the input/output contract.
-4. Modify only the target module and directly related tests.
-5. Add or update module-level tests.
-6. Run the smallest pytest filter that covers the changed behavior.
-7. Run the full focused pytest filter for pipeline, candidate, repair, visual, delivery, and kernel contracts.
-8. Confirm `final_project_bundle.zip`, `delivery_manifest.json`, and `PASS_FINAL` were not faked.
+4. Map any repairable failure to one existing `project_decomposition_tree.json` node and exact ProviderJob; an unmapped failure is not a generic component-repair license.
+5. Modify only the target module and directly related tests.
+6. Add or update module-level tests.
+7. Run the smallest pytest filter that covers the changed behavior.
+8. Run the full focused pytest filter for pipeline, candidate, repair, visual, delivery, and kernel contracts.
+9. Confirm `final_project_bundle.zip`, `delivery_manifest.json`, and `PASS_FINAL` were not faked.
 
 ## E. Prohibited Actions
 

@@ -1716,6 +1716,29 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("structured capability probe", kernel)
         self.assertIn("same production split-file leaf executor", kernel)
 
+    def test_project_decomposition_tree_is_the_required_mainline_index(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        guide = read_source("docs/77_decomposition_tree_mainline.md")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        jobs = read_source("scripts/provider_jobs.py")
+        schema = json.loads(
+            (ROOT / "schemas" / "project_decomposition_tree.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertIn("Project Decomposition Tree Mainline Contract", kernel)
+        self.assertIn("CGKNProjectDecompositionTree", registry)
+        self.assertIn("one Provider scheduler", guide)
+        self.assertIn("build_project_decomposition_tree", production)
+        self.assertIn("project_decomposition_tree.json", production)
+        self.assertIn("validate_repair_job_contract", jobs)
+        self.assertNotIn("ThreadPoolExecutor", jobs)
+        self.assertNotIn("execute_provider_jobs", jobs)
+        self.assertEqual("CGKNProjectDecompositionTree", schema["properties"]["kind"]["const"])
+        self.assertEqual(False, schema["properties"]["release_authority"]["const"])
+
 
 if __name__ == "__main__":
     unittest.main()

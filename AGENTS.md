@@ -31,6 +31,7 @@
 - Persistent Codex supervision must resume an identity-bound supervisor thread, preserve CGKN as the long-running owner of Codex conversation/project state, and keep every Provider, evidence, packaging, and delivery authority boundary intact.
 - Persistent Codex supervision is a sparse read-only False-Pass Auditor for high-value positive transitions only. Ordinary Provider work, retries, and test failures must not invoke Codex. Canonical audit actions route deterministically: project issues to Provider, evidence issues to canonical rechecking, and actual kernel issues to a separate allowlisted governed Codex repair.
 - `ProviderJob` is the only project-work concurrency unit. Provider authors isolated PatchSets; CGKN deterministically enforces dependencies, ownership, concurrency, merge order, affected-only repair, and PASS reuse. CGKN must not repair customer-project behavior with domain-specific kernel code.
+- The production mainline must create one `project_decomposition_tree.json` before Provider generation. Plan, issue, repair, and evidence records reuse its node ids; an unmapped failure cannot create a generic Provider repair, and the tree never authorizes release.
 
 ## CGKN self-hosted project management
 

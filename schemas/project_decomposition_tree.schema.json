@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/project_decomposition_tree.schema.json",
+  "title": "CGKNProjectDecompositionTree",
+  "type": "object",
+  "required": ["kind", "schema_version", "project_id", "goal", "user_goal", "required_for_generation", "nodes", "plan_tree", "issue_tree", "evidence_tree", "release_authority", "tree_sha256"],
+  "properties": {
+    "kind": {"const": "CGKNProjectDecompositionTree"},
+    "schema_version": {"const": "1.0"},
+    "project_id": {"type": "string", "minLength": 1},
+    "goal": {"type": "string", "minLength": 1},
+    "user_goal": {"type": "string", "minLength": 1},
+    "required_for_generation": {"const": true},
+    "release_authority": {"const": false},
+    "tree_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "nodes": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/node"}},
+    "plan_tree": {"$ref": "#/$defs/projection"},
+    "issue_tree": {"$ref": "#/$defs/issueProjection"},
+    "evidence_tree": {"$ref": "#/$defs/evidenceProjection"}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "node_type", "parent_id", "title", "expected_behavior", "target_files", "required_evidence", "status", "current_evidence", "mapped_issues"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "node_type": {"enum": ["capability", "stage", "component", "file", "issue", "evidence"]},
+        "parent_id": {"type": "string"},
+        "title": {"type": "string", "minLength": 1},
+        "expected_behavior": {"type": "string"},
+        "target_files": {"type": "array", "items": {"type": "string"}},
+        "required_evidence": {"type": "array", "items": {"type": "string"}},
+        "status": {"enum": ["unknown", "pass", "fail", "repairable_fail", "fatal_fail"]},
+        "current_evidence": {"type": "array", "items": {"type": "object"}},
+        "mapped_issues": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "projection": {
+      "type": "object",
+      "required": ["root_node_id", "node_ids"],
+      "properties": {"root_node_id": {"type": "string"}, "node_ids": {"type": "array", "items": {"type": "string"}}}
+    },
+    "issueProjection": {
+      "type": "object",
+      "required": ["node_ids", "mappings"],
+      "properties": {"node_ids": {"type": "array", "items": {"type": "string"}}, "mappings": {"type": "array", "items": {"type": "object"}}}
+    },
+    "evidenceProjection": {
+      "type": "object",
+      "required": ["node_ids", "updates"],
+      "properties": {"node_ids": {"type": "array", "items": {"type": "string"}}, "updates": {"type": "array", "items": {"type": "object"}}}
+    }
+  }
+}

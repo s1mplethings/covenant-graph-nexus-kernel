@@ -1,0 +1,65 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-068",
+  "project_id": "cgkn",
+  "goal": "Make Project Decomposition Tree the mandatory production index across planning, issue mapping, exact ProviderJob repair, partial acceptance, and evidence updates.",
+  "backlog_item_ids": ["PB-046"],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "The production mainline writes a schema-valid tree before Provider generation and retains it with the provisional candidate.",
+    "CASE01 and CASE03 capabilities use stable production-derived node IDs without benchmark-specific routing.",
+    "Every repair action has an exact node, issue, expected/observed behavior, evidence, target source, and affected-behavior probe.",
+    "Missing-main and Selenium verifier failures are repairable semantic issues while unsafe/fake/malformed facts remain fatal.",
+    "Focused regression proves no generic scope expansion, no second Provider scheduler, and unchanged final gate."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-DECOMPOSITION-TREE",
+      "measure": "tree-node coverage for repairable issue-led repair actions",
+      "target": "100% tree_node_id coverage, generic_scope_calls=0, provider_schedulers=1",
+      "method": "new tree integration regressions plus focused production/kernel suite"
+    }
+  ],
+  "quality_activities": {
+    "prevention": ["Use one deterministic support index and reuse the existing production split-file ProviderJob executor."],
+    "assurance": ["Validate tree schema, stable node mapping, frozen benchmark hashes, and final-gate invariants."],
+    "control": ["Run environment, slim guard, kernel contract, focused pytest, py_compile, and provider-gated trimmed live checks."],
+    "improvement": ["Use EXP-CGKN-QUALITY-001 by keeping planning, candidate implementation, and release truth separate in the tree authority contract."]
+  },
+  "interface_expectations": [
+    "The tree has no scheduling, candidate-write, evidence, package, or delivery authority.",
+    "ProviderJob remains the only project-work unit and the production split-file executor remains the only scheduler.",
+    "The final evaluator, local_packager, public delivery gate, and benchmark files remain unchanged."
+  ],
+  "evidence_refs": [
+    "scripts/decomposition_tree.py",
+    "tests/test_decomposition_tree_mainline.py",
+    "tests/test_issue_tree_mapping.py",
+    "tests/test_tree_provider_job_integration.py",
+    "artifacts/project_generation_benchmark/CGKN_DECOMPOSITION_TREE_MAINLINE_R2_20260913/trimmed_debug_report.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Focused regression passed 92 tests with 8 explicit skips; environment, slim guard, kernel contract, and py_compile passed.",
+      "Fresh CASE03 materialized, reached the unified issue ledger, mapped static-root failure to capability.static_web_entry and backend.leaf.001/app/main.py, and accepted one DOM delta with an Evidence Tree update without case-score improvement.",
+      "Fresh CASE01 created its required tree but qwen-plus repeatedly returned incomplete output for a required tests leaf, so no candidate or static-root post-build evidence was fabricated."
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "One node namespace now connects generation planning, issue routing, exact ProviderJob repair, and acceptance evidence.",
+      "Unmapped issues were made non-repairable while every live Provider repair action carried a tree_node_id.",
+      "EXP-CGKN-QUALITY-001 kept support-tree status separate from candidate, evaluator, package, and final-gate truth."
+    ],
+    "did_not_work": [
+      "CASE01 could not reach candidate materialization because the live Provider exhausted its existing output-contract retry budget.",
+      "CASE03 remained PROJECT_FAIL after bounded repair because static startup and foundation issues remained."
+    ],
+    "experiments": [
+      "Next isolate Provider incomplete-output durability for required test/document leaves without adding retries, schedulers, or timeout."
+    ]
+  }
+}

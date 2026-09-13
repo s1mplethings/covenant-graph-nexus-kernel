@@ -38,6 +38,14 @@ class ProviderJob:
     owns: tuple[str, ...] = ()
     interfaces: tuple[str, ...] = ()
     acceptance: tuple[str, ...] = ()
+    tree_node_id: str = ""
+    issue_id: str = ""
+    expected_behavior: str = ""
+    observed_behavior: str = ""
+    evidence: tuple[str, ...] = ()
+    target_files: tuple[str, ...] = ()
+    current_source: str = ""
+    affected_behavior_probe: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ProviderJob":
@@ -51,6 +59,14 @@ class ProviderJob:
             owns=tuple(_normalize_path(item) for item in raw_owns if _normalize_path(item)),
             interfaces=tuple(str(item).strip() for item in value.get("interfaces", []) if str(item).strip()),
             acceptance=tuple(str(item).strip() for item in value.get("acceptance", []) if str(item).strip()),
+            tree_node_id=str(value.get("tree_node_id", "")).strip(),
+            issue_id=str(value.get("issue_id", "")).strip(),
+            expected_behavior=str(value.get("expected_behavior", "")).strip(),
+            observed_behavior=str(value.get("observed_behavior", "")).strip(),
+            evidence=tuple(str(item).strip() for item in value.get("evidence", []) if str(item).strip()),
+            target_files=tuple(_normalize_path(item) for item in value.get("target_files", []) if _normalize_path(item)),
+            current_source=str(value.get("current_source", "")),
+            affected_behavior_probe=tuple(str(item).strip() for item in value.get("affected_behavior_probe", []) if str(item).strip()),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -61,6 +77,14 @@ class ProviderJob:
             "owns": list(self.owns),
             "interfaces": list(self.interfaces),
             "acceptance": list(self.acceptance),
+            "tree_node_id": self.tree_node_id,
+            "issue_id": self.issue_id,
+            "expected_behavior": self.expected_behavior,
+            "observed_behavior": self.observed_behavior,
+            "evidence": list(self.evidence),
+            "target_files": list(self.target_files),
+            "current_source": self.current_source,
+            "affected_behavior_probe": list(self.affected_behavior_probe),
         }
 
     @property
@@ -135,6 +159,28 @@ def validate_jobs(jobs: list[ProviderJob]) -> list[str]:
     return sorted(set(errors))
 
 
+def validate_repair_job_contract(value: ProviderJob | Mapping[str, Any]) -> list[str]:
+    """Validate a repair action without acquiring any scheduling authority."""
+    job = value if isinstance(value, ProviderJob) else ProviderJob.from_dict(value)
+    errors = validate_jobs([job])
+    required = {
+        "tree_node_id": job.tree_node_id,
+        "issue_id": job.issue_id,
+        "expected_behavior": job.expected_behavior,
+        "observed_behavior": job.observed_behavior,
+        "evidence": job.evidence,
+        "target_files": job.target_files,
+        "current_source": job.current_source,
+        "affected_behavior_probe": job.affected_behavior_probe,
+    }
+    for field, content in required.items():
+        if not content:
+            errors.append(f"provider_job.repair_contract.{field}:{job.id}")
+    if set(job.target_files) != set(job.owns):
+        errors.append(f"provider_job.repair_contract.target_files_match_ownership:{job.id}")
+    return sorted(set(errors))
+
+
 def _coerce_patch(job: ProviderJob, value: PatchSet | Mapping[str, str]) -> PatchSet:
     patch = value if isinstance(value, PatchSet) else PatchSet(job.id, dict(value))
     if patch.job_id != job.id:
@@ -191,6 +237,7 @@ def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -
                 owns=paths,
                 interfaces=tuple(str(item) for item in leaf.get("expected_symbols", []) if str(item).strip()),
                 acceptance=tuple(str(item) for item in leaf.get("acceptance_checks", []) if str(item).strip()),
+                tree_node_id=f"file.{_normalize_path(primary_path).replace('/', '_').replace('.', '_').replace('-', '_').lower()}",
             )
         )
     return jobs

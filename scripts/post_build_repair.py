@@ -12,11 +12,13 @@ from typing import Any
 
 try:
     from pipeline_contracts import RepairResult, base_result
+    import decomposition_tree
     import issue_ledger as issue_ledger_mapping
+    import provider_jobs
     import ui_semantic_adapter
 except ModuleNotFoundError:  # pragma: no cover - package import path
     from scripts.pipeline_contracts import RepairResult, base_result
-    from scripts import issue_ledger as issue_ledger_mapping
+    from scripts import decomposition_tree, issue_ledger as issue_ledger_mapping, provider_jobs
     from scripts import ui_semantic_adapter
 
 
@@ -539,9 +541,11 @@ def owner_for_issue_path(path: str, ownership: dict[str, str]) -> tuple[str, str
 
 
 def _evaluation_issue_evidence(finalize_result: dict[str, Any]) -> list[dict[str, Any]]:
-    records = finalize_result.get("evaluation_issue_evidence", [])
-    if not isinstance(records, list):
-        return []
+    records: list[Any] = []
+    for key in ("evaluation_issue_evidence", "semantic_issue_evidence"):
+        raw = finalize_result.get(key, [])
+        if isinstance(raw, list):
+            records.extend(raw)
     return [dict(item) for item in records if isinstance(item, dict)]
 
 
@@ -651,6 +655,7 @@ def cluster_issue_root_causes(
 ) -> dict[str, Any]:
     """Cluster all symptoms first, then create at most one bundle per owned ProviderJob."""
     ownership = provider_job_ownership_map(component_pipeline)
+    tree_contract_required = bool(ledger.get("decomposition_tree"))
     clusters: dict[str, list[dict[str, Any]]] = {}
     provider_groups: dict[str, list[dict[str, Any]]] = {}
     for issue in ledger.get("issues", []):
@@ -659,7 +664,15 @@ def cluster_issue_root_causes(
         root_key = str(issue.get("root_cause_key") or issue.get("requirement") or "unclassified")
         clusters.setdefault(root_key, []).append(issue)
         job_id = str(issue.get("affected_provider_job", "")).strip()
-        if bool(issue.get("repairable")) and str(issue.get("repair_route", "provider")) == "provider" and job_id:
+        if (
+            bool(issue.get("repairable"))
+            and str(issue.get("repair_route", "provider")) == "provider"
+            and job_id
+            and (
+                not tree_contract_required
+                or str(issue.get("tree_node_id", "")).strip()
+            )
+        ):
             provider_groups.setdefault(job_id, []).append(issue)
 
     bundles: list[dict[str, Any]] = []
@@ -679,10 +692,12 @@ def cluster_issue_root_causes(
         facts = [
             {
                 "issue_id": str(issue.get("issue_id", "")),
+                "tree_node_id": str(issue.get("tree_node_id", "")),
                 "failed_requirement": str(issue.get("failed_requirement", issue.get("requirement", ""))),
                 "user_action": str(issue.get("user_action", "")),
                 "expected_behavior": str(issue.get("expected_behavior", "")),
                 "observed_behavior": str(issue.get("observed_behavior", issue.get("symptom", ""))),
+                "affected_files": list(issue.get("affected_files", [])),
                 "evidence": issue.get("external_evidence", issue.get("evidence", {})),
             }
             for issue in issues
@@ -696,6 +711,11 @@ def cluster_issue_root_causes(
             {
                 "bundle_id": bundle_id,
                 "issue_ids": issue_ids,
+                "tree_node_ids": sorted({
+                    str(item.get("tree_node_id", ""))
+                    for item in issues
+                    if str(item.get("tree_node_id", ""))
+                }),
                 "root_cause_keys": sorted({str(item.get("root_cause_key", "")) for item in issues}),
                 "ownership_unit": job_id,
                 "component": job_id.split(".", 1)[0],
@@ -927,6 +947,7 @@ def compile_issue_ledger(
     finalize_result: dict[str, Any],
     *,
     component_pipeline: dict[str, Any] | None = None,
+    decomposition_tree_doc: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Summarize the completed evaluation before any Provider repair call."""
     failures = classify_post_build_failures(finalize_result)
@@ -1024,6 +1045,26 @@ def compile_issue_ledger(
         evidence_records,
         component_pipeline,
     )
+    if decomposition_tree_doc:
+        updated_tree, bound_issues = decomposition_tree.bind_issues_to_tree(
+            decomposition_tree_doc,
+            ledger.get("issues", []),
+        )
+        bound_issues = [
+            issue_ledger_mapping.bind_issue_to_tree_ownership(
+                item,
+                updated_tree,
+                ownership,
+            )
+            for item in bound_issues
+        ]
+        ledger["issues"] = bound_issues
+        ledger["decomposition_tree"] = updated_tree
+        ledger["tree_sha256"] = updated_tree.get("tree_sha256", "")
+        ledger["tree_node_coverage"] = (
+            sum(bool(item.get("tree_node_id")) for item in bound_issues) / len(bound_issues)
+            if bound_issues else 1.0
+        )
     return cluster_issue_root_causes(ledger, component_pipeline)
 
 
@@ -1053,6 +1094,9 @@ def bind_repair_plan_to_issue_ledger(
     plan: dict[str, Any],
     ledger: dict[str, Any],
     component_pipeline: dict[str, Any] | None,
+    *,
+    candidate_dir: pathlib.Path | None = None,
+    decomposition_tree_doc: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Route the complete ledger only through existing ProviderJob ownership."""
     ownership = provider_job_ownership_map(component_pipeline)
@@ -1064,16 +1108,56 @@ def bind_repair_plan_to_issue_ledger(
         if isinstance(item, dict)
     ]
     if bundles:
-        actions = [
-            {
+        tree = decomposition_tree_doc or ledger.get("decomposition_tree", {})
+        tree_nodes = {
+            str(item.get("node_id", "")): item
+            for item in tree.get("nodes", [])
+            if isinstance(item, dict)
+        } if isinstance(tree, dict) else {}
+        tree_contract_required = bool(tree_nodes)
+        actions = []
+        for bundle in bundles:
+            for path in bundle.get("affected_files", []):
+                rel = str(path).replace("\\", "/").strip()
+                if rel not in ownership or ownership[rel] != str(bundle.get("ownership_unit", "")):
+                    continue
+                facts = [item for item in bundle.get("evidence_facts", []) if isinstance(item, dict)]
+                node_ids = [str(item) for item in bundle.get("tree_node_ids", []) if str(item).strip()]
+                node_id = node_ids[0] if len(node_ids) == 1 else next(
+                    (str(item.get("tree_node_id", "")) for item in facts if rel in [str(p).replace("\\", "/") for p in item.get("affected_files", [])]),
+                    node_ids[0] if node_ids else "",
+                )
+                if not node_id and tree_contract_required:
+                    continue
+                node = tree_nodes.get(node_id, {})
+                source = ""
+                if candidate_dir is not None:
+                    source_path = (pathlib.Path(candidate_dir) / pathlib.PurePosixPath(rel)).resolve()
+                    try:
+                        source_path.relative_to(pathlib.Path(candidate_dir).resolve())
+                    except ValueError:
+                        continue
+                    if source_path.is_file():
+                        source = source_path.read_text(encoding="utf-8", errors="replace")
+                expected = next((str(item.get("expected_behavior", "")) for item in facts if str(item.get("expected_behavior", "")).strip()), str(node.get("expected_behavior", "")))
+                observed = next((str(item.get("observed_behavior", "")) for item in facts if str(item.get("observed_behavior", "")).strip()), "Observed evaluator failure")
+                action = {
                 "path": path,
+                "target_files": [rel],
                 "component": str(bundle.get("component", "")),
                 "provider_job_id": str(bundle.get("ownership_unit", "")),
+                "tree_node_id": node_id,
+                "issue_id": str(bundle.get("issue_ids", [""])[0] if bundle.get("issue_ids") else ""),
                 "bundle_id": str(bundle.get("bundle_id", "")),
                 "issue_ids": list(bundle.get("issue_ids", [])),
                 "instruction": str(bundle.get("instruction", "")),
                 "acceptance_conditions": list(bundle.get("acceptance_conditions", [])),
                 "evidence_facts": list(bundle.get("evidence_facts", [])),
+                "expected_behavior": expected,
+                "observed_behavior": observed,
+                "evidence": facts,
+                "current_source": source,
+                "affected_behavior_probe": list(node.get("required_evidence", [])),
                 "issue_acceptance_contract": {
                     "unit": "provider_job_owned_issue",
                     "requires_target_issue_improvement": True,
@@ -1092,13 +1176,25 @@ def bind_repair_plan_to_issue_ledger(
                     for fact in bundle.get("evidence_facts", [])
                     if isinstance(fact, dict)
                 ),
-            }
-            for bundle in bundles
-            for path in bundle.get("affected_files", [])
-            if str(path).replace("\\", "/").strip() in ownership
-            and ownership[str(path).replace("\\", "/").strip()]
-            == str(bundle.get("ownership_unit", ""))
-        ]
+                }
+                contract = {
+                    "id": action["provider_job_id"],
+                    "goal": action["instruction"],
+                    "owns": action["target_files"],
+                    "tree_node_id": action["tree_node_id"],
+                    "issue_id": action["issue_id"],
+                    "expected_behavior": action["expected_behavior"],
+                    "observed_behavior": action["observed_behavior"],
+                    "evidence": action["evidence"],
+                    "target_files": action["target_files"],
+                    "current_source": action["current_source"],
+                    "affected_behavior_probe": action["affected_behavior_probe"],
+                }
+                if (
+                    not tree_contract_required
+                    or not provider_jobs.validate_repair_job_contract(contract)
+                ):
+                    actions.append(action)
         if actions:
             target_files = [str(action["path"]).replace("\\", "/") for action in actions]
             return {
@@ -1128,6 +1224,7 @@ def bind_repair_plan_to_issue_ledger(
                     "no_improvement_patch_allowed": False,
                     "final_release_gate_unchanged": True,
                 },
+                "tree_contract_required": tree_contract_required,
             }
     return {
         **plan,
@@ -4113,6 +4210,7 @@ def run_candidate_post_build_repair_loop(
     current_candidate_id: str = "",
     version_metadata: dict[str, Any] | None = None,
     provider_repair_executor: Any | None = None,
+    decomposition_tree_doc: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     current = initial_post_build
@@ -4185,7 +4283,19 @@ def run_candidate_post_build_repair_loop(
             candidate_dir,
             current,
             component_pipeline=component_pipeline,
+            decomposition_tree_doc=decomposition_tree_doc,
         )
+        ledger_tree = ledger.get("decomposition_tree", {})
+        if isinstance(ledger_tree, dict) and ledger_tree.get("nodes"):
+            decomposition_tree_doc = ledger_tree
+            decomposition_tree.write_tree(
+                artifacts_dir / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
+            decomposition_tree.write_tree(
+                candidate_dir / "artifacts" / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
         ledger_path = artifacts_dir / f"post_build_issue_ledger_attempt_{attempt}.json"
         _legacy_call("write_json", ledger_path, ledger)
         plan = compile_post_build_repair_plan(
@@ -4197,6 +4307,12 @@ def run_candidate_post_build_repair_loop(
             plan,
             ledger,
             component_pipeline,
+            candidate_dir=candidate_dir,
+            decomposition_tree_doc=(
+                ledger.get("decomposition_tree", decomposition_tree_doc)
+                if isinstance(ledger, dict)
+                else decomposition_tree_doc
+            ),
         )
         if history and isinstance(history[-1].get("repair_result"), dict):
             previous_rejection = history[-1]["repair_result"]
@@ -4269,6 +4385,7 @@ def run_candidate_post_build_repair_loop(
                         candidate_dir,
                         current,
                         component_pipeline=component_pipeline,
+                        decomposition_tree_doc=decomposition_tree_doc,
                     ),
                 )
                 if record:
@@ -4318,6 +4435,24 @@ def run_candidate_post_build_repair_loop(
                 "reason": "NO_ACTUAL_CHANGE",
             }
         provider_calls_consumed += int(repair_result.get("provider_calls", 0) or 0)
+        evidence_updates = repair_result.get("evidence_tree_updates", [])
+        if (
+            isinstance(decomposition_tree_doc, dict)
+            and isinstance(evidence_updates, list)
+            and evidence_updates
+        ):
+            decomposition_tree_doc = decomposition_tree.apply_evidence_updates(
+                decomposition_tree_doc,
+                evidence_updates,
+            )
+            decomposition_tree.write_tree(
+                artifacts_dir / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
+            decomposition_tree.write_tree(
+                candidate_dir / "artifacts" / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
         repair_result["provider_calls_consumed"] = provider_calls_consumed
         if (
             allowed_provider_calls
@@ -4364,6 +4499,7 @@ def run_candidate_post_build_repair_loop(
                         candidate_dir,
                         current,
                         component_pipeline=component_pipeline,
+                        decomposition_tree_doc=decomposition_tree_doc,
                     ),
                 )
                 if record:
@@ -4408,6 +4544,7 @@ def run_candidate_post_build_repair_loop(
                 candidate_dir,
                 current,
                 component_pipeline=component_pipeline,
+                decomposition_tree_doc=decomposition_tree_doc,
             ),
         )
         if record:

@@ -39,6 +39,7 @@ import compose_local_pipeline
 import cross_validation_feedforward
 import discovery_selection_lane
 import design_research_agent
+import decomposition_tree
 import final_delivery_truth
 import formal_model_contract
 import local_intent_router
@@ -17877,6 +17878,31 @@ def build_leaf_boundary_check_receipt(
             f"implementation depth contract mismatch: {item}"
             for item in implementation_depth_receipt.get("blockers", [])
         )
+        if pathlib.PurePosixPath(target_file).suffix.lower() == ".py":
+            for blocker in implementation_depth_receipt.get("blockers", []):
+                match = re.match(
+                    r"missing expected symbols:\s*(.+)",
+                    str(blocker),
+                    flags=re.I,
+                )
+                if not match:
+                    continue
+                for symbol in [
+                    item.strip()
+                    for item in match.group(1).split(",")
+                    if item.strip()
+                ]:
+                    structured_violations.append(
+                        {
+                            "rule_id": "PYTHON_EXPECTED_SYMBOL_MISSING",
+                            "path": target_file,
+                            "symbol": symbol,
+                            "line": None,
+                            "expected": f"{target_file} exposes expected Python symbol {symbol}",
+                            "observed": f"missing expected symbol {symbol}",
+                            "repair_hint": f"Implement expected symbol {symbol} in this owned Python file without changing unrelated behavior.",
+                        }
+                    )
         expected_symbols = {
             str(item).strip().rsplit(".", 1)[-1]
             for item in implementation_contract.get("expected_symbols", [])
@@ -17939,11 +17965,23 @@ def build_leaf_boundary_check_receipt(
                 )
     if pathlib.PurePosixPath(target_file).suffix.lower() == ".py":
         checks.extend(["python_syntax", "python_local_imports", "python_class_methods"])
-        blockers.extend(
-            python_leaf_interface_violations(
-                [*(prior_files or []), *component_files],
-                source_paths={target_file},
-            )
+        python_blockers = python_leaf_interface_violations(
+            [*(prior_files or []), *component_files],
+            source_paths={target_file},
+        )
+        blockers.extend(python_blockers)
+        structured_violations.extend(
+            {
+                "rule_id": "CANONICAL_VERIFIER_IMPORT_VIOLATION",
+                "path": target_file,
+                "symbol": "selenium",
+                "line": None,
+                "expected": "canonical generated tests do not own a Selenium browser-driver lane",
+                "observed": blocker,
+                "repair_hint": "Replace the test-local Selenium dependency with behavior checks supported by the canonical CGKN verifier.",
+            }
+            for blocker in python_blockers
+            if "selenium" in str(blocker).lower()
         )
     if component_id == "frontend":
         if pathlib.PurePosixPath(target_file).suffix.lower() in JAVASCRIPT_MODULE_SUFFIXES:
@@ -20573,12 +20611,26 @@ def write_repairable_failed_provider_job(
         }
     )
     repair_classification = "REPAIRABLE_FAILED"
+    repair_suffix = (
+        pathlib.PurePosixPath(repair_paths[0]).suffix.lower()
+        if len(repair_paths) == 1
+        else ""
+    )
+    python_semantic_repair = bool(
+        repair_suffix == ".py"
+        and violations
+        and all(
+            str(item.get("rule_id", ""))
+            in {"PYTHON_EXPECTED_SYMBOL_MISSING", "CANONICAL_VERIFIER_IMPORT_VIOLATION"}
+            for item in violations
+            if isinstance(item, dict)
+        )
+    )
     if (
         set(by_path) != set(owned_paths)
         or len(repair_paths) != 1
         or repair_paths[0] not in by_path
-        or pathlib.PurePosixPath(repair_paths[0]).suffix.lower()
-        not in JAVASCRIPT_MODULE_SUFFIXES
+        or not (repair_suffix in JAVASCRIPT_MODULE_SUFFIXES or python_semantic_repair)
         or not by_path[repair_paths[0]].strip()
     ):
         repair_classification = "UNUSABLE"
@@ -23746,6 +23798,8 @@ def classify_semantic_blockers(provider_review: dict[str, Any] | list[Any] | Non
         ):
             classes["repairable_fact_blocker"].append(issue)
             classes["hard_fact_blocker"].append(issue)
+        elif decomposition_tree.semantic_failure_is_repairable(text):
+            classes["repairable_fact_blocker"].append(issue)
         elif kind in {"missing_entry_html", "missing_backend_deps", "broken_runtime", "broken_tests", "module_mismatch"} or any(
             token in lowered
             for token in (
@@ -23911,7 +23965,10 @@ def recover_candidate_files_from_checkpoints(run_dir: pathlib.Path, existing_fil
     if existing_files:
         return existing_files
     checkpoint_dir = run_dir / "artifacts" / "provider_components"
-    component_map = component_files_from_checkpoints(checkpoint_dir)
+    component_map = component_files_from_checkpoints(
+        checkpoint_dir,
+        include_repairable_semantic_failures=True,
+    )
     recovered: list[dict[str, str]] = []
     seen: set[str] = set()
     for component_id in sorted(component_map):
@@ -24709,7 +24766,14 @@ def capture_candidate_screenshot(project_dir: pathlib.Path, run_dir: pathlib.Pat
                     page.on("requestfailed", lambda req: network_errors.append(str(req.url)))
                 except Exception:
                     pass
-                page.goto(url_value, wait_until="domcontentloaded", timeout=min(timeout, 30) * 1000)
+                page_response = page.goto(
+                    url_value,
+                    wait_until="domcontentloaded",
+                    timeout=min(timeout, 30) * 1000,
+                )
+                details["http_status"] = (
+                    int(page_response.status) if page_response is not None else 0
+                )
                 page.wait_for_timeout(500)
                 try:
                     preview_control = page.locator(
@@ -25381,8 +25445,31 @@ def run_candidate_post_build_finalize(
     write_json(project_dir / "repair_plan.json", repair_plan)
     ui_passed = not visual_surface_required or str(screenshot_ui_smoke.get("status", "")).lower() == "pass"
     visual_evidence_ready = not visual_surface_required or bool(screenshots)
-    status = "pass" if str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and visual_evidence_ready and ui_passed else "needs_rework"
-    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and ui_passed and (not visual_surface_required or bool(screenshots) or bool(screenshot_blocked))
+    static_root_issue_evidence: list[dict[str, Any]] = []
+    for attempt in screenshot_capture.get("attempts", []):
+        details = attempt.get("diagnostics", {}) if isinstance(attempt, dict) else {}
+        if not isinstance(details, dict) or int(details.get("http_status", 0) or 0) != 404:
+            continue
+        target = (
+            "app/main.py"
+            if (project_dir / "app" / "main.py").is_file()
+            else "frontend/index.html"
+        )
+        static_root_issue_evidence.append(
+            {
+                "evaluator_failure_id": "canonical_probe:static_root",
+                "criterion_id": "static_root",
+                "status": "FAIL",
+                "user_action": "Open the generated application's root URL.",
+                "expected_behavior": "GET / returns 200 and serves the frontend entry.",
+                "observed_behavior": "GET / returned HTTP 404 during the canonical browser probe.",
+                "affected_files": [target],
+                "repair_route": "provider",
+                "authority": "canonical_browser_probe",
+            }
+        )
+    status = "pass" if str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and not static_root_issue_evidence and visual_evidence_ready and ui_passed else "needs_rework"
+    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and not static_root_issue_evidence and ui_passed and (not visual_surface_required or bool(screenshots) or bool(screenshot_blocked))
     candidate_review_summary = ""
     if candidate_review_ready:
         candidate_review_summary = write_candidate_review_summary(
@@ -25413,6 +25500,7 @@ def run_candidate_post_build_finalize(
         "visual_surface_required": visual_surface_required,
         "test_result": test_result,
         "candidate_contract_issues": candidate_contract_issues,
+        "evaluation_issue_evidence": static_root_issue_evidence,
         "fixture_result": fixture_result,
         "agent_usage": agent_usage,
         "screenshots": screenshots,
@@ -26069,7 +26157,11 @@ def parse_review_blocker(blocker: Any, component_pipeline: dict[str, Any] | None
     }
 
 
-def component_files_from_checkpoints(checkpoint_dir: pathlib.Path | None) -> dict[str, list[dict[str, str]]]:
+def component_files_from_checkpoints(
+    checkpoint_dir: pathlib.Path | None,
+    *,
+    include_repairable_semantic_failures: bool = False,
+) -> dict[str, list[dict[str, str]]]:
     out: dict[str, list[dict[str, str]]] = {}
     if checkpoint_dir is None or not checkpoint_dir.exists():
         return out
@@ -26084,6 +26176,47 @@ def component_files_from_checkpoints(checkpoint_dir: pathlib.Path | None) -> dic
         files = doc.get("files", [])
         if isinstance(files, list):
             out[component_id] = [item for item in files if isinstance(item, dict)]
+    if include_repairable_semantic_failures:
+        for path in (checkpoint_dir / "repairable_failed").glob("*/*.json"):
+            try:
+                doc = load_json(path)
+            except Exception:
+                continue
+            if (
+                doc.get("kind") != "CGKNRepairableFailedProviderJob"
+                or doc.get("repair_classification") != "REPAIRABLE_FAILED"
+                or doc.get("candidate_eligible") is not False
+            ):
+                continue
+            violations = [
+                item
+                for item in doc.get("structured_violations", [])
+                if isinstance(item, dict)
+            ]
+            if not violations or not all(
+                str(item.get("rule_id", ""))
+                in {"PYTHON_EXPECTED_SYMBOL_MISSING", "CANONICAL_VERIFIER_IMPORT_VIOLATION"}
+                for item in violations
+            ):
+                continue
+            component_id = str(doc.get("component_id", "")).strip()
+            if not component_id:
+                continue
+            existing = {
+                str(item.get("path", "")).replace("\\", "/").strip()
+                for item in out.get(component_id, [])
+                if isinstance(item, dict)
+            }
+            for item in doc.get("files", []):
+                if not isinstance(item, dict):
+                    continue
+                rel = str(item.get("path", "")).replace("\\", "/").strip()
+                content = item.get("content")
+                if rel and rel not in existing and isinstance(content, str):
+                    out.setdefault(component_id, []).append(
+                        {"path": rel, "content": content}
+                    )
+                    existing.add(rel)
     return out
 
 
@@ -27490,6 +27623,30 @@ def execute_provider_job_patch_generation(
         for item in prepared_plan.get("provider_actions", [])
         if isinstance(item, dict)
     ]
+    repair_contract_errors: list[str] = []
+    for action in provider_actions if prepared_plan.get("tree_contract_required") else []:
+        contract = {
+            "id": action.get("provider_job_id", ""),
+            "goal": action.get("instruction", ""),
+            "owns": action.get("target_files", [action.get("path", "")]),
+            "tree_node_id": action.get("tree_node_id", ""),
+            "issue_id": action.get("issue_id", ""),
+            "expected_behavior": action.get("expected_behavior", ""),
+            "observed_behavior": action.get("observed_behavior", ""),
+            "evidence": action.get("evidence", action.get("evidence_facts", [])),
+            "target_files": action.get("target_files", [action.get("path", "")]),
+            "current_source": action.get("current_source", ""),
+            "affected_behavior_probe": action.get("affected_behavior_probe", []),
+        }
+        repair_contract_errors.extend(provider_jobs.validate_repair_job_contract(contract))
+    if repair_contract_errors:
+        return {
+            "status": "failed",
+            "reason": "PROVIDER_JOB_TREE_CONTRACT_INVALID",
+            "contract_errors": sorted(set(repair_contract_errors)),
+            "changed_files": [],
+            "provider_calls": 0,
+        }
     target_files = sorted(
         {
             str(item.get("path", "")).replace("\\", "/").strip()
@@ -27642,6 +27799,7 @@ def execute_provider_job_patch_generation(
     accepted_partial_deltas = 0
     issues_fixed_by_partial_acceptance = 0
     issues_rejected_after_partial_validation = 0
+    evidence_tree_updates: list[dict[str, Any]] = []
     actions_by_path = {
         str(item.get("path", "")).replace("\\", "/").strip(): item
         for item in provider_actions
@@ -27683,7 +27841,9 @@ def execute_provider_job_patch_generation(
             syntax_safe=provider_repair_source_syntax_safe(
                 target_file, returned[target_file]
             ),
+            tree_node_id=str(action.get("tree_node_id", "")),
         )
+        evidence_tree_updates.extend(acceptance.get("evidence_tree_updates", []))
         issue_acceptance_records.extend(acceptance["issue_acceptance"])
         issues_fixed_by_partial_acceptance += int(
             acceptance["issues_fixed_by_partial_acceptance"]
@@ -27732,6 +27892,7 @@ def execute_provider_job_patch_generation(
             "issues_rejected_after_partial_validation": issues_rejected_after_partial_validation,
             "accepted_partial_deltas": 0,
             "accepted_without_target_issue_improvement": 0,
+            "evidence_tree_updates": [],
             "duration": round(time.perf_counter() - started, 3),
         }
     changed_files: list[str] = []
@@ -27784,6 +27945,7 @@ def execute_provider_job_patch_generation(
         "issues_rejected_after_partial_validation": issues_rejected_after_partial_validation,
         "accepted_partial_deltas": accepted_partial_deltas,
         "accepted_without_target_issue_improvement": 0,
+        "evidence_tree_updates": evidence_tree_updates,
         "provider_calls": max(0, calls_after - calls_before),
         "requested_files": target_files,
         "files_supplied": sorted(
@@ -30148,6 +30310,57 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         component_pipeline,
         codex_brief_projection,
     )
+    decomposition_tree_doc = decomposition_tree.build_project_decomposition_tree(
+        user_goal=user_goal,
+        goal_spec=goal_spec,
+        project_plan=project_plan,
+        component_pipeline=component_pipeline,
+        project_id=run_dir.name,
+    )
+    tree_errors = decomposition_tree.validate_tree(decomposition_tree_doc)
+    if tree_errors:
+        raise RuntimeError("PROJECT_DECOMPOSITION_TREE_INVALID: " + "; ".join(tree_errors))
+    decomposition_tree_path = run_dir / "artifacts" / "project_decomposition_tree.json"
+    decomposition_tree.write_tree(decomposition_tree_path, decomposition_tree_doc)
+    plan_doc = dict(plan_doc)
+    plan_doc["project_decomposition_tree"] = {
+        "required": True,
+        "path": str(decomposition_tree_path),
+        "tree_sha256": decomposition_tree_doc["tree_sha256"],
+        "node_ids": [item["node_id"] for item in decomposition_tree_doc["nodes"]],
+    }
+    write_json(
+        generation_plan_checkpoint_path,
+        {
+            "kind": "CGKNGenerationPlanCheckpoint",
+            "schema_version": 1,
+            "created_at": now(),
+            "raw_user_goal_sha256": hashlib.sha256(str(goal).encode("utf-8")).hexdigest(),
+            "frozen_user_goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+            "plan_doc": plan_doc,
+        },
+    )
+    internal_context = (
+        internal_context
+        + "\n\nRequired Project Decomposition Tree (shared plan/issue/evidence node IDs):\n"
+        + json.dumps(
+            {
+                "tree_sha256": decomposition_tree_doc["tree_sha256"],
+                "nodes": [
+                    {
+                        "node_id": item["node_id"],
+                        "expected_behavior": item["expected_behavior"],
+                        "target_files": item["target_files"],
+                        "required_evidence": item["required_evidence"],
+                    }
+                    for item in decomposition_tree_doc["nodes"]
+                    if item["node_type"] in {"capability", "file"}
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    ).strip()
     if resume_pending_plan:
         if not pending_component_leaf_matches_pipeline(
             resume_pending_plan, component_pipeline
@@ -30296,6 +30509,12 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "issues": build_coherence_issues,
             },
         }
+        decomposition_tree.write_tree(
+            pathlib.Path(str(materialized.get("candidate_dir", out_dir)))
+            / "artifacts"
+            / "project_decomposition_tree.json",
+            decomposition_tree_doc,
+        )
         write_json(
             run_dir / "artifacts" / "build_complete_receipt.json",
             {
@@ -30402,6 +30621,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             phase_log_path=phase_log_path,
             routing_policy=routing_policy,
         )
+        nonlocal decomposition_tree_doc
+        evidence_updates = repaired.get("evidence_tree_updates", [])
+        if isinstance(evidence_updates, list) and evidence_updates:
+            decomposition_tree_doc = decomposition_tree.apply_evidence_updates(
+                decomposition_tree_doc,
+                evidence_updates,
+            )
+            decomposition_tree.write_tree(decomposition_tree_path, decomposition_tree_doc)
+            decomposition_tree.write_tree(
+                candidate_dir / "artifacts" / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
         return {
             **repaired,
             "provider_job_batches": job_batches,
@@ -30478,6 +30709,10 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                     "provider_calls": int(provider_execution_metrics.snapshot(phase_log_path).get("provider_api_call_count", 0) or 0),
                 },
             )
+            decomposition_tree.write_tree(
+                candidate_dir / "artifacts" / "project_decomposition_tree.json",
+                decomposition_tree_doc,
+            )
             generated_files = list(materialized_candidate.get("metadata", {}).get("generated_files", []))
             generation["provider_semantic_review"] = provider_review
             generation["provider_semantic_review_attempted_repairs"] = semantic_result.get("attempted_repairs", [])
@@ -30497,10 +30732,15 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 routing_policy=routing_policy,
                 component_pipeline=component_pipeline,
             )
+            post_build = decomposition_tree.attach_semantic_issue_evidence(
+                post_build,
+                semantic_classes,
+            )
             initial_issue_ledger = post_build_repair.compile_issue_ledger(
                 candidate_dir,
                 post_build,
                 component_pipeline=component_pipeline,
+                decomposition_tree_doc=decomposition_tree_doc,
             )
             write_json(run_dir / "artifacts" / "post_build_issue_ledger_v0.json", initial_issue_ledger)
             first_candidate_record = materialized_candidate.get("candidate_record", {}) if isinstance(materialized_candidate.get("candidate_record"), dict) else {}
@@ -30528,11 +30768,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                     "provider_provenance": first_candidate_record.get("provider_provenance", {}),
                 },
                 provider_repair_executor=execute_existing_provider_job_batch_repair,
+                decomposition_tree_doc=decomposition_tree_doc,
             )
             final_issue_ledger = post_build_repair.compile_issue_ledger(
                 candidate_dir,
                 post_build,
                 component_pipeline=component_pipeline,
+                decomposition_tree_doc=decomposition_tree_doc,
             )
             write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
             final_bundle_exists = (candidate_dir / "final_project_bundle.zip").exists()
@@ -30732,10 +30974,15 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         routing_policy=routing_policy,
         component_pipeline=component_pipeline,
     )
+    post_build = decomposition_tree.attach_semantic_issue_evidence(
+        post_build,
+        semantic_classes,
+    )
     initial_issue_ledger = post_build_repair.compile_issue_ledger(
         out_dir,
         post_build,
         component_pipeline=component_pipeline,
+        decomposition_tree_doc=decomposition_tree_doc,
     )
     write_json(run_dir / "artifacts" / "post_build_issue_ledger_v0.json", initial_issue_ledger)
     first_candidate_record = candidate_materialization.get("candidate_record", {}) if isinstance(candidate_materialization.get("candidate_record"), dict) else {}
@@ -30763,11 +31010,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             "provider_provenance": first_candidate_record.get("provider_provenance", {}),
         },
         provider_repair_executor=execute_existing_provider_job_batch_repair,
+        decomposition_tree_doc=decomposition_tree_doc,
     )
     final_issue_ledger = post_build_repair.compile_issue_ledger(
         out_dir,
         post_build,
         component_pipeline=component_pipeline,
+        decomposition_tree_doc=decomposition_tree_doc,
     )
     write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
     agent_usage = post_build.get("agent_usage", {}) if isinstance(post_build.get("agent_usage"), dict) else {}

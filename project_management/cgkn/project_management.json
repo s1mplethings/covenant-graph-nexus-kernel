@@ -1170,6 +1170,30 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-046",
+      "title": "Make Project Decomposition Tree the production mainline index",
+      "outcome": "Planning, evaluator failures, exact ProviderJob repairs, issue-level acceptance, and evidence updates share one deterministic node identity without creating another scheduler or weakening release truth.",
+      "priority": 46,
+      "value_score": 10,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-045"
+      ],
+      "acceptance_criteria": [
+        "Every production run creates a schema-valid project_decomposition_tree.json before Provider generation.",
+        "Repairable failures map to one stable tree node and exact existing ProviderJob ownership; unmapped failures cannot trigger generic repair.",
+        "Accepted partial improvements update node evidence without requiring whole-case score improvement.",
+        "Repairable missing-main and canonical-verifier semantic failures can reach provisional post-build evaluation when no fatal fact blocker exists.",
+        "The existing production split-file leaf executor remains the only Provider scheduler and all frozen benchmark hashes remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-PROJECT-BENCHMARK",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {

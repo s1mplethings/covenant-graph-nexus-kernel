@@ -143,6 +143,7 @@ def assess_provider_job_partial_acceptance(
     syntax_safe: bool,
     behavior_checks_before: list[dict[str, Any]] | None = None,
     behavior_checks_after: list[dict[str, Any]] | None = None,
+    tree_node_id: str = "",
 ) -> dict[str, Any]:
     """Accept a bounded leaf delta only when at least one owned issue improves."""
     target = normalize_path(target_file)
@@ -209,6 +210,7 @@ def assess_provider_job_partial_acceptance(
         records.append(
             {
                 "issue_id": item["issue_id"],
+                "tree_node_id": tree_node_id,
                 "issue_type": kind,
                 "target_files": [target],
                 "expected_behavior": expected,
@@ -260,6 +262,18 @@ def assess_provider_job_partial_acceptance(
         reason = "NO_TARGET_ISSUE_IMPROVEMENT"
     else:
         reason = ""
+    evidence_tree_updates = [
+        {
+            "tree_node_id": tree_node_id,
+            "status": "pass",
+            "evidence": {
+                "authority": "provider_job_issue_level_acceptance",
+                "target_file": target,
+                "issue_ids": [record["issue_id"] for record in records if record["fixed_by_delta"]],
+                "case_score_required": False,
+            },
+        }
+    ] if safe and tree_node_id else []
     return {
         "status": "accepted" if safe else "rejected",
         "reason": reason,
@@ -272,4 +286,5 @@ def assess_provider_job_partial_acceptance(
         "introduced_new_blockers": new_blockers,
         "regressed_behavior_checks": regressed_checks,
         "safe_to_accept_partial": safe,
+        "evidence_tree_updates": evidence_tree_updates,
     }
