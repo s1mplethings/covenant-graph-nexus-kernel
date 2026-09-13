@@ -57,6 +57,7 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-044` [done] Close production false-pass recovery routes
 - `PB-045` [done] Establish Project Generation Benchmark v1
 - `PB-046` [done] Make Project Decomposition Tree the production mainline index
+- `PB-047` [done] Verify partial acceptance with provider-free deterministic replay
 
 ## Definition of done
 

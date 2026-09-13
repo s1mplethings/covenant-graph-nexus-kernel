@@ -1194,6 +1194,29 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-047",
+      "title": "Verify partial acceptance with provider-free deterministic replay",
+      "outcome": "The existing Provider parsing, single schema repair, candidate materialization, local behavior verification, issue-level acceptance, accounting, and candidate selection contracts are exercised without external Provider calls or quota use.",
+      "priority": 47,
+      "value_score": 9,
+      "risk_reduction_score": 9,
+      "state": "done",
+      "dependencies": [
+        "PB-046"
+      ],
+      "acceptance_criteria": [
+        "Eight deterministic replay scenarios cover partial improvement, no target improvement, new blockers, bounded schema repair, materialization failure, score-independent acceptance, and multi-round candidate selection.",
+        "CASE01 CSV and CASE03 board behaviors are executed locally rather than trusted from replay claims.",
+        "Every replay response has a stable ID and SHA-256, accounting rows equal replay transport calls, and real network calls remain zero.",
+        "The result explicitly does not claim live product repair or live Provider repeatability, and frozen benchmark hashes remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-PROJECT-BENCHMARK",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {

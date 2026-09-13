@@ -57,8 +57,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 38,
-      "successful_usage_count": 38,
+      "usage_count": 39,
+      "successful_usage_count": 39,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -791,6 +791,16 @@
       "outcome": "successful",
       "evidence_refs": [
         "artifacts/project_generation_benchmark/CGKN_DECOMPOSITION_TREE_MAINLINE_R2_20260913/trimmed_debug_report.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-069",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/project_generation_benchmark/CGKN_PROVIDER_FREE_PARTIAL_ACCEPTANCE_20260913/provider_free_logic_report.json"
       ]
     }
   ]

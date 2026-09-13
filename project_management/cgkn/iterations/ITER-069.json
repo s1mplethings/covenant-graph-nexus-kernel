@@ -1,0 +1,73 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-069",
+  "project_id": "cgkn",
+  "goal": "Run a provider-free deterministic acceptance of CGKN partial repair orchestration without changing benchmark or production gates.",
+  "backlog_item_ids": [
+    "PB-047"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Replay payloads enter only at the Provider HTTP transport boundary and traverse the normal parser and single schema-repair contract.",
+    "Actual local CSV and board behaviors determine issue-level acceptance and new-blocker rejection.",
+    "Candidate V0 to V1 to V2 advances only on accepted improvements; rejected V3 cannot replace V2.",
+    "Accounting and network guards prove zero external Provider calls and exact replay-call accounting.",
+    "The report preserves the live-product and live-Provider limitations."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-PROVIDER-FREE-PARTIAL-ACCEPTANCE",
+      "measure": "deterministic scenario coverage and external-network isolation",
+      "target": "8/8 scenarios, real Provider calls=0, accounting consistent, provider_schedulers=1",
+      "method": "transport-boundary replay, executable local fixtures, focused regression, rule guard, and kernel contract"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Reuse the existing parser, schema repair, candidate materializer, acceptance helper, accounting writer, and candidate store."
+    ],
+    "assurance": [
+      "Hash every replay response and fail immediately on any real network attempt."
+    ],
+    "control": [
+      "Execute eight deterministic scenarios, CASE01/CASE03 local behavior checks, focused pytest, guards, and py_compile."
+    ],
+    "improvement": [
+      "Apply EXP-CGKN-QUALITY-001 by keeping local logic evidence separate from live product and Provider truth."
+    ]
+  },
+  "interface_expectations": [
+    "The replay harness is test/evaluation support and is not a Provider scheduler or generation route.",
+    "Only scripts.check_connectivity._post_json is replaced for replay responses.",
+    "Benchmark cases, evaluator, thresholds, final gate, and candidate product inputs remain unchanged."
+  ],
+  "evidence_refs": [
+    "scripts/provider_free_partial_acceptance_replay.py",
+    "tests/test_provider_free_partial_acceptance_replay.py",
+    "artifacts/project_generation_benchmark/CGKN_PROVIDER_FREE_PARTIAL_ACCEPTANCE_20260913/provider_free_logic_report.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Eight of eight deterministic scenarios passed with zero real network calls and eleven auditable replay transport responses.",
+      "CASE01 verified upload, clean, preview, and export while delivery intentionally remained failing; CASE03 verified startup, CRUD, persistence, and export while move intentionally remained failing in the selected candidate.",
+      "This evidence validates local orchestration contracts only and does not verify live product repair or Provider repeatability."
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Transport-boundary replay exercised the normal Provider response parser and exactly-one schema repair limit.",
+      "Actual file, subprocess, reload, CSV, and JSON checks prevented replay declarations from becoming acceptance evidence.",
+      "The immutable candidate store kept accepted V2 after a rejected V3."
+    ],
+    "did_not_work": [
+      "The first fixture used a package import that was invalid when the entry script ran directly; the fixture was corrected without changing production logic.",
+      "The first advisory-score fixture mapped its issue to the wrong file; the fixture mapping was corrected and regression-locked."
+    ],
+    "experiments": [
+      "When Provider quota is available, rerun fresh live product convergence; do not promote provider-free logic evidence into live acceptance."
+    ]
+  }
+}
