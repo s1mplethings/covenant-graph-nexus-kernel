@@ -103,3 +103,89 @@ def test_payload_manifest_and_required_artifacts_are_auditable(provider_free_rep
         assert row["response_sha256"] == hashlib.sha256(
             row["response_text"].encode("utf-8")
         ).hexdigest()
+
+
+def test_frozen_contract_partial_improvement_acceptance(provider_free_report) -> None:
+    """FROZEN CONTRACT: verified target-issue improvement survives a failing case score."""
+    _, report = provider_free_report
+    assert report["scenarios"]["A_partial_improvement"]["actual"] == "ACCEPT_PARTIAL_IMPROVEMENT"
+    assert report["scenarios"]["G_score_down_issue_improved"]["actual"] == "ACCEPT_PARTIAL_IMPROVEMENT"
+    assert report["partial_acceptance"]["case_score_required"] is False
+
+
+def test_frozen_contract_reject_no_target_issue_improvement(provider_free_report) -> None:
+    """FROZEN CONTRACT: score movement cannot substitute for target-issue improvement."""
+    _, report = provider_free_report
+    assert report["scenarios"]["B_no_target_improvement"]["actual"] == (
+        "REJECT_NO_TARGET_ISSUE_IMPROVEMENT"
+    )
+    assert report["partial_acceptance"]["accepted_without_target_issue_improvement"] == 0
+
+
+def test_frozen_contract_reject_new_blocker(provider_free_report) -> None:
+    """FROZEN CONTRACT: a newly introduced blocker always rejects the prospective candidate."""
+    _, report = provider_free_report
+    assert report["scenarios"]["C_new_blocker"]["actual"] == "REJECT_NEW_BLOCKER"
+    assert report["cases"]["CASE03"]["startup_new_blocker_rejected"] is True
+
+
+def test_frozen_contract_schema_repair_only_once(provider_free_report) -> None:
+    """FROZEN CONTRACT: malformed Provider payloads receive at most one schema-repair call."""
+    _, report = provider_free_report
+    assert report["schema_repair_limit"] == 1
+    assert report["scenarios"]["D_invalid_json_one_repair"]["schema_repair_attempts"] == 1
+    assert report["scenarios"]["E_continuous_invalid_json"]["schema_repair_attempts"] == 1
+
+
+def test_frozen_contract_candidate_materialization_failure(provider_free_report) -> None:
+    """FROZEN CONTRACT: an unmaterialized candidate is never accepted or assigned a score."""
+    _, report = provider_free_report
+    scenario = report["scenarios"]["F_candidate_not_materialized"]
+    assert scenario["actual"] == "CANDIDATE_MATERIALIZED_FALSE"
+    assert scenario["candidate_materialized"] is False
+    assert scenario["score"] is None
+    assert report["assertions"]["unmaterialized_candidate_not_accepted"] is True
+
+
+def test_frozen_contract_rejected_candidate_cannot_replace_accepted_candidate(
+    provider_free_report,
+) -> None:
+    """FROZEN CONTRACT: a rejected later candidate cannot override the accepted lineage tip."""
+    _, report = provider_free_report
+    scenario = report["scenarios"]["H_multi_round_candidate_selection"]
+    assert scenario["actual"] == "FINAL_CANDIDATE_V2"
+    assert scenario["selected_candidate_id"] == scenario["v2_candidate_id"]
+    assert report["cases"]["CASE01"]["rejected_v3_not_selected"] is True
+
+
+def test_frozen_contract_final_candidate_does_not_regress_to_v0(provider_free_report) -> None:
+    """FROZEN CONTRACT: accepted partial progress remains the final lineage tip, never V0."""
+    _, report = provider_free_report
+    for case in report["cases"].values():
+        assert case["final_candidate_id"] != case["v0_candidate_id"]
+    assert report["assertions"]["final_candidate_not_v0"] is True
+
+
+def test_frozen_contract_accounting_rows_equal_actual_calls(provider_free_report) -> None:
+    """FROZEN CONTRACT: each deterministic transport invocation has exactly one accounting row."""
+    output, report = provider_free_report
+    accounting = json.loads((output / "repair_call_accounting.json").read_text(encoding="utf-8"))
+    network = json.loads((output / "network_call_guard_report.json").read_text(encoding="utf-8"))
+    assert len(accounting["rows"]) == network["replay_transport_calls"]
+    assert report["accounting_consistent"] is True
+
+
+def test_frozen_contract_provider_scheduler_count_equals_one(provider_free_report) -> None:
+    """FROZEN CONTRACT: repair reuses the sole production split-file ProviderJob executor."""
+    _, report = provider_free_report
+    assert report["orchestration_metrics"]["provider_schedulers"] == 1
+    assert report["assertions"]["provider_schedulers_one"] is True
+
+
+def test_frozen_contract_real_network_calls_equal_zero(provider_free_report) -> None:
+    """FROZEN CONTRACT: deterministic replay must fail closed before any real network call."""
+    output, report = provider_free_report
+    network = json.loads((output / "network_call_guard_report.json").read_text(encoding="utf-8"))
+    assert network["real_network_calls"] == 0
+    assert network["provider_api_quota_consumed"] is False
+    assert report["final_verdict"]["external_provider_calls"] == 0
