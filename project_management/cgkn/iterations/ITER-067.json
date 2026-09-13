@@ -7,8 +7,8 @@
   "backlog_item_ids": [
     "PB-045"
   ],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "The runner invokes only provider auto-select, the reviewed production facade, independent behavior probes, frozen evaluator scoring, and read-only failure audit.",
     "ACFV, commercial readiness, Telegram, final promotion, packaging, and public delivery are never invoked and any observed side-branch marker is reported.",
@@ -45,17 +45,31 @@
   ],
   "evidence_refs": [
     "scripts/run_trimmed_case_debug.py",
-    "tests/test_trimmed_case_debug.py"
+    "tests/test_trimmed_case_debug.py",
+    "artifacts/project_generation_benchmark/CGKN_TRIMMED_CASE_DEBUG_R1_20260913/trimmed_debug_report.json",
+    "artifacts/project_generation_benchmark/CGKN_TRIMMED_CASE_DEBUG_R1_20260913/case01_reprobe.json"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The trimmed runner isolated the requested mainline and detected no forbidden side-branch invocation or tracked-source mutation during the live run.",
+      "CASE01 materialized but production timed out before post-build repair; corrected zero-call probing showed upload, clean/preview, and export pass while static-root integration remains unmapped.",
+      "CASE03 stopped honestly at provider semantic review before materialization after execution-time HTTP 403 fallback output omitted the required main symbol."
+    ]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
+    "worked": [
+      "Frozen benchmark hashes remained unchanged and the live run reported unexpected_side_branch_called=false.",
+      "Behavior-to-issue linkage distinguished an unmapped static-root defect from already working CASE01 API behaviors.",
+      "CASE03 recorded the exact fatal semantic handoff and did not fabricate issue-ledger or post-build evidence."
+    ],
+    "did_not_work": [
+      "The selected qwen3.6-plus model passed preflight but returned HTTP 403 during execution, forcing local fallback for all CASE03 calls.",
+      "The first CASE01 probe treated a root 404 as server unavailability and did not preserve the split-route Flask session; a zero-Provider-call reprobe corrected the diagnostic score from 5 to 44.",
+      "Neither case reached a successful final product result: CASE01 timed out before repair accounting and CASE03 did not materialize."
+    ],
     "experiments": [
-      "Use one candidate-only live pass to distinguish generation drift, semantic handoff, issue mapping, Provider delta, and acceptance failures."
+      "Next, choose between fixing pre-materialization semantic handoff, adding cheap static-root/DOM contract drift detection, or improving preflight model durability; do not combine these into one change."
     ]
   }
 }

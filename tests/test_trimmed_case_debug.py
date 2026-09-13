@@ -147,3 +147,60 @@ def export(): return Response('name\\nAlice\\n', mimetype='text/csv')
 
     assert [row["pass"] for row in records] == [True, True, True, True]
     assert extra == {"missing": True, "malformed": True}
+
+
+def test_trimmed_case_debug_probes_api_even_when_static_root_is_404(tmp_path) -> None:
+    app = tmp_path / "app" / "main.py"
+    app.parent.mkdir()
+    app.write_text(
+        """
+from flask import Flask, jsonify, request, Response
+app = Flask(__name__)
+@app.route('/clean', methods=['POST'])
+def clean():
+    assert request.files['file']
+    return jsonify(before_preview=[{'name':' Alice '}], preview=[{'name':'Alice'}], stats={'raw_nulls':1, 'malformed_rows':1})
+@app.route('/export', methods=['POST'])
+def export(): return Response('name\\nAlice\\n', mimetype='text/csv')
+""",
+        encoding="utf-8",
+    )
+
+    records, _extra = trimmed.probe_case01(tmp_path)
+
+    assert records[0]["pass"] is False
+    assert "HTTP 404" in records[0]["observed"]
+    assert [row["pass"] for row in records[1:]] == [True, True, True]
+
+
+def test_trimmed_case_debug_supports_split_import_clean_preview_session(tmp_path) -> None:
+    app = tmp_path / "app" / "main.py"
+    app.parent.mkdir()
+    app.write_text(
+        """
+from flask import Flask, jsonify, request, Response, session
+app = Flask(__name__); app.secret_key = 'test'
+@app.route('/import', methods=['POST'])
+def import_csv():
+    assert request.files['file']; session['loaded'] = True
+    return jsonify(status='loaded', stats={'raw_nulls':1, 'malformed_rows':1})
+@app.route('/clean', methods=['POST'])
+def clean():
+    assert session['loaded']; session['cleaned'] = True
+    return jsonify(status='cleaned')
+@app.route('/preview')
+def preview():
+    assert session['cleaned']
+    return jsonify(original_head=[{'name':' Alice '}], cleaned_head=[{'name':'Alice'}])
+@app.route('/export')
+def export():
+    assert session['cleaned']; return Response('name\\nAlice\\n', mimetype='text/csv')
+""",
+        encoding="utf-8",
+    )
+
+    records, extra = trimmed.probe_case01(tmp_path)
+
+    assert records[0]["pass"] is False
+    assert [row["pass"] for row in records[1:]] == [True, True, True]
+    assert extra == {"missing": True, "malformed": True}

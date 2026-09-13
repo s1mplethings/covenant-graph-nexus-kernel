@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import http.cookiejar
 import hashlib
 import json
 import os
@@ -198,10 +199,18 @@ def server_command(candidate: pathlib.Path, port: int) -> tuple[list[str], str]:
     return [], "unsupported"
 
 
-def http_request(url: str, *, method: str = "GET", data: bytes | None = None, headers: dict[str, str] | None = None) -> dict[str, Any]:
+def http_request(
+    url: str,
+    *,
+    method: str = "GET",
+    data: bytes | None = None,
+    headers: dict[str, str] | None = None,
+    opener: urllib.request.OpenerDirector | None = None,
+) -> dict[str, Any]:
     request = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:  # noqa: S310 - localhost-only debug probe
+        open_request = opener.open if opener is not None else urllib.request.urlopen
+        with open_request(request, timeout=5) as response:  # noqa: S310 - localhost-only debug probe
             body = response.read()
             return {"status": int(response.status), "content_type": str(response.headers.get("Content-Type") or ""), "body": body}
     except urllib.error.HTTPError as exc:
@@ -260,24 +269,27 @@ def probe_case01(candidate: pathlib.Path) -> tuple[list[dict[str, Any]], dict[st
             _behavior("clean_preview", "Response contains before/after cleaning evidence.", "Server did not start.", False),
             _behavior("export_csv", "A persisted, readable CSV can be downloaded.", "Server did not start.", False),
         ], {"missing": False, "malformed": False}
-    process = subprocess.Popen(command, cwd=candidate, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(command, cwd=candidate, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
     try:
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
         ready_path = "/health" if "/health" in routes else "/"
         ready_code, ready_body = _wait_for_health(f"http://127.0.0.1:{port}{ready_path}")
-        root = http_request(f"http://127.0.0.1:{port}/") if ready_code else {"status": 0, "content_type": "", "body": ready_body.encode()}
+        server_ready = bool(ready_code) or process.poll() is None
+        root = http_request(f"http://127.0.0.1:{port}/") if server_ready else {"status": 0, "content_type": "", "body": ready_body.encode()}
         root_pass = root.get("status") == 200 and bool(bytes(root.get("body") or b"").strip())
         records = [_behavior("static_root", "GET / returns an interactive CSV page.", f"mode={mode}; command={' '.join(command)}; {_short_response(root)}", root_pass)]
 
-        upload_route = next((path for path in ("/api/upload", "/upload", "/api/process", "/api/clean", "/clean") if "POST" in routes.get(path, set())), "")
+        upload_route = next((path for path in ("/api/upload", "/upload", "/import", "/api/import", "/api/process", "/api/clean", "/clean") if "POST" in routes.get(path, set())), "")
         sample = "name,email\nAlice,a@example.test\nAlice,a@example.test\nBob,\nCarol,c@example.test\n"
         upload: dict[str, Any]
-        if upload_route and ready_code:
+        if upload_route and server_ready:
             body, content_type = multipart_csv(sample)
             upload = http_request(
                 f"http://127.0.0.1:{port}{upload_route}",
                 method="POST",
                 data=body,
                 headers={"Content-Type": content_type},
+                opener=opener,
             )
         else:
             upload = {"status": 0, "content_type": "", "body": b"no POST upload/clean route"}
@@ -285,18 +297,49 @@ def probe_case01(candidate: pathlib.Path) -> tuple[list[dict[str, Any]], dict[st
         upload_pass = 200 <= int(upload.get("status") or 0) < 300 and bool(upload_doc)
         records.append(_behavior("csv_upload", "A multipart CSV upload returns structured data.", f"route={upload_route or 'missing'}; {_short_response(upload)}", upload_pass))
 
-        lower_keys = {str(key).lower() for key in upload_doc}
-        stats = upload_doc.get("stats", {}) if isinstance(upload_doc.get("stats"), dict) else {}
-        preview = upload_doc.get("preview") or upload_doc.get("cleaned_preview") or upload_doc.get("after_preview")
-        before_present = bool({"before", "before_preview", "original", "original_preview", "raw_preview"} & lower_keys)
-        after_present = bool(preview) or bool({"after", "after_preview", "cleaned", "cleaned_preview"} & lower_keys)
+        clean_route = next((path for path in ("/api/clean", "/clean", "/api/process") if "POST" in routes.get(path, set())), "")
+        clean = (
+            http_request(
+                f"http://127.0.0.1:{port}{clean_route}",
+                method="POST",
+                data=b"{}",
+                headers={"Content-Type": "application/json"},
+                opener=opener,
+            )
+            if upload_pass and clean_route and clean_route != upload_route
+            else upload
+        )
+        preview_route = next((path for path in ("/api/preview", "/preview") if "GET" in routes.get(path, set())), "")
+        preview_response = (
+            http_request(f"http://127.0.0.1:{port}{preview_route}", opener=opener)
+            if 200 <= int(clean.get("status") or 0) < 300 and preview_route
+            else clean
+        )
+        clean_doc = _json_body(clean)
+        preview_doc = _json_body(preview_response)
+        combined_doc = {**upload_doc, **clean_doc, **preview_doc}
+        lower_keys = {str(key).lower() for key in combined_doc}
+        stats = next(
+            (doc.get("stats") for doc in (preview_doc, clean_doc, upload_doc) if isinstance(doc.get("stats"), dict)),
+            {},
+        )
+        preview = (
+            preview_doc.get("cleaned_head")
+            or preview_doc.get("preview")
+            or combined_doc.get("cleaned_preview")
+            or combined_doc.get("after_preview")
+        )
+        before_present = bool({"before", "before_preview", "original", "original_preview", "original_head", "raw_preview"} & lower_keys)
+        after_present = bool(preview) or bool({"after", "after_preview", "cleaned", "cleaned_preview", "cleaned_head"} & lower_keys)
         difference_present = before_present and after_present
         records.append(
             _behavior(
                 "clean_preview",
                 "The clean response exposes both pre-clean and post-clean previews.",
-                f"response_keys={sorted(lower_keys)}; stats={stats}; before_present={before_present}; after_present={after_present}",
-                upload_pass and difference_present,
+                f"clean_route={clean_route or 'combined'}; preview_route={preview_route or 'combined'}; "
+                f"clean={_short_response(clean)}; preview={_short_response(preview_response)}; "
+                f"response_keys={sorted(lower_keys)}; before_present={before_present}; after_present={after_present}",
+                upload_pass and 200 <= int(clean.get("status") or 0) < 300 and difference_present,
             )
         )
 
@@ -308,8 +351,9 @@ def probe_case01(candidate: pathlib.Path) -> tuple[list[dict[str, Any]], dict[st
                 method="POST" if "POST" in routes.get(export_route, set()) else "GET",
                 data=export_payload if "POST" in routes.get(export_route, set()) else None,
                 headers={"Content-Type": "application/json"},
+                opener=opener,
             )
-            if export_route and ready_code
+            if export_route and server_ready
             else {"status": 0, "content_type": "", "body": b"no export route"}
         )
         persisted = False
@@ -321,16 +365,16 @@ def probe_case01(candidate: pathlib.Path) -> tuple[list[dict[str, Any]], dict[st
         export_pass = persisted and "csv" in str(export.get("content_type") or "").lower()
         records.append(_behavior("export_csv", "Export returns a CSV that remains readable after persistence.", f"route={export_route or 'missing'}; persisted={persisted}; {_short_response(export)}", export_pass))
         return records, {
-            "missing": bool(stats.get("raw_nulls") or stats.get("missing_values")),
-            "malformed": bool(stats.get("malformed_rows")),
+            "missing": bool(stats.get("raw_nulls") or stats.get("missing_values") or upload_doc.get("missing_values")),
+            "malformed": bool(stats.get("malformed_rows") or upload_doc.get("malformed_rows")),
         }
     finally:
         process.terminate()
         try:
-            process.communicate(timeout=5)
+            process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             process.kill()
-            process.communicate()
+            process.wait()
 
 
 def dom_alignment(candidate: pathlib.Path) -> dict[str, Any]:
@@ -355,19 +399,20 @@ def probe_case03(candidate: pathlib.Path) -> dict[str, Any]:
     if not command:
         startup = {"status": "NOT_EVALUATED", "reason": "no supported startup entrypoint"}
     else:
-        process = subprocess.Popen(command, cwd=candidate, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process = subprocess.Popen(command, cwd=candidate, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
         try:
             ready_path = "/health" if "/health" in routes else "/"
             ready_code, ready_body = _wait_for_health(f"http://127.0.0.1:{port}{ready_path}")
-            root = http_request(f"http://127.0.0.1:{port}/") if ready_code else {"status": 0, "content_type": "", "body": ready_body.encode()}
+            server_ready = bool(ready_code) or process.poll() is None
+            root = http_request(f"http://127.0.0.1:{port}/") if server_ready else {"status": 0, "content_type": "", "body": ready_body.encode()}
             startup = {"status": "PASS" if root.get("status") == 200 else "FAIL", "mode": mode, "observed": _short_response(root)}
         finally:
             process.terminate()
             try:
-                process.communicate(timeout=5)
+                process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 process.kill()
-                process.communicate()
+                process.wait()
     return {"startup_static_root": startup, "dom_alignment": dom_alignment(candidate)}
 
 
