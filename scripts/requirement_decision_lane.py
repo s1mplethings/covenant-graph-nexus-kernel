@@ -9,6 +9,13 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+try:
+    from scripts import product_design_depth_governance
+    from scripts import canonical_goal_spec_compiler
+except ImportError:  # Direct script execution keeps only scripts/ on sys.path.
+    import product_design_depth_governance
+    import canonical_goal_spec_compiler
+
 
 RISK_VALUES = {"low", "medium", "high"}
 STATUS_LAYERS = [
@@ -1151,7 +1158,12 @@ def _goal_profile(
 
 
 def build_goal_spec(
-    raw_goal: str, planning_contract: dict[str, Any] | None = None
+    raw_goal: str,
+    planning_contract: dict[str, Any] | None = None,
+    *,
+    planning_artifact: dict[str, Any] | None = None,
+    conversation_context: dict[str, Any] | None = None,
+    system_constraints: list[str] | None = None,
 ) -> dict[str, Any]:
     blockers = goal_decision_blockers(raw_goal)
     if blockers:
@@ -1173,6 +1185,14 @@ def build_goal_spec(
             "acceptance_behaviors": [],
         }
     profile = _goal_profile(raw_goal, planning_contract)
+    if planning_artifact:
+        return canonical_goal_spec_compiler.compile_goal_spec(
+            raw_goal=raw_goal,
+            planning_artifact=planning_artifact,
+            fast_path_profile=profile,
+            conversation_context=conversation_context,
+            system_constraints=system_constraints,
+        )
     if profile is None:
         return {
             "kind": "GoalSpec",
@@ -1570,6 +1590,26 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
     if domain == "feature_unit_application":
         return build_feature_unit_project_plan(goal_spec)
     definitions = DOMAIN_WORKSTREAMS.get(domain)
+    compiled_open_domain_workstreams = (
+        domain == "custom_local_application"
+        and bool(goal_spec.get("compiler_version"))
+        and isinstance(goal_spec.get("workstreams"), list)
+        and bool(goal_spec.get("workstreams"))
+    )
+    if compiled_open_domain_workstreams:
+        definitions = [
+            (
+                str(item.get("id", "")),
+                str(item.get("scope", "")),
+            )
+            for item in goal_spec["workstreams"]
+            if isinstance(item, dict)
+            and str(item.get("id", "")).strip()
+            and str(item.get("scope", "")).strip()
+        ]
+        definitions.append(
+            ("goal_behavior_tests", "Verify every acceptance anchor from the grounded canonical GoalSpec.")
+        )
     package_name = str(goal_spec.get("package_name", "")).strip()
     entities = [str(item) for item in (goal_spec.get("entities") or []) if str(item).strip()]
     entity_name = entities[0] if entities else "Record"
@@ -1684,7 +1724,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
             )
             prior_ids.append("user_interface")
             user_interface_added = True
-        if domain == "custom_local_application" and not is_test:
+        if domain == "custom_local_application" and not is_test and not compiled_open_domain_workstreams:
             if workstream_id == "domain_models":
                 dependencies = ["foundation"]
             elif workstream_id == "persistence_repository":
@@ -1693,6 +1733,13 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
                 dependencies = ["domain_models", "persistence_repository"]
             else:
                 dependencies = ["application_service"]
+        elif compiled_open_domain_workstreams and not is_test:
+            business_ids = [
+                row["id"]
+                for row in workstreams
+                if row["id"] not in {"foundation", "application_entry"}
+            ]
+            dependencies = [business_ids[-1]] if business_ids else ["foundation"]
         else:
             dependencies = list(prior_ids if is_test else ["foundation"])
         test_intents = acceptance_behaviors if is_test else []
@@ -1712,10 +1759,22 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         application_entry_workstream = next(
             row for row in workstreams if row["id"] == "application_entry"
         )
-        application_entry_workstream["depends_on"] = [
-            "foundation",
-            "application_service",
-        ]
+        if compiled_open_domain_workstreams:
+            business_ids = [
+                row["id"]
+                for row in workstreams
+                if row["id"] not in {"foundation", "application_entry"}
+                and not (row["id"].endswith("_tests") or "behavior_tests" in row["id"])
+            ]
+            application_entry_workstream["depends_on"] = [
+                "foundation",
+                *business_ids[-1:],
+            ]
+        else:
+            application_entry_workstream["depends_on"] = [
+                "foundation",
+                "application_service",
+            ]
         application_entry_workstream["expected_symbols"] = ["main"]
     delivery_dependencies = [workstreams[-1]["id"]] if workstreams else ["foundation"]
     workstreams.append({
@@ -2014,10 +2073,17 @@ def _cloud_requirement() -> dict[str, Any]:
     )
 
 
-def generate_candidate_requirements(raw_goal: str, interpretations: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
+def generate_candidate_requirements(
+    raw_goal: str,
+    interpretations: dict[str, Any],
+    context: dict[str, Any] | None = None,
+    *,
+    canonical_goal_spec: dict[str, Any] | None = None,
+    canonical_project_plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
-    goal_spec = build_goal_spec(raw_goal)
-    project_plan = build_goal_project_plan(goal_spec)
+    goal_spec = dict(canonical_goal_spec or build_goal_spec(raw_goal))
+    project_plan = dict(canonical_project_plan or build_goal_project_plan(goal_spec))
     if goal_spec.get("status") == "PASS" and project_plan.get("status") == "PASS":
         candidates.append(candidate_from_goal_spec(goal_spec, project_plan))
     # Keep only domain-neutral rejected alternatives. Domain-specific fixed candidates
@@ -2352,10 +2418,35 @@ def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict
         if isinstance(context.get("codex_capability_plan_contract", {}), dict)
         else {}
     )
-    goal_spec = build_goal_spec(raw_goal, planning_contract)
+    planning_artifact = (
+        context.get("planning_artifact", {})
+        if isinstance(context.get("planning_artifact", {}), dict)
+        else {}
+    )
+    goal_spec = build_goal_spec(
+        raw_goal,
+        planning_contract,
+        planning_artifact=planning_artifact or None,
+        conversation_context=(
+            context.get("conversation_context", {})
+            if isinstance(context.get("conversation_context", {}), dict)
+            else {}
+        ),
+        system_constraints=(
+            [str(item) for item in context.get("system_constraints", [])]
+            if isinstance(context.get("system_constraints", []), list)
+            else []
+        ) or None,
+    )
     project_plan = build_goal_project_plan(goal_spec)
     interpretations = generate_need_interpretations(raw_goal, context)
-    candidates = generate_candidate_requirements(raw_goal, interpretations, context)
+    candidates = generate_candidate_requirements(
+        raw_goal,
+        interpretations,
+        context,
+        canonical_goal_spec=goal_spec,
+        canonical_project_plan=project_plan,
+    )
     if goal_spec.get("status") == "PASS" and project_plan.get("status") == "PASS":
         scorecard = score_candidate_requirements(candidates, context)
         selected = select_requirement(candidates, scorecard, context)
@@ -2377,6 +2468,35 @@ def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict
         "status_layers": STATUS_LAYERS,
         "forbidden_shortcuts": FORBIDDEN_SHORTCUTS,
     }
+    product_design_governance: dict[str, Any] = {}
+    if status == "PASS":
+        product_design_governance = product_design_depth_governance.freeze_preimplementation_governance(
+            raw_goal,
+            goal_spec,
+            project_plan,
+            pathlib.Path(run_dir) / "requirement_decision" / "product_design_governance",
+            proposed_components=[
+                str(item.get("name") or item.get("id") or item)
+                if isinstance(item, dict)
+                else str(item)
+                for item in project_plan.get("workstreams", [])
+            ],
+            declared_proxy=bool(context.get("declared_proxy_solution", False)),
+            frozen_resource_hashes=(
+                [str(item) for item in context.get("preimplementation_test_resource_hashes", [])]
+                if isinstance(context.get("preimplementation_test_resource_hashes"), list)
+                else []
+            ),
+        )
+        contract["product_design_depth_governance"] = {
+            "schema_version": product_design_governance["schema_version"],
+            "review_verdict": product_design_governance["review_verdict"],
+            "maturity_ceiling": product_design_governance["maturity_ceiling"],
+            "artifact_paths": product_design_governance["paths"],
+            "frozen_before_implementation": True,
+        }
+        if not product_design_governance["ready_to_implement"]:
+            status = "NEEDS_REWORK"
     result = {
         "status": status,
         "ready_to_generate": status == "PASS" and bool(goal_spec.get("ready_to_generate", True)),
@@ -2388,7 +2508,10 @@ def run_requirement_decision(raw_goal: str, run_dir: pathlib.Path, context: dict
         "requirement_scorecard": scorecard,
         "selected_requirement": selected,
         "acceptance_contract": contract,
+        "product_design_governance": product_design_governance,
     }
+    if goal_spec.get("status") != "PASS" and goal_spec.get("compiler_version"):
+        result["requirement_replan"] = canonical_goal_spec_compiler.requirement_replan_feedback(goal_spec)
     result["paths"] = write_requirement_decision_artifacts(result, pathlib.Path(run_dir))
     return result
 

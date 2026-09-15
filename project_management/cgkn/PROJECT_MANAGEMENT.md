@@ -58,6 +58,11 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-045` [done] Establish Project Generation Benchmark v1
 - `PB-046` [done] Make Project Decomposition Tree the production mainline index
 - `PB-047` [done] Verify partial acceptance with provider-free deterministic replay
+- `PB-048` [done] Govern product design depth and maturity claims
+- `PB-049` [ready] Add governed Codex surrogate ingestion to the formal Provider mainline
+- `PB-050` [done] Connect verified Provider candidates to canonical finalization
+- `PB-051` [ready] Compile grounded open-domain GoalSpecs from Provider planning proposals
+- `PB-052` [active] Stage and upload the CGKN 0.2.0-rc.1 review candidate
 
 ## Definition of done
 

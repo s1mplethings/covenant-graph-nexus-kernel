@@ -55,6 +55,9 @@ import repair_acceptance
 import online_input_agent
 import requirement_blueprint
 import requirement_decision_lane
+import canonical_goal_spec_compiler
+import source_identity
+import surrogate_provider_adapter
 
 from post_build_repair import (
     apply_deterministic_post_build_repair,
@@ -628,10 +631,20 @@ def remaining_timeout(deadline: float | ProgressDeadline, requested: int, *, flo
 
 
 def require_api_generation(args: argparse.Namespace) -> None:
-    if bool(getattr(args, "use_api", False)) and not (
-        bool(getattr(args, "allow_network", False)) and bool(getattr(args, "allow_provider", False))
-    ):
-        raise RuntimeError("Provider/API escalation requires allow_network and allow_provider.")
+    provider_mode = str(getattr(args, "provider_mode", "live") or "live").strip().lower()
+    if provider_mode not in surrogate_provider_adapter.PROVIDER_MODES:
+        raise RuntimeError(f"Unsupported provider_mode: {provider_mode}")
+    allow_network = bool(getattr(args, "allow_network", False))
+    allow_provider = bool(getattr(args, "allow_provider", False))
+    use_api = bool(getattr(args, "use_api", False))
+    if provider_mode == "live":
+        if use_api and not (allow_network and allow_provider):
+            raise RuntimeError("Provider/API escalation requires allow_network and allow_provider.")
+        return
+    if allow_network or allow_provider:
+        raise RuntimeError(
+            f"{provider_mode} forbids --allow-network and --allow-provider; no live transport may be enabled"
+        )
 
 
 def env_bool(name: str, default: bool) -> bool:
@@ -8249,6 +8262,17 @@ def provider_text(
     last_error: Any = None,
     budget_deadline: float | None = None,
 ) -> str:
+    adapter_context = surrogate_provider_adapter.current()
+    if adapter_context is not None and adapter_context.mode != "live":
+        # This branch is intentionally before local-model routing, credential
+        # resolution, HTTP/SDK construction, and every fallback transport.
+        return surrogate_provider_adapter.provider_text(
+            messages,
+            stage=stage,
+            component=component,
+            target_file=target_file,
+            requested_role="formal_provider",
+        )
     routed_task = local_model_task_for_provider_stage(stage)
     local_stage_enabled = bool(routed_task and local_model_router.task_enabled(routed_task))
     if routed_task:
@@ -8769,6 +8793,11 @@ Hard rules:
 - If validation_errors are provided, regenerate the full project and fix every error. Do not explain; return only corrected JSON.
 - Treat project_goal_constraints as mandatory acceptance criteria. If they conflict with a component label, satisfy the user-facing product behavior first.
 - Requirement Decision First: you are not free to invent a different product. Implement selected_requirement, obey mvp_scope, respect non_goals, and satisfy acceptance_contract.
+- Product Design Depth Governance is frozen before implementation. Preserve every locked core capability, satisfy the required design/test depth and challenge matrix, and treat forbidden simplifications as hard constraints.
+- An MVP may reduce scope but may not replace the original core difficulty with color, filenames, fixed timestamps, hard-coded fixtures, simulation, or another easier proxy while retaining the original product claim.
+- If a proxy is unavoidable, declare it in project documentation and product evidence, keep the product maturity at PROTOTYPE or below, explain the user-visible limitation, and provide the upgrade boundary for the real core capability.
+- For COMPLEX or HIGH_RISK work, builder-generated synthetic fixtures may exercise plumbing but cannot be the only authority for target validation. Include representative variation, negative controls, adversarial cases, and an independent holdout strategy from the frozen challenge matrix.
+- Add docs/product_capability_evidence.md mapping each locked core capability to implementation, observable tests, known limits, and any proxy. Do not claim production readiness merely because tests or packaging pass.
 - Do not reintroduce rejected requirements. Do not shrink the project into a static preview, README-only delivery, or fake PASS.
 - If complexity_project_contract is present, treat it as a hard downstream contract. First generate product_brief.md, technical_plan.md, interaction_design.md, and acceptance_matrix.md; each must cite complexity_project_contract.json.
 - If complexity_project_contract requires shared_core_pipeline, include orchestrator.py, stages.py, CLI, GUI, shared GUI/CLI core, required pipeline stages, required stage artifacts with required fields, and honest degraded mode. If it requires browser_local_static, keep domain behavior and persistence in the browser and use Python only as the requested static launcher.
@@ -8796,6 +8825,7 @@ JSON shape:
         "mvp_scope": plan_doc.get("mvp_scope", {}),
         "non_goals": plan_doc.get("non_goals", {}),
         "acceptance_contract": plan_doc.get("acceptance_contract", {}),
+        "product_design_governance": plan_doc.get("product_design_governance", {}),
         "selected_project_direction": plan_doc.get("selected_project_direction", {}),
         "complexity_project_contract": plan_doc.get("complexity_project_contract", {}),
         "internal_context": provider_internal_context(internal_context),
@@ -22115,6 +22145,18 @@ def provider_generate_project_component_split(
                     results[leaf_id] = future.result()
                 except BaseException as exc:
                     failures[leaf_id] = exc
+        waiting = next(
+            (
+                exc
+                for exc in failures.values()
+                if isinstance(exc, surrogate_provider_adapter.SurrogateResponseRequired)
+            ),
+            None,
+        )
+        if waiting is not None:
+            # Preserve the scheduler-created requests and return control without
+            # reclassifying a resumable handshake as a Provider failure.
+            raise waiting
         for leaf in pending_leaves:
             leaf_id = str(leaf.get("leaf_id", ""))
             owned_paths = provider_leaf_owned_paths(leaf)
@@ -29813,21 +29855,364 @@ def write_provider_long_context_artifacts(
     }
 
 
+def provider_stage_checkpoint(
+    *,
+    provider_mode: str,
+    stage: str,
+    context: dict[str, Any],
+    run_dir: pathlib.Path,
+    phase_log_path: pathlib.Path | str,
+) -> dict[str, Any]:
+    """Parse, validate, and persist one non-live pre-build Provider artifact.
+
+    The job still crosses the shared ``provider_text`` boundary.  These
+    artifacts supplement the deterministic governance decisions; they never
+    replace or authorize the Product Design, maturity, proxy, or delivery gates.
+    """
+    if provider_mode == "live" and stage != "requirements_planning":
+        return {}
+    artifact_path = run_dir / "artifacts" / "provider_stage_artifacts" / f"{stage}.json"
+    planning_stage = stage == "requirements_planning"
+    proposal_sequence = max(1, int(context.get("proposal_sequence", 1) or 1)) if planning_stage else 1
+    materialized_artifact_path = (
+        artifact_path.with_name(f"{stage}.attempt-{proposal_sequence:04d}.json")
+        if planning_stage
+        else artifact_path
+    )
+    if planning_stage:
+        system_content = (
+            "You are the formal Provider role for the bounded CGKN requirements_planning stage. "
+            "Return strict JSON only matching this proposal contract: "
+            + json.dumps(
+                canonical_goal_spec_compiler.planning_proposal_prompt_contract(),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            + ". Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
+            "acceptance anchor, and forbidden substitution with an exact source_grounding row. "
+            "Provider content is proposal-only and must not claim canonical, governance, acceptance, maturity, or release authority."
+        )
+    else:
+        system_content = (
+            "You are the formal Provider role for this bounded CGKN stage. "
+            "Return strict JSON only with keys summary (non-empty string), "
+            "decisions (array of strings), and risks (array of strings). "
+            "Do not claim release authority or request CGKN kernel changes."
+        )
+    messages = [
+        {
+            "role": "system",
+            "content": system_content,
+        },
+        {"role": "user", "content": json.dumps(context, ensure_ascii=False, sort_keys=True)},
+    ]
+    last_error = ""
+    for schema_attempt in range(2):
+        active_messages = messages
+        if schema_attempt:
+            active_messages = [
+                *messages,
+                {
+                    "role": "user",
+                    "content": (
+                        "SCHEMA_REPAIR_ATTEMPT_1: the prior response was invalid: "
+                        + last_error
+                        + ". Return only the required strict JSON object."
+                    ),
+                },
+            ]
+        raw = provider_text(
+            active_messages,
+            "surrogate-stage",
+            60,
+            max_attempts=1,
+            stage=stage,
+            component="design",
+            target_file=artifact_path.relative_to(run_dir).as_posix(),
+            phase_log_path=phase_log_path,
+        )
+        try:
+            payload = json.loads(raw)
+            if not isinstance(payload, dict):
+                raise ValueError("object required")
+            if planning_stage:
+                proposal_errors = canonical_goal_spec_compiler.validate_planning_proposal(payload)
+                if proposal_errors:
+                    raise ValueError("; ".join(proposal_errors))
+            else:
+                if not isinstance(payload.get("summary"), str) or not payload["summary"].strip():
+                    raise ValueError("summary must be a non-empty string")
+                if not all(
+                    isinstance(payload.get(key), list)
+                    and all(isinstance(item, str) for item in payload[key])
+                    for key in ("decisions", "risks")
+                ):
+                    raise ValueError("decisions and risks must be string arrays")
+        except (ValueError, TypeError, KeyError) as exc:
+            last_error = str(exc)
+            if schema_attempt == 0:
+                continue
+            raise RuntimeError(
+                f"{stage} Provider response invalid after the single schema repair: {exc}"
+            ) from exc
+        if planning_stage:
+            adapter_context = surrogate_provider_adapter.current()
+            context_doc = {
+                "messages": active_messages,
+                "stage": stage,
+                "component": "design",
+                "target_file": artifact_path.relative_to(run_dir).as_posix(),
+            }
+            context_hash = surrogate_provider_adapter.stable_hash(context_doc)
+            identity: dict[str, Any] = {
+                "run_id": str(adapter_context.run_id if adapter_context else run_dir.name),
+                "project_id": str(adapter_context.project_id if adapter_context else "project-unknown"),
+                "job_id": "job-" + context_hash[:24],
+                "attempt_id": "live-attempt-1",
+                "stage": stage,
+                "request_hash": canonical_goal_spec_compiler.stable_hash(context_doc),
+                "response_hash": canonical_goal_spec_compiler.stable_hash(raw),
+                "accepted": True,
+                "consumed": True,
+                "validated": True,
+                "request_ref": "",
+                "response_ref": "",
+                "consumption_ref": "",
+            }
+            if adapter_context is not None and adapter_context.mode != "live":
+                matching_request: dict[str, Any] = {}
+                matching_path: pathlib.Path | None = None
+                for request_path in sorted((adapter_context.root / "requests").glob("*.json")):
+                    request_doc = load_json(request_path)
+                    if (
+                        request_doc.get("stage") == stage
+                        and request_doc.get("context_hashes", {}).get("provider_messages") == context_hash
+                    ):
+                        matching_request = request_doc
+                        matching_path = request_path
+                if matching_request and matching_path is not None:
+                    response_path = adapter_context.root / "responses" / f"{matching_request['job_id']}.{matching_request['attempt_id']}.json"
+                    consumption_path = adapter_context.root / "consumed" / f"{matching_request['job_id']}.{matching_request['attempt_id']}.json"
+                    response_doc = load_json(response_path) if response_path.is_file() else {}
+                    identity = {
+                        "run_id": str(matching_request.get("run_id", "")),
+                        "project_id": str(matching_request.get("project_id", "")),
+                        "job_id": str(matching_request.get("job_id", "")),
+                        "attempt_id": str(matching_request.get("attempt_id", "")),
+                        "stage": str(matching_request.get("stage", "")),
+                        "request_hash": str(matching_request.get("request_hash", "")),
+                        "response_hash": canonical_goal_spec_compiler.stable_hash(response_doc),
+                        "accepted": bool(response_path.is_file()),
+                        "consumed": bool(consumption_path.is_file()),
+                        "validated": bool(
+                            response_doc.get("request_hash") == matching_request.get("request_hash")
+                            and response_doc.get("payload_hash") == surrogate_provider_adapter.stable_hash(response_doc.get("payload"))
+                        ),
+                        "request_ref": str(matching_path.resolve()),
+                        "response_ref": str(response_path.resolve()),
+                        "consumption_ref": str(consumption_path.resolve()),
+                    }
+            artifact = canonical_goal_spec_compiler.build_planning_artifact(
+                proposal=payload,
+                raw_goal=str(context.get("goal", "")),
+                provider_mode=provider_mode,
+                artifact_ref=str(materialized_artifact_path.resolve()),
+                transport_identity=identity,
+                created_at=now(),
+            )
+        else:
+            artifact = {
+                "kind": "CGKNCanonicalProviderStageArtifact",
+                "schema_version": "1.0",
+                "stage": stage,
+                "provider_mode": provider_mode,
+                "governance_authority": False,
+                "release_authority": False,
+                "payload": payload,
+                "payload_sha256": formal_model_contract.stable_hash(payload),
+                "created_at": now(),
+            }
+        write_json(materialized_artifact_path, artifact)
+        if materialized_artifact_path != artifact_path:
+            write_json(artifact_path, artifact)
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_stage_artifact_materialized",
+                "stage": stage,
+                "provider_mode": provider_mode,
+                "artifact_path": str(materialized_artifact_path),
+                "proposal_sequence": proposal_sequence,
+                "schema_repair_attempts": schema_attempt,
+            },
+        )
+        return artifact
+    raise AssertionError("unreachable provider stage parser state")
+
+
+MAX_REQUIREMENT_PLANNING_ATTEMPTS = 3
+
+
+def requirement_replan_state_path(run_dir: pathlib.Path) -> pathlib.Path:
+    return pathlib.Path(run_dir) / "artifacts" / "requirement_replan_state.json"
+
+
+def run_canonical_requirement_planning(
+    *,
+    provider_mode: str,
+    user_goal: str,
+    run_dir: pathlib.Path,
+    phase_log_path: pathlib.Path | str,
+    codex_plan_contract: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Compile requirements from accepted planning evidence with bounded same-run replan."""
+    state_path = requirement_replan_state_path(run_dir)
+    state = load_json(state_path) if state_path.is_file() else {}
+    history = list(state.get("history", [])) if isinstance(state.get("history"), list) else []
+    requirement_checkpoint_path = pathlib.Path(run_dir) / "artifacts" / "requirement_decision_checkpoint.json"
+    if state.get("workflow_state") in {"RESOLVED", "REPLAN_EXHAUSTED"} and requirement_checkpoint_path.is_file():
+        checkpoint = load_json(requirement_checkpoint_path)
+        cached_result = checkpoint.get("result", {}) if isinstance(checkpoint.get("result"), dict) else {}
+        latest = history[-1] if history and isinstance(history[-1], dict) else {}
+        artifact_ref = pathlib.Path(str(latest.get("planning_artifact_ref", "")))
+        if cached_result and artifact_ref.is_file():
+            append_provider_event_log(
+                phase_log_path,
+                {"event": "completed_stage_reused", "stage": "requirement_decision", "path": str(requirement_checkpoint_path)},
+            )
+            return cached_result, load_json(artifact_ref)
+    if state.get("workflow_state") == "WAITING_REQUIREMENT_REPLAN":
+        sequence = int(state.get("next_attempt", 1) or 1)
+    elif state.get("workflow_state") in {"RESOLVED", "REPLAN_EXHAUSTED"}:
+        sequence = int(state.get("attempts_used", 1) or 1)
+    else:
+        sequence = 1
+    while sequence <= MAX_REQUIREMENT_PLANNING_ATTEMPTS:
+        feedback = state.get("feedback", {}) if isinstance(state.get("feedback"), dict) else {}
+        planning_context: dict[str, Any] = {
+            "goal": user_goal,
+            "proposal_sequence": sequence,
+        }
+        if feedback:
+            planning_context["requirement_replan_feedback"] = feedback
+        planning_artifact = provider_stage_checkpoint(
+            provider_mode=provider_mode,
+            stage="requirements_planning",
+            context=planning_context,
+            run_dir=run_dir,
+            phase_log_path=phase_log_path,
+        )
+        decision_context: dict[str, Any] = {
+            "planning_artifact": planning_artifact,
+            "conversation_context": {},
+        }
+        if codex_plan_contract:
+            decision_context["codex_capability_plan_contract"] = codex_plan_contract
+        result = requirement_decision_lane.run_requirement_decision(
+            user_goal,
+            run_dir,
+            context=decision_context,
+        )
+        history_entry = {
+            "attempt": sequence,
+            "planning_artifact_ref": planning_artifact.get("artifact_ref", ""),
+            "planning_artifact_hash": planning_artifact.get("artifact_hash", ""),
+            "goal_spec_hash": (result.get("goal_spec", {}) or {}).get("goal_spec_hash", ""),
+            "decision_status": result.get("status", "NOT_EVALUATED"),
+            "required_corrections": (result.get("requirement_replan", {}) or {}).get("required_corrections", []),
+        }
+        history = [*history, history_entry]
+        if result.get("status") == "PASS":
+            resolved = {
+                "kind": "CGKNRequirementReplanState",
+                "schema_version": "1.0",
+                "workflow_state": "RESOLVED",
+                "formal_evidence_status": "PASS",
+                "attempts_used": sequence,
+                "max_attempts": MAX_REQUIREMENT_PLANNING_ATTEMPTS,
+                "history": history,
+                "candidate_repair": False,
+                "resolved_at": now(),
+            }
+            write_json(state_path, resolved)
+            return result, planning_artifact
+        feedback = result.get("requirement_replan", {}) if isinstance(result.get("requirement_replan"), dict) else {}
+        if not feedback or sequence >= MAX_REQUIREMENT_PLANNING_ATTEMPTS:
+            exhausted = {
+                "kind": "CGKNRequirementReplanState",
+                "schema_version": "1.0",
+                "workflow_state": "REPLAN_EXHAUSTED",
+                "formal_evidence_status": "NEEDS_REWORK",
+                "attempts_used": sequence,
+                "max_attempts": MAX_REQUIREMENT_PLANNING_ATTEMPTS,
+                "history": history,
+                "feedback": feedback,
+                "candidate_repair": False,
+                "reason": "INSUFFICIENT_GOAL_PLAN",
+                "finished_at": now(),
+            }
+            write_json(state_path, exhausted)
+            return result, planning_artifact
+        sequence += 1
+        state = {
+            "kind": "CGKNRequirementReplanState",
+            "schema_version": "1.0",
+            "workflow_state": "WAITING_REQUIREMENT_REPLAN",
+            "formal_evidence_status": "NOT_EVALUATED",
+            "last_attempt": sequence - 1,
+            "next_attempt": sequence,
+            "max_attempts": MAX_REQUIREMENT_PLANNING_ATTEMPTS,
+            "history": history,
+            "feedback": feedback,
+            "candidate_repair": False,
+            "updated_at": now(),
+        }
+        write_json(state_path, state)
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "requirement_replan_requested", "attempt": sequence, "feedback": feedback},
+        )
+    raise AssertionError("unreachable requirement planning loop")
+
+
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     production_started_at = now()
     production_started_monotonic = time.perf_counter()
+    provider_mode = str(getattr(args, "provider_mode", "live") or "live").strip().lower()
     resume_run_dir = str(getattr(args, "resume_run_dir", "") or "").strip()
     if resume_run_dir:
         args.run_dir = resume_run_dir
         args.use_api = True
-        args.allow_network = True
-        args.allow_provider = True
+        if provider_mode == "live":
+            args.allow_network = True
+            args.allow_provider = True
+    if provider_mode != "live":
+        args.use_api = True
     require_api_generation(args)
     exec_deadline_value = generation_deadline(args)
     run_dir = pathlib.Path(args.run_dir).resolve()
     (run_dir / "artifacts").mkdir(parents=True, exist_ok=True)
     out_dir = pathlib.Path(args.out_dir).resolve()
     result_path = pathlib.Path(args.result).resolve()
+    project_id = str(getattr(args, "project_id", "") or "").strip() or (
+        "project-" + hashlib.sha256(str(out_dir).encode("utf-8")).hexdigest()[:20]
+    )
+    run_id = "run-" + hashlib.sha256(str(run_dir).encode("utf-8")).hexdigest()[:20]
+    source_identity_report = source_identity.capture_once(
+        PROJECT_ROOT,
+        run_dir / "artifacts" / "source_identity_report.json",
+    )
+    source_sha = str(source_identity_report["source_identity_hash"]).split(":", 1)[-1]
+    replay_value = str(getattr(args, "replay_dir", "") or "").strip()
+    surrogate_provider_adapter.configure(
+        mode=provider_mode,
+        run_dir=run_dir,
+        run_id=run_id,
+        project_id=project_id,
+        source_sha=source_sha,
+        benchmark_hash=str(os.environ.get("CGKN_BENCHMARK_HASH", "") or ""),
+        replay_dir=pathlib.Path(replay_value) if replay_value else None,
+    )
     plan_path = pathlib.Path(args.plan) if args.plan else None
     resume_pending_plan: dict[str, Any] = {}
     resume_run_context: dict[str, Any] = {}
@@ -29870,9 +30255,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             raise RuntimeError("--goal or --plan is required")
         plan_doc = compose_local_pipeline.compose(
             goal,
-            allow_network=bool(getattr(args, "allow_network", False)),
-            allow_provider=bool(getattr(args, "allow_provider", False)),
-            use_local_model=local_model_router.task_enabled("planning"),
+            allow_network=bool(getattr(args, "allow_network", False)) if provider_mode == "live" else False,
+            allow_provider=bool(getattr(args, "allow_provider", False)) if provider_mode == "live" else False,
+            use_local_model=(
+                local_model_router.task_enabled("planning")
+                if provider_mode == "live"
+                else False
+            ),
         )
         local_model_hint = (
             plan_doc.get("project_understanding", {}).get("payload", {}).get("optional_local_model", {})
@@ -29993,12 +30382,26 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         phase_log_path=phase_log_path,
     )
     codex_plan_contract = codex_capability_plan_contract(codex_brief_projection)
-    requirement_decision_result = requirement_decision_lane.run_requirement_decision(
-        user_goal,
-        run_dir,
-        context={"codex_capability_plan_contract": codex_plan_contract}
-        if codex_plan_contract
-        else None,
+    requirement_decision_result, planning_stage = run_canonical_requirement_planning(
+        provider_mode=provider_mode,
+        user_goal=user_goal,
+        run_dir=run_dir,
+        phase_log_path=phase_log_path,
+        codex_plan_contract=codex_plan_contract,
+    )
+    if planning_stage:
+        internal_context = (internal_context + "\n\nFormal Provider planning artifact:\n" + json.dumps(
+            planning_stage, ensure_ascii=False, indent=2
+        )).strip()
+    requirement_checkpoint_path = run_dir / "artifacts" / "requirement_decision_checkpoint.json"
+    write_json(
+        requirement_checkpoint_path,
+        {
+            "kind": "CGKNRequirementDecisionCheckpoint",
+            "schema_version": "1.0",
+            "goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+            "result": requirement_decision_result,
+        },
     )
     selected_requirement = (
         requirement_decision_result.get("selected_requirement", {})
@@ -30020,6 +30423,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         if isinstance(requirement_decision_result.get("project_plan"), dict)
         else {}
     )
+    product_design_governance = (
+        requirement_decision_result.get("product_design_governance", {})
+        if isinstance(requirement_decision_result.get("product_design_governance"), dict)
+        else {}
+    )
     requirement_paths = requirement_decision_result.get("paths", {}) if isinstance(requirement_decision_result.get("paths"), dict) else {}
     mvp_scope_doc = safe_read_text(pathlib.Path(str(requirement_paths.get("mvp_scope", "")))) if requirement_paths.get("mvp_scope") else ""
     non_goals_doc = safe_read_text(pathlib.Path(str(requirement_paths.get("non_goals", "")))) if requirement_paths.get("non_goals") else ""
@@ -30037,6 +30445,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     plan_doc["acceptance_contract"] = acceptance_contract
     plan_doc["goal_spec"] = goal_spec
     plan_doc["project_plan"] = project_plan
+    plan_doc["product_design_governance"] = product_design_governance
     plan_doc = bind_codex_capability_plan_contract(plan_doc, codex_brief_projection)
     write_json(
         generation_plan_checkpoint_path,
@@ -30060,6 +30469,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "acceptance_contract": acceptance_contract,
                 "goal_spec": goal_spec,
                 "project_plan": project_plan,
+                "product_design_governance": product_design_governance,
             },
             ensure_ascii=False,
             indent=2,
@@ -30088,12 +30498,47 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         write_json(result_path, blocked)
         return blocked
 
-    discovery_result = discovery_selection_lane.run_discovery_selection(
-        user_goal,
-        run_dir / "discovery",
-        goal_spec=goal_spec,
-        project_plan=project_plan,
+    product_stage = provider_stage_checkpoint(
+        provider_mode=provider_mode,
+        stage="product_design",
+        context={
+            "goal": user_goal,
+            "selected_requirement": selected_requirement,
+            "product_design_governance": product_design_governance,
+        },
+        run_dir=run_dir,
+        phase_log_path=phase_log_path,
     )
+    if product_stage:
+        internal_context = (internal_context + "\n\nFormal Provider product design artifact:\n" + json.dumps(
+            product_stage, ensure_ascii=False, indent=2
+        )).strip()
+
+    discovery_checkpoint_path = run_dir / "artifacts" / "discovery_selection_checkpoint.json"
+    if resume_run_dir and discovery_checkpoint_path.is_file():
+        discovery_result = load_json(discovery_checkpoint_path).get("result", {})
+        if not isinstance(discovery_result, dict):
+            raise RuntimeError("RESUME_DISCOVERY_SELECTION_CHECKPOINT_INVALID")
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "completed_stage_reused", "stage": "discovery_selection", "path": str(discovery_checkpoint_path)},
+        )
+    else:
+        discovery_result = discovery_selection_lane.run_discovery_selection(
+            user_goal,
+            run_dir / "discovery",
+            goal_spec=goal_spec,
+            project_plan=project_plan,
+        )
+        write_json(
+            discovery_checkpoint_path,
+            {
+                "kind": "CGKNDiscoverySelectionCheckpoint",
+                "schema_version": "1.0",
+                "goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+                "result": discovery_result,
+            },
+        )
     selected_project_direction = (
         discovery_result.get("selected_project_direction", {})
         if isinstance(discovery_result.get("selected_project_direction"), dict)
@@ -30186,6 +30631,21 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             [str(result_path)],
         )
         return blocked
+    interaction_stage = provider_stage_checkpoint(
+        provider_mode=provider_mode,
+        stage="interaction_design",
+        context={
+            "goal": user_goal,
+            "selected_project_direction": selected_project_direction,
+            "complexity_project_contract": complexity_project_contract,
+        },
+        run_dir=run_dir,
+        phase_log_path=phase_log_path,
+    )
+    if interaction_stage:
+        internal_context = (internal_context + "\n\nFormal Provider interaction design artifact:\n" + json.dumps(
+            interaction_stage, ensure_ascii=False, indent=2
+        )).strip()
     if not bool(getattr(args, "use_api", False)):
         artifacts_dir = run_dir / "artifacts"
         artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -30247,7 +30707,19 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     feature_unit_mode = (
         str(goal_spec.get("domain", "")) == "feature_unit_application"
     )
-    if feature_unit_mode:
+    research_checkpoint_path = run_dir / "artifacts" / "research_design_checkpoint.json"
+    if resume_run_dir and research_checkpoint_path.is_file():
+        research_checkpoint = load_json(research_checkpoint_path)
+        online_inputs = research_checkpoint.get("online_inputs", {})
+        market_research = research_checkpoint.get("market_research", {})
+        design_research = research_checkpoint.get("design_research", {})
+        if not all(isinstance(item, dict) for item in (online_inputs, market_research, design_research)):
+            raise RuntimeError("RESUME_RESEARCH_DESIGN_CHECKPOINT_INVALID")
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "completed_stage_reused", "stage": "research_design", "path": str(research_checkpoint_path)},
+        )
+    elif feature_unit_mode:
         online_inputs, market_research, design_research = (
             compile_feature_unit_research_contexts(user_goal, run_dir)
         )
@@ -30271,6 +30743,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             },
             market_research,
             run_dir / "design_research",
+        )
+    if not research_checkpoint_path.is_file():
+        write_json(
+            research_checkpoint_path,
+            {
+                "kind": "CGKNResearchDesignCheckpoint",
+                "schema_version": "1.0",
+                "goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+                "online_inputs": online_inputs,
+                "market_research": market_research,
+                "design_research": design_research,
+            },
         )
     if isinstance(online_inputs, dict):
         online_inputs.setdefault("project_type", str(intent.get("project_type", "")))
@@ -30310,6 +30794,35 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         component_pipeline,
         codex_brief_projection,
     )
+    technical_stage = provider_stage_checkpoint(
+        provider_mode=provider_mode,
+        stage="technical_design",
+        context={
+            "goal": user_goal,
+            "goal_spec": goal_spec,
+            "project_plan": project_plan,
+            "design_context": bounded_design_context,
+        },
+        run_dir=run_dir,
+        phase_log_path=phase_log_path,
+    )
+    acceptance_stage = provider_stage_checkpoint(
+        provider_mode=provider_mode,
+        stage="acceptance_design",
+        context={"goal": user_goal, "acceptance_contract": acceptance_contract},
+        run_dir=run_dir,
+        phase_log_path=phase_log_path,
+    )
+    if technical_stage or acceptance_stage:
+        internal_context = (
+            internal_context
+            + "\n\nFormal Provider technical and acceptance artifacts:\n"
+            + json.dumps(
+                {"technical_design": technical_stage, "acceptance_design": acceptance_stage},
+                ensure_ascii=False,
+                indent=2,
+            )
+        ).strip()
     decomposition_tree_doc = decomposition_tree.build_project_decomposition_tree(
         user_goal=user_goal,
         goal_spec=goal_spec,
@@ -31152,6 +31665,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "requirement_decision": requirement_decision_result,
         "selected_requirement": selected_requirement,
         "acceptance_contract": acceptance_contract,
+        "product_design_governance": product_design_governance,
         "discovery_selection": discovery_result,
         "selected_project_direction": selected_project_direction,
         "complexity_project_contract": complexity_project_contract,
@@ -31180,6 +31694,9 @@ def main() -> int:
     parser.add_argument("--no-provider", dest="allow_provider", action="store_false")
     parser.add_argument("--use-api", dest="use_api", action="store_true")
     parser.add_argument("--no-api", dest="use_api", action="store_false")
+    parser.add_argument("--provider-mode", choices=surrogate_provider_adapter.PROVIDER_MODES, default="live")
+    parser.add_argument("--project-id", default="")
+    parser.add_argument("--replay-dir", default="")
     parser.add_argument("--model", default="gpt-5.4-nano")
     parser.add_argument("--small-model", default="")
     parser.add_argument("--large-model", default="")

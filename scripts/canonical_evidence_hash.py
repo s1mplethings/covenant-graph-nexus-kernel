@@ -25,6 +25,16 @@ ROOT_EVIDENCE_OUTPUT_NAMES = {
     "user_review.json",
     "user_review_request.json",
     "user_review_replay_ledger.json",
+    "independent_product_evidence.json",
+    "proxy_solution_report.json",
+    "product_maturity_report.json",
+    "public_claim_policy_report.json",
+    "design_replan_report.json",
+    "canonical_verification_report.json",
+    "canonical_governance_report.json",
+    "canonical_acceptance_decision.json",
+    "canonical_promotion_manifest.json",
+    "canonical_finalization_state.json",
 }
 EVIDENCE_OUTPUT_SUFFIXES = {".tmp", ".pyc"}
 ANY_DEPTH_CACHE_DIRS = {
@@ -69,13 +79,9 @@ def canonical_json_hash(document: dict[str, Any], blank_fields: Iterable[str]) -
     return sha256_bytes(canonical_json_payload(document, blank_fields))
 
 
-def is_candidate_source_path(path: pathlib.Path, project_dir: str | pathlib.Path) -> bool:
-    project = pathlib.Path(project_dir).resolve()
-    candidate = pathlib.Path(path)
-    try:
-        rel = candidate.resolve().relative_to(project).as_posix()
-    except ValueError:
-        return False
+def is_candidate_source_relative_path(value: str) -> bool:
+    """Apply the canonical source/evidence split to a safe relative path."""
+    rel = pathlib.PurePosixPath(str(value).replace("\\", "/")).as_posix()
     path_parts = pathlib.PurePosixPath(rel).parts
     parts = set(path_parts)
     if parts & ANY_DEPTH_CACHE_DIRS:
@@ -86,9 +92,19 @@ def is_candidate_source_path(path: pathlib.Path, project_dir: str | pathlib.Path
         return False
     if rel in EVIDENCE_OUTPUT_RELATIVE_PATHS:
         return False
-    if candidate.suffix.lower() in EVIDENCE_OUTPUT_SUFFIXES:
+    if pathlib.PurePosixPath(rel).suffix.lower() in EVIDENCE_OUTPUT_SUFFIXES:
         return False
     return True
+
+
+def is_candidate_source_path(path: pathlib.Path, project_dir: str | pathlib.Path) -> bool:
+    project = pathlib.Path(project_dir).resolve()
+    candidate = pathlib.Path(path)
+    try:
+        rel = candidate.resolve().relative_to(project).as_posix()
+    except ValueError:
+        return False
+    return is_candidate_source_relative_path(rel)
 
 
 def iter_candidate_source_files(project_dir: str | pathlib.Path) -> list[pathlib.Path]:

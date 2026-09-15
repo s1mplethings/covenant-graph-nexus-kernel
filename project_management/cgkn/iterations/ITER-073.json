@@ -1,0 +1,88 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-073",
+  "project_id": "cgkn",
+  "goal": "Compile validated Provider planning proposals and raw user intent into one grounded canonical GoalSpec with bounded requirement replan.",
+  "backlog_item_ids": [
+    "PB-051"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
+  "acceptance_criteria": [
+    "The accepted requirements_planning artifact is schema-validated, identity-bound, and consumed by a generic canonical GoalSpec compiler without gaining canonical authority.",
+    "Unknown Chinese and cross-domain goals compile non-empty grounded capabilities and workstreams while simple goals remain proportionate.",
+    "Explicit constraints and outcome anchors are preserved; ungrounded additions, cloud injection, scope inflation, and proxy substitutions are rejected or downgraded.",
+    "Insufficient proposals enter bounded WAITING_REQUIREMENT_REPLAN and resume the same run through the single Provider scheduler.",
+    "Live, codex_surrogate, and deterministic_replay share the compiler; frozen partial acceptance, Product Design Governance, candidate finalization, benchmarks, and delivery gates remain unchanged.",
+    "Source identity records HEAD, dirty state/diff hash, Agent Kit package identity, plugin version/source hash, changed canonical module hashes, and contract hashes."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-GROUNDING",
+      "measure": "canonical fields with accepted provenance and preserved explicit constraints",
+      "target": "all core capabilities, workstreams, constraints, and acceptance anchors grounded; zero silent goal degradation",
+      "method": "schema, provenance, adversarial proposal, and cross-domain compiler tests"
+    },
+    {
+      "id": "QM-REPLAN",
+      "measure": "bounded same-run requirement recovery",
+      "target": "insufficient proposals emit structured feedback, preserve attempts, and stop at the configured maximum",
+      "method": "surrogate/replay integration tests and accounting inspection"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "formal route and frozen-boundary compatibility",
+      "target": "all scoped, related, guard, kernel, and py_compile checks pass with zero Provider/network calls",
+      "method": "targeted and related pytest profiles plus hash guards"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Define proposal and canonical schemas before compiler implementation.",
+      "Keep proposal authority separate from canonical requirement authority."
+    ],
+    "assurance": [
+      "Review every modified module against the single scheduler and post-build boundary.",
+      "Exercise unfamiliar domains and malicious proposals, not only the motivating media goal."
+    ],
+    "control": [
+      "Run schema, unit, integration, cross-mode, kernel, guard, and py_compile checks.",
+      "Run two fresh zero-provider requirement-lane smokes."
+    ],
+    "improvement": [
+      "Record whether bounded replan replaces terminal keyword-recognizer failure without overcomplicating simple goals."
+    ]
+  },
+  "interface_expectations": [
+    "requirements_planning response remains a Provider proposal and is never copied into canonical authority without grounding validation",
+    "run_requirement_decision receives the validated planning artifact through the existing production route",
+    "WAITING_REQUIREMENT_REPLAN remains a workflow state, not an EvidenceStatus or candidate repair"
+  ],
+  "evidence_refs": [
+    "artifacts/general_requirement_compiler/reports/final_verdict.json",
+    "artifacts/general_requirement_compiler/reports/regression_report.json",
+    "artifacts/general_requirement_compiler/reports/smoke_simple_report.json",
+    "artifacts/general_requirement_compiler/reports/smoke_unknown_domain_report.json"
+  ],
+  "review": {
+    "outcome": "rejected",
+    "feedback": [
+      "Acceptance remains NEEDS_REWORK because the required kernel-contract test update is itself listed in the unchanged Product Design frozen-boundary guard.",
+      "Generic GoalSpec compilation, grounded proposal ingestion, bounded same-run replan, and both fresh smokes passed."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Formal request/submit/resume reached product_design with zero Provider and network calls.",
+      "Structured proposal grounding removed the open-domain keyword recognizer bottleneck."
+    ],
+    "did_not_work": [
+      "Repository policies require changing tests/test_kernel_contract.py while the frozen Product Design rule guard rejects any change to that same path."
+    ],
+    "experiments": [
+      "Resolve the contract-test versus frozen-guard ownership conflict in a separately authorized governance change."
+    ]
+  }
+}

@@ -30,7 +30,7 @@
         "tests/test_complexity_formal_mainline_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 24,
+      "usage_count": 25,
       "successful_usage_count": 23,
       "owner": "context-librarian",
       "supersedes": []
@@ -801,6 +801,16 @@
       "outcome": "successful",
       "evidence_refs": [
         "artifacts/project_generation_benchmark/CGKN_PROVIDER_FREE_PARTIAL_ACCEPTANCE_20260913/provider_free_logic_report.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-073",
+      "applied": true,
+      "outcome": "inconclusive",
+      "evidence_refs": [
+        "artifacts/general_requirement_compiler/reports/final_verdict.json"
       ]
     }
   ]

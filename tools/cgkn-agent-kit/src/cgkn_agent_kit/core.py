@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import pathlib
 import re
@@ -17,6 +18,9 @@ CONFIG_KIND = "CGKNAgentKitProject"
 CONFIG_VERSION = "1.0"
 SUPPORT_DIR = pathlib.Path(".cgkn") / "agent-kit"
 CONFIG_PATH = pathlib.Path(".cgkn") / "agent-kit.json"
+# Retained support/experimental lane identity; generation_command uses the
+# formal conversation entrypoint below and never executes this path.
+SUPPORT_PIPELINE_PATH = pathlib.Path(".") / "scripts" / "run_local_pipeline.py"
 IGNORED_DIRS = {
     ".git", ".hg", ".svn", ".cgkn", ".idea", ".vscode", "__pycache__",
     "node_modules", "vendor", "dist", "build", "coverage", ".pytest_cache",
@@ -121,7 +125,7 @@ def initialize_project(project_root: pathlib.Path, cgkn_root: pathlib.Path, *, f
         "cgkn_root": str(cgkn_root.resolve()),
         "artifact_dir": SUPPORT_DIR.as_posix(),
         "agent_backend": "codex",
-        "provider_entrypoint": "scripts/run_local_pipeline.py",
+        "provider_entrypoint": "scripts/run_codex_conversation_generation.py",
         "stores_secrets": False,
     }
     write_json(config_path, config)
@@ -324,24 +328,104 @@ def generation_command(
     project_root: pathlib.Path, *, goal: str, brief_path: pathlib.Path,
     out_dir: pathlib.Path | None = None, model: str = "gpt-4.1",
     allow_network: bool = False, resume_run_dir: pathlib.Path | None = None,
+    provider_mode: str = "live", replay_dir: pathlib.Path | None = None,
 ) -> list[str]:
     root, config, cgkn_root = load_project(project_root)
     artifact_dir = root / str(config["artifact_dir"])
     out = (out_dir or (artifact_dir / "generated-project")).resolve()
-    run_dir = (artifact_dir / "runs").resolve()
+    mode = str(provider_mode or "live").strip().lower()
+    if mode not in {"live", "codex_surrogate", "deterministic_replay"}:
+        raise AgentKitError(f"Unsupported provider_mode: {mode}")
+    if mode != "deterministic_replay" and replay_dir is not None:
+        raise AgentKitError("replay_dir is valid only for deterministic_replay")
     result_path = (artifact_dir / "generation_result.json").resolve()
     argv = [
-        sys.executable, str(cgkn_root / "scripts" / "run_local_pipeline.py"),
-        "--goal", goal, "--out-dir", str(out), "--run-dir", str(run_dir),
+        sys.executable, str(cgkn_root / "scripts" / "run_codex_conversation_generation.py"),
+        "--project-root", str(root), "--goal", goal, "--out-dir", str(out),
         "--result", str(result_path), "--codex-capability-brief", str(brief_path.resolve()),
-        "--use-api", "--allow-provider", "--model", model,
+        "--provider-mode", mode, "--model", model,
         "--small-model", model, "--large-model", model, "--json",
     ]
-    if allow_network:
-        argv.append("--allow-network")
+    if mode == "live":
+        argv.extend(["--use-api", "--allow-provider"])
+        if allow_network:
+            argv.append("--allow-network")
+    elif allow_network:
+        raise AgentKitError(f"{mode} cannot enable live network access")
+    if mode == "deterministic_replay":
+        if replay_dir is None:
+            raise AgentKitError("deterministic_replay requires replay_dir")
+        argv.extend(["--replay-dir", str(replay_dir.expanduser().resolve())])
     if resume_run_dir is not None:
-        argv.extend(["--resume-run-dir", str(resume_run_dir.expanduser().resolve())])
+        argv.extend(["--resume-run-dir", str(pathlib.Path(resume_run_dir).expanduser().resolve())])
     return argv
+
+
+def _load_surrogate_adapter(cgkn_root: pathlib.Path):
+    scripts = cgkn_root / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    import surrogate_provider_adapter
+
+    return surrogate_provider_adapter
+
+
+def surrogate_status(project_root: pathlib.Path, *, run_dir: pathlib.Path | None = None) -> dict[str, Any]:
+    root, config, cgkn_root = load_project(project_root)
+    artifact_dir = root / str(config["artifact_dir"])
+    selected = pathlib.Path(run_dir).resolve() if run_dir else _latest_surrogate_run(artifact_dir)
+    return _load_surrogate_adapter(cgkn_root).status(selected)
+
+
+def _latest_surrogate_run(artifact_dir: pathlib.Path) -> pathlib.Path:
+    result = read_json(artifact_dir / "generation_result.json")
+    declared = str(result.get("provider_run_dir") or result.get("run_dir") or "").strip()
+    if declared:
+        candidate = pathlib.Path(declared).resolve()
+        if (candidate / "artifacts" / "provider_handshake" / "provider_mode_state.json").is_file():
+            return candidate
+    runs_root = artifact_dir / "runs"
+    candidates = [
+        path.parent.parent.parent
+        for path in runs_root.glob("*/artifacts/provider_handshake/provider_mode_state.json")
+    ] if runs_root.exists() else []
+    if not candidates:
+        direct = runs_root / "artifacts" / "provider_handshake" / "provider_mode_state.json"
+        if direct.is_file():
+            return runs_root.resolve()
+        raise AgentKitError("No surrogate Provider run exists for this project")
+    return max(candidates, key=lambda path: path.stat().st_mtime).resolve()
+
+
+def submit_surrogate_response(
+    project_root: pathlib.Path,
+    *,
+    job_id: str,
+    attempt_id: str,
+    payload: Any,
+    surrogate_identity: str = "codex",
+    run_dir: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    root, config, cgkn_root = load_project(project_root)
+    artifact_dir = root / str(config["artifact_dir"])
+    selected = pathlib.Path(run_dir).resolve() if run_dir else _latest_surrogate_run(artifact_dir)
+    adapter = _load_surrogate_adapter(cgkn_root)
+    report = adapter.status(selected)
+    match = next(
+        (
+            item for item in report.get("requests", [])
+            if item.get("job_id") == job_id and item.get("attempt_id") == attempt_id
+        ),
+        None,
+    )
+    if not match:
+        raise AgentKitError("No scheduler-created surrogate request matches job_id and attempt_id")
+    request = read_json(pathlib.Path(str(match["request_path"])))
+    response = adapter.build_response(request, payload, surrogate_identity=surrogate_identity)
+    try:
+        return adapter.submit_response(selected, response, expected_mode="codex_surrogate")
+    except ValueError as exc:
+        raise AgentKitError(str(exc)) from exc
 
 
 def run_generation(argv: list[str], *, cgkn_root: pathlib.Path, timeout: int) -> subprocess.CompletedProcess[str]:

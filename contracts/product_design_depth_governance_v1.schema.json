@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/contracts/product_design_depth_governance_v1.schema.json",
+  "title": "CGKN Product Design Depth Governance Artifact",
+  "type": "object",
+  "required": ["kind", "schema_version"],
+  "properties": {
+    "schema_version": {"const": "1.0"}
+  },
+  "oneOf": [
+    {
+      "properties": {"kind": {"const": "CGKNGoalFidelityContract"}},
+      "required": ["original_user_goal", "intended_user", "real_world_success_scenario", "core_user_outcome", "core_capabilities", "core_difficulties", "non_negotiable_capabilities", "allowed_scope_reductions", "forbidden_simplifications", "proxy_or_heuristic_risks", "real_world_evidence_required", "acceptance_authority", "contract_frozen_at", "contract_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNProjectComplexityProfile"}, "complexity_level": {"enum": ["SIMPLE", "STANDARD", "COMPLEX", "HIGH_RISK"]}},
+      "required": ["domain_complexity", "algorithmic_uncertainty", "data_dependency", "external_tool_dependency", "UI_workflow_complexity", "persistence_requirements", "concurrency_or_background_work", "performance_risk", "platform_risk", "privacy_or_security_risk", "packaging_complexity", "real_world_variability", "failure_cost", "core_capability_uncertainty", "complexity_level", "classification_reasons", "required_design_depth", "required_test_depth", "required_review_roles", "required_real_world_evidence", "prohibited_shortcuts", "contract_frozen_at", "contract_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNCoreDifficultyLock"}},
+      "required": ["difficulties", "contract_frozen_at", "contract_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNTestRealismContract"}},
+      "required": ["required_resource_types", "synthetic_resources_allowed", "synthetic_only_acceptance_allowed", "real_world_resources_required", "domain_variations", "adversarial_cases", "negative_controls", "holdout_required", "holdout_independence_rule", "ground_truth_source", "acceptance_metrics", "frozen_resource_hashes", "contract_frozen_at", "contract_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNChallengeMatrix"}},
+      "required": ["domain", "challenges", "contract_frozen_at", "contract_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNDesignAdequacyReport"}},
+      "required": ["complexity_level", "technical_alternatives", "tradeoffs", "selected_strategy", "core_data_flow", "state_and_persistence", "long_task_control", "performance_budget", "dependencies_and_licenses", "platform_degradation", "failure_modes", "test_resource_strategy", "proxy_upgrade_boundary", "adequate", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNProductChallengeReview"}, "verdict": {"enum": ["DESIGN_READY", "DESIGN_READY_WITH_DECLARED_PROXY", "REPLAN_CORE_CAPABILITY", "BLOCKED_MISSING_EVIDENCE"]}},
+      "required": ["review_role", "builder_independent", "counterexamples", "core_capability_findings", "test_realism_findings", "architecture_findings", "verdict", "maturity_ceiling", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNOverengineeringCheck"}},
+      "required": ["unnecessary_components", "unsupported_future_features", "complexity_without_requirement", "simpler_valid_solution_available", "verdict", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNProxySolutionReport"}},
+      "required": ["proxy_detected", "proxy_type", "affected_core_capability", "implementation_evidence", "test_evidence", "user_goal_impact", "maximum_allowed_maturity", "target_goal_satisfied", "required_next_design_action", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNProductMaturityReport"}, "maturity_level": {"enum": ["DEMO", "PROTOTYPE", "FUNCTIONAL_MVP", "TARGET_VALIDATED", "PRODUCTION_READY"]}},
+      "required": ["maturity_level", "maturity_verdict", "original_goal_satisfied", "core_capabilities_status", "proxy_capabilities", "real_world_evidence", "holdout_status", "unresolved_product_risks", "maximum_justified_level", "downgrade_reasons", "public_claims_allowed", "public_claims_forbidden", "target_goal_satisfied", "real_world_validated", "proxy_detected", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNPublicClaimPolicyReport"}},
+      "required": ["delivery_allowed_is_not_target_success", "pipeline_verdict", "artifact_verdict", "maturity_verdict", "target_goal_satisfied", "real_world_validated", "proxy_detected", "public_claims_allowed", "public_claims_forbidden", "public_disclosure", "artifact_hash"]
+    },
+    {
+      "properties": {"kind": {"const": "CGKNDesignReplanReport"}, "status": {"enum": ["CONTINUE_INCREMENT", "DESIGN_REPLAN_REQUIRED"]}},
+      "required": ["status", "triggers", "preserved_components", "replan_scope", "artifact_hash"]
+    }
+  ]
+}

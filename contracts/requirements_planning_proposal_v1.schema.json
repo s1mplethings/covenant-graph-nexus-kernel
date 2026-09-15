@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/contracts/requirements_planning_proposal_v1.schema.json",
+  "title": "CGKN Requirements Planning Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "interpreted_goal",
+    "intended_users",
+    "desired_outcomes",
+    "proposed_core_capabilities",
+    "proposed_supporting_capabilities",
+    "proposed_user_workflows",
+    "proposed_workstreams",
+    "explicit_constraints_found",
+    "necessary_inferences",
+    "assumptions",
+    "open_questions",
+    "proposed_acceptance_anchors",
+    "proposed_forbidden_substitutions",
+    "source_grounding"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "interpreted_goal": {"type": "string", "minLength": 1},
+    "intended_users": {"$ref": "#/$defs/nonEmptyStrings"},
+    "desired_outcomes": {"$ref": "#/$defs/nonEmptyStrings"},
+    "proposed_core_capabilities": {"$ref": "#/$defs/nonEmptyStrings"},
+    "proposed_supporting_capabilities": {"$ref": "#/$defs/strings"},
+    "proposed_user_workflows": {"$ref": "#/$defs/nonEmptyStrings"},
+    "proposed_workstreams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "scope", "covers_capabilities"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,71}$"},
+          "scope": {"type": "string", "minLength": 1},
+          "covers_capabilities": {"$ref": "#/$defs/strings"}
+        }
+      }
+    },
+    "explicit_constraints_found": {"$ref": "#/$defs/strings"},
+    "necessary_inferences": {"$ref": "#/$defs/strings"},
+    "assumptions": {"$ref": "#/$defs/strings"},
+    "open_questions": {"$ref": "#/$defs/strings"},
+    "proposed_acceptance_anchors": {"$ref": "#/$defs/nonEmptyStrings"},
+    "proposed_forbidden_substitutions": {"$ref": "#/$defs/strings"},
+    "source_grounding": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "value", "source_kind", "source_excerpt", "rationale"],
+        "properties": {
+          "target": {
+            "enum": [
+              "intended_users",
+              "desired_outcomes",
+              "proposed_core_capabilities",
+              "proposed_supporting_capabilities",
+              "proposed_user_workflows",
+              "proposed_workstreams",
+              "explicit_constraints_found",
+              "proposed_acceptance_anchors",
+              "proposed_forbidden_substitutions"
+            ]
+          },
+          "value": {"type": "string", "minLength": 1},
+          "source_kind": {"enum": ["RAW_GOAL", "CONVERSATION_CONTEXT", "NECESSARY_INFERENCE", "SYSTEM_POLICY"]},
+          "source_excerpt": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "strings": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "nonEmptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

@@ -79,6 +79,11 @@ final_delivered
 | `CGKNCanonicalMediaValidationResult` | inline canonical result | `scripts/canonical_media_validation.py` | provider post-build media collector, public delivery gate | yes for generated image/background/sprite/video delivery assets | `PASS`, `FAIL`, `BLOCKED_ENVIRONMENT`, `NOT_EVALUATED` | kind, schema version, media type, requested role, path/relative path, suffix, detected format, sha256, size, decoder/version, dimensions, duration/codec/stream data, decoded frame count, blank/placeholder flags, validated_at | replaces extension/name/file-exists media acceptance |
 | `CGKNUserReviewRequest` | `schemas/user_review_request_v1.schema.json` | `scripts/canonical_user_review.py` | user review writer and inspector, local packager, public delivery gate | yes before a required review | canonical EvidenceStatus | frozen candidate/evidence identity, explicit workflow-derived `visual_required`, expected Codex conversation reviewer, required presentation roles, actual sent artifact refs/hashes, requested/presented timestamps and self-hash | session request dictionaries and artifact presence cannot replace or promote this requirement |
 | `CGKNUserReviewEvidence` | `schemas/user_review_v1.schema.json` | `scripts/canonical_user_review.py` | local packager, public delivery gate, final verdict | yes when review is required | canonical EvidenceStatus | envelope, request ref/hash, explicit `visual_required`, event id, Codex conversation update/message/date/reviewer identity, reviewed candidate, structured evidence refs/hashes, approval text hash, decision, reviewed_at | replaces session approval booleans and substring-based approval; inspector independently checks request, visual scope, time order and durable replay binding |
+| `CGKNCanonicalVerificationReport` | inline v1 contract | `scripts/canonical_finalization.py` | canonical governance and acceptance | yes on production finalization | canonical EvidenceStatus | exact run/candidate/source identity, recomputed source hash, inspected test/runtime/visual evidence, README/entrypoint/dependency/platform/startup/error checks, blockers and evidence hashes | Provider or surrogate claims cannot replace this local inspection |
+| `CGKNCanonicalGovernanceReport` | inline v1 contract | `scripts/canonical_finalization.py` consuming `scripts/product_design_depth_governance.py` | acceptance and public claim policy | yes on production finalization | canonical EvidenceStatus | candidate hash, local evaluator identity/version, frozen contract hashes, maturity ceiling, proxy and real-world result, allowed/forbidden claims | same-named Provider files and surrogate recommendations have no authority |
+| `CGKNCanonicalAcceptanceDecision` | inline v1 contract | `scripts/canonical_finalization.py` | final promotion | yes before promotion | canonical EvidenceStatus | run/candidate/source identity, verification and governance hashes, maturity, blocker count, independent local acceptance authority and reason | candidate PASS or Provider release recommendation cannot accept itself |
+| `CGKNCanonicalPromotionManifest` | inline v1 contract | `scripts/canonical_finalization.py` | local packager | yes before production packaging | canonical EvidenceStatus | accepted candidate, source hash, parent lineage, acceptance/verification/governance hashes, local promotion authority, immutable-content flag | candidate-only and rejected candidates cannot be packaged; repeated promotion is idempotent |
+| `CGKNCanonicalFinalizationState` | inline v1 contract | `scripts/canonical_finalization.py` | Codex conversation supervision and delivery reporting | workflow support only | not EvidenceStatus | ordered states from candidate materialization through verification, governance, acceptance, review, promotion, packaging, delivery gate, and delivered | state names never substitute for evidence PASS |
 | `CGKNDeliveryManifest` | `schemas/delivery_manifest_v1.schema.json` | `scripts/local_packager.py` | public delivery gate, Codex conversation delivery sender, final verdict | yes | `PASS`, `PASS_WITH_LIMITS`, `NEEDS_REWORK` | envelope, source tree hash, package hash, package entries hash, candidate hash, test/runtime/visual evidence plus user review request/review refs and hashes when required | replaces unversioned delivery bundle success records |
 | `CGKNDeliveryReceipt` | `schemas/delivery_receipt_v1.schema.json` | `scripts/canonical_delivery_receipt.py` | Codex conversation final sender, active project binder, final verdict | yes | `PASS`, `FAIL`, `NEEDS_REWORK` | envelope, delivery attempt/candidate/manifest/package binding, frozen requirements, exact attachment kinds, Codex conversation chat/message/file identities, local hashes, started/sent/finished timestamps | replaces boolean `sent` checks and pre-send delivered markers |
 | `CGKNFormalGateStatus` | `schemas/formal_gate_status_v1.schema.json` | `scripts/formal_mainline_acceptance.py` | `scripts/acceptance_verifier.py` | read-only formal acceptance | canonical EvidenceStatus | envelope, candidate or repository scope, authoritative source ref/hash/producer, registered inspector and actual result, failures and blocker code | replaces handwritten wrapper PASS and `source_inspection="PASS"`; cannot replace its canonical source artifact |
@@ -189,6 +194,9 @@ customer request
 -> canonical production-candidate provenance
 -> canonical provider causal trace
 -> canonical test/runtime/visual evidence
+-> canonical product-governance evaluation
+-> hash-bound acceptance decision
+-> idempotent final promotion
 -> user review when required
 -> local_packager
 -> public delivery gate
@@ -238,3 +246,50 @@ Real browser visual evidence means Playwright or an equivalent browser automatio
 ## Legacy Boundary
 
 Legacy status names and old compact Product Studio outputs are allowed only under `legacy/` or explicit compatibility notes. Formal code must not consume those names directly; use `legacy/status_adapter.py` when a historical artifact must be interpreted.
+
+## Surrogate Provider handshake registry
+
+`contracts/surrogate_provider_handshake_v1.schema.json` defines the canonical
+`CGKNProviderJobRequest`, surrogate/replay response, and
+`CGKNProviderResponseReceipt` envelopes. Their authoritative producer and
+consumer are `scripts/surrogate_provider_adapter.py` beneath the production
+`provider_text` boundary. The envelopes are workflow/accounting artifacts with
+formal evidence `NOT_EVALUATED`; they cannot authorize candidate acceptance,
+maturity, packaging, or delivery. `WAITING_SURROGATE_RESPONSE` is a resumable
+workflow state, not an EvidenceStatus.
+
+## Canonical Requirement Compiler Registry
+
+| Artifact | Schema / producer | Consumer | Authority boundary |
+| --- | --- | --- | --- |
+| `CGKNRequirementsPlanningProposalArtifact` | `contracts/requirements_planning_proposal_v1.schema.json`; formal `requirements_planning` Provider stage plus local transport validation | `scripts/canonical_goal_spec_compiler.py` | proposal authority only; hash-bound to raw goal and accepted/consumed Provider request identity; no governance, acceptance, maturity, candidate, packaging, or release authority |
+| `GoalSpec` v2 | `contracts/canonical_goal_spec_v2.schema.json`; `scripts/canonical_goal_spec_compiler.py` inside Requirement Decision | Project Plan and unchanged downstream design lane | sole canonical requirement projection; includes raw/normalized goal, capabilities, workflows, workstreams, constraints, non-goals, questions, assumptions, anchors, forbidden substitutions, source refs, field provenance, compiler identity, self-hash, and local authority decision |
+| `CGKNRequirementReplanState` | inline v1 contract; canonical requirement loop | same-run Provider scheduler and formal request/submit/resume | workflow support only; `WAITING_REQUIREMENT_REPLAN`, `RESOLVED`, or `REPLAN_EXHAUSTED` are not EvidenceStatus; bounded to three attempts and cannot invoke candidate repair |
+| `CGKNSourceIdentityReport` | inline v1 contract; `scripts/source_identity.py` | run audit and acceptance reporting | immutable start-of-run support identity with `NOT_EVALUATED`; hashes source state but grants no evidence or delivery authority |
+
+Canonical requirement provenance labels are `USER_EXPLICIT`, `USER_CONTEXT`,
+`NECESSARY_INFERENCE`, `PROVIDER_PROPOSAL`, `SYSTEM_POLICY`, and `UNGROUNDED`.
+`UNGROUNDED` values remain visible for diagnostics but cannot become hard
+requirements. Live, Codex surrogate, and deterministic replay modes all use the
+same compiler and authority boundary.
+
+## Product Design Depth Governance Registry
+
+All artifacts below use `contracts/product_design_depth_governance_v1.schema.json`. Their hashes freeze design intent or make post-build maturity evaluation tamper-evident. They are governance/support records and do not themselves grant a formal `EvidenceStatus` or authorize delivery.
+
+| Artifact | Producer | Consumer | Authority boundary |
+| --- | --- | --- | --- |
+| `CGKNGoalFidelityContract` / `goal_fidelity_contract.json` | `scripts/product_design_depth_governance.py` in Requirement Decision | technical design, Provider prompt, Product Challenge Review | freezes original outcome, core capabilities, allowed scope reductions, and forbidden simplifications before implementation |
+| `CGKNProjectComplexityProfile` / `project_complexity_profile.json` | same | design-depth and test-depth selection | classifies `SIMPLE`, `STANDARD`, `COMPLEX`, or `HIGH_RISK`; cannot authorize PASS |
+| `CGKNCoreDifficultyLock` / `core_difficulty_lock.json` | same | Provider, proxy detector, replan evaluator | prevents an MVP from deleting or proxying the core difficulty without an explicit maturity cap |
+| `CGKNTestRealismContract` / `test_realism_contract.json` | same | test-resource planning and maturity evaluator | freezes real, synthetic, variation, adversarial, negative-control, and holdout requirements |
+| `CGKNChallengeMatrix` / `challenge_matrix.json` | same | independent product challenge verifier | domain-derived counterexamples frozen before implementation; builder tests cannot edit acceptance after seeing failures |
+| `CGKNDesignAdequacyReport` / `design_adequacy_report.json` | same | Product Challenge Review | records risk-proportionate alternatives, tradeoffs, data/state/long-task/performance/dependency/failure design |
+| `CGKNProductChallengeReview` / `product_challenge_review.json` | independent challenger role in the deterministic requirement lane | implementation-entry decision | verdict is `DESIGN_READY`, `DESIGN_READY_WITH_DECLARED_PROXY`, `REPLAN_CORE_CAPABILITY`, or `BLOCKED_MISSING_EVIDENCE`; no delivery authority |
+| `CGKNOverengineeringCheck` / `overengineering_check_report.json` | requirement lane | Product Challenge Review | rejects unsupported components and future features; complexity is justified by requirements and risk, not volume |
+| `CGKNProxySolutionReport` / `proxy_solution_report.json` | post-build maturity evaluator | public gate and design replan | detects proxies, affected core capability, user-goal impact, and maximum allowed maturity |
+| `CGKNProductMaturityReport` / `product_maturity_report.json` | post-build maturity evaluator | `local_packager` inputs and public gate | records `DEMO`, `PROTOTYPE`, `FUNCTIONAL_MVP`, `TARGET_VALIDATED`, or `PRODUCTION_READY`; separate from pipeline/artifact verdicts |
+| `CGKNPublicClaimPolicyReport` / `public_claim_policy_report.json` | post-build maturity evaluator | public narration | keeps delivery eligibility separate from target satisfaction and enumerates allowed/forbidden claims |
+| `CGKNDesignReplanReport` / `design_replan_report.json` | post-build maturity evaluator | existing affected-issue Provider repair planning | scopes replan to the locked capability and preserves unaffected validated components; no second repair system |
+
+Only `CGKNIndependentProductEvidence` produced by the independent challenge verifier in the production run directory, with a valid producer identity and artifact hash, can raise a complex product to `TARGET_VALIDATED`. A similarly named file inside Provider-owned candidate source has no maturity authority.

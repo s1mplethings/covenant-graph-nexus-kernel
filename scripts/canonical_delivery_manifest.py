@@ -9,10 +9,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 try:
-    from . import browser_visual_evidence, canonical_evidence_hash, canonical_user_review, customer_runtime_runner, real_test_execution
+    from . import browser_visual_evidence, canonical_evidence_hash, canonical_finalization, canonical_user_review, customer_runtime_runner, real_test_execution
 except ImportError:
     import browser_visual_evidence
     import canonical_evidence_hash
+    import canonical_finalization
     import canonical_user_review
     import customer_runtime_runner
     import real_test_execution
@@ -57,6 +58,14 @@ RESERVED_FIELDS = {
     "inclusion_manifest",
     "failures",
     "known_limits",
+    "canonical_verification_ref",
+    "canonical_verification_hash",
+    "canonical_governance_ref",
+    "canonical_governance_hash",
+    "acceptance_decision_ref",
+    "acceptance_decision_hash",
+    "promotion_manifest_ref",
+    "promotion_manifest_hash",
 }
 
 
@@ -101,6 +110,11 @@ def _is_excluded(relative: str) -> bool:
         MANIFEST_NAME, FINAL_PACKAGE_NAME, "packager_run_log.txt",
         canonical_user_review.REQUEST_FILE, canonical_user_review.REVIEW_FILE,
         canonical_user_review.REPLAY_LEDGER_FILE, "delivery_receipt.json",
+        canonical_finalization.VERIFICATION_FILE,
+        canonical_finalization.GOVERNANCE_FILE,
+        canonical_finalization.ACCEPTANCE_FILE,
+        canonical_finalization.PROMOTION_FILE,
+        canonical_finalization.STATE_FILE,
     }:
         return True
     return False
@@ -251,6 +265,11 @@ def build_canonical_package(
     known_limits: list[str] | None = None,
     visual_required: bool = False,
     user_review_required: bool = False,
+    promotion_manifest: str | pathlib.Path | dict[str, Any] | None = None,
+    canonical_verification_ref: str | pathlib.Path | None = None,
+    canonical_governance_ref: str | pathlib.Path | None = None,
+    acceptance_decision_ref: str | pathlib.Path | None = None,
+    require_promotion: bool = False,
     extra_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
@@ -282,6 +301,29 @@ def build_canonical_package(
         + inclusion_blockers
         + [f"reserved_extra_field:{field}" for field in reserved_attempts]
     )
+    authority_blockers: list[dict[str, Any]] = []
+    promotion_document: dict[str, Any] = {}
+    if require_promotion:
+        expected_identity = {
+            "run_id": identity.get("run_id", ""),
+            "candidate_id": identity.get("candidate_id", ""),
+            "candidate_hash": before_source_hash,
+            "source_sha": identity.get("commit_sha", ""),
+        }
+        authority_blockers = canonical_finalization.packaging_blockers(
+            promotion_manifest,
+            expected_identity=expected_identity,
+        )
+        failures.extend(str(item.get("code", "promotion_invalid")) for item in authority_blockers)
+        promotion_inspection = canonical_finalization.inspect_promotion(
+            promotion_manifest or {}, expected_identity=expected_identity
+        )
+        promotion_document = promotion_inspection.get("details", {}) if isinstance(promotion_inspection.get("details"), dict) else {}
+        if promotion_document.get("acceptance_decision_hash"):
+            acceptance_path = pathlib.Path(str(acceptance_decision_ref or ""))
+            acceptance_document = _read_json(acceptance_path) if acceptance_path.is_file() else {}
+            if not acceptance_document or acceptance_document.get("artifact_hash") != promotion_document.get("acceptance_decision_hash"):
+                failures.append("acceptance_decision_hash_mismatch")
     review_inspection = canonical_user_review.inspect_user_review_evidence(project) if user_review_required else {
         "status": "NOT_EVALUATED",
         "details": {},
@@ -365,6 +407,15 @@ def build_canonical_package(
         "known_limits": limits,
         "inclusion_manifest": inclusion,
         "failures": sorted(set(failures)),
+        "structured_blockers": authority_blockers,
+        "canonical_verification_ref": str(pathlib.Path(canonical_verification_ref).resolve()) if canonical_verification_ref else "",
+        "canonical_verification_hash": canonical_evidence_hash.sha256_file(canonical_verification_ref) if canonical_verification_ref and pathlib.Path(canonical_verification_ref).is_file() else "",
+        "canonical_governance_ref": str(pathlib.Path(canonical_governance_ref).resolve()) if canonical_governance_ref else "",
+        "canonical_governance_hash": canonical_evidence_hash.sha256_file(canonical_governance_ref) if canonical_governance_ref and pathlib.Path(canonical_governance_ref).is_file() else "",
+        "acceptance_decision_ref": str(pathlib.Path(acceptance_decision_ref).resolve()) if acceptance_decision_ref else "",
+        "acceptance_decision_hash": canonical_evidence_hash.sha256_file(acceptance_decision_ref) if acceptance_decision_ref and pathlib.Path(acceptance_decision_ref).is_file() else "",
+        "promotion_manifest_ref": str(pathlib.Path(str(promotion_manifest)).resolve()) if isinstance(promotion_manifest, (str, pathlib.Path)) else str(promotion_document.get("path", "")),
+        "promotion_manifest_hash": canonical_evidence_hash.sha256_file(promotion_manifest) if isinstance(promotion_manifest, (str, pathlib.Path)) and pathlib.Path(promotion_manifest).is_file() else str(promotion_document.get("artifact_hash", "")),
     }
     manifest.update({key: value for key, value in extra.items() if key not in RESERVED_FIELDS})
     manifest["artifact_hash"] = canonical_evidence_hash.canonical_json_hash(manifest, ("artifact_hash",))

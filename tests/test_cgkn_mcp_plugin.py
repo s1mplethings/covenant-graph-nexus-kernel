@@ -117,6 +117,8 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
         "cgkn_plan_generation",
         "cgkn_probe_provider",
         "cgkn_generate",
+        "cgkn_surrogate_status",
+        "cgkn_submit_surrogate_response",
         "cgkn_diagnose_failure",
         "cgkn_test_generated",
         "cgkn_status",
@@ -171,7 +173,7 @@ def test_mcp_end_to_end_init_prepare_seal_plan_and_status(client: MCPClient, tmp
     )["structuredContent"]
     assert planned["executed"] is False
     assert planned["secrets_in_argv"] is False
-    assert any("run_local_pipeline.py" in item for item in planned["argv"])
+    assert any("run_codex_conversation_generation.py" in item for item in planned["argv"])
     assert "--allow-provider" in planned["argv"]
     assert "--use-api" in planned["argv"]
     assert "--resume-run-dir" not in planned["argv"]

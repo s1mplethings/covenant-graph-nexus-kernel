@@ -1,0 +1,84 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-071",
+  "project_id": "cgkn",
+  "goal": "Add restart-safe file-backed Codex surrogate ingestion to the single formal Provider scheduler without changing candidate, acceptance, product-governance, benchmark, or delivery authority.",
+  "backlog_item_ids": [
+    "PB-049"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
+  "acceptance_criteria": [
+    "A canonical request/response/receipt handshake validates run, project, job, attempt, stage, schema and hashes, rejects late/cross-run/path/kernel injections, and is idempotent for identical responses.",
+    "A minimal fresh text-count project completes planning, design, build, verification and local_packager delivery through the formal mainline with complete accounting.",
+    "Codex surrogate and deterministic replay install zero-network guards and record zero external Provider calls without silently falling back to live.",
+    "Explicit live, codex_surrogate, and deterministic_replay modes replace ambiguous Provider-type boolean combinations while live remains compatible.",
+    "Fresh planning, product/interaction/technical/acceptance design, initial build, repair, schema repair and design replan use the same Provider request/response adapter and accounting.",
+    "Frozen partial acceptance, candidate materialization/lineage, Product Design Depth Governance, benchmarks and public evidence gates remain unchanged.",
+    "WAITING_SURROGATE_RESPONSE pauses safely and restart-safe resume consumes an accepted response once without creating another scheduler or repeating completed stages."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+      "target": "all management, iteration, and experience artifacts validate",
+      "method": "jsonschema tests plus deterministic manager validation"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "D:/CGKN/artifacts/surrogate_ingestion_mainline/reports/final_verdict.json",
+    "D:/CGKN/artifacts/surrogate_ingestion_mainline/reports/regression_report.json",
+    "D:/CGKN/artifacts/surrogate_ingestion_mainline/reports/smoke_project_report.json"
+  ],
+  "review": {
+    "outcome": "rejected",
+    "feedback": [
+      "Provider ingestion boundary passed deterministic and fresh-generation verification, but canonical final delivery did not complete."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "File-backed pause/submit/resume exposed real integration defects while preserving all authority boundaries."
+    ],
+    "did_not_work": [
+      "The standalone Agent Kit candidate lane lacks the production promotion identity and evidence needed by local_packager."
+    ],
+    "experiments": [
+      "In the next bounded change, route the same accepted surrogate run through the existing production entry and promotion checkpoints without changing delivery gates."
+    ]
+  }
+}

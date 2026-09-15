@@ -15,11 +15,12 @@ import sys
 from typing import Any, Callable
 
 
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.2.0-rc.1"
 PROTOCOL_VERSION = "2025-06-18"
 GENERATION_CONFIRMATION = "RUN_REVIEWED_PROVIDER"
 PROVIDER_PROBE_CONFIRMATION = "RUN_PROVIDER_PROBE"
 TEST_CONFIRMATION = "RUN_PROJECT_TESTS"
+PROVIDER_MODES = ("live", "codex_surrogate", "deterministic_replay")
 PROVIDER_KEY_ENV_NAMES = (
     "CGKN_OPENAI_API_KEY_OVERRIDE",
     "CGKN_OPENAI_API_KEY",
@@ -166,6 +167,8 @@ TOOLS = [
                 **PROJECT,
                 "goal": {"type": "string", "minLength": 1, "maxLength": 2000},
                 "model": {"type": "string", "default": "gpt-4.1"},
+                "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
             },
             ("project_root", "goal"),
@@ -201,13 +204,15 @@ TOOLS = [
     tool_definition(
         "cgkn_generate",
         "Run reviewed CGKN Provider generation",
-        "Run only the existing reviewed CGKN Provider route. Requires a ready sealed brief, process-provided credential, and the exact confirmation token RUN_REVIEWED_PROVIDER. Returns a compact structured diagnosis beside the full result when generation is blocked; it never retries automatically.",
+        "Run the existing reviewed CGKN Provider route in explicit live, Codex surrogate, or deterministic replay mode. Codex surrogate safely pauses for canonical file-backed responses and never resolves a live credential.",
         object_schema(
             {
                 **PROJECT,
                 "goal": {"type": "string", "minLength": 1, "maxLength": 2000},
                 "confirmation": {"const": GENERATION_CONFIRMATION},
                 "model": {"type": "string", "default": "gpt-4.1"},
+                "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
                 "timeout": {"type": "integer", "minimum": 30, "maximum": 7200, "default": 1800},
             },
@@ -219,6 +224,35 @@ TOOLS = [
         ),
         read_only=False,
         open_world=True,
+    ),
+    tool_definition(
+        "cgkn_surrogate_status",
+        "Inspect surrogate Provider handshake",
+        "Read pending and consumed scheduler-created Provider requests for the latest or selected run.",
+        object_schema({**PROJECT, "run_dir": {"type": "string", "default": ""}}, ("project_root",)),
+        object_schema({"ok": BOOLEAN, "status": JSON_OBJECT}, ("ok", "status")),
+        read_only=True,
+        open_world=False,
+    ),
+    tool_definition(
+        "cgkn_submit_surrogate_response",
+        "Submit a Codex surrogate Provider response",
+        "Bind one Provider text payload to a canonical scheduler request. The entry validates run, project, job, attempt, stage, hashes, schema, ownership, and duplicate/closed state before acceptance.",
+        object_schema(
+            {
+                **PROJECT,
+                "run_dir": {"type": "string", "default": ""},
+                "job_id": {"type": "string", "minLength": 1, "maxLength": 160},
+                "attempt_id": {"type": "string", "minLength": 1, "maxLength": 160},
+                "payload": {"type": "string", "minLength": 1},
+                "surrogate_identity": {"type": "string", "minLength": 1, "maxLength": 160, "default": "codex"},
+            },
+            ("project_root", "job_id", "attempt_id", "payload"),
+        ),
+        object_schema({"ok": BOOLEAN, "receipt": JSON_OBJECT}, ("ok", "receipt")),
+        read_only=False,
+        open_world=False,
+        idempotent=True,
     ),
     tool_definition(
         "cgkn_diagnose_failure",
@@ -304,6 +338,8 @@ class CGKNPluginServer:
             "cgkn_plan_generation": self.plan_generation,
             "cgkn_probe_provider": self.probe_provider,
             "cgkn_generate": self.generate,
+            "cgkn_surrogate_status": self.surrogate_status,
+            "cgkn_submit_surrogate_response": self.submit_surrogate_response,
             "cgkn_diagnose_failure": self.diagnose_failure,
             "cgkn_test_generated": self.test_generated,
             "cgkn_status": self.status,
@@ -414,6 +450,20 @@ class CGKNPluginServer:
 
     def _matching_resume_run_dir(self, project: pathlib.Path, goal: str) -> pathlib.Path | None:
         _, _, _, artifact_dir = self._loaded(project)
+        result_path = artifact_dir / "generation_result.json"
+        if result_path.is_file():
+            try:
+                result = self.core.read_json(result_path)
+            except self.core.AgentKitError:
+                result = {}
+            if (
+                str(result.get("status", "")).upper() in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}
+                and str(result.get("goal", "")).strip() == goal
+                and str(result.get("run_dir", "")).strip()
+            ):
+                selected = pathlib.Path(str(result["run_dir"])).resolve()
+                if selected.is_dir():
+                    return selected
         run_dir = (artifact_dir / "runs").resolve()
         pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
         if not pending_path.is_file():
@@ -868,6 +918,8 @@ class CGKNPluginServer:
             model=str(args.get("model", "gpt-4.1")),
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
+            provider_mode=str(args.get("provider_mode", "live")),
+            replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         clean_argv = [self.core.redact(str(item)) for item in argv]
         return {
@@ -881,9 +933,11 @@ class CGKNPluginServer:
     def generate(self, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("confirmation") != GENERATION_CONFIRMATION:
             raise ToolError(f"Generation requires confirmation={GENERATION_CONFIRMATION}")
-        credentials = self.connectivity._resolve_api_credentials()
-        if not str(credentials.get("api_key", "")).strip():
-            raise ToolError("CGKN provider credential is not available from the configured credential sources")
+        provider_mode = str(args.get("provider_mode", "live") or "live")
+        if provider_mode == "live":
+            credentials = self.connectivity._resolve_api_credentials()
+            if not str(credentials.get("api_key", "")).strip():
+                raise ToolError("CGKN provider credential is not available from the configured credential sources")
         project = self._project(args["project_root"])
         goal = str(args["goal"]).strip()
         _, brief_path, cgkn_root = self._validated_brief(project)
@@ -897,6 +951,8 @@ class CGKNPluginServer:
             model=str(args.get("model", "gpt-4.1")),
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
+            provider_mode=provider_mode,
+            replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         try:
             self.core.run_generation(argv, cgkn_root=cgkn_root, timeout=int(args.get("timeout", 1800)))
@@ -910,11 +966,37 @@ class CGKNPluginServer:
         result = self._sanitize(self.core.read_json(result_path))
         status = str(result.get("status", "")).upper()
         return {
-            "ok": status in {"PASS", "PASS_WITH_LIMITS"},
+            "ok": status in {"PASS", "PASS_WITH_LIMITS", "WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"},
             "result_path": str(result_path),
             "result": result,
             "diagnosis": self._failure_diagnosis(project),
         }
+
+    def surrogate_status(self, args: dict[str, Any]) -> dict[str, Any]:
+        project = self._project(args["project_root"])
+        run_value = str(args.get("run_dir", "") or "").strip()
+        return {
+            "ok": True,
+            "status": self._sanitize(
+                self.core.surrogate_status(
+                    project,
+                    run_dir=pathlib.Path(run_value) if run_value else None,
+                )
+            ),
+        }
+
+    def submit_surrogate_response(self, args: dict[str, Any]) -> dict[str, Any]:
+        project = self._project(args["project_root"])
+        run_value = str(args.get("run_dir", "") or "").strip()
+        receipt = self.core.submit_surrogate_response(
+            project,
+            run_dir=pathlib.Path(run_value) if run_value else None,
+            job_id=str(args["job_id"]),
+            attempt_id=str(args["attempt_id"]),
+            payload=str(args["payload"]),
+            surrogate_identity=str(args.get("surrogate_identity", "codex")),
+        )
+        return {"ok": bool(receipt.get("accepted")), "receipt": self._sanitize(receipt)}
 
     def diagnose_failure(self, args: dict[str, Any]) -> dict[str, Any]:
         project = self._project(args["project_root"])

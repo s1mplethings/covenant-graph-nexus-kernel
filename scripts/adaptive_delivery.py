@@ -303,6 +303,16 @@ def delivery_fact_check(
     project = pathlib.Path(project_dir).resolve()
     manifest = manifest if isinstance(manifest, dict) else {}
     evidence = evidence if isinstance(evidence, dict) else {}
+    artifacts = manifest.get("artifacts", {}) if isinstance(manifest.get("artifacts"), dict) else {}
+    declared_entrypoint = str(artifacts.get("startup_entrypoint", "") or "").strip().replace("\\", "/")
+    declared_parts = pathlib.PurePosixPath(declared_entrypoint).parts if declared_entrypoint else ()
+    if (
+        declared_entrypoint
+        and not pathlib.PurePosixPath(declared_entrypoint).is_absolute()
+        and ".." not in declared_parts
+        and declared_entrypoint not in entrypoints
+    ):
+        entrypoints = (declared_entrypoint, *entrypoints)
     suffixes = set(public_suffixes or DEFAULT_PUBLIC_SUFFIXES)
     missing: list[str] = []
     warnings: list[str] = []
@@ -346,7 +356,6 @@ def delivery_fact_check(
     if not real_generation_result and project_exists and "real_generation_result_missing" not in hard_blockers:
         hard_blockers.append("real_generation_result_missing")
 
-    artifacts = manifest.get("artifacts", {}) if isinstance(manifest.get("artifacts"), dict) else {}
     claims: list[tuple[str, str]] = []
     for raw in _list_values(manifest.get("package_path")) + _list_values(artifacts.get("delivery_zip")):
         claims.append(("package", raw))

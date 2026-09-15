@@ -34,6 +34,7 @@ import capability_strategy
 import canonical_delivery_manifest
 import canonical_delivery_receipt
 import canonical_evidence_hash
+import canonical_finalization
 import canonical_media_validation
 import canonical_user_review
 import customer_runtime_runner
@@ -53,6 +54,8 @@ import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
 import public_narration
+import product_design_depth_governance
+import surrogate_provider_adapter
 import codex_design_supervision
 import cgkn_supervision_protocol
 import cgkn_supervision_router
@@ -1963,12 +1966,45 @@ def _requirement_text(session: dict[str, Any], fallback: str = "") -> str:
 def infer_public_delivery_requirements(session: dict[str, Any], fallback: str = "") -> dict[str, bool]:
     text = _requirement_text(session, fallback).lower()
     compact = re.sub(r"\s+", "", text)
+    def english(pattern: str) -> bool:
+        return re.search(rf"\b(?:{pattern})\b", text) is not None
+
+    def negatively_scoped(pattern: str) -> bool:
+        return re.search(
+            rf"\b(?:no|without)\b[^.\n;]{{0,120}}\b(?:{pattern})\b", text
+        ) is not None
+
+    no_gui = negatively_scoped(r"gui|graphical\s+interface|desktop\s+interface")
+    no_video = negatively_scoped(r"video|mp4|webm")
+    no_image = negatively_scoped(r"image|photo|picture|sprite|portrait")
+    screenshot = any(token in compact for token in ("截图", "界面", "桌面界面", "screenshot"))
+    screenshot = screenshot or (
+        not no_gui
+        and (
+            english(r"gui")
+            or english(r"desktop\s+(?:app|application|interface|window)")
+            or english(r"(?:web|browser)\s+(?:ui|interface|application|app)")
+        )
+    )
+    generated_image = any(token in compact for token in ("图片", "图像", "照片", "生成图", "直接生成背景", "直接生成立绘"))
+    generated_image = generated_image or (
+        not no_image and english(r"(?:generated?\s+)?(?:image|photo|picture)"
+        )
+    )
+    sprite = any(token in compact for token in ("立绘", "角色图"))
+    sprite = sprite or (
+        not no_image
+        and (
+            english(r"sprite|portrait")
+            or english(r"character\s+(?:image|art|sprite|portrait)")
+        )
+    )
     return {
-        "screenshot": any(token in compact for token in ("截图", "界面", "桌面界面", "gui", "desktop", "interface", "screenshot")),
-        "video": any(token in compact for token in ("视频", "演示视频", "录屏", "video", "mp4", "webm")),
-        "generated_image": any(token in compact for token in ("图片", "图像", "照片", "生成图", "直接生成背景", "直接生成立绘", "image", "photo", "picture")),
+        "screenshot": screenshot,
+        "video": any(token in compact for token in ("视频", "演示视频", "录屏")) or (not no_video and english(r"video|mp4|webm")),
+        "generated_image": generated_image,
         "background": any(token in compact for token in ("背景", "背景图", "background", "sceneart")),
-        "sprite": any(token in compact for token in ("立绘", "角色图", "character", "sprite", "portrait")),
+        "sprite": sprite,
         "demo_video": any(token in compact for token in ("演示", "demo", "展示视频")),
     }
 
@@ -2262,6 +2298,9 @@ def evaluate_public_delivery_gate(
 ) -> dict[str, Any]:
     session = session if isinstance(session, dict) else (conversation if isinstance(conversation, dict) else {})
     project = pathlib.Path(project_dir).resolve()
+    def _with_maturity(gate: dict[str, Any]) -> dict[str, Any]:
+        return product_design_depth_governance.attach_maturity_to_delivery_gate(gate, project)
+
     manifest = manifest if isinstance(manifest, dict) else {}
     if provider_result is None and isinstance(manifest.get("provider_result"), dict):
         provider_result = manifest.get("provider_result")
@@ -2281,7 +2320,7 @@ def evaluate_public_delivery_gate(
         production_provenance_ref=production_provenance_ref,
     )
     if canonical_gate.get("status") != "PASS":
-        return {
+        return _with_maturity({
             "verdict": "NEEDS_REWORK",
             "status": "NEEDS_REWORK",
             "phase": phase,
@@ -2303,7 +2342,7 @@ def evaluate_public_delivery_gate(
             "asset_counts": {},
             "quality_evidence": quality,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
-        }
+        })
     package_inspection: dict[str, Any] = {"status": "NOT_EVALUATED", "failures": []}
     facts = delivery_fact_check(
         project,
@@ -2343,7 +2382,7 @@ def evaluate_public_delivery_gate(
         facts["facts"]["requested_artifacts_present"] = True
     media_missing = [item for item in requested_missing if item in {"videos", "generated_images", "generated_background", "generated_sprite"}]
     if media_missing:
-        return {
+        return _with_maturity({
             "verdict": "NEEDS_REWORK",
             "status": "NEEDS_REWORK",
             "phase": phase,
@@ -2367,7 +2406,7 @@ def evaluate_public_delivery_gate(
             "asset_counts": {key: len(value) for key, value in assets.items()},
             "quality_evidence": quality,
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
-        }
+        })
     if phase == "final":
         expected_user_review = bool(
             isinstance(session.get("pending_evidence_checkpoint"), dict)
@@ -2383,7 +2422,7 @@ def evaluate_public_delivery_gate(
             user_review_required=expected_user_review,
         )
         if package_inspection.get("status") != "PASS":
-            return {
+            return _with_maturity({
                 "verdict": "NEEDS_REWORK",
                 "status": "NEEDS_REWORK",
                 "phase": phase,
@@ -2407,7 +2446,7 @@ def evaluate_public_delivery_gate(
                 "asset_counts": {key: len(value) for key, value in assets.items()},
                 "quality_evidence": quality,
                 "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
-            }
+            })
     whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
     test_report_path = project / "TEST_REPORT.md"
     test_report = test_report_path.read_text(encoding="utf-8", errors="replace") if test_report_path.is_file() else ""
@@ -2440,7 +2479,7 @@ def evaluate_public_delivery_gate(
             "public_suffixes": sorted(PUBLIC_DELIVERY_SUFFIXES),
         }
     )
-    return judgment
+    return _with_maturity(judgment)
 
 
 def record_public_delivery_gate(
@@ -2960,7 +2999,8 @@ def user_visible_known_limit(raw: Any) -> str:
     return pre_send_guard(public_narration.redact_internal_terms(text))
 
 
-def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
+def build_delivery_summary_text(manifest: dict[str, Any], gate: dict[str, Any] | None = None) -> str:
+    gate = gate if isinstance(gate, dict) else {}
     startup_command = str(manifest.get("startup_command", "")).strip()
     known_limits = manifest.get("known_limits", []) if isinstance(manifest.get("known_limits"), list) else []
     quality_evidence = manifest.get("quality_evidence", {}) if isinstance(manifest.get("quality_evidence"), dict) else {}
@@ -3000,7 +3040,13 @@ def build_delivery_summary_text(manifest: dict[str, Any]) -> str:
         f"预览证据：{preview_status}",
         f"真实输入验证：{'有' if sample_input_found else '没有'}",
         f"交付状态：{delivery_status}",
+        f"产品成熟度：{gate.get('product_maturity', 'PROTOTYPE')}",
+        f"原始目标已验证：{'是' if gate.get('target_goal_satisfied') else '否'}",
     ]
+    claim_policy = gate.get("public_claim_policy", {}) if isinstance(gate.get("public_claim_policy"), dict) else {}
+    disclosure = str(claim_policy.get("public_disclosure", "")).strip()
+    if disclosure:
+        lines.append("能力说明：" + disclosure)
     if startup_command:
         lines.append(f"启动方式：{startup_command}")
     if known_limits:
@@ -3166,7 +3212,12 @@ def send_delivery_from_manifest(
     if package_approval.get("failure_reason"):
         diagnostic["reason"] = str(package_approval["failure_reason"])
         diagnostic["package_sent"] = False
-    if diagnostic["reason"] or receipt_inspection.get("status") != "PASS" or gate.get("verdict") != "PASS_FINAL":
+    final_verdict = str(gate.get("verdict", "")).upper()
+    if (
+        diagnostic["reason"]
+        or receipt_inspection.get("status") != "PASS"
+        or final_verdict not in adaptive_delivery.FINAL_VERDICTS
+    ):
         failed_gate = dict(gate)
         failed_gate.update(
             {
@@ -3176,7 +3227,7 @@ def send_delivery_from_manifest(
                 "delivery_send_diagnostic": diagnostic,
                 "canonical_delivery_receipt_inspection": receipt_inspection,
                 "required_repairs": receipt_inspection.get("failures", [])
-                + ([] if gate.get("verdict") == "PASS_FINAL" else ["canonical_final_delivery_requires_pass_final"]),
+                + ([] if final_verdict in adaptive_delivery.FINAL_VERDICTS else ["canonical_final_delivery_requires_final_verdict"]),
             }
         )
         mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, failed_gate)
@@ -3189,7 +3240,7 @@ def send_delivery_from_manifest(
         event="delivery_manifest_ready",
         facts={"manifest": manifest},
         source="delivery_team_summary",
-        direct_text=build_delivery_summary_text(manifest),
+        direct_text=build_delivery_summary_text(manifest, gate),
     )
     session = load_session(session_dir, conversation_id)
     gate["delivery_send_diagnostic"] = diagnostic
@@ -5549,6 +5600,19 @@ def post_build_finalize_provider_project(
         causal_capture=provider_causal_capture,
         production_provenance_ref=provenance_ref,
     )
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "CANDIDATE_MATERIALIZED",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        evidence_refs=[{"role": "production_provenance", "ref": str(provenance_ref), "sha256": provenance_hash}],
+    )
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "WAITING_CANONICAL_VERIFICATION",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+    )
     test_result = run_provider_project_tests(
         project_dir,
         timeout=240,
@@ -5611,6 +5675,227 @@ def post_build_finalize_provider_project(
         else {"status": "NOT_EVALUATED", "reason": "not_required", "not_required": True}
     )
     append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_browser_visual_evidence", "role": "tool", "result": visual_evidence_result})
+    product_design_governance = (
+        provider_result.get("product_design_governance", {})
+        if isinstance(provider_result.get("product_design_governance"), dict)
+        else {}
+    )
+    if not product_design_governance:
+        requirement_decision = (
+            provider_result.get("requirement_decision", {})
+            if isinstance(provider_result.get("requirement_decision"), dict)
+            else {}
+        )
+        product_design_governance = (
+            requirement_decision.get("product_design_governance", {})
+            if isinstance(requirement_decision.get("product_design_governance"), dict)
+            else {}
+        )
+    if not product_design_governance:
+        product_design_governance = product_design_depth_governance.freeze_preimplementation_governance(
+            _requirement_text(session, str(provider_result.get("goal", ""))),
+            {},
+            {},
+            production_run_dir / "canonical_design_governance",
+        )
+    canonical_verification = canonical_finalization.canonical_verify(
+        project_dir,
+        production_run_dir,
+        identity=production_identity,
+        expected_candidate_hash=candidate_hash,
+        provenance_ref=provenance_ref,
+        visual_required=browser_visual_required,
+    )
+    if canonical_verification.get("status") != "PASS":
+        finalization_state = canonical_finalization.transition(
+            production_run_dir,
+            "PROMOTION_REJECTED",
+            identity=production_identity,
+            candidate_hash=candidate_hash,
+            evidence_refs=[{"role": "canonical_verification", "ref": str(canonical_verification.get("path", "")), "sha256": str(canonical_verification.get("artifact_hash", ""))}],
+            detail={"reason": "canonical_verification_failed", "blockers": canonical_verification.get("blockers", [])},
+        )
+        return {
+            "test_result": test_result,
+            "preseal_test_result": preseal_test_result,
+            "runtime_result": runtime_result,
+            "visual_evidence_result": visual_evidence_result,
+            "image_result": image_result,
+            "video_result": video_result,
+            "browser_visual_required": browser_visual_required,
+            "media_evidence_required": bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video")),
+            "production_provenance": provenance,
+            "provider_causal_trace": causal_trace,
+            "canonical_verification": canonical_verification,
+            "canonical_finalization_state": finalization_state,
+            "manifest": {
+                "status": "NEEDS_REWORK",
+                "known_limits": (["video_blocked: demo video was not produced during provider post-build finalize"] if video_result.get("video_blocked") else []),
+                "failures": canonical_verification.get("blockers", []),
+                "structured_blockers": [
+                    {"code": item, "category": "failed_gate", "recoverable": True, "next_action": "rerun canonical verification after Provider repair"}
+                    for item in canonical_verification.get("blockers", [])
+                ],
+            },
+            "gate": {"status": "NEEDS_REWORK", "verdict": "NEEDS_REWORK", "delivery_allowed": False, "missing": canonical_verification.get("blockers", [])},
+            "ok": False,
+        }
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "WAITING_GOVERNANCE_EVALUATION",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        evidence_refs=[{"role": "canonical_verification", "ref": str(canonical_verification.get("path", "")), "sha256": str(canonical_verification.get("artifact_hash", ""))}],
+    )
+    maturity_evaluation = product_design_depth_governance.evaluate_and_write_project_reports(
+        project_dir,
+        product_design_governance,
+        implementation_evidence=(
+            provider_result.get("product_capability_evidence", {})
+            if isinstance(provider_result.get("product_capability_evidence"), dict)
+            else {}
+        ),
+        test_evidence=test_result,
+        independent_evidence=product_design_depth_governance.read_json(
+            production_run_dir / "independent_product_evidence.json"
+        ),
+        delivery_allowed=bool(
+            test_result.get("ok")
+            and runtime_result.get("status") == "PASS"
+            and (not browser_visual_required or visual_evidence_result.get("status") == "PASS")
+        ),
+    )
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "post_build_product_maturity",
+            "role": "tool",
+            "result": maturity_evaluation,
+            "independent_evidence_scope": "production_run_dir_only",
+        },
+    )
+    canonical_governance = canonical_finalization.canonical_governance_evaluate(
+        project_dir,
+        production_run_dir,
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        governance=product_design_governance,
+        maturity_evaluation=maturity_evaluation,
+        verification=canonical_verification,
+    )
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "WAITING_ACCEPTANCE_DECISION",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        evidence_refs=[{"role": "canonical_governance", "ref": str(canonical_governance.get("path", "")), "sha256": str(canonical_governance.get("artifact_hash", ""))}],
+    )
+    acceptance_decision = canonical_finalization.decide_acceptance(
+        production_run_dir,
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        verification=canonical_verification,
+        governance=canonical_governance,
+    )
+    if acceptance_decision.get("decision") != "ACCEPT":
+        finalization_state = canonical_finalization.transition(
+            production_run_dir,
+            "PROMOTION_REJECTED",
+            identity=production_identity,
+            candidate_hash=candidate_hash,
+            evidence_refs=[{"role": "acceptance_decision", "ref": str(acceptance_decision.get("path", "")), "sha256": str(acceptance_decision.get("artifact_hash", ""))}],
+            detail={"reason": acceptance_decision.get("decision_reason", "rejected")},
+        )
+        return {
+            "test_result": test_result,
+            "preseal_test_result": preseal_test_result,
+            "runtime_result": runtime_result,
+            "visual_evidence_result": visual_evidence_result,
+            "image_result": image_result,
+            "video_result": video_result,
+            "browser_visual_required": browser_visual_required,
+            "production_provenance": provenance,
+            "provider_causal_trace": causal_trace,
+            "canonical_verification": canonical_verification,
+            "canonical_governance": canonical_governance,
+            "acceptance_decision": acceptance_decision,
+            "canonical_finalization_state": finalization_state,
+            "manifest": {},
+            "product_maturity": maturity_evaluation,
+            "gate": product_design_depth_governance.attach_maturity_to_delivery_gate({"status": "NEEDS_REWORK", "verdict": "NEEDS_REWORK", "delivery_allowed": False, "missing": acceptance_decision.get("blockers", [])}, project_dir),
+            "ok": False,
+        }
+    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
+    user_review_required = bool(isinstance(session.get("pending_evidence_checkpoint"), dict) or whiteboard.get("requires_user_evidence_review"))
+    user_review_policy = {
+        "required": user_review_required,
+        "policy_branch": "explicit_evidence_checkpoint" if user_review_required else "canonical_nonvisual_or_no_explicit_review_requirement",
+        "surrogate_may_review": False,
+        "automated_test_is_user_review": False,
+    }
+    if user_review_required and canonical_user_review.inspect_user_review_evidence(project_dir).get("status") != "PASS":
+        review_request = canonical_user_review.create_review_request_snapshot(
+            project_dir,
+            conversation_id=conversation_id,
+            requirement_snapshot=whiteboard.get("delivery_requirements", []),
+            visual_required=browser_visual_required,
+            required_presentation_roles=["nonvisual_summary"] + (["screenshot"] if browser_visual_required else []),
+        )
+        finalization_state = canonical_finalization.transition(
+            production_run_dir,
+            "WAITING_USER_REVIEW",
+            identity=production_identity,
+            candidate_hash=candidate_hash,
+            evidence_refs=[{"role": "user_review_request", "ref": str((project_dir / canonical_user_review.REQUEST_FILE).resolve()), "sha256": str(review_request.get("artifact_hash", ""))}],
+            detail=user_review_policy,
+        )
+        return {
+            "test_result": test_result,
+            "preseal_test_result": preseal_test_result,
+            "runtime_result": runtime_result,
+            "visual_evidence_result": visual_evidence_result,
+            "image_result": image_result,
+            "video_result": video_result,
+            "browser_visual_required": browser_visual_required,
+            "production_provenance": provenance,
+            "provider_causal_trace": causal_trace,
+            "canonical_verification": canonical_verification,
+            "canonical_governance": canonical_governance,
+            "acceptance_decision": acceptance_decision,
+            "user_review_policy": user_review_policy,
+            "review_request": review_request,
+            "canonical_finalization_state": finalization_state,
+            "manifest": {},
+            "product_maturity": maturity_evaluation,
+            "gate": product_design_depth_governance.attach_maturity_to_delivery_gate({"status": "NOT_EVALUATED", "verdict": "WAITING_USER_REVIEW", "delivery_allowed": False, "missing": ["canonical_user_review"]}, project_dir),
+            "ok": False,
+            "waiting_user_review": True,
+        }
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "READY_FOR_PROMOTION",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        evidence_refs=[{"role": "acceptance_decision", "ref": str(acceptance_decision.get("path", "")), "sha256": str(acceptance_decision.get("artifact_hash", ""))}],
+        detail=user_review_policy,
+    )
+    promotion_manifest = canonical_finalization.promote(
+        production_run_dir,
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        acceptance=acceptance_decision,
+        parent_lineage=list(provider_result.get("candidate_lineage", [])) if isinstance(provider_result.get("candidate_lineage"), list) else [],
+        user_review_required=user_review_required,
+        project_dir=project_dir,
+    )
+    finalization_state = canonical_finalization.transition(
+        production_run_dir,
+        "READY_FOR_PACKAGING",
+        identity=production_identity,
+        candidate_hash=candidate_hash,
+        evidence_refs=[{"role": "promotion_manifest", "ref": str(promotion_manifest.get("path", "")), "sha256": str(promotion_manifest.get("artifact_hash", ""))}],
+    )
     write_provider_delivery_notes(
         project_dir,
         provider_result,
@@ -5621,6 +5906,7 @@ def post_build_finalize_provider_project(
             "post_build_customer_runtime": runtime_result,
             "post_build_browser_visual_evidence": visual_evidence_result,
             "post_build_video_evidence": video_result,
+            "post_build_product_maturity": maturity_evaluation,
         },
     )
     media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
@@ -5647,6 +5933,16 @@ def post_build_finalize_provider_project(
             "sha256": canonical_evidence_hash.sha256_file(goal_receipt_path),
         },
     ]
+    for role, ref in maturity_evaluation.get("paths", {}).items():
+        report_path = pathlib.Path(str(ref))
+        if report_path.is_file():
+            final_audit_refs.append(
+                {
+                    "role": role,
+                    "ref": str(report_path.resolve()),
+                    "sha256": canonical_evidence_hash.sha256_file(report_path),
+                }
+            )
     if screenshot_path.is_file():
         final_audit_refs.append(
             {
@@ -5689,22 +5985,41 @@ def post_build_finalize_provider_project(
             "provider_causal_trace": causal_trace,
             "false_pass_audit": final_audit,
             "manifest": {},
-            "gate": {
-                "delivery_allowed": False,
-                "verdict": "NEEDS_REWORK",
-                "missing": [f"false_pass_audit:{action}"],
-                "supervision_route": action,
-            },
+            "product_maturity": maturity_evaluation,
+            "gate": product_design_depth_governance.attach_maturity_to_delivery_gate(
+                {
+                    "delivery_allowed": False,
+                    "verdict": "NEEDS_REWORK",
+                    "missing": [f"false_pass_audit:{action}"],
+                    "supervision_route": action,
+                },
+                project_dir,
+            ),
             "ok": False,
         }
     manifest = local_packager.package_project(
         project_dir,
-        startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
+        startup_command="",
         screenshot_path=screenshot_path if screenshot_path.exists() else None,
         known_limits=delivery_limits,
         visual_required=browser_visual_required,
         media_required=media_evidence_required,
+        user_review_required=user_review_required,
+        user_review_completed=user_review_required,
+        promotion_manifest=promotion_manifest.get("path", ""),
+        canonical_verification_ref=canonical_verification.get("path", ""),
+        canonical_governance_ref=canonical_governance.get("path", ""),
+        acceptance_decision_ref=acceptance_decision.get("path", ""),
+        require_promotion=True,
     )
+    if manifest.get("status") != "PASS":
+        finalization_state = canonical_finalization.transition(
+            production_run_dir,
+            "PACKAGING_FAILED",
+            identity=production_identity,
+            candidate_hash=candidate_hash,
+            detail={"failures": manifest.get("failures", []), "structured_blockers": manifest.get("structured_blockers", [])},
+        )
     gate = evaluate_public_delivery_gate(
         project_dir,
         manifest,
@@ -5714,6 +6029,14 @@ def post_build_finalize_provider_project(
         production_provenance_ref=provenance_ref,
     )
     gate["missing_config"] = missing_config
+    if manifest.get("status") == "PASS":
+        finalization_state = canonical_finalization.transition(
+            production_run_dir,
+            "READY_FOR_DELIVERY" if gate.get("delivery_allowed") else "DELIVERY_BLOCKED",
+            identity=production_identity,
+            candidate_hash=candidate_hash,
+            detail={"delivery_allowed": bool(gate.get("delivery_allowed")), "verdict": gate.get("verdict", gate.get("status"))},
+        )
     return {
         "test_result": test_result,
         "goal_acceptance": goal_receipt,
@@ -5728,6 +6051,13 @@ def post_build_finalize_provider_project(
         "production_provenance": provenance,
         "provider_causal_trace": causal_trace,
         "false_pass_audit": final_audit,
+        "product_maturity": maturity_evaluation,
+        "canonical_verification": canonical_verification,
+        "canonical_governance": canonical_governance,
+        "acceptance_decision": acceptance_decision,
+        "promotion_manifest": promotion_manifest,
+        "user_review_policy": user_review_policy,
+        "canonical_finalization_state": finalization_state,
         "manifest": manifest,
         "gate": gate,
         "ok": bool(gate.get("delivery_allowed")),
@@ -6100,6 +6430,10 @@ def execute_validated_provider_round(
         conversation_id=conversation_id,
         phase_log_path=phase_log_path,
     )
+    if str(provider_result.get("status", "")).upper() in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}:
+        pending = provider_result.get("pending_requests", []) if isinstance(provider_result.get("pending_requests"), list) else []
+        request_path = pathlib.Path(str(pending[0].get("request_path", ""))) if pending and isinstance(pending[0], dict) else pathlib.Path(run_dir)
+        raise surrogate_provider_adapter.SurrogateResponseRequired(request_path)
     if not result_path.is_file():
         write_json(result_path, provider_result)
     if str(provider_result.get("status", "")).upper() != "PASS":
@@ -6293,7 +6627,8 @@ def run_provider_generation_job(
 ) -> None:
     model = model or model_policy.select_model("provider_generation")
     session = load_session(session_dir, conversation_id)
-    requirement = combined_requirement(session)
+    frozen_snapshot = session.get("generation_context_snapshot", {}) if isinstance(session.get("generation_context_snapshot"), dict) else {}
+    requirement = str(frozen_snapshot.get("requirement", "")).strip() or combined_requirement(session)
     if not requirement:
         send_customer_reply(client, conversation_id, session_dir, session, event="missing_requirement_before_generation", facts={"message": "当前没有可执行项目目标；后台未启动。"})
         return
@@ -6302,6 +6637,8 @@ def run_provider_generation_job(
         if isinstance(session.get("generation"), dict)
         else {}
     )
+    provider_mode = str(prior_generation.get("provider_mode", "live") or "live").strip().lower()
+    replay_dir = str(prior_generation.get("replay_dir", "") or "").strip()
     identity = production_generation_identity(conversation_id, session)
     entry_ref_value = str(
         prior_generation.get("production_entry_receipt_ref", "")
@@ -6326,6 +6663,8 @@ def run_provider_generation_job(
         **identity,
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
+        "provider_mode": provider_mode,
+        "replay_dir": replay_dir,
     }
     if formal_entry:
         session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
@@ -6363,12 +6702,23 @@ def run_provider_generation_job(
             result=str(result_path),
             model=model,
             timeout=timeout,
-            allow_network=True,
-            allow_provider=True,
+            allow_network=provider_mode == "live",
+            allow_provider=provider_mode == "live",
             use_api=True,
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
             codex_capability_brief="",
+            provider_mode=provider_mode,
+            project_id=identity["candidate_id"],
+            replay_dir=replay_dir,
+            small_model=model,
+            large_model=model,
+            repair_model=model,
+            resume_run_dir=(
+                str(run_dir)
+                if provider_mode != "live" and (run_dir / surrogate_provider_adapter.HANDSHAKE_DIR / "provider_mode_state.json").is_file()
+                else ""
+            ),
         )
         round_state = execute_validated_provider_round(
             args,
@@ -6660,6 +7010,69 @@ def run_provider_generation_job(
             },
         )
         finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
+        delivered_session = load_session(session_dir, conversation_id)
+        delivered_generation = (
+            delivered_session.get("generation", {})
+            if isinstance(delivered_session.get("generation"), dict)
+            else {}
+        )
+        public_delivery_succeeded = bool(delivered_generation.get("delivery_allowed")) and str(
+            delivered_generation.get("status", "")
+        ) in {"delivered", "delivered_with_warnings"}
+        delivered_state = canonical_finalization.transition(
+            run_dir,
+            "DELIVERED" if public_delivery_succeeded else "DELIVERY_BLOCKED",
+            identity=identity,
+            candidate_hash=str(finalize.get("canonical_verification", {}).get("candidate_hash", "")),
+            detail={
+                "package_path": str(manifest.get("package_path", "")),
+                "delivery_allowed": public_delivery_succeeded,
+                "public_delivery_status": str(delivered_generation.get("status", "")),
+            },
+        )
+        delivered_generation["canonical_finalization_state"] = delivered_state
+        delivered_generation["workflow_state"] = str(delivered_state.get("state", ""))
+        delivered_session["generation"] = delivered_generation
+        save_session(session_dir, delivered_session)
+    except surrogate_provider_adapter.SurrogateResponseRequired as waiting:
+        session = load_session(session_dir, conversation_id)
+        waiting_result = surrogate_provider_adapter.waiting_result(
+            run_dir=run_dir,
+            result_path=result_path,
+            goal=requirement,
+            project_dir=provider_staging_dir,
+        )
+        replan_path = run_dir / "artifacts" / "requirement_replan_state.json"
+        replan_state = read_json(replan_path, {}) if replan_path.is_file() else {}
+        waiting_for_replan = replan_state.get("workflow_state") == "WAITING_REQUIREMENT_REPLAN"
+        waiting_status = "waiting_requirement_replan" if waiting_for_replan else "waiting_surrogate_response"
+        waiting_workflow = "WAITING_REQUIREMENT_REPLAN" if waiting_for_replan else "WAITING_SURROGATE_RESPONSE"
+        session["generation"] = {
+            "status": waiting_status,
+            "workflow_state": waiting_workflow,
+            "driver": "api_provider_project_generation",
+            "updated_at": now(),
+            **identity,
+            "provider_mode": provider_mode,
+            "replay_dir": replay_dir,
+            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
+            "project_dir": str(project_dir),
+            "provider_run_dir": str(run_dir),
+            "pending_request_path": str(waiting.request_path.resolve()),
+            "pending_requests": waiting_result.get("pending_requests", []),
+            "real_provider_calls": 0,
+            "network_attempts": 0,
+            "provider_schedulers": 1,
+            "delivery_allowed": False,
+        }
+        if waiting_for_replan:
+            session["generation"]["requirement_replan"] = replan_state
+        if formal_entry:
+            session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
+            session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
+        update_active_run_status(session, waiting_status, driver="api_provider_project_generation", delivery_allowed=False, project_dir=str(project_dir))
+        append_agent_session_event(session_dir, conversation_id, {"kind": waiting_status, "role": "system", "request_path": str(waiting.request_path.resolve()), "provider_mode": provider_mode})
+        save_session(session_dir, session)
     except Exception as exc:
         session = load_session(session_dir, conversation_id)
         error_type = provider_error_type(exc)
@@ -7036,6 +7449,20 @@ def finish_agent_loop_delivery(
         "production_provenance_ref": str(
             result.get("production_provenance_ref", "")
         ),
+        "provider_mode": str(prior_generation.get("provider_mode", "live") or "live"),
+        "replay_dir": str(prior_generation.get("replay_dir", "") or ""),
+        "real_provider_calls": int(prior_generation.get("real_provider_calls", 0) or 0),
+        "network_attempts": int(prior_generation.get("network_attempts", 0) or 0),
+        "provider_schedulers": int(prior_generation.get("provider_schedulers", 1) or 1),
+        "delivery_allowed": bool(post_build.get("gate", {}).get("delivery_allowed")) if isinstance(post_build.get("gate"), dict) else False,
+        "delivery_gate": post_build.get("gate", {}) if isinstance(post_build.get("gate"), dict) else {},
+        "canonical_finalization_state": post_build.get("canonical_finalization_state", {}) if isinstance(post_build.get("canonical_finalization_state"), dict) else {},
+        "canonical_verification": post_build.get("canonical_verification", {}) if isinstance(post_build.get("canonical_verification"), dict) else {},
+        "canonical_governance": post_build.get("canonical_governance", {}) if isinstance(post_build.get("canonical_governance"), dict) else {},
+        "acceptance_decision": post_build.get("acceptance_decision", {}) if isinstance(post_build.get("acceptance_decision"), dict) else {},
+        "promotion_manifest": post_build.get("promotion_manifest", {}) if isinstance(post_build.get("promotion_manifest"), dict) else {},
+        "user_review_policy": post_build.get("user_review_policy", {}) if isinstance(post_build.get("user_review_policy"), dict) else {},
+        "product_maturity": post_build.get("product_maturity", {}) if isinstance(post_build.get("product_maturity"), dict) else {},
     }
     for receipt_key in ("production_entry_receipt_ref", "production_entry_receipt_hash"):
         if str(prior_generation.get(receipt_key, "")).strip():
@@ -7337,6 +7764,7 @@ def start_agent_generation(
     *,
     announce_start: bool,
     reason: str = "frontdesk_generation_confirmation",
+    background: bool = True,
 ) -> None:
     model = model or model_policy.select_model("provider_generation")
     session = load_session(session_dir, conversation_id)
@@ -7367,6 +7795,8 @@ def start_agent_generation(
         **identity,
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
+        "provider_mode": str(prior_generation.get("provider_mode", "live") or "live"),
+        "replay_dir": str(prior_generation.get("replay_dir", "") or ""),
         "production_entry_receipt_ref": str(
             prior_generation.get("production_entry_receipt_ref", "")
         ),
@@ -7376,15 +7806,21 @@ def start_agent_generation(
     }
     save_session(session_dir, session)
     client.send_chat_action(conversation_id, "typing")
-    threading.Thread(
-        target=run_provider_generation_job,
-        args=(client, conversation_id, session_dir, log_dir, model, timeout),
-        kwargs={"announce_start": announce_start},
-        daemon=True,
-    ).start()
+    if background:
+        threading.Thread(
+            target=run_provider_generation_job,
+            args=(client, conversation_id, session_dir, log_dir, model, timeout),
+            kwargs={"announce_start": announce_start},
+            daemon=True,
+        ).start()
+    else:
+        run_provider_generation_job(
+            client, conversation_id, session_dir, log_dir, model, timeout,
+            announce_start=announce_start,
+        )
 
 
-ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_user_review"}
+ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_user_review", "waiting_surrogate_response", "waiting_requirement_replan"}
 
 
 def apply_backend_dialogue_tick(
@@ -7649,6 +8085,9 @@ def start_generation_from_income(
     *,
     reason: str,
     generation_mode: str = "api",
+    provider_mode: str = "live",
+    replay_dir: str | pathlib.Path | None = None,
+    background: bool = True,
 ) -> bool:
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "idle")).lower()
@@ -7702,6 +8141,8 @@ def start_generation_from_income(
         "production_entry_receipt_hash": canonical_evidence_hash.sha256_file(
             entry_receipt
         ),
+        "provider_mode": str(provider_mode or "live").strip().lower(),
+        "replay_dir": str(pathlib.Path(replay_dir).resolve()) if replay_dir else "",
     }
     append_agent_session_event(
         session_dir,
@@ -7716,6 +8157,9 @@ def start_generation_from_income(
         },
     )
     save_session(session_dir, session)
+    start_kwargs: dict[str, Any] = {"announce_start": False, "reason": reason}
+    if not background:
+        start_kwargs["background"] = False
     start_agent_generation(
         client,
         conversation_id,
@@ -7723,8 +8167,7 @@ def start_generation_from_income(
         log_dir,
         model,
         timeout,
-        announce_start=False,
-        reason=reason,
+        **start_kwargs,
     )
     return True
 
@@ -8635,3 +9078,133 @@ def handle_attachment_message(
 # The Codex app owns the sole user-facing conversation loop.  This module is
 # intentionally import-only: Codex invokes its bounded functions directly and
 # renders returned text or local artifact links in the active task.
+
+
+def run_formal_generation_once(
+    project_root: str | pathlib.Path,
+    *,
+    goal: str,
+    provider_mode: str = "live",
+    model: str = "gpt-4.1",
+    timeout: int = 1800,
+    replay_dir: str | pathlib.Path | None = None,
+    result_path: str | pathlib.Path | None = None,
+) -> dict[str, Any]:
+    """Run/resume one production conversation generation turn synchronously.
+
+    This is a local interface adapter to the sole reviewed Codex conversation
+    route.  It does not add a generator, verifier, packager, or delivery exit.
+    """
+    root = pathlib.Path(project_root).resolve()
+    artifact_dir = root / ".cgkn" / "agent-kit"
+    session_dir = artifact_dir / "conversation_sessions"
+    log_dir = artifact_dir / "conversation_logs"
+    output = pathlib.Path(result_path).resolve() if result_path else artifact_dir / "generation_result.json"
+    conversation_id = "agent-kit-" + hashlib.sha256(
+        json.dumps({"project_root": str(root), "goal": goal}, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:20]
+    path = session_path(session_dir, conversation_id)
+    client = CodexConversation()
+    if not path.is_file():
+        session = default_session(conversation_id)
+        session["messages"].append({"role": "user", "text": goal, "created_at": now()})
+        session["whiteboard"].update(
+            {
+                "project_summary": goal,
+                "known_facts": [goal],
+                "ready_to_generate": True,
+                "acceptance_criteria": ["project starts", "canonical tests and runtime pass", "local package passes public delivery gate"],
+            }
+        )
+        save_session(session_dir, session)
+        start_generation_from_income(
+            client,
+            conversation_id,
+            session_dir,
+            log_dir,
+            model,
+            timeout,
+            session,
+            reason="agent_kit_formal_generation",
+            provider_mode=provider_mode,
+            replay_dir=replay_dir,
+            background=False,
+        )
+    else:
+        session = load_session(session_dir, conversation_id)
+        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+        stored_mode = str(generation.get("provider_mode", provider_mode) or provider_mode)
+        if stored_mode != provider_mode:
+            raise ValueError("provider_mode cannot change while resuming a production run")
+        if str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
+            start_agent_generation(
+                client,
+                conversation_id,
+                session_dir,
+                log_dir,
+                model,
+                timeout,
+                announce_start=False,
+                reason="agent_kit_surrogate_resume",
+                background=False,
+            )
+    session = load_session(session_dir, conversation_id)
+    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
+    status = str(generation.get("status", "NOT_EVALUATED"))
+    normalized_status = (
+        "WAITING_SURROGATE_RESPONSE" if status.lower() == "waiting_surrogate_response"
+        else "WAITING_REQUIREMENT_REPLAN" if status.lower() == "waiting_requirement_replan"
+        else status.upper()
+    )
+    maturity_container = generation.get("product_maturity", {}) if isinstance(generation.get("product_maturity"), dict) else {}
+    maturity_reports = maturity_container.get("reports", {}) if isinstance(maturity_container.get("reports"), dict) else {}
+    maturity_report = maturity_reports.get("product_maturity_report", {}) if isinstance(maturity_reports.get("product_maturity_report"), dict) else {}
+    finalization_state = generation.get("canonical_finalization_state", {}) if isinstance(generation.get("canonical_finalization_state"), dict) else {}
+    if normalized_status in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}:
+        formal_evidence_status = "NOT_EVALUATED"
+    elif normalized_status == "DELIVERED":
+        formal_evidence_status = "PASS"
+    elif normalized_status == "DELIVERED_WITH_WARNINGS":
+        formal_evidence_status = "PASS_WITH_LIMITS"
+    else:
+        formal_evidence_status = "NEEDS_REWORK"
+    result = {
+        "kind": "CGKNFormalConversationGenerationResult",
+        "status": normalized_status,
+        "workflow_state": str(generation.get("workflow_state") or generation.get("canonical_finalization_state", {}).get("state") or normalized_status),
+        "formal_evidence_status": formal_evidence_status,
+        "provider_mode": str(generation.get("provider_mode", provider_mode)),
+        "real_provider_calls": int(generation.get("real_provider_calls", 0) or 0),
+        "network_attempts": int(generation.get("network_attempts", 0) or 0),
+        "provider_schedulers": int(generation.get("provider_schedulers", 1) or 1),
+        "run_id": str(generation.get("run_id", "")),
+        "candidate_id": str(generation.get("candidate_id", "")),
+        "candidate_hash": str(generation.get("candidate_hash", "")),
+        "commit_sha": str(generation.get("commit_sha", "")),
+        "project_dir": str(generation.get("project_dir", "")),
+        "run_dir": str(generation.get("provider_run_dir", "")),
+        "provider_run_dir": str(generation.get("provider_run_dir", "")),
+        "pending_requests": generation.get("pending_requests", []),
+        "manifest_path": str(generation.get("manifest_path", "")),
+        "package_path": str(generation.get("package_path", "")),
+        "delivery_allowed": bool(generation.get("delivery_allowed")),
+        "pipeline_status": normalized_status,
+        "candidate_status": str(finalization_state.get("state", "NOT_EVALUATED")),
+        "product_maturity_level": str(maturity_report.get("maturity_level", "NOT_EVALUATED")),
+        "target_goal_satisfied": bool(maturity_report.get("target_goal_satisfied")),
+        "user_review_status": "NOT_REQUIRED" if generation.get("user_review_policy", {}).get("required") is False else ("WAITING_USER_REVIEW" if str(finalization_state.get("state")) == "WAITING_USER_REVIEW" else "NOT_EVALUATED"),
+        "delivery_gate": generation.get("delivery_gate", {}),
+        "canonical_finalization_state": finalization_state,
+        "canonical_verification": generation.get("canonical_verification", {}),
+        "canonical_governance": generation.get("canonical_governance", {}),
+        "acceptance_decision": generation.get("acceptance_decision", {}),
+        "promotion_manifest": generation.get("promotion_manifest", {}),
+        "user_review_policy": generation.get("user_review_policy", {}),
+        "product_maturity": generation.get("product_maturity", {}),
+        "conversation_session_path": str(path.resolve()),
+        "public_messages": client.messages,
+        "public_artifacts": client.artifacts,
+        "updated_at": now(),
+    }
+    write_json(output, result)
+    return result

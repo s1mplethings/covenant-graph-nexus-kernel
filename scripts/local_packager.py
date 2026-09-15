@@ -31,6 +31,9 @@ def _infer_startup_command(project_dir: pathlib.Path) -> str:
         return "python main.py"
     if (project_dir / "index.html").exists():
         return "open index.html"
+    packages = sorted(path.parent.name for path in project_dir.glob("*/__main__.py") if path.parent.name.isidentifier())
+    if packages:
+        return f"python -m {packages[0]}"
     return ""
 
 
@@ -143,6 +146,9 @@ def _startup_entrypoint(project: pathlib.Path) -> pathlib.Path | None:
         path = project / name
         if path.is_file():
             return path
+    package_entries = sorted(project.glob("*/__main__.py"))
+    if package_entries:
+        return package_entries[0]
     return None
 
 
@@ -231,10 +237,31 @@ def package_project(
     user_review_completed: bool = False,
     visual_required: bool = False,
     media_required: bool = False,
+    promotion_manifest: str | pathlib.Path | dict[str, Any] | None = None,
+    canonical_verification_ref: str | pathlib.Path | None = None,
+    canonical_governance_ref: str | pathlib.Path | None = None,
+    acceptance_decision_ref: str | pathlib.Path | None = None,
+    require_promotion: bool = False,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
         raise RuntimeError(f"project_dir does not exist: {project}")
+    if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists() and require_promotion:
+        return {
+            "kind": "CGKNDeliveryManifest",
+            "schema_version": "1.0",
+            "status": "NEEDS_REWORK",
+            "project_dir": str(project),
+            "package_path": "",
+            "manifest_path": "",
+            "failures": ["candidate_only_not_promoted"],
+            "structured_blockers": [{
+                "code": "candidate_only_not_promoted",
+                "category": "missing_authority",
+                "recoverable": True,
+                "next_action": "complete canonical verification, acceptance, and promotion",
+            }],
+        }
     if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
         raise RuntimeError(f"refusing to package candidate-only project: {project}")
     if (project / "_CGNK_REJECTED_PREVIEW_DO_NOT_DELIVER.json").exists():
@@ -291,6 +318,11 @@ def package_project(
         known_limits=combined_limits,
         visual_required=visual_required,
         user_review_required=canonical_review_required,
+        promotion_manifest=promotion_manifest,
+        canonical_verification_ref=canonical_verification_ref,
+        canonical_governance_ref=canonical_governance_ref,
+        acceptance_decision_ref=acceptance_decision_ref,
+        require_promotion=require_promotion,
         extra_fields={
             "readme_path": str(readme.resolve()),
             "run_log_path": str(run_log.resolve()),

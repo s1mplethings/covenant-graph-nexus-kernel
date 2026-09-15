@@ -11,8 +11,10 @@ from typing import Any
 
 try:
     from . import run_local_pipeline_impl as _impl
+    from . import surrogate_provider_adapter
 except ImportError:  # pragma: no cover - direct script execution
     import run_local_pipeline_impl as _impl
+    import surrogate_provider_adapter
 
 
 check_connectivity = _impl.check_connectivity
@@ -123,9 +125,60 @@ def _blocked_without_api(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def execute(args: argparse.Namespace) -> dict[str, Any]:
-    if not bool(getattr(args, "use_api", False)):
+    provider_mode = str(getattr(args, "provider_mode", "live") or "live").strip().lower()
+    if provider_mode == "live" and not bool(getattr(args, "use_api", False)):
         return _blocked_without_api(args)
-    return _impl.execute(args)
+    try:
+        result = _impl.execute(args)
+        result["provider_mode"] = provider_mode
+        source_identity_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "source_identity_report.json"
+        if source_identity_path.is_file():
+            source_identity_report = load_json(source_identity_path)
+            result["source_identity_ref"] = str(source_identity_path.resolve())
+            result["source_identity_hash"] = source_identity_report.get("source_identity_hash", "")
+        if provider_mode != "live":
+            accounting = surrogate_provider_adapter.status(
+                pathlib.Path(args.resume_run_dir or args.run_dir)
+            )
+            result["provider_schedulers"] = int(accounting.get("provider_schedulers", 1))
+            result["real_provider_calls"] = int(accounting.get("real_provider_calls", 0))
+            result["network_attempts"] = int(accounting.get("network_attempts", 0))
+        result_path = pathlib.Path(args.result).resolve()
+        result_path.parent.mkdir(parents=True, exist_ok=True)
+        result_path.write_text(
+            json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return result
+    except surrogate_provider_adapter.SurrogateResponseRequired:
+        waiting = surrogate_provider_adapter.waiting_result(
+            run_dir=pathlib.Path(args.resume_run_dir or args.run_dir),
+            result_path=pathlib.Path(args.result),
+            goal=str(args.goal or ""),
+            project_dir=pathlib.Path(args.out_dir),
+        )
+        replan_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "requirement_replan_state.json"
+        if replan_path.is_file():
+            replan = load_json(replan_path)
+            if replan.get("workflow_state") == "WAITING_REQUIREMENT_REPLAN":
+                waiting["status"] = "WAITING_REQUIREMENT_REPLAN"
+                waiting["workflow_state"] = "WAITING_REQUIREMENT_REPLAN"
+                waiting["formal_evidence_status"] = "NOT_EVALUATED"
+                waiting["requirement_replan"] = replan
+                pathlib.Path(args.result).resolve().write_text(
+                    json.dumps(waiting, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+        source_identity_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "source_identity_report.json"
+        if source_identity_path.is_file():
+            source_identity_report = load_json(source_identity_path)
+            waiting["source_identity_ref"] = str(source_identity_path.resolve())
+            waiting["source_identity_hash"] = source_identity_report.get("source_identity_hash", "")
+            pathlib.Path(args.result).resolve().write_text(
+                json.dumps(waiting, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        return waiting
 
 
 def main() -> int:
@@ -141,6 +194,13 @@ def main() -> int:
     parser.add_argument("--allow-network", action="store_true")
     parser.add_argument("--allow-provider", action="store_true")
     parser.add_argument("--use-api", action="store_true")
+    parser.add_argument(
+        "--provider-mode",
+        choices=surrogate_provider_adapter.PROVIDER_MODES,
+        default="live",
+    )
+    parser.add_argument("--project-id", default="")
+    parser.add_argument("--replay-dir", default="")
     parser.add_argument("--model", default="gpt-4.1")
     parser.add_argument("--small-model", default="")
     parser.add_argument("--large-model", default="")
@@ -158,7 +218,7 @@ def main() -> int:
         print(f"LOCAL_PIPELINE_EXECUTION: {str(result['status']).upper()}")
         print(f"project_dir={result['project_dir']}")
         print(f"run_dir={result['run_dir']}")
-    return 0 if result["status"] == "pass" else 1
+    return 0 if str(result["status"]).lower() in {"pass", "waiting_surrogate_response", "waiting_requirement_replan"} else 1
 
 
 if __name__ == "__main__":

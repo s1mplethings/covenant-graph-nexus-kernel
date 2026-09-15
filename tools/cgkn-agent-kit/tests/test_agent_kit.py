@@ -7,10 +7,35 @@ import subprocess
 import pytest
 
 from cgkn_agent_kit import core
-from cgkn_agent_kit.cli import main
+from cgkn_agent_kit.cli import _emit, main
 
 
 CGKN_ROOT = pathlib.Path(__file__).resolve().parents[3]
+
+
+def test_cli_json_output_reconfigures_legacy_windows_stream_to_utf8() -> None:
+    class LegacyStream:
+        def __init__(self) -> None:
+            self.encoding = "cp1252"
+            self.errors = "strict"
+            self.value = ""
+
+        def reconfigure(self, *, encoding: str, errors: str) -> None:
+            self.encoding = encoding
+            self.errors = errors
+
+        def write(self, value: str) -> int:
+            value.encode(self.encoding, errors=self.errors)
+            self.value += value
+            return len(value)
+
+        def flush(self) -> None:
+            return None
+
+    stream = LegacyStream()
+    _emit({"message": "中文路径"}, stream=stream)
+    assert stream.encoding == "utf-8"
+    assert "中文路径" in stream.value
 
 
 def initialized(tmp_path: pathlib.Path) -> pathlib.Path:
@@ -25,7 +50,7 @@ def test_init_is_project_local_and_does_not_store_secrets(tmp_path: pathlib.Path
     config = json.loads((project / ".cgkn" / "agent-kit.json").read_text(encoding="utf-8"))
 
     assert config["stores_secrets"] is False
-    assert config["provider_entrypoint"] == "scripts/run_local_pipeline.py"
+    assert config["provider_entrypoint"] == "scripts/run_codex_conversation_generation.py"
     assert (project / ".cgkn" / "agent-kit" / ".gitignore").read_text(encoding="utf-8") == "*\n!.gitignore\n"
     assert list(project.iterdir()) == [project / ".cgkn"]
 
@@ -143,13 +168,13 @@ def test_generation_command_has_one_formal_entry_and_no_secret_argument(tmp_path
     )
     joined = " ".join(argv)
 
-    assert argv[1] == str(CGKN_ROOT / "scripts" / "run_local_pipeline.py")
+    assert argv[1] == str(CGKN_ROOT / "scripts" / "run_codex_conversation_generation.py")
     assert "--codex-capability-brief" in argv
     assert "--use-api" in argv and "--allow-provider" in argv
     assert "--allow-network" in argv
     assert "--api-key" not in argv
     assert "local_packager.py" not in joined
-    assert "codex_conversation.py" not in joined
+    assert "run_local_pipeline.py" not in joined
 
 
 def test_generation_command_routes_every_provider_stage_to_selected_model(tmp_path: pathlib.Path) -> None:

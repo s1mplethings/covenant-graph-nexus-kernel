@@ -1217,6 +1217,134 @@
         "QM-INTEGRATION",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-048",
+      "title": "Govern product design depth and maturity claims",
+      "outcome": "The single formal generation route freezes goal fidelity and core difficulty before implementation, tests realistic challenge evidence, detects proxy solutions, assigns one product maturity level, and publishes claims that cannot confuse delivery success with target validation.",
+      "priority": 48,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-047"
+      ],
+      "acceptance_criteria": [
+        "A real-person character-clipping goal is COMPLEX and locks identity recognition as a core difficulty before implementation.",
+        "A color-appearance proxy with synthetic-only evidence is capped at PROTOTYPE while remaining honestly deliverable.",
+        "Representative independent holdout evidence is required before TARGET_VALIDATED and production-readiness claims.",
+        "SIMPLE calculator and STANDARD CSV projects receive proportionate design depth without unneeded architecture.",
+        "The existing requirement, Provider, candidate, evidence, local_packager, and public delivery route remains singular and frozen partial-acceptance boundaries remain unchanged.",
+        "New contracts, gates, public claims, guards, py_compile, focused and related regression tests pass with zero Provider calls."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-FALSE-PASS",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-049",
+      "title": "Add governed Codex surrogate ingestion to the formal Provider mainline",
+      "outcome": "The existing single Provider scheduler can pause fresh generation on canonical file-backed requests, accept hash-bound Codex surrogate responses through a formal submit boundary, and resume the same run without live Provider or network calls.",
+      "priority": 49,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "ready",
+      "dependencies": [
+        "PB-048"
+      ],
+      "acceptance_criteria": [
+        "Explicit live, codex_surrogate, and deterministic_replay modes replace ambiguous Provider-type boolean combinations while live remains compatible.",
+        "A canonical request/response/receipt handshake validates run, project, job, attempt, stage, schema and hashes, rejects late/cross-run/path/kernel injections, and is idempotent for identical responses.",
+        "WAITING_SURROGATE_RESPONSE pauses safely and restart-safe resume consumes an accepted response once without creating another scheduler or repeating completed stages.",
+        "Fresh planning, product/interaction/technical/acceptance design, initial build, repair, schema repair and design replan use the same Provider request/response adapter and accounting.",
+        "Codex surrogate and deterministic replay install zero-network guards and record zero external Provider calls without silently falling back to live.",
+        "A minimal fresh text-count project completes planning, design, build, verification and local_packager delivery through the formal mainline with complete accounting.",
+        "Frozen partial acceptance, candidate materialization/lineage, Product Design Depth Governance, benchmarks and public evidence gates remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-050",
+      "title": "Connect verified Provider candidates to canonical finalization",
+      "outcome": "Every Provider mode hands a materialized candidate to one canonical verification, governance, acceptance, promotion, packaging, and public-delivery state machine with hash-bound authority and honest user-review waiting states.",
+      "priority": 50,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-049"
+      ],
+      "acceptance_criteria": [
+        "Candidate materialization transitions into canonical verification for live, codex_surrogate, and deterministic_replay without a Provider-mode-specific finalizer.",
+        "Canonical verification, Product Design governance, goal fidelity, proxy, maturity, and acceptance decisions bind the exact candidate identity and evidence hashes.",
+        "Only an accepted candidate receives an idempotent promotion manifest and only promoted projects can reach local_packager.",
+        "User-review requirements come from the existing policy and yield WAITING_USER_REVIEW without synthetic or surrogate review authority.",
+        "A new zero-provider text-counter smoke reaches public delivery and its ZIP runs after independent extraction with valid canonical hashes.",
+        "Frozen partial acceptance, Product Design Governance rules, Provider scheduler, surrogate ingestion, and the sole local_packager exit remain unchanged."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-FALSE-PASS",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-051",
+      "title": "Compile grounded open-domain GoalSpecs from Provider planning proposals",
+      "outcome": "The canonical requirement lane uses one validated planning proposal plus raw intent and policy to compile a grounded GoalSpec, with bounded same-run replan instead of keyword-only terminal failure.",
+      "priority": 51,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "ready",
+      "dependencies": [
+        "PB-050"
+      ],
+      "acceptance_criteria": [
+        "Accepted requirements_planning proposals participate in canonical GoalSpec compilation without gaining canonical authority.",
+        "Unknown Chinese and cross-domain goals produce grounded non-empty capabilities/workstreams; simple goals stay simple.",
+        "Explicit constraints, user outcomes, forbidden substitutions, and per-field provenance are preserved and hash-bound.",
+        "Insufficient proposals enter bounded WAITING_REQUIREMENT_REPLAN on the existing scheduler and same run.",
+        "Provider modes share the compiler and frozen downstream authorities remain unchanged.",
+        "Two fresh zero-provider requirement smokes and all relevant regressions pass with reproducible source identity."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-FALSE-PASS",
+        "QM-INTEGRATION",
+        "QM-REGRESSION"
+      ]
+    },
+    {
+      "id": "PB-052",
+      "title": "Stage and upload the CGKN 0.2.0-rc.1 review candidate",
+      "outcome": "A versioned review branch contains only formal source, contracts, tests, documentation, and concise management evidence, with runtime outputs excluded and release truth stated honestly.",
+      "priority": 52,
+      "value_score": 8,
+      "risk_reduction_score": 9,
+      "state": "active",
+      "dependencies": [
+        "PB-050"
+      ],
+      "acceptance_criteria": [
+        "Repository, Codex plugin, MCP server, and Agent Kit versions represent one 0.2.0-rc.1 review candidate using ecosystem-correct notation.",
+        "The staged source manifest excludes .cgkn state, workspaces, generated project memory, media, benchmarks, and transient artifacts.",
+        "Plugin validation, Agent Kit tests, scoped formal-mainline tests, and source compilation are recorded before upload.",
+        "The review branch is pushed to origin and resolves to the local commit without creating a Git tag or GitHub Release.",
+        "Known failing governance evidence remains visible and is not promoted into a stable or accepted release claim."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-SELFHOST",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -1443,7 +1571,12 @@
     "iterations/ITER-055.json",
     "iterations/ITER-056.json",
     "iterations/ITER-057.json",
-    "iterations/ITER-058.json"
+    "iterations/ITER-058.json",
+    "iterations/ITER-070.json",
+    "iterations/ITER-071.json",
+    "iterations/ITER-072.json",
+    "iterations/ITER-073.json",
+    "iterations/ITER-074.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",
@@ -1486,7 +1619,11 @@
     "Keep the Codex-only repository scan in the default test profile and reject any future detached conversation launcher or credential.",
     "Resume a comparable supported Qwen project at its tests component and verify the aggregate cross-validation receipt appears before post-build without weakening the split-test anchor contract.",
     "On the next credentialed Provider run, inject one audited leaf-level contradiction and measure affected-only Provider calls plus checkpoint reuse.",
-    "Reuse one non-retryable readiness result to classify the fixed pilot before spending three known-to-fail generation requests."
+    "Reuse one non-retryable readiness result to classify the fixed pilot before spending three known-to-fail generation requests.",
+    "Keep a single schema family and one post-build maturity evaluator while exposing separate public delivery and target-satisfaction fields.",
+    "In the next bounded change, route the same accepted surrogate run through the existing production entry and promotion checkpoints without changing delivery gates.",
+    "Resolve the contract-test versus frozen-guard ownership conflict in a separately authorized governance change.",
+    "Promote 0.2.0-rc.1 only after the frozen-guard ownership conflict is separately resolved and all release-gate evidence is green."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

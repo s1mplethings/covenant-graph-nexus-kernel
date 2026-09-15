@@ -1,0 +1,96 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-072",
+  "project_id": "cgkn",
+  "goal": "Connect every Provider mode materialized candidate to the existing canonical verification, governance, acceptance, promotion, packaging, and public-delivery authority chain.",
+  "backlog_item_ids": [
+    "PB-050"
+  ],
+  "workflow_state": "completed",
+  "evidence_status": "PASS",
+  "acceptance_criteria": [
+    "A new zero-provider text-counter smoke reaches public delivery and its ZIP runs after independent extraction with valid canonical hashes.",
+    "Candidate materialization transitions into canonical verification for live, codex_surrogate, and deterministic_replay without a Provider-mode-specific finalizer.",
+    "Canonical verification, Product Design governance, goal fidelity, proxy, maturity, and acceptance decisions bind the exact candidate identity and evidence hashes.",
+    "Frozen partial acceptance, Product Design Governance rules, Provider scheduler, surrogate ingestion, and the sole local_packager exit remain unchanged.",
+    "Only an accepted candidate receives an idempotent promotion manifest and only promoted projects can reach local_packager.",
+    "User-review requirements come from the existing policy and yield WAITING_USER_REVIEW without synthetic or surrogate review authority."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+      "target": "all management, iteration, and experience artifacts validate",
+      "method": "jsonschema tests plus deterministic manager validation"
+    },
+    {
+      "id": "QM-INTEGRATION",
+      "measure": "formal provider and delivery route preservation",
+      "target": "kernel and provider contract tests pass without a new generation or delivery path",
+      "method": "existing kernel and formal provider test profiles"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-FALSE-PASS",
+      "measure": "sparse adversarial audit accuracy and ProviderJob parallel execution",
+      "target": "five false-pass injections route correctly, clean claims resume, ordinary failures make zero Codex calls, and two independent Provider jobs overlap with peak concurrency of at least two",
+      "method": "fault-injection supervisor fixtures, barrier-based concurrency tests, route receipt inspection, kernel repair isolation tests, and bounded production call-graph guards"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "artifacts/canonical_finalization_mainline/reports/candidate_finalization_diagnosis.json",
+    "artifacts/canonical_finalization_mainline/reports/final_verdict.json",
+    "artifacts/canonical_finalization_mainline/reports/regression_report.json",
+    "artifacts/canonical_finalization_mainline/reports/package_integrity_report.json",
+    "artifacts/canonical_finalization_mainline/smoke_textcounter_final_20260915_f/.cgkn/agent-kit/generation_result.json"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "Fresh codex_surrogate generation reached canonical verification, governance, acceptance, promotion, local_packager, and public delivery with zero real Provider and network calls.",
+      "Independent ZIP extraction passed four tests and a Chinese-path CLI run; canonical manifest and package hashes were recomputed successfully.",
+      "The relevant regression profile passed 273 tests and the new finalization suite contains 35 tests."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-050"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A single mode-neutral post-build finalizer preserved Provider, governance, acceptance, packaging, and delivery authority boundaries.",
+      "Hash-bound state artifacts made restart and idempotency behavior directly testable."
+    ],
+    "did_not_work": [
+      "The first fresh smoke exposed package-entrypoint classification and final warning-verdict state persistence gaps after canonical promotion."
+    ],
+    "experiments": [
+      "Keep the finalization smoke as a zero-provider release-path probe and require independent extraction for future delivery-chain changes."
+    ]
+  }
+}

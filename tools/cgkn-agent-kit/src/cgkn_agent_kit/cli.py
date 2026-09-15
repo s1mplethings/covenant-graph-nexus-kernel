@@ -9,6 +9,7 @@ from . import __version__
 from .core import (
     AgentKitError, codex_draft, doctor, generation_command, initialize_project,
     load_project, prepare_request, resolve_cgkn_root, run_generation, seal_draft,
+    submit_surrogate_response, surrogate_status,
 )
 
 
@@ -23,7 +24,15 @@ def _project(value: str) -> pathlib.Path:
 
 
 def _emit(value: dict, *, stream=None) -> None:
-    print(json.dumps(value, ensure_ascii=False, indent=2), file=stream or sys.stdout)
+    target = stream or sys.stdout
+    # Windows installations commonly inherit a legacy console code page.  The
+    # CLI contract is UTF-8 JSON, so configure the standard streams when the
+    # host exposes TextIOWrapper.reconfigure rather than failing after a run
+    # has already completed successfully.
+    reconfigure = getattr(target, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8", errors="replace")
+    print(json.dumps(value, ensure_ascii=False, indent=2), file=target)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -65,9 +74,27 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--brief", default="")
     generate.add_argument("--out-dir", default="")
     generate.add_argument("--model", default="gpt-4.1")
+    generate.add_argument(
+        "--provider-mode",
+        choices=("live", "codex_surrogate", "deterministic_replay"),
+        default="live",
+    )
+    generate.add_argument("--replay-dir", default="")
     generate.add_argument("--allow-network", action="store_true", help="Allow existing CGKN online research inputs")
     generate.add_argument("--timeout", type=int, default=1800)
     generate.add_argument("--dry-run", action="store_true")
+
+    surrogate_status_parser = sub.add_parser("surrogate-status", help="Inspect canonical surrogate Provider requests")
+    surrogate_status_parser.add_argument("--project", default=".")
+    surrogate_status_parser.add_argument("--run-dir", default="")
+
+    submit = sub.add_parser("submit-surrogate", help="Submit one canonical Codex surrogate response")
+    submit.add_argument("--project", default=".")
+    submit.add_argument("--run-dir", default="")
+    submit.add_argument("--job-id", required=True)
+    submit.add_argument("--attempt-id", required=True)
+    submit.add_argument("--payload", required=True, help="JSON string containing the Provider text payload")
+    submit.add_argument("--surrogate-identity", default="codex")
     return parser
 
 
@@ -91,12 +118,39 @@ def execute(args: argparse.Namespace) -> dict:
         draft = codex_draft(root, request, codex_command=args.codex_command, timeout=args.timeout)
         brief = seal_draft(root, request, draft)
         return {"ok": True, "command": "assist", "request": str(request), "draft": str(draft), "brief": str(brief)}
+    if args.command == "surrogate-status":
+        return {
+            "ok": True,
+            "command": "surrogate-status",
+            "status": surrogate_status(root, run_dir=pathlib.Path(args.run_dir) if args.run_dir else None),
+        }
+    if args.command == "submit-surrogate":
+        try:
+            payload = json.loads(args.payload)
+        except ValueError as exc:
+            raise AgentKitError(f"--payload must be a JSON string: {exc}") from exc
+        if not isinstance(payload, str):
+            raise AgentKitError("--payload must decode to the Provider text string")
+        return {
+            "ok": True,
+            "command": "submit-surrogate",
+            "receipt": submit_surrogate_response(
+                root,
+                run_dir=pathlib.Path(args.run_dir) if args.run_dir else None,
+                job_id=args.job_id,
+                attempt_id=args.attempt_id,
+                payload=payload,
+                surrogate_identity=args.surrogate_identity,
+            ),
+        }
     project_root, config, cgkn_root = load_project(root)
     brief = pathlib.Path(args.brief) if args.brief else project_root / str(config["artifact_dir"]) / "codex_capability_brief.json"
     argv = generation_command(
         root, goal=args.goal, brief_path=brief,
         out_dir=pathlib.Path(args.out_dir) if args.out_dir else None,
         model=args.model, allow_network=args.allow_network,
+        provider_mode=args.provider_mode,
+        replay_dir=pathlib.Path(args.replay_dir) if args.replay_dir else None,
     )
     if args.dry_run:
         return {"ok": True, "command": "generate", "executed": False, "argv": argv, "secrets_in_argv": False}

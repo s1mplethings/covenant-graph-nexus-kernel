@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/contracts/surrogate_provider_handshake_v1.schema.json",
+  "title": "CGKN file-backed surrogate Provider handshake",
+  "oneOf": [
+    {"$ref": "#/$defs/request"},
+    {"$ref": "#/$defs/response"},
+    {"$ref": "#/$defs/receipt"}
+  ],
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "required": ["schema_version", "run_id", "project_id", "job_id", "attempt_id", "stage", "provider_mode"],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "run_id": {"type": "string", "minLength": 1},
+        "project_id": {"type": "string", "minLength": 1},
+        "job_id": {"type": "string", "minLength": 1},
+        "attempt_id": {"type": "string", "minLength": 1},
+        "stage": {"type": "string", "minLength": 1},
+        "provider_mode": {"enum": ["codex_surrogate", "deterministic_replay"]}
+      }
+    },
+    "request": {
+      "allOf": [
+        {"$ref": "#/$defs/identity"},
+        {
+          "type": "object",
+          "required": ["requested_role", "request_schema", "expected_response_schema", "context_refs", "context_hashes", "source_sha", "benchmark_hash", "created_at", "request_hash"],
+          "properties": {
+            "kind": {"const": "CGKNProviderJobRequest"},
+            "requested_role": {"type": "string"},
+            "request_schema": {"type": "object"},
+            "expected_response_schema": {"type": "object"},
+            "context_refs": {"type": "array", "items": {"type": "string"}},
+            "context_hashes": {"type": "object"},
+            "source_sha": {"type": "string"},
+            "benchmark_hash": {"type": "string"},
+            "created_at": {"type": "string"},
+            "request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        }
+      ]
+    },
+    "response": {
+      "allOf": [
+        {"$ref": "#/$defs/identity"},
+        {
+          "type": "object",
+          "required": ["surrogate_identity", "request_hash", "payload", "payload_hash", "created_at"],
+          "properties": {
+            "surrogate_identity": {"type": "string", "minLength": 1},
+            "request_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "payload_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "created_at": {"type": "string"}
+          }
+        }
+      ]
+    },
+    "receipt": {
+      "allOf": [
+        {"$ref": "#/$defs/identity"},
+        {
+          "type": "object",
+          "required": ["accepted", "rejection_reason", "schema_valid", "identity_valid", "request_hash_valid", "payload_hash_valid", "duplicate", "submitted_at"],
+          "properties": {
+            "kind": {"const": "CGKNProviderResponseReceipt"},
+            "accepted": {"type": "boolean"},
+            "rejection_reason": {"type": "string"},
+            "schema_valid": {"type": "boolean"},
+            "identity_valid": {"type": "boolean"},
+            "request_hash_valid": {"type": "boolean"},
+            "payload_hash_valid": {"type": "boolean"},
+            "duplicate": {"type": "boolean"},
+            "submitted_at": {"type": "string"}
+          }
+        }
+      ]
+    }
+  }
+}

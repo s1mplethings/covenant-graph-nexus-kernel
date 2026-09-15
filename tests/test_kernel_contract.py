@@ -1739,6 +1739,26 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual("CGKNProjectDecompositionTree", schema["properties"]["kind"]["const"])
         self.assertEqual(False, schema["properties"]["release_authority"]["const"])
 
+    def test_canonical_requirement_compiler_preserves_authority_and_replan_boundary(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        compiler = read_source("scripts/canonical_goal_spec_compiler.py")
+        requirement_lane = read_source("scripts/requirement_decision_lane.py")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+
+        self.assertIn("Canonical open-domain GoalSpec compilation", kernel)
+        self.assertIn("CGKNRequirementsPlanningProposalArtifact", registry)
+        self.assertIn("CGKNRequirementReplanState", registry)
+        self.assertIn("CGKNSourceIdentityReport", registry)
+        self.assertIn('CANONICAL_AUTHORITY = "canonical_requirement_authority"', compiler)
+        self.assertIn('PROPOSAL_AUTHORITY = "proposal"', compiler)
+        self.assertIn("validate_planning_artifact", compiler)
+        self.assertIn("forbidden_proxy_substitution:semantic_identity_replaced", compiler)
+        self.assertIn("planning_artifact=planning_artifact", requirement_lane)
+        self.assertIn("MAX_REQUIREMENT_PLANNING_ATTEMPTS = 3", production)
+        self.assertIn('"workflow_state": "WAITING_REQUIREMENT_REPLAN"', production)
+        self.assertIn('"candidate_repair": False', production)
+
 
 if __name__ == "__main__":
     unittest.main()

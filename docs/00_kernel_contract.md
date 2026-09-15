@@ -797,6 +797,61 @@ Old `BLOCKED` and gate terminology must not be user-visible.
 
 `backend_controls` are compatibility logs only, never execution queues.
 
+## Provider mode and Codex surrogate transport
+
+The reviewed Provider entry accepts exactly one explicit mode: `live`,
+`codex_surrogate`, or `deterministic_replay`. `live` preserves the existing
+credential and network route. The two non-live modes are transports underneath
+the existing ProviderJob scheduler; they never create another scheduler,
+candidate system, materializer, acceptance path, packager, or delivery exit.
+
+`codex_surrogate` writes a canonical request under the run directory and returns
+workflow state `WAITING_SURROGATE_RESPONSE` with formal evidence
+`NOT_EVALUATED`. A response is accepted only through the reviewed submit entry
+after exact run/project/job/attempt/stage/mode identity, request hash, payload
+hash, response schema, path ownership, and kernel-write exclusions pass. An
+accepted response is consumed and accounted once on same-run resume, including
+after a process restart. Identical duplicate submission is idempotent; a changed,
+orphan, cross-run, or late response is rejected.
+
+`deterministic_replay` consumes only response envelopes that existed in its
+declared replay directory before the matching request resumed. It is recorded as
+replay and cannot be reported as fresh generation. Both non-live modes branch
+before local-model, credential, SDK/HTTP, and fallback transport selection, so
+their CGKN external Provider calls and Provider-network attempts remain zero.
+All returned text continues through the ordinary parser, schema validation,
+ProviderJob ownership, candidate materialization, verification, and partial
+acceptance, and remains subject to the unchanged maturity, `local_packager`,
+and public delivery gates. The adapter itself grants no promotion, packaging,
+or delivery authority.
+
+Agent Kit fresh generation is a local adapter to
+`scripts.codex_conversation.run_formal_generation_once`; it does not use the
+Provider leaf runner as a public-delivery entry. Live, Codex surrogate, and
+deterministic replay converge after candidate materialization on the same
+`post_build_finalize_provider_project` state machine. That state machine records
+canonical verification, local Product Design Depth governance, hash-bound
+acceptance, idempotent promotion, packaging, and delivery-gate states. Provider
+and surrogate recommendations have no governance, acceptance, promotion,
+packaging, or release authority.
+
+`local_packager` remains the only delivery exit and is fail-closed for the
+production finalization path: a canonical promotion manifest bound to the exact
+run, candidate, source hash, verification, governance, and acceptance decision
+is required. Package-style entrypoints are recognized only from the canonical
+manifest's safe project-relative `artifacts.startup_entrypoint`; public fact
+checking does not infer arbitrary executable paths. Required user review is
+never synthesized; the state remains
+`WAITING_USER_REVIEW` until canonical review evidence passes. A non-visual
+project without an explicit evidence checkpoint follows the existing
+`canonical_nonvisual_or_no_explicit_review_requirement` branch and does not
+gain an ad hoc review requirement.
+
+The public sender accepts both canonical final outcomes defined by the delivery
+policy, `PASS_FINAL` and `DELIVER_WITH_WARNINGS`, after the same package and
+delivery-receipt checks. `DELIVERED` is recorded only after the sender persists
+an allowed delivered state; a failed send transitions to `DELIVERY_BLOCKED`.
+
 ## ProviderJob contract-guided source repair
 
 A complete ProviderJob output that fails a deterministic source boundary may be retained only as a non-formal diagnostic repair base. Its formal evidence remains `NOT_EVALUATED`; `REPAIRABLE_FAILED` and `UNUSABLE` are repair classifications, never evidence statuses, verified artifacts, candidate files, or delivery authority.
@@ -828,3 +883,51 @@ Provider/model auto-selection qualifies eligible models with one bounded structu
 Fresh CASE product-convergence validation passes the configured worker count to that existing split-file leaf executor. It must not silently fall back to benchmark harness parallelism one when the production executor is configured for bounded parallel work; this is execution of the same ProviderJob DAG, not another scheduler or a longer timeout.
 
 Runtime/browser/evaluator failures that do not match an existing internal issue may create new issue-led repair input only when deterministic evidence maps them to one or two exact paths already owned by existing ProviderJobs. Each ownership unit receives its own issue, current source, expected and observed behavior, evaluator evidence, and affected-behavior acceptance. Evidence without an exact owned path remains non-repairable and cannot expand to a component-wide repair. `audit_failure_to_repair.py` is read-only support evidence that traces evaluator failures through issue, job, call, delta, and acceptance; it cannot authorize formal evidence, mutate a candidate, package, or deliver.
+
+## Product Design Depth Governance
+
+Before Provider generation, the Requirement Decision Lane must freeze hash-bound goal fidelity, project complexity, core difficulty, test realism, and challenge-matrix contracts. Its independent Product Challenge Review decides whether implementation may begin. Classification uses structured capability, workflow, data, uncertainty, real-world variability, failure cost, persistence, platform, privacy, packaging, and long-task dimensions; request length and document volume are not complexity measures.
+
+An MVP may defer non-core scope, but it cannot remove a locked core capability or replace it with an easier proxy while retaining the original claim. A declared proxy may proceed only with an explicit `PROTOTYPE` ceiling, limitation disclosure, evidence gap, and upgrade boundary. For `COMPLEX` and `HIGH_RISK` projects, builder-generated synthetic data can verify plumbing but cannot independently establish target satisfaction. Domain challenge cases are frozen before implementation, and representative real-world evidence plus an independently produced holdout receipt is required for `TARGET_VALIDATED`.
+
+Post-build evaluation writes `proxy_solution_report.json`, `product_maturity_report.json`, `public_claim_policy_report.json`, and `design_replan_report.json` before `local_packager`. Product maturity is one of `DEMO`, `PROTOTYPE`, `FUNCTIONAL_MVP`, `TARGET_VALIDATED`, or `PRODUCTION_READY`. Pipeline success, artifact delivery eligibility, product maturity, original-goal satisfaction, real-world validation, and proxy detection remain separate fields. A package may be honestly delivered while `target_goal_satisfied=false`; public narration must state the maturity and forbidden claims.
+
+Repeated proxy-only repair, holdout failure, test-specific branching, or architecture that cannot support the locked core triggers design replan at the affected capability boundary. Validated UI, persistence, export, and other unaffected components remain reusable. The proportionality check rejects unjustified architecture for simple work; a calculator remains a direct solution and ordinary CSV cleaning does not acquire ML, queues, Kubernetes, or a distributed database without a requirement or measured risk.
+
+This governance is part of the existing Requirement Decision -> ProviderJob -> post-build evidence -> `local_packager` -> public delivery route. It creates no candidate author, Provider scheduler, partial-acceptance authority, evidence PASS authority, packaging route, or delivery exit.
+
+## Canonical open-domain GoalSpec compilation
+
+The `requirements_planning` Provider stage emits a validated
+`CGKNRequirementsPlanningProposalArtifact`, never a canonical requirement or a
+release decision. The canonical Requirement Decision Lane binds that accepted
+artifact to the exact raw-goal hash and Provider transport identity, validates
+field-level source grounding, independently preserves explicit constraints, and
+compiles the sole downstream `GoalSpec` through
+`scripts/canonical_goal_spec_compiler.py`. Known deterministic domain profiles
+remain optimization hints; open-domain goals do not depend on a keyword table.
+
+Ungrounded Provider additions cannot become canonical capabilities,
+workstreams, constraints, or acceptance anchors. Silent reduction of an
+all-results goal to sampling, automatic behavior to manual-only work, playable
+media export to timestamp metadata, local processing to cloud processing, or a
+semantic identity task to color/background/position/filename/time proxies is a
+requirement failure. The Provider has proposal authority only; canonical
+requirement authority remains local and deterministic, while Product Design,
+acceptance, maturity, promotion, packaging, and release authorities remain
+unchanged.
+
+A structurally valid but insufficient proposal enters the resumable workflow
+state `WAITING_REQUIREMENT_REPLAN` with exact missing capabilities,
+workstreams, constraints, unsupported additions, uncovered goal segments, and
+required corrections. The existing Provider scheduler authors the next bounded
+planning attempt in the same run. At most three planning attempts are allowed;
+exhaustion remains `INSUFFICIENT_GOAL_PLAN`. Requirement replan is not candidate
+repair and never materializes or mutates a candidate.
+
+Every fresh production run captures one immutable
+`CGKNSourceIdentityReport` before Provider work. It records repository HEAD,
+working-tree status and diff hashes, relevant untracked-source manifest hash,
+Agent Kit package hash, plugin version/source hash, and hashes of the canonical
+requirement modules and contracts. This is support identity with formal status
+`NOT_EVALUATED`, not acceptance or release evidence.

@@ -160,6 +160,18 @@ def _snapshot_map(snapshot: list[dict[str, Any]]) -> dict[str, bytes]:
     return result
 
 
+def _reconstruct_candidate_contents(patch: dict[str, Any]) -> dict[str, bytes]:
+    """Rebuild the hashable candidate source while ignoring evidence-only hunks."""
+    contents = _snapshot_map(patch.get("before_source_snapshot", []))
+    for hunk in patch.get("hunks", []):
+        if not isinstance(hunk, dict):
+            raise ValueError("provider patch contains an invalid hunk")
+        rel = _safe_relative_path(hunk.get("path"))
+        if canonical_evidence_hash.is_candidate_source_relative_path(rel):
+            contents[rel] = str(hunk.get("after_content", "")).encode("utf-8")
+    return contents
+
+
 def _manifest_from_contents(contents: dict[str, bytes]) -> dict[str, str]:
     return {
         path: canonical_evidence_hash.sha256_bytes(content)
@@ -677,13 +689,7 @@ def finalize(
     application_path = pathlib.Path(causal_capture["application_ref"]).resolve()
     application = _read(application_path)
     patch = _read(pathlib.Path(causal_capture["patch_ref"]).resolve())
-    patch_after_contents = _snapshot_map(patch.get("before_source_snapshot", []))
-    for hunk in patch.get("hunks", []):
-        if not isinstance(hunk, dict):
-            raise ValueError("provider patch contains an invalid hunk")
-        patch_after_contents[_safe_relative_path(hunk.get("path"))] = str(
-            hunk.get("after_content", "")
-        ).encode("utf-8")
+    patch_after_contents = _reconstruct_candidate_contents(patch)
     if (
         _manifest_from_contents(patch_after_contents)
         != application.get("after_source_manifest")
@@ -701,6 +707,8 @@ def finalize(
     )
     for hunk in patch.get("hunks", []):
         rel = _safe_relative_path(hunk.get("path"))
+        if not canonical_evidence_hash.is_candidate_source_relative_path(rel):
+            continue
         final_content = final_contents.get(rel)
         before_content = base64.b64decode(
             str(hunk.get("before_content_b64", "")).encode("ascii"),
@@ -1105,7 +1113,8 @@ def inspect(
             != hunk["before_content_b64"]
         ):
             failures.append(f"patch_before_content:{path_value}")
-        after_contents[path_value] = hunk["after_content"].encode("utf-8")
+        if canonical_evidence_hash.is_candidate_source_relative_path(path_value):
+            after_contents[path_value] = hunk["after_content"].encode("utf-8")
     after_manifest = _manifest_from_contents(after_contents)
     after_manifest_hash = _manifest_hash(after_manifest)
     after_candidate_hash = _content_map_hash(after_contents)
@@ -1176,6 +1185,8 @@ def inspect(
     )
     for hunk in recomputed_hunks:
         rel = hunk["path"]
+        if not canonical_evidence_hash.is_candidate_source_relative_path(rel):
+            continue
         final_content = current_snapshot_contents.get(rel)
         before_content = base64.b64decode(
             hunk["before_content_b64"].encode("ascii"), validate=True

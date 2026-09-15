@@ -178,6 +178,19 @@ def _startup_for(project: pathlib.Path, port: int) -> list[str]:
     return []
 
 
+def _cli_startup_for(project: pathlib.Path) -> list[str]:
+    if (project / "main.py").is_file():
+        return [sys.executable, "main.py", "--help"]
+    packages = sorted(
+        path.parent.name
+        for path in project.glob("*/__main__.py")
+        if path.parent.name.isidentifier()
+    )
+    if packages:
+        return [sys.executable, "-m", packages[0], "--help"]
+    return []
+
+
 def _start_process(argv: list[str], cwd: pathlib.Path) -> subprocess.Popen[str]:
     return subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -220,6 +233,9 @@ def run(
         "error": "not_required" if not browser_capture_required else "not_started",
     }
     browser_capture_hash = canonical_evidence_hash.canonical_json_hash(browser_capture_receipt, ())
+    runtime_kind = "http"
+    customer_action = f"GET {customer_path}"
+    expected_result = "non-empty HTTP response body"
     copy_result: dict[str, Any] = {
         "ok": False,
         "failures": [],
@@ -242,7 +258,20 @@ def run(
                 elif expected_candidate_hash is not None and current_candidate_hash != expected_candidate_hash:
                     observed = "candidate source hash changed before runtime"
                 elif not argv:
-                    observed = "no supported startup command"
+                    argv = _cli_startup_for(execution_root)
+                    runtime_kind = "cli"
+                    customer_action = " ".join(argv)
+                    expected_result = "CLI help exits zero and returns non-empty output"
+                    if not argv:
+                        observed = "no supported startup command"
+                    else:
+                        proc = _start_process(argv, execution_root)
+                        stdout, stderr = proc.communicate(timeout=15)
+                        observed = (stdout or stderr or "").strip()
+                        health_code = 200 if proc.returncode == 0 else 500
+                        health_body = observed
+                        status = EvidenceStatus.PASS.value if proc.returncode == 0 and observed else EvidenceStatus.FAIL.value
+                        shutdown_result = {"stopped": True, "returncode": proc.returncode}
                 else:
                     proc = _start_process(argv, execution_root)
                     health_code, health_body = _wait_for_health(f"http://127.0.0.1:{port}/")
@@ -342,12 +371,13 @@ def run(
         "cwd": str(execution_root),
         "clean_environment_root": str(execution_root),
         "dependency_setup": {"status": "not_required_for_static_http"},
+        "runtime_kind": runtime_kind,
         "pid": int(proc.pid) if proc is not None else 0,
         "port": port,
         "url": url,
         "health_probe": {"status_code": health_code, "response_hash": health_body_hash},
-        "customer_action": f"GET {customer_path}",
-        "expected_result": "non-empty HTTP response body",
+        "customer_action": customer_action,
+        "expected_result": expected_result,
         "observed_result": observed_result,
         "observed_result_hash": _sha256_text(observed_result),
         "shutdown_result": shutdown_result,
