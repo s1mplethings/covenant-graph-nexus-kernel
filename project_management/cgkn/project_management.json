@@ -1329,7 +1329,7 @@
       "priority": 52,
       "value_score": 8,
       "risk_reduction_score": 9,
-      "state": "active",
+      "state": "done",
       "dependencies": [
         "PB-050"
       ],
@@ -1623,7 +1623,8 @@
     "Keep a single schema family and one post-build maturity evaluator while exposing separate public delivery and target-satisfaction fields.",
     "In the next bounded change, route the same accepted surrogate run through the existing production entry and promotion checkpoints without changing delivery gates.",
     "Resolve the contract-test versus frozen-guard ownership conflict in a separately authorized governance change.",
-    "Promote 0.2.0-rc.1 only after the frozen-guard ownership conflict is separately resolved and all release-gate evidence is green."
+    "Promote 0.2.0-rc.1 only after the frozen-guard ownership conflict is separately resolved and all release-gate evidence is green.",
+    "Resolve the guard ownership conflict in a separately authorized governance increment before any stable tag."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",
