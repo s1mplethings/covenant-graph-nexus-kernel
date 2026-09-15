@@ -8,9 +8,9 @@
     "PB-052"
   ],
   "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "evidence_status": "PASS",
   "acceptance_criteria": [
-    "Known failing governance evidence remains visible and is not promoted into a stable or accepted release claim.",
+    "Pre-commit and committed-checkout governance evidence remain distinguishable and are not promoted into a stable release claim.",
     "Plugin validation, Agent Kit tests, scoped formal-mainline tests, and source compilation are recorded before upload.",
     "Repository, Codex plugin, MCP server, and Agent Kit versions represent one 0.2.0-rc.1 review candidate using ecosystem-correct notation.",
     "The review branch is pushed to origin and resolves to the local commit without creating a Git tag or GitHub Release.",
@@ -60,12 +60,13 @@
     "git:c99e545437ea1c41e6ea0427f8761fea2e34b948",
     "origin:codex/cgkn-0.2.0-rc.1",
     "plugin:0.2.0-rc.1+codex.20260915133119",
-    "pytest:228_passed_1_known_guard_failure"
+    "pytest:precommit_228_passed_1_guard_failure",
+    "pytest:committed_checkout_229_passed_0_failed"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
+    "outcome": "accepted",
     "feedback": [
-      "The review branch is safely uploadable, version-aligned, and runtime-clean; stable tagging remains blocked by the frozen Product Design guard ownership conflict."
+      "The review branch is version-aligned, runtime-clean, remotely verified, and green on the committed checkout; stable tagging remains an explicit later review decision."
     ],
     "accepted_backlog_item_ids": [
       "PB-052"
@@ -74,13 +75,14 @@
   "retrospective": {
     "worked": [
       "Explicit staging kept runtime workspaces, project memory, media, benchmarks, and transient artifacts out of the commit.",
-      "Repository, plugin, MCP server, and Agent Kit versions are aligned using ecosystem-correct notation."
+      "Repository, plugin, MCP server, and Agent Kit versions are aligned using ecosystem-correct notation.",
+      "Re-running frozen-boundary guards on the committed checkout separated a transient dirty-tree failure from final source evidence."
     ],
     "did_not_work": [
-      "The Product Design frozen-boundary guard still rejects the required tests/test_kernel_contract.py change."
+      "The first pre-commit guard run could not represent the final committed-checkout state."
     ],
     "experiments": [
-      "Resolve the guard ownership conflict in a separately authorized governance increment before any stable tag."
+      "Always rerun repository-state guards after the candidate commit and before the final upload review is closed."
     ]
   }
 }

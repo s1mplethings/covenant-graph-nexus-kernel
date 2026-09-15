@@ -21,9 +21,9 @@ Companion packages follow their ecosystem's equivalent notation:
 
 `0.2.0-rc.1` collects the formal Product Design Depth Governance, Codex surrogate ingestion,
 canonical post-build finalization, and grounded open-domain requirement compilation work for
-review. It is intentionally not tagged as a stable release. The known contract-test versus frozen
-Product Design rule-guard ownership conflict remains open, so this candidate must not be described
-as fully accepted until that separately governed issue is resolved.
+review. It is intentionally not tagged as a stable release. Scoped validation, including the
+frozen-boundary guards, passes on the committed checkout; promotion beyond RC remains a separate
+review decision.
 
 Runtime workspaces, generated project memory, media, transient evidence, and local `.cgkn` state are
 not release source and must not be committed to the review branch.
