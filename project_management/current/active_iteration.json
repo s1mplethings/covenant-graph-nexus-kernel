@@ -51,7 +51,9 @@
     "evidence/repository-layout-v1/repository_cleanup_plan.json",
     "evidence/repository-layout-v1/repository_reference_graph.json",
     "evidence/repository-layout-v1/branch_reconciliation_report.json",
+    "evidence/repository-layout-v1/upload_manifest.json",
     "evidence/artifact-kernel/v0.3/verification_summary.json",
+    "benchmarks/orbit_360_workbench/tests/test_orbit360.py",
     "tests/test_repository_cleanup.py",
     "tests/test_repository_hygiene.py",
     "tests/test_specs_layout.py"
