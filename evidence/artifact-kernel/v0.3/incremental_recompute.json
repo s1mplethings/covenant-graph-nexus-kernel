@@ -1,0 +1,35 @@
+{
+  "kind": "ArtifactIncrementalRecomputeEvidence",
+  "formalEvidenceStatus": "NOT_EVALUATED",
+  "changedArtifactType": "artifact.requirement_interpretation@1",
+  "change": "Bulk archive requires confirmation",
+  "affectedNodes": [
+    "n_problem_analysis",
+    "n_architecture",
+    "n_refactor_plan",
+    "n_implementation",
+    "n_tests",
+    "n_boundary",
+    "n_delivery"
+  ],
+  "unaffectedNodes": ["n_project_snapshot"],
+  "cacheOutcomes": {
+    "n_project_snapshot": "hit",
+    "n_problem_analysis": "miss",
+    "n_architecture": "miss",
+    "n_refactor_plan": "miss",
+    "n_implementation": "miss",
+    "n_tests": "miss",
+    "n_boundary": "miss",
+    "n_delivery": "miss"
+  },
+  "contextMetrics": {
+    "rawSourceChars": 12000,
+    "maxArtifactContextChars": 2640,
+    "bestCompressionRatio": 0.0845,
+    "largestContextRatio": 0.22
+  },
+  "staleDeliveryRule": "Any stale required artifact yields NEEDS_REWORK.",
+  "reproductionCommand": "python scripts/demo_artifact_recompute.py --run-dir runs/artifact-v03-demo --json",
+  "authorityNote": "This is reproducible support evidence, not formal delivery authorization."
+}

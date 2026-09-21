@@ -1,0 +1,28 @@
+{
+  "kind": "CGKNCurrentBacklog",
+  "schemaVersion": "1",
+  "project": "CGKN",
+  "items": [
+    {
+      "id": "PB-054",
+      "title": "Repository Layout v1",
+      "priority": 1,
+      "state": "completed",
+      "value": "Separate source, formal specs, examples, curated evidence, and local runtime data.",
+      "acceptance": [
+        "specs is the formal registry",
+        "tracked raw runtime is zero",
+        "core flows compile",
+        "repository hygiene passes"
+      ]
+    },
+    {
+      "id": "PB-055",
+      "title": "Review stable release promotion",
+      "priority": 2,
+      "state": "planned",
+      "value": "Decide stable release only after independent review of the cleaned Artifact-driven branch.",
+      "acceptance": ["no force push", "reviewed integration strategy", "formal evidence remains independently evaluated"]
+    }
+  ]
+}

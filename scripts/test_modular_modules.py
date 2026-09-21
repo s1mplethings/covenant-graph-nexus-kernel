@@ -105,7 +105,7 @@ def _simulate(module_ref: str, inputs: dict[str, dict[str, Any]]) -> dict[str, d
             "local_index": _artifact(
                 "LocalLibraryIndex",
                 {
-                    "roots": ["libraries", "examples/modules", "examples/artifacts", "examples/flows"],
+                    "roots": ["libraries", "specs/modules", "specs/artifacts", "specs/flows"],
                     "capabilities": ["contract-validation", "artifact-emission", "local-smoke-tests"],
                 },
             )

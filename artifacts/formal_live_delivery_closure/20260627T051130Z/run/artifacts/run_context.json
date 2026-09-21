@@ -1,8 +1,0 @@
-{
-  "raw_user_goal": "Build a runnable local browser task board app, not a media processing app. Use index.html, CSS, and JavaScript with localStorage. Include add/edit/delete task workflows, Todo/Doing/Done columns, seed data, and a real package.json test script that can run locally.",
-  "model": "gpt-5.4-nano",
-  "base_url": "https://api.gptsapi.net/v1",
-  "generation_mode": "api",
-  "requested_project_dir": "D:\\CGKN\\artifacts\\formal_live_delivery_closure\\20260627T051130Z\\project",
-  "created_at": "2026-06-27T05:12:25.590426+00:00"
-}

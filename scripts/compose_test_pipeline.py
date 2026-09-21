@@ -67,14 +67,14 @@ def environment_catalog(goal: str, project_dir: pathlib.Path | None, profile: st
         "contract_catalog": {
             "id": "contract_catalog",
             "label": "CGNK contract catalog",
-            "scope": ["schemas/**", "examples/artifacts/**", "examples/modules/**", "examples/flows/**", "examples/policies/**"],
+            "scope": ["schemas/**", "specs/artifacts/**", "specs/modules/**", "specs/flows/**", "specs/policies/**"],
             "default": True,
             "external": "none",
         },
         "module_smoke": {
             "id": "module_smoke",
             "label": "Modular project-generation module smoke harness",
-            "scope": ["examples/flows/modular_project_generation.flow.json", "examples/modules/**"],
+            "scope": ["specs/flows/modular_project_generation.flow.json", "specs/modules/**"],
             "default": True,
             "external": "none",
         },

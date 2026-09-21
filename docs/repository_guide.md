@@ -1,62 +1,83 @@
 # CGKN Repository Guide
 
-This guide is the navigation and retention map for the repository. It does not replace the kernel contract or the formal artifact registry.
+This guide defines the Repository Layout v1 retention model. It does not replace
+`AGENTS.md`, `docs/00_kernel_contract.md`, or the formal registry in
+`docs/01_contract_registry.md`.
 
-## Authority order
+## Directory responsibilities
 
-1. `AGENTS.md` defines repository change constraints.
-2. `docs/00_kernel_contract.md` defines the stable kernel and route boundaries.
-3. `docs/01_contract_registry.md` defines formal artifact kinds, schemas, producers, consumers, and evidence statuses.
-4. This guide explains where work belongs; it cannot authorize generation, evidence, packaging, or delivery.
-
-## Directory ownership
-
-| Area | Purpose | Retention rule |
+| Area | Responsibility | Retention |
 | --- | --- | --- |
-| `src/`, `scripts/` | Kernel code and reviewed operational entrypoints | Track reviewed source. Kernel changes require the matching contract and guard updates. |
-| `schemas/`, `contracts/` | Machine-readable and module contracts | Track reviewed contracts and their tests. |
-| `tests/` | Unit, contract, integration, and regression checks | Track deterministic tests and small fixtures; write bulky output elsewhere. |
-| `docs/` | Formal contracts, architecture, and contributor guidance | Track current documents. The numbered kernel and registry files remain authoritative. |
-| `skills/` | Reviewed CGKN operating methods | Track only approved repository skills. A Skill is guidance, not a generation route. |
-| `plugins/` | Installable Codex plugin bundles | Track plugin manifests, MCP servers, bundled guidance, and deterministic tests. |
-| `tools/` | Portable user-facing companion tools | Track source, packaging metadata, and small tests. Do not store credentials. |
-| `project_management/` | CGKN backlog, iterations, evidence summaries, and experience | Track structured records and concise evidence references. These are support artifacts, not formal delivery truth. |
-| `examples/` | Reviewed static examples and fixtures | Track stable, reusable examples. Do not leave ad hoc runs, live `.cgkn` state, caches, or generated customer output here. |
-| `benchmarks/` | Reproducible benchmark definitions | Track definitions and bounded fixtures; write executions to `artifacts/` or `runs/`. |
-| `artifacts/` | Retained diagnostic or runtime evidence | Historical tracked evidence stays in place when referenced. New bulk output is ignored unless a review explicitly promotes a bounded evidence summary. |
-| `generated/` | Generated customer projects and disposable generation output | Runtime-only and ignored. A generated project is not formal delivery merely because it exists. |
-| `runs/` | Provider checkpoints, resumes, and local workspaces | Runtime-only and ignored. Preserve externally only when a referenced diagnostic requires it. |
-| `legacy/` | Compatibility and historical code | Keep isolated. Do not reconnect it to the Codex conversation default mainline. |
-| `.service_worktree/` | Service-owned nested worktree | Local-only. Never clean it as ordinary cache data. |
+| `cgkn/`, `src/`, `scripts/` | Kernel and reviewed operational source | Track reviewed source and tests. |
+| `specs/` | Formal machine Artifact, Module, Flow, Policy, Migration, and Context Pack definitions | Authoritative registry; loaders read it first. |
+| `schemas/`, `contracts/` | Schemas and stable interface contracts | Track reviewed contracts. |
+| `examples/` | Small inputs and expected summaries a user can read and reproduce | Never store live memory, Provider output, checkpoints, caches, or generated copies. |
+| `tests/fixtures/` | Small, deterministic, purpose-specific test data | Track only fixtures required by tests. |
+| `benchmarks/` | Case definitions, evaluators, runners, and small fixtures | Write executions to `runs/benchmarks/`; promote durable results to `evidence/benchmarks/`. |
+| `evidence/` | Curated claim, formal status, metrics, hashes, test result, reproduction command, and known limits | Keep bundles small; no raw Provider responses or complete workspaces. |
+| `project_management/current/` | Current backlog, risks, active iteration, and reusable experience | Support planning only; cannot authorize formal delivery. |
+| `project_management/summaries/` | Version-level capability, decision, failure, evidence, risk, and commit summaries | Detailed iteration history remains in Git history. |
+| `plugins/`, `skills/`, `tools/` | Reviewed integrations and operating methods | Track source and small deterministic tests only. |
+| `legacy/` | Isolated compatibility code | Do not reconnect to the production mainline. |
+| `runs/` | Local run manifests, artifact indexes, checkpoints, cache, and reports | Ignored runtime only. |
+| `artifacts/` | Raw run artifacts and diagnostics | Ignored runtime only. |
+| `generated/` | Generated customer output | Ignored runtime only. |
+| `.cgkn/`, `workspaces/` | Live local state and work areas | Ignored local state; never commit. |
 
-## Where new work goes
+The boundary is explicit:
 
-- New formal behavior: `src/` or the applicable reviewed `scripts/` module, with tests and contract updates when required.
-- New reusable Codex integration: `plugins/<name>/`; portable CLI support belongs in `tools/<name>/`.
-- New management increment: one `project_management/cgkn/iterations/ITER-NNN.json`, plus a concise runtime-evidence document only when needed.
-- New reviewed fixture: a purpose-named directory under `examples/` or `benchmarks/`.
-- New test or generation run: `artifacts/<purpose>_<date>/`, `generated/<purpose>_<date>/`, or `runs/<purpose>_<date>/`.
-- Temporary debugging: the operating-system temporary directory. If a root `.tmp_*` directory is unavoidable, remove it before handoff.
+```text
+Source != Spec != Example != Evidence != Runtime
 
-## Retention decisions
-
-Use this order before moving or deleting anything:
-
-1. Check whether Git tracks the path.
-2. Search `project_management/`, `docs/`, tests, and the enterprise-experience pack for references.
-3. Preserve canonical artifacts and any evidence required to reproduce a reviewed claim.
-4. Prefer a concise tracked evidence summary plus ignored bulky runtime output for future runs.
-5. Delete only caches and reproducible temporary output whose exact path has been verified.
-
-Do not bulk-clean `artifacts/`, `generated/`, `runs/`, or `.service_worktree/` as a convenience operation. Their delivery authority may be absent, but they can still contain diagnostic or referenced evidence.
-
-## Routine checks
-
-```powershell
-python scripts/repository_hygiene.py
-python scripts/repository_hygiene.py --json
-git status --short
-pytest -q tests/test_repository_hygiene.py
+Runtime -> Promotion -> Curated Evidence -> Git
 ```
 
-The hygiene check is read-only. It reports root caches, temporary directories, live CGKN support state under examples, missing ignore boundaries, and missing core navigation surfaces. It never deletes files and never emits a formal evidence status.
+## Formal spec migration
+
+Formal definitions formerly stored under `examples/artifacts`,
+`examples/modules`, `examples/flows`, `examples/policies`, and
+`examples/migrations` now live under matching `specs/` directories. Internal
+loaders are specs-first. A deprecated examples fallback exists only for older
+external workspaces; it emits a warning and must not receive new definitions.
+
+## Evidence promotion
+
+Promote only a bounded summary from a local run:
+
+```powershell
+python scripts/promote_evidence.py `
+  --run-dir runs/<run-id> `
+  --output evidence/<category>/<version> `
+  --claim "bounded claim" `
+  --status PASS_WITH_LIMITS `
+  --reproduction-command "python ..."
+```
+
+Promotion excludes caches, complete artifacts, checkpoints, raw Provider
+responses, duplicate generated files, and raw logs. A curated bundle is support
+evidence and cannot replace canonical evidence, `local_packager`, or delivery
+authority.
+
+## Cleanup and hygiene
+
+Audit and preview cleanup without changing files:
+
+```powershell
+python scripts/repository_cleanup.py --audit
+python scripts/repository_cleanup.py --dry-run
+python scripts/repository_hygiene.py --json
+```
+
+`--apply` is branch-restricted and performs `git mv` plus `git rm --cached`;
+it does not delete local runtime data. Repository hygiene fails on tracked raw
+runtime, live `.cgkn` state, runtime data under examples, files over 10 MB
+unless allowlisted, and missing navigation/ignore boundaries. Files over 2 MB,
+evidence bundles over 5 MB, and example bundles over 5 MB are warnings.
+
+## Validation
+
+```powershell
+python scripts/validate_bundle.py --root . --schema
+python scripts/repository_hygiene.py
+python -m pytest tests/test_artifact_driven_kernel.py tests/test_kernel_contract.py tests/test_repository_hygiene.py -q
+```

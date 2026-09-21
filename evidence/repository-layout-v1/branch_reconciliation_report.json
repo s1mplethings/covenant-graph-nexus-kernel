@@ -1,0 +1,42 @@
+{
+  "kind": "CGKNBranchReconciliationReport",
+  "schemaVersion": "1",
+  "mainSha": "5a26ae45bbfe17114ab7669cb5f7c3dbb90222b9",
+  "branchSha": "bc02f96105c71eb9cdb401ad9413c7d4f6b2c046",
+  "branch": "codex/repository-layout-v1",
+  "ahead": 86,
+  "behind": 0,
+  "majorFeatureGroups": [
+    ".gitattributes",
+    ".gitignore",
+    "AGENTS.md",
+    "EDITION.md",
+    "README.md",
+    "VERSION",
+    "benchmarks",
+    "cgkn",
+    "config",
+    "contracts",
+    "demo_auto_generation.py",
+    "docs",
+    "examples",
+    "legacy",
+    "plugins",
+    "project_management",
+    "pytest.ini",
+    "schemas",
+    "scripts",
+    "skills",
+    "src",
+    "start_customer_service.py",
+    "test_e2e_service.py",
+    "tests",
+    "tools"
+  ],
+  "mergeRisks": [
+    "main and the Artifact-driven development branch contain broad independent changes",
+    "directory moves can conflict with changes that still target examples registries",
+    "Provider and delivery mainline must be protected during reconciliation"
+  ],
+  "recommendedMergeStrategy": "review and merge the cleanup branch into the Artifact-driven branch first; reconcile that reviewed tip with main using a non-force merge or PR, never history rewriting"
+}

@@ -761,7 +761,7 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
             "local_librarian": {
                 "provider": model_hint.get("provider", "none"),
                 "model": model_hint.get("model", ""),
-                "catalog_basis": "examples/modules + examples/artifacts + examples/flows + examples/policies",
+                "catalog_basis": "specs/modules + specs/artifacts + specs/flows + specs/policies",
                 "top_local_matches": scored[:8],
                 "notes": model_hint.get("result", {}).get("librarian_notes", "") if isinstance(model_hint.get("result"), dict) else "",
             },

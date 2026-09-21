@@ -31,7 +31,7 @@ from cgkn.runtime.effects import EffectConstraintViolation, EffectCounter
 
 
 FLOW = "flow.artifact_driven_project_refactor@1"
-PROJECT = json.loads((ROOT / "examples" / "artifact_driven_demo" / "todo_project.json").read_text(encoding="utf-8"))
+PROJECT = json.loads((ROOT / "examples" / "artifact-driven" / "todo-refactor" / "todo_project.json").read_text(encoding="utf-8"))
 
 
 def seed(store: ArtifactStore, artifact_type: str, content: dict, port: str, *, node: str = "flow_input", supersedes=None):

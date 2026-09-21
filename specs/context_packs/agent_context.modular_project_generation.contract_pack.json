@@ -1,0 +1,87 @@
+{
+  "kind": "ContractPack",
+  "schema_version": "1",
+  "version": "1",
+  "task": {
+    "target": "cgnk.modular_project_generation",
+    "intent": "Keep the project-generation process as independent CGNK modules that converge only through unified control."
+  },
+  "allowed_files": [
+    "specs/artifacts/**",
+    "specs/modules/**",
+    "specs/flows/**",
+    "specs/policies/**",
+    "specs/migrations/**",
+    "tests/fixtures/compile_results/**",
+    "tests/fixtures/project_memory/**",
+    "implementation_plan/**",
+    "README.md"
+  ],
+  "denied_files": [
+    ".git/**",
+    ".env",
+    "secrets/**",
+    "*.pem",
+    "*.key"
+  ],
+  "flow": "flow.modular_project_generation@1",
+  "policy": "policy.safe_modular_project_generation@1",
+  "migration": "migration.modular_project_generation@1",
+  "required_modules": [
+    "module.conversation.reduce@1",
+    "module.customer.service@1",
+    "module.requirement_blueprint.generator@1",
+    "module.local.librarian@1",
+    "module.online.library_sources@1",
+    "module.feature.library_search@1",
+    "module.local_agent.plan@1",
+    "module.adversarial_generation@1",
+    "module.project.generator@1",
+    "module.test_graph.emit@1",
+    "module.effect_report.emit@1",
+    "module.generation_checkpoint.commit@1",
+    "module.context_pack.build@1",
+    "module.unified_control@1"
+  ],
+  "required_artifacts": [
+    "artifact.goal@1",
+    "artifact.conversation_turn@1",
+    "artifact.customer_request@1",
+    "artifact.conversation_state@1",
+    "artifact.decision_ledger@1",
+    "artifact.requirement_blueprint@1",
+    "artifact.local_library_index@1",
+    "artifact.online_library_sources@1",
+    "artifact.feature_library_candidates@1",
+    "artifact.local_agent_plan@1",
+    "artifact.adversarial_review@1",
+    "artifact.project_blueprint@1",
+    "artifact.generation_trace@1",
+    "artifact.generation_checkpoint@1",
+    "artifact.context_pack@1",
+    "artifact.test_graph@1",
+    "artifact.effect_report@1",
+    "artifact.project_memory_markdown@1"
+  ],
+  "allowed_graph_edits": [
+    "add_node",
+    "replace_node",
+    "connect",
+    "disconnect",
+    "split_edge",
+    "add_gate",
+    "upgrade_module_version"
+  ],
+  "required_checks": [
+    "schema",
+    "reference_validation",
+    "flow_compile"
+  ],
+  "compiler_contract": {
+    "command": "python scripts/validate_bundle.py --flow flow.modular_project_generation@1 --schema",
+    "expected": {
+      "ok": true,
+      "errors": 0
+    }
+  }
+}

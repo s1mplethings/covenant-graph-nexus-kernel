@@ -61,6 +61,14 @@ reviewed Provider generation mainline, canonical evidence producers,
 
 ## Important files
 
+- `cgkn/` — typed Artifact Kernel source: artifact models, compiler, and runtime.
+- `specs/` — authoritative machine-readable Artifact, Module, Flow, Policy,
+  Migration, and Context Pack registry.
+- `schemas/` and `contracts/` — JSON schemas and stable interface contracts.
+- `examples/` — small human-readable inputs and expected summaries only.
+- `evidence/` — curated claims, metrics, hashes, reproduction commands, and
+  known limits; raw runs are excluded.
+- `tests/fixtures/` — small deterministic test-only fixtures.
 - `scripts/codex_conversation.py` — import-only conversation orchestration,
   generation entry, guarded replies, evidence gates, and delivery handoff.
 - `scripts/provider_jobs.py` — minimal deterministic DAG executor and PatchSet ownership boundary.
@@ -76,8 +84,15 @@ reviewed Provider generation mainline, canonical evidence producers,
 
 ```powershell
 python scripts/kernel_contract_check.py
+python scripts/validate_bundle.py --root . --schema
+python scripts/repository_hygiene.py
 python -m pytest tests/test_kernel_contract.py tests/test_codex_conversation.py tests/test_codex_public_delivery_gate.py -q
 ```
+
+Local output belongs under ignored `runs/`, `artifacts/`, `generated/`, or
+`workspaces/`. Promote a durable claim with `scripts/promote_evidence.py`; do
+not commit complete run workspaces or live `.cgkn` state. See
+`docs/repository_guide.md` for the retention model.
 
 Provider credentials are used only by the reviewed Provider route. No
 conversation transport credential is required.

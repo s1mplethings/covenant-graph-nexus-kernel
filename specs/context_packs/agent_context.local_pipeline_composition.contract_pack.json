@@ -1,0 +1,60 @@
+{
+  "kind": "ContractPack",
+  "schema_version": "1",
+  "version": "1",
+  "task": {
+    "target": "cgnk.local_pipeline_composition",
+    "intent": "Understand the local CGNK project and compose a module pipeline from available contracts."
+  },
+  "allowed_files": [
+    "specs/artifacts/**",
+    "specs/modules/**",
+    "specs/flows/**",
+    "specs/policies/**",
+    "specs/migrations/**",
+    "tests/fixtures/compile_results/**",
+    "examples/test_results/**",
+    "examples/runtime_runs/**",
+    "implementation_plan/**",
+    "README.md"
+  ],
+  "denied_files": [
+    ".git/**",
+    ".env",
+    "secrets/**",
+    "*.pem",
+    "*.key"
+  ],
+  "flow": "flow.local_pipeline_composition@1",
+  "policy": "policy.safe_local_pipeline_composition@1",
+  "migration": "migration.local_pipeline_composition@1",
+  "required_modules": [
+    "module.customer.service@1",
+    "module.local.pipeline_composer_agent@1"
+  ],
+  "required_artifacts": [
+    "artifact.goal@1",
+    "artifact.customer_request@1",
+    "artifact.local_library_index@1",
+    "artifact.project_understanding_index@1",
+    "artifact.pipeline_composition_plan@1"
+  ],
+  "allowed_graph_edits": [
+    "add_node",
+    "connect",
+    "add_gate"
+  ],
+  "required_checks": [
+    "schema",
+    "reference_validation",
+    "flow_compile",
+    "local_pipeline_composer_smoke"
+  ],
+  "compiler_contract": {
+    "command": "python scripts/validate_bundle.py --flow flow.local_pipeline_composition@1 --schema",
+    "expected": {
+      "ok": true,
+      "errors": 0
+    }
+  }
+}

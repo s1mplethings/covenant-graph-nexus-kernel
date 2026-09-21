@@ -1,0 +1,28 @@
+{
+  "kind": "ArtifactDrivenTodoRefactorExpectedSummary",
+  "schemaVersion": "1",
+  "initialArtifacts": [
+    "RawRequirement",
+    "RequirementInterpretation",
+    "ProjectSnapshot",
+    "ProblemAnalysis",
+    "ArchitectureDecision",
+    "RefactorPlan",
+    "ImplementationPatch",
+    "TestEvidence",
+    "BoundaryReport",
+    "DeliveryJudgment"
+  ],
+  "changedInput": "RequirementInterpretation",
+  "expectedUnaffectedNodes": ["n_project_snapshot"],
+  "expectedRecomputedNodes": [
+    "n_problem_analysis",
+    "n_architecture",
+    "n_refactor_plan",
+    "n_implementation",
+    "n_tests",
+    "n_boundary",
+    "n_delivery"
+  ],
+  "formalEvidenceStatus": "NOT_EVALUATED"
+}

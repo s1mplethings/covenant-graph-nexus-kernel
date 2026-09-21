@@ -1,5 +1,22 @@
 # CGKN Kernel Contract
 
+## Repository layout and retention
+
+Formal machine Artifact, Module, Flow, Policy, Migration, and Context Pack
+definitions live under `specs/`; `examples/` contains only small human-readable
+examples. Internal loaders are specs-first. A deprecated `examples/<category>`
+fallback may be used only for an older external workspace and must emit a
+warning.
+
+Raw `runs/`, `artifacts/`, `generated/`, Provider output, live `.cgkn` state,
+project memory, caches, screenshots, and logs are local runtime data and MUST
+NOT be tracked in the current repository HEAD. Durable claims are promoted to a
+small `evidence/` bundle containing the claim, canonical status, metrics,
+important hashes, test result, reproduction command, and known limitations.
+Promotion cannot authorize formal evidence, packaging, or delivery and cannot
+change Artifact Runtime, Provider, `local_packager`, or public-delivery
+semantics.
+
 ## Artifact-driven pipeline kernel (v0.3 normative addition)
 
 The artifact-driven runtime is an additive typed execution lane. It MUST NOT
