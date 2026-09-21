@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/project_generation_benchmark_report_v1.schema.json",
+  "title": "CGKN Project Generation Benchmark v1 Report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["kind", "schema_version", "benchmark_id", "run_id", "mode", "version_binding", "summary", "case_results", "hidden_acceptance_isolation", "evaluator_independent", "production_contamination"],
+  "properties": {
+    "kind": {"const": "CGKNProjectGenerationBenchmarkReport"},
+    "schema_version": {"const": "1.0.0"},
+    "benchmark_id": {"const": "CGKN_PROJECT_GENERATION_BENCHMARK_V1"},
+    "run_id": {"type": "string", "minLength": 8},
+    "mode": {"enum": ["HARNESS_DRY_RUN", "LIVE"]},
+    "hidden_acceptance_isolation": {"enum": ["PASS", "FAIL"]},
+    "evaluator_independent": {"const": true},
+    "production_verdict_used": {"const": false},
+    "version_binding": {
+      "type": "object",
+      "required": ["repo_sha", "branch", "provider", "model", "parallelism", "config_sha256", "schema_version"]
+    },
+    "summary": {
+      "type": "object",
+      "required": ["case_count", "counts", "pass_rate", "average_score", "provider_api_calls", "codex_invocations", "total_tokens", "actual_cost", "elapsed_seconds", "one_shot_success_rate", "repair_success_rate", "requirement_coverage", "median_provider_calls", "median_provider_wall_time", "median_codex_calls", "overall_score"]
+    },
+    "case_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "level", "result", "score", "runtime_status", "delivery_status", "metrics"],
+        "properties": {
+          "result": {"enum": ["PROJECT_PASS", "PROJECT_FAIL", "BLOCKED_PROVIDER", "NOT_EVALUATED"]}
+        }
+      }
+    },
+    "production_contamination": {
+      "type": "object",
+      "required": ["status", "findings"],
+      "properties": {"status": {"enum": ["PASS", "FAIL"]}, "findings": {"type": "array"}}
+    }
+  }
+}

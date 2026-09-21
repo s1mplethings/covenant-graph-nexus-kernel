@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import compose_local_pipeline
 import run_local_pipeline
+
+pytestmark = pytest.mark.slow
 
 
 def assert_true(value: bool, message: str) -> None:
@@ -61,7 +65,7 @@ def test_merge_conflict() -> None:
 
 
 def test_component_provider_orchestration() -> None:
-    original = run_local_pipeline.provider_generate_project_component
+    original = run_local_pipeline._impl.provider_generate_project_component
 
     def fake_provider(**kwargs):
         component = kwargs["component"]
@@ -86,7 +90,7 @@ def test_component_provider_orchestration() -> None:
         }
 
     try:
-        run_local_pipeline.provider_generate_project_component = fake_provider
+        run_local_pipeline._impl.provider_generate_project_component = fake_provider
         plan = {
             "kind": "ComponentPipelinePlan",
             "components": [
@@ -107,7 +111,7 @@ def test_component_provider_orchestration() -> None:
             1,
         )
     finally:
-        run_local_pipeline.provider_generate_project_component = original
+        run_local_pipeline._impl.provider_generate_project_component = original
     paths = {row["path"] for row in generation["files"]}
     assert_true(paths == {"src/app.py", "README.md", "TEST_PLAN.md"}, "component orchestration produced wrong files")
     assert_true([row["id"] for row in generation["components"]] == ["foundation", "docs"], "component order not preserved")

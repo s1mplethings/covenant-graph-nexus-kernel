@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/artifact_content_types.v1.schema.json",
+  "$defs": {
+    "RawRequirement": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {"text": {"type": "string", "minLength": 1}, "source": {"type": "string"}}
+    },
+    "ProjectSource": {
+      "type": "object",
+      "required": ["projectType", "languages", "frameworks", "modules", "importantFiles", "existingCapabilities", "tests", "boundaries", "knownRisks"],
+      "additionalProperties": false,
+      "properties": {
+        "projectType": {"type": "string"}, "languages": {"type": "array", "items": {"type": "string"}},
+        "frameworks": {"type": "array", "items": {"type": "string"}}, "modules": {"type": "array", "items": {"type": "string"}},
+        "importantFiles": {"type": "array", "items": {"type": "string"}}, "existingCapabilities": {"type": "array", "items": {"type": "string"}},
+        "tests": {"type": "array", "items": {"type": "string"}}, "boundaries": {"type": "array", "items": {"type": "string"}},
+        "knownRisks": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "RequirementInterpretation": {
+      "type": "object",
+      "required": ["goal", "explicitRequirements", "constraints", "nonGoals", "ambiguities", "assumptions"],
+      "additionalProperties": false,
+      "properties": {
+        "goal": {"type": "string", "minLength": 1}, "explicitRequirements": {"type": "array", "items": {"type": "string"}},
+        "constraints": {"type": "array", "items": {"type": "string"}}, "nonGoals": {"type": "array", "items": {"type": "string"}},
+        "ambiguities": {"type": "array", "items": {"type": "string"}}, "assumptions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "ProjectSnapshot": {"$ref": "#/$defs/ProjectSource"},
+    "ProblemAnalysis": {
+      "type": "object", "required": ["observedProblems", "rootCauses", "affectedAreas", "requiredCapabilities", "invariants", "risks"], "additionalProperties": false,
+      "properties": {
+        "observedProblems": {"type": "array", "items": {"type": "string"}}, "rootCauses": {"type": "array", "items": {"type": "string"}},
+        "affectedAreas": {"type": "array", "items": {"type": "string"}}, "requiredCapabilities": {"type": "array", "items": {"type": "string"}},
+        "invariants": {"type": "array", "items": {"type": "string"}}, "risks": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "ArchitectureDecision": {
+      "type": "object", "required": ["decisions", "newConcepts", "modifiedConcepts", "interfaces", "tradeoffs", "rejectedAlternatives"], "additionalProperties": false,
+      "properties": {
+        "decisions": {"type": "array", "items": {"type": "string"}}, "newConcepts": {"type": "array", "items": {"type": "string"}},
+        "modifiedConcepts": {"type": "array", "items": {"type": "string"}}, "interfaces": {"type": "array", "items": {"type": "string"}},
+        "tradeoffs": {"type": "array", "items": {"type": "string"}}, "rejectedAlternatives": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "RefactorPlan": {
+      "type": "object", "required": ["steps", "filesToModify", "filesToCreate", "migrations", "testRequirements", "boundaryRequirements"], "additionalProperties": false,
+      "properties": {
+        "steps": {"type": "array", "items": {"type": "string"}}, "filesToModify": {"type": "array", "items": {"type": "string"}},
+        "filesToCreate": {"type": "array", "items": {"type": "string"}}, "migrations": {"type": "array", "items": {"type": "string"}},
+        "testRequirements": {"type": "array", "items": {"type": "string"}}, "boundaryRequirements": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "ImplementationPatch": {
+      "type": "object", "required": ["changedFiles", "createdFiles", "deletedFiles", "commit"], "additionalProperties": false,
+      "properties": {
+        "changedFiles": {"type": "array", "items": {"type": "string"}}, "createdFiles": {"type": "array", "items": {"type": "string"}},
+        "deletedFiles": {"type": "array", "items": {"type": "string"}}, "commit": {"type": ["string", "null"]}
+      }
+    },
+    "TestEvidence": {
+      "type": "object", "required": ["status", "testsRun", "passed", "failed", "evidenceRefs"], "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["PASS", "PASS_WITH_LIMITS", "NOT_EVALUATED", "BLOCKED", "BLOCKED_PROVIDER", "BLOCKED_LOCAL_MODEL", "BLOCKED_ENVIRONMENT", "NEEDS_REWORK", "FAIL"]},
+        "testsRun": {"type": "array", "items": {"type": "string"}}, "passed": {"type": "integer", "minimum": 0}, "failed": {"type": "integer", "minimum": 0},
+        "evidenceRefs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "BoundaryReport": {
+      "type": "object", "required": ["status", "checks", "violations"], "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["PASS", "PASS_WITH_LIMITS", "NOT_EVALUATED", "BLOCKED", "BLOCKED_PROVIDER", "BLOCKED_LOCAL_MODEL", "BLOCKED_ENVIRONMENT", "NEEDS_REWORK", "FAIL"]},
+        "checks": {"type": "array", "items": {"type": "string"}}, "violations": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "DeliveryJudgment": {
+      "type": "object", "required": ["evidenceStatus", "requiredArtifactsPresent", "lineageComplete", "gatesPassed", "staleArtifacts", "diagnostics"], "additionalProperties": false,
+      "properties": {
+        "evidenceStatus": {"enum": ["PASS", "PASS_WITH_LIMITS", "NOT_EVALUATED", "BLOCKED", "BLOCKED_PROVIDER", "BLOCKED_LOCAL_MODEL", "BLOCKED_ENVIRONMENT", "NEEDS_REWORK", "FAIL"]},
+        "requiredArtifactsPresent": {"type": "boolean"}, "lineageComplete": {"type": "boolean"}, "gatesPassed": {"type": "boolean"},
+        "staleArtifacts": {"type": "array", "items": {"type": "string"}}, "diagnostics": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-076",
+  "project_id": "cgkn",
+  "goal": "Deliver CGKN Repository Layout v1 without changing Artifact Runtime, Provider, packaging, or delivery behavior.",
+  "backlog_item_ids": ["PB-054"],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Formal artifact, module, flow, policy, migration, and context-pack definitions load from specs/.",
+    "Raw artifacts, runs, generated output, live project memory, and historical iteration detail are not tracked in HEAD.",
+    "Before/after metrics, inventory, reference graph, branch report, cleanup plan, and curated Artifact Kernel evidence exist.",
+    "Artifact Kernel, kernel contract, repository hygiene, schema, and important legacy flow validation pass.",
+    "No Git history rewrite, force push, local runtime deletion, Provider-mainline change, or delivery-authority change occurs."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-LAYOUT-RUNTIME",
+      "measure": "tracked raw runtime files",
+      "target": "0 under prohibited runtime prefixes",
+      "method": "repository hygiene guard and after metrics"
+    },
+    {
+      "id": "QM-LAYOUT-REFS",
+      "measure": "broken formal registry references",
+      "target": "0",
+      "method": "reference scan, schema validation, and flow compilation"
+    },
+    {
+      "id": "QM-LAYOUT-REGRESSION",
+      "measure": "targeted cleanup, Artifact Kernel, and kernel contract tests",
+      "target": "all pass",
+      "method": "pytest targeted profile"
+    }
+  ],
+  "quality_activities": {
+    "prevention": ["Generate inventory, reference graph, cleanup plan, and dry-run before applying moves or untracking."],
+    "assurance": ["Review changes against the kernel contract and confirm Provider and delivery mainline files are behaviorally unchanged."],
+    "control": ["Run schema, flow, Artifact Kernel, kernel contract, and repository hygiene checks."],
+    "improvement": ["Use curated evidence promotion and tracked-runtime guards for future runs."]
+  },
+  "interface_expectations": [
+    "specs-first loaders preserve a warning-based legacy examples fallback",
+    "cleanup apply never deletes local runtime data",
+    "curated evidence has no release authority"
+  ],
+  "evidence_refs": [
+    "evidence/repository-layout-v1/repository_metrics_before.json",
+    "evidence/repository-layout-v1/repository_metrics_after.json",
+    "evidence/repository-layout-v1/repository_cleanup_plan.json",
+    "evidence/repository-layout-v1/repository_reference_graph.json",
+    "evidence/repository-layout-v1/branch_reconciliation_report.json",
+    "evidence/repository-layout-v1/upload_manifest.json",
+    "evidence/repository-layout-v1/mainline_reconciliation.json",
+    "evidence/repository-layout-v1/branch_cleanup_candidates.json",
+    "evidence/artifact-kernel/v0.3/verification_summary.json",
+    "benchmarks/orbit_360_workbench/tests/test_orbit360.py",
+    "tests/test_repository_cleanup.py",
+    "tests/test_repository_hygiene.py",
+    "tests/test_specs_layout.py"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Repository Layout v1 meets its scoped acceptance: specs-first registry, zero tracked raw runtime, curated evidence, compact current project management, passing flow/schema/kernel/hygiene checks, and no Provider or delivery-mainline behavior change.",
+      "The complete repository-wide test suite was not rerun; acceptance is bounded to the requested layout and directly affected contracts. Two ignored local cache directories remain as hygiene warnings only."
+    ],
+    "accepted_backlog_item_ids": ["PB-054"]
+  },
+  "retrospective": {
+    "worked": [
+      "Audit and dry-run exposed that artifacts alone accounted for most tracked files and bytes.",
+      "git rm --cached preserved local runtime data while reducing HEAD to source, specs, examples, curated evidence, and current governance.",
+      "A specs-first compatibility loader allowed formal registry migration without changing Artifact Runtime semantics."
+    ],
+    "did_not_work": [
+      "Attempted local cache deletion was blocked by the host safety policy; the read-only guard now reports ignored local caches as warnings while continuing to fail tracked caches."
+    ],
+    "experiments": [
+      "For the next evidence-producing run, use promote_evidence.py immediately and compare the curated bundle size with raw run size before any Git review."
+    ]
+  }
+}

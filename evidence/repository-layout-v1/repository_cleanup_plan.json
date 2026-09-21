@@ -1,0 +1,121 @@
+{
+  "kind": "CGKNRepositoryCleanupPlan",
+  "schemaVersion": "1",
+  "moves": [
+    {
+      "from": "examples/artifacts",
+      "to": "specs/artifacts"
+    },
+    {
+      "from": "examples/modules",
+      "to": "specs/modules"
+    },
+    {
+      "from": "examples/flows",
+      "to": "specs/flows"
+    },
+    {
+      "from": "examples/policies",
+      "to": "specs/policies"
+    },
+    {
+      "from": "examples/migrations",
+      "to": "specs/migrations"
+    },
+    {
+      "from": "examples/compile_results",
+      "to": "tests/fixtures/compile_results"
+    },
+    {
+      "from": "examples/proposals",
+      "to": "tests/fixtures/proposals"
+    },
+    {
+      "from": "examples/boundary",
+      "to": "examples/minimal/boundary"
+    },
+    {
+      "from": "examples/knowledge",
+      "to": "examples/project-generation/knowledge"
+    },
+    {
+      "from": "examples/artifact_driven_demo",
+      "to": "examples/artifact-driven/todo-refactor"
+    },
+    {
+      "from": "examples/agent_context.local_pipeline_composition.contract_pack.json",
+      "to": "specs/context_packs/agent_context.local_pipeline_composition.contract_pack.json"
+    },
+    {
+      "from": "examples/agent_context.local_pipeline_execution.contract_pack.json",
+      "to": "specs/context_packs/agent_context.local_pipeline_execution.contract_pack.json"
+    },
+    {
+      "from": "examples/agent_context.modular_project_generation.contract_pack.json",
+      "to": "specs/context_packs/agent_context.modular_project_generation.contract_pack.json"
+    },
+    {
+      "from": "examples/agent_context.project_generation.contract_pack.json",
+      "to": "specs/context_packs/agent_context.project_generation.contract_pack.json"
+    },
+    {
+      "from": "examples/agent_context.project_refactor.contract_pack.json",
+      "to": "specs/context_packs/agent_context.project_refactor.contract_pack.json"
+    }
+  ],
+  "untrack": [
+    "artifacts",
+    "examples/project_memory",
+    "examples/local_studio",
+    "examples/product_studio",
+    "examples/artifact-driven/todo-refactor/incremental_recompute_evidence.json",
+    "examples/artifact-driven/todo-refactor/sample_run.json",
+    "project_management/cgkn",
+    "project_management/ENTERPRISE_EXPERIENCE.md",
+    "project_management/enterprise_experience.json"
+  ],
+  "delete": [],
+  "promoteToEvidence": [
+    {
+      "source": "runs/<run-id>",
+      "target": "evidence/<category>/<version>",
+      "method": "scripts/promote_evidence.py"
+    },
+    {
+      "source": "artifacts historical claims",
+      "target": "evidence/artifact-kernel/v0.3",
+      "method": "curated summary only"
+    }
+  ],
+  "keep": [
+    "cgkn",
+    "contracts",
+    "schemas",
+    "scripts",
+    "tests",
+    "benchmarks",
+    "docs",
+    "plugins",
+    "skills",
+    "tools",
+    "legacy"
+  ],
+  "referenceUpdates": [
+    {
+      "from": "examples/<registry>",
+      "to": "specs/<registry>",
+      "scope": "loaders, policies, tests, docs, CLI"
+    },
+    {
+      "from": "project_management/cgkn",
+      "to": "project_management/current and project_management/summaries",
+      "scope": "governance docs and tests"
+    }
+  ],
+  "compatibilityChanges": [
+    "specs-first loader with deprecated examples fallback and warning"
+  ],
+  "estimatedFileReduction": 3581,
+  "estimatedSizeReductionBytes": 16395663,
+  "brokenReferenceRisk": "high until referenceUpdates are complete; validation is mandatory before commit"
+}

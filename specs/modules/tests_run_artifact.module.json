@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.tests.run_artifact","version":"1",
+  "ports":{"input":{"patch":{"artifact_type":"artifact.implementation_patch@1","required":true,"projection":["changedFiles","createdFiles"]}},"output":{"evidence":{"artifact_type":"artifact.test_evidence@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":["project/**","tests/**"],"fs_write":[],"network":false,"provider_call":false,"risk":1},
+  "compatibility":{"replaceable":true,"movable":true,"surface_rule":"same_or_compatible","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":2800,"requiredArtifactPorts":["patch"],"optionalArtifactPorts":[],"includeDecisionLedger":false,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:run_tests","promptVersion":"tests-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

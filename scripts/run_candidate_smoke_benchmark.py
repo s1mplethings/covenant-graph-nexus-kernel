@@ -14,7 +14,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import check_test_environment
-import run_local_pipeline
+import run_local_pipeline_impl as run_local_pipeline
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

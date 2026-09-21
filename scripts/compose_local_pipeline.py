@@ -77,6 +77,63 @@ BASE_COMPONENT_PIPELINE = [
     },
 ]
 
+MEDIA_PRODUCT_TERMS = (
+    "视频处理",
+    "视频素材",
+    "视频创作者",
+    "素材处理",
+    "音频处理",
+    "视频剪辑",
+    "剪辑工作台",
+    "切片工作台",
+    "视频切片",
+    "长视频",
+    "候选片段",
+    "转录",
+    "图片生成",
+    "图像生成",
+    "背景生成",
+    "立绘",
+    "video processing",
+    "video workbench",
+    "video slicer",
+    "video clip",
+    "media processing",
+    "video material",
+    "image generation",
+    "image preview",
+    "sprite generation",
+    "transcribe",
+    "clip selection",
+)
+
+DELIVERY_EVIDENCE_TERMS = (
+    "截图",
+    "演示视频",
+    "demo video",
+    "screenshot",
+    "测试报告",
+    "test report",
+    "delivery_manifest",
+    "final_project_bundle",
+    "public delivery gate",
+)
+
+DATA_PRODUCT_TERMS = (
+    "sqlite",
+    "postgres",
+    "mysql",
+    "sql database",
+    "database storage",
+    "database persistence",
+    "数据库存储",
+    "数据库持久化",
+    "后端存储",
+    "server-side persistence",
+)
+
+DATA_NEGATION_TERMS = ("不依赖数据库", "不使用数据库", "无需数据库", "no database", "without database")
+
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -160,8 +217,14 @@ def score_modules(goal: str, modules: list[dict[str, Any]]) -> list[dict[str, An
 
 def build_component_pipeline(goal: str) -> dict[str, Any]:
     lowered = str(goal or "").lower()
+    product_chunks = [
+        chunk.strip()
+        for chunk in re.split(r"[\n。！？!?；;]+", lowered)
+        if chunk.strip() and not any(term in chunk for term in DELIVERY_EVIDENCE_TERMS)
+    ]
+    product_goal = "\n".join(product_chunks) or lowered
     components = [dict(row) for row in BASE_COMPONENT_PIPELINE]
-    if any(token in lowered for token in ("image", "video", "audio", "media", "图片", "图像", "视频", "音频", "立绘", "背景")):
+    if any(token in product_goal for token in MEDIA_PRODUCT_TERMS):
         components.insert(
             3,
             {
@@ -174,7 +237,10 @@ def build_component_pipeline(goal: str) -> dict[str, Any]:
                 "prompt_max_chars": 4200,
             },
         )
-    if any(token in lowered for token in ("database", "db", "sql", "storage", "数据", "数据库", "存储")):
+    data_negated = any(token in product_goal for token in DATA_NEGATION_TERMS) or bool(
+        re.search(r"(?:不依赖|不使用|无需|不要)[^。\n]{0,16}数据库", product_goal)
+    )
+    if not data_negated and any(token in product_goal for token in DATA_PRODUCT_TERMS):
         components.insert(
             2,
             {
@@ -333,21 +399,36 @@ def normalize_local_agent_management(
 def component_pipeline_from_management(fallback_pipeline: dict[str, Any], management: dict[str, Any]) -> dict[str, Any]:
     if management.get("source") != "local_model":
         return fallback_pipeline
-    components = [row for row in management.get("phase_routing", []) if isinstance(row, dict)]
-    if not components:
+    managed_routes = [row for row in management.get("phase_routing", []) if isinstance(row, dict)]
+    if not managed_routes:
         return fallback_pipeline
+    canonical_components = [dict(row) for row in fallback_pipeline.get("components", []) if isinstance(row, dict)]
+    components: list[dict[str, Any]] = []
+    for index, component in enumerate(canonical_components):
+        managed = managed_routes[min(index, len(managed_routes) - 1)] if managed_routes else {}
+        components.append(
+            {
+                **component,
+                "agent_focus": str(managed.get("agent_focus") or "").strip()[:300],
+                "acceptance_gate": string_items(managed.get("acceptance_gate"), limit=8),
+                "handoff_notes": string_items(managed.get("handoff_notes"), limit=8),
+                "managed_route_id": str(managed.get("id") or "").strip(),
+                "managed_route_label": str(managed.get("label") or "").strip()[:120],
+            }
+        )
     merge_policy = dict(fallback_pipeline.get("merge_policy", {}))
     retry_policy = management.get("retry_policy", {}) if isinstance(management.get("retry_policy"), dict) else {}
     if retry_policy.get("retry_scope"):
         merge_policy["retry_scope"] = retry_policy["retry_scope"]
     return {
         **fallback_pipeline,
-        "strategy": "local_model_managed_component_routing",
-        "quality_goal": "Local model manages component boundaries, handoffs, gates, and repair scope before provider or execution stages.",
+        "strategy": "local_model_guided_canonical_component_routing",
+        "quality_goal": "Local model guides focus, handoffs, gates, and repair scope while reviewed component ids and path ownership remain canonical.",
         "components": components,
         "merge_policy": merge_policy,
         "execution_order": [row["id"] for row in components],
         "local_agent_management_source": management.get("source", ""),
+        "managed_phase_routing": managed_routes,
     }
 
 
@@ -680,7 +761,7 @@ def compose(goal: str, *, allow_network: bool = False, allow_provider: bool = Fa
             "local_librarian": {
                 "provider": model_hint.get("provider", "none"),
                 "model": model_hint.get("model", ""),
-                "catalog_basis": "examples/modules + examples/artifacts + examples/flows + examples/policies",
+                "catalog_basis": "specs/modules + specs/artifacts + specs/flows + specs/policies",
                 "top_local_matches": scored[:8],
                 "notes": model_hint.get("result", {}).get("librarian_notes", "") if isinstance(model_hint.get("result"), dict) else "",
             },

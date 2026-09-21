@@ -27,10 +27,13 @@ def _legacy() -> Any:
     top_level = sys.modules.get("run_local_pipeline")
     if top_level is not None and hasattr(top_level, "real_image_file"):
         return top_level
+    implementation = sys.modules.get("scripts.run_local_pipeline_impl")
+    if implementation is not None:
+        return implementation
     try:
-        return importlib.import_module("run_local_pipeline")
+        return importlib.import_module("scripts.run_local_pipeline_impl")
     except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
+        return importlib.import_module("run_local_pipeline_impl")
 
 
 def _legacy_call(name: str, *args: Any, **kwargs: Any) -> Any:
@@ -38,7 +41,13 @@ def _legacy_call(name: str, *args: Any, **kwargs: Any) -> Any:
 
 
 def real_image_file(path: pathlib.Path) -> bool:
-    return bool(_legacy_call("real_image_file", path))
+    try:
+        from canonical_media_validation import validate_image
+    except ModuleNotFoundError:
+        from scripts.canonical_media_validation import validate_image
+    target = pathlib.Path(path)
+    result = validate_image(target, target.parent, requested_role="screenshot")
+    return result.get("status") == "PASS"
 
 
 def video_requested(explicit: bool | None = None) -> bool:
@@ -191,6 +200,9 @@ def startup_base_details(
         "page_title": "",
         "body_text_length": 0,
         "body_text_sample": "",
+        "interactive_control_count": 0,
+        "section_count": 0,
+        "heading_count": 0,
         "console_errors": [],
         "network_errors": [],
         "screenshot_attempted": False,
@@ -243,6 +255,19 @@ def _open_and_capture(url: str, out: pathlib.Path, details: dict[str, Any], time
             page.goto(url, wait_until="domcontentloaded", timeout=min(timeout, 30) * 1000)
             page.wait_for_timeout(500)
             try:
+                preview_control = page.locator(
+                    '[data-action*="preview"], button[id*="preview"], [data-testid*="preview"]'
+                ).first
+                if preview_control.count() > 0:
+                    preview_control.click(timeout=2500)
+                    page.wait_for_timeout(300)
+                    details["preview_action_exercised"] = True
+                else:
+                    details["preview_action_exercised"] = False
+            except Exception as exc:
+                details["preview_action_exercised"] = False
+                details["preview_action_error"] = str(exc)[:500]
+            try:
                 details["page_title"] = str(page.title())
             except Exception:
                 details["page_title"] = ""
@@ -251,7 +276,108 @@ def _open_and_capture(url: str, out: pathlib.Path, details: dict[str, Any], time
             except Exception:
                 body_text = ""
             details["body_text_length"] = len(body_text)
-            details["body_text_sample"] = body_text[:500]
+            details["body_text_sample"] = body_text[:4000]
+            try:
+                structure = page.evaluate(
+                    """() => ({
+                        interactive_control_count: document.querySelectorAll(
+                            'button,input,select,textarea,[role="button"],[contenteditable="true"]'
+                        ).length,
+                        section_count: document.querySelectorAll(
+                            'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                        ).length,
+                        heading_count: document.querySelectorAll('h1,h2,h3').length,
+                        button_count: document.querySelectorAll('button').length,
+                        viewport_width: window.innerWidth,
+                        document_scroll_width: document.documentElement.scrollWidth,
+                        undersized_control_count: Array.from(document.querySelectorAll(
+                            'button,input,select,textarea,[role="button"]'
+                        )).filter((element) => {
+                            const rect = element.getBoundingClientRect();
+                            return rect.width < 44 || rect.height < 32;
+                        }).length,
+                        oversized_media_count: Array.from(document.querySelectorAll('img,canvas,video')).filter((element) => {
+                            const rect = element.getBoundingClientRect();
+                            return rect.width > window.innerWidth * 0.72 || rect.height > window.innerHeight * 0.72;
+                        }).length,
+                        empty_workspace_region_count: Array.from(document.querySelectorAll(
+                            'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                        )).filter((region) => !region.querySelector(
+                            'input,textarea,select,output,img,canvas,video,li,[data-node],[data-node-id],[data-preview]'
+                        )).length,
+                        unstyled_workspace_region_count: Array.from(document.querySelectorAll(
+                            'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                        )).filter((region) => {
+                            const style = getComputedStyle(region);
+                            const transparent = style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent';
+                            const noBorder = ['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth']
+                                .every((key) => parseFloat(style[key] || '0') === 0);
+                            return transparent && noBorder && (!style.boxShadow || style.boxShadow === 'none');
+                        }).length,
+                        narrow_workspace_region_count: Array.from(document.querySelectorAll(
+                            'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                        )).filter((region) => region.getBoundingClientRect().width < Math.min(320, window.innerWidth * 0.32)).length,
+                        max_workspace_regions_in_row: (() => {
+                            const regions = Array.from(document.querySelectorAll(
+                                'section, article, aside, [role="region"], [role="tabpanel"], .section, .panel, .workspace-region'
+                            )).filter((region) => region.getBoundingClientRect().width > 0);
+                            return regions.reduce((maximum, region) => {
+                                const top = region.getBoundingClientRect().top;
+                                const peers = regions.filter((candidate) => Math.abs(candidate.getBoundingClientRect().top - top) < 16).length;
+                                return Math.max(maximum, peers);
+                            }, 0);
+                        })(),
+                        blank_canvas_count: Array.from(document.querySelectorAll('canvas')).filter((canvas) => {
+                            try {
+                                const context = canvas.getContext('2d');
+                                if (!context || canvas.width < 1 || canvas.height < 1) return true;
+                                const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                                for (let index = 3; index < pixels.length; index += 4) {
+                                    if (pixels[index] !== 0) return false;
+                                }
+                                return true;
+                            } catch (_error) {
+                                return true;
+                            }
+                        }).length,
+                        flat_canvas_count: Array.from(document.querySelectorAll('canvas')).filter((canvas) => {
+                            try {
+                                const context = canvas.getContext('2d');
+                                if (!context || canvas.width < 1 || canvas.height < 1) return true;
+                                const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+                                const colors = new Set();
+                                for (let index = 0; index < pixels.length; index += 16) {
+                                    if (pixels[index + 3] === 0) continue;
+                                    colors.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]}`);
+                                    if (colors.size > 3) return false;
+                                }
+                                return colors.size <= 3;
+                            } catch (_error) {
+                                return true;
+                            }
+                        }).length,
+                        unthemed_header_count: Array.from(document.querySelectorAll('header')).filter((header) => {
+                            const style = getComputedStyle(header);
+                            const bodyStyle = getComputedStyle(document.body);
+                            const sameBackground = style.backgroundColor === bodyStyle.backgroundColor || style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent';
+                            const noBorder = ['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'].every((key) => parseFloat(style[key] || '0') === 0);
+                            const littleSpacing = ['paddingTop','paddingRight','paddingBottom','paddingLeft'].reduce((sum, key) => sum + parseFloat(style[key] || '0'), 0) < 16;
+                            return sameBackground && noBorder && (!style.boxShadow || style.boxShadow === 'none') && littleSpacing;
+                        }).length,
+                        browser_default_button_count: Array.from(document.querySelectorAll('button')).filter((button) => {
+                            const style = getComputedStyle(button);
+                            return parseFloat(style.borderRadius || '0') < 1 && (!style.boxShadow || style.boxShadow === 'none');
+                        }).length,
+                        status_region_count: document.querySelectorAll('[role="status"],[aria-live]').length,
+                        nonempty_status_region_count: Array.from(document.querySelectorAll('[role="status"],[aria-live]')).filter(
+                            (element) => (element.innerText || '').trim().length > 0
+                        ).length
+                    })"""
+                )
+            except Exception:
+                structure = {}
+            if isinstance(structure, dict):
+                details.update(structure)
             details["console_errors"] = console_errors[:20]
             details["network_errors"] = network_errors[:20]
             details["screenshot_attempted"] = True
@@ -342,7 +468,7 @@ def capture_candidate_screenshot(project_dir: pathlib.Path, run_dir: pathlib.Pat
                 return {"status": "pass", "screenshots": [str(out)], "screenshot_blocked": "", "attempts": attempts, "startup": candidate, "ui_smoke": smoke}
 
             last_error = "captured screenshot was missing or invalid" if real_image_file(out) else "captured screenshot was blank or invalid"
-            details["failure_reason"] = "page_blank" if int(details.get("body_text_length") or 0) <= 50 else _legacy_call(
+            details["failure_reason"] = "page_blank" if int(details.get("body_text_length") or 0) < 8 else _legacy_call(
                 "screenshot_failure_reason",
                 last_error,
                 failure_type="screenshot_failure",
@@ -483,7 +609,7 @@ def capture_candidate_video(
                         body_text = ""
                     details["body_text_length"] = len(body_text)
                     details["body_text_sample"] = body_text[:500]
-                    if len(body_text) <= 50:
+                    if len(body_text.strip()) < 8:
                         last_reason = "page_blank"
                     page.mouse.wheel(0, 600)
                     page.wait_for_timeout(1500)

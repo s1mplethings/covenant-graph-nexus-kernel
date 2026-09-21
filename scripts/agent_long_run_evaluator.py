@@ -53,9 +53,11 @@ def phase1_controlled_replay(out: pathlib.Path) -> dict[str, Any]:
     registry = read_json(phase / "agent_tree_registry.json", {})
     agents = registry.get("agents", [])
     leaves = [agent for agent in agents if not agent.get("children") and agent.get("agent_id") != "main_agent"]
+    topology_complete = len(agents) >= 20 and len(leaves) >= 10
+    final_verdict = str(result.get("verdict", "NOT_EVALUATED"))
     summary = {
-        "verdict": "PASS" if result.get("verdict") == "PASS" and len(agents) >= 20 and len(leaves) >= 10 else "FAIL",
-        "final_verdict": result.get("verdict"),
+        "verdict": final_verdict if topology_complete else "FAIL",
+        "final_verdict": final_verdict,
         "agent_count": len(agents),
         "spawn_actions": len(read_jsonl(phase / "spawn_actions.jsonl")),
         "leaf_count": len(leaves),

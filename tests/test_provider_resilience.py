@@ -109,3 +109,196 @@ def test_provider_preflight_uses_live_connectivity_quota_report() -> None:
 
     assert result["verdict"] == provider_resilience.PROVIDER_QUOTA_EXCEEDED
     assert result["metadata"]["live_generation_allowed"] is False
+
+
+def test_primary_preflight_uses_canonical_provider_credentials(monkeypatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(
+        provider_resilience.check_connectivity,
+        "_resolve_api_credentials",
+        lambda: {"api_key": "configured-canonical-key", "base_url": "https://provider.example/v1"},
+    )
+
+    cfg = config()
+    cfg["providers"][0]["connectivity_report"] = str(
+        ROOT / "examples" / "test_results" / "nonexistent_connectivity_report.json"
+    )
+
+    result = provider_resilience.provider_preflight(cfg)
+
+    assert result["verdict"] == provider_resilience.PROVIDER_OK
+    assert result["metadata"]["live_generation_allowed"] is True
+
+
+def test_provider_auto_select_uses_available_backup_when_primary_model_403() -> None:
+    cfg = {
+        "providers": [
+            {
+                "name": "primary",
+                "models": {"small": "primary-small", "large": "primary-large"},
+                "model_candidates": [
+                    {"model": "primary-large", "role": "large"},
+                    {"model": "primary-small", "role": "small"},
+                ],
+            },
+            {
+                "name": "backup",
+                "models": {"large": "backup-large"},
+                "model_candidates": [{"model": "backup-large", "role": "large"}],
+            },
+        ]
+    }
+
+    def model_probe(provider: dict, candidate: dict) -> dict:
+        status = provider_resilience.PROVIDER_OK if provider["name"] == "backup" else provider_resilience.PROVIDER_QUOTA_EXCEEDED
+        return {"name": provider["name"], "model": candidate["model"], "status": status, "structured_output_verified": status == provider_resilience.PROVIDER_OK}
+
+    result = provider_resilience.provider_preflight(cfg, live=True, model_probe=model_probe)
+
+    assert result["metadata"]["selected_provider"]["name"] == "backup"
+    assert result["metadata"]["selected_model"] == "backup-large"
+    assert result["metadata"]["all_provider_blocked"] is False
+
+
+def test_provider_auto_select_checks_multiple_models_before_quota_blocked() -> None:
+    checked: list[str] = []
+
+    def model_probe(provider: dict, candidate: dict) -> dict:
+        checked.append(candidate["model"])
+        return {"name": provider["name"], "status": provider_resilience.PROVIDER_QUOTA_EXCEEDED}
+
+    result = provider_resilience.provider_preflight(config(), live=True, model_probe=model_probe)
+
+    assert checked == ["small", "large"]
+    assert result["metadata"]["all_provider_blocked"] is True
+    assert result["metadata"]["blocker_reason"] == "NO_AVAILABLE_PROVIDER_MODEL"
+
+
+def test_provider_auto_select_prefers_structured_output_capable_model() -> None:
+    cfg = {
+        "providers": [
+            {
+                "name": "primary",
+                "models": {"large": "weak", "small": "structured"},
+                "model_candidates": [
+                    {"model": "weak", "role": "large", "structured_output_capable": False},
+                    {"model": "structured", "role": "small", "structured_output_capable": True},
+                ],
+            }
+        ]
+    }
+    result = provider_resilience.provider_preflight(
+        cfg,
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_OK,
+            "structured_output_verified": True,
+        },
+    )
+
+    assert result["metadata"]["selected_model"] == "structured"
+    weak = next(row for row in result["metadata"]["candidates_checked"] if row["model"] == "weak")
+    assert weak["status"] == provider_resilience.PROVIDER_UNAVAILABLE
+
+
+def test_all_provider_models_blocked_reports_waiting_for_provider_quota() -> None:
+    result = provider_resilience.provider_preflight(
+        config(backup_enabled=True),
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_QUOTA_EXCEEDED,
+        },
+    )
+
+    assert result["verdict"] == provider_resilience.PROVIDER_QUOTA_EXCEEDED
+    assert result["metadata"]["all_provider_blocked"] is True
+    assert result["metadata"]["user_visible_status"]
+
+
+def _capability_probe(provider: dict, candidate: dict) -> dict:
+    scores = {
+        "weak": (30, 20, 80),
+        "project-best": (95, 90, 55),
+        "repair-best": (70, 75, 98),
+    }
+    project, multi, repair = scores[candidate["model"]]
+    return {
+        "name": provider["name"],
+        "status": provider_resilience.PROVIDER_OK,
+        "structured_output_verified": True,
+        "structured_json_score": 100,
+        "project_generation_score": project,
+        "multi_file_consistency_score": multi,
+        "repair_patch_score": repair,
+        "capability_probe_used": True,
+    }
+
+
+def _capability_config() -> dict:
+    return {
+        "providers": [
+            {
+                "name": "primary",
+                "model_candidates": [
+                    {"model": "weak", "role": "large", "priority": 1},
+                    {"model": "project-best", "role": "large", "priority": 2},
+                    {"model": "repair-best", "role": "small", "priority": 3},
+                ],
+            }
+        ]
+    }
+
+
+def test_provider_auto_select_uses_capability_score_not_just_availability() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe
+    )
+
+    assert result["metadata"]["selected_model"] == "project-best"
+    assert result["metadata"]["capability_probe_used"] is True
+
+
+def test_generation_model_selected_by_project_generation_score() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe, required_role="generation"
+    )
+
+    assert result["metadata"]["selected_generation_model"] == "project-best"
+
+
+def test_repair_model_selected_by_repair_patch_score() -> None:
+    result = provider_resilience.provider_preflight(
+        _capability_config(), live=True, model_probe=_capability_probe, required_role="repair"
+    )
+
+    assert result["metadata"]["selected_model"] == "repair-best"
+    assert result["metadata"]["selected_repair_model"] == "repair-best"
+
+
+def test_provider_probe_rejects_non_json_project_payload_model() -> None:
+    result = provider_resilience.provider_preflight(
+        {
+            "providers": [
+                {
+                    "name": "primary",
+                    "model_candidates": [
+                        {"model": "non-json", "role": "large"},
+                        {"model": "valid", "role": "large"},
+                    ],
+                }
+            ]
+        },
+        live=True,
+        model_probe=lambda provider, candidate: {
+            "name": provider["name"],
+            "status": provider_resilience.PROVIDER_OK,
+            "structured_output_verified": candidate["model"] == "valid",
+            "project_generation_score": 100,
+        },
+    )
+
+    rejected = next(row for row in result["metadata"]["candidates_checked"] if row["model"] == "non-json")
+    assert rejected["status"] == provider_resilience.PROVIDER_UNAVAILABLE
+    assert result["metadata"]["selected_model"] == "valid"

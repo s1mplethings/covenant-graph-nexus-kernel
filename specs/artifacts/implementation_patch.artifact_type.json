@@ -1,0 +1,1 @@
+{"kind":"ArtifactTypeSpec","id":"artifact.implementation_patch","version":"1","type_name":"ImplementationPatch","schema_ref":"schemas/artifact_content_types.v1.schema.json#/$defs/ImplementationPatch","identity":{"hash_fields":["content"]},"compatibility":{"backward_compatible_with":[]},"metadata":{"v0_3":true}}

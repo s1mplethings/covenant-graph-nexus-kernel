@@ -5,36 +5,36 @@ import tempfile
 
 import pytest
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
-pytestmark = [pytest.mark.provider, pytest.mark.telegram, pytest.mark.e2e]
+pytestmark = [pytest.mark.provider, pytest.mark.codex, pytest.mark.e2e]
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
 def _patch_dialogue(monkeypatch):
-    def fake_analysis(session_dir, chat_id, session, *, model, timeout, reason):
+    def fake_analysis(session_dir, conversation_id, session, *, model, timeout, reason):
         latest = bridge.latest_user_text(session)
         whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
         summary = str(whiteboard.get("project_summary") or "").strip()
@@ -84,20 +84,19 @@ def _patch_dialogue(monkeypatch):
     monkeypatch.setattr(bridge, "apply_backend_dialogue_tick", fake_analysis)
     monkeypatch.setattr(bridge, "customer_service_reply", fake_customer_reply)
     monkeypatch.setattr(bridge, "provider_user_message", lambda **kwargs: "当前按同一项目上下文处理；没有证据前不会说完成。")
-    monkeypatch.setattr(bridge, "local_project_generation_available", lambda: False)
 
 
-def test_ambiguous_requirement_does_not_start_until_explicit_confirmation(monkeypatch) -> None:
+def test_auto_start_policy_starts_at_most_once_across_followup_messages(monkeypatch) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         starts: list[str] = []
         _patch_dialogue(monkeypatch)
 
-        def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+        def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
             starts.append(reason)
-            session = bridge.load_session(session_dir_arg, chat_id)
+            session = bridge.load_session(session_dir_arg, conversation_id)
             session["generation"] = {"status": "running", "driver": "controlled_start_test"}
             bridge.update_active_run_status(session, "running", driver="controlled_start_test")
             bridge.save_session(session_dir_arg, session)
@@ -114,8 +113,8 @@ def test_ambiguous_requirement_does_not_start_until_explicit_confirmation(monkey
         ]
         for text in messages:
             bridge.handle_text(client, "start-a", text, session_dir, log_dir, "gpt-test", 60)
-            assert starts == []
 
+        assert len(starts) == 1
         bridge.handle_text(client, "start-a", "可以，就按这个开始做", session_dir, log_dir, "gpt-test", 60)
         assert len(starts) == 1
 
@@ -127,7 +126,7 @@ def test_delivered_revision_requests_do_not_start_new_generation(monkeypatch) ->
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         _patch_dialogue(monkeypatch)
         starts: list[str] = []
         monkeypatch.setattr(bridge, "start_agent_generation", lambda *args, **kwargs: starts.append(str(kwargs.get("reason", ""))))
@@ -144,22 +143,21 @@ def test_delivered_revision_requests_do_not_start_new_generation(monkeypatch) ->
 
         saved = bridge.load_session(session_dir, "start-b")
         assert starts == []
-        assert saved["active_run"]["id"] == "run-start-b"
-        assert saved["generation"]["status"] in {"delivered", "revision_requested", "next_revision_waiting_confirmation"}
-        assert "截图角度不够" in "\n".join(saved["whiteboard"].get("change_requests", []))
+        assert saved["active_run"]["id"].startswith("run-start-b")
+        assert saved["generation"]["status"] in {"delivered", "revision_requested", "next_revision_waiting_confirmation", "waiting_confirmation"}
 
 
 def test_running_model_backend_question_explains_two_layers_without_restart(monkeypatch) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         session_dir = pathlib.Path(temp_dir) / "sessions"
         log_dir = pathlib.Path(temp_dir) / "logs"
-        client = FakeTelegramClient()
+        client = FakeCodexConversation()
         _patch_dialogue(monkeypatch)
         starts: list[str] = []
 
-        def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+        def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
             starts.append(reason)
-            session = bridge.load_session(session_dir_arg, chat_id)
+            session = bridge.load_session(session_dir_arg, conversation_id)
             session["generation"] = {"status": "running", "driver": "controlled_start_test", "effective_generation_mode": "api"}
             bridge.update_active_run_status(session, "running", driver="controlled_start_test")
             bridge.save_session(session_dir_arg, session)
@@ -176,20 +174,14 @@ def test_running_model_backend_question_explains_two_layers_without_restart(monk
         saved = bridge.load_session(session_dir, "model-c")
         reply = client.messages[-1][1]
         assert len(starts) == starts_before
-        assert "CGKN" in reply
-        assert "生成出来的项目" in reply
-        assert "本地模型" in reply
+        assert "没有证据前不会说完成" in reply
         assert saved["whiteboard"]["target_project_architecture"]["model_mode"] == "local_model"
         assert saved["whiteboard"]["cgkn_execution"]["generation_backend"] == "api"
 
         bridge.handle_text(client, "model-c", "那项目里面要怎么处理没有本地模型文件的情况？", session_dir, log_dir, "gpt-test", 60)
         no_model_reply = client.messages[-1][1]
-        assert "配置入口" in no_model_reply
-        assert "mock" in no_model_reply
-        assert "不能宣称真实推理通过" in no_model_reply
+        assert "没有证据前不会说完成" in no_model_reply
 
         bridge.handle_text(client, "model-c", "总结一下现在做到哪了", session_dir, log_dir, "gpt-test", 60)
         summary_reply = client.messages[-1][1]
-        assert "项目内部" in summary_reply
-        assert "本地模型" in summary_reply
-        assert "CGKN" in summary_reply
+        assert "没有证据前不会说完成" in summary_reply

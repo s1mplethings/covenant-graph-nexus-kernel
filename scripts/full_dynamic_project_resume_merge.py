@@ -131,7 +131,7 @@ def run_resume_merge(
         gate.update(
             {
                 "delivery_allowed": False,
-                "telegram_mainline": "telegram_mainline_not_connected",
+                "production_mainline": "support_lane_not_promoted",
                 "sent_records": [],
             }
         )
@@ -173,7 +173,7 @@ def run_resume_merge(
         "visual_evidence": visual,
         "bundle_integrity": bundle,
         "public_delivery_gate": gate,
-        "telegram_mainline": "telegram_mainline_not_connected",
+        "production_mainline": "support_lane_not_promoted",
     }
     write_json(out / "resume_merge_result.json", result)
     return result

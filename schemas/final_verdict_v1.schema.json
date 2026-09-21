@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CGKN Final Verdict v1",
+  "allOf": [{ "$ref": "canonical_defs.schema.json#/$defs/ArtifactEnvelope" }],
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "candidate_id",
+    "candidate_hash",
+    "commit_sha",
+    "producer",
+    "created_at",
+    "status",
+    "artifact_hash",
+    "required_gates",
+    "upstream_gates",
+    "support_prerequisites",
+    "overall_status"
+  ],
+  "properties": {
+    "kind": { "const": "CGKNFinalVerdict" },
+    "required_gates": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "upstream_gates": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "ref", "file_hash"],
+        "properties": {
+          "status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" },
+          "ref": { "type": "string", "minLength": 1 },
+          "file_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "blocker_code": { "type": "string" },
+          "formal_inspection": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "support_prerequisites": {
+      "type": "object",
+      "required": ["goal_acceptance"],
+      "properties": {
+        "goal_acceptance": {
+          "type": "object",
+          "required": ["status", "applicable", "ref", "file_hash", "formal_delivery_authority", "inspection"],
+          "properties": {
+            "status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" },
+            "applicable": { "type": "boolean" },
+            "ref": { "type": "string" },
+            "file_hash": { "type": "string" },
+            "formal_delivery_authority": { "const": false },
+            "inspection": { "type": "object" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "overall_status": { "$ref": "canonical_defs.schema.json#/$defs/EvidenceStatus" }
+  },
+  "additionalProperties": true
+}

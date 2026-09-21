@@ -26,7 +26,7 @@ try:
     import local_packager
     import real_test_execution
     import runtime_visual_evidence
-    import telegram_live_bridge
+    import codex_conversation
 except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_growth_budget import check_leaf_size, default_growth_budget
     from scripts.agent_growth_feedback_router import create_growth_feedback_task
@@ -40,7 +40,7 @@ except ModuleNotFoundError:  # pragma: no cover
     from scripts.agent_tree_goal_alignment import evaluate_goal_alignment
     from scripts.agent_tree_registry import agent_by_id, children_of, render_tree
     from scripts.agent_tree_shared_context import create_shared_context, save_shared_context
-    from scripts import local_packager, real_test_execution, runtime_visual_evidence, telegram_live_bridge
+    from scripts import local_packager, real_test_execution, runtime_visual_evidence, codex_conversation
 
 
 def _write(project: pathlib.Path, rel: str, text: str) -> None:
@@ -195,7 +195,7 @@ def _run_special_agent(agent_id: str, *, shared_context: dict[str, Any], project
         _write(project_dir, "DELIVERY_NOTES.md", "# Delivery Notes\n\ncontrolled_dynamic_agent_tree_lane: PASS\nnot_real_provider_proof: true\n")
         manifest = local_packager.package_project(project_dir, output_dir=project_dir, startup_command="python app/main.py", screenshot_path=project_dir / "screenshots" / "app_home.png")
         session = {"messages": [{"role": "user", "text": shared_context["user_goal"]}], "whiteboard": {"project_summary": shared_context["user_goal"], "target_project_architecture": shared_context["target_project_model"], "delivery_requirements": ["project package"]}}
-        gate = telegram_live_bridge.evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
+        gate = codex_conversation.evaluate_public_delivery_gate(project_dir, manifest, session, phase="final")
         write_json(out_dir / "contract_checks" / "public_delivery_gate.json", gate)
     present = [rel for rel in files if (project_dir / rel).exists()]
     missing = [rel for rel in files if not (project_dir / rel).exists()]
@@ -221,9 +221,13 @@ def run_controlled_dynamic_growth(
 
     shared_context = create_shared_context(project_name, goal)
     save_shared_context(shared_context, out)
-    local_context = reduce_context(shared_context, agent_id="main_agent", stage="dynamic_growth", raw_context=goal + " 视频素材 鉴挂判别 背景立绘 鼠标键盘动作")
+    local_context = reduce_context(shared_context, agent_id="main_agent", stage="dynamic_growth", raw_context=goal)
     save_local_context(local_context, out)
-    alignment = evaluate_goal_alignment(shared_context, "document import + knowledge base + search + reports + tasks + local model adapter")
+    alignment_plan = " + ".join(
+        str(item).replace("_", " ")
+        for item in shared_context.get("goal_spec", {}).get("capabilities", [])
+    )
+    alignment = evaluate_goal_alignment(shared_context, alignment_plan)
     write_json(out / "goal_alignment.json", alignment)
     if alignment["verdict"] != "PASS":
         final = {"verdict": "FAIL", "reason": "goal_alignment_failed"}

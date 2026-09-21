@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workflow_state",
+    "summary",
+    "diagnosis",
+    "provider_guidance",
+    "repair_targets",
+    "acceptance_checks",
+    "context_requests",
+    "tool_evidence_requests",
+    "known_limits"
+  ],
+  "properties": {
+    "workflow_state": {"enum": ["ready", "needs_context", "declined"]},
+    "summary": {"type": "string", "maxLength": 1200},
+    "diagnosis": {"$ref": "#/$defs/stringList"},
+    "provider_guidance": {"$ref": "#/$defs/stringList"},
+    "repair_targets": {"$ref": "#/$defs/stringList"},
+    "acceptance_checks": {"$ref": "#/$defs/stringList"},
+    "context_requests": {"$ref": "#/$defs/stringList"},
+    "tool_evidence_requests": {"$ref": "#/$defs/stringList"},
+    "known_limits": {"$ref": "#/$defs/stringList"}
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {"type": "string", "maxLength": 700}
+    }
+  }
+}

@@ -496,12 +496,57 @@ def build_requirement_blueprint(
     answers: list[dict[str, str]] | None = None,
     *,
     assume_defaults: bool = False,
+    goal_spec: dict[str, Any] | None = None,
+    project_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     mapped_answers = answer_map(answers)
     requirement_spec = build_requirement_spec(requirement, mapped_answers)
     io_contract = build_io_contract(requirement, requirement_spec, mapped_answers)
     gap_analysis = build_gap_analysis(requirement, mapped_answers, assume_defaults)
     feature_spec = build_feature_spec(requirement, mapped_answers)
+    canonical_goal_spec = goal_spec if isinstance(goal_spec, dict) else {}
+    canonical_project_plan = project_plan if isinstance(project_plan, dict) else {}
+    if canonical_goal_spec.get("status") == "PASS":
+        requirement_spec["project_type"] = source_value(
+            canonical_goal_spec.get("domain", "custom_local_application"),
+            "canonical_goal_spec",
+            1.0,
+        )
+        requirement_spec["domain"] = source_value(
+            canonical_goal_spec.get("domain", "custom_local_application"),
+            "canonical_goal_spec",
+            1.0,
+        )
+        requirement_spec["required_features"] = source_value(
+            list(canonical_goal_spec.get("capabilities", [])),
+            "canonical_goal_spec",
+            1.0,
+        )
+        requirement_spec["business_goal"] = source_value(
+            canonical_goal_spec.get("goal", requirement),
+            "canonical_goal_spec",
+            1.0,
+        )
+        requirement_spec["scenarios"] = [
+            source_value(flow, "canonical_goal_spec", 1.0)
+            for flow in canonical_goal_spec.get("user_flows", [])
+        ]
+        io_contract["domain_entities"] = list(canonical_goal_spec.get("entities", []))
+        io_contract["declared_interfaces"] = list(canonical_goal_spec.get("interfaces", []))
+        feature_spec = {
+            "features": [
+                {
+                    "id": f"F{index:03d}",
+                    "name": str(capability).replace("_", " ").title(),
+                    "description": f"Implement canonical GoalSpec capability: {capability}.",
+                    "priority": "Must",
+                    "inputs": ["goal_spec"],
+                    "outputs": [str(capability)],
+                    "source_type": "canonical_goal_spec",
+                }
+                for index, capability in enumerate(canonical_goal_spec.get("capabilities", []), 1)
+            ]
+        }
     capability_map = build_capability_map(feature_spec)
     tech_candidates = build_tech_candidates(capability_map)
     tech_decisions = build_tech_decisions(tech_candidates)
@@ -517,9 +562,20 @@ def build_requirement_blueprint(
         "architecture_mmd": build_architecture_mmd(requirement),
         "api_openapi_yaml": build_api_yaml(requirement),
         "db_schema_sql": build_db_schema_sql(requirement),
-        "frontend_pages": build_frontend_pages(requirement),
+        "frontend_pages": (
+            {
+                "pages": [
+                    {"id": str(interface), "purpose": f"Expose {str(interface).replace('_', ' ')} behavior from the canonical GoalSpec."}
+                    for interface in canonical_goal_spec.get("interfaces", [])
+                ]
+            }
+            if canonical_goal_spec.get("status") == "PASS"
+            else build_frontend_pages(requirement)
+        ),
         "task_backlog": tasks,
         "task_backlog_csv": task_backlog_csv(tasks),
+        "canonical_goal_spec": canonical_goal_spec,
+        "canonical_project_plan": canonical_project_plan,
     }
     parts["prd_md"] = build_prd(requirement, requirement_spec, feature_spec, tech_decisions)
     parts["review_report"] = build_review_report(parts)

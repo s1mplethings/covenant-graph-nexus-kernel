@@ -11,13 +11,13 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
 
 
 def evaluate(candidate_dir: pathlib.Path, candidate_bundle: pathlib.Path, **kwargs: Any) -> dict[str, Any]:
-    import telegram_live_bridge as bridge
+    import codex_conversation as bridge
 
     return bridge.evaluate_candidate_review_delivery(candidate_dir, candidate_bundle, **kwargs)
 
 
 def emit(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    import telegram_live_bridge as bridge
+    import codex_conversation as bridge
 
     return bridge.emit_candidate_review_delivery(*args, **kwargs)
 

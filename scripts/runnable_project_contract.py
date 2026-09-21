@@ -6,6 +6,8 @@ import tempfile
 import zipfile
 from typing import Any
 
+from scripts import customer_runtime_runner
+
 
 ENTRYPOINT_NAMES = {"index.html", "app.py", "main.py", "server.js", "package.json"}
 DEPENDENCY_NAMES = {"package.json", "requirements.txt", "pyproject.toml"}
@@ -82,6 +84,9 @@ def evaluate_project(path: str | pathlib.Path) -> dict[str, Any]:
             missing.append("test_or_smoke_entry")
         if docs_only:
             missing.append("not_docs_only")
+        runtime = customer_runtime_runner.inspect(root)
+        if runtime.get("status") != "PASS":
+            missing.append("customer_runtime_evidence")
 
         return {
             "runnable_project": not missing,
@@ -89,6 +94,7 @@ def evaluate_project(path: str | pathlib.Path) -> dict[str, Any]:
             "startup_commands": startup_commands,
             "dependency_files": dependency_files,
             "test_commands": startup_commands,
+            "customer_runtime": runtime,
             "missing": missing,
             "verdict": "PASS" if not missing else "FAIL",
         }

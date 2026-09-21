@@ -58,6 +58,6 @@ def contract() -> dict[str, Any]:
                 "provider transport classification",
                 "provider non-JSON handling",
             ],
-            "forbidden": ["final zip", "delivery manifest", "Telegram delivered state"],
+            "forbidden": ["final zip", "delivery manifest", "Codex conversation delivered state"],
         },
     )

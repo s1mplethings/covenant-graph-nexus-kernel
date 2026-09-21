@@ -29,16 +29,9 @@ class PipelineModuleContractTests(unittest.TestCase):
     def test_run_local_pipeline_is_thin_orchestrator(self) -> None:
         source = (ROOT / "scripts" / "run_local_pipeline.py").read_text(encoding="utf-8", errors="replace")
 
-        self.assertIn("import candidate_materializer", source)
-        self.assertIn("import candidate_sanitizer", source)
-        self.assertIn("import post_build_finalize", source)
-        self.assertIn("import final_delivery_truth", source)
-        self.assertIn("candidate_sanitizer.run", source)
-        self.assertIn("candidate_materializer.run", source)
-        self.assertIn("post_build_finalize.run", source)
-        self.assertIn("final_delivery_truth.run_if_applicable", source)
-        self.assertNotIn("def _extract_import_argument", source)
-        self.assertNotIn("def _looks_like_filesystem_import_arg", source)
+        self.assertIn("api_provider_for_delivery_simulator_for_preflight_only", source)
+        self.assertNotIn("codex_conversation", source)
+        self.assertNotIn("send_delivery_from_manifest", source)
 
     def test_provider_generation_module_contract(self) -> None:
         contract = provider_generation.contract()

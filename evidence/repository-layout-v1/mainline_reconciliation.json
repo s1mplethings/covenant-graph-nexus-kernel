@@ -1,0 +1,681 @@
+{
+  "kind": "CGKNMainlineReconciliation",
+  "schemaVersion": "1",
+  "generatedAt": "2026-09-21",
+  "mainRef": "origin/main",
+  "mainSha": "5a26ae45bbfe17114ab7669cb5f7c3dbb90222b9",
+  "candidateRef": "codex/cgkn-next-main",
+  "candidateSourceSha": "162f2f7e5da958cf46269fd8c120f7f189b87850",
+  "auditedCommitCount": 89,
+  "auditMethod": "Every commit in origin/main..candidate was enumerated, classified by reviewed subject, and checked against the aggregate tree diff. Ambiguous subjects were inspected with git show --stat.",
+  "groups": [
+    {
+      "name": "Codex Edition",
+      "count": 8,
+      "commits": [
+        "d86e9e2ecc356f8f960cf1831fa998da78695cd8",
+        "29a767380fa090b4165fe954d4f3e2aa956f4ff7",
+        "d82fdb3e9fb1aee9b3a8675d3d0ee741c5ed33ce",
+        "0ec863a97e5168d2283d4076b721cd10a3061869",
+        "4597fe9fbe84804dbc1fa271af8edf75fad6a624",
+        "79b2668cea400997d2a230e1c0575bc14948bb54",
+        "80ac2fbd0750e0a02ff7a5b33c0f027e453b81d1",
+        "36b20b6127b525a5f6e63b7965996132382e13d4"
+      ]
+    },
+    {
+      "name": "Provider Mainline",
+      "count": 25,
+      "commits": [
+        "f3eac3425974cb0791edd6a9b948607f5e178d2b",
+        "7112d253e90ab2f3b43514f7e15d168b4b252c81",
+        "107fe9830a31ffcefbf75abb623791e5e2c0ad58",
+        "122857086b584930dae233e9c2f64fe458617bee",
+        "c0a2e148823844a6cb8b1d1da15df3fe7d6cc240",
+        "ad88cac3a6548edeaa48b5262f973a32af1a030e",
+        "e86ec8b0e37b09042f74ddbdc058e230aa69697f",
+        "23546fe4de2d8a7ff61632e32856462bb560ee55",
+        "eb6bc834066570e98cf05a16c70f7069c52c89bc",
+        "e51fc11394b234402a7ff9405f065c7b4821a8f6",
+        "7e282a843f21685297fb50a5d45460289182ac85",
+        "581fd636ac9090cb11318a6c25e4dab939e57a06",
+        "a681eaf636f1b92c3c5c47212919925f3c389f26",
+        "0e096b0fb1ddc4b25afd5d5b0eaa39f47a73cfbe",
+        "4b2272b1087df5ddf8ec4725370c33e3bf1ebb12",
+        "d2615a435cfa96438844f570b3c5f2fe1d558649",
+        "bacc6dbdc539204eb9baec78828d177a4e5fd9f6",
+        "e364519c918d16f382478d9ae746dbf0017ee027",
+        "1918a2ef3da1d534a077a7d47345a1f2b516a13c",
+        "bc7c182131bc0ce381e271fc18b37aa591b0617b",
+        "f148825c2931f5c38d615bcbc54f00028747a38e",
+        "b9db1ca877f4f5e1bad574f7240fb51789cd59a9",
+        "98f32c05cea0b897fa1ab7ff7c0c5c920a0f7da3",
+        "7389060a962abec2a789e557cf967c2c9449ad56",
+        "03f2b79c8dfdb7a96b6bbdc588ec470f69da241f"
+      ]
+    },
+    {
+      "name": "Project Team Agent System",
+      "count": 0,
+      "commits": [
+        null
+      ]
+    },
+    {
+      "name": "Artifact-driven Kernel",
+      "count": 1,
+      "commits": [
+        "bc02f96105c71eb9cdb401ad9413c7d4f6b2c046"
+      ]
+    },
+    {
+      "name": "Contracts and Delivery",
+      "count": 33,
+      "commits": [
+        "f37387c1176986cb6f2d918817be2232cab27ef3",
+        "786a82894fb4441f238e47f7d96f879b17d9f056",
+        "83567278d45dab6d29c00026c2abc862a08b7f46",
+        "ef2e4f4bb19b866a6e9dae0ded2cb58d7d6fcca4",
+        "274b753b9895746c01648f90de7c0dfb425bbd7b",
+        "92203b6ea622625163cd78f3528cf7ae308014c5",
+        "9744fd5833c49c88a5b614b5c14d1d666d1d6e17",
+        "3c7ff825e8a50b1c7b033d0be218623803fc844d",
+        "bf405e9cad315e92b672fe0877d0d32d63f9b5aa",
+        "805ad2c81d5713a79eb666818c4a21f5e3c5c807",
+        "c264adc6c6d599d09fd0560f67572951a7ef7c52",
+        "9ce7051143994990280e8feae33d890a1886358d",
+        "4cfd6fb9d4c2c581b1ea7ec038cef59ce9ec965b",
+        "65d9735c653d090fe2a91cc6a8f6dca74a0b2d07",
+        "ee078a7d629497b42efa0199530e1b8ebfddfc50",
+        "4475faa73870b122f251bd00cf7a008a09ad8ddb",
+        "fcda7e2ce3b8977576a0b00974d4d7d965b8a93e",
+        "7e6c1d7c900518bf632ded35a6ec38ff603ac7c1",
+        "d8c42fcca1544dc372a0cc575e11d3ea161d5c8d",
+        "62e51d38326ea9aaaf7716ebe9d79fe5d3468acc",
+        "5f217b1e2983cd4eb4c3fe913dc00b5b86c4b77b",
+        "1358e010e3ba0f092a949e208615e4af0395c75a",
+        "ccd03847e62ed2aba2f98dfad7bfd11520788747",
+        "c0756b713da4256cc81bfb9f5d4e62d67d218868",
+        "0d6ff11fd23f6a07ee44bfcb906b11f47a2768be",
+        "54356170ea132cd2cc84e4c498250855dff9bfee",
+        "16d832d70bedce4fff7a0c7b1a1ced6daacf3ba4",
+        "6dac1a3e91f98d47a71b33262ede8826e8f50830",
+        "72c33736ed4e1a0d59f9f6fc06b016359ec282de",
+        "0e8d7fa09c8786e85dbaace3cc255ecd6166fb1c",
+        "123a4f346f4607d4d063f1f862b953689b824205",
+        "ebbf5f26029ff1906701feaab3730c38de446ebf",
+        "207d94bdc70ce8f4b1f8682d036719c701a3855d"
+      ]
+    },
+    {
+      "name": "Tests",
+      "count": 1,
+      "commits": [
+        "33927fa9be9b2aa86b8804991491874b94458270"
+      ]
+    },
+    {
+      "name": "Benchmarks",
+      "count": 12,
+      "commits": [
+        "100bfc5e033774d4e2143659e9722d3782382525",
+        "c98def19de210bd35729c7b329860ff27fc1acf4",
+        "caf82c7ad1b5046fe521cea6a7d7afee679a0abd",
+        "8d7ba3ca21b4ee8cfec64655a738f4df28aa6322",
+        "6b9b42b38a98b33fa4a7a1246e106c27565a02ff",
+        "4b03a267b90d11f593d11442d54daf2f573d51c0",
+        "8a0828de48d6fda9bca861460be5210d40fa5bba",
+        "45853a9d5c50a872a6042076874b0c7901b367c0",
+        "01341cefd182827b3d18bb942758bd0e96566db9",
+        "718bb01c19153ed70385460d8c30c6aed7a2db43",
+        "453cb7a11750c17926ecd44fdd0b11fa2d30a549",
+        "d84591ec6b86747bdba7ff6d1d6a6f92a3535d2f"
+      ]
+    },
+    {
+      "name": "Plugins",
+      "count": 1,
+      "commits": [
+        "c99e545437ea1c41e6ea0427f8761fea2e34b948"
+      ]
+    },
+    {
+      "name": "Repository Layout",
+      "count": 3,
+      "commits": [
+        "f2e27aabbde8960b84c7b2b692f761f283afac61",
+        "f55b507de8771ee7059accc8b232ed86625dfcc5",
+        "162f2f7e5da958cf46269fd8c120f7f189b87850"
+      ]
+    },
+    {
+      "name": "Project Management and Evidence",
+      "count": 5,
+      "commits": [
+        "41225caa5176a7b3982f4732a6cb273d81b8c566",
+        "16a230d1ffc72ffd22413e28800e477ae8110ef4",
+        "f26e2d2922be4d23d6e2598e53bfca4b7f7bb264",
+        "63f2fe24850e53a4aea86540b9cc39db5fab8923",
+        "22cd65a0a6f8f2f887463902c63e152020c10e52"
+      ]
+    },
+    {
+      "name": "Legacy",
+      "count": 0,
+      "commits": [
+        null
+      ]
+    },
+    {
+      "name": "Other",
+      "count": 0,
+      "commits": [
+        null
+      ]
+    }
+  ],
+  "commitAudit": [
+    {
+      "sha": "f37387c1176986cb6f2d918817be2232cab27ef3",
+      "subject": "fix: unify canonical contracts schemas and documentation",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "786a82894fb4441f238e47f7d96f879b17d9f056",
+      "subject": "fix: unify canonical test execution evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "83567278d45dab6d29c00026c2abc862a08b7f46",
+      "subject": "fix: execute and verify canonical customer runtime",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "ef2e4f4bb19b866a6e9dae0ded2cb58d7d6fcca4",
+      "subject": "fix: require browser-proven visual evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "274b753b9895746c01648f90de7c0dfb425bbd7b",
+      "subject": "fix: enforce canonical evidence at public delivery gate",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "92203b6ea622625163cd78f3528cf7ae308014c5",
+      "subject": "fix: close canonical gate identity and phase semantics",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "9744fd5833c49c88a5b614b5c14d1d666d1d6e17",
+      "subject": "fix: enforce canonical evidence hash verification",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "3c7ff825e8a50b1c7b033d0be218623803fc844d",
+      "subject": "fix: narrow canonical candidate hash exclusions",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "f3eac3425974cb0791edd6a9b948607f5e178d2b",
+      "subject": "fix: keep repaired customer outputs project-local",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "bf405e9cad315e92b672fe0877d0d32d63f9b5aa",
+      "subject": "fix: clean canonical test output sandbox",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "805ad2c81d5713a79eb666818c4a21f5e3c5c807",
+      "subject": "fix: execute customer runtime from isolated candidate copy",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "c264adc6c6d599d09fd0560f67572951a7ef7c52",
+      "subject": "fix: bind browser evidence to live customer runtime",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "9ce7051143994990280e8feae33d890a1886358d",
+      "subject": "fix: require decodable public media evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "4cfd6fb9d4c2c581b1ea7ec038cef59ce9ec965b",
+      "subject": "fix: enforce canonical final package integrity",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "65d9735c653d090fe2a91cc6a8f6dca74a0b2d07",
+      "subject": "fix: close canonical package send binding gaps",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "ee078a7d629497b42efa0199530e1b8ebfddfc50",
+      "subject": "fix: require candidate-bound user review evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "4475faa73870b122f251bd00cf7a008a09ad8ddb",
+      "subject": "fix: close canonical review trust boundary gaps",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "fcda7e2ce3b8977576a0b00974d4d7d965b8a93e",
+      "subject": "fix: bind visual review requirement explicitly",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "7e6c1d7c900518bf632ded35a6ec38ff603ac7c1",
+      "subject": "fix: prove canonical visual checkpoint delivery",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "d8c42fcca1544dc372a0cc575e11d3ea161d5c8d",
+      "subject": "fix: require canonical telegram delivery receipt",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "62e51d38326ea9aaaf7716ebe9d79fe5d3468acc",
+      "subject": "feat: enforce canonical final acceptance gates",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "7112d253e90ab2f3b43514f7e15d168b4b252c81",
+      "subject": "fix: restore live provider transport contract",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "107fe9830a31ffcefbf75abb623791e5e2c0ad58",
+      "subject": "feat: record provider decision patch causality",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "5f217b1e2983cd4eb4c3fe913dc00b5b86c4b77b",
+      "subject": "feat: produce honest total acceptance evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "1358e010e3ba0f092a949e208615e4af0395c75a",
+      "subject": "fix: preserve valid blocked final verdict status",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "ccd03847e62ed2aba2f98dfad7bfd11520788747",
+      "subject": "fix: preserve canonical delivery trust boundary",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "c0756b713da4256cc81bfb9f5d4e62d67d218868",
+      "subject": "fix: prevent controlled evidence from reaching delivery",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "0d6ff11fd23f6a07ee44bfcb906b11f47a2768be",
+      "subject": "fix: reject incomplete visual and packaging evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "33927fa9be9b2aa86b8804991491874b94458270",
+      "subject": "test: align legacy delivery expectations with canonical gates",
+      "group": "Tests"
+    },
+    {
+      "sha": "122857086b584930dae233e9c2f64fe458617bee",
+      "subject": "fix: unify verified provider transport semantics",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "c0a2e148823844a6cb8b1d1da15df3fe7d6cc240",
+      "subject": "fix: complete slim facade migration",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "ad88cac3a6548edeaa48b5262f973a32af1a030e",
+      "subject": "fix: finalize reviewed provider facade",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "54356170ea132cd2cc84e4c498250855dff9bfee",
+      "subject": "fix: clear rejected delivery package state",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "16d832d70bedce4fff7a0c7b1a1ced6daacf3ba4",
+      "subject": "fix: bind full test profile into final acceptance",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "6dac1a3e91f98d47a71b33262ede8826e8f50830",
+      "subject": "feat: execute canonical internal acceptance gates",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "e86ec8b0e37b09042f74ddbdc058e230aa69697f",
+      "subject": "fix: include live provider leaf in workspace truth",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "72c33736ed4e1a0d59f9f6fc06b016359ec282de",
+      "subject": "fix: require production mainline acceptance evidence",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "23546fe4de2d8a7ff61632e32856462bb560ee55",
+      "subject": "fix: bind formal production candidate provenance",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "eb6bc834066570e98cf05a16c70f7069c52c89bc",
+      "subject": "fix: prove provider response decision patch causality",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "41225caa5176a7b3982f4732a6cb273d81b8c566",
+      "subject": "chore: checkpoint validated project generation work",
+      "group": "Project Management and Evidence"
+    },
+    {
+      "sha": "e51fc11394b234402a7ff9405f065c7b4821a8f6",
+      "subject": "fix: make project planning goal-driven",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "0e8d7fa09c8786e85dbaace3cc255ecd6166fb1c",
+      "subject": "fix: bind goal plans to acceptance",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "123a4f346f4607d4d063f1f862b953689b824205",
+      "subject": "fix: bind goal acceptance to final verdict",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "16a230d1ffc72ffd22413e28800e477ae8110ef4",
+      "subject": "docs: record autonomous CS2 demo lab verification",
+      "group": "Project Management and Evidence"
+    },
+    {
+      "sha": "f26e2d2922be4d23d6e2598e53bfca4b7f7bb264",
+      "subject": "docs: record verified hybrid model runtime",
+      "group": "Project Management and Evidence"
+    },
+    {
+      "sha": "d86e9e2ecc356f8f960cf1831fa998da78695cd8",
+      "subject": "feat: establish CGKN Codex Edition snapshot",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "29a767380fa090b4165fe954d4f3e2aa956f4ff7",
+      "subject": "chore: finalize CGKN edition worktree split",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "d82fdb3e9fb1aee9b3a8675d3d0ee741c5ed33ce",
+      "subject": "feat: publish CGKN Codex Edition workflow",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "0ec863a97e5168d2283d4076b721cd10a3061869",
+      "subject": "feat: add sparse false-pass supervision",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "4597fe9fbe84804dbc1fa271af8edf75fad6a624",
+      "subject": "test: close governed kernel repair audit loop",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "79b2668cea400997d2a230e1c0575bc14948bb54",
+      "subject": "Close production false-pass recovery loop",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "80ac2fbd0750e0a02ff7a5b33c0f027e453b81d1",
+      "subject": "Map supervision repair to exact provider leaf",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "36b20b6127b525a5f6e63b7965996132382e13d4",
+      "subject": "Record post-commit false-pass recovery verification",
+      "group": "Codex Edition"
+    },
+    {
+      "sha": "7e282a843f21685297fb50a5d45460289182ac85",
+      "subject": "Fix canonical static provider manifest paths",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "581fd636ac9090cb11318a6c25e4dab939e57a06",
+      "subject": "Record blocked Qwen production acceptance",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "a681eaf636f1b92c3c5c47212919925f3c389f26",
+      "subject": "fix provider fallback telemetry semantics",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "0e096b0fb1ddc4b25afd5d5b0eaa39f47a73cfbe",
+      "subject": "Reduce ProviderJob fragmentation",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "100bfc5e033774d4e2143659e9722d3782382525",
+      "subject": "feat: add project generation benchmark v1",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "c98def19de210bd35729c7b329860ff27fc1acf4",
+      "subject": "feat: add fixed benchmark pilot selection",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "caf82c7ad1b5046fe521cea6a7d7afee679a0abd",
+      "subject": "fix: freeze benchmark goals and metrics",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "8d7ba3ca21b4ee8cfec64655a738f4df28aa6322",
+      "subject": "test: complete csv benchmark coverage",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "6b9b42b38a98b33fa4a7a1246e106c27565a02ff",
+      "subject": "docs: close benchmark v1 iteration",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "4b03a267b90d11f593d11442d54daf2f573d51c0",
+      "subject": "fix: pin benchmark provider model identity",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "8a0828de48d6fda9bca861460be5210d40fa5bba",
+      "subject": "fix: collect canonical benchmark call metrics",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "4b2272b1087df5ddf8ec4725370c33e3bf1ebb12",
+      "subject": "fix: freeze ProviderJob partial repair boundary",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "45853a9d5c50a872a6042076874b0c7901b367c0",
+      "subject": "chore: preserve frozen benchmark bytes across worktrees",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "d2615a435cfa96438844f570b3c5f2fe1d558649",
+      "subject": "fix: include repair checkpoint runtime dependencies",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "ebbf5f26029ff1906701feaab3730c38de446ebf",
+      "subject": "fix: include runtime entrypoint checkpoint dependency",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "bacc6dbdc539204eb9baec78828d177a4e5fd9f6",
+      "subject": "fix: restore Qwen bounded-generation transport helper",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "e364519c918d16f382478d9ae746dbf0017ee027",
+      "subject": "fix: feed provider rejection evidence into bounded retries",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "1918a2ef3da1d534a077a7d47345a1f2b516a13c",
+      "subject": "fix: align single-leaf provider retry output caps",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "bc7c182131bc0ce381e271fc18b37aa591b0617b",
+      "subject": "fix: size affected repairs and reject test surrogates",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "f148825c2931f5c38d615bcbc54f00028747a38e",
+      "subject": "fix: scale existing provider retry caps",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "207d94bdc70ce8f4b1f8682d036719c701a3855d",
+      "subject": "fix: route post-build evidence to exact jobs",
+      "group": "Contracts and Delivery"
+    },
+    {
+      "sha": "b9db1ca877f4f5e1bad574f7240fb51789cd59a9",
+      "subject": "feat: auto-select available provider model",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "98f32c05cea0b897fa1ab7ff7c0c5c920a0f7da3",
+      "subject": "fix: trace and route product repair failures",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "7389060a962abec2a789e557cf967c2c9449ad56",
+      "subject": "docs: close failure-to-repair audit iteration",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "01341cefd182827b3d18bb942758bd0e96566db9",
+      "subject": "test: add trimmed case diagnostic runner",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "718bb01c19153ed70385460d8c30c6aed7a2db43",
+      "subject": "fix: correct trimmed case behavior probe",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "03f2b79c8dfdb7a96b6bbdc588ec470f69da241f",
+      "subject": "feat: make decomposition tree the production repair index",
+      "group": "Provider Mainline"
+    },
+    {
+      "sha": "453cb7a11750c17926ecd44fdd0b11fa2d30a549",
+      "subject": "test: add provider-free partial acceptance replay",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "d84591ec6b86747bdba7ff6d1d6a6f92a3535d2f",
+      "subject": "test: freeze partial acceptance boundary contracts",
+      "group": "Benchmarks"
+    },
+    {
+      "sha": "c99e545437ea1c41e6ea0427f8761fea2e34b948",
+      "subject": "feat: stage CGKN 0.2.0-rc.1 formal mainline",
+      "group": "Plugins"
+    },
+    {
+      "sha": "63f2fe24850e53a4aea86540b9cc39db5fab8923",
+      "subject": "docs: close 0.2.0-rc.1 upload review",
+      "group": "Project Management and Evidence"
+    },
+    {
+      "sha": "22cd65a0a6f8f2f887463902c63e152020c10e52",
+      "subject": "docs: finalize committed-checkout RC evidence",
+      "group": "Project Management and Evidence"
+    },
+    {
+      "sha": "bc02f96105c71eb9cdb401ad9413c7d4f6b2c046",
+      "subject": "feat: add artifact-driven pipeline kernel",
+      "group": "Artifact-driven Kernel"
+    },
+    {
+      "sha": "f2e27aabbde8960b84c7b2b692f761f283afac61",
+      "subject": "chore: establish repository layout v1",
+      "group": "Repository Layout"
+    },
+    {
+      "sha": "f55b507de8771ee7059accc8b232ed86625dfcc5",
+      "subject": "chore: finalize CGKN repository layout",
+      "group": "Repository Layout"
+    },
+    {
+      "sha": "162f2f7e5da958cf46269fd8c120f7f189b87850",
+      "subject": "Merge PR #4: establish CGKN repository layout v1",
+      "group": "Repository Layout"
+    }
+  ],
+  "questionableCommitReview": [
+    {
+      "sha": "805ad2c81d5713a79eb666818c4a21f5e3c5c807",
+      "disposition": "Contracts and Delivery",
+      "finding": "isolated customer runtime execution plus bound tests"
+    },
+    {
+      "sha": "1358e010e3ba0f092a949e208615e4af0395c75a",
+      "disposition": "Contracts and Delivery",
+      "finding": "blocked final verdict status preservation"
+    },
+    {
+      "sha": "c0a2e148823844a6cb8b1d1da15df3fe7d6cc240",
+      "disposition": "Provider Mainline",
+      "finding": "slim Provider facade migration with test updates"
+    },
+    {
+      "sha": "41225caa5176a7b3982f4732a6cb273d81b8c566",
+      "disposition": "Project Management and Evidence",
+      "finding": "historical governance checkpoint later compacted by Layout v1"
+    },
+    {
+      "sha": "29a767380fa090b4165fe954d4f3e2aa956f4ff7",
+      "disposition": "Codex Edition",
+      "finding": "edition worktree split and evidence"
+    },
+    {
+      "sha": "ebbf5f26029ff1906701feaab3730c38de446ebf",
+      "disposition": "Contracts and Delivery",
+      "finding": "single runtime entrypoint dependency correction"
+    },
+    {
+      "sha": "c99e545437ea1c41e6ea0427f8761fea2e34b948",
+      "disposition": "Plugins",
+      "finding": "RC integration includes the reviewed CGKN plugin plus canonical release contracts"
+    }
+  ],
+  "aggregateDiff": {
+    "filesChanged": 4178,
+    "insertions": 156040,
+    "deletions": 369038,
+    "note": "Large deletion count is expected: Repository Layout v1 removes raw runtime and generated artifacts from tracking."
+  },
+  "findings": [
+    "Artifact-driven Kernel is additive and preserves the existing project-generation flows.",
+    "Provider, packaging, and public-delivery authority remain on the reviewed canonical route.",
+    "Project Team Agent System and Legacy have zero new commits in this comparison because those histories are already represented in main or outside this candidate range.",
+    "Repository Layout v1 removes tracked runtime trees; remote candidate contains zero files under artifacts/, runs/, generated/, .cgkn/, or workspaces/.",
+    "All binary changes observed in the aggregate comparison are deletions from historical runtime artifacts; no binary blobs are added by the layout finalization.",
+    "The candidate contains broad historical feature work and therefore requires PR review into main even though the current tip is validated."
+  ],
+  "mergeRisks": [
+    "The candidate is a broad 89-commit fast-forward lineage over main, not a narrow feature patch.",
+    "Git rename detection is intentionally unreliable at this scale; review by contract boundary and final tree is safer than inferred renames.",
+    "No hosted check runs are configured for PR #4; local evidence is recorded but does not authorize formal delivery PASS."
+  ],
+  "recommendation": "Create a non-force PR into main. Keep it open for explicit review; merge only after branch protection and repository-owner review are satisfied."
+}

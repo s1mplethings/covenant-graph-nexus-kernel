@@ -14,24 +14,42 @@ build/
 .playwright-mcp/
 .service_worktree/
 .vs/
+/.tmp_*/
 
 .DS_Store
 Thumbs.db
 *.log
 *.tmp
 
-generated/
-artifacts/
+/generated/
+/artifacts/
+/runs/
+/provider_outputs/
+/coverage/
+/raw_logs/
+/raw_screenshots/
+/.cache/
+/.cgkn/
+/workspaces/
 .pytest_cache/
 examples/runtime_runs/
+examples/generated_projects/
+examples/project_memory/
+examples/local_studio/
+examples/product_studio/
+examples/artifact-driven/todo-refactor/sample_run.json
+examples/artifact-driven/todo-refactor/incremental_recompute_evidence.json
 examples/test_results/*
 !examples/test_results/fixtures/
 !examples/test_results/fixtures/**
+/project_management/cgkn/
+/project_management/ENTERPRISE_EXPERIENCE.md
+/project_management/enterprise_experience.json
 *.zip
 
 examples/product_studio/runs/direct_*/
 examples/product_studio/runs/tmp_*/
-examples/product_studio/runs/telegram_*/
+examples/product_studio/runs/codex_*/
 examples/product_studio/runs/final_acceptance_*/
 examples/product_studio/runs/*/generated_project/
 examples/product_studio/runs/*/test_data/

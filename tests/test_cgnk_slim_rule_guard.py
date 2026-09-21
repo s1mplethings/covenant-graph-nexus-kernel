@@ -95,7 +95,7 @@ def test_public_suffix_whitelist_check() -> None:
 def test_provider_route_check_is_scoped_to_function_bodies() -> None:
     # The provider route check must read only the two provider job bodies,
     # not the whole bridge file.
-    bridge = guard.read_text("scripts/telegram_live_bridge.py")
+    bridge = guard.read_text("scripts/codex_conversation.py")
     body = guard.function_body(bridge, "run_provider_generation_job")
     assert "def run_provider_generation_job" in body
     assert "def run_agent_generation_job" not in body  # stops at next top-level def
@@ -110,25 +110,26 @@ def test_project_team_checks_present_and_ok() -> None:
     checks = _checks_by_name()
     for name in (
         "project team manager modules exist",
-        "telegram default session carries active project state",
+        "codex default session carries active project state",
         "customer intents include project revision request",
-        "telegram revision branch delegates out of bridge",
+        "codex revision branch delegates out of bridge",
         "revision manifest records previous manifest",
         "revision delivery contract names packager and public gate",
         "revision failure does not promote current",
         "revision provider job is implemented",
         "revision execution keeps delivery contract",
         "revision docs declare phase 2 execution contract",
-        "telegram bridge does not call provider revision job",
+        "codex bridge does not call provider revision job",
         "model defaults are centralized for bridge and connectivity",
         "local studio routes through MainAgentManager only",
         "model policy exposes required task profiles",
+        "retired planner and agent lanes are not production imports",
     ):
         assert name in checks, name
         assert checks[name]["ok"], name
 
 
-def test_strict_mode_reports_existing_bloat_as_warning() -> None:
+def test_strict_mode_passes_when_no_architecture_warnings_remain() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/cgnk_slim_rule_guard.py", "--strict"],
         cwd=ROOT,
@@ -137,8 +138,8 @@ def test_strict_mode_reports_existing_bloat_as_warning() -> None:
         timeout=30,
     )
 
-    assert result.returncode != 0
-    assert "WARN:" in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "WARN:" not in result.stdout
 
 
 def test_strict_mode_fails_when_warnings_present() -> None:

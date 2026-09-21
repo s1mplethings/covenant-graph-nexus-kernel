@@ -10,13 +10,13 @@ sys.path.insert(0, str(ROOT))
 from scripts import run_test_profile
 
 
-def test_profile_marker_expressions_exclude_slow_provider_telegram_e2e() -> None:
+def test_profile_marker_expressions_exclude_slow_provider_codex_e2e() -> None:
     assert "slow" in run_test_profile.PROFILE_MARKS["quick"]
     assert "longrun" in run_test_profile.PROFILE_MARKS["quick"]
     assert "long_journey" in run_test_profile.PROFILE_MARKS["quick"]
     assert "provider" in run_test_profile.PROFILE_MARKS["quick"]
     assert "live_provider" in run_test_profile.PROFILE_MARKS["quick"]
-    assert "telegram" in run_test_profile.PROFILE_MARKS["quick"]
+    assert "codex" in run_test_profile.PROFILE_MARKS["quick"]
     assert "e2e" in run_test_profile.PROFILE_MARKS["quick"]
     assert "benchmark" in run_test_profile.PROFILE_MARKS["quick"]
     assert run_test_profile.PROFILE_MARKS["longrun"] == "longrun or long_journey or benchmark"
@@ -32,5 +32,5 @@ def test_run_test_profile_writes_result_without_running_real_suite(monkeypatch, 
     result = run_test_profile.run_profile("quick", out_dir=tmp_path, timeout=10)
 
     assert result["status"] == "PASS"
-    assert "-m not (slow or e2e or live_provider or telegram or benchmark or longrun or long_journey or provider)" in result["command"]
+    assert "-m not (slow or e2e or live_provider or codex or benchmark or longrun or long_journey or provider)" in result["command"]
     assert (tmp_path / "quick_result.json").exists()

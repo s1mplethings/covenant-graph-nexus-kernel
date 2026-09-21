@@ -1,0 +1,47 @@
+{
+  "kind": "CGKNFrozenProviderPlanningFixture",
+  "source_run_id": "production-5f7461ae22b542b98656bf087953e41d",
+  "source_plan_sha256": "51054cc5d95e781542e058f8eac518a586152c133106c754b085ff0cc9507b23",
+  "before": {
+    "provider_jobs_total": 16,
+    "provider_owned_files_total": 16,
+    "provider_dag_wave_widths": [2, 6, 1, 1, 1, 4, 1],
+    "provider_dag_critical_path_waves": 7,
+    "provider_avg_files_per_job": 1.0,
+    "provider_fragmentation_ratio": 1.0
+  },
+  "components": [
+    {
+      "id": "foundation",
+      "manifest": [
+        {"path": "pyproject.toml", "purpose": "Project metadata and runtime declaration.", "dependencies": [], "estimated_complexity": "low"},
+        {"path": "requirements.txt", "purpose": "Standard-library dependency declaration.", "dependencies": [], "estimated_complexity": "low"}
+      ]
+    },
+    {
+      "id": "backend",
+      "manifest": [
+        {"path": "app/main.py", "purpose": "Static file launcher for the frontend using Python standard library.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["start_server"]},
+        {"path": "src/create_task.py", "purpose": "Pure domain logic for creating a new task without side effects.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["create_task"]},
+        {"path": "src/move_task_status.py", "purpose": "Pure domain logic for transitioning a task status.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["move_task_status"]},
+        {"path": "src/delete_task.py", "purpose": "Pure domain logic for removing a task from board state.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["delete_task"]},
+        {"path": "src/filter_tasks.py", "purpose": "Pure domain logic for filtering tasks.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["filter_tasks"]},
+        {"path": "src/persist_board_state.py", "purpose": "Serialize and deserialize board state for JSON export/import.", "dependencies": [], "estimated_complexity": "low", "expected_symbols": ["persist_board_state"]}
+      ]
+    },
+    {
+      "id": "data",
+      "manifest": [
+        {"path": "data/schema.json", "purpose": "Canonical task-board data schema.", "dependencies": [], "estimated_complexity": "low"}
+      ]
+    },
+    {
+      "id": "frontend",
+      "manifest": [
+        {"path": "frontend/index.html", "purpose": "Semantic task-board interface.", "dependencies": ["frontend/styles.css", "frontend/app.js"], "estimated_complexity": "medium", "expected_symbols": ["task-editor", "board-filters", "task-board"]},
+        {"path": "frontend/styles.css", "purpose": "Responsive accessible visual system.", "dependencies": ["frontend/index.html"], "estimated_complexity": "medium", "expected_symbols": ["--color-bg", "--color-surface", "--color-primary"]},
+        {"path": "frontend/app.js", "purpose": "Task-board state, persistence, rendering and interaction controller.", "dependencies": ["frontend/index.html", "frontend/styles.css"], "estimated_complexity": "high", "expected_symbols": ["TaskStore", "TaskBoard", "renderBoard", "initApp"]}
+      ]
+    }
+  ]
+}

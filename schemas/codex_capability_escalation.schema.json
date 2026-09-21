@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/codex_capability_escalation.schema.json",
+  "title": "CGKNCodexCapabilityEscalation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "request_id", "created_at", "goal_summary",
+    "capability_gap", "librarian_context", "failure_evidence",
+    "requested_outputs", "budgets", "authority", "request_sha256"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNCodexCapabilityEscalation"},
+    "schema_version": {"const": "1.0"},
+    "request_id": {"type": "string", "pattern": "^codex-escalation-[a-f0-9]{16}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "goal_summary": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "capability_gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "summary", "prior_attempts"],
+      "properties": {
+        "category": {
+          "enum": ["planning_gap", "generation_failure", "integration_failure", "test_failure", "environment_blocker", "research_gap", "tool_gap"]
+        },
+        "summary": {"type": "string", "minLength": 1, "maxLength": 1600},
+        "prior_attempts": {"type": "array", "maxItems": 6, "items": {"type": "string", "maxLength": 600}}
+      }
+    },
+    "librarian_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "source_sha256", "selected_items", "excluded_count"],
+      "properties": {
+        "source_kind": {"type": "string", "maxLength": 100},
+        "source_sha256": {"$ref": "#/$defs/hash"},
+        "selected_items": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/item"}},
+        "excluded_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "failure_evidence": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/item"}},
+    "requested_outputs": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"enum": ["diagnosis", "provider_guidance", "repair_targets", "acceptance_checks", "context_requests", "tool_evidence_requests"]}
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_context_items", "max_evidence_items", "max_request_chars", "max_guidance_chars", "max_response_items"],
+      "properties": {
+        "max_context_items": {"type": "integer", "minimum": 1, "maximum": 16},
+        "max_evidence_items": {"type": "integer", "minimum": 1, "maximum": 16},
+        "max_request_chars": {"type": "integer", "minimum": 2000, "maximum": 16000},
+        "max_guidance_chars": {"type": "integer", "minimum": 500, "maximum": 6000},
+        "max_response_items": {"type": "integer", "minimum": 1, "maximum": 12}
+      }
+    },
+    "authority": {"$ref": "#/$defs/requestAuthority"},
+    "request_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "summary", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 120},
+        "kind": {"type": "string", "maxLength": 80},
+        "path": {"type": "string", "maxLength": 300},
+        "summary": {"type": "string", "maxLength": 1200},
+        "sha256": {"type": "string", "maxLength": 64}
+      }
+    },
+    "requestAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["advisory_only", "formal_evidence_authorized", "candidate_write_authorized", "package_authorized", "delivery_authorized"],
+      "properties": {
+        "advisory_only": {"const": true},
+        "formal_evidence_authorized": {"const": false},
+        "candidate_write_authorized": {"const": false},
+        "package_authorized": {"const": false},
+        "delivery_authorized": {"const": false}
+      }
+    }
+  }
+}

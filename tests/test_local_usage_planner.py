@@ -20,6 +20,27 @@ class LocalUsagePlannerTests(unittest.TestCase):
             plan = local_usage_planner.create_usage_plan(project_dir)
             self.assertEqual("static_html", plan["run_mode"])
 
+    def test_static_html_inventory_follows_declared_src_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_dir = pathlib.Path(temp_dir)
+            (project_dir / "src").mkdir()
+            (project_dir / "index.html").write_text(
+                '<link rel="stylesheet" href="src/styles.css">'
+                '<script type="module" src="./src/app.js"></script>',
+                encoding="utf-8",
+            )
+            (project_dir / "src" / "styles.css").write_text("body{}", encoding="utf-8")
+            (project_dir / "src" / "app.js").write_text("export {};", encoding="utf-8")
+            (project_dir / "README.md").write_text("# Demo", encoding="utf-8")
+
+            plan = local_usage_planner.create_usage_plan(project_dir)
+
+            self.assertEqual(
+                ["index.html", "src/styles.css", "src/app.js", "README.md"],
+                [item["path"] for item in plan["required_files"]],
+            )
+            self.assertTrue(all(item["exists"] for item in plan["required_files"]))
+
     def test_package_json_routes_node_project(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project_dir = pathlib.Path(temp_dir)

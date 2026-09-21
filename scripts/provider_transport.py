@@ -77,10 +77,8 @@ def select_provider_api_method(base_url: str, model: str, requested_method: str 
     requested = normalize_provider_api_method(requested_method)
     if requested:
         return requested
-    model_name = str(model or "").strip().lower()
+    del model
     if _is_gptsapi_base_url(base_url):
-        if model_name.startswith("gpt-5"):
-            return PROVIDER_API_RESPONSES
         return PROVIDER_API_CHAT_COMPLETIONS
     return PROVIDER_API_RESPONSES
 

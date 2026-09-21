@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""LEGACY CLI ONLY. Not used by Telegram formal generation."""
+"""LEGACY CLI ONLY. Not used by Codex conversation formal generation."""
 
 import pathlib
 import sys
@@ -46,5 +46,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    print("WARNING: LEGACY CLI ONLY. Not used by Telegram formal generation.", file=sys.stderr)
+    print("WARNING: LEGACY CLI ONLY. Not used by Codex conversation formal generation.", file=sys.stderr)
     raise SystemExit(main())

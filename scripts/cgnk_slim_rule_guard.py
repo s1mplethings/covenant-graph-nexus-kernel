@@ -29,8 +29,8 @@ FORBIDDEN_CONFIRMATION_TERMS = [
 DELIVERY_GATE_FUNCTIONS = ["send_delivery_from_manifest", "send_evidence_checkpoint"]
 DELIVERY_GATE_TERMS = ["evaluate_public_delivery_gate", "emit_public_delivery"]
 LEGACY_WRAPPER_FILES = [
-    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Telegram formal generation"]),
-    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Telegram generation"]),
+    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Codex conversation formal generation"]),
+    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Codex conversation generation"]),
 ]
 LEGACY_BRIDGE_WRAPPERS = ["build_generation_args", "run_generation_subprocess", "run_generation_job"]
 PROVIDER_ROUTE_TERMS = [
@@ -86,16 +86,21 @@ def run_checks(strict: bool = False) -> dict[str, object]:
 
     agents = read_text("AGENTS.md")
     kernel = read_text("docs/00_kernel_contract.md")
-    bridge = read_text("scripts/telegram_live_bridge.py")
+    bridge = read_text("scripts/codex_conversation.py")
     model_policy = read_text("scripts/model_policy.py") if (ROOT / "scripts/model_policy.py").exists() else ""
     revision_lane = read_text("scripts/project_revision_lane.py") if (ROOT / "scripts/project_revision_lane.py").exists() else ""
     local_studio = read_text("scripts/local_studio_cli.py") if (ROOT / "scripts/local_studio_cli.py").exists() else ""
     revision_doc = read_text("docs/09_project_revision_lane.md") if (ROOT / "docs/09_project_revision_lane.md").exists() else ""
     connectivity = read_text("scripts/check_connectivity.py")
+    supervision_protocol = read_text("scripts/cgkn_supervision_protocol.py")
+    supervision_host = read_text("scripts/cgkn_runtime_supervisor.py")
+    supervision_router = read_text("scripts/cgkn_supervision_router.py")
+    provider_jobs = read_text("scripts/provider_jobs.py")
+    provider_impl = read_text("scripts/run_local_pipeline_impl.py")
 
     for path, text in (("AGENTS.md", agents), ("docs/00_kernel_contract.md", kernel)):
         missing = [term for term in ROUTE_TERMS if term not in text]
-        add(checks, f"{path} names reviewed Telegram route", not missing, ", ".join(missing))
+        add(checks, f"{path} names reviewed Codex conversation route", not missing, ", ".join(missing))
     add(
         checks,
         "kernel contract names adaptive delivery layers",
@@ -104,7 +109,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "telegram bridge implements adaptive delivery layers",
+        "codex bridge implements adaptive delivery layers",
         "def delivery_fact_check" in bridge and "def agent_delivery_judgment" in bridge,
         "adaptive delivery functions missing",
     )
@@ -148,8 +153,95 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         "api_provider_project_generation" in start_body and "agent_generated_pipeline" not in start_body,
         "start_agent_generation driver is not api_provider_project_generation",
     )
+    add(
+        checks,
+        "Codex audits only positive transitions",
+        all(term in supervision_protocol for term in ("requirements_frozen", "integration_complete", "pre_public_delivery"))
+        and "AUDIT_CHECKPOINT_TYPES" in supervision_host
+        and '"pre_provider_generation"' not in bridge
+        and '"provider_failure"' not in bridge,
+        "bridge still emits an ordinary build/failure checkpoint or high-value audit set is missing",
+    )
+    add(
+        checks,
+        "ordinary product design does not invoke Codex",
+        "run_codex_design_supervision" not in bridge
+        and "CODEX_DESIGN_MODE" not in bridge
+        and "provider_planner_ready" in bridge,
+        "Codex design execution remains reachable from the production bridge",
+    )
+    add(
+        checks,
+        "retired planner and agent lanes are not production imports",
+        all(
+            marker not in bridge.splitlines()[:120]
+            for marker in (
+                "import agent_conversation_loop",
+                "import dynamic_pipeline_runner",
+                "import pipeline_planner_agent",
+                "import pipeline_manifest as pipeline_manifest_module",
+            )
+        ),
+        "retired support lane is still imported at module load time",
+    )
+    add(
+        checks,
+        "false-pass actions have one deterministic router",
+        all(term in supervision_protocol for term in ("rework_project", "recheck_evidence", "repair_kernel", "user_decision"))
+        and "provider_repair_required" in supervision_router
+        and "canonical_verification_rerun_required" in supervision_router
+        and "governed_kernel_repair_required" in supervision_router,
+        "canonical audit action or deterministic route is missing",
+    )
+    add(
+        checks,
+        "production leaf executor is the only ProviderJob scheduler",
+        "class ProviderJob" in provider_jobs
+        and "CGKN_PROVIDER_PARALLELISM" in provider_jobs
+        and "ThreadPoolExecutor" not in provider_jobs
+        and "execute_provider_jobs" not in provider_jobs
+        and "ThreadPoolExecutor" in provider_impl
+        and "validate_patch_set" in provider_impl,
+        "ProviderJob contract, unique production scheduler, or ownership boundary is missing",
+    )
+    add(
+        checks,
+        "production bridge consumes bounded false-pass routes",
+        "MAX_SUPERVISION_REWORK_ROUNDS = 2" in bridge
+        and "run_supervision_recovery_cycle" in bridge
+        and "prepare_supervision_provider_repair" in bridge
+        and "invalidate_supervision_evidence" in bridge
+        and "execute_governed_supervision_repair" in bridge,
+        "bounded production false-pass consumer is incomplete",
+    )
+    post_build_body = function_body(bridge, "post_build_finalize_provider_project")
+    forbidden_kernel_repairs = [
+        name
+        for name in (
+            "deterministic_post_build_repair",
+            "ensure_provider_root_launcher",
+            "repair_pydantic_basesettings",
+            "repair_pillow_requirement",
+            "repair_missing_test_import_requirements",
+            "repair_common_provider_project_interfaces",
+            "materialize_provider_test_artifacts",
+        )
+        if f"{name}(" in post_build_body
+    ]
+    add(
+        checks,
+        "post-build does not repair customer behavior in the kernel",
+        not forbidden_kernel_repairs and "provider_repair_required" in post_build_body,
+        ", ".join(forbidden_kernel_repairs) or "Provider repair routing marker missing",
+    )
 
-    provider_route_body = function_body(bridge, "run_provider_generation_job") + "\n" + function_body(bridge, "run_provider_execute_with_retries")
+    provider_route_body = "\n".join(
+        (
+            function_body(bridge, "run_provider_generation_job"),
+            function_body(bridge, "run_provider_execute_with_retries"),
+            function_body(bridge, "execute_validated_provider_round"),
+        )
+    )
     missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in provider_route_body]
     add(
         checks,
@@ -161,7 +253,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     default_session_body = function_body(bridge, "default_session")
     add(
         checks,
-        "telegram default session carries active project state",
+        "codex default session carries active project state",
         "active_project" in default_session_body and "revision_history" in default_session_body,
         "default_session missing active_project or revision_history",
     )
@@ -175,7 +267,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     revision_branch = between(handle_body, 'if intent == "project_revision_request":', 'if intent == "new_project_request":')
     add(
         checks,
-        "telegram revision branch delegates out of bridge",
+        "codex revision branch delegates out of bridge",
         "MainAgentManager().start_project_revision" in revision_branch and "local_packager.package_project" not in revision_branch and "evaluate_public_delivery_gate" not in revision_branch,
         "revision handling should delegate without packaging or gate logic inside bridge",
     )
@@ -220,9 +312,9 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "telegram bridge does not call provider revision job",
+        "codex bridge does not call provider revision job",
         "run_provider_revision_job(" not in bridge,
-        "telegram_live_bridge.py must not directly call run_provider_revision_job",
+        "codex_conversation.py must not directly call run_provider_revision_job",
     )
     add(
         checks,
@@ -283,15 +375,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         ", ".join(unmarked_wrappers),
     )
 
-    line_count = bridge.count("\n") + 1
-    if line_count > 5200:
-        warnings.append(
-            {
-                "name": "telegram_live_bridge.py is too large",
-                "detail": f"{line_count} lines; extract modules before adding more logic",
-            }
-        )
-    bloat_hits = [term for term in BLOAT_HINTS if term in bridge]
+    bloat_hits = [term for term in BLOAT_HINTS if term in post_build_body]
     if bloat_hits:
         warnings.append(
             {

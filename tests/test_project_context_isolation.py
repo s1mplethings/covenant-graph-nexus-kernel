@@ -8,7 +8,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
 class ProjectContextIsolationTests(unittest.TestCase):

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/adaptive_iteration.schema.json",
+  "title": "CGKNAdaptiveIteration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "iteration_id",
+    "project_id",
+    "goal",
+    "backlog_item_ids",
+    "workflow_state",
+    "evidence_status",
+    "acceptance_criteria",
+    "quality_metrics",
+    "quality_activities",
+    "interface_expectations",
+    "evidence_refs",
+    "review",
+    "retrospective"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNAdaptiveIteration"},
+    "schema_version": {"const": "1.0"},
+    "iteration_id": {"type": "string", "pattern": "^ITER-[0-9]{3,}$"},
+    "project_id": {"type": "string", "minLength": 1},
+    "goal": {"type": "string", "minLength": 1},
+    "backlog_item_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^PB-[0-9]{3,}$"}
+    },
+    "workflow_state": {
+      "enum": ["planned", "active", "reviewing", "closed", "cancelled"]
+    },
+    "evidence_status": {
+      "enum": [
+        "PASS",
+        "PASS_WITH_LIMITS",
+        "NOT_EVALUATED",
+        "BLOCKED",
+        "BLOCKED_PROVIDER",
+        "BLOCKED_LOCAL_MODEL",
+        "BLOCKED_ENVIRONMENT",
+        "NEEDS_REWORK",
+        "FAIL"
+      ]
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "quality_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "measure", "target", "method"],
+        "properties": {
+          "id": {"type": "string"},
+          "measure": {"type": "string"},
+          "target": {"type": "string"},
+          "method": {"type": "string"}
+        }
+      }
+    },
+    "quality_activities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prevention", "assurance", "control", "improvement"],
+      "properties": {
+        "prevention": {"type": "array", "items": {"type": "string"}},
+        "assurance": {"type": "array", "items": {"type": "string"}},
+        "control": {"type": "array", "items": {"type": "string"}},
+        "improvement": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "interface_expectations": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "feedback", "accepted_backlog_item_ids"],
+      "properties": {
+        "outcome": {"enum": ["pending", "accepted", "accepted_with_limits", "rejected"]},
+        "feedback": {"type": "array", "items": {"type": "string"}},
+        "accepted_backlog_item_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "retrospective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["worked", "did_not_work", "experiments"],
+      "properties": {
+        "worked": {"type": "array", "items": {"type": "string"}},
+        "did_not_work": {"type": "array", "items": {"type": "string"}},
+        "experiments": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

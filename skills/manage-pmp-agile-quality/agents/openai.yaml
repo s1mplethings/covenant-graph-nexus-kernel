@@ -1,0 +1,4 @@
+interface:
+  display_name: "PMP Agile Quality Manager"
+  short_description: "Manage projects with adaptive delivery and built-in quality"
+  default_prompt: "Use $manage-pmp-agile-quality to plan and run this project with tailored governance, iterative delivery, and built-in quality."

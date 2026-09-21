@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from cgkn.specs import spec_directory
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -30,14 +34,16 @@ class Diagnostic:
 class ContractIndex:
     def __init__(self, root: pathlib.Path):
         self.root = root
-        self.artifacts = {ref_of(d): d for d in self._load_dir("examples/artifacts")}
-        self.modules = {ref_of(d): d for d in self._load_dir("examples/modules")}
-        self.policies = {ref_of(d): d for d in self._load_dir("examples/policies")}
-        self.flows = {ref_of(d): d for d in self._load_dir("examples/flows")}
-        self.migrations = {ref_of(d): d for d in self._load_dir("examples/migrations")}
-        self.contract_packs = self._load_glob("examples/*.contract_pack.json")
-        self.compile_results = self._load_glob("examples/compile_results/*.json")
-        self.proposals = self._load_dir("examples/proposals")
+        self.artifacts = {ref_of(d): d for d in self._load_spec_dir("artifacts")}
+        self.modules = {ref_of(d): d for d in self._load_spec_dir("modules")}
+        self.policies = {ref_of(d): d for d in self._load_spec_dir("policies")}
+        self.flows = {ref_of(d): d for d in self._load_spec_dir("flows")}
+        self.migrations = {ref_of(d): d for d in self._load_spec_dir("migrations")}
+        self.contract_packs = self._load_glob("specs/context_packs/*.json")
+        self.compile_results = self._load_glob("tests/fixtures/compile_results/*.json")
+        self.proposals = self._load_dir("tests/fixtures/proposals")
+    def _load_spec_dir(self, category: str) -> list[dict[str, Any]]:
+        return [load_json(p) for p in sorted(spec_directory(self.root, category).glob("*.json"))]
     def _load_dir(self, rel: str) -> list[dict[str, Any]]:
         return [load_json(p) for p in sorted((self.root / rel).glob("*.json"))]
     def _load_glob(self, pattern: str) -> list[tuple[pathlib.Path, dict[str, Any]]]:
@@ -101,7 +107,27 @@ class Compiler:
         if self._has_cycle(graph_edges):
             diags.append(Diagnostic("CGNK_GRAPH_CYCLE", "error", "edges", "Flow node graph contains a cycle"))
         self._check_gates(flow, node_map, diags)
-        return self._result(flow_ref, flow, diags)
+        result = self._result(flow_ref, flow, diags)
+        if flow.get("metadata", {}).get("artifact_driven"):
+            # v0.3 adds artifact-schema, projection, runtime-implementation, and
+            # effect-cardinality checks without changing legacy-flow semantics.
+            from cgkn.compiler import ArtifactFlowCompiler
+
+            advanced = ArtifactFlowCompiler(self.idx.root).compile(flow_ref)
+            existing = {(item["code"], item["path"]) for item in result["diagnostics"]}
+            for item in advanced["diagnostics"]:
+                if (item["code"], item["path"]) not in existing:
+                    result["diagnostics"].append(item)
+            result["statistics"]["errors"] = sum(item["severity"] == "error" for item in result["diagnostics"])
+            result["statistics"]["warnings"] = sum(item["severity"] == "warning" for item in result["diagnostics"])
+            result["ok"] = result["statistics"]["errors"] == 0
+            if result["ok"] and result["compiled_bundle"] and advanced.get("compiled_bundle"):
+                result["compiled_bundle"]["artifact_dependency_graph"] = advanced["compiled_bundle"]["artifact_dependency_graph"]
+                result["compiled_bundle"]["topological_order"] = advanced["compiled_bundle"]["topological_order"]
+                result["compiled_bundle"]["checks"].update(advanced["compiled_bundle"]["checks"])
+            elif not result["ok"]:
+                result["compiled_bundle"] = None
+        return result
     def _endpoint_type(self, ep, flow, node_map, side, diags, path):
         if side == "output" and "flow_input" in ep:
             aref = flow.get("inputs", {}).get(ep["flow_input"])
@@ -270,12 +296,12 @@ def validate_schemas(root: pathlib.Path) -> list[str]:
     except Exception:
         return ["jsonschema not installed; skipped schema validation"]
     schema_map = {
-        "examples/artifacts": "artifact_type.schema.json",
-        "examples/modules": "module_contract.schema.json",
-        "examples/flows": "flow_spec.schema.json",
-        "examples/policies": "policy_spec.schema.json",
-        "examples/proposals": "graph_edit_proposal.schema.json",
-        "examples/migrations": "migration_spec.schema.json",
+        "specs/artifacts": "artifact_type.schema.json",
+        "specs/modules": "module_contract.schema.json",
+        "specs/flows": "flow_spec.schema.json",
+        "specs/policies": "policy_spec.schema.json",
+        "tests/fixtures/proposals": "graph_edit_proposal.schema.json",
+        "specs/migrations": "migration_spec.schema.json",
     }
     schemas_dir = root / "schemas"
     store: dict[str, Any] = {}
@@ -297,9 +323,9 @@ def validate_schemas(root: pathlib.Path) -> list[str]:
     for rel, schema_file in schema_map.items():
         for path in (root/rel).glob("*.json"):
             validate_doc(load_json(path), schema_file, path.relative_to(root).as_posix())
-    for path in root.glob("examples/*.contract_pack.json"):
+    for path in (root / "specs" / "context_packs").glob("*.json"):
         validate_doc(load_json(path), "contract_pack.schema.json", path.relative_to(root).as_posix())
-    for path in (root/"examples/compile_results").glob("*.json"):
+    for path in (root/"tests/fixtures/compile_results").glob("*.json"):
         validate_doc(load_json(path), "compile_result.schema.json", path.relative_to(root).as_posix())
     return errs
 

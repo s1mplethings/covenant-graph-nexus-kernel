@@ -1,0 +1,70 @@
+{
+  "kind": "ModuleContract",
+  "id": "module.local.pipeline_composer_agent",
+  "version": "1",
+  "ports": {
+    "input": {
+      "request": {
+        "artifact_type": "artifact.customer_request@1",
+        "required": true,
+        "description": "Structured user requirement for composing a local pipeline."
+      }
+    },
+    "output": {
+      "local_index": {
+        "artifact_type": "artifact.local_library_index@1",
+        "description": "Local module and artifact catalog discovered from CGNK contract files."
+      },
+      "project_understanding": {
+        "artifact_type": "artifact.project_understanding_index@1",
+        "description": "Project understanding index built from modules, artifacts, flows, policies, and docs."
+      },
+      "pipeline_plan": {
+        "artifact_type": "artifact.pipeline_composition_plan@1",
+        "description": "A composed pipeline candidate with selected modules, edges, outputs, and gaps."
+      }
+    }
+  },
+  "requires": {
+    "capabilities": [
+      {
+        "id": "cap.fs.read",
+        "scope": [
+          "specs/modules/**",
+          "specs/artifacts/**",
+          "specs/flows/**",
+          "specs/policies/**",
+          "schemas/**",
+          "implementation_plan/**",
+          "README.md"
+        ]
+      }
+    ],
+    "context": ["run_id", "workspace_root", "optional_local_model_cmd"]
+  },
+  "effects": {
+    "fs_read": [
+      "specs/modules/**",
+      "specs/artifacts/**",
+      "specs/flows/**",
+      "specs/policies/**",
+      "schemas/**",
+      "implementation_plan/**",
+      "README.md"
+    ],
+    "fs_write": [],
+    "network": false,
+    "provider_call": false,
+    "risk": 1
+  },
+  "compatibility": {
+    "replaceable": true,
+    "movable": true,
+    "surface_rule": "same_or_compatible",
+    "effect_rule": "subset_or_equal"
+  },
+  "metadata": {
+    "purpose": "Local project-understanding librarian and pipeline composer agent.",
+    "retrieval_strategy": "structured catalog plus lexical retrieval; optional local model can re-rank or synthesize but is not required."
+  }
+}

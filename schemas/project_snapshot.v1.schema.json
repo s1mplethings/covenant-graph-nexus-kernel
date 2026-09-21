@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/project_snapshot.v1.schema.json",
+  "title": "ProjectSnapshot",
+  "type": "object",
+  "required": ["projectType", "languages", "frameworks", "modules", "importantFiles", "existingCapabilities", "tests", "boundaries", "knownRisks"],
+  "additionalProperties": false,
+  "properties": {
+    "projectType": {"type": "string"},
+    "languages": {"type": "array", "items": {"type": "string"}},
+    "frameworks": {"type": "array", "items": {"type": "string"}},
+    "modules": {"type": "array", "items": {"type": "string"}},
+    "importantFiles": {"type": "array", "items": {"type": "string"}},
+    "existingCapabilities": {"type": "array", "items": {"type": "string"}},
+    "tests": {"type": "array", "items": {"type": "string"}},
+    "boundaries": {"type": "array", "items": {"type": "string"}},
+    "knownRisks": {"type": "array", "items": {"type": "string"}}
+  }
+}

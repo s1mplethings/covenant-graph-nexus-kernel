@@ -30,7 +30,7 @@ def _fake_visual(out: pathlib.Path) -> dict:
     return result
 
 
-def test_full_dynamic_real_project_control_path_can_pass_with_scoped_provider_overrides(tmp_path: pathlib.Path, monkeypatch) -> None:
+def test_full_dynamic_real_project_control_path_cannot_pass_canonical_delivery(tmp_path: pathlib.Path, monkeypatch) -> None:
     monkeypatch.setattr("scripts.run_full_dynamic_real_project_eval.capture_runtime_visual_evidence", _fake_visual)
 
     result = run_full_dynamic_real_project_eval(
@@ -40,11 +40,13 @@ def test_full_dynamic_real_project_control_path_can_pass_with_scoped_provider_ov
         provider_output_overrides=controlled_full_project_outputs(),
     )
 
-    assert result["classification"] == "full_dynamic_real_project_pass"
-    assert result["verdict"] == "PASS"
+    assert result["classification"] == "bundle_integrity_failed"
+    assert result["verdict"] == "NEEDS_REWORK"
     assert result["provider_output_overrides_used"] is True
-    assert result["telegram_mainline"] == "telegram_mainline_not_connected"
-    assert (tmp_path / "final_project_bundle.zip").exists()
+    assert result["reference_benchmark"] == "local_ai_knowledge_studio"
+    assert result["generic_planner_proof"] is False
+    assert result["production_mainline"] == "support_lane_not_promoted"
+    assert not (tmp_path / "final_project_bundle.zip").exists()
     assert (tmp_path / "public_delivery_gate.json").exists()
     registry = json.loads((tmp_path / "agent_tree_registry.json").read_text(encoding="utf-8"))
     assert registry["agents"][0]["agent_id"] == "main_agent"

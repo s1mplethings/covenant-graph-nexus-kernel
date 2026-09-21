@@ -53,8 +53,8 @@ def add(results: list[CheckResult], name: str, ok: bool, detail: str = "") -> No
     results.append(CheckResult(name, ok, "" if ok else detail))
 
 
-def check_telegram(results: list[CheckResult]) -> None:
-    text = read_rel("scripts/telegram_live_bridge.py")
+def check_codex(results: list[CheckResult]) -> None:
+    text = read_rel("scripts/codex_conversation.py")
     bridge_forbidden = [
         item
         for item in [
@@ -64,7 +64,7 @@ def check_telegram(results: list[CheckResult]) -> None:
         ]
         if item in text
     ]
-    add(results, "telegram bridge does not embed naked legacy CLI pipeline", not bridge_forbidden, ", ".join(bridge_forbidden))
+    add(results, "codex bridge does not embed naked legacy CLI pipeline", not bridge_forbidden, ", ".join(bridge_forbidden))
 
     ok, missing = contains_all(
         text,
@@ -78,7 +78,7 @@ def check_telegram(results: list[CheckResult]) -> None:
             "finish_agent_loop_delivery",
         ],
     )
-    add(results, "telegram bridge exposes required kernel functions", ok, ", ".join(missing))
+    add(results, "codex bridge exposes required kernel functions", ok, ", ".join(missing))
 
     backend_control = function_body(text, "append_backend_control")
     ok, missing = contains_all(backend_control, ['"BackendControlLog"', '"log_only": True', 'status: str = "logged"'])
@@ -126,12 +126,16 @@ def check_telegram(results: list[CheckResult]) -> None:
     agent_default_forbidden = [item for item in ['driver": "agent_generated_pipeline"', "target=run_agent_generation_job"] if item in start]
     add(
         results,
-        "Telegram default generation dispatch uses provider project route",
+        "Codex conversation default generation dispatch uses provider project route",
         ok and not agent_default_forbidden,
         ", ".join(missing + agent_default_forbidden),
     )
 
-    provider_job = function_body(text, "run_provider_generation_job") + function_body(text, "run_provider_execute_with_retries")
+    provider_job = (
+        function_body(text, "run_provider_generation_job")
+        + function_body(text, "run_provider_execute_with_retries")
+        + function_body(text, "execute_validated_provider_round")
+    )
     ok, missing = contains_all(
         provider_job,
         [
@@ -248,18 +252,50 @@ def check_legacy_isolation(results: list[CheckResult]) -> None:
     legacy_provider = ROOT / "scripts" / "legacy_provider_pipeline.py"
     if legacy_provider.exists():
         text = legacy_provider.read_text(encoding="utf-8", errors="replace")
-        ok, missing = contains_all(text, ["LEGACY ONLY", "Not part of CGNK formal Telegram generation"])
+        ok, missing = contains_all(text, ["LEGACY ONLY", "Not part of CGNK formal Codex conversation generation"])
         add(results, "legacy provider pipeline is explicitly marked legacy", ok, ", ".join(missing))
     wrapper = ROOT / "scripts" / "generate_project.py"
     if wrapper.exists():
         text = wrapper.read_text(encoding="utf-8", errors="replace")
-        ok, missing = contains_all(text, ["LEGACY CLI ONLY", "Not used by Telegram formal generation"])
+        ok, missing = contains_all(text, ["LEGACY CLI ONLY", "Not used by Codex conversation formal generation"])
         add(results, "generate_project CLI wrapper is explicitly marked legacy", ok, ", ".join(missing))
+
+
+def check_runtime_profiles(results: list[CheckResult]) -> None:
+    bridge = read_rel("scripts/codex_conversation.py")
+    supervisor = read_rel("scripts/cgkn_runtime_supervisor.py")
+    bridge_ok, bridge_missing = contains_all(
+        bridge,
+        [
+            "class CodexConversation",
+            "The Codex app owns the sole user-facing conversation loop",
+            "def start_generation_from_income",
+            "local_packager",
+            "public_delivery_gate",
+        ],
+    )
+    add(results, "Codex app is the sole user-facing conversation surface", bridge_ok, ", ".join(bridge_missing))
+    no_listener = all(
+        marker not in bridge.lower()
+        for marker in ("get" + "updates", "bot" + " token", "mini" + " app", "web" + "_app")
+    ) and re.search(r"^def\s+main\s*\(", bridge, flags=re.MULTILINE) is None
+    add(results, "Codex conversation module contains no external listener or alternate UI", no_listener)
+    supervisor_ok = "_default_codex_argv" not in supervisor and "--start-codex" not in supervisor
+    add(results, "persistent supervisor does not launch a second conversation service", supervisor_ok)
 
 
 def run_checks() -> list[CheckResult]:
     results: list[CheckResult] = []
-    for checker in (check_telegram, check_planner, check_manifest, check_runner, check_local_actions, check_packager, check_legacy_isolation):
+    for checker in (
+        check_codex,
+        check_planner,
+        check_manifest,
+        check_runner,
+        check_local_actions,
+        check_packager,
+        check_legacy_isolation,
+        check_runtime_profiles,
+    ):
         try:
             checker(results)
         except Exception as exc:

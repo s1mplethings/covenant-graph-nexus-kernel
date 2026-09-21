@@ -6,34 +6,38 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.e2e
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
 import scripts.pipeline_manifest as pipeline_manifest
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
         self.documents: list[tuple[str, pathlib.Path, str]] = []
         self.photos: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
@@ -111,13 +115,14 @@ def simple_manifest() -> dict:
 
 
 class AgentGeneratedPipelineE2ETests(unittest.TestCase):
-    def test_telegram_generation_uses_agent_generated_pipeline_e2e(self) -> None:
+    def test_codex_generation_uses_agent_generated_pipeline_e2e(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
@@ -152,6 +157,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
+                bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
@@ -161,6 +167,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-e2e-pipeline", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
@@ -170,7 +177,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             session = bridge.load_session(session_dir, "chat-e2e-pipeline")
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-e2e-pipeline"))
 
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertNotIn(session["generation"]["status"], {"delivered", "delivered_with_warnings"})
             self.assertTrue(any(event.get("kind") == "pipeline_manifest" for event in events))
             self.assertTrue(any(event.get("kind") == "pipeline_step_result" for event in events))
             self.assertEqual("agent_generated_pipeline", session["generation"]["driver"])
@@ -185,8 +193,9 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
             original_plan = bridge.pipeline_planner_agent.plan_pipeline
@@ -205,6 +214,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
 
             try:
                 bridge.threading.Thread = InlineThread
+                bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
                 bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
@@ -215,6 +225,7 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.handle_text(client, "chat-fallback-e2e", "开始生成", session_dir, log_dir, "gpt-test", 5)
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
                 bridge.pipeline_planner_agent.plan_pipeline = original_plan
@@ -225,7 +236,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-fallback-e2e"))
 
             self.assertTrue(any(event.get("kind") == "pipeline_fallback" for event in events))
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertNotIn(session["generation"]["status"], {"delivered", "delivered_with_warnings"})
             self.assertEqual("agent_conversation_loop_fallback", session["generation"]["driver"])
 
     def test_pipeline_manifest_cannot_use_legacy_paths(self) -> None:

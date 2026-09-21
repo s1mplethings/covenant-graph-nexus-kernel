@@ -11,8 +11,10 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 try:
+    import check_connectivity
     from pipeline_contracts import base_result
 except ModuleNotFoundError:  # pragma: no cover - package import path
+    from scripts import check_connectivity
     from scripts.pipeline_contracts import base_result
 
 
@@ -20,6 +22,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config" / "provider_resilience.json"
 DEFAULT_REPORT = ROOT / "examples" / "test_results" / "provider_health_report.json"
 DEFAULT_CONNECTIVITY_REPORT = ROOT / "examples" / "test_results" / "connectivity_check_result.json"
+
+MIN_PROJECT_CONTEXT_TOKENS = 32_768
+MIN_PROJECT_OUTPUT_TOKENS = 1_200
 
 PROVIDER_OK = "PROVIDER_OK"
 PROVIDER_QUOTA_EXCEEDED = "PROVIDER_QUOTA_EXCEEDED"
@@ -47,6 +52,21 @@ DEFAULT_PROVIDER_CONFIG: dict[str, Any] = {
         },
     ]
 }
+
+DASHSCOPE_MODEL_CANDIDATES: list[dict[str, Any]] = [
+    {"model": "qwen3.7-plus", "role": "large", "priority": 10, "max_output_tokens": 3_000},
+    {"model": "qwen3.7-flash", "role": "small", "priority": 20, "max_output_tokens": 5_000},
+    {"model": "qwen3.8-flash", "role": "large", "priority": 30, "max_output_tokens": 1_500},
+    {"model": "qwen3.6-plus", "role": "large", "priority": 40, "max_output_tokens": 5_000},
+    {"model": "qwen3.5-flash", "role": "small", "priority": 50, "max_output_tokens": 5_000},
+    {"model": "qwen-plus", "role": "large", "priority": 60, "max_output_tokens": 5_000},
+    {"model": "qwen-flash", "role": "small", "priority": 70, "max_output_tokens": 5_000},
+]
+
+GPTSAPI_MODEL_CANDIDATES: list[dict[str, Any]] = [
+    {"model": "gpt-5.5", "role": "large", "priority": 10},
+    {"model": "gpt-5.4-nano", "role": "small", "priority": 20},
+]
 
 
 @dataclass(frozen=True)
@@ -80,7 +100,145 @@ def load_config(path: pathlib.Path | None = None) -> dict[str, Any]:
         loaded = read_json(DEFAULT_CONFIG)
         if loaded:
             return loaded
-    return json.loads(json.dumps(DEFAULT_PROVIDER_CONFIG))
+    config = json.loads(json.dumps(DEFAULT_PROVIDER_CONFIG))
+    credentials = check_connectivity._resolve_api_credentials()
+    base_url = str(credentials.get("base_url") or "")
+    primary = config["providers"][0]
+    primary["base_url"] = base_url
+    if check_connectivity._is_alibaba_model_studio_base_url(base_url):
+        primary["models"] = {"small": "qwen3.7-flash", "large": "qwen3.7-plus"}
+        primary["model_candidates"] = json.loads(json.dumps(DASHSCOPE_MODEL_CANDIDATES))
+    elif check_connectivity._is_gptsapi_base_url(base_url):
+        primary["model_candidates"] = json.loads(json.dumps(GPTSAPI_MODEL_CANDIDATES))
+    return config
+
+
+def _model_capability_defaults(candidate: dict[str, Any]) -> dict[str, Any]:
+    role = str(candidate.get("role") or "large").strip().lower()
+    return {
+        "structured_output_capable": bool(candidate.get("structured_output_capable", True)),
+        "max_output_tokens": int(candidate.get("max_output_tokens", 32_768 if role == "large" else 16_384) or 0),
+        "context_length": int(candidate.get("context_length", 131_072) or 0),
+        "project_generation_suitable": bool(candidate.get("project_generation_suitable", True)),
+        "repair_generation_suitable": bool(candidate.get("repair_generation_suitable", True)),
+    }
+
+
+def _score(value: Any, default: int = 0) -> int:
+    try:
+        number = int(round(float(value)))
+    except (TypeError, ValueError):
+        number = default
+    return max(0, min(number, 100))
+
+
+def _capability_probe_scores(probe: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    capability = _model_capability_defaults(candidate)
+    explicit_fields = {
+        key
+        for key in (
+            "structured_json_score",
+            "project_generation_score",
+            "multi_file_consistency_score",
+            "repair_patch_score",
+        )
+        if key in probe
+    }
+    structured_default = 100 if probe.get("structured_output_verified") else 0
+    project_default = 50 if structured_default and capability["project_generation_suitable"] else 0
+    repair_default = 50 if structured_default and capability["repair_generation_suitable"] else 0
+    return {
+        "structured_json_score": _score(probe.get("structured_json_score"), structured_default),
+        "project_generation_score": _score(probe.get("project_generation_score"), project_default),
+        "multi_file_consistency_score": _score(probe.get("multi_file_consistency_score"), project_default),
+        "repair_patch_score": _score(probe.get("repair_patch_score"), repair_default),
+        "output_budget_score": _score(
+            probe.get("output_budget_score"),
+            round(min(1.0, capability["max_output_tokens"] / 5_000) * 100),
+        ),
+        "context_budget_score": _score(
+            probe.get("context_budget_score"),
+            round(min(1.0, capability["context_length"] / 131_072) * 100),
+        ),
+        "capability_probe_used": bool(probe.get("capability_probe_used") or explicit_fields),
+    }
+
+
+def candidate_capability_score(row: dict[str, Any], required_role: str) -> float:
+    if required_role == "repair":
+        weighted = (
+            0.45 * _score(row.get("repair_patch_score"))
+            + 0.20 * _score(row.get("structured_json_score"))
+            + 0.10 * _score(row.get("multi_file_consistency_score"))
+            + 0.15 * _score(row.get("output_budget_score"))
+            + 0.10 * _score(row.get("context_budget_score"))
+        )
+    else:
+        weighted = (
+            0.35 * _score(row.get("project_generation_score"))
+            + 0.25 * _score(row.get("multi_file_consistency_score"))
+            + 0.15 * _score(row.get("structured_json_score"))
+            + 0.15 * _score(row.get("output_budget_score"))
+            + 0.10 * _score(row.get("context_budget_score"))
+        )
+    return round(weighted, 3)
+
+
+def select_capable_candidate(
+    candidates: list[dict[str, Any]],
+    required_role: str,
+) -> dict[str, Any] | None:
+    preferred_role = "small" if required_role == "repair" else "large"
+    eligible = [row for row in candidates if row.get("status") == PROVIDER_OK]
+    eligible.sort(
+        key=lambda row: (
+            -candidate_capability_score(row, required_role),
+            row.get("role") != preferred_role,
+            int(row.get("provider_index", 0)),
+            int(row.get("priority", 0)),
+            int(row.get("model_index", 0)),
+        )
+    )
+    return eligible[0] if eligible else None
+
+
+def _provider_model_candidates(provider: dict[str, Any], requested_model: str = "") -> list[dict[str, Any]]:
+    requested = str(requested_model or "").strip()
+    configured = provider.get("model_candidates")
+    candidates: list[dict[str, Any]] = []
+    if isinstance(configured, list):
+        for index, raw in enumerate(configured):
+            item = {"model": raw} if isinstance(raw, str) else dict(raw) if isinstance(raw, dict) else {}
+            model = str(item.get("model") or item.get("name") or "").strip()
+            if model:
+                item.update(model=model, role=str(item.get("role") or "large"), priority=int(item.get("priority", index + 1)))
+                candidates.append(item)
+    if not candidates:
+        models = provider.get("models", {}) if isinstance(provider.get("models"), dict) else {}
+        for index, (role, model) in enumerate(models.items()):
+            name = str(model or "").strip()
+            if name:
+                candidates.append({"model": name, "role": str(role or "large"), "priority": index + 1})
+    if requested:
+        matching = [item for item in candidates if item["model"] == requested]
+        return matching or [{"model": requested, "role": "large", "priority": 0}]
+    return candidates
+
+
+def _candidate_satisfies_contract(candidate: dict[str, Any], required_role: str) -> tuple[bool, list[str]]:
+    capabilities = _model_capability_defaults(candidate)
+    reasons: list[str] = []
+    if not capabilities["structured_output_capable"]:
+        reasons.append("structured_output_unsupported")
+    if capabilities["max_output_tokens"] < MIN_PROJECT_OUTPUT_TOKENS:
+        reasons.append("max_output_insufficient")
+    if capabilities["context_length"] < MIN_PROJECT_CONTEXT_TOKENS:
+        reasons.append("context_length_insufficient")
+    if required_role == "repair" and not capabilities["repair_generation_suitable"]:
+        reasons.append("repair_generation_unsuitable")
+    if required_role != "repair" and not capabilities["project_generation_suitable"]:
+        reasons.append("project_generation_unsuitable")
+    return not reasons, reasons
 
 
 def _env_status(provider_name: str) -> str:
@@ -166,9 +324,93 @@ def default_probe(provider: dict[str, Any]) -> ProviderProbe:
             return ProviderProbe(name=name, status=connectivity.status, reason=connectivity.reason, retryable=connectivity.retryable)
     quota_required = bool(provider.get("quota_required"))
     api_key_env = str(provider.get("api_key_env") or "OPENAI_API_KEY")
-    if quota_required and not os.environ.get(api_key_env):
+    credential_present = bool(os.environ.get(api_key_env))
+    if name == "primary" and api_key_env == "OPENAI_API_KEY":
+        credential_present = credential_present or bool(
+            check_connectivity._resolve_api_credentials().get("api_key")
+        )
+    if quota_required and not credential_present:
         return ProviderProbe(name=name, status=PROVIDER_UNAVAILABLE, reason=f"{api_key_env} missing")
     return ProviderProbe(name=name, status=PROVIDER_OK, reason="preflight ok")
+
+
+def _status_from_api_result(api: dict[str, Any]) -> tuple[str, str, bool]:
+    if api.get("ok") is True:
+        return PROVIDER_OK, "live structured-output probe ok", False
+    error = str(api.get("error") or "")
+    lowered = error.lower()
+    if any(marker in lowered for marker in ("free quota exhausted", "key usage limit exceeded", "insufficient_quota")):
+        return PROVIDER_QUOTA_EXCEEDED, error, False
+    if "http 403" in lowered:
+        return PROVIDER_QUOTA_EXCEEDED, error, False
+    if any(marker in lowered for marker in ("http 401", "unauthorized", "authentication")):
+        return PROVIDER_AUTH_FAILED, error, False
+    if "http 429" in lowered or "rate limit" in lowered:
+        return PROVIDER_RATE_LIMITED, error, True
+    if any(marker in lowered for marker in ("timeout", "timed out", "ssl", "connection", "http 502", "http 503", "http 504")):
+        return PROVIDER_TRANSPORT_UNSTABLE, error, True
+    return PROVIDER_UNAVAILABLE, error or "provider model unavailable", False
+
+
+def default_model_probe(provider: dict[str, Any], candidate: dict[str, Any], timeout: int = 20) -> dict[str, Any]:
+    model = str(candidate.get("model") or "")
+    api = check_connectivity.check_api(True, timeout, model, structured=True)
+    status, reason, retryable = _status_from_api_result(api)
+    if status == PROVIDER_OK and api.get("structured_output_valid") is not True:
+        status = PROVIDER_UNAVAILABLE
+        reason = "structured output probe returned non-JSON content"
+    structured = api.get("structured_output", {}) if isinstance(api.get("structured_output"), dict) else {}
+    project = structured.get("project", {}) if isinstance(structured.get("project"), dict) else {}
+    files = [str(path).replace("\\", "/").strip() for path in project.get("files", []) if str(path).strip()]
+    entrypoint = str(project.get("entrypoint") or "").replace("\\", "/").strip()
+    patch = structured.get("patch", {}) if isinstance(structured.get("patch"), dict) else {}
+    patch_path = str(patch.get("path") or "").replace("\\", "/").strip()
+    replacement = str(patch.get("replacement") or "").strip()
+    has_backend = any(path.startswith(("app/", "backend/", "src/")) for path in files)
+    has_frontend = any(path.startswith("frontend/") or path.endswith((".html", ".js", ".ts")) for path in files)
+    has_tests = any(path.startswith("tests/") or "test" in pathlib.PurePosixPath(path).name.lower() for path in files)
+    project_score = (
+        (25 if len(set(files)) >= 4 else 0)
+        + (25 if has_backend else 0)
+        + (25 if has_frontend else 0)
+        + (25 if has_tests else 0)
+    )
+    multi_file_score = (
+        (25 if len(set(files)) >= 4 else 0)
+        + (25 if entrypoint and entrypoint in files else 0)
+        + (25 if patch_path and patch_path in files else 0)
+        + (25 if has_backend and has_frontend else 0)
+    )
+    repair_score = (
+        (25 if patch_path and patch_path in files else 0)
+        + (35 if replacement and len(replacement) >= 30 else 0)
+        + (25 if any(token in replacement.lower() for token in ("route", "def ", "function ", "return ")) else 0)
+        + (15 if patch_path and not patch_path.startswith("/") and ".." not in pathlib.PurePosixPath(patch_path).parts else 0)
+    )
+    return {
+        "name": str(provider.get("name") or "provider"),
+        "model": model,
+        "status": status,
+        "reason": reason,
+        "retryable": retryable,
+        "endpoint": str(api.get("endpoint") or provider.get("base_url") or ""),
+        "auth_ok": status != PROVIDER_AUTH_FAILED and bool(api.get("configured")),
+        "quota_ok": status != PROVIDER_QUOTA_EXCEEDED,
+        "transport_ok": status not in {PROVIDER_TRANSPORT_UNSTABLE},
+        "structured_output_verified": bool(api.get("structured_output_valid")),
+        "structured_json_score": 100 if api.get("structured_output_strict") and api.get("structured_output_valid") else (60 if api.get("structured_output_valid") else 0),
+        "project_generation_score": project_score,
+        "multi_file_consistency_score": multi_file_score,
+        "repair_patch_score": repair_score,
+        "capability_probe_used": bool(structured),
+        "capability_probe_summary": {
+            "project_file_count": len(set(files)),
+            "entrypoint_bound": bool(entrypoint and entrypoint in files),
+            "patch_path_bound": bool(patch_path and patch_path in files),
+            "patch_chars": len(replacement),
+        },
+        "request_id": str(api.get("request_id") or ""),
+    }
 
 
 def provider_preflight(
@@ -176,56 +418,147 @@ def provider_preflight(
     *,
     goal: str = "",
     probe: Callable[[dict[str, Any]], ProviderProbe | dict[str, Any]] | None = None,
+    model_probe: Callable[[dict[str, Any], dict[str, Any]], ProviderProbe | dict[str, Any]] | None = None,
+    live: bool = False,
+    requested_model: str = "",
+    required_role: str = "generation",
+    timeout: int = 20,
 ) -> dict[str, Any]:
     cfg = config or load_config()
-    probe_fn = probe or default_probe
     providers = [item for item in cfg.get("providers", []) if isinstance(item, dict) and _provider_enabled(item)]
     results: list[dict[str, Any]] = []
-    selected: dict[str, Any] | None = None
-    primary_block_reason = ""
+    candidates_checked: list[dict[str, Any]] = []
+    legacy_probe = probe or default_probe
 
-    for provider in providers:
-        raw_probe = probe_fn(provider)
-        if isinstance(raw_probe, ProviderProbe):
-            probe_doc = {
-                "name": raw_probe.name,
-                "status": raw_probe.status,
-                "quota_remaining": raw_probe.quota_remaining,
-                "reason": raw_probe.reason,
-                "retryable": raw_probe.retryable,
-            }
-        else:
-            probe_doc = dict(raw_probe)
-            probe_doc.setdefault("name", provider.get("name", "provider"))
-            probe_doc.setdefault("status", PROVIDER_UNAVAILABLE)
-            probe_doc.setdefault("retryable", probe_doc.get("status") in RETRYABLE_STATUSES)
+    for provider_index, provider in enumerate(providers):
         models = provider.get("models", {}) if isinstance(provider.get("models"), dict) else {}
-        probe_doc["models"] = dict(models)
-        probe_doc["token_cost_estimate"] = estimate_cost_tokens(goal, str(models.get("large") or models.get("small") or ""))
-        results.append(probe_doc)
-        if probe_doc["status"] == PROVIDER_OK and selected is None:
-            selected = {"name": probe_doc["name"], "models": dict(models), "base_url": provider.get("base_url", "")}
-        elif selected is None and not primary_block_reason:
-            primary_block_reason = str(probe_doc["status"])
+        candidates = _provider_model_candidates(provider, requested_model)
+        provider_rows: list[dict[str, Any]] = []
+        provider_probe_doc: dict[str, Any] | None = None
+        if not live and model_probe is None:
+            raw = legacy_probe(provider)
+            if isinstance(raw, ProviderProbe):
+                provider_probe_doc = {
+                    "name": raw.name,
+                    "status": raw.status,
+                    "quota_remaining": raw.quota_remaining,
+                    "reason": raw.reason,
+                    "retryable": raw.retryable,
+                }
+            else:
+                provider_probe_doc = dict(raw)
+        for model_index, candidate in enumerate(candidates):
+            capability_ok, capability_reasons = _candidate_satisfies_contract(candidate, required_role)
+            if provider_probe_doc is not None:
+                probe_doc = dict(provider_probe_doc)
+            else:
+                probe_fn = model_probe or (lambda p, c: default_model_probe(p, c, timeout=timeout))
+                raw = probe_fn(provider, candidate)
+                if isinstance(raw, ProviderProbe):
+                    probe_doc = {
+                        "name": raw.name,
+                        "status": raw.status,
+                        "quota_remaining": raw.quota_remaining,
+                        "reason": raw.reason,
+                        "retryable": raw.retryable,
+                    }
+                else:
+                    probe_doc = dict(raw)
+            capability = _model_capability_defaults(candidate)
+            capability_scores = _capability_probe_scores(probe_doc, candidate)
+            row = {
+                "provider": str(probe_doc.get("name") or provider.get("name") or "provider"),
+                "model": str(candidate.get("model") or ""),
+                "role": str(candidate.get("role") or "large"),
+                "status": str(probe_doc.get("status") or PROVIDER_UNAVAILABLE),
+                "reason": str(probe_doc.get("reason") or ""),
+                "retryable": bool(probe_doc.get("retryable")),
+                "endpoint": str(probe_doc.get("endpoint") or provider.get("base_url") or ""),
+                "auth_ok": bool(probe_doc.get("auth_ok", probe_doc.get("status") != PROVIDER_AUTH_FAILED)),
+                "quota_ok": bool(probe_doc.get("quota_ok", probe_doc.get("status") != PROVIDER_QUOTA_EXCEEDED)),
+                "transport_ok": bool(probe_doc.get("transport_ok", probe_doc.get("status") not in {PROVIDER_TRANSPORT_UNSTABLE})),
+                "structured_output_verified": bool(probe_doc.get("structured_output_verified", not live)),
+                "structured_output_capable": capability["structured_output_capable"],
+                "max_output_tokens": capability["max_output_tokens"],
+                "max_output_enough": capability["max_output_tokens"] >= MIN_PROJECT_OUTPUT_TOKENS,
+                "context_length": capability["context_length"],
+                "context_length_enough": capability["context_length"] >= MIN_PROJECT_CONTEXT_TOKENS,
+                "project_generation_suitable": capability["project_generation_suitable"],
+                "repair_generation_suitable": capability["repair_generation_suitable"],
+                "priority": int(candidate.get("priority", model_index + 1)),
+                "provider_index": provider_index,
+                "model_index": model_index,
+                "token_cost_estimate": estimate_cost_tokens(goal, str(candidate.get("model") or "")),
+                **capability_scores,
+            }
+            row["generation_capability_score"] = candidate_capability_score(row, "generation")
+            row["repair_capability_score"] = candidate_capability_score(row, "repair")
+            if not capability_ok:
+                row["status"] = PROVIDER_UNAVAILABLE
+                row["reason"] = ";".join(capability_reasons)
+            elif live and row["status"] == PROVIDER_OK and not row["structured_output_verified"]:
+                row["status"] = PROVIDER_UNAVAILABLE
+                row["reason"] = "structured output probe returned non-JSON project payload"
+            provider_rows.append(row)
+            candidates_checked.append(row)
+        provider_statuses = [row["status"] for row in provider_rows]
+        results.append(
+            {
+                "name": str(provider.get("name") or "provider"),
+                "status": PROVIDER_OK if PROVIDER_OK in provider_statuses else (provider_statuses[0] if provider_statuses else PROVIDER_UNAVAILABLE),
+                "models": dict(models),
+                "candidates": provider_rows,
+            }
+        )
 
-    if selected:
+    selected_row = select_capable_candidate(candidates_checked, required_role)
+    selected_generation_row = select_capable_candidate(candidates_checked, "generation")
+    selected_repair_row = select_capable_candidate(candidates_checked, "repair")
+    selected: dict[str, Any] | None = None
+    if selected_row:
+        provider = providers[int(selected_row["provider_index"])]
+        selected = {
+            "name": selected_row["provider"],
+            "model": selected_row["model"],
+            "role": selected_row["role"],
+            "models": dict(provider.get("models", {})) if isinstance(provider.get("models"), dict) else {},
+            "base_url": str(provider.get("base_url") or selected_row["endpoint"]),
+            "endpoint": selected_row["endpoint"],
+        }
+
+    if selected is not None:
         status = PROVIDER_OK
         live_generation_allowed = True
         commercial_blocker = ""
     else:
-        status = primary_block_reason or PROVIDER_UNAVAILABLE
-        live_generation_allowed = status not in BLOCK_LIVE_STATUSES
+        statuses = {str(row.get("status")) for row in candidates_checked}
+        status = PROVIDER_QUOTA_EXCEEDED if statuses == {PROVIDER_QUOTA_EXCEEDED} else PROVIDER_UNAVAILABLE
+        live_generation_allowed = False
         commercial_blocker = "provider_quota" if status == PROVIDER_QUOTA_EXCEEDED else "provider_unavailable"
 
-    fallback_used = bool(selected and results and selected["name"] != results[0].get("name"))
+    fallback_used = bool(selected_row and (selected_row["provider_index"] > 0 or selected_row["model_index"] > 0))
     report = {
         "status": status,
         "selected_provider": selected,
+        "selected_model": selected.get("model", "") if selected else "",
+        "selected_role": selected.get("role", "") if selected else "",
+        "selected_generation_model": str((selected_generation_row or {}).get("model") or ""),
+        "selected_repair_model": str((selected_repair_row or {}).get("model") or ""),
+        "generation_selection_score": candidate_capability_score(selected_generation_row, "generation") if selected_generation_row else 0,
+        "repair_selection_score": candidate_capability_score(selected_repair_row, "repair") if selected_repair_row else 0,
+        "capability_probe_used": any(bool(row.get("capability_probe_used")) for row in candidates_checked),
+        "selection_reason": "highest eligible capability score for requested role" if selected else "no eligible provider/model",
+        "endpoint": selected.get("endpoint", "") if selected else "",
         "fallback_used": fallback_used,
         "providers": results,
+        "candidates_checked": candidates_checked,
+        "unavailable_models": [row["model"] for row in candidates_checked if row["status"] != PROVIDER_OK],
+        "all_provider_blocked": selected is None,
+        "blocker_reason": "" if selected else "NO_AVAILABLE_PROVIDER_MODEL",
         "live_generation_allowed": live_generation_allowed,
         "commercial_blocker": commercial_blocker,
         "user_visible_status": "当前模型额度不足，请更换 provider 或稍后继续。" if status == PROVIDER_QUOTA_EXCEEDED and not selected else "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     return base_result(
         status="pass" if selected else ("warning" if status in RETRYABLE_STATUSES else "fail"),
@@ -263,14 +596,41 @@ def write_health_report(report: dict[str, Any], path: pathlib.Path = DEFAULT_REP
     return path
 
 
+def load_fresh_health_report(path: pathlib.Path = DEFAULT_REPORT, *, max_age_seconds: int = 21_600) -> dict[str, Any]:
+    report = read_json(path)
+    metadata = report.get("metadata", {}) if isinstance(report.get("metadata"), dict) else {}
+    created = str(metadata.get("created_at") or "")
+    if not created:
+        return {}
+    try:
+        created_at = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - created_at.astimezone(timezone.utc)).total_seconds()
+    except Exception:
+        return {}
+    return report if age <= max_age_seconds else {}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="")
     parser.add_argument("--goal", default="")
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
+    parser.add_argument("--live", action="store_true")
+    parser.add_argument("--model", default="", help="Optional explicit model; omit to auto-select.")
+    parser.add_argument("--role", choices=("generation", "repair"), default="generation")
+    parser.add_argument("--timeout", type=int, default=20)
     args = parser.parse_args()
     config = load_config(pathlib.Path(args.config)) if args.config else load_config()
-    report = provider_preflight(config, goal=args.goal)
+    report = provider_preflight(
+        config,
+        goal=args.goal,
+        live=args.live,
+        requested_model=args.model,
+        required_role=args.role,
+        timeout=max(1, args.timeout),
+    )
     write_health_report(report, pathlib.Path(args.report))
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["metadata"]["live_generation_allowed"] else 2

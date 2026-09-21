@@ -85,26 +85,29 @@ curl https://api.gptsapi.net/v1/chat/completions \
 
 ## API 配置优先级
 
-credentialsResolver 按以下顺序查找 API key 和 base URL：
+credentialsResolver 按以下顺序查找 API key 和 base URL。持久配置只保留一个 User 级 `CGKN_*` 来源；其他名称仅用于兼容读取和冲突诊断。
 
 ### API Key 查找顺序
-1. 环境变量：`CGKN_OPENAI_API_KEY`（进程）
-2. 环境变量：`CGKN_OPENAI_API_KEY`（用户级 User）
+1. 一次性覆盖：`CGKN_OPENAI_API_KEY_OVERRIDE`（进程）
+2. 规范持久值：`CGKN_OPENAI_API_KEY`（用户级 User）
 3. 环境变量：`CGKN_OPENAI_API_KEY`（机器级 Machine）
-4. 本地笔记：`.agent_private/NOTES.md` 中的 `` `sk-...` ``
-5. 环境变量：`OPENAI_API_KEY`（用户级）
-6. 环境变量：`OPENAI_API_KEY`（机器级）
-7. 环境变量：`OPENAI_API_KEY`（进程）
+4. 兼容环境变量：`CGKN_OPENAI_API_KEY`（进程）
+5. 兼容环境变量：`OPENAI_API_KEY`（用户级）
+6. 兼容环境变量：`OPENAI_API_KEY`（机器级）
+7. 兼容环境变量：`OPENAI_API_KEY`（进程）
+
+`.agent_private/NOTES.md` 不再作为 API key 来源，避免旧密钥在换码后重新生效。
 
 ### Base URL 查找顺序
-1. 环境变量：`CGKN_OPENAI_BASE_URL`（进程）
-2. 环境变量：`CGKN_OPENAI_BASE_URL`（用户级）
+1. 一次性覆盖：`CGKN_OPENAI_BASE_URL_OVERRIDE`（进程）
+2. 规范持久值：`CGKN_OPENAI_BASE_URL`（用户级）
 3. 环境变量：`CGKN_OPENAI_BASE_URL`（机器级）
-4. 本地笔记：`.agent_private/NOTES.md` 中的 `` `https://...` ``
+4. 兼容环境变量：`CGKN_OPENAI_BASE_URL`（进程）
 5. 环境变量：`OPENAI_BASE_URL`（用户级）
 6. 环境变量：`OPENAI_BASE_URL`（机器级）
 7. 环境变量：`OPENAI_BASE_URL`（进程）
-8. 嵌入默认值：`https://api.gptsapi.net/v1`
+8. 本地笔记中的 URL（只允许 URL，不读取密钥）
+9. 嵌入默认值：`https://api.gptsapi.net/v1`
 
 ## 端点自动判别
 
@@ -167,7 +170,7 @@ python scripts/check_connectivity.py --live --json
 - `scripts/dynamic_pipeline_runner.py`
 - `scripts/run_local_pipeline.py`
 - `scripts/backend_dialogue_loop.py`
-- `scripts/telegram_live_bridge.py`
+- `scripts/codex_conversation.py`
 - `scripts/provider_api_smoke.py`
 
 调用方式（示例）：
@@ -222,10 +225,18 @@ payload = check._build_openai_compatible_payload(
 A：PowerShell 的 `-d` 参数在 ConvertTo-Json 后会被 shell 处理，导致转义错误。使用 `--data-binary @file.json` 更稳定。
 
 ### Q：如何只用某一个 API key？
-A：设置环境变量，优先级最高：
+A：使用凭据替换器。它会隐藏输入、写入唯一的 User 级规范变量、删除 User 级旧名称，并清理本地笔记中的旧密钥：
 ```powershell
-$env:CGKN_OPENAI_API_KEY = "sk-your-key"
+python scripts/provider_credentials.py replace --base-url https://api.gptsapi.net/v1 --live-test
 ```
+
+只查看当前来源和冲突，不显示完整密钥：
+
+```powershell
+python scripts/provider_credentials.py status
+```
+
+临时进行一次进程级覆盖时使用 `CGKN_OPENAI_API_KEY_OVERRIDE`，不要再用普通 `CGKN_OPENAI_API_KEY` 充当临时覆盖。
 
 ### Q：如何查询当前服务可用的模型？
 A：

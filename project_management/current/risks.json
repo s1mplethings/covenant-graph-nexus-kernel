@@ -1,0 +1,30 @@
+{
+  "kind": "CGKNCurrentRiskRegister",
+  "schemaVersion": "1",
+  "risks": [
+    {
+      "id": "RK-LAYOUT-001",
+      "description": "Moving formal specs breaks a loader, test, or documentation reference.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Use a specs-first compatibility loader, reference graph, legacy-path scan, schema validation, and compilation of all important flows.",
+      "state": "active"
+    },
+    {
+      "id": "RK-LAYOUT-002",
+      "description": "Runtime cleanup deletes local user data.",
+      "probability": "low",
+      "impact": "high",
+      "response": "Use git rm --cached only; keep local artifacts, workspaces, memories, and historical iteration files ignored and recoverable.",
+      "state": "controlled"
+    },
+    {
+      "id": "RK-LAYOUT-003",
+      "description": "Curated evidence is mistaken for delivery authority.",
+      "probability": "low",
+      "impact": "high",
+      "response": "Every promoted bundle carries a canonical status, limitations, reproduction command, and explicit support-only authority note.",
+      "state": "controlled"
+    }
+  ]
+}

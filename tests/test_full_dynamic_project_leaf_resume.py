@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+
 from scripts.full_dynamic_project_leaf_resume import _static_missing, run_leaf_resume
 from scripts.full_dynamic_project_resume_analyzer import analyze_previous_run
 from scripts.run_full_dynamic_real_project_eval import (
@@ -13,6 +15,7 @@ from scripts.run_real_provider_frontend_branch_phase import controlled_frontend_
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PREVIOUS = ROOT / "generated" / "full_dynamic_real_project_eval"
+pytestmark = pytest.mark.e2e
 
 
 def _overrides() -> dict[str, str]:

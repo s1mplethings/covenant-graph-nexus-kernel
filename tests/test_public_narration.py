@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.backend_dialogue_loop as dialogue
 import scripts.public_narration as public_narration
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
 INTERNAL_TERMS = [

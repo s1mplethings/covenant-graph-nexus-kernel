@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.boundary.validate_artifact","version":"1",
+  "ports":{"input":{"patch":{"artifact_type":"artifact.implementation_patch@1","required":true},"evidence":{"artifact_type":"artifact.test_evidence@1","required":true}},"output":{"report":{"artifact_type":"artifact.boundary_report@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":[],"fs_write":[],"network":false,"provider_call":false,"risk":1},
+  "compatibility":{"replaceable":true,"movable":false,"surface_rule":"same","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":3200,"requiredArtifactPorts":["patch","evidence"],"optionalArtifactPorts":[],"includeDecisionLedger":false,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:validate_boundaries","promptVersion":"boundary-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

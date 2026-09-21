@@ -1,0 +1,1 @@
+{"kind":"ArtifactTypeSpec","id":"artifact.boundary_report","version":"1","type_name":"BoundaryReport","schema_ref":"schemas/artifact_content_types.v1.schema.json#/$defs/BoundaryReport","identity":{"hash_fields":["content"]},"compatibility":{"backward_compatible_with":[]},"metadata":{"v0_3":true}}

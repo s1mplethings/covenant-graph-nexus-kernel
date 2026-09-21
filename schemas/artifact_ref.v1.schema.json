@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/artifact_ref.v1.schema.json",
+  "title": "ArtifactRef",
+  "type": "object",
+  "required": ["artifactInstanceId", "artifactType", "contentHash"],
+  "additionalProperties": false,
+  "properties": {
+    "artifactInstanceId": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "artifactType": {"$ref": "common_defs.schema.json#/$defs/artifact_ref"},
+    "contentHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+  }
+}

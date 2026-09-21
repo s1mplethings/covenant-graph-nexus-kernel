@@ -1,0 +1,1 @@
+{"kind":"ArtifactTypeSpec","id":"artifact.problem_analysis","version":"1","type_name":"ProblemAnalysis","schema_ref":"schemas/artifact_content_types.v1.schema.json#/$defs/ProblemAnalysis","identity":{"hash_fields":["content"]},"compatibility":{"backward_compatible_with":[]},"metadata":{"v0_3":true}}

@@ -1,6 +1,6 @@
 # Commercial Hardening Plan
 
-CGNK is moving from internal beta toward a commercial release candidate by adding a Commercial Hardening Lane. This lane assesses release readiness; it does not replace the Telegram default generation route.
+CGNK is moving from internal beta toward a commercial release candidate by adding a Commercial Hardening Lane. This lane assesses release readiness; it does not replace the Codex conversation default generation route.
 
 Release labels:
 
@@ -16,4 +16,4 @@ Non-negotiable gates:
 - Do not fake screenshot, video, final zip, manifest, or PASS_FINAL.
 - Do not use `candidate_diagnostic_bundle.zip` as final package.
 - Do not let provider output create `final_project_bundle.zip` or `delivery_manifest.json`.
-- Do not reconnect legacy simulator, fixed local generation, or raw `run_local_pipeline.py` as Telegram mainline.
+- Do not reconnect legacy simulator, fixed local generation, or raw `run_local_pipeline.py` as Codex conversation mainline.

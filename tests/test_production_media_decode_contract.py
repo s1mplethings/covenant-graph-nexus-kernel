@@ -150,8 +150,8 @@ def test_delivery_manifest_and_reports_reference_media_decode(tmp_path: pathlib.
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
-    delivery_manifest = read_json(project / "delivery_manifest.json")
+    assert result["status"] == "NEEDS_REWORK"
+    delivery_manifest = read_json(project / "delivery_evidence_manifest.json")
     media_decode = delivery_manifest["capability_manifest"]["capabilities"]["media_decode"]
     assert media_decode["status"] in {"verified", "unavailable"}
     assert "media_decode_artifact.json" in delivery_manifest["files"]

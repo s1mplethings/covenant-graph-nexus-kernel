@@ -285,8 +285,8 @@ def test_missing_delivery_manifest_does_not_promote_current(tmp_path, monkeypatc
     assert (current / "app.py").read_text(encoding="utf-8") == "print('v0')\n"
 
 
-def test_telegram_bridge_does_not_implement_revision_execution_details() -> None:
-    bridge = (ROOT / "scripts" / "telegram_live_bridge.py").read_text(encoding="utf-8")
+def test_codex_bridge_does_not_implement_revision_execution_details() -> None:
+    bridge = (ROOT / "scripts" / "codex_conversation.py").read_text(encoding="utf-8")
     branch = bridge[bridge.find('if intent == "project_revision_request":') : bridge.find('if intent == "new_project_request":')]
     assert "MainAgentManager().start_project_revision" in branch
     assert "run_provider_revision_job" not in branch

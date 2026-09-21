@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/codex_capability_brief.schema.json",
+  "title": "CGKNCodexCapabilityBrief",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind", "schema_version", "created_at", "request_id", "request_sha256",
+    "response_sha256", "workflow_state", "summary", "provider_guidance",
+    "repair_targets", "acceptance_checks", "context_requests",
+    "tool_evidence_requests", "known_limits", "authority", "brief_sha256"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNCodexCapabilityBrief"},
+    "schema_version": {"const": "1.0"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "request_id": {"type": "string", "pattern": "^codex-escalation-[a-f0-9]{16}$"},
+    "request_sha256": {"$ref": "#/$defs/hash"},
+    "response_sha256": {"$ref": "#/$defs/hash"},
+    "workflow_state": {"enum": ["ready", "needs_context", "declined"]},
+    "summary": {"type": "string", "maxLength": 1200},
+    "provider_guidance": {"$ref": "#/$defs/textItems"},
+    "repair_targets": {"$ref": "#/$defs/pathItems"},
+    "acceptance_checks": {"$ref": "#/$defs/textItems"},
+    "context_requests": {"$ref": "#/$defs/textItems"},
+    "tool_evidence_requests": {"$ref": "#/$defs/textItems"},
+    "known_limits": {"$ref": "#/$defs/textItems"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["advisory_only", "formal_evidence_status", "candidate_write_authorized", "package_authorized", "delivery_authorized"],
+      "properties": {
+        "advisory_only": {"const": true},
+        "formal_evidence_status": {"const": "NOT_EVALUATED"},
+        "candidate_write_authorized": {"const": false},
+        "package_authorized": {"const": false},
+        "delivery_authorized": {"const": false}
+      }
+    },
+    "brief_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "textItems": {"type": "array", "maxItems": 12, "items": {"type": "string", "maxLength": 700}},
+    "pathItems": {"type": "array", "maxItems": 12, "items": {"type": "string", "maxLength": 300, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"}}
+  }
+}

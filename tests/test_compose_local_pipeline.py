@@ -15,6 +15,31 @@ pytestmark = [pytest.mark.slow, pytest.mark.e2e]
 
 
 class ComposeLocalPipelineTests(unittest.TestCase):
+    def test_delivery_evidence_and_database_negation_do_not_add_product_components(self) -> None:
+        pipeline = compose_local_pipeline.build_component_pipeline(
+            "生成一个本地任务看板，不依赖外部网络或数据库。完成后交付测试截图、演示视频和测试报告。"
+        )
+
+        self.assertEqual(
+            ["foundation", "backend", "frontend", "tests", "docs"],
+            pipeline["execution_order"],
+        )
+
+    def test_explicit_media_and_database_features_add_owned_components(self) -> None:
+        pipeline = compose_local_pipeline.build_component_pipeline(
+            "构建一个使用 SQLite 持久化的视频处理工作台，支持视频剪辑。"
+        )
+
+        self.assertEqual(
+            ["foundation", "backend", "data", "frontend", "media", "tests", "docs"],
+            pipeline["execution_order"],
+        )
+
+        english_pipeline = compose_local_pipeline.build_component_pipeline(
+            "Build a browser app with backend API, database storage, tests, docs, and image preview"
+        )
+        self.assertIn("data", english_pipeline["execution_order"])
+
     def test_full_agent_route_compiles_without_unbound_control_inputs(self) -> None:
         result = compose_local_pipeline.compose(
             "Need customer intake, requirement blueprint, local librarian, online library sources, feature library search, "
@@ -107,11 +132,20 @@ class ComposeLocalPipelineTests(unittest.TestCase):
         component_pipeline = payload["component_pipeline"]
 
         self.assertEqual("local_model", management["source"])
-        self.assertEqual("local_model_managed_component_routing", component_pipeline["strategy"])
-        self.assertEqual(["timeline", "local-image-model"], component_pipeline["execution_order"])
-        self.assertEqual("Timeline editor", component_pipeline["components"][0]["label"])
+        self.assertEqual("local_model_guided_canonical_component_routing", component_pipeline["strategy"])
+        self.assertEqual(["foundation", "backend", "frontend", "media", "tests", "docs"], component_pipeline["execution_order"])
+        self.assertEqual("Project foundation", component_pipeline["components"][0]["label"])
+        self.assertEqual("timeline", component_pipeline["components"][0]["managed_route_id"])
+        self.assertEqual(["timeline", "local-image-model"], [row["id"] for row in component_pipeline["managed_phase_routing"]])
         self.assertIn("image preview artifact", management["delivery_gates"])
         self.assertIn("local_agent_manager", result["project_understanding"]["payload"]["route_manager"]["local_model_scope"])
+
+    def test_chinese_video_slicing_goal_adds_media_component(self) -> None:
+        pipeline = compose_local_pipeline.build_component_pipeline(
+            "为视频创作者构建 AI 切片工作台，把长视频转换成候选片段。"
+        )
+
+        self.assertIn("media", pipeline["execution_order"])
 
 
 if __name__ == "__main__":

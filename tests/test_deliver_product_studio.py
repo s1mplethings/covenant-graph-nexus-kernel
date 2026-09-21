@@ -8,10 +8,14 @@ import tempfile
 import unittest
 import zipfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.deliver_product_studio as delivery
+
+pytestmark = pytest.mark.slow
 
 
 RUN_FILE = ROOT / "examples" / "product_studio" / "runs" / "minimal_gui_tool_run" / "product_studio_run.json"
@@ -27,7 +31,7 @@ class ProductStudioDeliveryTests(unittest.TestCase):
     def test_deliver_generates_delivery_directory(self) -> None:
         temp_dir, out_dir, result = self.deliver_to_temp()
         with temp_dir:
-            self.assertEqual("PARTIAL", result["status"])
+            self.assertEqual("PASS_WITH_LIMITS", result["status"])
             self.assertTrue((out_dir / "product_studio_run.json").exists())
             self.assertTrue((out_dir / "delivery_bundle.json").exists())
 
@@ -59,7 +63,7 @@ class ProductStudioDeliveryTests(unittest.TestCase):
         with temp_dir:
             report = json.loads((out_dir / "test_report.json").read_text(encoding="utf-8"))
             self.assertEqual("ProductStudioTestReport", report["kind"])
-            self.assertEqual("PARTIAL", report["status"])
+            self.assertEqual("PASS_WITH_LIMITS", report["status"])
 
     def test_visual_evidence_is_static_preview(self) -> None:
         temp_dir, out_dir, _ = self.deliver_to_temp()
@@ -67,14 +71,14 @@ class ProductStudioDeliveryTests(unittest.TestCase):
             evidence_path = out_dir / "visual_evidence" / "visual_evidence.json"
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
             self.assertEqual("static_svg_preview", evidence["evidence_type"])
-            self.assertEqual("PARTIAL", evidence["status"])
+            self.assertEqual("PASS_WITH_LIMITS", evidence["status"])
 
     def test_delivery_bundle_is_partial(self) -> None:
         temp_dir, out_dir, _ = self.deliver_to_temp()
         with temp_dir:
             bundle = json.loads((out_dir / "delivery_bundle.json").read_text(encoding="utf-8"))
             self.assertEqual("ProductStudioDeliveryBundle", bundle["kind"])
-            self.assertEqual("PARTIAL", bundle["status"])
+            self.assertEqual("PASS_WITH_LIMITS", bundle["status"])
 
     def test_delivery_zip_contains_required_files(self) -> None:
         temp_dir, out_dir, _ = self.deliver_to_temp()
@@ -126,7 +130,7 @@ class ProductStudioDeliveryTests(unittest.TestCase):
     def test_use_boundary_guard_allows_build_agent_generated_write(self) -> None:
         temp_dir, out_dir, result = self.deliver_to_temp(use_boundary_guard=True)
         with temp_dir:
-            self.assertEqual("PARTIAL", result["status"])
+            self.assertEqual("PASS_WITH_LIMITS", result["status"])
             bundle = json.loads((out_dir / "delivery_bundle.json").read_text(encoding="utf-8"))
             self.assertTrue(bundle["boundary_guard_used"])
             self.assertEqual("allow", bundle["boundary_guard_decision"]["status"])

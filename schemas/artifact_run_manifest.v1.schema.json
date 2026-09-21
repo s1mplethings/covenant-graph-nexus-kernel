@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/artifact_run_manifest.v1.schema.json",
+  "title": "ArtifactFlowRunManifest",
+  "type": "object",
+  "required": ["kind", "runId", "flowRef", "policyRef", "startedAt", "status", "inputArtifacts", "outputArtifacts", "nodeCheckpoints"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ArtifactFlowRunManifest"},
+    "runId": {"type": "string"},
+    "flowRef": {"$ref": "common_defs.schema.json#/$defs/flow_ref"},
+    "policyRef": {"$ref": "common_defs.schema.json#/$defs/policy_ref"},
+    "startedAt": {"type": "string"},
+    "status": {"enum": ["created", "running", "completed", "failed"]},
+    "inputArtifacts": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+    "outputArtifacts": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+    "nodeCheckpoints": {"type": "array", "items": {"type": "object"}}
+  }
+}

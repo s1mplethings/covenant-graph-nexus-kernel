@@ -7,7 +7,7 @@ import zipfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts import runnable_project_contract
+from scripts import customer_runtime_runner, runnable_project_contract
 
 
 def test_docs_only_zip_fails(tmp_path: pathlib.Path) -> None:
@@ -20,13 +20,17 @@ def test_docs_only_zip_fails(tmp_path: pathlib.Path) -> None:
     assert "entrypoint" in result["missing"]
 
 
-def test_runnable_python_project_passes(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "README.md").write_text("# Demo\n\nRun `python app.py`.\n", encoding="utf-8")
-    (tmp_path / "app.py").write_text("print('ok')\n", encoding="utf-8")
+def test_runnable_static_project_passes_with_runtime_evidence(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "README.md").write_text("# Demo\n\nRun `python -m http.server 8000`.\n", encoding="utf-8")
+    (tmp_path / "index.html").write_text("<h1>ok</h1>\n", encoding="utf-8")
     (tmp_path / "requirements.txt").write_text("pytest\n", encoding="utf-8")
     tests = tmp_path / "tests"
     tests.mkdir()
     (tests / "test_app.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    result = runnable_project_contract.evaluate_project(tmp_path)
+    assert result["verdict"] == "FAIL"
+    assert "customer_runtime_evidence" in result["missing"]
+    customer_runtime_runner.run(tmp_path)
     result = runnable_project_contract.evaluate_project(tmp_path)
     assert result["verdict"] == "PASS"
 

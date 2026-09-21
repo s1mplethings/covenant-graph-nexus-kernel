@@ -1,0 +1,1 @@
+{"kind":"ArtifactTypeSpec","id":"artifact.refactor_plan","version":"1","type_name":"RefactorPlan","schema_ref":"schemas/artifact_content_types.v1.schema.json#/$defs/RefactorPlan","identity":{"hash_fields":["content"]},"compatibility":{"backward_compatible_with":[]},"metadata":{"v0_3":true}}

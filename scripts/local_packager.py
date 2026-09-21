@@ -4,10 +4,13 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-import time
-import zipfile
 from datetime import datetime, timezone
 from typing import Any
+
+try:
+    from . import canonical_delivery_manifest
+except ImportError:
+    import canonical_delivery_manifest
 
 
 def now() -> str:
@@ -28,6 +31,9 @@ def _infer_startup_command(project_dir: pathlib.Path) -> str:
         return "python main.py"
     if (project_dir / "index.html").exists():
         return "open index.html"
+    packages = sorted(path.parent.name for path in project_dir.glob("*/__main__.py") if path.parent.name.isidentifier())
+    if packages:
+        return f"python -m {packages[0]}"
     return ""
 
 
@@ -73,7 +79,13 @@ def _preview_candidates(project: pathlib.Path) -> list[pathlib.Path]:
     preview_suffixes = {".png", ".jpg", ".jpeg", ".webp", ".html"}
     if not project.exists():
         return []
-    return [path for path in project.rglob("*") if path.is_file() and path.suffix.lower() in preview_suffixes]
+    return [
+        path
+        for path in project.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in preview_suffixes
+        and path.resolve() != (project / "index.html").resolve()
+    ]
 
 
 def _sample_input_found(project: pathlib.Path) -> bool:
@@ -134,6 +146,9 @@ def _startup_entrypoint(project: pathlib.Path) -> pathlib.Path | None:
         path = project / name
         if path.is_file():
             return path
+    package_entries = sorted(project.glob("*/__main__.py"))
+    if package_entries:
+        return package_entries[0]
     return None
 
 
@@ -220,10 +235,33 @@ def package_project(
     known_limits: list[str] | None = None,
     user_review_required: bool = False,
     user_review_completed: bool = False,
+    visual_required: bool = False,
+    media_required: bool = False,
+    promotion_manifest: str | pathlib.Path | dict[str, Any] | None = None,
+    canonical_verification_ref: str | pathlib.Path | None = None,
+    canonical_governance_ref: str | pathlib.Path | None = None,
+    acceptance_decision_ref: str | pathlib.Path | None = None,
+    require_promotion: bool = False,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     if not project.exists() or not project.is_dir():
         raise RuntimeError(f"project_dir does not exist: {project}")
+    if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists() and require_promotion:
+        return {
+            "kind": "CGKNDeliveryManifest",
+            "schema_version": "1.0",
+            "status": "NEEDS_REWORK",
+            "project_dir": str(project),
+            "package_path": "",
+            "manifest_path": "",
+            "failures": ["candidate_only_not_promoted"],
+            "structured_blockers": [{
+                "code": "candidate_only_not_promoted",
+                "category": "missing_authority",
+                "recoverable": True,
+                "next_action": "complete canonical verification, acceptance, and promotion",
+            }],
+        }
     if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
         raise RuntimeError(f"refusing to package candidate-only project: {project}")
     if (project / "_CGNK_REJECTED_PREVIEW_DO_NOT_DELIVER.json").exists():
@@ -246,14 +284,14 @@ def package_project(
         warnings.append("测试报告存在，但未执行真实测试命令")
     if not quality_evidence["delivery_notes_found"]:
         warnings.append("未找到 DELIVERY_NOTES.md，本轮交付复核不足")
-    if quality_evidence.get("preview_placeholder_found"):
+    preview_required = bool(visual_required or media_required)
+    canonical_review_required = bool(user_review_required)
+    if preview_required and quality_evidence.get("preview_placeholder_found"):
         warnings.append("预览为占位示例，不算真实运行证据")
-    if not quality_evidence["preview_evidence_found"]:
+    if preview_required and not quality_evidence["preview_evidence_found"]:
         warnings.append("未找到预览证据")
     if _looks_like_demo_data_project(project, known_limits) and not quality_evidence.get("sample_input_found") and not quality_evidence.get("test_report_mentions_sample_input"):
         warnings.append("缺少真实 demo 或样例输入，未完成真实数据验证")
-    if user_review_required and not user_review_completed:
-        warnings.append("用户尚未确认中间测试/预览证据")
     run_log = pathlib.Path(run_log_path).resolve() if run_log_path else target_dir / "packager_run_log.txt"
     if not run_log.exists():
         run_log.write_text(f"{now()} packaged project\n", encoding="utf-8")
@@ -261,29 +299,8 @@ def package_project(
         screenshot = pathlib.Path(screenshot_path)
         if not screenshot.exists():
             warnings.append(f"效果预览文件未找到: {screenshot}")
-        elif _is_placeholder_preview(screenshot):
+        elif preview_required and _is_placeholder_preview(screenshot):
             warnings.append("预览为占位示例，不算真实运行证据")
-    else:
-        warnings.append("本轮没有生成效果预览图，已先交付可运行项目文件")
-
-    package_path = target_dir / "final_project_bundle.zip"
-    tmp_package = target_dir / f"final_project_bundle.{int(time.time() * 1000)}.tmp"
-    archive_members: list[str] = []
-    with zipfile.ZipFile(tmp_package, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(project.rglob("*")):
-            if not path.is_file():
-                continue
-            rel_parts = set(path.relative_to(project).parts)
-            if rel_parts & {".cgnk_test_env", "__pycache__", ".pytest_cache"}:
-                continue
-            if path.resolve() in {package_path.resolve(), tmp_package.resolve()}:
-                continue
-            if path.name == "delivery_manifest.json" and path.parent.resolve() == target_dir.resolve():
-                continue
-            relative = path.relative_to(project)
-            zf.write(path, relative)
-            archive_members.append(str(relative).replace("\\", "/"))
-    tmp_package.replace(package_path)
 
     combined_limits = list(known_limits or []) + warnings
     entrypoint = _startup_entrypoint(project)
@@ -294,29 +311,31 @@ def package_project(
         for path in _preview_candidates(project)
         if not _is_placeholder_preview(path)
     ]
-    manifest = {
-        "kind": "CGNKDeliveryManifest",
-        "created_at": now(),
-        "status": "ready_with_warnings" if combined_limits else "ready",
-        "project_dir": str(project),
-        "package_path": str(package_path.resolve()),
-        "readme_path": str(readme.resolve()),
-        "startup_command": startup,
-        "run_log_path": str(run_log.resolve()),
-        "known_limits": combined_limits,
-        "quality_evidence": quality_evidence,
-        "user_review_evidence": user_review_evidence,
-        "artifacts": {
-            "readme": _relative_file(project, readme),
-            "startup_entrypoint": _relative_file(project, entrypoint) if entrypoint else "",
-            "test_plan": _relative_file(project, test_plan) if test_plan.is_file() else "",
-            "test_report": _relative_file(project, test_report) if test_report.is_file() else "",
-            "preview_evidence": preview_paths,
-            "delivery_zip": str(package_path.resolve()),
+    manifest = canonical_delivery_manifest.build_canonical_package(
+        project,
+        output_dir=target_dir,
+        startup_command=startup,
+        known_limits=combined_limits,
+        visual_required=visual_required,
+        user_review_required=canonical_review_required,
+        promotion_manifest=promotion_manifest,
+        canonical_verification_ref=canonical_verification_ref,
+        canonical_governance_ref=canonical_governance_ref,
+        acceptance_decision_ref=acceptance_decision_ref,
+        require_promotion=require_promotion,
+        extra_fields={
+            "readme_path": str(readme.resolve()),
+            "run_log_path": str(run_log.resolve()),
+            "quality_evidence": quality_evidence,
+            "user_review_evidence": user_review_evidence,
+            "artifacts": {
+                "readme": _relative_file(project, readme),
+                "startup_entrypoint": _relative_file(project, entrypoint) if entrypoint else "",
+                "test_plan": _relative_file(project, test_plan) if test_plan.is_file() else "",
+                "test_report": _relative_file(project, test_report) if test_report.is_file() else "",
+                "preview_evidence": preview_paths,
+                "delivery_zip": str((target_dir / "final_project_bundle.zip").resolve()),
+            },
         },
-        "archive_members": archive_members,
-    }
-    manifest_path = target_dir / "delivery_manifest.json"
-    manifest["manifest_path"] = str(manifest_path.resolve())
-    _write_json(manifest_path, manifest)
+    )
     return manifest

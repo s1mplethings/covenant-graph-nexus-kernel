@@ -1,0 +1,65 @@
+{
+  "kind": "CGKNRepositoryUploadManifest",
+  "schemaVersion": "1",
+  "branch": "codex/repository-layout-v1",
+  "head": "f2e27aabbde8960b84c7b2b692f761f283afac61",
+  "headMeaning": "audited cleanup commit before this upload-finalization manifest",
+  "trackedFiles": 851,
+  "trackedBytes": 10308340,
+  "trackedBytesBeforeManifest": 10306003,
+  "topLevel": {
+    "specs": {"files": 106, "bytes": 112342},
+    "examples": {"files": 13, "bytes": 19244},
+    "evidenceBeforeManifest": {"files": 10, "bytes": 1019528},
+    "projectManagement": {"files": 8, "bytes": 13069},
+    "benchmarksAfterOrbit360": {"files": 23, "bytes": 139438}
+  },
+  "classification": {
+    "track": [
+      "benchmarks/orbit_360_workbench/.gitignore",
+      "benchmarks/orbit_360_workbench/*.md",
+      "benchmarks/orbit_360_workbench/pyproject.toml",
+      "benchmarks/orbit_360_workbench/orbit360/*.py",
+      "benchmarks/orbit_360_workbench/tests/test_orbit360.py",
+      "evidence/repository-layout-v1/upload_manifest.json"
+    ],
+    "ignoreRuntime": [
+      ".cgkn/",
+      "artifacts/",
+      "runs/",
+      "generated/",
+      "workspaces/",
+      "benchmarks/orbit_360_workbench/workspace/",
+      "**/__pycache__/",
+      "**/.pytest_cache/"
+    ],
+    "localOnly": [
+      "existing ignored runtime trees under artifacts/ and .cgkn/",
+      "local caches and benchmark workspaces"
+    ],
+    "unknown": []
+  },
+  "untrackedLocalOnly": [],
+  "registry": {
+    "authoritativeHumanRegistry": "docs/01_contract_registry.md",
+    "authoritativeMachineRegistry": "specs/",
+    "deprecatedCompatibilityFallback": "examples/<category>",
+    "duplicateFormalExamplesRegistryTracked": false
+  },
+  "evidence": {
+    "curatedRoots": [
+      "evidence/artifact-kernel/v0.3/",
+      "evidence/repository-layout-v1/"
+    ],
+    "rawRuntimeEvidenceTracked": false
+  },
+  "runtimeTracked": 0,
+  "verification": {
+    "targetedRepositorySuite": "92 passed, 9 skipped",
+    "orbit360Tests": "8 passed",
+    "kernelContractCheck": "PASS",
+    "bundleRefsAndSchemas": "PASS; 7 flows compile",
+    "formalEvidenceStatus": "NOT_EVALUATED",
+    "note": "Repository upload evidence does not authorize product delivery."
+  }
+}

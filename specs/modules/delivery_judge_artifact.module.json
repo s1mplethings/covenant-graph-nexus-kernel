@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.delivery.judge_artifact","version":"1",
+  "ports":{"input":{"plan":{"artifact_type":"artifact.refactor_plan@1","required":true},"patch":{"artifact_type":"artifact.implementation_patch@1","required":true},"evidence":{"artifact_type":"artifact.test_evidence@1","required":true},"boundary":{"artifact_type":"artifact.boundary_report@1","required":true}},"output":{"judgment":{"artifact_type":"artifact.delivery_judgment@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":[],"fs_write":[],"network":false,"provider_call":false,"risk":0},
+  "compatibility":{"replaceable":false,"movable":false,"surface_rule":"same","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":4200,"requiredArtifactPorts":["plan","patch","evidence","boundary"],"optionalArtifactPorts":[],"includeDecisionLedger":true,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:judge_delivery","promptVersion":"delivery-judgment-v1","cacheable":false},
+  "metadata":{"artifact_driven":true,"authority":"support judgment; canonical delivery gate remains authoritative"}
+}

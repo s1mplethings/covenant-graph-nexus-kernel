@@ -24,11 +24,9 @@ def test_local_studio_operations_contract_covers_current_goal() -> None:
         "bugs and issues",
         "build and release",
         "release checklist",
-        "team members",
-        "search and filtering",
-        "import and export",
-        "screenshots",
-        "final bundle",
+        "team roles",
+        "search operational records",
+        "import export",
     ):
         assert term in required
     assert "knowledge base" not in required

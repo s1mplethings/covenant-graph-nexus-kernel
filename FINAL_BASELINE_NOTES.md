@@ -19,7 +19,7 @@ This bundle is intended to be used as a CovenantGraph Nexus Kernel base.
   - common refs/endpoints
 - Added reference semantic checker:
   - `scripts/validate_bundle.py`
-- Added expected compile result snapshots under `examples/compile_results/`.
+- Added expected compile result snapshots under `tests/fixtures/compile_results/`.
 
 ## Required baseline check
 

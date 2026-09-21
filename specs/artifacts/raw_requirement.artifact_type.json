@@ -1,0 +1,1 @@
+{"kind":"ArtifactTypeSpec","id":"artifact.raw_requirement","version":"1","type_name":"RawRequirement","schema_ref":"schemas/artifact_content_types.v1.schema.json#/$defs/RawRequirement","identity":{"hash_fields":["content"]},"compatibility":{"backward_compatible_with":[]},"metadata":{"v0_3":true}}

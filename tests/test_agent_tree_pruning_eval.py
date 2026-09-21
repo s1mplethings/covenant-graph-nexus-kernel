@@ -17,7 +17,7 @@ def test_pruning_eval_covers_all_required_control_cases(tmp_path: pathlib.Path) 
     assert final["event_count"] == 5
     assert final["replacement_merge_verdict"] == "PASS"
     assert final["delivery_executed"] is False
-    assert final["telegram_mainline"] == "not_connected"
+    assert final["production_mainline"] == "not_connected"
     assert {case["verdict"] for case in report["cases"]} == {"PASS"}
 
 

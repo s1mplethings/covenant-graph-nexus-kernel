@@ -27,7 +27,7 @@ The capability categories are universal and may combine freely:
 - Model/service integration: local model, hosted model, external API, self-hosted service, credentialed provider, or offline engine.
 - Structured workflow or relation modeling: timeline, graph, state machine, dependency map, approval flow, scenario tree, or task lifecycle.
 - Data persistence: database, file store, cache, search index, history, audit log, or sync boundary.
-- Runtime interaction: local web app, desktop app, CLI, Telegram interaction, browser automation, or mobile-facing UI.
+- Runtime interaction: local web app, desktop app, CLI, Codex conversation interaction, browser automation, or mobile-facing UI.
 - Evidence and verification: screenshot, generated artifact, video, test report, benchmark, sample dataset, replay, or acceptance manifest.
 - Automation and execution: scheduler, scraper, browser driver, media processor, command runner, workflow engine, or background worker.
 - Security and control: permissions, sandbox, credential handling, user data boundary, moderation, or destructive-action approval.

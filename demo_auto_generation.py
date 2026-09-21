@@ -42,7 +42,7 @@ def demo():
         
         # 创建会话
         session = {
-            "chat_id": f"demo_{i}",
+            "conversation_id": f"demo_{i}",
             "messages": [{"role": "user", "text": req['text']}],
             "whiteboard": {}
         }
@@ -84,9 +84,7 @@ def demo():
 ✓ 智能决策: 自动判断是否触发生成
 ✓ 异步处理: 后台生成，不阻塞用户交互
 
-启动完整系统:
-  python start_customer_service.py backend        # 交互式对话
-  python start_customer_service.py telegram --token <TOKEN>  # Telegram 客服
+在 Codex 中打开本仓库并继续对话，即可把需求交给 CGKN Codex Edition。
     """)
     print("="*70 + "\n")
 

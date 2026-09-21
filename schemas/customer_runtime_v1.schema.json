@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CGKN Customer Runtime Evidence v1",
+  "allOf": [{ "$ref": "canonical_defs.schema.json#/$defs/ArtifactEnvelope" }],
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "candidate_id",
+    "candidate_hash",
+    "commit_sha",
+    "production_provenance_ref",
+    "production_provenance_hash",
+    "producer",
+    "created_at",
+    "status",
+    "artifact_hash",
+    "startup_argv",
+    "cwd",
+    "clean_environment_root",
+    "dependency_setup",
+    "pid",
+    "url",
+    "health_probe",
+    "customer_action",
+    "expected_result",
+    "observed_result",
+    "observed_result_hash",
+    "shutdown_result"
+  ],
+  "properties": {
+    "kind": { "const": "CGKNCustomerRuntimeEvidence" },
+    "production_provenance_ref": { "type": "string" },
+    "production_provenance_hash": { "type": "string" },
+    "startup_argv": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "cwd": { "type": "string", "minLength": 1 },
+    "clean_environment_root": { "type": "string", "minLength": 1 },
+    "dependency_setup": { "type": "object" },
+    "pid": { "type": "integer" },
+    "url": { "type": "string", "minLength": 1 },
+    "health_probe": {
+      "type": "object",
+      "required": ["status_code", "response_hash"],
+      "properties": {
+        "status_code": { "type": "integer" },
+        "response_hash": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "customer_action": { "type": "string", "minLength": 1 },
+    "expected_result": { "type": "string", "minLength": 1 },
+    "observed_result": { "type": "string", "minLength": 1 },
+    "observed_result_hash": { "type": "string", "minLength": 1 },
+    "shutdown_result": { "type": "object" }
+  },
+  "additionalProperties": true
+}

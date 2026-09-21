@@ -18,7 +18,7 @@ Acceptance:
 
 ```text
 python -m unittest discover -s tests -p "test_*.py" -v
-python scripts/contract_check.py examples/flows/project_generation.flow.json
+python scripts/contract_check.py specs/flows/project_generation.flow.json
 ```
 
 ## Phase 1: Compiler skeleton

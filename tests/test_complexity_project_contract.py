@@ -44,7 +44,7 @@ def test_missing_contract_makes_strict_product_acceptance_needs_rework() -> None
     assert "complexity_project_contract.json_missing" in report["missing_core_features"]
 
 
-def test_missing_orchestrator_stages_and_shared_core_cannot_pass_complex_project() -> None:
+def test_missing_orchestrator_stages_and_goal_core_cannot_pass_complex_project() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = pathlib.Path(temp_dir)
         run_dir = root / "run"
@@ -62,9 +62,9 @@ def test_missing_orchestrator_stages_and_shared_core_cannot_pass_complex_project
     assert report["status"] == "fail"
     assert "orchestrator.py_missing" in report["missing_core_features"]
     assert "stages.py_missing" in report["missing_core_features"]
-    assert "cli_entry_missing" in report["missing_core_features"]
-    assert "gui_entry_missing" in report["missing_core_features"]
-    assert "gui_cli_shared_core_missing" in report["missing_core_features"]
+    assert "app/main.py_missing" in report["missing_core_features"]
+    assert "cli_entry_missing" not in report["missing_core_features"]
+    assert "gui_entry_missing" not in report["missing_core_features"]
     assert "final_project_bundle.zip_missing" in report["missing_core_features"]
 
 
@@ -81,3 +81,64 @@ def test_contract_requires_planning_core_stages_artifacts_and_delivery_evidence(
     assert contract["required_stage_artifacts"]
     assert "final_project_bundle.zip" in contract["required_delivery_evidence"]
     assert "screenshot" in contract["required_delivery_evidence"]
+
+
+def test_candidate_phase_does_not_require_packager_output(tmp_path: pathlib.Path) -> None:
+    project = tmp_path / "project"
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    for name in ("README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
+        write(project / name, "# candidate\n")
+    write(project / "artifacts" / "screenshots" / "candidate.png", "png")
+    contract = {
+        "required_planning_docs": [],
+        "required_core_files": [],
+        "required_interfaces": [],
+        "required_stage_artifacts": [],
+    }
+
+    delivery_blockers = complexity_project_contract_check.validate_project(
+        project, run_dir, contract
+    )
+    candidate_blockers = complexity_project_contract_check.validate_project(
+        project, run_dir, contract, require_final_bundle=False
+    )
+
+    assert "final_project_bundle.zip_missing" in delivery_blockers
+    assert "final_project_bundle.zip_missing" not in candidate_blockers
+
+
+def test_cli_only_candidate_does_not_require_visual_screenshot(tmp_path: pathlib.Path) -> None:
+    project = tmp_path / "project"
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    for name in ("README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
+        write(project / name, "# candidate\n")
+    contract = {
+        "required_planning_docs": [],
+        "required_core_files": [],
+        "required_interfaces": [],
+        "required_stage_artifacts": [],
+        "requires_screenshot": False,
+        "required_delivery_evidence": ["README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
+    }
+
+    blockers = complexity_project_contract_check.validate_project(
+        project, run_dir, contract, require_final_bundle=False
+    )
+
+    assert "screenshot_missing" not in blockers
+
+
+def test_goal_derived_contract_paths_are_matched_as_relative_paths(tmp_path: pathlib.Path) -> None:
+    expected = tmp_path / "src" / "timer_state.py"
+    wrong_location = tmp_path / "other" / "timer_state.py"
+    write(expected, "def start_timer():\n    return True\n")
+    write(wrong_location, "def unrelated():\n    return True\n")
+
+    matches = complexity_project_contract_check.find_by_name(
+        [expected, wrong_location],
+        "src/timer_state.py",
+    )
+
+    assert matches == [expected]

@@ -138,7 +138,7 @@ def _final_payload(
         "visual_evidence": merge["visual_evidence"].get("verdict"),
         "bundle_integrity": merge["bundle_integrity"].get("verdict"),
         "public_delivery_gate": merge["public_delivery_gate"].get("verdict"),
-        "telegram_mainline": "telegram_mainline_not_connected",
+        "production_mainline": "support_lane_not_promoted",
         **artifacts,
     }
     return final
@@ -336,7 +336,7 @@ def _index(analysis: dict[str, Any], plan: dict[str, Any], leaf: dict[str, Any],
             f"- Screenshots: {merge['visual_evidence'].get('verdict')}",
             f"- Bundle: {merge['bundle_integrity'].get('verdict')}",
             f"- Gate: {merge['public_delivery_gate'].get('verdict')}",
-            "- Telegram mainline: not connected",
+            "- Codex conversation mainline: not connected",
             f"- Final: {final['classification']} / {final['verdict']}",
             "",
         ]
@@ -391,7 +391,7 @@ def _report_markdown(report: dict[str, Any]) -> str:
             f"- visual evidence: {merge['visual_evidence'].get('verdict')}",
             f"- bundle integrity: {merge['bundle_integrity'].get('verdict')}",
             f"- public delivery gate: {merge['public_delivery_gate'].get('verdict')}",
-            f"- telegram mainline: {merge['telegram_mainline']}",
+            f"- codex mainline: {merge['production_mainline']}",
             "- stopped after provider unavailable; no downstream pytest/screenshot/bundle/gate execution was fabricated.",
             "",
             "## Failure Injection",

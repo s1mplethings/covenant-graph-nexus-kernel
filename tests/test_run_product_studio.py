@@ -7,7 +7,10 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.slow
 
 
 class RunProductStudioTests(unittest.TestCase):
@@ -89,7 +92,7 @@ class RunProductStudioTests(unittest.TestCase):
             summary_path = out_dir / "run_summary.md"
             self.assertTrue(summary_path.exists())
             text = summary_path.read_text(encoding="utf-8")
-            self.assertIn("当前状态: PARTIAL", text)
+            self.assertIn("当前状态: PASS_WITH_LIMITS", text)
             self.assertIn("Agent Build / Runner / QA Evidence", text)
 
     def test_creator_has_no_provider_or_network_arguments(self) -> None:

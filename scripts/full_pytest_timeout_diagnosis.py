@@ -60,7 +60,7 @@ def diagnose_full_pytest_timeout(
     not_run = [item for item in results if item["status"] == "not_run_total_timeout"]
     slowest = sorted([item for item in results if isinstance(item.get("duration"), (int, float))], key=lambda item: item.get("duration", 0), reverse=True)[:20]
     generated_scanned = any("generated/" in item["path"] or item["path"].startswith("generated/") for item in results)
-    provider_suspects = [item for item in results if any(token in item["path"].lower() for token in ("provider", "telegram", "real_", "live", "long_run")) and item["status"] in {"timeout", "not_run_total_timeout"}]
+    provider_suspects = [item for item in results if any(token in item["path"].lower() for token in ("provider", "codex", "real_", "live", "long_run")) and item["status"] in {"timeout", "not_run_total_timeout"}]
     summary = {
         "kind": "FullPytestTimeoutDiagnosis",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -70,9 +70,9 @@ def diagnose_full_pytest_timeout(
         "not_run_due_to_total_timeout": [item["path"] for item in not_run],
         "slowest_files": slowest,
         "generated_directory_scanned": generated_scanned,
-        "provider_or_telegram_timeout_suspects": [item["path"] for item in provider_suspects],
+        "provider_or_codex_timeout_suspects": [item["path"] for item in provider_suspects],
         "diagnosis_verdict": "PASS" if tests and (slowest or timeouts or not_run) else "FAIL",
-        "suspected_cause": "provider/telegram/long-run tests or cumulative suite size" if provider_suspects or not_run else "slow individual tests",
+        "suspected_cause": "provider/codex/long-run tests or cumulative suite size" if provider_suspects or not_run else "slow individual tests",
     }
     (out / "full_pytest_file_timings.json").write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     lines = ["# Full Pytest File Timings", "", f"- collected test files: {len(tests)}", f"- completed files: {summary['completed_files']}", f"- timeout files: {len(timeouts)}", f"- not run due total timeout: {len(not_run)}", ""]
@@ -83,7 +83,7 @@ def diagnose_full_pytest_timeout(
     (out / "timeout_tests.md").write_text("# Timeout Tests\n\n" + "\n".join(f"- {item['path']}" for item in timeouts) + ("\n" if timeouts else "- none\n"), encoding="utf-8")
     collection = subprocess.run([sys.executable, "-m", "pytest", str(tests_root), "--collect-only", "-q"], cwd=ROOT if tests_dir is None else pathlib.Path(tests_dir).parent, capture_output=True, text=True, timeout=120)
     (out / "pytest_collection_summary.txt").write_text(_tail(collection.stdout, 8000) + "\n" + _tail(collection.stderr, 4000), encoding="utf-8")
-    recs = ["# Recommendations", "", f"- suspected cause: {summary['suspected_cause']}", f"- generated directory scanned: {generated_scanned}", "- keep long-running provider/Telegram tests behind explicit timeout guards or markers.", "- keep full pytest timeout reporting separate from targeted PASS reporting."]
+    recs = ["# Recommendations", "", f"- suspected cause: {summary['suspected_cause']}", f"- generated directory scanned: {generated_scanned}", "- keep long-running provider/Codex conversation tests behind explicit timeout guards or markers.", "- keep full pytest timeout reporting separate from targeted PASS reporting."]
     (out / "recommendations.md").write_text("\n".join(recs) + "\n", encoding="utf-8")
     return summary
 

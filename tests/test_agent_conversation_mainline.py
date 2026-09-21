@@ -12,10 +12,11 @@ sys.path.insert(0, str(ROOT))
 import scripts.agent_conversation_loop as agent_loop
 import scripts.local_agent_actions as local_actions
 import scripts.local_packager as local_packager
-import scripts.telegram_live_bridge as bridge
+import scripts.pipeline_planner_agent as planner_agent
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
@@ -23,23 +24,23 @@ class FakeTelegramClient:
         self.photos: list[tuple[str, pathlib.Path, str]] = []
         self.videos: list[tuple[str, pathlib.Path, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
-    def send_document(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.documents.append((str(chat_id), pathlib.Path(path), caption))
+    def send_document(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.documents.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_photo(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.photos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_photo(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.photos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
-    def send_video(self, chat_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
-        self.videos.append((str(chat_id), pathlib.Path(path), caption))
+    def send_video(self, conversation_id: int | str, path: pathlib.Path, caption: str = "") -> bool:
+        self.videos.append((str(conversation_id), pathlib.Path(path), caption))
         return True
 
 
@@ -91,7 +92,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
     def test_customer_text_appends_to_agent_session(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             session_dir = pathlib.Path(temp_dir) / "sessions"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             bridge.start_agent_generation = lambda *args, **kwargs: None
             try:
@@ -107,7 +108,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
@@ -125,16 +126,24 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.provider_project_pipeline.execute = original_execute
                 bridge.threading.Thread = original_thread
 
-            self.assertIn("chat-b", str(called["project_dir"]))
-            self.assertNotEqual([], client.documents)
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            saved = bridge.load_session(session_dir, "chat-b")
+            provider_staging = pathlib.Path(str(called["project_dir"])).resolve()
+            final_candidate = pathlib.Path(
+                saved["generation"]["project_dir"]
+            ).resolve()
+            self.assertEqual("provider_response_staging", provider_staging.parent.name)
+            self.assertEqual(saved["generation"]["run_id"], provider_staging.name)
+            self.assertNotEqual(final_candidate, provider_staging)
+            self.assertEqual([], client.documents)
+            self.assertNotIn(saved.get("generation", {}).get("status"), {"delivered", "delivered_with_warnings"})
+            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
 
     def test_backend_controls_not_required_for_generation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_thread = bridge.threading.Thread
             called = {"ran": False}
@@ -162,13 +171,13 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_start = bridge.start_agent_generation
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_loop = agent_loop.run_agent_loop
 
-            def fake_start(client_arg, chat_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
-                called["chat_id"] = str(chat_id)
+            def fake_start(client_arg, conversation_id, session_dir_arg, log_dir_arg, model, timeout, *, announce_start, reason="frontdesk_generation_confirmation"):
+                called["conversation_id"] = str(conversation_id)
                 called["session_dir"] = str(session_dir_arg)
                 called["log_dir"] = str(log_dir_arg)
                 called["announce_start"] = announce_start
@@ -178,15 +187,15 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 raise AssertionError("generation_confirmation must not synchronously call run_agent_loop")
 
             bridge.start_agent_generation = fake_start
-            bridge.agent_conversation_loop.run_agent_loop = forbidden_loop
+            agent_loop.run_agent_loop = forbidden_loop
             try:
-                bridge.handle_text(client, "chat-async", "做一个本地看板应用", session_dir, log_dir, "gpt-test", 30)
+                bridge.handle_text(client, "chat-async", "做一个本地文本转换工具", session_dir, log_dir, "gpt-test", 30)
                 bridge.handle_text(client, "chat-async", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
                 bridge.start_agent_generation = original_start
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                agent_loop.run_agent_loop = original_loop
 
-            self.assertEqual("chat-async", called["chat_id"])
+            self.assertEqual("chat-async", called["conversation_id"])
             self.assertEqual(str(session_dir), called["session_dir"])
             self.assertEqual(str(log_dir), called["log_dir"])
             self.assertFalse(called["announce_start"])
@@ -196,7 +205,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_start = bridge.start_agent_generation
             called = {"start": False}
 
@@ -251,7 +260,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             self.assertIn("先做任务管理", captured["texts"])
             self.assertIn("再加日历视图", captured["texts"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
 
     def test_failed_command_is_returned_to_agent_for_repair(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -278,7 +288,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             result = agent_loop.run_agent_loop(session_path=session_path, project_dir=project_dir, agent=fake_agent, max_turns=3)
 
             self.assertTrue(saw_failed_result["value"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
 
     def test_malformed_agent_json_is_returned_as_no_action_parse_error(self) -> None:
         parsed = agent_loop.parse_agent_response('{"message":"bad","actions":[{"type":"write_file","path":"README.md"}')
@@ -306,8 +317,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir)
 
-            self.assertEqual("ready_with_warnings", manifest["status"])
-            self.assertTrue(pathlib.Path(manifest["package_path"]).exists())
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
+            self.assertFalse(pathlib.Path(manifest["package_path"]).exists())
             self.assertTrue(pathlib.Path(manifest["manifest_path"]).exists())
 
     def test_local_packager_marks_known_limits_as_warning_status(self) -> None:
@@ -320,7 +331,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
 
             manifest = local_packager.package_project(project_dir, screenshot_path=screenshot, known_limits=["模型未配置"])
 
-            self.assertEqual("ready_with_warnings", manifest["status"])
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
             self.assertIn("模型未配置", manifest["known_limits"])
 
     def test_agent_cannot_write_outside_project_dir(self) -> None:
@@ -366,10 +377,11 @@ class AgentConversationMainlineTests(unittest.TestCase):
             result = agent_loop.run_agent_loop(session_path=session_path, project_dir=project_dir, agent=fake_agent, max_turns=3)
 
             self.assertTrue(saw_json_failure["value"])
-            self.assertTrue(pathlib.Path(result["package_path"]).exists())
+            self.assertFalse(pathlib.Path(result.get("package_path", "")).is_file())
+            self.assertNotEqual("PASS", result.get("status"))
             self.assertEqual('{"ok": true}', (project_dir / "CFO_CONTEXT_DB.json").read_text(encoding="utf-8"))
 
-    def test_telegram_delivery_uses_delivery_manifest(self) -> None:
+    def test_conversation_delivery_uses_delivery_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
@@ -377,18 +389,19 @@ class AgentConversationMainlineTests(unittest.TestCase):
             manifest = make_manifest(project_dir)
             session = bridge.default_session("chat-d")
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             sent = bridge.send_delivery_from_manifest(client, "chat-d", session_dir, session, manifest)
 
-            self.assertTrue(any(item["kind"] == "package" for item in sent))
-            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            self.assertEqual([], sent)
+            self.assertEqual([], client.documents)
             self.assertFalse(any(path.name == "delivery_manifest.json" for _, path, _ in client.documents))
             self.assertFalse(any(path.name == "README.md" for _, path, _ in client.documents))
             self.assertNotIn("screenshot", client.messages[-1][1].lower())
             self.assertNotIn("not provided", client.messages[-1][1].lower())
             ledger = bridge.truth_ledger_path(session_dir, "chat-d").read_text(encoding="utf-8")
-            self.assertIn("public_delivery_attachment_sent", ledger)
+            self.assertIn("public_delivery_gate", ledger)
+            self.assertNotIn("public_delivery_attachment_sent", ledger)
 
     def test_non_pass_generation_without_package_becomes_rework(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -399,7 +412,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             session["active_run"] = {"id": "run-1", "status": "running", "created_at": bridge.now()}
             session["generation"] = {"status": "running"}
             bridge.save_session(session_dir, session)
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
 
             bridge.finish_agent_loop_delivery(
                 client,
@@ -415,28 +428,63 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertFalse(client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("事实级问题", joined)
+            self.assertIn("需要继续修复", joined)
+            self.assertNotIn("事实级问题", joined)
+
+    def test_finish_delivery_forwards_validated_provider_result_to_final_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            session_dir = root / "sessions"
+            project_dir = root / "project"
+            project_dir.mkdir()
+            session = bridge.default_session("chat-provider-result")
+            bridge.save_session(session_dir, session)
+            client = FakeCodexConversation()
+            result = {
+                "status": "PASS",
+                "driver": "api_provider_project_generation",
+                "manifest": {
+                    "status": "PASS",
+                    "project_dir": str(project_dir),
+                    "package_path": str(project_dir / "final_project_bundle.zip"),
+                    "manifest_path": str(project_dir / "delivery_manifest.json"),
+                },
+            }
+            captured: dict[str, object] = {}
+            original_send = bridge.send_delivery_from_manifest
+
+            def fake_send(_client, _conversation_id, _session_dir, _session, _manifest, provider_result=None):
+                captured["provider_result"] = provider_result
+                return []
+
+            bridge.send_delivery_from_manifest = fake_send
+            try:
+                bridge.finish_agent_loop_delivery(client, "chat-provider-result", session_dir, project_dir, result)
+            finally:
+                bridge.send_delivery_from_manifest = original_send
+
+            self.assertIs(result, captured.get("provider_result"))
 
     def test_agent_pipeline_failure_becomes_rework_without_internal_public_copy(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             session = bridge.default_session("chat-fail-rework")
             session["active_run"] = {"id": "run-fail", "goal": "做一个本地工具", "status": "running", "created_at": bridge.now()}
             session["whiteboard"]["project_summary"] = "做一个本地工具"
             bridge.save_session(session_dir, session)
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_plan = planner_agent.plan_pipeline
+            original_loop = agent_loop.run_agent_loop
 
-            bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("planner transport failed"))
-            bridge.agent_conversation_loop.run_agent_loop = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider TLS failed"))
+            planner_agent.plan_pipeline = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("planner transport failed"))
+            agent_loop.run_agent_loop = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider TLS failed"))
             try:
                 bridge.run_agent_generation_job(client, "chat-fail-rework", session_dir, log_dir, "gpt-test", 5)
             finally:
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                planner_agent.plan_pipeline = original_plan
+                agent_loop.run_agent_loop = original_loop
 
             saved = bridge.load_session(session_dir, "chat-fail-rework")
             self.assertEqual("rework_blocked", saved["generation"]["status"])
@@ -444,7 +492,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             self.assertFalse(saved["generation"]["delivery_allowed"])
             self.assertEqual([], client.documents)
             joined = "\n".join(text for _, text in client.messages)
-            self.assertIn("事实级问题", joined)
+            self.assertIn("需要继续修复", joined)
+            self.assertNotIn("事实级问题", joined)
             for forbidden in ("TLS", "provider", "backend", "后台", "pipeline", "manifest"):
                 self.assertNotIn(forbidden, joined)
 
@@ -453,7 +502,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
             log_dir = root / "logs"
-            client = FakeTelegramClient()
+            client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
             original_subprocess = bridge.run_generation_subprocess
             original_thread = bridge.threading.Thread
@@ -464,7 +513,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 return make_provider_result(pathlib.Path(args.out_dir))
 
             def forbidden_subprocess(*args, **kwargs):
-                raise AssertionError("Telegram mainline must not call old no-api subprocess path")
+                raise AssertionError("Codex conversation mainline must not call old no-api subprocess path")
 
             bridge.provider_project_pipeline.execute = fake_execute
             bridge.run_generation_subprocess = forbidden_subprocess

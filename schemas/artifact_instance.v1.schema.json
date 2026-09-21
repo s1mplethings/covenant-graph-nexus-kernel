@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/artifact_instance.v1.schema.json",
+  "title": "ArtifactInstance",
+  "type": "object",
+  "required": ["kind", "id", "artifactType", "runId", "producer", "createdAt", "content", "provenance", "contentHash", "schemaVersion", "status", "supersedes"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "ArtifactInstance"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "artifactType": {"$ref": "common_defs.schema.json#/$defs/artifact_ref"},
+    "runId": {"type": "string", "minLength": 1},
+    "producer": {
+      "type": "object",
+      "required": ["nodeId", "moduleRef"],
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": {"type": "string", "minLength": 1},
+        "moduleRef": {"type": "string", "minLength": 1},
+        "outputPort": {"type": "string"}
+      }
+    },
+    "createdAt": {"type": "string", "minLength": 1},
+    "content": {"type": "object"},
+    "provenance": {
+      "type": "object",
+      "required": ["inputArtifactRefs", "sourceRefs", "provider", "model", "promptVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "inputArtifactRefs": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+        "sourceRefs": {"type": "array", "items": {"type": "string"}},
+        "provider": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]},
+        "promptVersion": {"type": ["string", "null"]}
+      }
+    },
+    "contentHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "schemaVersion": {"const": "1"},
+    "status": {"enum": ["fresh", "stale", "invalid", "superseded"]},
+    "supersedes": {"type": ["string", "null"]}
+  }
+}

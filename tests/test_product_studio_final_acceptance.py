@@ -8,7 +8,10 @@ import tempfile
 import unittest
 import zipfile
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.slow
 
 
 class ProductStudioFinalAcceptanceTests(unittest.TestCase):
@@ -75,7 +78,7 @@ class ProductStudioFinalAcceptanceTests(unittest.TestCase):
             self.assertIn("revision_entry.json", names)
 
             bundle = json.loads((run_dir / "delivery_bundle.json").read_text(encoding="utf-8"))
-            self.assertEqual("PARTIAL", bundle["status"])
+            self.assertEqual("PASS_WITH_LIMITS", bundle["status"])
             self.assertTrue(bundle["no_network"])
             self.assertFalse(bundle["provider_used"])
             self.assertIn("project_package", bundle)
@@ -85,14 +88,14 @@ class ProductStudioFinalAcceptanceTests(unittest.TestCase):
 
             visual = json.loads((run_dir / "visual_evidence" / "visual_evidence.json").read_text(encoding="utf-8"))
             self.assertEqual("static_svg_preview", visual["evidence_type"])
-            self.assertEqual("PARTIAL", visual["status"])
+            self.assertEqual("PASS_WITH_LIMITS", visual["status"])
 
             allow_proc = subprocess.run(
                 [
                     sys.executable,
                     str(ROOT / "scripts" / "cgnk_boundary_guard.py"),
                     "--intent",
-                    str(ROOT / "examples" / "boundary" / "sample_intents.json"),
+                    str(ROOT / "examples" / "minimal" / "boundary" / "sample_intents.json"),
                     "--case",
                     "allow_product_story",
                     "--json",
@@ -107,7 +110,7 @@ class ProductStudioFinalAcceptanceTests(unittest.TestCase):
                     sys.executable,
                     str(ROOT / "scripts" / "cgnk_boundary_guard.py"),
                     "--intent",
-                    str(ROOT / "examples" / "boundary" / "sample_intents.json"),
+                    str(ROOT / "examples" / "minimal" / "boundary" / "sample_intents.json"),
                     "--case",
                     "block_product_agent_generated_path",
                     "--json",

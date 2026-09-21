@@ -1,1 +1,0 @@
-thumbnail, lower-third, and caption assets for local fixture processing

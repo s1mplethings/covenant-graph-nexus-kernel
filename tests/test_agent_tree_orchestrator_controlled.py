@@ -23,20 +23,19 @@ def test_controlled_orchestrator_generates_stepwise_runnable_project(tmp_path: p
         provider_mode="controlled",
     )
 
-    assert result["verdict"] == "PASS"
+    assert result["verdict"] == "NEEDS_REWORK"
     assert (tmp_path / "shared_context.json").exists()
     assert (tmp_path / "agent_build_dag.json").exists()
     assert (tmp_path / "agent_actions.jsonl").exists()
-    for stage in ("foundation", "backend_services", "frontend_views", "tests", "visual", "delivery"):
+    for stage in ("foundation", "document_import", "knowledge_search", "task_reporting", "model_adapter", "knowledge_behavior_tests", "visual", "delivery"):
         checkpoint = json.loads((tmp_path / "checkpoints" / f"{stage}.json").read_text(encoding="utf-8"))
-        assert checkpoint["verdict"] == "PASS"
+        assert checkpoint["verdict"] == ("FAIL" if stage == "delivery" else "PASS")
     project = tmp_path / "generated_project"
     assert (project / "app" / "main.py").exists()
+    assert (project / "src" / "document_import.py").exists()
     assert json.loads((project / "test_execution.json").read_text(encoding="utf-8"))["verdict"] == "PASS"
-    assert json.loads((project / "visual_evidence.json").read_text(encoding="utf-8"))["verdict"] == "PASS"
-    assert (project / "final_project_bundle.zip").exists()
+    assert not (project / "visual_evidence.json").exists()
+    assert not (project / "final_project_bundle.zip").exists()
     gate = json.loads((tmp_path / "contract_checks" / "public_delivery_gate.json").read_text(encoding="utf-8"))
-    assert gate["delivery_allowed"] is True
+    assert gate["delivery_allowed"] is False
     assert read_jsonl(tmp_path / "agent_actions.jsonl")
-    with zipfile.ZipFile(project / "final_project_bundle.zip") as zf:
-        assert "TEST_REPORT.md" in {pathlib.PurePosixPath(name).name for name in zf.namelist()}

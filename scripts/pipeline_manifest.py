@@ -85,6 +85,10 @@ def _normalized_cfo_contract(candidate: Any, whiteboard: dict[str, Any]) -> dict
         "support_artifacts": {
             "context_db": str(support.get("context_db") or default_support["context_db"]).strip()[:120],
             "risk_register": str(support.get("risk_register") or default_support["risk_register"]).strip()[:120],
+            "codex_capability_brief": str(
+                support.get("codex_capability_brief")
+                or default_support["codex_capability_brief"]
+            ).strip()[:120],
         },
         "support_agent_rule": str(raw.get("support_agent_rule") or defaults["support_agent_rule"]).strip()[:500],
         "worker_handoff_rule": str(raw.get("worker_handoff_rule") or defaults["worker_handoff_rule"]).strip()[:500],
@@ -107,6 +111,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             "support_artifacts": {
                 "context_db": "CFO_CONTEXT_DB.json",
                 "risk_register": "CFO_RISK_REGISTER.md",
+                "codex_capability_brief": "CODEX_CAPABILITY_BRIEF.json",
             },
             "support_agent_rule": "support agents maintain factual context and risk artifacts for cfo and workers; they do not own scope, final route, or delivery readiness",
             "worker_handoff_rule": "each worker must read MODULE_PIPELINE.md, update only its assigned project area, and leave a concise handoff note",
@@ -127,6 +132,11 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
                 "id": "context_librarian",
                 "name": "CFO Context Librarian",
                 "purpose": "maintain CFO_CONTEXT_DB.json as a factual project context database from whiteboard, session events, attachments, assumptions, acceptance criteria, module dependencies, and handoff references",
+            },
+            {
+                "id": "codex_capability_supervisor",
+                "name": "Codex Capability Supervisor",
+                "purpose": "operate above librarian context when an external Codex handoff is explicitly requested; diagnose bounded capability gaps with tools and return a validated advisory brief for CFO and workers without owning generation, formal evidence, packaging, or delivery",
             },
             {
                 "id": "risk_reviewer",
@@ -167,6 +177,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
             "capability_strategy",
             "capability_research_targets",
             "local_image_model_discovery",
+            "codex_capability_supervision",
         ],
         "steps": [
             {
@@ -204,7 +215,7 @@ def default_minimal_pipeline_manifest(whiteboard: dict[str, Any] | None) -> dict
                 "type": "agent_turn",
                 "stage": "build",
                 "role": "backend",
-                "goal": "read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, BUILD_PLAN.md, MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, CFO_RISK_REGISTER.md, and existing handoffs when present; generate a real runnable project, not only documents; must write README.md, app.py or main.py, requirements.txt or pyproject.toml, source code, tests, and required visual evidence such as UI screenshot plus generated background/立绘 images when requested; do not package",
+                "goal": "read PRODUCT_PLAN.md, OUTPUT_CONTRACT.md, TECHNICAL_PLAN.md, BUILD_PLAN.md, MODULE_PIPELINE.md, CFO_CONTEXT_DB.json, optional CODEX_CAPABILITY_BRIEF.json, CFO_RISK_REGISTER.md, and existing handoffs when present; generate a real runnable project, not only documents; must write README.md, app.py or main.py, requirements.txt or pyproject.toml, source code, tests, and required visual evidence such as UI screenshot plus generated background/立绘 images when requested; do not package",
                 "allowed_actions": ["write_file", "read_file", "list_files", "run_command", "use_skill", "search_skills"],
             },
             {

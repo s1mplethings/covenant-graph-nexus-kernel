@@ -44,7 +44,12 @@ def planned_result(project_name: str, reason: str) -> dict[str, Any]:
 
 
 def run_regression(*, repeats: int = 10, provider_config: dict[str, Any] | None = None, allow_live: bool = False) -> dict[str, Any]:
-    provider = provider_resilience.provider_preflight(provider_config, goal="multi project live regression")
+    provider = provider_resilience.provider_preflight(
+        provider_config,
+        goal="multi project live regression",
+        live=allow_live,
+        required_role="generation",
+    )
     if not provider.get("metadata", {}).get("live_generation_allowed") or not allow_live:
         reason = "PROVIDER_BLOCKED_OR_LIVE_DISABLED" if not allow_live else "PROVIDER_BLOCKED"
         runs = [planned_result(PROJECTS[index % len(PROJECTS)], reason) for index in range(repeats)]

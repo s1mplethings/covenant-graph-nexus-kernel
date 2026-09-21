@@ -24,6 +24,8 @@ def test_rough_goal_generates_requirement_decision_artifacts() -> None:
         assert result["status"] == "PASS"
         for name in [
             "customer_goal_brief.md",
+            "goal_spec.json",
+            "project_plan.json",
             "need_interpretations.json",
             "candidate_requirements.json",
             "requirement_scorecard.json",
@@ -74,3 +76,65 @@ def test_load_requirement_acceptance_contract() -> None:
 
     assert contract["contract_id"] == "requirement_acceptance_contract_v1"
     assert "required_requirement_artifacts" in contract
+
+
+def test_delivery_video_does_not_change_task_board_product_domain() -> None:
+    goal = (
+        "构建一个完全本地运行的单页任务看板 Web 项目，支持任务新增、状态切换、删除、筛选和 localStorage 持久化。"
+        "完整验收必须运行测试、生成真实浏览器截图和工作流演示视频，最后生成 final_project_bundle.zip。"
+    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    selected = result["selected_requirement"]
+    interpretations = result["need_interpretations"]["interpreted_needs"]
+    assert selected["selected_requirement_id"] == "local_task_board_requirement"
+    assert interpretations[0]["id"] == "task_board_need"
+    assert all(item["id"] != "media_workflow_need" for item in interpretations)
+
+
+def test_chinese_video_slicing_goal_is_classified_as_media_requirement() -> None:
+    goal = "为视频创作者构建本地 AI 切片工作台，处理长视频并导出候选片段。"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    assert requirement_decision_lane.goal_has_media_product(goal) is True
+    assert result["selected_requirement"]["selected_requirement_id"] == "local_video_material_workbench_requirement"
+
+
+def test_visual_novel_goal_selects_visual_novel_requirement_and_not_media() -> None:
+    goal = "生成大型 VN 视觉小说创作工作室，支持剧情树、背景图片生成、透明人物立绘和分支预览。"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    assert requirement_decision_lane.goal_has_visual_novel_product(goal) is True
+    assert requirement_decision_lane.goal_has_media_product(goal) is False
+    assert result["selected_requirement"]["selected_requirement_id"] == "local_visual_novel_studio_requirement"
+    assert result["need_interpretations"]["interpreted_needs"][0]["id"] == "visual_novel_authoring_need"
+
+
+def test_standalone_vn_abbreviation_selects_visual_novel_requirement() -> None:
+    goal = "帮我做一个本地可运行的 VN 项目助手，可以梳理故事逻辑的时间线，可以生成背景和立绘。"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    assert requirement_decision_lane.goal_has_visual_novel_product(goal) is True
+    assert result["goal_spec"]["status"] == "PASS"
+    assert result["goal_spec"]["domain"] == "visual_novel_editor"
+    assert result["project_plan"]["status"] == "PASS"
+    assert result["selected_requirement"]["selected_requirement_id"] == "local_visual_novel_studio_requirement"
+    assert "generate_background_images" in result["goal_spec"]["capabilities"]
+    assert "generate_character_sprites" in result["goal_spec"]["capabilities"]
+    assert "bind_visual_assets" in result["goal_spec"]["capabilities"]
+    expected_paths = set(result["project_plan"]["expected_project_structure"])
+    assert {"frontend/index.html", "frontend/styles.css", "frontend/app.js"}.issubset(expected_paths)
+    assert {"src/background_generator.py", "src/sprite_generator.py", "src/asset_library.py"}.issubset(expected_paths)
+
+
+def test_image_generation_without_video_terms_does_not_select_video_requirement() -> None:
+    goal = "构建图片生成和透明角色立绘资产库，不需要视频、音频、转录或切片。"
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = requirement_decision_lane.run_requirement_decision(goal, pathlib.Path(temp_dir) / "run")
+
+    assert requirement_decision_lane.goal_has_media_product(goal) is False
+    assert result["selected_requirement"]["selected_requirement_id"] != "local_video_material_workbench_requirement"

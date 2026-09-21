@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CGKN Provider Causal Trace v1",
+  "allOf": [{ "$ref": "canonical_defs.schema.json#/$defs/ArtifactEnvelope" }],
+  "required": [
+    "kind",
+    "schema_version",
+    "run_id",
+    "candidate_id",
+    "candidate_hash",
+    "commit_sha",
+    "producer",
+    "created_at",
+    "status",
+    "artifact_hash",
+    "production_entrypoint",
+    "generation_function",
+    "candidate_root",
+    "production_run_root",
+    "provider_request_ref",
+    "provider_request_hash",
+    "provider_response_ref",
+    "provider_response_hash",
+    "response_identity",
+    "response_content_hash",
+    "decision_ref",
+    "decision_hash",
+    "patch_ref",
+    "patch_hash",
+    "patch_application_ref",
+    "patch_application_hash",
+    "patch_hunk_count",
+    "before_source_manifest_hash",
+    "before_candidate_hash",
+    "patch_after_source_manifest_hash",
+    "patch_after_candidate_hash",
+    "post_build_delta",
+    "post_build_delta_hash",
+    "post_build_change_count",
+    "after_source_manifest_hash",
+    "after_candidate_hash",
+    "production_provenance_ref",
+    "production_provenance_hash"
+  ],
+  "properties": {
+    "kind": { "const": "CGKNProviderCausalTrace" },
+    "schema_version": { "const": "1.0" },
+    "producer": { "const": "scripts/codex_conversation.py" },
+    "status": { "const": "PASS" },
+    "production_entrypoint": {
+      "const": "scripts.codex_conversation.start_generation_from_income"
+    },
+    "generation_function": {
+      "const": "scripts.codex_conversation.run_provider_generation_job"
+    },
+    "candidate_root": { "type": "string", "minLength": 1 },
+    "production_run_root": { "type": "string", "minLength": 1 },
+    "provider_request_ref": { "type": "string", "minLength": 1 },
+    "provider_request_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "provider_response_ref": { "type": "string", "minLength": 1 },
+    "provider_response_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "response_identity": { "type": "string", "minLength": 1 },
+    "response_content_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "decision_ref": { "type": "string", "minLength": 1 },
+    "decision_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "patch_ref": { "type": "string", "minLength": 1 },
+    "patch_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "patch_application_ref": { "type": "string", "minLength": 1 },
+    "patch_application_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "patch_hunk_count": { "type": "integer", "minimum": 1 },
+    "before_source_manifest_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "before_candidate_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "patch_after_source_manifest_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "patch_after_candidate_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "post_build_delta": { "type": "array" },
+    "post_build_delta_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "post_build_change_count": { "type": "integer", "minimum": 0 },
+    "after_source_manifest_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "after_candidate_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "production_provenance_ref": { "type": "string", "minLength": 1 },
+    "production_provenance_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""LEGACY CLI ONLY. Not used by Telegram formal generation."""
+"""LEGACY CLI ONLY. Not used by Codex conversation formal generation."""
 
 import argparse
 import json

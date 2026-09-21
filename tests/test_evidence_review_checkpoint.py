@@ -133,7 +133,8 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
         self.assertTrue(evidence["evidence_review_found"])
         self.assertIn("tests/test_app.py", evidence["test_code_files"])
         self.assertIn("screenshots/result.png", evidence["screenshots"])
-        self.assertTrue(any("用户尚未确认" in item for item in manifest["known_limits"]))
+        self.assertEqual("NEEDS_REWORK", manifest["status"])
+        self.assertFalse(pathlib.Path(manifest["package_path"]).exists())
 
     def test_dynamic_runner_waits_after_evidence_review_before_package(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -214,7 +215,7 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
             package_exists = pathlib.Path(result["package_path"]).exists()
 
         self.assertEqual(["review"], executed)
-        self.assertTrue(package_exists)
+        self.assertFalse(package_exists)
         skipped = [event for event in events if event.get("kind") == "pipeline_step_skipped"]
         self.assertEqual(["product_plan", "technical_plan", "build", "test", "evidence_review"], [event.get("step_id") for event in skipped])
         self.assertTrue(all(event.get("reason") == "resume_start_stage" for event in skipped))
@@ -263,7 +264,7 @@ class EvidenceReviewCheckpointTests(unittest.TestCase):
             package_exists = pathlib.Path(result["package_path"]).exists()
 
         self.assertEqual(["product_plan", "technical_plan", "build", "test", "evidence_review", "review"], executed)
-        self.assertTrue(package_exists)
+        self.assertFalse(package_exists)
         self.assertFalse(any(event.get("kind") == "pipeline_step_skipped" for event in events))
 
 

@@ -221,9 +221,9 @@ def test_delivery_manifest_and_reports_reference_fixture_promotion_report(tmp_pa
         capture_screenshot=True,
     )
 
-    assert result["status"] == "PASS"
+    assert result["status"] == "NEEDS_REWORK"
     report = json.loads((project / "production_asr_verification_report.json").read_text(encoding="utf-8"))
-    manifest = json.loads((project / "delivery_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((project / "delivery_evidence_manifest.json").read_text(encoding="utf-8"))
     assert report["promotion_decision"] == "COMMERCIAL_BETA_PLUS"
     assert report["commercial_ready"] is False
     assert "production_asr_verification_report.json" in manifest["files"]

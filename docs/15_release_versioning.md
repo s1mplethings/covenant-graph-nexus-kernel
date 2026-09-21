@@ -1,0 +1,29 @@
+# CGKN release versioning
+
+CGKN uses semantic versions for repository releases:
+
+- `MAJOR` changes an externally relied-on kernel, contract, or integration boundary.
+- `MINOR` adds compatible formal capabilities or materially expands the reviewed mainline.
+- `PATCH` contains compatible fixes without a new formal capability.
+- `-rc.N` marks a review candidate that is uploadable for evaluation but is not a stable release.
+
+The repository version is recorded in `VERSION`. Git release tags use the same value with a
+leading `v`, but a tag is created only after the applicable quality gates pass. Uploading a review
+branch does not imply formal acceptance or public release.
+
+Companion packages follow their ecosystem's equivalent notation:
+
+- Codex plugin: repository SemVer plus one `+codex.<cachebuster>` suffix for local pickup.
+- Python Agent Kit: PEP 440 (`0.2.0rc1` for repository version `0.2.0-rc.1`).
+- MCP server protocol identity: repository SemVer without the Codex cachebuster.
+
+## Current review candidate
+
+`0.2.0-rc.1` collects the formal Product Design Depth Governance, Codex surrogate ingestion,
+canonical post-build finalization, and grounded open-domain requirement compilation work for
+review. It is intentionally not tagged as a stable release. Scoped validation, including the
+frozen-boundary guards, passes on the committed checkout; promotion beyond RC remains a separate
+review decision.
+
+Runtime workspaces, generated project memory, media, transient evidence, and local `.cgkn` state are
+not release source and must not be committed to the review branch.

@@ -13,20 +13,20 @@ import scripts.backend_dialogue_loop as backend_dialogue_loop
 import scripts.check_connectivity as check_connectivity
 import scripts.local_packager as local_packager
 import scripts.run_local_pipeline as run_local_pipeline
-import scripts.telegram_live_bridge as bridge
+import scripts.codex_conversation as bridge
 
 
-class FakeTelegramClient:
+class FakeCodexConversation:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str]] = []
         self.actions: list[tuple[str, str]] = []
 
-    def send_message(self, chat_id: int | str, text: str) -> bool:
-        self.messages.append((str(chat_id), text))
+    def send_message(self, conversation_id: int | str, text: str) -> bool:
+        self.messages.append((str(conversation_id), text))
         return True
 
-    def send_chat_action(self, chat_id: int | str, action: str) -> None:
-        self.actions.append((str(chat_id), action))
+    def send_chat_action(self, conversation_id: int | str, action: str) -> None:
+        self.actions.append((str(conversation_id), action))
 
 
 class CaptureThread:
@@ -60,12 +60,12 @@ class GenerationCompletionContractTests(unittest.TestCase):
             "帮我做一个数据分析平台，可以导入 CSV 并生成图表报告",
         )
         for index, text in enumerate(requests):
-            session = {"chat_id": f"ready-{index}", "messages": [{"role": "user", "text": text}], "whiteboard": {}}
+            session = {"conversation_id": f"ready-{index}", "messages": [{"role": "user", "text": text}], "whiteboard": {}}
             analysis = backend_dialogue_loop.summarize_locally(session, text)
             self.assertTrue(analysis["ready_to_generate"], text)
             self.assertTrue(analysis["start_allowed_with_assumptions"], text)
 
-    def test_telegram_generation_starts_reviewed_provider_job(self) -> None:
+    def test_codex_generation_starts_reviewed_provider_job(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             session_dir = root / "sessions"
@@ -74,10 +74,12 @@ class GenerationCompletionContractTests(unittest.TestCase):
             session["messages"].append({"role": "user", "text": "做一个本地任务工具"})
             bridge.save_session(session_dir, session)
             original_thread = bridge.threading.Thread
+            original_commit_sha = bridge.repository_commit_sha
             bridge.threading.Thread = CaptureThread
+            bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
             try:
                 bridge.start_agent_generation(
-                    FakeTelegramClient(),
+                    FakeCodexConversation(),
                     "provider-start",
                     session_dir,
                     log_dir,
@@ -87,6 +89,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
                 )
             finally:
                 bridge.threading.Thread = original_thread
+                bridge.repository_commit_sha = original_commit_sha
             saved = bridge.load_session(session_dir, "provider-start")
             self.assertIs(CaptureThread.target, bridge.run_provider_generation_job)
             self.assertEqual("api_provider_project_generation", saved["generation"]["driver"])
@@ -100,7 +103,7 @@ class GenerationCompletionContractTests(unittest.TestCase):
             session["messages"].append({"role": "user", "text": "做一个本地任务工具"})
             bridge.save_session(session_dir, session)
             result = bridge.run_simulator_preflight(
-                FakeTelegramClient(),
+                FakeCodexConversation(),
                 "simulator-contract",
                 session_dir,
                 log_dir,
@@ -125,6 +128,19 @@ class GenerationCompletionContractTests(unittest.TestCase):
             self.assertIn("README.md", written)
             self.assertTrue((project / "app.py").is_file())
             self.assertTrue((project / "TEST_PLAN.md").is_file())
+
+    def test_provider_writes_only_exact_project_local_agent_kit_output(self) -> None:
+        doc = valid_provider_doc()
+        files = run_local_pipeline.validate_provider_files(doc)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            project_local = root / "project" / ".cgkn" / "agent-kit" / "generated-project"
+            written = run_local_pipeline.write_provider_files(project_local, files)
+            self.assertIn("README.md", written)
+            self.assertTrue((project_local / "app.py").is_file())
+
+            with self.assertRaisesRegex(RuntimeError, "outside generated root"):
+                run_local_pipeline.write_provider_files(root / "project" / "generated-project", files)
 
     def test_empty_placeholder_and_generic_projects_are_rejected(self) -> None:
         empty = valid_provider_doc()
@@ -157,13 +173,14 @@ class GenerationCompletionContractTests(unittest.TestCase):
             preview.write_bytes(b"nonempty-preview")
             manifest = local_packager.package_project(project, screenshot_path=preview)
             artifacts = manifest["artifacts"]
-            self.assertTrue(pathlib.Path(manifest["package_path"]).is_file())
+            self.assertEqual("NEEDS_REWORK", manifest["status"])
+            self.assertFalse(pathlib.Path(manifest["package_path"]).is_file())
             self.assertEqual("README.md", artifacts["readme"])
             self.assertEqual("app.py", artifacts["startup_entrypoint"])
             self.assertEqual("TEST_PLAN.md", artifacts["test_plan"])
             self.assertEqual("TEST_REPORT.md", artifacts["test_report"])
             self.assertIn("screenshots/app_home.png", artifacts["preview_evidence"])
-            self.assertIn("README.md", manifest["archive_members"])
+            self.assertIn("README.md", {item["relative_path"] for item in manifest["inclusion_manifest"]})
 
     def test_missing_api_key_has_explicit_blocked_diagnostic(self) -> None:
         with mock.patch.object(
@@ -189,6 +206,14 @@ class GenerationCompletionContractTests(unittest.TestCase):
         args.model = "gpt-test"
         args.timeout = 30
         args.phase_log_path = ""
+        args.resume_run_dir = ""
+        args.small_model = ""
+        args.large_model = ""
+        args.disable_model_routing = True
+        args.provider_semantic_repair_attempts = None
+        args.post_build_repair_attempts = None
+        args.allow_model_usage_planning = False
+        args.codex_capability_brief = ""
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             args.out_dir = str(root / "project")
@@ -196,17 +221,15 @@ class GenerationCompletionContractTests(unittest.TestCase):
             args.result = str(root / "result.json")
             with (
                 mock.patch.object(run_local_pipeline.compose_local_pipeline, "compose", return_value={"steps": []}),
-                mock.patch.object(run_local_pipeline, "provider_generate_project_by_components", side_effect=RuntimeError("provider_api_request_failed: TLS failure")),
+                mock.patch.object(run_local_pipeline._impl, "provider_generate_project_by_components", side_effect=RuntimeError("provider_api_request_failed: TLS failure")),
                 mock.patch.object(run_local_pipeline.requirement_blueprint, "build_requirement_blueprint", return_value={}),
                 mock.patch.object(run_local_pipeline.online_input_agent, "collect_online_inputs", return_value={}),
                 mock.patch.object(run_local_pipeline.market_research_agent, "run_market_research", return_value={}),
             ):
                 result = run_local_pipeline.execute(args)
         self.assertEqual("BLOCKED", result["status"])
-        self.assertEqual("provider_generation_failed", result["reason"])
-        self.assertTrue(result["can_retry"])
-        self.assertEqual(5, len(result["repair_errors"]))
-        self.assertIn("provider_components", result["checkpoint_dir"])
+        self.assertEqual("provider_fact_blocked", result["reason"])
+        self.assertFalse((root / "project" / "final_project_bundle.zip").exists())
 
     def test_missing_local_image_model_cannot_claim_real_image_pass(self) -> None:
         session = bridge.default_session("missing-local-image")
