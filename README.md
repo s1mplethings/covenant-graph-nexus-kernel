@@ -34,6 +34,31 @@ Codex conversation
 `dynamic_pipeline_runner` remain support/experimental planning components and
 must not become a second production or delivery route.
 
+## Artifact-driven pipeline kernel (v0.3 capability)
+
+CGKN includes an additive local artifact-runtime lane for typed, incremental
+module execution. Feed-forward means that a validated output
+`ArtifactInstance` becomes a downstream module's typed input; replaying the
+whole conversation is not feed-forward.
+
+The reference flow is `flow.artifact_driven_project_refactor@1`. It provides
+immutable artifact history and `ArtifactRef` identities, deterministic hashes
+and provenance, module-scoped context projections and budgets, local execution
+fingerprints and cache, lineage, stale marking, affected-only invalidation,
+effect cardinality, and ref-only checkpoints.
+
+```text
+python scripts/demo_artifact_recompute.py --run-dir runs/artifact-v03-demo --json
+python scripts/artifact_lineage.py --run-dir runs/artifact-v03-demo --artifact ai.delivery-judgment.002
+python scripts/explain_flow.py --flow flow.artifact_driven_project_refactor@1
+```
+
+The Todo demo shows an unchanged project snapshot cache hit while
+requirement-dependent descendants recompute. This lane does not replace the
+reviewed Provider generation mainline, canonical evidence producers,
+`local_packager`, or the public delivery gate. See
+`docs/artifact-driven-migration.md` for migration and compatibility details.
+
 ## Important files
 
 - `scripts/codex_conversation.py` — import-only conversation orchestration,

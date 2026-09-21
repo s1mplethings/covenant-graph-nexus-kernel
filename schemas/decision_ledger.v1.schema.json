@@ -22,7 +22,9 @@
           "rationale": {"type": "string"},
           "alternatives": {"type": "array", "items": {"type": "string"}},
           "created_at": {"type": "string"},
-          "artifact_refs": {"type": "object", "additionalProperties": {"type": "string"}}
+          "artifact_refs": {"type": "object", "additionalProperties": {"type": "string"}},
+          "inputArtifactRefs": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+          "outputArtifactRefs": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}}
         }
       }
     }

@@ -138,6 +138,32 @@
     "policy_ref": {
       "$ref": "common_defs.schema.json#/$defs/policy_ref"
     },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxChars": {"type": "integer", "minimum": 128},
+        "requiredArtifactPorts": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "optionalArtifactPorts": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "includeDecisionLedger": {"type": "boolean"},
+        "recentConversationTurns": {"type": "integer", "minimum": 0}
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["local_function", "provider", "script", "composite"]},
+        "entrypoint": {"type": "string"},
+        "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "timeoutSeconds": {"type": "integer", "minimum": 1},
+        "provider": {"type": "string"},
+        "model": {"type": ["string", "null"]},
+        "promptVersion": {"type": ["string", "null"]},
+        "cacheable": {"type": "boolean"}
+      }
+    },
     "metadata": {
       "type": "object"
     }
@@ -161,6 +187,11 @@
         },
         "description": {
           "type": "string"
+        },
+        "projection": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string"}
         }
       }
     }

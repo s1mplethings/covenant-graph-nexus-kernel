@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.architecture.decide","version":"1",
+  "ports":{"input":{"analysis":{"artifact_type":"artifact.problem_analysis@1","required":true},"requirement":{"artifact_type":"artifact.requirement_interpretation@1","required":true}},"output":{"architecture":{"artifact_type":"artifact.architecture_decision@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":[],"fs_write":[],"network":false,"provider_call":false,"risk":1},
+  "compatibility":{"replaceable":true,"movable":true,"surface_rule":"same_or_compatible","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":4200,"requiredArtifactPorts":["analysis","requirement"],"optionalArtifactPorts":[],"includeDecisionLedger":true,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:decide_architecture","promptVersion":"architecture-decision-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

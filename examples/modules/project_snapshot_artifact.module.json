@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.project.snapshot_artifact","version":"1",
+  "ports":{"input":{"project":{"artifact_type":"artifact.project_source@1","required":true,"projection":["projectType","languages","frameworks","modules","importantFiles","existingCapabilities","tests","boundaries","knownRisks"]}},"output":{"snapshot":{"artifact_type":"artifact.project_snapshot@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":["project/**"],"fs_write":[],"network":false,"provider_call":false,"risk":0},
+  "compatibility":{"replaceable":true,"movable":true,"surface_rule":"same_or_compatible","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":3000,"requiredArtifactPorts":["project"],"optionalArtifactPorts":[],"includeDecisionLedger":false,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:snapshot_project","promptVersion":"project-snapshot-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

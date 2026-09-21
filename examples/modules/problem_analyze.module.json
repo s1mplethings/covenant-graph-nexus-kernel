@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.problem.analyze","version":"1",
+  "ports":{"input":{"requirement":{"artifact_type":"artifact.requirement_interpretation@1","required":true},"snapshot":{"artifact_type":"artifact.project_snapshot@1","required":true,"projection":["modules","boundaries","importantFiles","knownRisks"]}},"output":{"analysis":{"artifact_type":"artifact.problem_analysis@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":[],"fs_write":[],"network":false,"provider_call":false,"risk":0},
+  "compatibility":{"replaceable":true,"movable":true,"surface_rule":"same_or_compatible","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":4200,"requiredArtifactPorts":["requirement","snapshot"],"optionalArtifactPorts":[],"includeDecisionLedger":true,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:analyze_problem","promptVersion":"problem-analysis-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

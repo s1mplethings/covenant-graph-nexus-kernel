@@ -1,0 +1,9 @@
+{
+  "kind":"ModuleContract","id":"module.refactor.plan_artifact","version":"1",
+  "ports":{"input":{"architecture":{"artifact_type":"artifact.architecture_decision@1","required":true},"snapshot":{"artifact_type":"artifact.project_snapshot@1","required":true,"projection":["modules","importantFiles","tests","boundaries"]}},"output":{"plan":{"artifact_type":"artifact.refactor_plan@1"}}},
+  "requires":{"capabilities":[],"context":[]},"effects":{"fs_read":[],"fs_write":[],"network":false,"provider_call":false,"risk":1},
+  "compatibility":{"replaceable":true,"movable":true,"surface_rule":"same_or_compatible","effect_rule":"subset_or_equal"},
+  "context":{"maxChars":4000,"requiredArtifactPorts":["architecture","snapshot"],"optionalArtifactPorts":[],"includeDecisionLedger":true,"recentConversationTurns":0},
+  "implementation":{"kind":"local_function","entrypoint":"cgkn.runtime.reference_modules:plan_refactor","promptVersion":"refactor-plan-v1","cacheable":true},
+  "metadata":{"artifact_driven":true}
+}

@@ -224,6 +224,8 @@ def update_decision_ledger(run_dir: pathlib.Path, run_id: str, turns: list[dict[
                 "alternatives": [str(item) for item in metadata.get("alternatives", [])],
                 "created_at": str(turn.get("created_at", now())),
                 "artifact_refs": {str(k): str(v) for k, v in turn.get("artifact_refs", {}).items()},
+                "inputArtifactRefs": list(metadata.get("inputArtifactRefs", [])),
+                "outputArtifactRefs": list(metadata.get("outputArtifactRefs", [])),
             }
         )
         existing_ids.add(decision_id)

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/generation_checkpoint.v2.schema.json",
+  "title": "ArtifactExecutionCheckpoint",
+  "type": "object",
+  "required": ["kind", "runId", "nodeId", "status", "startedAt", "finishedAt", "inputArtifactRefs", "outputArtifactRefs", "executionFingerprint", "cacheStatus", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "GenerationCheckpoint"},
+    "runId": {"type": "string", "minLength": 1},
+    "nodeId": {"type": "string", "minLength": 1},
+    "status": {"enum": ["running", "pass", "fail", "blocked"]},
+    "startedAt": {"type": "string"},
+    "finishedAt": {"type": "string"},
+    "inputArtifactRefs": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+    "outputArtifactRefs": {"type": "array", "items": {"$ref": "artifact_ref.v1.schema.json"}},
+    "executionFingerprint": {"type": "string"},
+    "cacheStatus": {"enum": ["hit", "miss", "bypass"]},
+    "diagnostics": {"type": "array", "items": {"type": "object"}}
+  }
+}

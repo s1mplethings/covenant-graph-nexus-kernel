@@ -1,0 +1,11 @@
+{
+  "projectType": "python_todo_app",
+  "languages": ["Python"],
+  "frameworks": [],
+  "modules": ["todo.service", "todo.ui"],
+  "importantFiles": ["todo/service.py", "todo/ui.py", "tests/test_archive.py"],
+  "existingCapabilities": ["create todo", "archive one todo"],
+  "tests": ["tests/test_archive.py"],
+  "boundaries": ["preserve archive_one(todo_id)", "no network access"],
+  "knownRisks": ["bulk mutation may partially apply"]
+}

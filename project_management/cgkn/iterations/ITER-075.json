@@ -1,0 +1,86 @@
+{
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-075",
+  "project_id": "cgkn",
+  "goal": "Deliver the smallest complete CGKN v0.3 artifact-driven vertical slice with typed feed-forward, deterministic local recompute, stale-aware delivery, reference evidence, and backward compatibility.",
+  "backlog_item_ids": [
+    "PB-053"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "acceptance_criteria": [
+    "Artifact-driven compiler and runtime validate typed producers, projections, implementations, freshness, output schemas, cache fingerprints, and effect cardinality.",
+    "ArtifactInstance, ArtifactRef, ArtifactStore, deterministic hashes, provenance, version history, index, lineage, and structural diff are implemented and tested.",
+    "Existing flows and the reviewed Provider, evidence, packaging, and delivery authorities remain unchanged; targeted and full regression profiles pass.",
+    "Stale required artifacts block final delivery judgment and checkpoints contain execution metadata plus artifact refs rather than business payloads.",
+    "The reference project-refactor flow produces a complete local sample run and demonstrates affected-only recompute with the project snapshot reused."
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONTRACT",
+      "measure": "management artifacts conform to registered JSON schemas and semantic invariants",
+      "target": "all management, iteration, and experience artifacts validate",
+      "method": "jsonschema tests plus deterministic manager validation"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "changed management capability tests",
+      "target": "all targeted tests pass",
+      "method": "pytest targeted profile"
+    },
+    {
+      "id": "QM-CROSS-FEEDFORWARD",
+      "measure": "cross-view consistency and safe downstream publication during real project generation",
+      "target": "100% of generated and reused components have hash-valid plan/quality/interface/upstream receipts before publication, only passing bounded projections feed downstream, and one aggregate receipt exists before post-build",
+      "method": "deterministic positive and negative receipt tests, component-loop integration test, artifact/event-log inspection, and kernel authority guard"
+    }
+  ],
+  "quality_activities": {
+    "prevention": [
+      "Confirm acceptance, interfaces, and applicable kernel constraints before implementation."
+    ],
+    "assurance": [
+      "Review method, schema, skill, and repository instruction consistency.",
+      "Validate that support artifacts cannot authorize formal delivery PASS.",
+      "Review changed files against the kernel contract before integration."
+    ],
+    "control": [
+      "Run schema and semantic validation.",
+      "Run project-management unit tests.",
+      "Run skill validation.",
+      "Run targeted kernel and knowledge tests."
+    ],
+    "improvement": [
+      "Record review findings and one bounded improvement experiment."
+    ]
+  },
+  "interface_expectations": [],
+  "evidence_refs": [
+    "examples/artifact_driven_demo/incremental_recompute_evidence.json",
+    "project_management/cgkn/iterations/ITER-075_RUNTIME_EVIDENCE.md",
+    "tests/test_artifact_driven_kernel.py",
+    "tests/test_kernel_contract.py"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The artifact-driven vertical slice meets its scoped contracts and reference demonstration; repository-wide full_all remains unaccepted because unrelated baseline failures and a timeout prevent an all-tests-pass claim."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-053"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "The Todo mutation demonstrated affected-only recompute and unchanged snapshot reuse.",
+      "Typed artifact boundaries, deterministic cache/invalidation, and support-only delivery authority stayed isolated and were directly testable."
+    ],
+    "did_not_work": [
+      "The pre-existing dirty branch could not produce a green full_all profile within 1200 seconds and contains unrelated Provider/Codex/benchmark failures."
+    ],
+    "experiments": [
+      "Capture a clean committed-checkout baseline profile before the next non-trivial kernel increment and compare identical post-commit evidence."
+    ]
+  }
+}

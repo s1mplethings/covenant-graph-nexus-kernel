@@ -55,6 +55,19 @@ def generation_confirmation_branch(text: str) -> str:
 
 
 class KernelContractTests(unittest.TestCase):
+    def test_artifact_driven_kernel_preserves_delivery_authority(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        runner = read_source("cgkn/runtime/runner.py")
+
+        self.assertIn("Artifact-driven pipeline kernel", kernel)
+        self.assertIn("execution side channel only", kernel)
+        self.assertIn("ArtifactInstance", registry)
+        self.assertIn("EffectConstraint", registry)
+        self.assertIn("schema-invalid output cannot become a formal artifact", kernel.lower())
+        self.assertNotIn("local_packager", runner)
+        self.assertNotIn("public_delivery_gate", runner)
+
     def test_provider_contract_guided_repair_preserves_kernel_authority(self) -> None:
         contract = read_source("docs/00_kernel_contract.md")
         pipeline = read_source("scripts/run_local_pipeline_impl.py")

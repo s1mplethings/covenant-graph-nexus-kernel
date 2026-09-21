@@ -62,7 +62,8 @@ Develop CGKN with the same tailored PMP, adaptive delivery, built-in quality, an
 - `PB-049` [ready] Add governed Codex surrogate ingestion to the formal Provider mainline
 - `PB-050` [done] Connect verified Provider candidates to canonical finalization
 - `PB-051` [ready] Compile grounded open-domain GoalSpecs from Provider planning proposals
-- `PB-052` [active] Stage and upload the CGKN 0.2.0-rc.1 review candidate
+- `PB-052` [done] Stage and upload the CGKN 0.2.0-rc.1 review candidate
+- `PB-053` [done] Add the artifact-driven pipeline kernel
 
 ## Definition of done
 

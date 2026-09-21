@@ -1,5 +1,26 @@
 # CGKN Contract Registry
 
+## Artifact-driven pipeline kernel v0.3
+
+| Contract / artifact | Authoritative schema or implementation | Consumer | Authority boundary |
+| --- | --- | --- | --- |
+| `ArtifactRef` | `schemas/artifact_ref.v1.schema.json`; `cgkn/artifacts/models.py` | ArtifactStore, checkpoints, manifests, context packs | portable identity only; no evidence authority |
+| `ArtifactInstance` | `schemas/artifact_instance.v1.schema.json`; `cgkn/artifacts/models.py` | `cgkn/artifacts/store.py` and typed modules | immutable structured knowledge; lifecycle status is not EvidenceStatus |
+| standard v0.3 artifact contents | `schemas/artifact_content_types.v1.schema.json`; `examples/artifacts/*` with `metadata.v0_3=true` | artifact-driven compiler and runtime | content validation only |
+| `ArtifactIndex` | `cgkn/artifacts/store.py`; `artifact_index.json` | lineage, cache, invalidation CLIs | mutable local lookup/status projection over immutable history |
+| `ArtifactFlowRunManifest` | `schemas/artifact_run_manifest.v1.schema.json`; `cgkn/runtime/runner.py` | local resume and inspection | workflow support only |
+| v0.3 `GenerationCheckpoint` | `schemas/generation_checkpoint.v2.schema.json`; `cgkn/runtime/checkpoint.py` | run manifest and diagnostics | execution side channel; refs only, no business payload or delivery authority |
+| `FeedForwardReport` | `cgkn/runtime/runner.py`; `feed_forward_report.json` | token/cache/debug review | support metrics only |
+| `EffectConstraint` | `schemas/policy_spec.schema.json`; `cgkn/runtime/effects.py` | compiler and ArtifactModuleRunner | limits declared effect counts; does not grant an effect denied elsewhere |
+| `flow.artifact_driven_project_refactor@1` | `examples/flows/artifact_driven_project_refactor.flow.json` | `scripts/run_artifact_flow.py` | additive reference flow; not a second Codex conversation public-delivery route |
+
+The registered content types are RawRequirement, ProjectSource (reference-flow
+input), RequirementInterpretation, ProjectSnapshot, ProblemAnalysis,
+ArchitectureDecision, RefactorPlan, ImplementationPatch, TestEvidence,
+BoundaryReport, and DeliveryJudgment. Formal evidence values inside evidence
+artifacts use only the canonical status registry. Artifact lifecycle values
+remain separate.
+
 This registry is the authoritative list of formal CGKN evidence and delivery contracts. Every formal artifact uses the canonical envelope:
 
 ```json

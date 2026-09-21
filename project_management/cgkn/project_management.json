@@ -1345,6 +1345,30 @@
         "QM-SELFHOST",
         "QM-REGRESSION"
       ]
+    },
+    {
+      "id": "PB-053",
+      "title": "Add the artifact-driven pipeline kernel",
+      "outcome": "Typed, validated ArtifactInstances feed bounded modules through a deterministic local runtime with lineage, cache, affected-only invalidation, effect cardinality, and stale-aware delivery judgment while existing flows remain compatible.",
+      "priority": 53,
+      "value_score": 10,
+      "risk_reduction_score": 10,
+      "state": "done",
+      "dependencies": [
+        "PB-051"
+      ],
+      "acceptance_criteria": [
+        "ArtifactInstance, ArtifactRef, ArtifactStore, deterministic hashes, provenance, version history, index, lineage, and structural diff are implemented and tested.",
+        "Artifact-driven compiler and runtime validate typed producers, projections, implementations, freshness, output schemas, cache fingerprints, and effect cardinality.",
+        "The reference project-refactor flow produces a complete local sample run and demonstrates affected-only recompute with the project snapshot reused.",
+        "Stale required artifacts block final delivery judgment and checkpoints contain execution metadata plus artifact refs rather than business payloads.",
+        "Existing flows and the reviewed Provider, evidence, packaging, and delivery authorities remain unchanged; targeted and full regression profiles pass."
+      ],
+      "quality_metric_ids": [
+        "QM-CONTRACT",
+        "QM-CROSS-FEEDFORWARD",
+        "QM-REGRESSION"
+      ]
     }
   ],
   "quality_management": {
@@ -1576,7 +1600,8 @@
     "iterations/ITER-071.json",
     "iterations/ITER-072.json",
     "iterations/ITER-073.json",
-    "iterations/ITER-074.json"
+    "iterations/ITER-074.json",
+    "iterations/ITER-075.json"
   ],
   "improvement_backlog": [
     "Expose the validated Codex capability-supervisor handoff through an explicitly configured Codex plugin or SDK adapter only when automatic task launch is required; keep the file/agent_session protocol as the auditable base contract.",
@@ -1624,7 +1649,8 @@
     "In the next bounded change, route the same accepted surrogate run through the existing production entry and promotion checkpoints without changing delivery gates.",
     "Document that repository-state guards require a committed-checkout rerun before concluding that a frozen-boundary conflict remains.",
     "Promote 0.2.0-rc.1 only after the separate review decision for a stable release.",
-    "Always rerun repository-state guards after the candidate commit and before the final upload review is closed."
+    "Always rerun repository-state guards after the candidate commit and before the final upload review is closed.",
+    "Capture a clean committed-checkout baseline profile before the next non-trivial kernel increment and compare identical post-commit evidence."
   ],
   "workflow_state": "delivering",
   "evidence_status": "NOT_EVALUATED",

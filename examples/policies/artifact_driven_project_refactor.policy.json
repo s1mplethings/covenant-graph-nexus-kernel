@@ -1,0 +1,12 @@
+{
+  "kind":"PolicySpec","id":"policy.artifact_driven_project_refactor","version":"1",
+  "fs":{"allowed_read":["project/**","tests/**"],"allowed_write":["project/**","tests/**"],"denied_write":[".git/**",".env","secrets/**","*.pem","*.key"]},
+  "network":{"allowed":false},"provider":{"allowed":false},"risk":{"max_risk":2},
+  "agent_permissions":{"allowed_edits":["add_node","replace_node","connect","disconnect","split_edge","add_gate"],"denied_edits":["weaken_policy","remove_gate","change_policy_ref"],"requires_human_review":["remove_node","upgrade_major_version"]},
+  "effect_constraints":[
+    {"effect":"provider_call","scope":"node","max":0},
+    {"effect":"network","scope":"run","max":0},
+    {"effect":"fs_write","scope":"node","max":1},
+    {"effect":"fs_write","scope":"run","max":5}
+  ]
+}

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 def load_json(path: pathlib.Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -101,7 +103,27 @@ class Compiler:
         if self._has_cycle(graph_edges):
             diags.append(Diagnostic("CGNK_GRAPH_CYCLE", "error", "edges", "Flow node graph contains a cycle"))
         self._check_gates(flow, node_map, diags)
-        return self._result(flow_ref, flow, diags)
+        result = self._result(flow_ref, flow, diags)
+        if flow.get("metadata", {}).get("artifact_driven"):
+            # v0.3 adds artifact-schema, projection, runtime-implementation, and
+            # effect-cardinality checks without changing legacy-flow semantics.
+            from cgkn.compiler import ArtifactFlowCompiler
+
+            advanced = ArtifactFlowCompiler(self.idx.root).compile(flow_ref)
+            existing = {(item["code"], item["path"]) for item in result["diagnostics"]}
+            for item in advanced["diagnostics"]:
+                if (item["code"], item["path"]) not in existing:
+                    result["diagnostics"].append(item)
+            result["statistics"]["errors"] = sum(item["severity"] == "error" for item in result["diagnostics"])
+            result["statistics"]["warnings"] = sum(item["severity"] == "warning" for item in result["diagnostics"])
+            result["ok"] = result["statistics"]["errors"] == 0
+            if result["ok"] and result["compiled_bundle"] and advanced.get("compiled_bundle"):
+                result["compiled_bundle"]["artifact_dependency_graph"] = advanced["compiled_bundle"]["artifact_dependency_graph"]
+                result["compiled_bundle"]["topological_order"] = advanced["compiled_bundle"]["topological_order"]
+                result["compiled_bundle"]["checks"].update(advanced["compiled_bundle"]["checks"])
+            elif not result["ok"]:
+                result["compiled_bundle"] = None
+        return result
     def _endpoint_type(self, ep, flow, node_map, side, diags, path):
         if side == "output" and "flow_input" in ep:
             aref = flow.get("inputs", {}).get(ep["flow_input"])

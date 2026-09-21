@@ -120,6 +120,19 @@
           }
         }
       }
+    },
+    "effect_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["effect", "scope", "max"],
+        "additionalProperties": false,
+        "properties": {
+          "effect": {"enum": ["network", "provider_call", "fs_read", "fs_write", "db_write"]},
+          "scope": {"enum": ["node", "phase", "turn", "run"]},
+          "max": {"type": "integer", "minimum": 0}
+        }
+      }
     }
   }
 }

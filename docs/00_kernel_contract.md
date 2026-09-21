@@ -1,5 +1,52 @@
 # CGKN Kernel Contract
 
+## Artifact-driven pipeline kernel (v0.3 normative addition)
+
+The artifact-driven runtime is an additive typed execution lane. It MUST NOT
+replace the Codex conversation Provider mainline, create a second generated
+candidate author, promote a support artifact to formal evidence, package a
+candidate, or bypass the public delivery gate. Existing phase-oriented flows
+remain valid compatibility flows.
+
+Feed-forward means that a validated upstream `ArtifactInstance` is materialized
+in the local `ArtifactStore` and its hash-bound `ArtifactRef` is connected to a
+compatible downstream artifact port. Re-sending complete conversation or run
+history is not feed-forward. Decomposition means bounded modules connected by
+typed intermediate artifacts and an explicit acyclic dependency graph.
+
+An artifact instance is immutable business or analysis knowledge. It binds its
+artifact type, producer node and module version, provenance inputs and sources,
+provider/model/prompt identity when applicable, canonical-content SHA-256, run,
+schema version, and optional predecessor. `fresh`, `stale`, `invalid`, and
+`superseded` are artifact lifecycle states; they are not `EvidenceStatus`.
+Historical instances are retained.
+
+A v0.3 `GenerationCheckpoint` is an execution side channel only. It contains
+node status, timestamps, input/output `ArtifactRef` values, execution
+fingerprint, cache status, and diagnostics. It MUST NOT carry module business
+payloads. The legacy v1 checkpoint remains readable for old flows.
+
+The artifact flow compiler MUST validate artifact and policy references,
+content-schema availability, port compatibility, required producers,
+single-producer cardinality unless a port is explicitly multi-valued, DAG
+structure, top-level projections, declared runtime implementation, and effect
+constraints. Artifact-driven modules declare one of `local_function`,
+`provider`, `script`, or `composite`; the deterministic runner remains the
+orchestrator and a Provider is only a bounded implementation adapter.
+
+Runtime execution MUST verify input identity, hash, type, and freshness; build
+context from declared input ports and projections; enforce module context
+budget and policy effect counts; compute a deterministic fingerprint; validate
+all outputs before writing any of them; and materialize Provider output before
+any downstream module consumes it. Provider output receives at most one bounded
+schema-repair attempt. Schema-invalid output cannot become a formal artifact.
+
+Incremental recompute is `artifact hash change -> dependency traversal -> stale
+affected descendants -> reuse unaffected fresh artifacts`. A required stale,
+invalid, missing, hash-invalid, or lineage-incomplete artifact vetoes a positive
+artifact delivery judgment. That judgment remains support input to the existing
+canonical delivery authorities and never authorizes packaging or delivery.
+
 ## False-Pass supervision and ProviderJob execution (normative)
 
 The formal responsibility split is: Provider authors project design,
