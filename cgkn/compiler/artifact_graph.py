@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cgkn.artifacts.types import ArtifactTypeRegistry, ArtifactValidationError
+from cgkn.specs import spec_directory
 
 
 @dataclass(frozen=True)
@@ -35,13 +36,13 @@ class ArtifactFlowCompiler:
     def __init__(self, root: pathlib.Path):
         self.root = pathlib.Path(root).resolve()
         self.registry = ArtifactTypeRegistry(self.root)
-        self.modules = self._load("examples/modules")
-        self.flows = self._load("examples/flows")
-        self.policies = self._load("examples/policies")
+        self.modules = self._load("modules")
+        self.flows = self._load("flows")
+        self.policies = self._load("policies")
 
-    def _load(self, relative: str) -> dict[str, dict[str, Any]]:
+    def _load(self, category: str) -> dict[str, dict[str, Any]]:
         result = {}
-        for path in sorted((self.root / relative).glob("*.json")):
+        for path in sorted(spec_directory(self.root, category).glob("*.json")):
             doc = json.loads(path.read_text(encoding="utf-8"))
             result[f"{doc['id']}@{doc['version']}"] = doc
         return result

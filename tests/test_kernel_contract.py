@@ -1772,6 +1772,22 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"workflow_state": "WAITING_REQUIREMENT_REPLAN"', production)
         self.assertIn('"candidate_repair": False', production)
 
+    def test_repository_layout_keeps_specs_examples_evidence_and_runtime_separate(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        guide = read_source("docs/repository_guide.md")
+        registry_loader = read_source("cgkn/specs.py")
+        hygiene = read_source("scripts/repository_hygiene.py")
+
+        self.assertIn("Repository layout and retention", kernel)
+        self.assertIn("Source != Spec != Example != Evidence != Runtime", guide)
+        self.assertIn('root / "specs" / category', registry_loader)
+        self.assertIn("is deprecated; move formal definitions", registry_loader)
+        self.assertIn('"artifacts/"', hygiene)
+        self.assertIn('"examples/project_memory/"', hygiene)
+        self.assertIn("TRACKED_RUNTIME_OUTPUT", hygiene)
+        self.assertTrue((ROOT / "specs" / "flows" / "artifact_driven_project_refactor.flow.json").is_file())
+        self.assertFalse((ROOT / "examples" / "flows").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,12 +2,12 @@
 
 ## Self-hosting
 
-Use `project_management/cgkn/project_management.json` as the current management
-snapshot and the referenced iteration JSON as the active increment. Keep the
-human-readable Markdown projections synchronized after changing structured
-artifacts.
+Use `project_management/current/` as the current management snapshot. Keep
+`PROJECT_MANAGEMENT.md`, `backlog.json`, `risks.json`, and
+`active_iteration.json` synchronized. Completed release-level history belongs
+under `project_management/summaries/`, not an unbounded tracked iteration archive.
 
-Use `project_management/enterprise_experience.json` as the structured
+Use `project_management/current/enterprise_experience.json` as the structured
 organizational experience store. Retrieve bounded relevant items before
 planning. Record a usage receipt before changing confidence or declaring a
 practice effective.

@@ -25,7 +25,7 @@ def write_seed(store, artifact_type, content, port):
             run_id=store.run_dir.name,
             producer=Producer("flow_input", "module.flow_input@1", port),
             content=content,
-            provenance=Provenance(source_refs=("examples/artifact_driven_demo",)),
+            provenance=Provenance(source_refs=("examples/artifact-driven/todo-refactor",)),
         )
     )
 
@@ -38,7 +38,7 @@ def main() -> int:
     run_dir = pathlib.Path(args.run_dir).resolve()
     registry = ArtifactTypeRegistry(ROOT)
     store = ArtifactStore(run_dir, registry)
-    project = json.loads((ROOT / "examples" / "artifact_driven_demo" / "todo_project.json").read_text(encoding="utf-8"))
+    project = json.loads((ROOT / "examples" / "artifact-driven" / "todo-refactor" / "todo_project.json").read_text(encoding="utf-8"))
     requirement_text = "给现有 Todo App 增加批量归档功能，但不能破坏现有单条归档。"
     inputs = {
         "raw_requirement": write_seed(store, "artifact.raw_requirement@1", {"text": requirement_text, "source": "demo"}, "raw_requirement"),

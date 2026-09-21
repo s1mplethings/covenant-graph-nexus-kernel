@@ -95,7 +95,7 @@ before the next node runs; one bounded schema repair is permitted.
 ## CLI
 
 ```text
-python scripts/run_artifact_flow.py --run-dir runs/demo --requirement "..." --project-json examples/artifact_driven_demo/todo_project.json
+python scripts/run_artifact_flow.py --run-dir runs/demo --requirement "..." --project-json examples/artifact-driven/todo-refactor/todo_project.json
 python scripts/invalidate_artifact.py --run-dir runs/demo --artifact ai.requirement-interpretation.002 --dry-run
 python scripts/run_artifact_flow.py --run-dir runs/demo --from-artifact ai.requirement-interpretation.002
 python scripts/artifact_lineage.py --run-dir runs/demo --artifact ai.delivery-judgment.002 --json

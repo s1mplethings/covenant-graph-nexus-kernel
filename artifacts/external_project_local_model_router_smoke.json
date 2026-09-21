@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "task": "customer_status",
-  "provider": "ollama",
-  "model": "qwen2.5:7b-instruct",
-  "ok": true,
-  "text_preview": "project-local-router-smoke-ok",
-  "elapsed_ms": 3754
-}

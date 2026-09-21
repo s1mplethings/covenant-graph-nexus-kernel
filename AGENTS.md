@@ -43,4 +43,4 @@
 - Read relevant bounded enterprise experience before planning and record evidence-backed usage outcomes after review.
 - Keep `workflow_state` and `experience_state` separate from formal `EvidenceStatus`.
 - Management packs, iterations, retrospectives, and experience records are support artifacts and cannot authorize formal delivery PASS.
-- For non-trivial CGKN changes, update or create an applicable iteration record under `project_management/cgkn/` and close it with test/review evidence. Tailor this to a short record for small fixes.
+- For non-trivial CGKN changes, update `project_management/current/active_iteration.json` and close it with test/review evidence. Summarize completed release-level history under `project_management/summaries/`; do not add an unbounded iteration archive back to HEAD.

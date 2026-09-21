@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 import scripts.cgnk_boundary_guard as guard
 
 
-SAMPLES = ROOT / "examples" / "boundary" / "sample_intents.json"
+SAMPLES = ROOT / "examples" / "minimal" / "boundary" / "sample_intents.json"
 
 
 def load_case(name: str) -> tuple[dict, dict | None]:

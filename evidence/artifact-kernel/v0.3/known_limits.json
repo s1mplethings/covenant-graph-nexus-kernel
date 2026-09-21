@@ -1,0 +1,10 @@
+{
+  "kind": "CGKNKnownLimits",
+  "schemaVersion": "1",
+  "known_limits": [
+    "Artifact execution and cache are local filesystem implementations; distributed execution and external stores are intentionally out of scope.",
+    "Artifact projection supports top-level fields only.",
+    "The scoped v0.3 profile passed, but the earlier repository-wide quick profile contained unrelated pre-existing Provider, benchmark, surrogate, status, and environment failures.",
+    "Artifact delivery judgment remains support input and cannot authorize canonical packaging or public delivery."
+  ]
+}

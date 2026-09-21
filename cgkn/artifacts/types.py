@@ -4,6 +4,8 @@ import json
 import pathlib
 from typing import Any
 
+from cgkn.specs import spec_directory
+
 
 class ArtifactValidationError(ValueError):
     pass
@@ -28,7 +30,7 @@ class ArtifactTypeRegistry:
 
     def _load_specs(self) -> dict[str, dict[str, Any]]:
         result: dict[str, dict[str, Any]] = {}
-        for path in sorted((self.root / "examples" / "artifacts").glob("*.json")):
+        for path in sorted(spec_directory(self.root, "artifacts").glob("*.json")):
             doc = json.loads(path.read_text(encoding="utf-8"))
             result[f"{doc['id']}@{doc['version']}"] = doc
         return result

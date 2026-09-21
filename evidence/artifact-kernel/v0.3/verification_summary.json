@@ -1,0 +1,40 @@
+{
+  "kind": "CGKNCuratedEvidenceBundle",
+  "schemaVersion": "1",
+  "claim": "The additive Artifact-driven Pipeline Kernel validates and materializes typed artifacts, performs deterministic cache and affected-only recompute, and blocks stale final judgment without changing the Provider or delivery mainline.",
+  "evidenceStatus": "PASS_WITH_LIMITS",
+  "sourceCommit": "bc02f96105c71eb9cdb401ad9413c7d4f6b2c046",
+  "metrics": {
+    "targetedTestsPassed": 71,
+    "targetedTestsFailed": 0,
+    "validatedFlows": 7,
+    "referenceErrors": 0,
+    "rawSourceChars": 12000,
+    "maxArtifactContextChars": 2640,
+    "largestContextRatio": 0.22
+  },
+  "sourceHashes": [
+    {
+      "pathAtVerification": "examples/flows/artifact_driven_project_refactor.flow.json",
+      "currentPath": "specs/flows/artifact_driven_project_refactor.flow.json",
+      "sha256": "28ef805d30f88c6cd3caa4b499718147554184bae8e56cc74b0cbb5d90bb8d00"
+    },
+    {
+      "pathAtVerification": "tests/test_artifact_driven_kernel.py",
+      "currentPath": "tests/test_artifact_driven_kernel.py",
+      "sha256": "0fa947d0303f8004746c1426ccc8d8416d7c029175e412d54fc690ff27cd2cd2"
+    },
+    {
+      "pathAtVerification": "cgkn/runtime/runner.py",
+      "currentPath": "cgkn/runtime/runner.py",
+      "sha256": "5eb111ebccc205c7c791c652bdce2dbfc41e841f56d313089069440e6e496048"
+    }
+  ],
+  "testResult": {
+    "command": "python -m pytest tests/test_artifact_driven_kernel.py tests/test_kernel_contract.py tests/test_product_design_depth_rule_guard.py -q",
+    "result": "71 passed"
+  },
+  "reproductionCommand": "python scripts/demo_artifact_recompute.py --run-dir runs/artifact-v03-demo --json",
+  "knownLimitationsRef": "known_limits.json",
+  "authorityNote": "Curated support evidence does not replace canonical evidence producers, local_packager, or public delivery authority."
+}

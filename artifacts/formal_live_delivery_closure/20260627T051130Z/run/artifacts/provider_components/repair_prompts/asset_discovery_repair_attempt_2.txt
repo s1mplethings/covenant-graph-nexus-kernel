@@ -1,9 +1,0 @@
-provider component generation repair {"attempt_number": 1, "blockers": ["provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery"], "affected_components": ["asset_discovery"]}
-
-You are regenerating asset_discovery_files only.
-Do not modify files owned by other components.
-Do not add TODO, placeholder, or future-work claims.
-Return only files belonging to this component.
-Repair prompt budget: {"max_context_chars_per_repair": 16000, "max_files_per_repair": 3, "max_output_files_per_repair": 2}
-Old blockers that must disappear: provider manifest path ownership violation: component/asset_discovery/README.md belongs to <unknown>, not asset_discovery
-Validation checks:

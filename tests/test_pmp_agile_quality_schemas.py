@@ -19,15 +19,11 @@ def validator_class():
     ("artifact_path", "schema_name"),
     [
         (
-            "project_management/cgkn/project_management.json",
-            "adaptive_project_management_pack.schema.json",
-        ),
-        (
-            "project_management/cgkn/iterations/ITER-001.json",
+            "project_management/current/active_iteration.json",
             "adaptive_iteration.schema.json",
         ),
         (
-            "project_management/enterprise_experience.json",
+            "project_management/current/enterprise_experience.json",
             "enterprise_experience_pack.schema.json",
         ),
     ],
@@ -45,10 +41,10 @@ def test_self_hosting_artifact_matches_registered_schema(
 
 def test_workflow_state_cannot_be_used_as_evidence_status(validator_class) -> None:
     artifact = json.loads(
-        (ROOT / "project_management" / "cgkn" / "project_management.json").read_text(encoding="utf-8")
+        (ROOT / "project_management" / "current" / "active_iteration.json").read_text(encoding="utf-8")
     )
     schema = json.loads(
-        (ROOT / "schemas" / "adaptive_project_management_pack.schema.json").read_text(encoding="utf-8")
+        (ROOT / "schemas" / "adaptive_iteration.schema.json").read_text(encoding="utf-8")
     )
     artifact["evidence_status"] = "delivering"
     assert list(validator_class(schema).iter_errors(artifact))
@@ -63,7 +59,7 @@ def test_approved_experience_without_evidence_fails_semantic_validation() -> Non
     from cgkn_project_management import validate_enterprise_experience_pack
 
     artifact = json.loads(
-        (ROOT / "project_management" / "enterprise_experience.json").read_text(encoding="utf-8")
+        (ROOT / "project_management" / "current" / "enterprise_experience.json").read_text(encoding="utf-8")
     )
     artifact["items"][0]["evidence_refs"] = []
     result = validate_enterprise_experience_pack(artifact)
