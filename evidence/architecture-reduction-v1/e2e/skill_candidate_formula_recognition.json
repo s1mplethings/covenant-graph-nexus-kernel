@@ -1,0 +1,12 @@
+{
+  "candidate_id": "candidate.formula_recognition",
+  "problem_pattern": "Recognize a bounded handwriting artifact behind a stable RecognizedFormula interface",
+  "inputs": ["HandwritingArtifact"],
+  "outputs": ["RecognizedFormula"],
+  "procedure": ["normalize input", "invoke selected recognizer adapter", "map response to stable interface", "run acceptance"],
+  "constraints": ["local-first", "adapter isolation", "no automatic promotion"],
+  "evidence_refs": ["evidence/architecture-reduction-v1/e2e/math_training_e2e.json", "tests/test_math_training_project_e2e.py"],
+  "source_worknode_ids": ["formula_recognition"],
+  "experience_state": "candidate",
+  "auto_promotion": false
+}

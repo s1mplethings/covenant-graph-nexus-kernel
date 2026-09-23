@@ -9,13 +9,23 @@
       "situation": "Planning artifacts or generated files exist while canonical runtime, review, package, or delivery evidence may be incomplete.",
       "action": "Evaluate each evidence layer independently and allow only canonical producers and inspectors to authorize formal gates.",
       "outcome": "Progress remains visible without a false public delivery PASS.",
-      "applicable_when": ["CGKN planning, implementation, acceptance, and delivery work"],
+      "applicable_when": [
+        "CGKN planning, implementation, acceptance, and delivery work"
+      ],
       "not_applicable_when": [],
-      "tags": ["cgkn", "quality", "evidence", "governance"],
-      "evidence_refs": ["docs/01_contract_registry.md", "tests/test_kernel_contract.py"],
+      "tags": [
+        "cgkn",
+        "quality",
+        "evidence",
+        "governance"
+      ],
+      "evidence_refs": [
+        "docs/01_contract_registry.md",
+        "tests/test_kernel_contract.py"
+      ],
       "experience_state": "approved",
-      "usage_count": 42,
-      "successful_usage_count": 42,
+      "usage_count": 43,
+      "successful_usage_count": 43,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -25,13 +35,27 @@
       "situation": "A project has enough files or upstream evidence that copying complete context is noisy and expensive.",
       "action": "Keep complete local lineage and provide each bounded module only its declared artifacts, projections, policy, and contract.",
       "outcome": "Context remains traceable and unaffected checkpoints remain reusable.",
-      "applicable_when": ["Artifact-driven modules", "large Provider jobs", "incremental repair"],
-      "not_applicable_when": ["A tiny single-file change where the projection exceeds the source"],
-      "tags": ["cgkn", "artifact", "context", "librarian"],
-      "evidence_refs": ["docs/00_kernel_contract.md", "evidence/artifact-kernel/v0.3/verification_summary.json"],
+      "applicable_when": [
+        "Artifact-driven modules",
+        "large Provider jobs",
+        "incremental repair"
+      ],
+      "not_applicable_when": [
+        "A tiny single-file change where the projection exceeds the source"
+      ],
+      "tags": [
+        "cgkn",
+        "artifact",
+        "context",
+        "librarian"
+      ],
+      "evidence_refs": [
+        "docs/00_kernel_contract.md",
+        "evidence/artifact-kernel/v0.3/verification_summary.json"
+      ],
       "experience_state": "approved",
-      "usage_count": 27,
-      "successful_usage_count": 25,
+      "usage_count": 28,
+      "successful_usage_count": 26,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -41,10 +65,24 @@
       "situation": "Reproducible runtime output accumulates in Git and obscures source, specs, and durable claims.",
       "action": "Keep runs local and promote only claim, status, metrics, hashes, reproduction commands, and limitations.",
       "outcome": "HEAD stays reviewable while important claims remain reproducible.",
-      "applicable_when": ["Repository evidence retention", "benchmark publication", "release summaries"],
-      "not_applicable_when": ["Canonical runtime storage during an active local run"],
-      "tags": ["cgkn", "repository", "evidence", "hygiene"],
-      "evidence_refs": ["docs/repository_guide.md", "scripts/promote_evidence.py"],
+      "applicable_when": [
+        "Repository evidence retention",
+        "benchmark publication",
+        "release summaries"
+      ],
+      "not_applicable_when": [
+        "Canonical runtime storage during an active local run"
+      ],
+      "tags": [
+        "cgkn",
+        "repository",
+        "evidence",
+        "hygiene"
+      ],
+      "evidence_refs": [
+        "docs/repository_guide.md",
+        "scripts/promote_evidence.py"
+      ],
       "experience_state": "approved",
       "usage_count": 0,
       "successful_usage_count": 0,
@@ -63,6 +101,26 @@
         "evidence/repository-layout-v1/repository_metrics_after.json",
         "tests/test_repository_hygiene.py",
         "tests/test_kernel_contract.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-077",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "evidence/architecture-reduction-v1/final_acceptance.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-077",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "tests/test_architecture_reduction.py"
       ]
     }
   ]

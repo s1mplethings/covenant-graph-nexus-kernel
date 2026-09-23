@@ -4,9 +4,11 @@
   "iteration_id": "ITER-077",
   "project_id": "cgkn",
   "goal": "Reduce CGKN architecture first, prove the production route remains stable, then add capability/interface planning, reuse executors, and bounded skill candidates.",
-  "backlog_item_ids": ["PB-056"],
-  "workflow_state": "running",
-  "evidence_status": "NOT_EVALUATED",
+  "backlog_item_ids": [
+    "PB-056"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "Phase 1-3 reduction passes before any reuse, skill registry, or skill candidate implementation.",
     "The default Codex conversation Provider route remains the only production generation and delivery route.",
@@ -16,17 +18,75 @@
     "After reduction PASS, capability/interface planning, reuse selection, two real iterations, and non-promoting skill candidates pass their acceptance tests."
   ],
   "quality_metrics": [
-    {"id": "QM-REDUCE-FIRST", "measure": "additive implementation before reduction gate", "target": "0", "method": "phase commits and reduction_acceptance.json"},
-    {"id": "QM-AI-COMPLEXITY", "measure": "agent-visible concept count", "target": "less than baseline 15", "method": "architecture inventory before/after audit"},
-    {"id": "QM-MAINLINE", "measure": "production generation routes", "target": "exactly 1", "method": "kernel contract and formal mainline tests"},
-    {"id": "QM-REGRESSION", "measure": "applicable reduction and full-matrix tests", "target": "all required checks pass or are honestly NOT_EVALUATED", "method": "phase-targeted pytest followed by formal profiles"}
+    {
+      "id": "QM-REDUCE-FIRST",
+      "measure": "additive implementation before reduction gate",
+      "target": "0",
+      "method": "phase commits and reduction_acceptance.json"
+    },
+    {
+      "id": "QM-AI-COMPLEXITY",
+      "measure": "agent-visible concept count",
+      "target": "less than baseline 15",
+      "method": "architecture inventory before/after audit"
+    },
+    {
+      "id": "QM-MAINLINE",
+      "measure": "production generation routes",
+      "target": "exactly 1",
+      "method": "kernel contract and formal mainline tests"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "applicable reduction and full-matrix tests",
+      "target": "all required checks pass or are honestly NOT_EVALUATED",
+      "method": "phase-targeted pytest followed by formal profiles"
+    }
   ],
   "quality_activities": {
-    "prevention": ["Freeze baseline and authority boundaries before edits", "Use WorkNode as a projection rather than a second scheduler"],
-    "assurance": ["Run each phase contract tests before proceeding", "Audit production imports and context selection"],
-    "control": ["Run kernel, DAG, ownership, generation, evidence, package, and delivery checks"],
-    "improvement": ["Record real replan state diffs and bounded enterprise-experience usage"]
+    "prevention": [
+      "Freeze baseline and authority boundaries before edits",
+      "Use WorkNode as a projection rather than a second scheduler"
+    ],
+    "assurance": [
+      "Run each phase contract tests before proceeding",
+      "Audit production imports and context selection"
+    ],
+    "control": [
+      "Run kernel, DAG, ownership, generation, evidence, package, and delivery checks"
+    ],
+    "improvement": [
+      "Record real replan state diffs and bounded enterprise-experience usage"
+    ]
   },
-  "interface_expectations": ["WorkNode converts losslessly to ProviderJob", "Capability output interfaces match dependent input interfaces before execution", "External reuse remains behind the CGKN interface", "Skill candidates never write approved skills automatically"],
-  "evidence_refs": ["evidence/architecture-reduction-v1/baseline_manifest.json", "evidence/architecture-reduction-v1/architecture_inventory.json"]
+  "interface_expectations": [
+    "WorkNode converts losslessly to ProviderJob",
+    "Capability output interfaces match dependent input interfaces before execution",
+    "External reuse remains behind the CGKN interface",
+    "Skill candidates never write approved skills automatically"
+  ],
+  "evidence_refs": [
+    "evidence/architecture-reduction-v1/e2e/math_training_e2e.json",
+    "evidence/architecture-reduction-v1/final_acceptance.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Reduction passed before additive work; capability, reuse, iteration, and candidate tests passed; production math-project packaging remains unevaluated because support evidence lacks canonical candidate identity."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-056"
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "A WorkNode projection reused the existing ProviderJob scheduler and kept one production route."
+    ],
+    "did_not_work": [
+      "A support-only browser sample cannot satisfy production package identity and runtime receipt requirements."
+    ],
+    "experiments": [
+      "Run the calculus goal through the live or surrogate production Provider route to close package and delivery evidence."
+    ]
+  }
 }

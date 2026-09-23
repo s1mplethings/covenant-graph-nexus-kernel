@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
 
-EXECUTOR_TYPES = {"agent", "deterministic"}
+EXECUTOR_TYPES = {"agent", "deterministic", "skill", "external"}
 
 
 def _items(value: Any) -> tuple[str, ...]:

@@ -7,7 +7,7 @@
       "id": "PB-056",
       "title": "Reduce architecture before reuse and skill learning",
       "priority": 1,
-      "state": "in_progress",
+      "state": "completed_with_limits",
       "value": "Make the production model smaller for AI while preserving one evidence-backed delivery route, then add bounded reusable executors.",
       "acceptance": [
         "reduction acceptance passes before additive work",

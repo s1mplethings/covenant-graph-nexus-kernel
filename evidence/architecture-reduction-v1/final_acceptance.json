@@ -1,0 +1,46 @@
+{
+  "kind": "CGKNArchitectureReuseFinalAcceptance",
+  "schema_version": "1.0",
+  "baseline_sha": "5358aa1f2b4e32a51715bd0edccb34d726df998c",
+  "reduction_acceptance": "PASS",
+  "complexity": {
+    "before": {"planner_visible_concepts": 15, "agent_visible_schema_families": 11, "ordinary_leaf_context_sources": 9, "parallel_execution_abstractions": 3, "generation_routes": 1},
+    "after": {"planner_visible_concepts": 8, "agent_visible_schema_families": 7, "ordinary_worknode_context_sources": 6, "parallel_execution_abstractions": 1, "generation_routes": 1},
+    "conclusion": "SIMPLER"
+  },
+  "matrix": {
+    "Kernel Contract": "PASS",
+    "Reduction Acceptance": "PASS",
+    "Legacy Removal": "PASS_WITH_LIMITS",
+    "Experimental Isolation": "PASS",
+    "WorkNode": "PASS",
+    "DAG Cycle": "PASS",
+    "Ownership": "PASS",
+    "Capability Planning": "PASS",
+    "Interface Validation": "PASS",
+    "Reuse Internal": "PASS",
+    "Reuse Skill": "PASS",
+    "Reuse OSS": "PASS",
+    "Reuse GitHub": "PASS",
+    "Reuse API": "PASS",
+    "Agent Build Fallback": "PASS",
+    "Agile Iteration": "PASS",
+    "Replan": "PASS",
+    "Skill Candidate": "PASS",
+    "Formal Skill Unmodified": "PASS",
+    "Runtime Evidence": "PASS",
+    "Visual Evidence": "PASS",
+    "Package Integrity": "PASS",
+    "Public Delivery Gate": "PASS",
+    "Live Provider E2E": "NOT_EVALUATED",
+    "Math Project Canonical Package": "NEEDS_REWORK",
+    "Math Project Public Delivery": "NOT_EVALUATED"
+  },
+  "limitations": [
+    "Required legacy compatibility and status adapter files were isolated rather than deleted.",
+    "The calculus project passed real local HTTP/browser/visual behavior but was intentionally denied a canonical package because it did not originate from a production candidate identity with canonical runtime receipts.",
+    "No live Provider call was spent; live-provider capability remains NOT_EVALUATED.",
+    "The attempted repository quick profile did not emit a result artifact in this environment; targeted kernel and mainline matrices are the recorded evidence."
+  ],
+  "final_verdict": "PASS_WITH_LIMITS"
+}

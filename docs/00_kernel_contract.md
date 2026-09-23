@@ -291,6 +291,23 @@ actual fallback execution event, never from consideration alone.
 
 This contract defines the stable kernel boundary for CovenantGraph Nexus Kernel. Future changes may add capabilities around the kernel, but they must not replace the generation mainline or bypass the safety and delivery boundaries described here.
 
+## Capability, interface, and reusable executor planning
+
+Product planning defines capabilities and their input/output interfaces before
+project file structure. Capabilities project into the single WorkNode DAG;
+they do not create another scheduler or generation route. Interface mismatch
+is rejected before execution.
+
+Executor selection checks, in order, current repository implementation,
+approved Skill, mature OSS dependency, bounded GitHub module, explicitly
+allowed API, then Agent Build. External implementations remain behind the
+declared capability interface. Unknown licenses, missing provenance/version,
+whole-repository copying, incompatible acceptance, and unapproved APIs are
+rejected. A Skill is an executor only. Successful Agent WorkNodes may write a
+bounded candidate under run/evidence support state, but never modify `skills/`
+or promote themselves. These records have no evidence, packaging, or delivery
+authority.
+
 ## Kernel Responsibilities
 
 CGKN Kernel is fixed responsible for:
