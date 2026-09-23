@@ -4,9 +4,23 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-057",
+      "title": "Canonicalize validated Calculus Ink Lab candidate",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Route the existing real Math E2E fixture through canonical finalization, packaging, public delivery gating, and receipt production.",
+      "acceptance": [
+        "formal finalization creates and validates the candidate identity",
+        "test, runtime, and visual evidence bind the same candidate",
+        "local_packager and public_delivery_gate pass for Calculus Ink Lab",
+        "a canonical delivery receipt is produced",
+        "negative cross-candidate and stale-evidence tests remain fail-closed"
+      ]
+    },
+    {
       "id": "PB-056",
       "title": "Reduce architecture before reuse and skill learning",
-      "priority": 1,
+      "priority": 2,
       "state": "completed_with_limits",
       "value": "Make the production model smaller for AI while preserving one evidence-backed delivery route, then add bounded reusable executors.",
       "acceptance": [
@@ -20,7 +34,7 @@
     {
       "id": "PB-054",
       "title": "Repository Layout v1",
-      "priority": 2,
+      "priority": 3,
       "state": "completed",
       "value": "Separate source, formal specs, examples, curated evidence, and local runtime data.",
       "acceptance": [
@@ -33,7 +47,7 @@
     {
       "id": "PB-055",
       "title": "Review stable release promotion",
-      "priority": 3,
+      "priority": 4,
       "state": "planned",
       "value": "Decide stable release only after independent review of the cleaned Artifact-driven branch.",
       "acceptance": ["no force push", "reviewed integration strategy", "formal evidence remains independently evaluated"]

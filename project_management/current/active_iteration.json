@@ -1,92 +1,85 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-077",
+  "iteration_id": "ITER-078",
   "project_id": "cgkn",
-  "goal": "Reduce CGKN architecture first, prove the production route remains stable, then add capability/interface planning, reuse executors, and bounded skill candidates.",
+  "goal": "Route the validated Calculus Ink Lab fixture through the existing canonical finalization and delivery chain without changing upstream architecture.",
   "backlog_item_ids": [
-    "PB-056"
+    "PB-057"
   ],
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Phase 1-3 reduction passes before any reuse, skill registry, or skill candidate implementation.",
-    "The default Codex conversation Provider route remains the only production generation and delivery route.",
-    "WorkNode becomes the sole agent-facing execution contract while ProviderJob remains its internal Provider adapter.",
-    "Agent-facing concept and context counts decrease from the frozen baseline.",
-    "Canonical evidence, user review, local_packager, public delivery gate, and delivery receipt remain fail-closed.",
-    "After reduction PASS, capability/interface planning, reuse selection, two real iterations, and non-promoting skill candidates pass their acceptance tests."
+    "Reproduce the current package refusal and record exact blockers.",
+    "Use production_candidate_provenance.produce as the only candidate producer.",
+    "Bind canonical test, runtime, and required visual evidence to one current candidate hash.",
+    "Use existing post-build finalization, local_packager, public_delivery_gate, and canonical delivery receipt producer.",
+    "Calculus Ink Lab completes the formal chain while cross-candidate, stale, mutated, and manual-injection cases fail closed.",
+    "WorkNode, Capability, Interface, Reuse, Agile, and Skill behavior remain unchanged."
   ],
   "quality_metrics": [
     {
-      "id": "QM-REDUCE-FIRST",
-      "measure": "additive implementation before reduction gate",
+      "id": "QM-CANDIDATE-BINDING",
+      "measure": "identity/evidence mismatch accepted",
       "target": "0",
-      "method": "phase commits and reduction_acceptance.json"
+      "method": "positive and negative candidate binding tests"
     },
     {
-      "id": "QM-AI-COMPLEXITY",
-      "measure": "agent-visible concept count",
-      "target": "less than baseline 15",
-      "method": "architecture inventory before/after audit"
+      "id": "QM-MATH-DELIVERY",
+      "measure": "formal Math E2E gates",
+      "target": "candidate, package, gate, receipt all PASS",
+      "method": "real local HTTP/browser replay through canonical finalization"
     },
     {
-      "id": "QM-MAINLINE",
-      "measure": "production generation routes",
-      "target": "exactly 1",
-      "method": "kernel contract and formal mainline tests"
-    },
-    {
-      "id": "QM-REGRESSION",
-      "measure": "applicable reduction and full-matrix tests",
-      "target": "all required checks pass or are honestly NOT_EVALUATED",
-      "method": "phase-targeted pytest followed by formal profiles"
+      "id": "QM-SCOPE",
+      "measure": "frozen upstream modules changed",
+      "target": "0",
+      "method": "git diff and regression matrix"
     }
   ],
   "quality_activities": {
     "prevention": [
-      "Freeze baseline and authority boundaries before edits",
-      "Use WorkNode as a projection rather than a second scheduler"
+      "Reuse the existing producer and validators",
+      "Do not relax required receipt or identity fields"
     ],
     "assurance": [
-      "Run each phase contract tests before proceeding",
-      "Audit production imports and context selection"
+      "Inspect exact failure codes before edits",
+      "Run one step and one test at a time"
     ],
     "control": [
-      "Run kernel, DAG, ownership, generation, evidence, package, and delivery checks"
+      "Run candidate, runtime, visual, package, gate, receipt, and frozen-architecture regressions"
     ],
     "improvement": [
-      "Record real replan state diffs and bounded enterprise-experience usage"
+      "Keep real project E2E fixtures on the production finalization path"
     ]
   },
   "interface_expectations": [
-    "WorkNode converts losslessly to ProviderJob",
-    "Capability output interfaces match dependent input interfaces before execution",
-    "External reuse remains behind the CGKN interface",
-    "Skill candidates never write approved skills automatically"
+    "candidate hash is the current canonical source-tree hash",
+    "runtime and visual evidence share run/candidate/hash/commit identity",
+    "package and delivery receipt bind the same manifest identity"
   ],
   "evidence_refs": [
-    "evidence/architecture-reduction-v1/e2e/math_training_e2e.json",
-    "evidence/architecture-reduction-v1/final_acceptance.json"
+    "evidence/candidate-canonicalization-v1/math_training_e2e.json",
+    "tests/test_math_training_project_e2e.py"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "Reduction passed before additive work; capability, reuse, iteration, and candidate tests passed; production math-project packaging remains unevaluated because support evidence lacks canonical candidate identity."
+      "Canonical candidate, package, public delivery gate, and receipt passed; live Provider was not evaluated."
     ],
     "accepted_backlog_item_ids": [
-      "PB-056"
+      "PB-057"
     ]
   },
   "retrospective": {
     "worked": [
-      "A WorkNode projection reused the existing ProviderJob scheduler and kept one production route."
+      "Reusing the production finalization route converted the validated fixture into a canonical candidate without kernel changes."
     ],
     "did_not_work": [
-      "A support-only browser sample cannot satisfy production package identity and runtime receipt requirements."
+      "Direct packaging of a support fixture bypassed canonical identity and receipts and correctly failed closed."
     ],
     "experiments": [
-      "Run the calculus goal through the live or surrogate production Provider route to close package and delivery evidence."
+      "Evaluate the same path with a live Provider in a later scoped run."
     ]
   }
 }

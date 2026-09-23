@@ -24,8 +24,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 43,
-      "successful_usage_count": 43,
+      "usage_count": 44,
+      "successful_usage_count": 44,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -121,6 +121,16 @@
       "outcome": "successful",
       "evidence_refs": [
         "tests/test_architecture_reduction.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-078",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "evidence/candidate-canonicalization-v1/math_training_e2e.json"
       ]
     }
   ]
