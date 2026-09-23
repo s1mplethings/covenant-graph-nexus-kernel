@@ -1,5 +1,11 @@
 # CGKN Codex Edition
 
+CGKN is an AI agile engineering kernel. It converts user goals into
+capability/interface DAGs, prefers reuse before fresh implementation, executes
+bounded WorkNodes, validates results with canonical evidence, and delivers
+portable projects. The production route is singular; planning and executor
+choices do not create alternate generation or delivery routes.
+
 CGKN Codex Edition is operated only through the Codex conversation in this
 workspace. There is no standalone chat listener, polling service, secondary
 customer UI, or external messaging delivery adapter.
@@ -16,7 +22,8 @@ The production generation route remains:
 ```text
 Codex conversation
 -> requirements and whiteboard/agent_session state
--> Provider Planner API and minimal ProviderJob DAG
+-> capability/interface planning and a minimal WorkNode DAG
+-> WorkNode-to-ProviderJob adapter
 -> parallel isolated Provider work, ownership check, deterministic merge
 -> Provider integration/semantic repair
 -> Provider output validation
@@ -71,7 +78,8 @@ reviewed Provider generation mainline, canonical evidence producers,
 - `tests/fixtures/` — small deterministic test-only fixtures.
 - `scripts/codex_conversation.py` — import-only conversation orchestration,
   generation entry, guarded replies, evidence gates, and delivery handoff.
-- `scripts/provider_jobs.py` — minimal deterministic DAG executor and PatchSet ownership boundary.
+- `scripts/work_nodes.py` — minimal canonical planning contract and bounded local context projection.
+- `scripts/provider_jobs.py` — Provider executor adapter and PatchSet ownership boundary; scheduling remains in `run_local_pipeline_impl.py`.
 - `scripts/cgkn_runtime_supervisor.py` — persistent read-only False-Pass Auditor host.
 - `scripts/cgkn_supervision_router.py` — deterministic project/evidence/kernel routing.
 - `scripts/governed_kernel_repair.py` — isolated allowlisted kernel-repair execution.

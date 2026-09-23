@@ -1,0 +1,21 @@
+{
+  "kind": "CGKNArchitectureReductionBaseline",
+  "schema_version": "1.0",
+  "branch": "codex/cgkn-next-main",
+  "head": "5358aa1f2b4e32a51715bd0edccb34d726df998c",
+  "version": "0.2.0-rc.1",
+  "dirty_before_run": [],
+  "pre_existing_dirty": [],
+  "production_entrypoints": ["scripts.codex_conversation.start_generation_from_income", "scripts.codex_conversation.run_provider_generation_job"],
+  "provider_generation_route": ["start_generation_from_income", "run_provider_generation_job", "ProviderJob executor", "provider output validation", "post-build finalization", "canonical evidence", "local_packager", "public_delivery_gate", "delivery_manifest.json"],
+  "project_decomposition": "scripts.decomposition_tree.build_project_decomposition_tree -> artifacts/project_decomposition_tree.json",
+  "leaf_graph": "component_pipeline.components[].leaf_work_graph -> scripts.provider_jobs.provider_jobs_from_leaf_graph",
+  "provider_job": "scripts/provider_jobs.py",
+  "local_packager": "scripts/local_packager.py:package_project",
+  "public_delivery_gate": "scripts/codex_conversation.py:evaluate_public_delivery_gate",
+  "skill_directories": ["skills/manage-pmp-agile-quality", "skills/supervise-cgkn-capabilities", "skills/use-cgkn"],
+  "enterprise_experience": "project_management/current/enterprise_experience.json",
+  "artifact_runtime": ["cgkn/artifacts", "cgkn/compiler", "cgkn/runtime", "specs"],
+  "legacy_entrypoints": ["legacy/deliver_product_studio.py", "legacy/generate_project_legacy.py", "legacy/run_product_studio.py", "scripts/generate_project.py", "scripts/deliver_product_studio.py", "scripts/legacy_provider_pipeline.py"],
+  "formal_test_commands": ["python scripts/kernel_contract_check.py", "python -m pytest tests/test_kernel_contract.py", "python scripts/run_test_profile.py --profile quick", "python scripts/run_test_profile.py --profile regression", "python scripts/run_test_profile.py --profile full_all"]
+}

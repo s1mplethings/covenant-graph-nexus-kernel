@@ -79,9 +79,15 @@ verifies, records, and gates. Generic environment setup and deterministic
 validation may not synthesize project behavior, tests, screenshots, media, or
 other evidence.
 
-The production project-work unit is the minimal `ProviderJob` contract:
-`id`, `goal`, `depends_on`, `owns`, `interfaces`, and `acceptance`. Provider
-planning is an API responsibility. Dependency resolution, bounded concurrency,
+The agent-facing planning unit is the minimal `WorkNode` contract in
+`scripts/work_nodes.py`: `id`, `goal`, `depends_on`, `inputs`, `outputs`,
+`interfaces`, `executor`, `owns`, and `acceptance`. It owns no scheduler,
+Provider transport, evidence, packaging, or delivery authority. Production
+Provider execution adapts a validated WorkNode losslessly into the minimal
+`ProviderJob` contract: `id`, `goal`, `depends_on`, `owns`, `interfaces`, and
+`acceptance`. `ProviderJob` remains the only project-work concurrency unit and
+PatchSet validation boundary. Provider planning is an API responsibility.
+Dependency resolution, bounded concurrency,
 ownership checks, PatchSet merge ordering, failed-job closure, and PASS-job
 reuse are deterministic CGKN responsibilities. Workers operate on isolated
 inputs and may return changes only for `owns`; shared files belong to an

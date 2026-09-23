@@ -4,9 +4,23 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-056",
+      "title": "Reduce architecture before reuse and skill learning",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Make the production model smaller for AI while preserving one evidence-backed delivery route, then add bounded reusable executors.",
+      "acceptance": [
+        "reduction acceptance passes before additive work",
+        "one canonical WorkNode planning model",
+        "capability and interface planning precede implementation",
+        "reuse decisions and skill candidates remain bounded executors",
+        "canonical evidence, packaging, and delivery remain unchanged"
+      ]
+    },
+    {
       "id": "PB-054",
       "title": "Repository Layout v1",
-      "priority": 1,
+      "priority": 2,
       "state": "completed",
       "value": "Separate source, formal specs, examples, curated evidence, and local runtime data.",
       "acceptance": [
@@ -19,7 +33,7 @@
     {
       "id": "PB-055",
       "title": "Review stable release promotion",
-      "priority": 2,
+      "priority": 3,
       "state": "planned",
       "value": "Decide stable release only after independent review of the cleaned Artifact-driven branch.",
       "acceptance": ["no force push", "reviewed integration strategy", "formal evidence remains independently evaluated"]

@@ -1,84 +1,32 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-076",
+  "iteration_id": "ITER-077",
   "project_id": "cgkn",
-  "goal": "Deliver CGKN Repository Layout v1 without changing Artifact Runtime, Provider, packaging, or delivery behavior.",
-  "backlog_item_ids": ["PB-054"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Reduce CGKN architecture first, prove the production route remains stable, then add capability/interface planning, reuse executors, and bounded skill candidates.",
+  "backlog_item_ids": ["PB-056"],
+  "workflow_state": "running",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "Formal artifact, module, flow, policy, migration, and context-pack definitions load from specs/.",
-    "Raw artifacts, runs, generated output, live project memory, and historical iteration detail are not tracked in HEAD.",
-    "Before/after metrics, inventory, reference graph, branch report, cleanup plan, and curated Artifact Kernel evidence exist.",
-    "Artifact Kernel, kernel contract, repository hygiene, schema, and important legacy flow validation pass.",
-    "No Git history rewrite, force push, local runtime deletion, Provider-mainline change, or delivery-authority change occurs."
+    "Phase 1-3 reduction passes before any reuse, skill registry, or skill candidate implementation.",
+    "The default Codex conversation Provider route remains the only production generation and delivery route.",
+    "WorkNode becomes the sole agent-facing execution contract while ProviderJob remains its internal Provider adapter.",
+    "Agent-facing concept and context counts decrease from the frozen baseline.",
+    "Canonical evidence, user review, local_packager, public delivery gate, and delivery receipt remain fail-closed.",
+    "After reduction PASS, capability/interface planning, reuse selection, two real iterations, and non-promoting skill candidates pass their acceptance tests."
   ],
   "quality_metrics": [
-    {
-      "id": "QM-LAYOUT-RUNTIME",
-      "measure": "tracked raw runtime files",
-      "target": "0 under prohibited runtime prefixes",
-      "method": "repository hygiene guard and after metrics"
-    },
-    {
-      "id": "QM-LAYOUT-REFS",
-      "measure": "broken formal registry references",
-      "target": "0",
-      "method": "reference scan, schema validation, and flow compilation"
-    },
-    {
-      "id": "QM-LAYOUT-REGRESSION",
-      "measure": "targeted cleanup, Artifact Kernel, and kernel contract tests",
-      "target": "all pass",
-      "method": "pytest targeted profile"
-    }
+    {"id": "QM-REDUCE-FIRST", "measure": "additive implementation before reduction gate", "target": "0", "method": "phase commits and reduction_acceptance.json"},
+    {"id": "QM-AI-COMPLEXITY", "measure": "agent-visible concept count", "target": "less than baseline 15", "method": "architecture inventory before/after audit"},
+    {"id": "QM-MAINLINE", "measure": "production generation routes", "target": "exactly 1", "method": "kernel contract and formal mainline tests"},
+    {"id": "QM-REGRESSION", "measure": "applicable reduction and full-matrix tests", "target": "all required checks pass or are honestly NOT_EVALUATED", "method": "phase-targeted pytest followed by formal profiles"}
   ],
   "quality_activities": {
-    "prevention": ["Generate inventory, reference graph, cleanup plan, and dry-run before applying moves or untracking."],
-    "assurance": ["Review changes against the kernel contract and confirm Provider and delivery mainline files are behaviorally unchanged."],
-    "control": ["Run schema, flow, Artifact Kernel, kernel contract, and repository hygiene checks."],
-    "improvement": ["Use curated evidence promotion and tracked-runtime guards for future runs."]
+    "prevention": ["Freeze baseline and authority boundaries before edits", "Use WorkNode as a projection rather than a second scheduler"],
+    "assurance": ["Run each phase contract tests before proceeding", "Audit production imports and context selection"],
+    "control": ["Run kernel, DAG, ownership, generation, evidence, package, and delivery checks"],
+    "improvement": ["Record real replan state diffs and bounded enterprise-experience usage"]
   },
-  "interface_expectations": [
-    "specs-first loaders preserve a warning-based legacy examples fallback",
-    "cleanup apply never deletes local runtime data",
-    "curated evidence has no release authority"
-  ],
-  "evidence_refs": [
-    "evidence/repository-layout-v1/repository_metrics_before.json",
-    "evidence/repository-layout-v1/repository_metrics_after.json",
-    "evidence/repository-layout-v1/repository_cleanup_plan.json",
-    "evidence/repository-layout-v1/repository_reference_graph.json",
-    "evidence/repository-layout-v1/branch_reconciliation_report.json",
-    "evidence/repository-layout-v1/upload_manifest.json",
-    "evidence/repository-layout-v1/mainline_reconciliation.json",
-    "evidence/repository-layout-v1/branch_cleanup_candidates.json",
-    "evidence/artifact-kernel/v0.3/verification_summary.json",
-    "benchmarks/orbit_360_workbench/tests/test_orbit360.py",
-    "tests/test_repository_cleanup.py",
-    "tests/test_repository_hygiene.py",
-    "tests/test_specs_layout.py"
-  ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Repository Layout v1 meets its scoped acceptance: specs-first registry, zero tracked raw runtime, curated evidence, compact current project management, passing flow/schema/kernel/hygiene checks, and no Provider or delivery-mainline behavior change.",
-      "The complete repository-wide test suite was not rerun; acceptance is bounded to the requested layout and directly affected contracts. Two ignored local cache directories remain as hygiene warnings only."
-    ],
-    "accepted_backlog_item_ids": ["PB-054"]
-  },
-  "retrospective": {
-    "worked": [
-      "Audit and dry-run exposed that artifacts alone accounted for most tracked files and bytes.",
-      "git rm --cached preserved local runtime data while reducing HEAD to source, specs, examples, curated evidence, and current governance.",
-      "A specs-first compatibility loader allowed formal registry migration without changing Artifact Runtime semantics."
-    ],
-    "did_not_work": [
-      "Attempted local cache deletion was blocked by the host safety policy; the read-only guard now reports ignored local caches as warnings while continuing to fail tracked caches."
-    ],
-    "experiments": [
-      "For the next evidence-producing run, use promote_evidence.py immediately and compare the curated bundle size with raw run size before any Git review."
-    ]
-  }
+  "interface_expectations": ["WorkNode converts losslessly to ProviderJob", "Capability output interfaces match dependent input interfaces before execution", "External reuse remains behind the CGKN interface", "Skill candidates never write approved skills automatically"],
+  "evidence_refs": ["evidence/architecture-reduction-v1/baseline_manifest.json", "evidence/architecture-reduction-v1/architecture_inventory.json"]
 }

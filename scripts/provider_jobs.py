@@ -14,6 +14,8 @@ import pathlib
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from scripts.work_nodes import WorkNode, validate_work_nodes
+
 
 def _hash(value: Any) -> str:
     return hashlib.sha256(
@@ -159,6 +161,33 @@ def validate_jobs(jobs: list[ProviderJob]) -> list[str]:
     return sorted(set(errors))
 
 
+def provider_job_from_work_node(node: WorkNode, **repair: Any) -> ProviderJob:
+    """Adapt canonical planning data to the existing Provider executor contract."""
+    if node.executor_type != "agent":
+        raise ValueError(f"provider_job.executor_type:{node.id}:{node.executor_type}")
+    return ProviderJob(
+        id=node.id,
+        goal=node.goal,
+        depends_on=node.depends_on,
+        owns=node.owns,
+        interfaces=node.interfaces,
+        acceptance=node.acceptance,
+        **repair,
+    )
+
+
+def work_node_from_provider_job(job: ProviderJob) -> WorkNode:
+    return WorkNode(
+        id=job.id,
+        goal=job.goal,
+        depends_on=job.depends_on,
+        interfaces=job.interfaces,
+        executor_type="agent",
+        owns=job.owns,
+        acceptance=job.acceptance,
+    )
+
+
 def validate_repair_job_contract(value: ProviderJob | Mapping[str, Any]) -> list[str]:
     """Validate a repair action without acquiring any scheduling authority."""
     job = value if isinstance(value, ProviderJob) else ProviderJob.from_dict(value)
@@ -200,7 +229,7 @@ def validate_patch_set(job: ProviderJob, value: PatchSet | Mapping[str, str]) ->
 
 
 def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -> list[ProviderJob]:
-    jobs: list[ProviderJob] = []
+    nodes: list[WorkNode] = []
     path_to_id: dict[str, str] = {}
     for leaf in graph.get("leaves", []):
         if not isinstance(leaf, Mapping):
@@ -222,8 +251,8 @@ def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -
             path for path in (_normalize_path(item) for item in raw_paths) if path
         )
         primary_path = paths[0] if paths else ""
-        jobs.append(
-            ProviderJob(
+        nodes.append(
+            WorkNode(
                 id=str(leaf.get("leaf_id", "")),
                 goal=str(leaf.get("purpose", "")) or f"Build {primary_path} for {component_id}",
                 depends_on=tuple(
@@ -237,7 +266,15 @@ def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -
                 owns=paths,
                 interfaces=tuple(str(item) for item in leaf.get("expected_symbols", []) if str(item).strip()),
                 acceptance=tuple(str(item) for item in leaf.get("acceptance_checks", []) if str(item).strip()),
-                tree_node_id=f"file.{_normalize_path(primary_path).replace('/', '_').replace('.', '_').replace('-', '_').lower()}",
             )
         )
-    return jobs
+    errors = validate_work_nodes(nodes)
+    if errors:
+        raise ValueError(";".join(errors))
+    return [
+        provider_job_from_work_node(
+            node,
+            tree_node_id=f"file.{_normalize_path(node.owns[0] if node.owns else '').replace('/', '_').replace('.', '_').replace('-', '_').lower()}",
+        )
+        for node in nodes
+    ]
