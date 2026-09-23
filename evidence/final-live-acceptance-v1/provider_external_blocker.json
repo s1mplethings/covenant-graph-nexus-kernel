@@ -1,0 +1,51 @@
+{
+  "kind": "CGKNFinalLiveAcceptanceEvidence",
+  "schema_version": "1.0",
+  "status": "PASS_WITH_LIMITS",
+  "limit": "LIVE_PROVIDER_EXTERNAL_BLOCKER",
+  "baseline_sha": "a6b92c00177f5eabf673a98d50db5279ac86d892",
+  "version": "0.2.0-rc.1",
+  "project_goal": "Character Clip Studio",
+  "provider": {
+    "name": "DashScope OpenAI-compatible API",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "credential_scope": "canonical_user",
+    "live_calls": 2,
+    "successful_calls": 0,
+    "failed_calls": 2,
+    "retry_count": 0,
+    "tokens": "NOT_AVAILABLE",
+    "attempts": [
+      {
+        "model": "gpt-4.1",
+        "status": "BLOCKED_PROVIDER",
+        "classification": "PROVIDER_NON_RETRYABLE_HTTP",
+        "http_status": 400,
+        "reason": "Unsupported model"
+      },
+      {
+        "model": "qwen3.8-max",
+        "status": "BLOCKED_PROVIDER",
+        "classification": "PROVIDER_FORBIDDEN",
+        "http_status": 403,
+        "reason": "Free quota exhausted; paid access is disabled by the provider account setting"
+      }
+    ]
+  },
+  "live_provider_e2e": "BLOCKED_PROVIDER",
+  "generation_started": false,
+  "reason_generation_not_started": "The configured supported model failed the bounded pre-generation probe with a non-retryable external quota/permission error; fake, surrogate, or replay execution was prohibited.",
+  "product_acceptance": "NOT_EVALUATED",
+  "canonical_delivery": "NOT_EVALUATED",
+  "stable_freeze": "NOT_PERFORMED",
+  "regression": {
+    "candidate_runtime_visual_package_receipt": "140 PASS",
+    "frozen_architecture_and_public_delivery": "106 PASS",
+    "prior_real_math_e2e": "1 PASS",
+    "total": "247 PASS",
+    "kernel_contract": "PASS"
+  },
+  "production_changes": "NONE",
+  "system_acceptance": "PREVIOUSLY_PASS_AND_REGRESSION_CONFIRMED",
+  "formal_release_authority": false
+}
