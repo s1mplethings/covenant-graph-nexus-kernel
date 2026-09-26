@@ -255,11 +255,16 @@ class GovernanceEngine:
         if not isinstance(command, list) or not command:
             return Check(target_id, "UNKNOWN", "UNKNOWN_INVARIANT_CHECKER", "Target has no executable command")
         started = time.monotonic()
+        dependency_root = Path(os.environ.get("CGKN_CONSUMER_DEPENDENCIES", self.project))
+        execution_env = {**os.environ, "CI": "1"}
+        bin_dir = dependency_root / "node_modules" / ".bin"
+        if bin_dir.is_dir():
+            execution_env["PATH"] = str(bin_dir) + os.pathsep + execution_env.get("PATH", "")
         try:
             result = subprocess.run(
                 [str(part) for part in command], cwd=self.project, text=True, encoding="utf-8", errors="replace",
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)),
-                env={**os.environ, "CI": "1"},
+                env=execution_env,
             )
         except FileNotFoundError as exc:
             return Check(target_id, "UNKNOWN", "VERIFICATION_TOOL_MISSING", str(exc), command=command)
@@ -283,6 +288,13 @@ class GovernanceEngine:
         if tool_check:
             checks.append(tool_check)
         checks.extend(Check(f"ownership:{path}", "BLOCK", "UNGOVERNED_ARCHITECTURE_CHANGE", path) for path in unmapped)
+        protected_tests = {rel for target in self.targets.values() for rel in target.get("requiredFiles", [])}
+        changed_verifiers = sorted(set(changed).intersection(protected_tests))
+        if changed_verifiers:
+            checks.append(Check(
+                "verifier-change", "PASS" if self.strict else "BLOCK", "VERIFIER_CHANGED",
+                "Protected verification changed; strict adversarial verification is required: " + ", ".join(changed_verifiers),
+            ))
         targets = self._selected_targets(capabilities, invariants)
         if execute:
             checks.extend(self._run_target(target_id) for target_id in targets)
@@ -368,18 +380,31 @@ class GovernanceEngine:
             if add.returncode:
                 return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_WORKTREE_FAILED"}
             try:
-                path = worktree / str(case.get("file", ""))
-                if not path.is_file():
-                    return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_FIXTURE_STALE:file"}
-                content = path.read_text(encoding="utf-8")
-                search = str(case.get("search", ""))
-                replacement = str(case.get("replace", ""))
-                count = content.count(search)
-                if not search or count != 1:
-                    return {"id": case_id, "mutationApplied": False, "passed": False, "reason": f"MUTATION_FIXTURE_STALE:matches={count}"}
-                path.write_text(content.replace(search, replacement, 1), encoding="utf-8")
+                operations = case.get("operations") or [{"type": "replace", "file": case.get("file"), "search": case.get("search"), "replace": case.get("replace")}]
+                for operation in operations:
+                    op_type = operation.get("type")
+                    if op_type == "replace":
+                        path = worktree / str(operation.get("file", ""))
+                        if not path.is_file():
+                            return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_FIXTURE_STALE:file"}
+                        content = path.read_text(encoding="utf-8")
+                        search = str(operation.get("search", ""))
+                        replacement = str(operation.get("replace", ""))
+                        count = content.count(search)
+                        if not search or count != 1:
+                            return {"id": case_id, "mutationApplied": False, "passed": False, "reason": f"MUTATION_FIXTURE_STALE:matches={count}"}
+                        path.write_text(content.replace(search, replacement, 1), encoding="utf-8")
+                    elif op_type == "move":
+                        source = worktree / str(operation.get("from", ""))
+                        target = worktree / str(operation.get("to", ""))
+                        if not source.is_file() or target.exists():
+                            return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_FIXTURE_STALE:move"}
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        source.replace(target)
+                    else:
+                        return {"id": case_id, "mutationApplied": False, "passed": False, "reason": f"MUTATION_FIXTURE_STALE:operation={op_type}"}
                 command = [sys.executable, str(self.tool_root / "scripts" / "consumer_governance.py"), "verify", "--project", str(worktree), "--json"]
-                result = subprocess.run(command, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(case.get("timeoutSeconds", 240)))
+                result = subprocess.run(command, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(case.get("timeoutSeconds", 240)), env={**os.environ, "CGKN_CONSUMER_DEPENDENCIES": str(self.project)})
                 try:
                     payload = json.loads(result.stdout)
                     decision = payload.get("status", "UNKNOWN")
@@ -455,7 +480,11 @@ class GovernanceEngine:
                                 statuses.append("UNKNOWN")
                                 continue
                             try:
-                                result = subprocess.run(command, cwd=worktree, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)), env={**os.environ, "CI": "1"})
+                                history_env = {**os.environ, "CI": "1", "CGKN_CONSUMER_DEPENDENCIES": str(self.project)}
+                                bin_dir = self.project / "node_modules" / ".bin"
+                                if bin_dir.is_dir():
+                                    history_env["PATH"] = str(bin_dir) + os.pathsep + history_env.get("PATH", "")
+                                result = subprocess.run(command, cwd=worktree, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)), env=history_env)
                                 collected = not target.get("collectionPattern") or re.search(target["collectionPattern"], result.stdout, re.MULTILINE | re.IGNORECASE)
                                 statuses.append("PASS" if result.returncode == 0 and collected else "FAIL")
                             except (FileNotFoundError, subprocess.TimeoutExpired):
