@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Deliver generic longitudinal consumer governance without changing Provider, packaging, or delivery behavior.",
   "backlog_item_ids": ["PB-055"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
   "acceptance_criteria": [
     "Consumer declarations are hash locked by id and version, with permanent invariant weakening routed to user review.",
     "Changed governed paths resolve to capabilities, dependent capabilities, invariants, and executable checks.",
@@ -31,6 +31,14 @@
     "no second kernel is implemented in the consumer"
   ],
   "evidence_refs": ["tests/test_consumer_governance.py", "evidence/longitudinal-governance-v1/test_evidence.json"],
-  "review": null,
-  "retrospective": null
+  "review": {
+    "outcome": "accepted",
+    "feedback": ["Generic engine tests passed; Attune strict blocked 12/12 unsafe mutations, allowed 3/3 safe evolutions, and produced a six-commit timeline without converting UNKNOWN to PASS."],
+    "accepted_backlog_item_ids": ["PB-055"]
+  },
+  "retrospective": {
+    "worked": ["Isolated worktrees made unsafe and safe evolution executable.", "Fail-closed dependency attachment exposed and removed an environment-based false PASS."],
+    "did_not_work": ["Initial Windows npx resolution and detached-worktree dependency handling were incomplete and correctly blocked strict verification."],
+    "experiments": ["Keep incremental verification affected-only; reserve all mutation replay for strict release verification."]
+  }
 }

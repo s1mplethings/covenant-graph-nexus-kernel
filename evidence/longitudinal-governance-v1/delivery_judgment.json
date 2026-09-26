@@ -1,1 +1,10 @@
-{"kind":"CGKNDeliveryJudgment","schemaVersion":"1.0","status":"NOT_EVALUATED","automatedGovernance":"NOT_EVALUATED","ownerAcceptance":"PENDING","releaseAuthority":false}
+{
+  "kind":"CGKNDeliveryJudgment",
+  "schemaVersion":"1.0",
+  "status":"PASS",
+  "judgment":"LONGITUDINAL_GOVERNANCE_PASS",
+  "automatedGovernance":"PASS",
+  "ownerAcceptance":"PENDING",
+  "basis":{"engineTests":"PASS","attuneStrict":"PASS","adversarial":"12/12 BLOCK","positiveEvolution":"3/3 PASS","history":"6 commits"},
+  "releaseAuthority":false
+}
