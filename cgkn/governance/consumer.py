@@ -260,9 +260,13 @@ class GovernanceEngine:
         bin_dir = dependency_root / "node_modules" / ".bin"
         if bin_dir.is_dir():
             execution_env["PATH"] = str(bin_dir) + os.pathsep + execution_env.get("PATH", "")
+        resolved_command = [str(part) for part in command]
+        executable = shutil.which(resolved_command[0], path=execution_env.get("PATH"))
+        if executable:
+            resolved_command[0] = executable
         try:
             result = subprocess.run(
-                [str(part) for part in command], cwd=self.project, text=True, encoding="utf-8", errors="replace",
+                resolved_command, cwd=self.project, text=True, encoding="utf-8", errors="replace",
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)),
                 env=execution_env,
             )
@@ -524,6 +528,8 @@ def render_human(result: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="CGKN consumer-project longitudinal governance")
     sub = parser.add_subparsers(dest="mode", required=True)
     for name in ("verify", "explain", "record", "history"):
