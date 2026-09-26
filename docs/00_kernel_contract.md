@@ -912,7 +912,7 @@ project without an explicit evidence checkpoint follows the existing
 gain an ad hoc review requirement.
 
 The public sender accepts both canonical final outcomes defined by the delivery
-policy, `PASS_FINAL` and `DELIVER_WITH_WARNINGS`, after the same package and
+policy, the legacy final-pass and warning-delivery states, after the same package and
 delivery-receipt checks. `DELIVERED` is recorded only after the sender persists
 an allowed delivered state; a failed send transitions to `DELIVERY_BLOCKED`.
 
