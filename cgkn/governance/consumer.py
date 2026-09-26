@@ -493,6 +493,8 @@ class GovernanceEngine:
                     details.append({"commit": sha, "status": "UNKNOWN", "reason": "HISTORY_WORKTREE_FAILED"})
                     continue
                 try:
+                    dependency_link = attach_dependencies(worktree, self.project)
+                    target_status_cache: dict[str, str] = {}
                     for invariant in self.invariants.values():
                         invariant_id = invariant["id"]
                         effective = invariant.get("effectiveFrom", {}).get("commit")
@@ -504,12 +506,17 @@ class GovernanceEngine:
                         target_ids = invariant.get("verification", [])
                         statuses: list[str] = []
                         for target_id in target_ids:
+                            if target_id in target_status_cache:
+                                statuses.append(target_status_cache[target_id])
+                                continue
                             target = self.targets.get(target_id)
                             if not target or not all((worktree / rel).exists() for rel in target.get("requiredFiles", [])):
+                                target_status_cache[target_id] = "UNKNOWN"
                                 statuses.append("UNKNOWN")
                                 continue
                             command = target.get("command")
                             if not isinstance(command, list) or not command:
+                                target_status_cache[target_id] = "UNKNOWN"
                                 statuses.append("UNKNOWN")
                                 continue
                             try:
@@ -517,10 +524,16 @@ class GovernanceEngine:
                                 bin_dir = self.project / "node_modules" / ".bin"
                                 if bin_dir.is_dir():
                                     history_env["PATH"] = str(bin_dir) + os.pathsep + history_env.get("PATH", "")
-                                result = subprocess.run(command, cwd=worktree, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)), env=history_env)
+                                resolved_command = [str(part) for part in command]
+                                executable = shutil.which(resolved_command[0], path=history_env.get("PATH"))
+                                if executable:
+                                    resolved_command[0] = executable
+                                result = subprocess.run(resolved_command, cwd=worktree, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=int(target.get("timeoutSeconds", 180)), env=history_env)
                                 collected = not target.get("collectionPattern") or re.search(target["collectionPattern"], result.stdout, re.MULTILINE | re.IGNORECASE)
-                                statuses.append("PASS" if result.returncode == 0 and collected else "FAIL")
+                                target_status_cache[target_id] = "PASS" if result.returncode == 0 and collected else "FAIL"
+                                statuses.append(target_status_cache[target_id])
                             except (FileNotFoundError, subprocess.TimeoutExpired):
+                                target_status_cache[target_id] = "UNKNOWN"
                                 statuses.append("UNKNOWN")
                         if not statuses or "UNKNOWN" in statuses:
                             timeline[invariant_id][label] = "UNKNOWN"
@@ -529,6 +542,12 @@ class GovernanceEngine:
                         else:
                             timeline[invariant_id][label] = "PASS"
                 finally:
+                    dependency_path = worktree / "node_modules"
+                    if dependency_path.exists():
+                        try:
+                            dependency_path.rmdir()
+                        except OSError:
+                            pass
                     subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], cwd=self.project, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return {
             "kind": "CGKNLongitudinalGovernanceTimeline", "schemaVersion": "1.0", "status": "PASS",
