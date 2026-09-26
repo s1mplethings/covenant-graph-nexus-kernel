@@ -66,6 +66,20 @@ def unique(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(values))
 
 
+def attach_dependencies(worktree: Path, dependency_root: Path) -> Path | None:
+    source = dependency_root / "node_modules"
+    target = worktree / "node_modules"
+    if not source.is_dir() or target.exists():
+        return None
+    if os.name == "nt":
+        result = subprocess.run(["cmd", "/c", "mklink", "/J", str(target), str(source)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode:
+            return None
+    else:
+        target.symlink_to(source, target_is_directory=True)
+    return target
+
+
 @dataclass
 class Check:
     id: str
@@ -370,7 +384,7 @@ class GovernanceEngine:
                 failures.append(f"{case.get('id')}: {outcome['reason']}")
         status = "PASS" if not failures else "BLOCK"
         code = "EXPERIMENTS_VERIFIED" if not failures else "EXPERIMENT_SUITE_FAILED"
-        detail = json.dumps({"passed": len(cases) - len(failures), "total": len(cases), "cases": results}, ensure_ascii=False)
+        detail = json.dumps({"passed": len(cases) - len(failures), "total": len(cases), "cases": results}, ensure_ascii=True)
         return Check(name, status, code, detail)
 
     def _run_mutation_case(self, case: dict[str, Any], *, expect_block: bool) -> dict[str, Any]:
@@ -384,6 +398,9 @@ class GovernanceEngine:
             if add.returncode:
                 return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_WORKTREE_FAILED"}
             try:
+                dependency_link = attach_dependencies(worktree, self.project)
+                if (self.project / "node_modules").is_dir() and dependency_link is None:
+                    return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_DEPENDENCY_LINK_FAILED"}
                 operations = case.get("operations") or [{"type": "replace", "file": case.get("file"), "search": case.get("search"), "replace": case.get("replace")}]
                 for operation in operations:
                     op_type = operation.get("type")
@@ -415,11 +432,19 @@ class GovernanceEngine:
                 except json.JSONDecodeError:
                     decision = "UNKNOWN"
                 passed = decision in {"BLOCK", "NEEDS_USER_REVIEW"} if expect_block else decision == "PASS"
-                reason = decision if passed else f"expected {'BLOCK' if expect_block else 'PASS'}, got {decision}"
-                return {"id": case_id, "mutationApplied": True, "verifyResult": decision, "passed": passed, "reason": reason, "expectedInvariant": case.get("expectedInvariant")}
+                failed_checks = [item for item in payload.get("checks", []) if item.get("status") != "PASS"] if isinstance(payload, dict) else []
+                failed_codes = [item.get("code") for item in failed_checks]
+                reason = decision if passed else f"expected {'BLOCK' if expect_block else 'PASS'}, got {decision}: {', '.join(str(code) for code in failed_codes)}"
+                return {"id": case_id, "mutationApplied": True, "verifyResult": decision, "passed": passed, "reason": reason, "failedCodes": failed_codes, "failedDetails": [str(item.get("detail", ""))[-1000:] for item in failed_checks], "expectedInvariant": case.get("expectedInvariant")}
             except subprocess.TimeoutExpired:
                 return {"id": case_id, "mutationApplied": True, "passed": False, "reason": "MUTATION_VERIFY_TIMEOUT"}
             finally:
+                dependency_path = worktree / "node_modules"
+                if dependency_path.exists():
+                    try:
+                        dependency_path.rmdir()
+                    except OSError:
+                        pass
                 subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], cwd=self.project, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def record(self) -> dict[str, Any]:
