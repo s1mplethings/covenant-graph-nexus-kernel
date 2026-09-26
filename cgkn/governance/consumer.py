@@ -401,6 +401,10 @@ class GovernanceEngine:
                 dependency_link = attach_dependencies(worktree, self.project)
                 if (self.project / "node_modules").is_dir() and dependency_link is None:
                     return {"id": case_id, "mutationApplied": False, "passed": False, "reason": "MUTATION_DEPENDENCY_LINK_FAILED"}
+                experiment_lock_path = worktree / ".cgnk" / "governance" / "governance.lock.json"
+                experiment_lock = read_json(experiment_lock_path)
+                experiment_lock["verifiedProjectCommit"] = git(worktree, "rev-parse", "HEAD")
+                experiment_lock_path.write_text(json.dumps(experiment_lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
                 operations = case.get("operations") or [{"type": "replace", "file": case.get("file"), "search": case.get("search"), "replace": case.get("replace")}]
                 for operation in operations:
                     op_type = operation.get("type")
