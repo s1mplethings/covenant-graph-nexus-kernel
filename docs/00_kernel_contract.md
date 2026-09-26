@@ -995,3 +995,26 @@ working-tree status and diff hashes, relevant untracked-source manifest hash,
 Agent Kit package hash, plugin version/source hash, and hashes of the canonical
 requirement modules and contracts. This is support identity with formal status
 `NOT_EVALUATED`, not acceptance or release evidence.
+
+## Consumer-project longitudinal governance
+
+`cgkn/governance/consumer.py` is the single generic port for consumer-project
+architecture governance. A consumer owns its declarations, executable evidence,
+path ownership, migrations, and lock under `.cgnk/governance`; CGKN owns hash
+locking, drift analysis, dependency propagation, fail-closed verification,
+historical replay, isolated mutation experiments, and explicit record behavior.
+
+The three layers are deliberately separate: permanent invariants protect human
+authority, ownership, isolation, truthfulness, artifact integrity, and effect
+boundaries; versioned capability contracts describe stable behavior; mutable
+implementation policy records current algorithms without freezing them. A
+same-version contract mutation is blocked. Removing or weakening a locked
+permanent invariant returns `NEEDS_USER_REVIEW`, even when a developer changes
+or deletes its referenced test at the same time.
+
+Verify and explain are read-only. Record requires a clean worktree and a strict
+PASS, and never commits. Missing tools, missing or zero-collected tests, unknown
+checker types, stale mutation fixtures, unmapped governed source, or lock drift
+cannot become PASS. This governance produces support evidence only: it does not
+call Provider, author a customer candidate, grant formal evidence PASS, package,
+or deliver, and it adds no consumer runtime dependency.

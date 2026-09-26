@@ -112,6 +112,18 @@ final_delivered
 
 `scripts/final_internal_acceptance.py` and its `CGKNInternal*Evidence` files are diagnostic fixtures, not formal artifacts. The producer provenance denylist prevents them, `tests/*`, fixtures, examples, demos, and benchmark-only producers from authorizing a formal Gate PASS.
 
+## Consumer-project governance support artifacts
+
+| Artifact kind | Definition | Producer | Authority boundary |
+| --- | --- | --- | --- |
+| `CGKNConsumerGovernanceResult` | `cgkn/governance/consumer.py` | `scripts/consumer_governance.py verify` | executable architecture-memory support result; never formal delivery evidence |
+| `CGKNLongitudinalGovernanceTimeline` | consumer `.cgnk/governance/history.json` plus immutable invariant registry | `scripts/consumer_governance.py history` | historical PASS/FAIL/NOT_APPLICABLE/UNKNOWN assessment; UNKNOWN never promotes to PASS |
+| consumer governance lock | consumer `.cgnk/governance/governance.lock.json` | explicit `record` after clean strict PASS | content and tool pin; does not authorize Provider, packaging, delivery, or owner acceptance |
+
+Consumer-governance command decisions use `PASS`, `BLOCK`, `NEEDS_USER_REVIEW`,
+and `UNKNOWN` as command-result states. They are not canonical formal
+`EvidenceStatus` values and cannot be substituted into formal delivery gates.
+
 ## Project Management Support Artifacts
 
 These artifacts support CGKN self-hosting and generated-project planning. They

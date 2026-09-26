@@ -1,0 +1,1 @@
+{"kind":"CGKNConstitutionalChangeEvidence","schemaVersion":"1.0","removalOrWeakening":"NEEDS_USER_REVIEW","testDeletionCannotAuthorizePass":true,"test":"tests/test_consumer_governance.py"}

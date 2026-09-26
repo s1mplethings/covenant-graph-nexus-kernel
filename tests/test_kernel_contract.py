@@ -55,6 +55,20 @@ def generation_confirmation_branch(text: str) -> str:
 
 
 class KernelContractTests(unittest.TestCase):
+    def test_consumer_governance_is_fail_closed_support_only(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        engine = read_source("cgkn/governance/consumer.py")
+
+        self.assertIn("Consumer-project longitudinal governance", contract)
+        self.assertIn("Verify and explain are read-only", contract)
+        self.assertIn("Missing tools, missing or zero-collected tests", contract)
+        self.assertIn("does not", contract)
+        self.assertIn("CGKNConsumerGovernanceResult", registry)
+        self.assertIn("never formal delivery evidence", registry)
+        self.assertNotIn("local_packager", engine)
+        self.assertNotIn("public_delivery_gate", engine)
+
     def test_artifact_driven_kernel_preserves_delivery_authority(self) -> None:
         kernel = read_source("docs/00_kernel_contract.md")
         registry = read_source("docs/01_contract_registry.md")
