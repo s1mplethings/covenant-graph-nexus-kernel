@@ -1,85 +1,61 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-078",
+  "iteration_id": "ITER-079",
   "project_id": "cgkn",
-  "goal": "Route the validated Calculus Ink Lab fixture through the existing canonical finalization and delivery chain without changing upstream architecture.",
-  "backlog_item_ids": [
-    "PB-057"
-  ],
+  "goal": "Establish the canonical Component definition and execution model on the existing artifact-driven runtime without changing delivery architecture.",
+  "backlog_item_ids": ["PB-058"],
   "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
-    "Reproduce the current package refusal and record exact blockers.",
-    "Use production_candidate_provenance.produce as the only candidate producer.",
-    "Bind canonical test, runtime, and required visual evidence to one current candidate hash.",
-    "Use existing post-build finalization, local_packager, public_delivery_gate, and canonical delivery receipt producer.",
-    "Calculus Ink Lab completes the formal chain while cross-candidate, stale, mutated, and manual-injection cases fail closed.",
-    "WorkNode, Capability, Interface, Reuse, Agile, and Skill behavior remain unchanged."
+    "Existing module contracts adapt to immutable PortSpec and ComponentSpec values without rewriting specs or flows.",
+    "ArtifactFlowCompiler and ArtifactModuleRunner both use the Component abstraction on one canonical execution path.",
+    "ComponentExecution safely records pass, fail, cache, and bypass lifecycle facts and projects them into checkpoints.",
+    "ArtifactRef, ArtifactInstance, and ArtifactStore remain the only canonical data and materialization model.",
+    "Compile-time port checks, runtime defensive validation, targeted tests, quick/profile, and kernel contract checks pass."
   ],
   "quality_metrics": [
-    {
-      "id": "QM-CANDIDATE-BINDING",
-      "measure": "identity/evidence mismatch accepted",
-      "target": "0",
-      "method": "positive and negative candidate binding tests"
-    },
-    {
-      "id": "QM-MATH-DELIVERY",
-      "measure": "formal Math E2E gates",
-      "target": "candidate, package, gate, receipt all PASS",
-      "method": "real local HTTP/browser replay through canonical finalization"
-    },
-    {
-      "id": "QM-SCOPE",
-      "measure": "frozen upstream modules changed",
-      "target": "0",
-      "method": "git diff and regression matrix"
-    }
+    {"id": "QM-COMPONENT-PATH", "measure": "parallel module/component runtime paths introduced", "target": "0", "method": "code review plus runtime integration tests"},
+    {"id": "QM-EXECUTION-CONSISTENCY", "measure": "runtime failures recorded as successful executions", "target": "0", "method": "negative runtime and execution lifecycle tests"},
+    {"id": "QM-COMPATIBILITY", "measure": "existing artifact-driven regression failures", "target": "0", "method": "targeted and repository verification profiles"}
   ],
   "quality_activities": {
-    "prevention": [
-      "Reuse the existing producer and validators",
-      "Do not relax required receipt or identity fields"
-    ],
-    "assurance": [
-      "Inspect exact failure codes before edits",
-      "Run one step and one test at a time"
-    ],
-    "control": [
-      "Run candidate, runtime, visual, package, gate, receipt, and frozen-architecture regressions"
-    ],
-    "improvement": [
-      "Keep real project E2E fixtures on the production finalization path"
-    ]
+    "prevention": ["Adapt canonical module contracts instead of replacing them", "Reuse ArtifactStore materialization, effect, cache, and fingerprint contracts"],
+    "assurance": ["Inspect architecture before edits", "Run model tests before compiler/runtime integration tests"],
+    "control": ["Run positive and negative Component lifecycle, compiler, runtime, and kernel contract tests"],
+    "improvement": ["Record whether one execution truth removes checkpoint/feed divergence"]
   },
   "interface_expectations": [
-    "candidate hash is the current canonical source-tree hash",
-    "runtime and visual evidence share run/candidate/hash/commit identity",
-    "package and delivery receipt bind the same manifest identity"
+    "ComponentSpec is immutable and contains no run state",
+    "ComponentExecution binds run, node, component, artifact refs, cache, diagnostics, and timing",
+    "checkpoint and feed are projections of ComponentExecution",
+    "module implementation dispatch remains behind ModuleComponentAdapter"
   ],
   "evidence_refs": [
-    "evidence/candidate-canonicalization-v1/math_training_e2e.json",
-    "tests/test_math_training_project_e2e.py"
+    "tests/component/",
+    "tests/test_component_flow_compile.py",
+    "tests/test_component_runtime_integration.py",
+    "tests/test_artifact_driven_kernel.py",
+    "tests/test_kernel_contract.py"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
+    "outcome": "needs_rework",
     "feedback": [
-      "Canonical candidate, package, public delivery gate, and receipt passed; live Provider was not evaluated."
+      "Component-specific and kernel contract verification passed 96 tests.",
+      "The formal quick profile timed out after 900 seconds with pre-existing failures in unrelated generated-component quality contracts."
     ],
-    "accepted_backlog_item_ids": [
-      "PB-057"
-    ]
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
     "worked": [
-      "Reusing the production finalization route converted the validated fixture into a canonical candidate without kernel changes."
+      "A thin Module adapter preserved existing specs, flows, ArtifactStore materialization, cache, and effects while moving compiler and runtime semantics to ComponentSpec.",
+      "ComponentExecution made checkpoint and feed rows projections of one lifecycle record."
     ],
     "did_not_work": [
-      "Direct packaging of a support fixture bypassed canonical identity and receipts and correctly failed closed."
+      "The repository quick profile could not provide a clean regression signal because unrelated baseline contract assertions failed and the suite exceeded both 300 and 900 second limits."
     ],
     "experiments": [
-      "Evaluate the same path with a live Provider in a later scoped run."
+      "Repair or rebaseline the unrelated generated-component quality contract before promoting PB-058 from needs_rework."
     ]
   }
 }

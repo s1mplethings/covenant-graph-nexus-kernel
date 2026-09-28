@@ -54,8 +54,8 @@
         "evidence/artifact-kernel/v0.3/verification_summary.json"
       ],
       "experience_state": "approved",
-      "usage_count": 28,
-      "successful_usage_count": 26,
+      "usage_count": 29,
+      "successful_usage_count": 27,
       "owner": "context-librarian",
       "supersedes": []
     },
@@ -131,6 +131,17 @@
       "outcome": "successful",
       "evidence_refs": [
         "evidence/candidate-canonicalization-v1/math_training_e2e.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-079",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "tests/test_component_flow_compile.py",
+        "tests/test_component_runtime_integration.py"
       ]
     }
   ]

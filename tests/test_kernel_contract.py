@@ -59,12 +59,17 @@ class KernelContractTests(unittest.TestCase):
         kernel = read_source("docs/00_kernel_contract.md")
         registry = read_source("docs/01_contract_registry.md")
         runner = read_source("cgkn/runtime/runner.py")
+        component = read_source("cgkn/component/execution.py")
 
         self.assertIn("Artifact-driven pipeline kernel", kernel)
         self.assertIn("execution side channel only", kernel)
         self.assertIn("ArtifactInstance", registry)
         self.assertIn("EffectConstraint", registry)
         self.assertIn("schema-invalid output cannot become a formal artifact", kernel.lower())
+        self.assertIn("canonical execution abstraction is `Component`", kernel)
+        self.assertIn("single\nComponent path", kernel)
+        self.assertIn("class ComponentExecution", component)
+        self.assertIn("ModuleComponentAdapter", runner)
         self.assertNotIn("local_packager", runner)
         self.assertNotIn("public_delivery_gate", runner)
 

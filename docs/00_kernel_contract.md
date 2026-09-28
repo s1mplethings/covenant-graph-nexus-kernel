@@ -43,6 +43,18 @@ node status, timestamps, input/output `ArtifactRef` values, execution
 fingerprint, cache status, and diagnostics. It MUST NOT carry module business
 payloads. The legacy v1 checkpoint remains readable for old flows.
 
+The canonical execution abstraction is `Component`: an immutable
+`ComponentSpec` declares typed `PortSpec` inputs and outputs, effects, policy,
+and implementation metadata, while `ComponentExecution` records one actual
+run bound to a run, node, component ref, ArtifactRefs, timing, cache state,
+diagnostics, evidence refs, and effect summary. Definition state and execution
+state MUST remain separate. Existing Module contracts are adapted through
+`ModuleComponentAdapter`; the compiler and runtime MUST use that single
+Component path rather than maintaining parallel Module and Component runners.
+`ArtifactInstance` and `ArtifactStore` remain the only canonical artifact
+materialization model. A checkpoint and feed row are persisted projections of
+the ComponentExecution fact, not independent execution truth.
+
 The artifact flow compiler MUST validate artifact and policy references,
 content-schema availability, port compatibility, required producers,
 single-producer cardinality unless a port is explicitly multi-valued, DAG
@@ -51,7 +63,8 @@ constraints. Artifact-driven modules declare one of `local_function`,
 `provider`, `script`, or `composite`; the deterministic runner remains the
 orchestrator and a Provider is only a bounded implementation adapter.
 
-Runtime execution MUST verify input identity, hash, type, and freshness; build
+Runtime execution MUST verify input identity, hash, type, freshness, and
+required-port presence; build
 context from declared input ports and projections; enforce module context
 budget and policy effect counts; compute a deterministic fingerprint; validate
 all outputs before writing any of them; and materialize Provider output before

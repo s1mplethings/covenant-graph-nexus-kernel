@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cgkn.artifacts.types import ArtifactTypeRegistry, ArtifactValidationError
+from cgkn.component import ComponentSpec, ModuleComponentAdapter
 from cgkn.specs import spec_directory
 
 
@@ -40,6 +41,10 @@ class ArtifactFlowCompiler:
         self.flows = self._load("flows")
         self.policies = self._load("policies")
 
+    def component(self, module_ref: str) -> ModuleComponentAdapter | None:
+        module = self.modules.get(module_ref)
+        return ModuleComponentAdapter(module) if module else None
+
     def _load(self, category: str) -> dict[str, dict[str, Any]]:
         result = {}
         for path in sorted(spec_directory(self.root, category).glob("*.json")):
@@ -57,18 +62,24 @@ class ArtifactFlowCompiler:
             diagnostics.append(self._diag("CGKN_POLICY_NOT_FOUND", "policy_ref", flow.get("policy_ref")))
         artifact_driven = bool(flow.get("metadata", {}).get("artifact_driven"))
         nodes = {str(node["id"]): node for node in flow.get("nodes", [])}
-        node_modules: dict[str, dict[str, Any]] = {}
+        node_components: dict[str, ComponentSpec] = {}
         for name, artifact_type in {**flow.get("inputs", {}), **flow.get("outputs", {})}.items():
             self._check_artifact_type(artifact_type, f"flow.{name}", diagnostics)
         for node_id, node in nodes.items():
-            module = self.modules.get(node.get("uses"))
-            if not module:
+            component = self.component(str(node.get("uses", "")))
+            if not component:
                 diagnostics.append(self._diag("CGKN_MODULE_NOT_FOUND", f"nodes.{node_id}.uses", node.get("uses")))
                 continue
-            node_modules[node_id] = module
-            if artifact_driven and not module.get("implementation", {}).get("kind"):
+            try:
+                spec = component.spec
+            except (KeyError, TypeError, ValueError) as exc:
+                diagnostics.append(self._diag("CGKN_MODULE_CONTRACT_INVALID", f"nodes.{node_id}.uses", node.get("uses"), message=str(exc)))
+                continue
+            node_components[node_id] = spec
+            implementation = spec.metadata.get("implementation", {})
+            if artifact_driven and not implementation.get("kind"):
                 diagnostics.append(self._diag("CGKN_RUNTIME_IMPLEMENTATION_MISSING", f"nodes.{node_id}.implementation", None))
-            self._check_module(node_id, module, policy, diagnostics)
+            self._check_component(node_id, spec, policy, diagnostics)
 
         bound_inputs: dict[tuple[str, str], int] = defaultdict(int)
         graph_edges: list[tuple[str, str]] = []
@@ -78,8 +89,8 @@ class ArtifactFlowCompiler:
         for index, edge in enumerate(flow.get("edges", [])):
             source = edge.get("from", {})
             target = edge.get("to", {})
-            source_type = self._endpoint_type(source, flow, node_modules, "output", diagnostics, f"edges.{index}.from")
-            target_type = self._endpoint_type(target, flow, node_modules, "input", diagnostics, f"edges.{index}.to")
+            source_type = self._endpoint_type(source, flow, node_components, "output", diagnostics, f"edges.{index}.from")
+            target_type = self._endpoint_type(target, flow, node_components, "input", diagnostics, f"edges.{index}.to")
             if source_type and target_type and not self._compatible(source_type, target_type):
                 diagnostics.append(self._diag("CGKN_EDGE_TYPE_MISMATCH", f"edges.{index}", source_type, expected=target_type))
             if "node" in target:
@@ -90,13 +101,13 @@ class ArtifactFlowCompiler:
                 consumers[source["node"]].append(target["node"])
             if "flow_output" in target:
                 flow_outputs.add(target["flow_output"])
-        for node_id, module in node_modules.items():
-            for port, spec in module.get("ports", {}).get("input", {}).items():
-                count = bound_inputs[(node_id, port)]
-                if spec.get("required", False) and count == 0:
-                    diagnostics.append(self._diag("CGKN_INPUT_UNBOUND", f"nodes.{node_id}.ports.input.{port}", None))
-                if count > 1 and not spec.get("multi", False):
-                    diagnostics.append(self._diag("CGKN_INPUT_MULTI_PRODUCER", f"nodes.{node_id}.ports.input.{port}", count))
+        for node_id, component in node_components.items():
+            for port in component.input_ports:
+                count = bound_inputs[(node_id, port.name)]
+                if port.required and count == 0:
+                    diagnostics.append(self._diag("CGKN_INPUT_UNBOUND", f"nodes.{node_id}.ports.input.{port.name}", None))
+                if count > 1 and not port.multi:
+                    diagnostics.append(self._diag("CGKN_INPUT_MULTI_PRODUCER", f"nodes.{node_id}.ports.input.{port.name}", count))
         for name in flow.get("outputs", {}):
             if name not in flow_outputs:
                 diagnostics.append(self._diag("CGKN_OUTPUT_UNBOUND", f"outputs.{name}", None))
@@ -109,8 +120,8 @@ class ArtifactFlowCompiler:
             node_dependencies={key: tuple(sorted(set(dependencies.get(key, [])))) for key in nodes},
             node_consumers={key: tuple(sorted(set(consumers.get(key, [])))) for key in nodes},
             node_outputs={
-                key: {port: spec["artifact_type"] for port, spec in module.get("ports", {}).get("output", {}).items()}
-                for key, module in node_modules.items()
+                key: {port.name: port.artifact_type for port in component.output_ports}
+                for key, component in node_components.items()
             },
         )
         result = self._result(flow_ref, diagnostics)
@@ -121,6 +132,7 @@ class ArtifactFlowCompiler:
                 "policy_ref": flow.get("policy_ref", ""),
                 "normalized_flow": flow,
                 "topological_order": order,
+                "node_component_refs": {key: component.ref for key, component in node_components.items()},
                 "artifact_dependency_graph": {
                     "nodeDependencies": {key: list(value) for key, value in graph.node_dependencies.items()},
                     "nodeConsumers": {key: list(value) for key, value in graph.node_consumers.items()},
@@ -146,12 +158,12 @@ class ArtifactFlowCompiler:
             code = "CGKN_ARTIFACT_TYPE_NOT_FOUND" if str(artifact_type) not in self.registry.specs else "CGKN_OUTPUT_SCHEMA_NOT_FOUND"
             diagnostics.append(self._diag(code, path, artifact_type, message=str(exc)))
 
-    def _check_module(self, node_id: str, module: dict[str, Any], policy: dict[str, Any] | None, diagnostics: list[dict[str, Any]]) -> None:
-        for side in ("input", "output"):
-            for port, spec in module.get("ports", {}).get(side, {}).items():
-                artifact_type = spec.get("artifact_type")
-                self._check_artifact_type(artifact_type, f"nodes.{node_id}.{side}.{port}", diagnostics)
-                projection = spec.get("projection", [])
+    def _check_component(self, node_id: str, component: ComponentSpec, policy: dict[str, Any] | None, diagnostics: list[dict[str, Any]]) -> None:
+        for side, ports in (("input", component.input_ports), ("output", component.output_ports)):
+            for port in ports:
+                artifact_type = port.artifact_type
+                self._check_artifact_type(artifact_type, f"nodes.{node_id}.{side}.{port.name}", diagnostics)
+                projection = port.projection
                 if projection and artifact_type in self.registry.specs:
                     try:
                         allowed = self.registry.projection_fields(artifact_type)
@@ -159,19 +171,19 @@ class ArtifactFlowCompiler:
                         allowed = set()
                     for field in projection:
                         if field not in allowed:
-                            diagnostics.append(self._diag("CGKN_PROJECTION_FIELD_INVALID", f"nodes.{node_id}.{side}.{port}.projection", field))
-        context = module.get("context", {})
-        input_ports = set(module.get("ports", {}).get("input", {}))
+                            diagnostics.append(self._diag("CGKN_PROJECTION_FIELD_INVALID", f"nodes.{node_id}.{side}.{port.name}.projection", field))
+        context = component.metadata.get("context", {})
+        input_ports = {port.name for port in component.input_ports}
         for key in ("requiredArtifactPorts", "optionalArtifactPorts"):
             for port in context.get(key, []):
                 if port not in input_ports:
                     diagnostics.append(self._diag("CGKN_CONTEXT_PORT_INVALID", f"nodes.{node_id}.context.{key}", port))
-        implementation = module.get("implementation", {})
-        if implementation.get("kind") == "provider" and not module.get("effects", {}).get("provider_call", False):
+        implementation = component.metadata.get("implementation", {})
+        if implementation.get("kind") == "provider" and not component.effects.get("provider_call", False):
             diagnostics.append(self._diag("CGKN_PROVIDER_EFFECT_UNDECLARED", f"nodes.{node_id}.effects.provider_call", False, expected=True))
         if not policy:
             return
-        effects = module.get("effects", {})
+        effects = component.effects
         if effects.get("network") and not policy.get("network", {}).get("allowed", False):
             diagnostics.append(self._diag("CGKN_POLICY_EFFECT_DENIED", f"nodes.{node_id}.effects.network", True))
         if effects.get("provider_call") and not policy.get("provider", {}).get("allowed", False):
@@ -188,7 +200,7 @@ class ArtifactFlowCompiler:
             if any(fnmatch.fnmatch(write_path, denied) or fnmatch.fnmatch(denied, write_path) for denied in policy.get("fs", {}).get("denied_write", [])):
                 diagnostics.append(self._diag("CGKN_POLICY_WRITE_DENIED", f"nodes.{node_id}.effects.fs_write", write_path))
 
-    def _endpoint_type(self, endpoint, flow, modules, side, diagnostics, path):
+    def _endpoint_type(self, endpoint, flow, components, side, diagnostics, path):
         if side == "output" and "flow_input" in endpoint:
             value = flow.get("inputs", {}).get(endpoint["flow_input"])
             if not value:
@@ -202,15 +214,16 @@ class ArtifactFlowCompiler:
         if "node" not in endpoint:
             diagnostics.append(self._diag("CGKN_ENDPOINT_INVALID", path, endpoint))
             return None
-        module = modules.get(endpoint["node"])
-        if not module:
+        component = components.get(endpoint["node"])
+        if not component:
             diagnostics.append(self._diag("CGKN_NODE_NOT_FOUND", path, endpoint["node"]))
             return None
-        spec = module.get("ports", {}).get(side, {}).get(endpoint.get("port"))
-        if not spec:
+        try:
+            port = component.output_port(endpoint.get("port")) if side == "output" else component.input_port(endpoint.get("port"))
+        except KeyError:
             diagnostics.append(self._diag("CGKN_PORT_NOT_FOUND", path, endpoint.get("port")))
             return None
-        return spec.get("artifact_type")
+        return port.artifact_type
 
     def _compatible(self, source: str, target: str) -> bool:
         if source == target:

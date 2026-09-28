@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-058",
+      "title": "Introduce canonical Component execution model",
+      "priority": 1,
+      "state": "needs_rework",
+      "value": "Make ports, executable components, and per-run execution facts first-class while preserving the single artifact-driven runtime path.",
+      "acceptance": [
+        "existing module contracts adapt to immutable ComponentSpec values",
+        "compiler and runtime use the Component abstraction without a parallel path",
+        "ComponentExecution is the canonical per-node execution fact projected into checkpoints and feed rows",
+        "compile-time and runtime artifact boundary validation pass",
+        "targeted, quick/profile, and kernel contract regressions pass"
+      ]
+    },
+    {
       "id": "PB-057",
       "title": "Canonicalize validated Calculus Ink Lab candidate",
       "priority": 1,
