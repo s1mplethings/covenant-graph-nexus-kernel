@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Reduce requirement decision responsibilities before introducing any clarification layer while preserving the reconciled governance and execution mainline.",
   "backlog_item_ids": ["PB-059"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
     "Preserve main longitudinal governance and the reduced Capability, Interface, WorkNode, ProviderJob, Component, Artifact, and delivery contracts.",
     "Requirement Decision emits detected signals and is not the canonical user-interaction authority.",
@@ -32,7 +32,30 @@
     "legacy decision_blockers and blocking_questions do not own interaction",
     "Provider, evidence, packaging, and delivery authority remain unchanged"
   ],
-  "evidence_refs": [],
-  "review": {},
-  "retrospective": {}
+  "evidence_refs": [
+    "artifacts/clarification_reduction/architecture_before.json",
+    "artifacts/clarification_reduction/reduction_acceptance.json",
+    "tests/test_clarification_reduction_boundary.py"
+  ],
+  "review": {
+    "outcome": "needs_rework",
+    "feedback": [
+      "Clarification reduction, requirement, architecture, provider, and kernel scoped tests passed.",
+      "The formal quick profile timed out after 900 seconds with pre-existing failures and errors, so the reduction baseline cannot be promoted to PASS."
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [
+      "Signals and legacy question projections are now explicitly separated.",
+      "One assumption canonicalizer and one understanding-readiness seam removed duplicate authority without adding a clarification lane.",
+      "Branch reconciliation preserved both longitudinal governance and the reduced Capability/WorkNode/Component mainline."
+    ],
+    "did_not_work": [
+      "The repository-wide quick profile remained unsuitable as a clean promotion gate because unrelated baseline tests fail and the run exceeds 900 seconds."
+    ],
+    "experiments": [
+      "Repair the independently reproduced generated-component quality message contract, then rerun the unchanged quick profile before promoting clarification readiness."
+    ]
+  }
 }

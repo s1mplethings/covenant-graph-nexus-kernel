@@ -7,7 +7,7 @@
       "id": "PB-059",
       "title": "Reduce requirement decision before clarification",
       "priority": 1,
-      "state": "in_progress",
+      "state": "needs_rework",
       "value": "Create one factual Task Understanding to Project Planning boundary without adding a second question, assumption, planning, or execution authority.",
       "acceptance": [
         "legacy question fields are compatibility projections only",

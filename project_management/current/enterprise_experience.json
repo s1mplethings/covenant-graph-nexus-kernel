@@ -24,7 +24,7 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 44,
+      "usage_count": 45,
       "successful_usage_count": 44,
       "owner": "quality-management",
       "supersedes": []
@@ -142,6 +142,17 @@
       "evidence_refs": [
         "tests/test_component_flow_compile.py",
         "tests/test_component_runtime_integration.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-080",
+      "applied": true,
+      "outcome": "inconclusive",
+      "evidence_refs": [
+        "artifacts/clarification_reduction/reduction_acceptance.json",
+        "tests/test_clarification_reduction_boundary.py"
       ]
     }
   ]
