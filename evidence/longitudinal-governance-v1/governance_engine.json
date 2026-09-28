@@ -1,0 +1,1 @@
+{"kind":"CGKNGovernanceEngineEvidence","schemaVersion":"1.0","modes":["explain","verify","history","record"],"verifyMutatesLock":false,"recordRequires":["clean_worktree","strict_pass"],"releaseAuthority":false}

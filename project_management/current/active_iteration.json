@@ -1,61 +1,38 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-079",
+  "iteration_id": "ITER-080",
   "project_id": "cgkn",
-  "goal": "Establish the canonical Component definition and execution model on the existing artifact-driven runtime without changing delivery architecture.",
-  "backlog_item_ids": ["PB-058"],
-  "workflow_state": "closed",
-  "evidence_status": "NEEDS_REWORK",
+  "goal": "Reduce requirement decision responsibilities before introducing any clarification layer while preserving the reconciled governance and execution mainline.",
+  "backlog_item_ids": ["PB-059"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "Existing module contracts adapt to immutable PortSpec and ComponentSpec values without rewriting specs or flows.",
-    "ArtifactFlowCompiler and ArtifactModuleRunner both use the Component abstraction on one canonical execution path.",
-    "ComponentExecution safely records pass, fail, cache, and bypass lifecycle facts and projects them into checkpoints.",
-    "ArtifactRef, ArtifactInstance, and ArtifactStore remain the only canonical data and materialization model.",
-    "Compile-time port checks, runtime defensive validation, targeted tests, quick/profile, and kernel contract checks pass."
+    "Preserve main longitudinal governance and the reduced Capability, Interface, WorkNode, ProviderJob, Component, Artifact, and delivery contracts.",
+    "Requirement Decision emits detected signals and is not the canonical user-interaction authority.",
+    "Explicit tasks do not receive template-generated questions or uncertainties.",
+    "Canonical GoalSpec compilation is the only assumption authority.",
+    "ProjectPlan consumes only a GoalSpec that passes an explicit understanding-readiness boundary.",
+    "No Clarification Layer, second planning lane, or second execution abstraction is introduced."
   ],
   "quality_metrics": [
-    {"id": "QM-COMPONENT-PATH", "measure": "parallel module/component runtime paths introduced", "target": "0", "method": "code review plus runtime integration tests"},
-    {"id": "QM-EXECUTION-CONSISTENCY", "measure": "runtime failures recorded as successful executions", "target": "0", "method": "negative runtime and execution lifecycle tests"},
-    {"id": "QM-COMPATIBILITY", "measure": "existing artifact-driven regression failures", "target": "0", "method": "targeted and repository verification profiles"}
+    {"id": "QM-QUESTION-AUTHORITY", "measure": "canonical question authorities after reduction", "target": "0 until the later clarification layer", "method": "boundary tests and source inspection"},
+    {"id": "QM-ASSUMPTION-AUTHORITY", "measure": "canonical assumption generation sources", "target": "1", "method": "consumer inventory and regression tests"},
+    {"id": "QM-MAINLINE-PRESERVATION", "measure": "protected governance/execution/provider/delivery regressions", "target": "0", "method": "targeted and formal profiles"}
   ],
   "quality_activities": {
-    "prevention": ["Adapt canonical module contracts instead of replacing them", "Reuse ArtifactStore materialization, effect, cache, and fingerprint contracts"],
-    "assurance": ["Inspect architecture before edits", "Run model tests before compiler/runtime integration tests"],
-    "control": ["Run positive and negative Component lifecycle, compiler, runtime, and kernel contract tests"],
-    "improvement": ["Record whether one execution truth removes checkpoint/feed divergence"]
+    "prevention": ["Reconcile both branches before reduction", "Treat legacy question fields as projections only"],
+    "assurance": ["Inventory producers and consumers before edits", "Add negative tests for fabricated uncertainty"],
+    "control": ["Run requirement, architecture, provider, kernel, and quick profiles"],
+    "improvement": ["Freeze a factual reduction baseline before clarification design"]
   },
   "interface_expectations": [
-    "ComponentSpec is immutable and contains no run state",
-    "ComponentExecution binds run, node, component, artifact refs, cache, diagnostics, and timing",
-    "checkpoint and feed are projections of ComponentExecution",
-    "module implementation dispatch remains behind ModuleComponentAdapter"
+    "Task Understanding produces canonical GoalSpec",
+    "understanding readiness is checked before Project Planning",
+    "legacy decision_blockers and blocking_questions do not own interaction",
+    "Provider, evidence, packaging, and delivery authority remain unchanged"
   ],
-  "evidence_refs": [
-    "tests/component/",
-    "tests/test_component_flow_compile.py",
-    "tests/test_component_runtime_integration.py",
-    "tests/test_artifact_driven_kernel.py",
-    "tests/test_kernel_contract.py"
-  ],
-  "review": {
-    "outcome": "needs_rework",
-    "feedback": [
-      "Component-specific and kernel contract verification passed 96 tests.",
-      "The formal quick profile timed out after 900 seconds with pre-existing failures in unrelated generated-component quality contracts."
-    ],
-    "accepted_backlog_item_ids": []
-  },
-  "retrospective": {
-    "worked": [
-      "A thin Module adapter preserved existing specs, flows, ArtifactStore materialization, cache, and effects while moving compiler and runtime semantics to ComponentSpec.",
-      "ComponentExecution made checkpoint and feed rows projections of one lifecycle record."
-    ],
-    "did_not_work": [
-      "The repository quick profile could not provide a clean regression signal because unrelated baseline contract assertions failed and the suite exceeded both 300 and 900 second limits."
-    ],
-    "experiments": [
-      "Repair or rebaseline the unrelated generated-component quality contract before promoting PB-058 from needs_rework."
-    ]
-  }
+  "evidence_refs": [],
+  "review": {},
+  "retrospective": {}
 }

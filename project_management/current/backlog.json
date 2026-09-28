@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-059",
+      "title": "Reduce requirement decision before clarification",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Create one factual Task Understanding to Project Planning boundary without adding a second question, assumption, planning, or execution authority.",
+      "acceptance": [
+        "legacy question fields are compatibility projections only",
+        "template uncertainties are removed",
+        "canonical assumption source count is one",
+        "understanding readiness gates ProjectPlan construction",
+        "governance, Capability/WorkNode, Provider, evidence, packaging, and delivery routes remain intact"
+      ]
+    },
+    {
       "id": "PB-058",
       "title": "Introduce canonical Component execution model",
       "priority": 1,

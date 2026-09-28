@@ -1,0 +1,1 @@
+{"kind":"CGKNContractImmutabilityEvidence","schemaVersion":"1.0","rule":"same id and version retains canonical content hash","sameVersionMutation":"BLOCK","newVersion":"ALLOW_WITH_MIGRATION_CONTRACT","test":"tests/test_consumer_governance.py"}

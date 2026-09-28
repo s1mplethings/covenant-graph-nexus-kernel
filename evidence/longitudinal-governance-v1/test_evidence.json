@@ -1,0 +1,11 @@
+{
+  "kind":"CGKNTestEvidence",
+  "schemaVersion":"1.0",
+  "status":"PASS",
+  "commands":[
+    {"argv":["python","-m","pytest","-q","tests/test_consumer_governance.py","tests/test_kernel_contract.py"],"collected":52,"passed":52,"failed":0},
+    {"argv":["npm","run","cgnk:verify:strict"],"consumer":"Attune","status":"PASS","adversarialBlocked":12,"adversarialCases":12,"positiveAllowed":3,"positiveCases":3},
+    {"argv":["npm","run","cgnk:history"],"consumer":"Attune","status":"PASS","historicalCommitsChecked":6}
+  ],
+  "note":"Support evidence; owner acceptance and formal delivery authority remain separate."
+}
