@@ -458,10 +458,10 @@ AMBIGUOUS_RECORD_DOMAINS: tuple[tuple[tuple[str, ...], str, str], ...] = (
 )
 
 
-def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
-    """Return only user-owned facts or decisions that make autonomous v1 unsafe."""
+def detect_understanding_signals(raw_goal: str) -> list[dict[str, str]]:
+    """Detect facts that make understanding incomplete without owning interaction."""
     goal = product_domain_goal(raw_goal)
-    blockers: list[dict[str, str]] = []
+    signals: list[dict[str, str]] = []
     contradiction_pairs = (
         (("must be online", "requires internet", "必须联网"), ("must be offline", "no network", "完全离线", "禁止联网")),
         (("never store", "must not persist", "不能保存", "禁止存储"), ("must persist", "permanent history", "永久保存", "持久化保存")),
@@ -469,11 +469,11 @@ def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
     )
     for positive, negative in contradiction_pairs:
         if any(term in goal for term in positive) and any(term in goal for term in negative):
-            blockers.append(
+            signals.append(
                 {
                     "kind": "contradictory_requirements",
                     "reason": "The goal contains requirements that cannot both be satisfied.",
-                    "question": "Which of the conflicting requirements should govern the first version?",
+                    "resolution": "A later interaction authority must select the governing requirement.",
                 }
             )
             break
@@ -486,11 +486,11 @@ def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
         for marker in ("credential is provided", "credentials are provided", "token is provided", "已提供凭证", "已提供令牌")
     )
     if any(term in goal for term in credential_signals) and not credential_supplied:
-        blockers.append(
+        signals.append(
             {
                 "kind": "missing_required_credential",
                 "reason": "The requested live integration requires a credential or authority that CGKN cannot infer.",
-                "question": "Provide the required credential through the approved secret channel or remove the live integration from v1.",
+                "resolution": "A later interaction authority must obtain approved secret-channel authorization or remove the live integration.",
             }
         )
     external_fact_signals = (
@@ -498,11 +498,11 @@ def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
         "精确内部规则", "未提供的内部字段", "公司私有目录", "内部合规政策",
     )
     if any(term in goal for term in external_fact_signals):
-        blockers.append(
+        signals.append(
             {
                 "kind": "missing_critical_external_fact",
                 "reason": "A critical external fact is required and was not supplied.",
-                "question": "Provide the referenced private rule, schema, or catalog needed to freeze the ProjectSpec.",
+                "resolution": "A later interaction authority must obtain the private rule, schema, or catalog.",
             }
         )
     irreversible_signals = (
@@ -511,31 +511,48 @@ def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
         "向真实客户扣款", "转账真实资金", "发布给所有用户", "永久删除生产数据",
     )
     if any(term in goal for term in irreversible_signals):
-        blockers.append(
+        signals.append(
             {
                 "kind": "irreversible_user_decision_required",
                 "reason": "The goal delegates a high-risk or irreversible production action without a confirmed user choice.",
-                "question": "Confirm the exact irreversible action and its authorization boundary before implementation.",
+                "resolution": "A later interaction authority must confirm the action and authorization boundary.",
             }
         )
     user_owned_signals = (
         "wait for me to choose", "i will decide", "leave the final choice to me", "等我选择", "由我决定", "最后我来选",
     )
     if any(term in goal for term in user_owned_signals):
-        blockers.append(
+        signals.append(
             {
                 "kind": "explicit_user_owned_decision_pending",
                 "reason": "The user explicitly retained a decision that has not yet been provided.",
-                "question": "Provide the decision you reserved before CGKN freezes the ProjectSpec.",
+                "resolution": "A later interaction authority must obtain the explicitly retained decision.",
             }
         )
     unique: list[dict[str, str]] = []
     seen: set[str] = set()
-    for blocker in blockers:
-        if blocker["kind"] not in seen:
-            seen.add(blocker["kind"])
-            unique.append(blocker)
+    for signal in signals:
+        if signal["kind"] not in seen:
+            seen.add(signal["kind"])
+            unique.append(signal)
     return unique
+
+
+LEGACY_SIGNAL_QUESTIONS = {
+    "contradictory_requirements": "Which of the conflicting requirements should govern the first version?",
+    "missing_required_credential": "Provide the required credential through the approved secret channel or remove the live integration from v1.",
+    "missing_critical_external_fact": "Provide the referenced private rule, schema, or catalog needed to freeze the ProjectSpec.",
+    "irreversible_user_decision_required": "Confirm the exact irreversible action and its authorization boundary before implementation.",
+    "explicit_user_owned_decision_pending": "Provide the decision you reserved before CGKN freezes the ProjectSpec.",
+}
+
+
+def goal_decision_blockers(raw_goal: str) -> list[dict[str, str]]:
+    """Compatibility projection; it is not the canonical interaction authority."""
+    return [
+        {**signal, "question": LEGACY_SIGNAL_QUESTIONS[signal["kind"]]}
+        for signal in detect_understanding_signals(raw_goal)
+    ]
 
 
 def _ambiguous_record_application_profile(raw_goal: str) -> dict[str, Any] | None:
@@ -1165,8 +1182,9 @@ def build_goal_spec(
     conversation_context: dict[str, Any] | None = None,
     system_constraints: list[str] | None = None,
 ) -> dict[str, Any]:
-    blockers = goal_decision_blockers(raw_goal)
-    if blockers:
+    signals = detect_understanding_signals(raw_goal)
+    if signals:
+        blockers = goal_decision_blockers(raw_goal)
         return {
             "kind": "GoalSpec",
             "status": "NEEDS_REWORK",
@@ -1179,6 +1197,9 @@ def build_goal_spec(
             "interfaces": [],
             "constraints": [],
             "assumptions": [],
+            "understanding_signals": signals,
+            "interaction_authority": "unassigned_pending_clarification_layer",
+            # Legacy projections retained for downstream compatibility only.
             "decision_blockers": blockers,
             "blocking_questions": [item["question"] for item in blockers],
             "ready_to_generate": False,
@@ -1206,6 +1227,8 @@ def build_goal_spec(
             "interfaces": [],
             "constraints": [],
             "assumptions": [],
+            "understanding_signals": [],
+            "interaction_authority": "unassigned_pending_clarification_layer",
             "decision_blockers": [],
             "blocking_questions": [],
             "ready_to_generate": False,
@@ -1215,10 +1238,15 @@ def build_goal_spec(
         "kind": "GoalSpec",
         "status": "PASS",
         "goal": str(raw_goal or "").strip(),
-        "assumptions": list(profile.get("assumptions", [])) or [
-            "Unspecified implementation details use conservative local-first defaults.",
-            "Unspecified layout, storage fields, and first-version scope remain revisable implementation choices.",
-        ],
+        "assumptions": canonical_goal_spec_compiler.canonicalize_assumptions(
+            profile.get("assumptions", []),
+            [
+                "Unspecified implementation details use conservative local-first defaults.",
+                "Unspecified layout, storage fields, and first-version scope remain revisable implementation choices.",
+            ] if not profile.get("assumptions") else [],
+        ),
+        "understanding_signals": [],
+        "interaction_authority": "unassigned_pending_clarification_layer",
         "decision_blockers": [],
         "blocking_questions": [],
         "ready_to_generate": True,
@@ -1571,12 +1599,33 @@ def build_feature_unit_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def understanding_readiness(goal_spec: dict[str, Any]) -> dict[str, Any]:
+    """The single seam between canonical Task Understanding and Planning."""
+    signals = goal_spec.get("understanding_signals", [])
+    ready = bool(
+        goal_spec.get("kind") == "GoalSpec"
+        and goal_spec.get("status") == "PASS"
+        and goal_spec.get("ready_to_generate", True)
+        and not signals
+    )
+    return {
+        "kind": "CGKNUnderstandingReadiness",
+        "ready": ready,
+        "reason": "" if ready else str(goal_spec.get("reason") or "UNDERSTANDING_NOT_READY"),
+        "goal_spec_authority": str(goal_spec.get("authority") or "compatibility_fast_path"),
+        "signals": list(signals) if isinstance(signals, list) else [],
+        "planning_authorized": ready,
+    }
+
+
 def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
-    if goal_spec.get("status") != "PASS":
+    readiness = understanding_readiness(goal_spec)
+    if not readiness["planning_authorized"]:
         return {
             "kind": "GoalDrivenProjectPlan",
             "status": "NEEDS_REWORK",
-            "reason": goal_spec.get("reason", "INSUFFICIENT_GOAL_PLAN"),
+            "reason": readiness["reason"],
+            "understanding_readiness": readiness,
             "workstreams": [],
             "leaves": [],
             "dependencies": [],
@@ -1887,7 +1936,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
                 "customer_problem": "The creator needs story structure and visual assets to remain editable and connected instead of becoming unrelated generated files.",
                 "target_user": "Visual-novel writers and small creative teams.",
                 "evidence_from_goal": product_domain_goal(goal)[:600],
-                "assumptions": ["Offline procedural illustration may be an honestly labelled fallback when no diffusion model is configured."],
+                "interpretation_notes": ["Offline procedural illustration may be an honestly labelled fallback when no diffusion model is configured."],
                 "risk_if_wrong": "low",
             }
         )
@@ -1899,7 +1948,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
                 "customer_problem": "The customer needs a usable board workflow, while screenshots and demo video are delivery evidence rather than the product domain.",
                 "target_user": "Individuals or small teams managing local tasks.",
                 "evidence_from_goal": product_domain_goal(goal)[:600],
-                "assumptions": ["Local browser persistence is sufficient for the first version."],
+                "interpretation_notes": ["Local browser persistence is sufficient for the first version."],
                 "risk_if_wrong": "low",
             }
         )
@@ -1911,7 +1960,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
                 "customer_problem": "The customer likely needs repeatable processing and review, not just a video player or static demo.",
                 "target_user": "Editors, operators, or solo creators managing local media material.",
                 "evidence_from_goal": goal[:600],
-                "assumptions": ["Local operation matters unless the customer explicitly asks for cloud processing."],
+                "interpretation_notes": ["Local operation matters unless the customer explicitly asks for cloud processing."],
                 "risk_if_wrong": "medium",
             }
         )
@@ -1923,7 +1972,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
                 "customer_problem": "The customer likely wants coordination and decision clarity, not a generic task board.",
                 "target_user": "Small creative or engineering teams.",
                 "evidence_from_goal": goal[:600],
-                "assumptions": ["The first version should focus on project coordination rather than full enterprise governance."],
+                "interpretation_notes": ["The first version should focus on project coordination rather than full enterprise governance."],
                 "risk_if_wrong": "medium",
             }
         )
@@ -1935,7 +1984,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
                 "customer_problem": "The customer likely needs structured knowledge work with traceability.",
                 "target_user": "Researchers, analysts, founders, or operators handling local documents.",
                 "evidence_from_goal": goal[:600],
-                "assumptions": ["The first version can use deterministic local extraction and honest degraded mode."],
+                "interpretation_notes": ["The first version can use deterministic local extraction and honest degraded mode."],
                 "risk_if_wrong": "low",
             }
         )
@@ -1946,7 +1995,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
             "customer_problem": "The raw goal may be underspecified and could otherwise collapse into a small demo.",
             "target_user": "The customer or internal operator who needs a clear first version.",
             "evidence_from_goal": goal[:600],
-            "assumptions": ["CGKN should choose a deliverable MVP and expose non-goals."],
+            "interpretation_notes": ["CGKN should choose a deliverable MVP and expose non-goals."],
             "risk_if_wrong": "low",
         }
     )
@@ -2224,10 +2273,8 @@ def select_requirement(candidates: dict[str, Any] | list[dict[str, Any]], scorec
         "mvp_scope": candidate["mvp_features"],
         "non_goals": candidate["non_goals"],
         "acceptance_summary": candidate["acceptance_summary"],
-        "known_assumptions": list((candidate.get("goal_spec", {}) or {}).get("assumptions", [])) or [
-            "The selected MVP can be revised if the customer rejects the chosen direction."
-        ],
-        "open_questions_not_blocking": ["Confirm exact runtime platform and preferred UI style before final polish."],
+        "known_assumptions": list((candidate.get("goal_spec", {}) or {}).get("assumptions", [])),
+        "open_questions_not_blocking": list((candidate.get("goal_spec", {}) or {}).get("open_questions", [])),
         "decision_confidence": "high" if int(best.get("total_score", 0)) >= 80 else "medium",
         "goal_spec": candidate.get("goal_spec", {}),
         "project_plan": candidate.get("project_plan", {}),
@@ -2256,18 +2303,13 @@ def build_acceptance_contract(selected: dict[str, Any]) -> dict[str, Any]:
 def customer_goal_brief(raw_goal: str, interpretations: dict[str, Any]) -> str:
     needs = interpretations.get("interpreted_needs", []) if isinstance(interpretations, dict) else []
     primary = needs[0] if needs else {}
-    return "\n".join(
-        [
+    unknowns = interpretations.get("unknowns", []) if isinstance(interpretations, dict) else []
+    lines = [
             "# Customer Goal Brief",
             "",
             f"Raw customer goal: {raw_goal}",
             "",
             f"CGKN interpretation: {primary.get('need', 'The customer needs a clearer product requirement before implementation.')}",
-            "",
-            "Key uncertainties:",
-            "- Exact user role and daily workflow may need confirmation.",
-            "- Runtime platform and dependency constraints may need confirmation.",
-            "- Whether external services are allowed is not assumed.",
             "",
             "Known constraints:",
             "- Requirement decision must precede implementation.",
@@ -2282,7 +2324,9 @@ def customer_goal_brief(raw_goal: str, interpretations: dict[str, Any]) -> str:
             "- Choose the best first product requirement.",
             "- Freeze MVP scope, non-goals, and acceptance criteria.",
         ]
-    ) + "\n"
+    if unknowns:
+        lines[6:6] = ["Key uncertainties:", *[f"- {item}" for item in unknowns], ""]
+    return "\n".join(lines) + "\n"
 
 
 def rejected_markdown(candidates: list[dict[str, Any]], scorecard: dict[str, Any], selected_id: str) -> str:

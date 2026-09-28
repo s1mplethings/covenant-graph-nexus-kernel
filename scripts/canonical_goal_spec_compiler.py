@@ -114,6 +114,18 @@ def _string_list(value: Any) -> list[str]:
     return list(dict.fromkeys(_text(item) for item in value if _text(item)))
 
 
+def canonicalize_assumptions(*sources: Any) -> list[str]:
+    """The sole canonical assembly point for GoalSpec assumptions."""
+    return list(
+        dict.fromkeys(
+            item
+            for source in sources
+            for item in _string_list(source)
+            if item
+        )
+    )
+
+
 def _contains_any(text: str, markers: tuple[str, ...]) -> bool:
     lowered = _text(text).lower()
     return any(marker in lowered for marker in markers)
@@ -558,11 +570,11 @@ def compile_goal_spec(
     fast_path_profile = dict(fast_path_profile or {})
     domain = _text(fast_path_profile.get("domain")) or "custom_local_application"
     capabilities = list(dict.fromkeys([*core_capabilities, *supporting_capabilities]))
-    assumptions = list(dict.fromkeys([
-        *raw_fields["assumptions"],
-        *_string_list(proposal.get("necessary_inferences")),
-        *_string_list(fast_path_profile.get("assumptions")),
-    ]))
+    assumptions = canonicalize_assumptions(
+        raw_fields["assumptions"],
+        proposal.get("necessary_inferences"),
+        fast_path_profile.get("assumptions"),
+    )
     open_questions = raw_fields["open_questions"]
     provenance_by_field["normalized_goal"] = [
         {"value": raw_goal, "provenance": ["USER_EXPLICIT"], "accepted": True, "source_refs": [raw_goal]}

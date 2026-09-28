@@ -17,6 +17,24 @@ Promotion cannot authorize formal evidence, packaging, or delivery and cannot
 change Artifact Runtime, Provider, `local_packager`, or public-delivery
 semantics.
 
+## Task understanding and planning boundary
+
+Task Understanding produces the canonical `GoalSpec`. Requirement conflict,
+missing external facts, authorization risk, and an explicitly retained user
+decision are understanding signals; the Requirement Decision Lane does not own
+the future user-interaction decision. `decision_blockers` and
+`blocking_questions` are legacy compatibility projections only.
+
+All formal GoalSpec assumptions pass through
+`canonical_goal_spec_compiler.canonicalize_assumptions`; interpretation,
+selection, and planning consumers may display those assumptions but MUST NOT
+invent additional canonical assumptions. Uncertainty may be emitted only when
+grounded in user input, a canonical GoalSpec, a validated planning proposal, or
+an explicit detection result. Project Planning begins only after
+`understanding_readiness` authorizes consumption of the GoalSpec. This seam
+does not implement a Clarification Layer, a second planning lane, or another
+execution scheduler.
+
 ## Artifact-driven pipeline kernel (v0.3 normative addition)
 
 The artifact-driven runtime is an additive typed execution lane. It MUST NOT
