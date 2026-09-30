@@ -45,7 +45,7 @@ This benchmark does not run Telegram intake. It tests the generation/delivery ca
 
 ## Not Selected
 
-- `scripts/generate_project.py`: not selected because the kernel contract says it must not be reconnected as Telegram mainline.
+- The superseded compact generation CLI has been removed; Git history retains it, and no current entrypoint may recreate or import it.
 - `scripts/pipeline_manifest.py` + `scripts/dynamic_pipeline_runner.py`: not selected as default generation route because the kernel contract preserves these as support/experimental planning lane.
 - `scripts/ctcp_orchestrate.py`: absent.
 - `scripts/run_agent_league.py`: absent.

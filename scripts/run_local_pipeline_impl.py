@@ -51,6 +51,7 @@ import post_build_repair
 import post_build_finalize
 import provider_execution_metrics
 import provider_jobs
+import project_version_policy
 import repair_acceptance
 import online_input_agent
 import requirement_blueprint
@@ -8804,6 +8805,7 @@ Hard rules:
 - If complexity_project_contract is present, do not use forbidden_shortcuts such as single_file_demo, static_preview_only, readme_only_delivery, fake_pass, separate GUI/CLI logic, or artifact-name-only schemas.
 - Do not turn the requested app into a meta-tool that only collects requirements, emits blueprints, or documents how it could be built.
 - Keep file paths relative. Never use absolute paths. Never write outside the project root.
+- Every new project has one VERSION file. A medium or large long-lived project also has governance/current_architecture.json; create governance/deprecation_registry.json only when real read/import compatibility remains. Structural upgrades declare supersedes, migrate all consumers, remove the old producer and entrypoint, and retain an old reader only as COMPAT_ONLY with remove_in. Never keep old/new/v2/final_v2 parallel production paths.
 
 JSON shape:
 {
@@ -23523,7 +23525,9 @@ def provider_generate_project_by_components(
                 write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
                 if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
                     time.sleep(sleep_for)
-    files = merge_component_files(component_results)
+    files = project_version_policy.apply_minimum_version_governance(
+        merge_component_files(component_results)
+    )
     paths = {item["path"] for item in files if isinstance(item, dict)}
     if "TEST_PLAN.md" not in paths:
         test_paths = sorted(path for path in paths if path.startswith("tests/") and path.endswith(".py"))

@@ -1,61 +1,67 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-080",
+  "iteration_id": "ITER-081",
   "project_id": "cgkn",
-  "goal": "Reduce requirement decision responsibilities before introducing any clarification layer while preserving the reconciled governance and execution mainline.",
-  "backlog_item_ids": ["PB-059"],
+  "goal": "Establish canonical version, supersession, migration, and retirement governance while reducing the active legacy surface and preserving the single Provider and delivery mainline.",
+  "backlog_item_ids": ["PB-060"],
   "workflow_state": "closed",
   "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
-    "Preserve main longitudinal governance and the reduced Capability, Interface, WorkNode, ProviderJob, Component, Artifact, and delivery contracts.",
-    "Requirement Decision emits detected signals and is not the canonical user-interaction authority.",
-    "Explicit tasks do not receive template-generated questions or uncertainties.",
-    "Canonical GoalSpec compilation is the only assumption authority.",
-    "ProjectPlan consumes only a GoalSpec that passes an explicit understanding-readiness boundary.",
-    "No Clarification Layer, second planning lane, or second execution abstraction is introduced."
+    "One current architecture registry names the factual active authorities and canonical routes.",
+    "One deterministic retirement gate fails closed on duplicate authority, expired compatibility, superseded production references, legacy producers, stale current documentation, and version mismatch.",
+    "Compatibility surfaces are read-only projections or importers with explicit allowed consumers and remove_in versions.",
+    "Superseded implementation is removed or isolated from the active surface after consumer migration is verified.",
+    "Generated and maintained projects receive complexity-tailored supersession and retirement rules without a second generation path.",
+    "Scoped regressions and kernel contract pass; formal quick profile is bounded and reported truthfully."
   ],
   "quality_metrics": [
-    {"id": "QM-QUESTION-AUTHORITY", "measure": "canonical question authorities after reduction", "target": "0 until the later clarification layer", "method": "boundary tests and source inspection"},
-    {"id": "QM-ASSUMPTION-AUTHORITY", "measure": "canonical assumption generation sources", "target": "1", "method": "consumer inventory and regression tests"},
-    {"id": "QM-MAINLINE-PRESERVATION", "measure": "protected governance/execution/provider/delivery regressions", "target": "0", "method": "targeted and formal profiles"}
+    {"id": "QM-AUTHORITY-UNIQUENESS", "measure": "active owners per canonical responsibility", "target": "0 or 1, with every required authority exactly 1", "method": "canonical version gate and negative tests"},
+    {"id": "QM-LEGACY-PRODUCTION", "measure": "superseded production imports and compatibility producers", "target": "0", "method": "repository scan and gate fixtures"},
+    {"id": "QM-CURRENT-TRUTH", "measure": "version mismatches and stale current documentation references", "target": "0", "method": "registry validation and current-surface scan"},
+    {"id": "QM-MAINLINE-PRESERVATION", "measure": "protected requirement, Provider, evidence, packaging, and delivery regressions", "target": "0 new failures", "method": "targeted and formal profiles"}
   ],
   "quality_activities": {
-    "prevention": ["Reconcile both branches before reduction", "Treat legacy question fields as projections only"],
-    "assurance": ["Inventory producers and consumers before edits", "Add negative tests for fabricated uncertainty"],
-    "control": ["Run requirement, architecture, provider, kernel, and quick profiles"],
-    "improvement": ["Freeze a factual reduction baseline before clarification design"]
+    "prevention": ["Inventory consumers before edits", "Use one data registry and one gate instead of manager abstractions"],
+    "assurance": ["Review authority and schema ownership against the contract registry", "Exercise required negative fixtures"],
+    "control": ["Run retirement, requirement, component, Provider, packaging, delivery, kernel, and bounded quick profiles"],
+    "improvement": ["Remove obsolete active surfaces and keep historical detail in Git"]
   },
   "interface_expectations": [
-    "Task Understanding produces canonical GoalSpec",
-    "understanding readiness is checked before Project Planning",
-    "legacy decision_blockers and blocking_questions do not own interaction",
-    "Provider, evidence, packaging, and delivery authority remain unchanged"
+    "Task Understanding remains the GoalSpec authority and clarification stays unassigned",
+    "ProviderJob remains the only project-work concurrency unit",
+    "ArtifactInstance and ComponentExecution remain the execution truth",
+    "formal evidence, acceptance, promotion, local_packager, and public delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "artifacts/clarification_reduction/architecture_before.json",
-    "artifacts/clarification_reduction/reduction_acceptance.json",
-    "tests/test_clarification_reduction_boundary.py"
+    "governance/current_architecture.json",
+    "governance/deprecation_registry.json",
+    "governance/migrations/0.2.0-rc.2.json",
+    "evidence/canonical-version-retirement-v1/architecture_inventory.json",
+    "tests/test_canonical_version_gate.py",
+    "tests/test_project_version_policy.py",
+    "evidence/canonical-version-retirement-v1/acceptance.json"
   ],
   "review": {
-    "outcome": "needs_rework",
+    "outcome": "accepted_with_limits",
     "feedback": [
-      "Clarification reduction, requirement, architecture, provider, and kernel scoped tests passed.",
-      "The formal quick profile timed out after 900 seconds with pre-existing failures and errors, so the reduction baseline cannot be promoted to PASS."
+      "The canonical version gate and all scoped requirement, Component, ProviderJob, packaging, delivery, and kernel regressions passed.",
+      "Seven superseded generation source files and four historical-contract test files were removed from the active tree.",
+      "The formal quick profile completed with 1830 passed, 21 failed, 16 errors, and 440 deselected in 898.65 seconds; repository-global evidence remains NEEDS_REWORK because unrelated baseline failures persist."
     ],
-    "accepted_backlog_item_ids": []
+    "accepted_backlog_item_ids": ["PB-060"]
   },
   "retrospective": {
     "worked": [
-      "Signals and legacy question projections are now explicitly separated.",
-      "One assumption canonicalizer and one understanding-readiness seam removed duplicate authority without adding a clarification lane.",
-      "Branch reconciliation preserved both longitudinal governance and the reduced Capability/WorkNode/Component mainline."
+      "Replacing legacy-label checks with absence checks made retirement enforceable.",
+      "One data registry and one deterministic gate covered authority, compatibility, imports, producers, documentation, and version truth without manager abstractions.",
+      "Scoped and repository-global verdicts remained separate."
     ],
     "did_not_work": [
-      "The repository-wide quick profile remained unsuitable as a clean promotion gate because unrelated baseline tests fail and the run exceeds 900 seconds."
+      "The repository-wide quick profile remains near its 900-second bound and contains unrelated baseline failures and fixture errors."
     ],
     "experiments": [
-      "Repair the independently reproduced generated-component quality message contract, then rerun the unchanged quick profile before promoting clarification readiness."
+      "Repair the independent quick-profile baseline as a separate backlog item without weakening the canonical retirement gate."
     ]
   }
 }

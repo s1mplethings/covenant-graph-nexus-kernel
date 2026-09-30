@@ -28,9 +28,14 @@ FORBIDDEN_CONFIRMATION_TERMS = [
 ]
 DELIVERY_GATE_FUNCTIONS = ["send_delivery_from_manifest", "send_evidence_checkpoint"]
 DELIVERY_GATE_TERMS = ["evaluate_public_delivery_gate", "emit_public_delivery"]
-LEGACY_WRAPPER_FILES = [
-    ("scripts/generate_project.py", ["LEGACY CLI ONLY", "Not used by Codex conversation formal generation"]),
-    ("scripts/legacy_provider_pipeline.py", ["LEGACY ONLY", "Not part of CGNK formal Codex conversation generation"]),
+RETIRED_GENERATION_FILES = [
+    "scripts/generate_project.py",
+    "scripts/legacy_provider_pipeline.py",
+    "scripts/deliver_product_studio.py",
+    "scripts/run_product_studio.py",
+    "legacy/generate_project_legacy.py",
+    "legacy/deliver_product_studio.py",
+    "legacy/run_product_studio.py",
 ]
 LEGACY_BRIDGE_WRAPPERS = ["build_generation_args", "run_generation_subprocess", "run_generation_job"]
 PROVIDER_ROUTE_TERMS = [
@@ -348,17 +353,13 @@ def run_checks(strict: bool = False) -> dict[str, object]:
             ", ".join(missing_gate) or f"{name} not found",
         )
 
-    for path, markers in LEGACY_WRAPPER_FILES:
-        if not (ROOT / path).exists():
-            continue
-        text = read_text(path)
-        missing_markers = [marker for marker in markers if marker not in text]
-        add(
-            checks,
-            f"{path} is marked legacy-only",
-            not missing_markers,
-            ", ".join(missing_markers),
-        )
+    retained_retired_files = [path for path in RETIRED_GENERATION_FILES if (ROOT / path).exists()]
+    add(
+        checks,
+        "superseded generation files are absent",
+        not retained_retired_files,
+        ", ".join(retained_retired_files),
+    )
 
     unmarked_wrappers: list[str] = []
     for name in LEGACY_BRIDGE_WRAPPERS:
@@ -370,7 +371,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
             unmarked_wrappers.append(name)
     add(
         checks,
-        "legacy wrapper functions in the bridge are marked LEGACY ONLY",
+        "retired generation wrapper functions are absent from the bridge",
         not unmarked_wrappers,
         ", ".join(unmarked_wrappers),
     )

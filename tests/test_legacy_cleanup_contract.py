@@ -22,23 +22,17 @@ class LegacyCleanupContractTests(unittest.TestCase):
         self.assertIn("provider_project_pipeline.execute", text)
         self.assertIn("evaluate_public_delivery_gate", text)
 
-    def test_generate_project_is_legacy_only_if_present(self) -> None:
-        path = ROOT / "scripts" / "generate_project.py"
-        if not path.exists():
-            self.skipTest("scripts/generate_project.py is absent")
-        text = path.read_text(encoding="utf-8", errors="replace")
-
-        self.assertIn("LEGACY CLI ONLY", text)
-        self.assertIn("Not used by Codex conversation formal generation", text)
-
-    def test_legacy_provider_pipeline_marked_legacy(self) -> None:
-        path = ROOT / "scripts" / "legacy_provider_pipeline.py"
-        if not path.exists():
-            self.skipTest("legacy provider pipeline module is absent")
-        text = path.read_text(encoding="utf-8", errors="replace")
-
-        self.assertIn("LEGACY ONLY", text)
-        self.assertIn("Not part of CGNK formal Codex conversation generation", text)
+    def test_superseded_generation_surfaces_are_absent(self) -> None:
+        retired = (
+            "scripts/generate_project.py",
+            "scripts/legacy_provider_pipeline.py",
+            "scripts/deliver_product_studio.py",
+            "scripts/run_product_studio.py",
+            "legacy/generate_project_legacy.py",
+            "legacy/deliver_product_studio.py",
+            "legacy/run_product_studio.py",
+        )
+        self.assertEqual([], [path for path in retired if (ROOT / path).exists()])
 
     def test_customer_policy_uses_soft_questions_not_blocking_questions(self) -> None:
         text = read("scripts/codex_conversation.py")

@@ -1,5 +1,14 @@
 # CGKN Contract Registry
 
+## Canonical version governance
+
+| Artifact / check | Producer | Consumer | Authority boundary |
+| --- | --- | --- | --- |
+| `CGKNCurrentArchitecture` / `governance/current_architecture.json` | reviewed repository change | `scripts/canonical_version_gate.py`, maintainers, Agents | current-truth registry only; names existing authorities and routes but grants none |
+| `CGKNDeprecationRegistry` / `governance/deprecation_registry.json` | reviewed migration retaining real compatibility | `scripts/canonical_version_gate.py` | COMPAT_ONLY inventory only; cannot produce current artifacts or retain removed items |
+| canonical version gate result | `scripts/canonical_version_gate.py` | repository quality control and review | deterministic veto-only result; cannot authorize evidence, acceptance, packaging, delivery, or public PASS |
+| generated-project version policy | `scripts/project_version_policy.py` through the existing ProviderJob route | generated and maintained projects | adds the universal VERSION truth and validates upgrade shape; Provider remains project author and existing gates remain authoritative |
+
 ## Artifact-driven pipeline kernel v0.3
 
 | Contract / artifact | Authoritative schema or implementation | Consumer | Authority boundary |

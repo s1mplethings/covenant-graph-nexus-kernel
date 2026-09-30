@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cgkn-agent-kit"
-version = "0.2.0rc1"
+version = "0.2.0rc2"
 description = "Project-agnostic Agent supervision companion for the CGKN Provider mainline"
 readme = "README.md"
 requires-python = ">=3.10"

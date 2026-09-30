@@ -1,0 +1,47 @@
+{
+  "kind": "CGKNCurrentArchitecture",
+  "schema_version": "1.0",
+  "product_version": "0.2.0-rc.2",
+  "architecture_generation": "canonical-provider-component-mainline",
+  "supersedes": [
+    "legacy-product-studio-generation-chain"
+  ],
+  "authorities": {
+    "requirement": "scripts/canonical_goal_spec_compiler.py:compile_goal_spec",
+    "assumption": "scripts/canonical_goal_spec_compiler.py:canonicalize_assumptions",
+    "clarification": null,
+    "planning": "scripts/requirement_decision_lane.py:build_goal_project_plan",
+    "execution": "cgkn/runtime/runner.py:ArtifactModuleRunner",
+    "provider_scheduler": "scripts/run_local_pipeline_impl.py:execute_provider_job_patch_generation",
+    "evidence": "scripts/formal_gate_registry.py",
+    "acceptance": "scripts/formal_mainline_acceptance.py:build_acceptance",
+    "promotion": "scripts/canonical_finalization.py:promote",
+    "packaging": "scripts/local_packager.py:package_project",
+    "delivery": "scripts/codex_conversation.py:evaluate_public_delivery_gate"
+  },
+  "canonical_routes": {
+    "requirement_to_planning": [
+      "scripts/canonical_goal_spec_compiler.py:compile_goal_spec",
+      "scripts/requirement_decision_lane.py:build_goal_project_plan"
+    ],
+    "planning_to_execution": [
+      "scripts/run_local_pipeline_impl.py:execute_provider_job_patch_generation",
+      "cgkn/runtime/runner.py:ArtifactModuleRunner"
+    ],
+    "execution_to_evidence": [
+      "scripts/canonical_finalization.py:canonical_verify",
+      "scripts/formal_gate_registry.py"
+    ],
+    "evidence_to_delivery": [
+      "scripts/formal_mainline_acceptance.py:build_acceptance",
+      "scripts/canonical_finalization.py:promote",
+      "scripts/local_packager.py:package_project",
+      "scripts/codex_conversation.py:evaluate_public_delivery_gate"
+    ]
+  },
+  "compatibility_surfaces": [
+    "legacy-status-reader",
+    "legacy-question-projections"
+  ],
+  "forbidden_parallel_authorities": true
+}

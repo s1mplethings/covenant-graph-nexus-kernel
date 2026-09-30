@@ -249,16 +249,17 @@ def check_packager(results: list[CheckResult]) -> None:
 
 
 def check_legacy_isolation(results: list[CheckResult]) -> None:
-    legacy_provider = ROOT / "scripts" / "legacy_provider_pipeline.py"
-    if legacy_provider.exists():
-        text = legacy_provider.read_text(encoding="utf-8", errors="replace")
-        ok, missing = contains_all(text, ["LEGACY ONLY", "Not part of CGNK formal Codex conversation generation"])
-        add(results, "legacy provider pipeline is explicitly marked legacy", ok, ", ".join(missing))
-    wrapper = ROOT / "scripts" / "generate_project.py"
-    if wrapper.exists():
-        text = wrapper.read_text(encoding="utf-8", errors="replace")
-        ok, missing = contains_all(text, ["LEGACY CLI ONLY", "Not used by Codex conversation formal generation"])
-        add(results, "generate_project CLI wrapper is explicitly marked legacy", ok, ", ".join(missing))
+    retired = [
+        "scripts/generate_project.py",
+        "scripts/legacy_provider_pipeline.py",
+        "scripts/deliver_product_studio.py",
+        "scripts/run_product_studio.py",
+        "legacy/generate_project_legacy.py",
+        "legacy/deliver_product_studio.py",
+        "legacy/run_product_studio.py",
+    ]
+    retained = [path for path in retired if (ROOT / path).exists()]
+    add(results, "superseded generation surfaces are retired", not retained, ", ".join(retained))
 
 
 def check_runtime_profiles(results: list[CheckResult]) -> None:

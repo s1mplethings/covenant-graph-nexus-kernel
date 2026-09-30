@@ -161,6 +161,22 @@ class KernelContractTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("PASS", result.stdout.splitlines()[0])
 
+    def test_canonical_version_retirement_contract_is_frozen(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+
+        for term in (
+            "governance/current_architecture.json",
+            "governance/deprecation_registry.json",
+            "SUPERSEDE -> MIGRATE -> VERIFY -> RETIRE -> FREEZE",
+            "scripts/canonical_version_gate.py",
+            "scripts/project_version_policy.py",
+        ):
+            self.assertIn(term, contract)
+        self.assertIn("CGKNCurrentArchitecture", registry)
+        self.assertIn("CGKNDeprecationRegistry", registry)
+        self.assertIn("veto-only", registry)
+
     def test_generation_confirmation_only_dispatches_generation_starter(self) -> None:
         branch = generation_confirmation_branch(read_source("scripts/codex_conversation.py"))
 

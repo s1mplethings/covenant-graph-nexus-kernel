@@ -1,0 +1,35 @@
+{
+  "kind": "CGKNArchitectureMigration",
+  "schema_version": "1.0",
+  "from_version": "0.2.0-rc.1",
+  "to_version": "0.2.0-rc.2",
+  "superseded": [
+    "legacy-product-studio-generation-chain",
+    "legacy-provider-subprocess-bridge"
+  ],
+  "migrated": [
+    "Codex conversation generation remains on start_generation_from_income -> run_provider_generation_job",
+    "kernel and slim guards now require superseded generation files and bridge functions to be absent",
+    "generated ProviderJob output receives one VERSION truth and the Provider context receives the retirement policy"
+  ],
+  "compatibility_remaining": [
+    "legacy-status-reader",
+    "legacy-question-projections"
+  ],
+  "removed": [
+    "scripts/generate_project.py",
+    "scripts/legacy_provider_pipeline.py",
+    "scripts/deliver_product_studio.py",
+    "scripts/run_product_studio.py",
+    "legacy/generate_project_legacy.py",
+    "legacy/deliver_product_studio.py",
+    "legacy/run_product_studio.py"
+  ],
+  "verification_refs": [
+    "scripts/canonical_version_gate.py",
+    "tests/test_canonical_version_gate.py",
+    "tests/test_legacy_cleanup_contract.py",
+    "tests/test_project_version_policy.py",
+    "tests/test_kernel_contract.py"
+  ]
+}

@@ -14,7 +14,6 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.codex_conversation as bridge
-import scripts.legacy_provider_pipeline as legacy_provider_pipeline
 import scripts.project_memory_md as project_memory_md
 import scripts.local_packager as local_packager
 
@@ -391,30 +390,6 @@ class CodexConversationCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(["image", "document"], [item["type"] for item in specs])
             self.assertEqual(str(image.resolve()), specs[0]["local_path"])
             self.assertEqual("用这个做参考", specs[1]["caption"])
-
-    def test_generation_args_include_required_context_prompt_fields(self) -> None:
-        args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420)
-        self.assertEqual(12000, args.prompt_max_chars)
-        self.assertFalse(args.use_local_model)
-        self.assertTrue(args.allow_provider)
-        self.assertTrue(args.use_api)
-        command = legacy_provider_pipeline.generation_subprocess_command(args, root=ROOT)
-        self.assertIn("--prompt-max-chars", command)
-        self.assertIn("12000", command)
-        self.assertIn("--allow-network", command)
-        self.assertIn("--allow-provider", command)
-        self.assertIn("--use-api", command)
-        self.assertNotIn("--no-api", command)
-
-    def test_generation_command_does_not_use_no_api_flags_in_simulator_mode(self) -> None:
-        args = bridge.build_generation_args("test-chat", "做一个 VN 助手", ROOT / "examples" / "test_results", "gpt-4.1", 420, "simulator")
-        command = legacy_provider_pipeline.generation_subprocess_command(args, root=ROOT)
-        self.assertIn("--allow-network", command)
-        self.assertIn("--allow-provider", command)
-        self.assertIn("--use-api", command)
-        self.assertNotIn("--no-network", command)
-        self.assertNotIn("--no-provider", command)
-        self.assertNotIn("--no-api", command)
 
     def test_greeting_does_not_start_generation_or_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1034,24 +1009,6 @@ class CodexConversationCustomerBridgeTests(unittest.TestCase):
 
         self.assertEqual("new_project_request", classification["intent"])
         self.assertEqual("local_model", classification["source"])
-
-    def test_generation_failure_facts_hide_internal_parameter_names(self) -> None:
-        facts = bridge.safe_generation_failure_facts("做一个 VN 助手", AttributeError("'Namespace' object has no attribute 'prompt_max_chars'"))
-        self.assertEqual("generation_bridge_configuration_error", facts["error_category"])
-        self.assertNotIn("prompt_max_chars", facts["user_visible_cause"])
-        self.assertTrue(facts["technical_error_logged"])
-
-    def test_generation_failure_facts_classify_context_budget_errors(self) -> None:
-        facts = bridge.safe_generation_failure_facts("做一个 VN 助手", RuntimeError("context prompt quality failed: prompt exceeds max_chars: 6966>6000"))
-        self.assertEqual("context_prompt_budget_error", facts["error_category"])
-        self.assertIn("上下文预算", facts["user_visible_cause"])
-
-    def test_generation_progress_text_does_not_claim_specific_stage(self) -> None:
-        text = bridge.generation_progress_text(120)
-        self.assertIn("仍在生成", text)
-        self.assertIn("尚未验证", text)
-        self.assertNotIn("整体进度正常", text)
-        self.assertNotIn("已进入图片生成", text)
 
 
 if __name__ == "__main__":

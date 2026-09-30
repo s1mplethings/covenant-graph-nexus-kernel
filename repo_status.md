@@ -52,7 +52,7 @@ Detected from `README.md`, `docs/00_kernel_contract.md`, `scripts/`, and `--help
 - `scripts/post_build_finalize.py`
 - `scripts/local_packager.py`
 - `scripts/telegram_live_bridge.py`
-- `scripts/generate_project.py` exists, but the kernel contract says it must not be reconnected as Telegram mainline.
+- The superseded compact generation CLI and Product Studio wrapper chain are removed from the active tree; Git history retains them.
 - `scripts/pipeline_manifest.py` and `scripts/dynamic_pipeline_runner.py` exist as support/experimental planning lane.
 
 ## Requested Entrypoints Checked

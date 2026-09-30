@@ -21,8 +21,12 @@ def test_review_candidate_versions_are_aligned() -> None:
     server = (ROOT / "plugins" / "cgkn" / "scripts" / "cgkn_mcp_server.py").read_text(
         encoding="utf-8"
     )
+    architecture = json.loads(
+        (ROOT / "governance" / "current_architecture.json").read_text(encoding="utf-8")
+    )
 
-    assert repository_version == "0.2.0-rc.1"
+    assert repository_version == "0.2.0-rc.2"
+    assert architecture["product_version"] == repository_version
     assert plugin["version"].startswith(f"{repository_version}+codex.")
-    assert '__version__ = "0.2.0rc1"' in agent_init
-    assert re.search(r'^SERVER_VERSION = "0\.2\.0-rc\.1"$', server, re.MULTILINE)
+    assert '__version__ = "0.2.0rc2"' in agent_init
+    assert re.search(r'^SERVER_VERSION = "0\.2\.0-rc\.2"$', server, re.MULTILINE)

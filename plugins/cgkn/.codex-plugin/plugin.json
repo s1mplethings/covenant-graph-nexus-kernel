@@ -1,6 +1,6 @@
 {
   "name": "cgkn",
-  "version": "0.2.0-rc.1+codex.20260915133119",
+  "version": "0.2.0-rc.2+codex.20261001000000",
   "description": "Plan, generate, test, diagnose, and inspect local projects through the reviewed CGKN Provider mainline, including auditable Codex surrogate pause/submit/resume.",
   "author": {
     "name": "CGKN"

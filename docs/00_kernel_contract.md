@@ -1,5 +1,15 @@
 # CGKN Kernel Contract
 
+## Canonical version and retirement lifecycle
+
+`VERSION` and `governance/current_architecture.json` are the repository's single current version and architecture truths and MUST agree. The architecture registry names factual current owners and routes; it does not grant evidence, acceptance, packaging, or delivery authority. A canonical responsibility has at most one ACTIVE owner, and every required formal responsibility has exactly one.
+
+Structural replacement follows `SUPERSEDE -> MIGRATE -> VERIFY -> RETIRE -> FREEZE`. A replacement declares `supersedes`, migrates every production consumer, removes the old producer, entrypoint, test expectation, and current-document claim, then records only genuinely remaining read/import compatibility in `governance/deprecation_registry.json`. Each COMPAT_ONLY item has `remove_in`, allowed consumers and read/project/migrate operations, cannot produce a canonical artifact, and is removed from the registry when its source is removed. Historical implementations belong in Git, not the active source tree.
+
+`scripts/canonical_version_gate.py` is the deterministic repository retirement check. It rejects duplicate or missing authority, version mismatch, expired or missing compatibility, compatibility writers, superseded production imports, retained retired entrypoints, and stale current-document claims. Its result is governance/control evidence only and cannot authorize formal delivery PASS.
+
+Generated projects use the same proportional rule through `scripts/project_version_policy.py`: every project receives one `VERSION`; medium or large long-lived projects declare current architecture, and create a deprecation registry only for real compatibility. An upgrade must remove the old writer and production path; an old reader may remain temporarily as COMPAT_ONLY. This policy is injected into the existing Provider generation context and the ProviderJob merge adds only the universal VERSION truth. It creates no second planner, scheduler, generator, packager, or delivery path.
+
 ## Repository layout and retention
 
 Formal machine Artifact, Module, Flow, Policy, Migration, and Context Pack

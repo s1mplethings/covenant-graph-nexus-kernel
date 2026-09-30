@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-060",
+      "title": "Enforce canonical version retirement lifecycle",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Expose only current architecture truth, enforce one active authority per responsibility, and retire superseded production surfaces instead of accumulating parallel implementations.",
+      "acceptance": [
+        "VERSION and current architecture product version agree",
+        "one deterministic retirement gate rejects duplicate authorities, expired compatibility, superseded production references, stale current documentation, legacy producers, and version mismatch",
+        "deprecation registry contains only live COMPAT_ONLY surfaces with bounded removal versions",
+        "at least one obsolete implementation is actually removed or isolated from the active surface",
+        "generated and maintained projects receive complexity-tailored supersession and retirement rules without a second generation path",
+        "scoped regressions and kernel contract pass while the formal quick profile is reported truthfully"
+      ]
+    },
+    {
       "id": "PB-059",
       "title": "Reduce requirement decision before clarification",
       "priority": 1,
