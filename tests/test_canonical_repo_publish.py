@@ -176,6 +176,25 @@ def test_remote_race_is_detected_before_push(tmp_path: pathlib.Path) -> None:
     assert not any(call and call[0] == "push" for call in calls)
 
 
+def test_transient_push_retry_rechecks_remote_without_force(tmp_path: pathlib.Path) -> None:
+    calls: list[list[str]] = []
+    push_count = 0
+    def runner(_root: pathlib.Path, args: list[str]) -> dict:
+        nonlocal push_count
+        calls.append(list(args))
+        if args[0] == "push":
+            push_count += 1
+            if push_count == 1:
+                return {"ok": False, "stdout": "", "stderr": "SSL_ERROR_SYSCALL", "returncode": 128}
+        stdout = "baseline\n" if args[:2] == ["rev-parse", "origin/main"] else ""
+        return {"ok": True, "stdout": stdout, "stderr": "", "returncode": 0}
+
+    gate.normal_push_with_retry(tmp_path, "main", "baseline", ["push", "origin", "main"], runner)
+    assert push_count == 2
+    assert sum(call[0] == "fetch" for call in calls) == 2
+    assert all(not gate.FORBIDDEN_FORCE_OPTIONS.intersection(call) for call in calls)
+
+
 def test_generated_project_uses_same_lightweight_file_policy() -> None:
     assert gate.classify_path("src/widget.py")[0] == "SOURCE"
     assert gate.classify_path("tests/test_widget.py")[0] == "TEST"

@@ -21,6 +21,7 @@ COMMIT_CLASSES = {"SOURCE", "TEST", "CONTRACT", "SCHEMA", "CURRENT_GOVERNANCE", 
 REVIEW_CLASSES = {"MIGRATION", "DURABLE_EVIDENCE"}
 EXCLUDE_CLASSES = {"RUNTIME", "GENERATED", "CACHE", "LOG", "TEMP", "SCREENSHOT_TEMP", "LOCAL_STATE"}
 FORBIDDEN_FORCE_OPTIONS = {"-f", "--force", "--force-with-lease"}
+TRANSIENT_PUSH_ERRORS = ("ssl_error_syscall", "timed out", "connection reset", "could not resolve host")
 CONVENTIONAL_MESSAGE = re.compile(r"^(feat|fix|refactor|test|docs|chore)(\([^)]+\))?:\s+\S")
 SECRET_NAMES = re.compile(r"(^|/)(\.env(?:\..*)?|id_rsa.*|private_key.*|credentials.*)(/|$)", re.I)
 SECRET_SUFFIXES = {".pem", ".key"}
@@ -298,6 +299,24 @@ def verify_remote_baseline(root: pathlib.Path, branch: str, expected_remote: str
     return current_remote
 
 
+def normal_push_with_retry(
+    root: pathlib.Path, branch: str, expected_remote: str, push_args: Sequence[str],
+    runner: GitRunner = run_git, attempts: int = 3,
+) -> None:
+    reject_force_options(push_args)
+    failures: list[dict[str, Any]] = []
+    for attempt in range(1, attempts + 1):
+        verify_remote_baseline(root, branch, expected_remote, runner)
+        result = runner(root, push_args)
+        if result.get("ok"):
+            return
+        failures.append({**result, "attempt": attempt})
+        diagnostic = f"{result.get('stdout', '')}\n{result.get('stderr', '')}".lower()
+        if not any(marker in diagnostic for marker in TRANSIENT_PUSH_ERRORS):
+            raise PublishBlocked("BLOCKED_GIT_STATE", result)
+    raise PublishBlocked("BLOCKED_GIT_STATE", {"reason": "TRANSIENT_PUSH_RETRIES_EXHAUSTED", "failures": failures})
+
+
 def publish(
     root: pathlib.Path, *, message: str, test_receipt_path: pathlib.Path,
     reviewed_paths: Sequence[str] = (), post_commit_commands: Sequence[str] = (),
@@ -343,14 +362,12 @@ def publish(
         raise PublishBlocked("POST_COMMIT_DIRTY", post_test_status)
     branch = initial["branch"]
     expected_remote = initial["remote_head"]
-    verify_remote_baseline(root, branch, expected_remote, runner)
     push_args = ["push", *push_options]
     if initial["tracking_ref"]:
         push_args.extend(["origin", branch])
     else:
         push_args.extend(["-u", "origin", branch])
-    reject_force_options(push_args)
-    require_git(root, push_args, runner)
+    normal_push_with_retry(root, branch, expected_remote, push_args, runner)
     remote_sha = verify_remote_sha(root, branch, commit_sha, runner)
     document = {
         "kind": "CGKNRepositoryPublishReceipt", "schema_version": "1.0",
