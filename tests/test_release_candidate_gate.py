@@ -16,14 +16,13 @@ def write_json(path: pathlib.Path, doc: dict) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_classify_dirty_files_separates_runtime_and_commit_scope() -> None:
-    assert gate.classify_path("scripts/release_candidate_gate.py") == "A_core_code"
-    assert gate.classify_path("tests/test_release_candidate_gate.py") == "B_test_code"
-    assert gate.classify_path("docs/release_candidate_acceptance.md") == "C_docs"
-    assert gate.classify_path("artifacts/customer_agent_scorecard.json") == "D_necessary_artifacts"
-    assert gate.classify_path("artifacts/reference_answer_project_trial_runs/run/generated/file.json") == "E_runtime_generated_artifacts"
-    assert gate.classify_path("examples/project_memory/chat-1/PROJECT_MEMORY.md") == "F_examples_project_memory_or_historical_dirty"
-    assert gate.classify_path("artifacts/write_probe.txt") == "G_should_not_commit_temporary_outputs"
+def test_release_gate_has_no_independent_publish_classifier_or_allowlist() -> None:
+    source = (ROOT / "scripts" / "release_candidate_gate.py").read_text(encoding="utf-8")
+    assert "RECOMMENDED_COMMIT_FILES" not in source
+    assert "def classify_path" not in source
+    assert "git add" not in source
+    assert "git push" not in source
+    assert "canonical_repo_publish.build_change_manifest" in source
 
 
 def test_release_candidate_ready_requires_full_pytest_and_commercial_false(tmp_path: pathlib.Path) -> None:

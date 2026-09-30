@@ -33,6 +33,14 @@
 - `ProviderJob` is the only project-work concurrency unit. Provider authors isolated PatchSets; CGKN deterministically enforces dependencies, ownership, concurrency, merge order, affected-only repair, and PASS reuse. CGKN must not repair customer-project behavior with domain-specific kernel code.
 - The production mainline must create one `project_decomposition_tree.json` before Provider generation. Plan, issue, repair, and evidence records reuse its node ids; an unmapped failure cannot create a generic Provider repair, and the tree never authorizes release.
 
+## Canonical repository publish contract
+
+- `scripts/canonical_repo_publish.py` is the sole repository staging, commit, normal-push, and remote-SHA verification authority.
+- Every publish must bind a read-only SourceIdentity, explicit ChangeManifest, and current TestReceipt. Unknown, secret-like, runtime, generated, cache, log, temporary, screenshot, and local-state paths fail closed or are excluded; review-only durable evidence and migrations require explicit selection.
+- Never use implicit bulk staging (`git add .`, `git add -A`), `git commit -a`, force push, automatic `git reset --hard`, automatic `git clean -fd`, or treat a zero push exit code as proof of publication. The fetched remote branch SHA must equal the committed SHA.
+- `scripts/release_candidate_gate.py` evaluates release readiness only and must not regain independent file classification, staging, commit, push, or publish authority.
+- Repository publication and CI are governance/control evidence only. They cannot authorize product acceptance, packaging, public delivery, or formal evidence PASS.
+
 ## CGKN self-hosted project management
 
 - CGKN uses the approved `skills/manage-pmp-agile-quality` method for its own non-trivial development and exposes the same tailored method to generated projects.

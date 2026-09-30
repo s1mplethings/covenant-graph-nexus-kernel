@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-061",
+      "title": "Enforce canonical repository publish flow",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Bind tested source identity to an explicit change manifest, exact staging, commit, normal push, remote SHA verification, PR metadata, and bounded CI through one fail-closed publish authority.",
+      "acceptance": [
+        "Git command failure cannot be interpreted as a clean repository",
+        "one classifier and one publish authority select an explicit staging set",
+        "runtime, generated, secret, and unknown files cannot enter formal staging",
+        "test receipts become stale after any covered source change",
+        "post-commit verification, remote race detection, normal push, and remote SHA equality are enforced",
+        "fast CI checks repository contracts without Provider credentials or product acceptance authority"
+      ]
+    },
+    {
       "id": "PB-060",
       "title": "Enforce canonical version retirement lifecycle",
       "priority": 1,

@@ -50,6 +50,20 @@ def _git(root: pathlib.Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _require_git(result: subprocess.CompletedProcess[Any], operation: str) -> subprocess.CompletedProcess[Any]:
+    if result.returncode == 0:
+        return result
+    failure = {
+        "ok": False,
+        "operation": operation,
+        "returncode": result.returncode,
+        "stdout": result.stdout.decode("utf-8", errors="replace") if isinstance(result.stdout, bytes) else str(result.stdout or ""),
+        "stderr": result.stderr.decode("utf-8", errors="replace") if isinstance(result.stderr, bytes) else str(result.stderr or ""),
+        "classification": "GIT_COMMAND_FAILED",
+    }
+    raise RuntimeError(json.dumps(failure, ensure_ascii=False, sort_keys=True))
+
+
 def _tree_hash(root: pathlib.Path, relative_root: str) -> tuple[str, list[dict[str, Any]]]:
     base = root / relative_root
     rows: list[dict[str, Any]] = []
@@ -68,20 +82,16 @@ def _tree_hash(root: pathlib.Path, relative_root: str) -> tuple[str, list[dict[s
 
 def capture(root: pathlib.Path) -> dict[str, Any]:
     root = pathlib.Path(root).resolve()
-    head = _git(root, "rev-parse", "HEAD")
-    if head.returncode != 0:
-        raise RuntimeError("SOURCE_IDENTITY_GIT_HEAD_UNAVAILABLE")
-    status = _git(root, "status", "--porcelain=v1", "--untracked-files=all")
-    diff = subprocess.run(
+    head = _require_git(_git(root, "rev-parse", "HEAD"), "rev-parse HEAD")
+    status = _require_git(_git(root, "status", "--porcelain=v1", "--untracked-files=all"), "status")
+    diff = _require_git(subprocess.run(
         ["git", "diff", "--binary", "HEAD"], cwd=root, capture_output=True, check=False,
-    )
-    untracked = _git(root, "ls-files", "--others", "--exclude-standard")
+    ), "diff HEAD")
+    untracked = _require_git(_git(root, "ls-files", "--others", "--exclude-standard"), "ls-files")
     relevant_untracked: list[dict[str, Any]] = []
     for value in sorted(line.strip() for line in untracked.stdout.splitlines() if line.strip()):
         path = root / value
         if not path.is_file() or path.suffix.lower() not in SOURCE_SUFFIXES:
-            continue
-        if pathlib.PurePosixPath(value.replace("\\", "/")).parts[0] not in RELEVANT_SOURCE_ROOTS:
             continue
         if EXCLUDED_PARTS.intersection(path.relative_to(root).parts):
             continue
@@ -111,7 +121,12 @@ def capture(root: pathlib.Path) -> dict[str, Any]:
         "contract_hashes": {name: _sha_file(root / name) for name in IDENTITY_CONTRACTS},
         "captured_at": _now(),
     }
-    identity_projection = {key: value for key, value in report.items() if key != "source_identity_hash"}
+    # Identity must be repeatable for unchanged bytes. Capture time is metadata,
+    # not part of the identity used to bind test and publish receipts.
+    identity_projection = {
+        key: value for key, value in report.items()
+        if key not in {"source_identity_hash", "captured_at"}
+    }
     report["source_identity_hash"] = _sha_bytes(
         json.dumps(identity_projection, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )

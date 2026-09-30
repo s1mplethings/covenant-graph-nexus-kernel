@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
-import subprocess
 import sys
 from datetime import datetime, timezone
 from typing import Any
@@ -16,6 +15,7 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
 import continuous_generation_ledger
+import canonical_repo_publish
 
 
 CLASSIFICATION_JSON = ARTIFACTS / "release_candidate_file_classification.json"
@@ -23,39 +23,6 @@ CLASSIFICATION_MD = ARTIFACTS / "release_candidate_file_classification.md"
 ACCEPTANCE_JSON = ARTIFACTS / "release_candidate_acceptance.json"
 SUMMARY_MD = ARTIFACTS / "release_candidate_summary.md"
 KNOWN_GAPS_MD = ARTIFACTS / "release_candidate_known_gaps.md"
-COMMIT_PLAN_MD = ARTIFACTS / "release_candidate_commit_plan.md"
-
-RECOMMENDED_COMMIT_FILES = {
-    "README.md",
-    "AGENTS.md",
-    "docs/customer_agent_long_journey_trial.md",
-    "docs/release_candidate_acceptance.md",
-    "scripts/check_cgkn_naming_consistency.py",
-    "scripts/customer_agent_scorecard.py",
-    "scripts/customer_agent_simulator.py",
-    "scripts/run_customer_agent_long_journey_trial.py",
-    "scripts/release_candidate_gate.py",
-    "tests/test_customer_agent_long_journey_trial.py",
-    "tests/test_release_candidate_gate.py",
-    "artifacts/customer_agent_dialogue.jsonl",
-    "artifacts/customer_agent_gap_report.md",
-    "artifacts/customer_agent_long_journey_summary.md",
-    "artifacts/customer_agent_long_journey_trial.json",
-    "artifacts/customer_agent_rework_report.md",
-    "artifacts/customer_agent_scorecard.json",
-    "artifacts/release_candidate_acceptance.json",
-    "artifacts/release_candidate_summary.md",
-    "artifacts/release_candidate_known_gaps.md",
-    "artifacts/release_candidate_file_classification.json",
-    "artifacts/release_candidate_file_classification.md",
-    "artifacts/release_candidate_commit_plan.md",
-    "artifacts/full_pytest_result.json",
-    "artifacts/pr_3_changed_files.txt",
-    "artifacts/pr_3_scope_audit.json",
-    "artifacts/pr_3_scope_audit.md",
-    "artifacts/cgkn_naming_consistency_report.md",
-    "artifacts/continuous_generation_current_gaps.md",
-}
 
 
 def now() -> str:
@@ -82,97 +49,20 @@ def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
     path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def git_lines(args: list[str], root: pathlib.Path = ROOT) -> list[str]:
-    try:
-        proc = subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, timeout=30)
-    except Exception:
-        return []
-    if proc.returncode != 0:
-        return []
-    return [line for line in proc.stdout.splitlines() if line.strip()]
-
-
-def git_status_porcelain(root: pathlib.Path = ROOT) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    for line in git_lines(["status", "--short"], root):
-        status = line[:2].strip() or "M"
-        path = line[3:] if len(line) > 3 else line.strip()
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        rows.append({"status": status, "path": path.replace("\\", "/")})
-    return rows
-
-
-def classify_path(path: str) -> str:
-    p = path.replace("\\", "/")
-    if p in {"README.md", "AGENTS.md"} or p.startswith("docs/"):
-        return "C_docs"
-    if p.startswith("tests/"):
-        return "B_test_code"
-    if p.startswith("scripts/") or p.endswith(".py"):
-        return "A_core_code"
-    if p.startswith("examples/project_memory/"):
-        return "F_examples_project_memory_or_historical_dirty"
-    if p.startswith("examples/local_studio/") or p.startswith("examples/runtime_runs/") or p.startswith("generated/"):
-        return "E_runtime_generated_artifacts"
-    if p.startswith("artifacts/customer_agent_long_journey_runs/"):
-        return "E_runtime_generated_artifacts"
-    if p in {"artifacts/pr_3_changed_files.txt", "artifacts/pr_3_scope_audit.json", "artifacts/pr_3_scope_audit.md"}:
-        return "D_necessary_artifacts"
-    if p.startswith("artifacts/customer_agent_") or p.startswith("artifacts/release_candidate_"):
-        return "D_necessary_artifacts"
-    if p == "artifacts/full_pytest_result.json":
-        return "D_necessary_artifacts"
-    if p in {
-        "artifacts/cgkn_naming_consistency_report.md",
-        "artifacts/continuous_generation_current_gaps.md",
-        "artifacts/continuous_generation_iterations.jsonl",
-        "artifacts/reference_answer_trial.json",
-        "artifacts/reference_answer_trial_summary.md",
-        "artifacts/reference_answer_gap_analysis.md",
-        "artifacts/reference_answer_repair_plan.md",
-        "artifacts/complexity_scale_acceptance.json",
-        "artifacts/complexity_scale_acceptance_report.md",
-        "artifacts/complexity_scale_gap_analysis.md",
-        "artifacts/complexity_scale_run_summary.json",
-        "artifacts/complexity_scale_run_summary.md",
-        "artifacts/requirement_decision_benchmark.json",
-        "artifacts/requirement_decision_benchmark_summary.md",
-    }:
-        return "D_necessary_artifacts"
-    if p.startswith("artifacts/reference_answer_project_trial_runs/") or p.startswith("artifacts/requirement_decision_benchmark_runs/") or p.startswith("artifacts/customer_agent_long_journey_runs/"):
-        return "E_runtime_generated_artifacts"
-    if p.startswith("artifacts/tmp_") or p in {"artifacts/write_probe.txt", "artifacts/pytest_progress.jsonl", "artifacts/pytest_collect_full.txt", "artifacts/complexity_scale_file_inventory.txt"}:
-        return "G_should_not_commit_temporary_outputs"
-    if p.startswith("artifacts/"):
-        return "E_runtime_generated_artifacts"
-    return "review_required"
-
-
 def classify_dirty_files(root: pathlib.Path = ROOT) -> dict[str, Any]:
-    rows = git_status_porcelain(root)
-    categories: dict[str, list[dict[str, str]]] = {
-        "A_core_code": [],
-        "B_test_code": [],
-        "C_docs": [],
-        "D_necessary_artifacts": [],
-        "E_runtime_generated_artifacts": [],
-        "F_examples_project_memory_or_historical_dirty": [],
-        "G_should_not_commit_temporary_outputs": [],
-        "review_required": [],
-    }
-    for row in rows:
-        categories[classify_path(row["path"])].append(row)
-    recommended = [row["path"] for key in ("A_core_code", "B_test_code", "C_docs", "D_necessary_artifacts") for row in categories[key] if row["path"] in RECOMMENDED_COMMIT_FILES]
-    exclude = [row["path"] for key in ("E_runtime_generated_artifacts", "F_examples_project_memory_or_historical_dirty", "G_should_not_commit_temporary_outputs") for row in categories[key]]
-    review = [row["path"] for row in categories["review_required"]]
+    """Compatibility report delegated to the canonical publish classifier."""
+    manifest = canonical_repo_publish.build_change_manifest(root)
+    categories: dict[str, list[dict[str, str]]] = {}
+    for row in manifest["files"]:
+        categories.setdefault(row["classification"], []).append(row)
     return {
         "created_at": now(),
-        "dirty_count": len(rows),
+        "dirty_count": len(manifest["files"]),
         "categories": categories,
-        "recommended_commit_files": sorted(dict.fromkeys(recommended)),
-        "recommended_exclude_files": sorted(dict.fromkeys(exclude)),
-        "review_required_files": sorted(dict.fromkeys(review)),
+        "recommended_commit_files": manifest["commit_files"],
+        "recommended_exclude_files": manifest["excluded_files"],
+        "review_required_files": manifest["review_required_files"] + manifest["blocked_files"],
+        "change_manifest_hash": manifest["change_manifest_hash"],
     }
 
 
@@ -324,64 +214,12 @@ The release candidate gate checks requirement benchmark results, complexity benc
     path.write_text(text, encoding="utf-8")
 
 
-def write_commit_plan(classification: dict[str, Any], result: dict[str, Any]) -> None:
-    lines = [
-        "# CGKN Release Candidate Commit Plan",
-        "",
-        "## Recommendation",
-        "",
-        "- Do not commit all dirty files in bulk.",
-        "- Commit source, tests, docs, and selected summary artifacts needed for review.",
-        "- Exclude runtime run directories, generated trial run trees, historical project memory churn, and temporary probe files unless a reviewer explicitly requests them.",
-        "- Suggested commit message: `Prepare CGKN release candidate validation`",
-        "- Suggested PR title: `Prepare CGKN release candidate validation`",
-        "",
-        "## Suggested Commit Files",
-        "",
-    ]
-    commit_files = classification.get("recommended_commit_files", [])
-    lines.extend(f"- `{item}`" for item in commit_files) if commit_files else lines.append("- none")
-    lines.extend(["", "## Suggested Exclude Files", ""])
-    excluded = list(classification.get("recommended_exclude_files", [])[:400])
-    lines.extend(f"- `{item}`" for item in excluded) if excluded else lines.append("- none")
-    lines.extend(["", "## Review Required Files", ""])
-    review = list(classification.get("review_required_files", []))
-    lines.extend(f"- `{item}`" for item in review) if review else lines.append("- none")
-    lines.extend(
-        [
-            "",
-            "## Suggested PR Description",
-            "",
-            "### What changed",
-            "- Added Customer-Agent Long Journey validation and release candidate gate artifacts.",
-            "- Added dirty worktree classification and release candidate acceptance reports.",
-            "- Updated CGKN naming in customer-facing README/docs.",
-            "",
-            "### Why",
-            "- Move CGKN from feature accumulation to an auditable release-candidate validation state.",
-            "",
-            "### Validation",
-            f"- Release candidate verdict: `{result.get('verdict')}`",
-            f"- Customer-Agent Long Journey: `{result.get('customer_agent', {}).get('verdict')}` score `{result.get('customer_agent', {}).get('score')}`",
-            f"- Commercial readiness: `{result.get('commercial_readiness', {}).get('status')}`, commercial_ready `{result.get('commercial_readiness', {}).get('commercial_ready')}`",
-            "",
-            "### Known gaps",
-            "- Commercial production ASR readiness still requires representative real ASR evidence, reference transcripts, reliability runs, and approved human review evidence.",
-            "",
-            "### What is not claimed",
-            "- This PR does not claim production ASR or commercial_ready=true.",
-        ]
-    )
-    COMMIT_PLAN_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
 def run_gate(root: pathlib.Path = ROOT, *, record_loop: bool = True) -> dict[str, Any]:
     write_acceptance_doc()
     classification = classify_dirty_files(root)
     write_classification_reports(classification)
     result = evaluate_release_candidate(root)
     write_release_docs(result)
-    write_commit_plan(classification, result)
     if record_loop:
         continuous_generation_ledger.append_iteration(
             {
@@ -399,7 +237,6 @@ def run_gate(root: pathlib.Path = ROOT, *, record_loop: bool = True) -> dict[str
                     "artifacts/release_candidate_known_gaps.md",
                     "artifacts/release_candidate_file_classification.json",
                     "artifacts/release_candidate_file_classification.md",
-                    "artifacts/release_candidate_commit_plan.md",
                 ],
                 "tests_added_or_updated": ["tests/test_release_candidate_gate.py"],
                 "commands_run": ["python scripts/release_candidate_gate.py"],

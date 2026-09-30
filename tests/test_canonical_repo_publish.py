@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+import json
+import pathlib
+import subprocess
+import sys
+
+import pytest
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+import canonical_repo_publish as gate
+
+
+def git(root: pathlib.Path, *args: str) -> str:
+    result = subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True)
+    return result.stdout.strip()
+
+
+def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
+    remote = tmp_path / "remote.git"
+    subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
+    root = tmp_path / "repo"
+    root.mkdir()
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.email", "test@example.invalid")
+    git(root, "config", "user.name", "CGKN Test")
+    git(root, "remote", "add", "origin", str(remote))
+    (root / ".gitignore").write_text(".cgkn/\n__pycache__/\n", encoding="utf-8")
+    (root / "scripts").mkdir()
+    (root / "scripts" / "example.py").write_text("VALUE = 1\n", encoding="utf-8")
+    git(root, "add", "--", ".gitignore", "scripts/example.py")
+    git(root, "commit", "-m", "chore: initialize fixture")
+    git(root, "push", "-u", "origin", "main")
+    return root, remote
+
+
+@pytest.mark.parametrize(
+    ("path", "classification", "action"),
+    [
+        ("mystery.bin", "UNKNOWN", "BLOCK"),
+        ("artifacts/run.json", "RUNTIME", "EXCLUDE"),
+        ("generated/app.py", "GENERATED", "EXCLUDE"),
+        ("credentials.json", "SECRET", "BLOCK"),
+        ("tests/test_app.py", "TEST", "COMMIT"),
+        ("src/app.py", "SOURCE", "COMMIT"),
+        (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
+    ],
+)
+def test_file_policy(path: str, classification: str, action: str) -> None:
+    found, _ = gate.classify_path(path)
+    assert found == classification
+    if found in gate.COMMIT_CLASSES:
+        assert action == "COMMIT"
+    elif found in gate.EXCLUDE_CLASSES:
+        assert action == "EXCLUDE"
+    else:
+        assert action == "BLOCK"
+
+
+def test_force_push_options_are_always_blocked() -> None:
+    for option in ("-f", "--force", "--force-with-lease"):
+        with pytest.raises(gate.PublishBlocked, match="BLOCKED_FORCE_PUSH"):
+            gate.reject_force_options([option])
+
+
+def test_git_failure_is_blocked_not_clean(tmp_path: pathlib.Path) -> None:
+    def broken(_root: pathlib.Path, _args: list[str]) -> dict:
+        return {"ok": False, "returncode": 128, "stderr": "boom"}
+
+    with pytest.raises(gate.PublishBlocked, match="BLOCKED_GIT_STATE"):
+        gate.repository_state(tmp_path, broken)
+
+
+def test_staging_set_mismatch_is_blocked(tmp_path: pathlib.Path) -> None:
+    def runner(_root: pathlib.Path, args: list[str]) -> dict:
+        stdout = "wrong.py\n" if args[:3] == ["diff", "--cached", "--name-only"] else "tree\n"
+        return {"ok": True, "returncode": 0, "stdout": stdout, "stderr": ""}
+
+    with pytest.raises(gate.PublishBlocked, match="STAGING_SET_MISMATCH"):
+        gate.validate_staged_set(tmp_path, ["right.py"], runner)
+
+
+def test_stale_or_partial_test_receipt_is_blocked(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    receipt = {"scoped_verdict": "PASS", "source_identity_hash": "stale", "changed_paths": manifest["commit_files"]}
+    with pytest.raises(gate.PublishBlocked, match="TEST_EVIDENCE_STALE"):
+        gate.verify_test_binding(root, manifest, receipt)
+
+
+def test_preexisting_staged_change_is_blocked(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    git(root, "add", "--", "scripts/example.py")
+    with pytest.raises(gate.PublishBlocked, match="BLOCKED_PREEXISTING_STAGED_CHANGES"):
+        gate.publish(root, message="fix: reject staged state", test_receipt_path=root / "missing.json")
+
+
+def test_version_gate_failure_is_classified(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    with pytest.raises(gate.PublishBlocked, match="VERSION_GATE_FAILED"):
+        gate.run_version_gate(root)
+
+
+def test_remote_sha_mismatch_blocks_false_success(tmp_path: pathlib.Path) -> None:
+    calls = 0
+    def runner(_root: pathlib.Path, args: list[str]) -> dict:
+        nonlocal calls
+        calls += 1
+        return {"ok": True, "returncode": 0, "stdout": "different\n" if args[0] == "rev-parse" else "", "stderr": ""}
+
+    with pytest.raises(gate.PublishBlocked, match="PUSH_UNVERIFIED"):
+        gate.verify_remote_sha(tmp_path, "main", "expected", runner)
+    assert calls == 2
+
+
+def test_happy_path_commits_pushes_and_verifies_remote(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, remote = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    identity = gate._read_source_identity(root)
+    receipt = {
+        "kind": "CGKNTestReceipt", "scoped_verdict": "PASS",
+        "source_identity_hash": identity["source_identity_hash"],
+        "changed_paths": manifest["commit_files"], "tests": [{"status": "PASS"}],
+    }
+    receipt["test_receipt_hash"] = gate.canonical_hash(receipt, ("test_receipt_hash", "created_at"))
+    receipt_path = root / ".cgkn" / "publish" / "test_receipt.json"
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    monkeypatch.setattr(gate, "run_version_gate", lambda _root: {"status": "PASS"})
+
+    result = gate.publish(root, message="fix: verify canonical publish", test_receipt_path=receipt_path)
+
+    assert result["push_verified"] is True
+    assert git(root, "status", "--porcelain") == ""
+    assert git(root, "rev-parse", "HEAD") == subprocess.run(
+        ["git", "--git-dir", str(remote), "rev-parse", "refs/heads/main"], text=True, capture_output=True, check=True
+    ).stdout.strip()
+
+
+def test_post_commit_command_dirtying_tree_blocks_push(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, _ = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    identity = gate._read_source_identity(root)
+    receipt = {
+        "scoped_verdict": "PASS", "source_identity_hash": identity["source_identity_hash"],
+        "changed_paths": manifest["commit_files"], "tests": [{"status": "PASS"}],
+    }
+    receipt["test_receipt_hash"] = gate.canonical_hash(receipt, ("test_receipt_hash", "created_at"))
+    receipt_path = root / ".cgkn" / "publish" / "test_receipt.json"
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    monkeypatch.setattr(gate, "run_version_gate", lambda _root: {"status": "PASS"})
+    command = f'{sys.executable} -c "from pathlib import Path; Path(\'unexpected.txt\').write_text(\'dirty\')"'
+
+    with pytest.raises(gate.PublishBlocked, match="POST_COMMIT_DIRTY"):
+        gate.publish(root, message="fix: detect post check mutation", test_receipt_path=receipt_path, post_commit_commands=[command])
+    assert git(root, "rev-parse", "origin/main") != git(root, "rev-parse", "HEAD")
+
+
+def test_remote_race_is_detected_before_push(tmp_path: pathlib.Path) -> None:
+    calls: list[list[str]] = []
+    def runner(_root: pathlib.Path, args: list[str]) -> dict:
+        calls.append(args)
+        if args[:2] == ["rev-parse", "origin/main"]:
+            return {"ok": True, "stdout": "new-remote\n", "stderr": "", "returncode": 0}
+        return {"ok": True, "stdout": "", "stderr": "", "returncode": 0}
+
+    with pytest.raises(gate.PublishBlocked, match="REMOTE_HEAD_CHANGED"):
+        gate.verify_remote_baseline(tmp_path, "main", "old-remote", runner)
+    assert not any(call and call[0] == "push" for call in calls)
+
+
+def test_generated_project_uses_same_lightweight_file_policy() -> None:
+    assert gate.classify_path("src/widget.py")[0] == "SOURCE"
+    assert gate.classify_path("tests/test_widget.py")[0] == "TEST"
+    assert gate.classify_path("dist/widget.zip")[0] == "GENERATED"
+
+
+def test_fast_ci_workflow_is_bounded_and_provider_free() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "repository-fast-ci.yml").read_text(encoding="utf-8")
+    assert "pull_request:" in workflow
+    assert "timeout-minutes: 12" in workflow
+    assert "canonical_version_gate.py" in workflow
+    assert "test_kernel_contract.py" in workflow
+    assert "provider" not in workflow.lower()
+
+
+def test_source_has_no_implicit_or_force_staging() -> None:
+    source = (ROOT / "scripts" / "canonical_repo_publish.py").read_text(encoding="utf-8")
+    assert '"add", "."' not in source
+    assert '"add", "-A"' not in source
+    assert '"push", "--force"' not in source

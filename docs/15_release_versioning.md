@@ -28,6 +28,8 @@ review decision.
 Runtime workspaces, generated project memory, media, transient evidence, and local `.cgkn` state are
 not release source and must not be committed to the review branch.
 
+Repository review-branch publication uses `python scripts/canonical_repo_publish.py`. Its prepare step writes ignored local support receipts, while publish accepts only a conventional commit message, an identity-bound passing test receipt, the exact deterministic commit set, a passing canonical version gate, clean post-commit verification, an unchanged remote baseline, and fetched remote SHA equality after a normal push. Generated projects may adopt the same lightweight sequence with project-sized test commands; this does not connect repository publication to CGKN's product delivery route.
+
 ## Supersession and retirement
 
 The active tree exposes current truth only. Structural upgrades declare `supersedes`, migrate formal consumers, verify the replacement, retire old producers and entrypoints, and freeze the result with `python scripts/canonical_version_gate.py`. Compatibility is limited to reading, decoding, projecting, or migrating an older format and must name a future `remove_in`; it cannot become a new canonical producer. Detailed implementation history remains in Git. `project_management/current/` contains only the current management snapshot, while bounded release summaries live under `project_management/summaries/`.

@@ -1828,6 +1828,22 @@ class KernelContractTests(unittest.TestCase):
         self.assertTrue((ROOT / "specs" / "flows" / "artifact_driven_project_refactor.flow.json").is_file())
         self.assertFalse((ROOT / "examples" / "flows").exists())
 
+    def test_repository_publish_is_single_fail_closed_authority(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        agents = read_source("AGENTS.md")
+        architecture = json.loads(read_source("governance/current_architecture.json"))
+        release_gate = read_source("scripts/release_candidate_gate.py")
+        workflow = read_source(".github/workflows/repository-fast-ci.yml")
+
+        self.assertIn("single fail-closed repository publication authority", contract)
+        self.assertIn("CGKNRepositoryPublishReceipt", registry)
+        self.assertIn("sole repository staging, commit, normal-push", agents)
+        self.assertEqual("scripts/canonical_repo_publish.py:publish", architecture["authorities"]["repository_publish"])
+        self.assertNotIn("RECOMMENDED_COMMIT_FILES", release_gate)
+        self.assertIn("timeout-minutes: 12", workflow)
+        self.assertNotIn("provider", workflow.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -18,6 +18,7 @@
     "promotion": "scripts/canonical_finalization.py:promote",
     "packaging": "scripts/local_packager.py:package_project",
     "delivery": "scripts/codex_conversation.py:evaluate_public_delivery_gate"
+    ,"repository_publish": "scripts/canonical_repo_publish.py:publish"
   },
   "canonical_routes": {
     "requirement_to_planning": [

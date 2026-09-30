@@ -1,67 +1,49 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-081",
+  "iteration_id": "ITER-082",
   "project_id": "cgkn",
-  "goal": "Establish canonical version, supersession, migration, and retirement governance while reducing the active legacy surface and preserving the single Provider and delivery mainline.",
-  "backlog_item_ids": ["PB-060"],
-  "workflow_state": "closed",
-  "evidence_status": "NEEDS_REWORK",
+  "goal": "Create one fail-closed repository publish authority binding source identity, explicit staging, test evidence, commit, normal push, remote verification, PR metadata, and fast CI.",
+  "backlog_item_ids": ["PB-061"],
+  "workflow_state": "completed_with_limits",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "One current architecture registry names the factual active authorities and canonical routes.",
-    "One deterministic retirement gate fails closed on duplicate authority, expired compatibility, superseded production references, legacy producers, stale current documentation, and version mismatch.",
-    "Compatibility surfaces are read-only projections or importers with explicit allowed consumers and remove_in versions.",
-    "Superseded implementation is removed or isolated from the active surface after consumer migration is verified.",
-    "Generated and maintained projects receive complexity-tailored supersession and retirement rules without a second generation path.",
-    "Scoped regressions and kernel contract pass; formal quick profile is bounded and reported truthfully."
+    "SourceIdentity remains read-only and fails closed on every required Git command.",
+    "ChangeManifest is the only staging input and unknown, secret, runtime, generated, cache, log, and temporary files cannot be committed by default.",
+    "TestReceipt binds the current source identity and every changed commit path.",
+    "The publish gate stages exact paths, verifies the staged tree, commits, runs post-commit critical checks, detects remote races, pushes without force, and verifies remote SHA equality.",
+    "release_candidate_gate retains release-readiness evaluation but no dirty classifier, concrete commit allowlist, or publish authority.",
+    "Fast CI is bounded, Provider-free, and does not grant product acceptance or delivery authority."
   ],
   "quality_metrics": [
-    {"id": "QM-AUTHORITY-UNIQUENESS", "measure": "active owners per canonical responsibility", "target": "0 or 1, with every required authority exactly 1", "method": "canonical version gate and negative tests"},
-    {"id": "QM-LEGACY-PRODUCTION", "measure": "superseded production imports and compatibility producers", "target": "0", "method": "repository scan and gate fixtures"},
-    {"id": "QM-CURRENT-TRUTH", "measure": "version mismatches and stale current documentation references", "target": "0", "method": "registry validation and current-surface scan"},
-    {"id": "QM-MAINLINE-PRESERVATION", "measure": "protected requirement, Provider, evidence, packaging, and delivery regressions", "target": "0 new failures", "method": "targeted and formal profiles"}
+    {"id": "QM-PUBLISH-AUTHORITY", "measure": "formal repository publish authorities", "target": "1", "method": "source and contract inspection"},
+    {"id": "QM-EXPLICIT-STAGING", "measure": "implicit staging commands in canonical path", "target": "0", "method": "recorded Git runner tests"},
+    {"id": "QM-IDENTITY-BINDING", "measure": "stale or partially covered test receipts accepted", "target": "0", "method": "adversarial temporary-repository tests"},
+    {"id": "QM-REMOTE-TRUTH", "measure": "successful receipts without local/remote SHA equality", "target": "0", "method": "bare-remote integration tests"}
   ],
   "quality_activities": {
-    "prevention": ["Inventory consumers before edits", "Use one data registry and one gate instead of manager abstractions"],
-    "assurance": ["Review authority and schema ownership against the contract registry", "Exercise required negative fixtures"],
-    "control": ["Run retirement, requirement, component, Provider, packaging, delivery, kernel, and bounded quick profiles"],
-    "improvement": ["Remove obsolete active surfaces and keep historical detail in Git"]
+    "prevention": ["Inventory existing Git helpers and remove duplicate classifiers before adding the gate", "Prohibit implicit staging and force options in code and contract"],
+    "assurance": ["Use temporary repositories and bare remotes for adversarial tests", "Statically validate the GitHub workflow"],
+    "control": ["Run publish, source identity, release, hygiene, version, kernel, and mainline smoke tests", "Dogfood the canonical publish path for the final commit and push"],
+    "improvement": ["Retain a bounded publish receipt and separate scoped from repository-global verdicts"]
   },
   "interface_expectations": [
-    "Task Understanding remains the GoalSpec authority and clarification stays unassigned",
-    "ProviderJob remains the only project-work concurrency unit",
-    "ArtifactInstance and ComponentExecution remain the execution truth",
-    "formal evidence, acceptance, promotion, local_packager, and public delivery authorities remain unchanged"
+    "SourceIdentity provides support identity only",
+    "CanonicalRepoPublishGate is the only staging, commit, push, and remote verification authority",
+    "GitHub CI supplies repository contract evidence only",
+    "acceptance, packaging, and delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "governance/current_architecture.json",
-    "governance/deprecation_registry.json",
-    "governance/migrations/0.2.0-rc.2.json",
-    "evidence/canonical-version-retirement-v1/architecture_inventory.json",
-    "tests/test_canonical_version_gate.py",
-    "tests/test_project_version_policy.py",
-    "evidence/canonical-version-retirement-v1/acceptance.json"
+    "tests/test_canonical_repo_publish.py",
+    "tests/test_source_identity.py",
+    ".github/workflows/repository-fast-ci.yml",
+    "generated/dynamic_agent_tree_fix_eval/test_profiles/quick_result.json",
+    "project_management/summaries/ITER-082-canonical-repository-publish.md"
   ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "The canonical version gate and all scoped requirement, Component, ProviderJob, packaging, delivery, and kernel regressions passed.",
-      "Seven superseded generation source files and four historical-contract test files were removed from the active tree.",
-      "The formal quick profile completed with 1830 passed, 21 failed, 16 errors, and 440 deselected in 898.65 seconds; repository-global evidence remains NEEDS_REWORK because unrelated baseline failures persist."
-    ],
-    "accepted_backlog_item_ids": ["PB-060"]
-  },
+  "review": {"outcome": "accepted_with_global_limits", "feedback": ["Repository publish scope passes; unrelated global quick failures remain."], "accepted_backlog_item_ids": ["PB-061"]},
   "retrospective": {
-    "worked": [
-      "Replacing legacy-label checks with absence checks made retirement enforceable.",
-      "One data registry and one deterministic gate covered authority, compatibility, imports, producers, documentation, and version truth without manager abstractions.",
-      "Scoped and repository-global verdicts remained separate."
-    ],
-    "did_not_work": [
-      "The repository-wide quick profile remains near its 900-second bound and contains unrelated baseline failures and fixture errors."
-    ],
-    "experiments": [
-      "Repair the independent quick-profile baseline as a separate backlog item without weakening the canonical retirement gate."
-    ]
+    "worked": ["Temporary bare-remote tests exposed local/remote truth boundaries", "One manifest classifier removed the concrete release-candidate allowlist"],
+    "did_not_work": ["The repository-global quick baseline remains unhealthy outside this increment"],
+    "experiments": ["Dogfood the final change through the new canonical publish command"]
   }
 }
