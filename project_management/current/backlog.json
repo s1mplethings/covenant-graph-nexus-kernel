@@ -7,7 +7,7 @@
       "id": "PB-063",
       "title": "Align CGKN with Attune Qwen provider configuration",
       "priority": 1,
-      "state": "in_progress",
+      "state": "needs_rework",
       "value": "Use one QWEN credential and DashScope transport contract for Attune and the reviewed CGKN route while preserving provenance gates.",
       "acceptance": [
         "shared QWEN environment names take precedence over stale CGKN account values",
