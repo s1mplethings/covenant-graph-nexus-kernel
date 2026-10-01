@@ -7,7 +7,7 @@
       "id": "PB-064",
       "title": "Restart terminal failed formal generation on explicit revalidation",
       "priority": 1,
-      "state": "in_progress",
+      "state": "completed_with_limits",
       "value": "Prevent a healthy Provider revalidation from replaying an obsolete REWORK_BLOCKED result without executing the reviewed route.",
       "acceptance": [
         "terminal failure statuses create a fresh production entry",
