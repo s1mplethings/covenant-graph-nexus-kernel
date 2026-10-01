@@ -15,6 +15,7 @@
         "status polling is read-only and projects run-local metrics",
         "a second start does not duplicate a live worker",
         "canonical publish verifies remote SHA equality"
+        ,"the installed plugin cache and serving runtime are identity-bound to the current managed lifecycle package"
       ]
     },
     {

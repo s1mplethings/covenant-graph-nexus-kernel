@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -1196,6 +1197,19 @@ class CGKNPluginServer:
         artifacts["generation_job"] = self._sanitize(
             self.core.generation_job_status(artifact_dir)
         )
+        plugin_root = pathlib.Path(__file__).resolve().parents[1]
+        plugin_manifest = self.core.read_json(plugin_root / ".codex-plugin" / "plugin.json")
+        repository_revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.cgkn_root, capture_output=True,
+            text=True, encoding="utf-8", errors="replace", check=False,
+        )
+        artifacts["runtime_identity"] = {
+            "repository_root": str(self.cgkn_root),
+            "repository_revision": repository_revision.stdout.strip() if repository_revision.returncode == 0 else None,
+            "plugin_root": str(plugin_root),
+            "plugin_version": plugin_manifest.get("version"),
+            "server_sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+        }
         return {
             "ok": True,
             "initialized": True,

@@ -3,7 +3,7 @@
   "schema_version": "1.0",
   "iteration_id": "ITER-087",
   "project_id": "cgkn",
-  "goal": "Decouple the canonical Agent Kit generation worker lifetime from one MCP request while preserving one production run identity and all existing semantic gates.",
+  "goal": "Decouple the canonical Agent Kit generation worker lifetime from one MCP request and deploy that implementation with verifiable plugin package/runtime identity.",
   "backlog_item_ids": ["PB-066"],
   "workflow_state": "active",
   "evidence_status": "NOT_EVALUATED",
@@ -13,6 +13,7 @@
     "A repeated start deduplicates an existing live worker.",
     "Run-local Provider metrics remain the call-accounting authority.",
     "The reviewed route, retry policy, sealed brief, admission, candidate, provenance, formal evidence, and resume gates remain unchanged."
+    ,"A changed local plugin package cannot silently reuse a stale version-keyed cache, and status exposes safe serving identity."
   ],
   "quality_metrics": [
     {"id": "QM-REQUEST-OWNERSHIP", "measure": "managed generation workers terminated by normal MCP request completion", "target": "0", "method": "lifecycle tests"},
