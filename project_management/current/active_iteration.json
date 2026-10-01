@@ -1,40 +1,58 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-087",
+  "iteration_id": "ITER-088",
   "project_id": "cgkn",
-  "goal": "Decouple the canonical Agent Kit generation worker lifetime from one MCP request and deploy that implementation with verifiable plugin package/runtime identity.",
-  "backlog_item_ids": ["PB-066"],
+  "goal": "Close the strict PlanningProposal generation, schema-aware repair, and existing-planning preservation contract before one final managed production revalidation.",
+  "backlog_item_ids": ["PB-067"],
   "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "evidence_status": "PASS",
   "acceptance_criteria": [
-    "MCP generation start returns a production run identity before Provider generation completes.",
-    "The managed worker survives normal MCP request completion and remains observable through read-only status.",
-    "A repeated start deduplicates an existing live worker.",
-    "Run-local Provider metrics remain the call-accounting authority.",
-    "The reviewed route, retry policy, sealed brief, admission, candidate, provenance, formal evidence, and resume gates remain unchanged."
-    ,"A changed local plugin package cannot silently reuse a stale version-keyed cache, and status exposes safe serving identity."
+    "Provider generation receives the canonical PlanningProposal JSON Schema.",
+    "Grounding target enums and necessary-inference item constraints reach initial generation and repair.",
+    "Repair is surgical and retains rejected proposal and generation identity.",
+    "Existing supported planning and sealed intent are explicit inputs and remain fail-closed under semantic validation.",
+    "Provider retry, routing, admission, lifecycle, provenance, formal evidence, and resume gates remain unchanged."
   ],
   "quality_metrics": [
-    {"id": "QM-REQUEST-OWNERSHIP", "measure": "managed generation workers terminated by normal MCP request completion", "target": "0", "method": "lifecycle tests"},
-    {"id": "QM-DUPLICATE-WORKER", "measure": "duplicate live workers for one project generation job", "target": "0", "method": "deduplication tests"}
+    {"id": "QM-SCHEMA-DRIFT", "measure": "independently maintained Provider PlanningProposal schemas", "target": "0", "method": "schema projection tests"},
+    {"id": "QM-REPAIR-DRIFT", "measure": "valid semantic decisions rewritten during schema repair", "target": "0", "method": "repair contract tests"}
   ],
   "quality_activities": {
-    "prevention": ["Assign generation completion to one managed worker instead of the MCP request"],
-    "assurance": ["Exercise lifecycle, stale-worker, deduplication, and metrics projection without Provider calls"],
-    "control": ["Run lifecycle, admission, provenance, formal, kernel, and MCP regressions before publication"],
-    "improvement": ["Keep interaction-channel timeouts separate from bounded generation time"]
+    "prevention": ["Derive Provider structured output from the canonical checked-in schema"],
+    "assurance": ["Exercise G01-G14, R01-R10, and S01-S07 without Provider calls"],
+    "control": ["Run admission, lifecycle, candidate, formal, resume, kernel, and governance regressions before publication"],
+    "improvement": ["Keep schema repair representation-only and preservation-aware"]
   },
   "interface_expectations": [
-    "cgkn_generate starts the existing canonical command and cgkn_status only observes it",
-    "The existing production-* run identity remains canonical",
-    "ProviderModelRoutingPolicy and sealed brief forwarding remain intact",
+    "Canonical local validation remains final authority",
+    "The checked-in PlanningProposal JSON Schema is the Provider schema source",
+    "ProviderModelRoutingPolicy, bounded retries, and sealed brief identity remain intact",
     "Formal evidence and resume safety remain derived"
   ],
   "evidence_refs": [
-    "sha256:bce2b53d93124c924e369ad4ea652841f9a8afff2f5ee2c54d7b6870c60304a5",
-    "production-7ba6c807edeb49689520b8ba771db94f"
+    "G01-G14",
+    "R01-R10",
+    "S01-S07",
+    "97 targeted planning, admission, MCP, and plugin identity tests"
   ],
-  "review": {"outcome": "accepted_with_limits", "feedback": ["Managed worker survived MCP completion and status remained responsive; strict downstream Provider schema validation blocked candidate creation."], "accepted_backlog_item_ids": ["PB-066"]},
-  "retrospective": {"worked": ["Versioned plugin installation and runtime identity exposed the serving implementation.", "Managed status projected run-local metrics without starting another run."], "did_not_work": ["The replan Provider outputs did not satisfy the unchanged strict planning schema."], "experiments": ["Keep plugin package identity distinct from repository publication and preserve read-only run-local status as the lifecycle proof."]}
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "Canonical schema projection, surgical repair context, and local semantic preservation now close the demonstrated planning failures without weakening validation."
+    ],
+    "accepted_backlog_item_ids": ["PB-067"]
+  },
+  "retrospective": {
+    "worked": [
+      "Persisted production evidence isolated generation guidance from validator correctness.",
+      "One checked-in schema now drives Provider structured output and local validation remains authoritative."
+    ],
+    "did_not_work": [
+      "Approximate prompt examples and generic repair messages did not communicate finite enums or item schemas."
+    ],
+    "experiments": [
+      "Keep future structured generation contracts schema-derived and repair operations representation-only."
+    ]
+  }
 }

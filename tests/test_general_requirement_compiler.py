@@ -464,3 +464,185 @@ def test_35_requirements_planning_uses_reviewed_run_model_policy(tmp_path, monke
     )
     assert result["status"] == "PASS"
     assert captured == {"model": "surrogate-stage", "routing_policy": policy}
+
+
+# Round-B generation contract matrix (G01-G14).
+def test_g01_valid_minimal_planning_proposal_is_accepted():
+    assert compiler.validate_planning_proposal(proposal("Create a local calculator.")) == []
+
+
+def test_g02_provider_schema_contains_legal_grounding_targets():
+    enum = compiler.planning_proposal_json_schema()["properties"]["source_grounding"]["items"]["properties"]["target"]["enum"]
+    assert set(enum) == compiler.GROUNDED_FIELDS
+
+
+def test_g03_provider_schema_reflects_necessary_inference_item_contract():
+    schema = compiler.planning_proposal_json_schema()
+    assert schema["properties"]["necessary_inferences"] == {"$ref": "#/$defs/strings"}
+    assert schema["$defs"]["strings"]["items"] == {"type": "string", "minLength": 1}
+
+
+def test_g04_patch_context_preserves_unrelated_existing_planning(tmp_path, monkeypatch):
+    existing = proposal("Create a local calculator.")
+    existing_path = tmp_path / "existing.json"
+    existing_path.write_text(json.dumps({"proposal": existing}), encoding="utf-8")
+    (tmp_path / "artifacts").mkdir()
+    (tmp_path / "artifacts" / "requirement_replan_state.json").write_text(json.dumps({
+        "workflow_state": "WAITING_REQUIREMENT_REPLAN", "next_attempt": 2,
+        "history": [{"planning_artifact_ref": str(existing_path)}],
+        "feedback": {"required_corrections": ["change only calculate"]},
+    }), encoding="utf-8")
+    captured = {}
+    monkeypatch.setattr(pipeline, "provider_stage_checkpoint", lambda **kwargs: captured.update(kwargs["context"]) or {"artifact_ref": "next", "artifact_hash": "h", "proposal": existing})
+    monkeypatch.setattr(pipeline.requirement_decision_lane, "run_requirement_decision", lambda *args, **kwargs: {"status": "PASS", "goal_spec": {"goal_spec_hash": "g"}})
+    pipeline.run_canonical_requirement_planning(provider_mode="live", user_goal="Create a local calculator.", run_dir=tmp_path, phase_log_path=tmp_path / "log", codex_plan_contract={"brief_sha256": "sealed"})
+    assert captured["context_sections"]["EXISTING_VALID_PLANNING"] == existing
+    assert captured["context_sections"]["NEW_INFORMATION"] == {"required_corrections": ["change only calculate"]}
+
+
+def test_g05_patch_instructions_allow_only_grounded_affected_planning(tmp_path, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(pipeline, "provider_text", lambda messages, *_a, **_k: seen.update(system=messages[0]["content"]) or json.dumps(proposal("Create a local calculator.")))
+    pipeline.provider_stage_checkpoint(provider_mode="live", stage="requirements_planning", context={"goal": "Create a local calculator.", "proposal_sequence": 1}, run_dir=tmp_path, phase_log_path=tmp_path / "log")
+    assert "modify only grounded affected elements" in seen["system"]
+
+
+def test_g06_patch_unsupported_addition_is_rejected():
+    goal = "Create a local calculator."
+    doc = proposal(goal)
+    doc["proposed_supporting_capabilities"] = ["cloud_upload"]
+    doc["source_grounding"].append({"target": "proposed_supporting_capabilities", "value": "cloud_upload", "source_kind": "RAW_GOAL", "source_excerpt": goal, "rationale": "unsupported"})
+    result = compile_goal(goal, doc)
+    assert result["status"] == "NEEDS_REWORK"
+    assert "unsupported_high_risk_addition:cloud_scope" in result["grounding_validation"]["unsupported_additions"]
+
+
+def test_g07_replan_may_restructure_supported_planning():
+    goal = "Create a local calculator that adds and subtracts."
+    assert compile_goal(goal, proposal(goal, core=["add", "subtract"]))["status"] == "PASS"
+
+
+def test_g08_replan_unsupported_requirement_is_rejected():
+    test_g06_patch_unsupported_addition_is_rejected()
+
+
+def test_g09_replan_prompt_preserves_supported_existing_intent(tmp_path, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(pipeline, "provider_text", lambda messages, *_a, **_k: seen.update(system=messages[0]["content"]) or json.dumps(proposal("Create a local calculator.")))
+    pipeline.provider_stage_checkpoint(provider_mode="live", stage="requirements_planning", context={"goal": "Create a local calculator."}, run_dir=tmp_path, phase_log_path=tmp_path / "log")
+    assert "REPLAN may restructure supported planning" in seen["system"]
+
+
+def test_g10_missing_required_existing_planning_is_rejected():
+    goal = "Create a local calculator that adds two numbers."
+    existing = proposal(goal, core=["add_numbers", "show_result"])
+    changed = proposal(goal, core=["add_numbers"])
+    errors = compiler.validate_planning_preservation(changed, existing, {})
+    assert "preservation_missing:proposed_core_capabilities:show_result" in errors
+
+
+def test_g11_legal_grounding_target_is_accepted():
+    assert not any(error.endswith("_target") for error in compiler.validate_planning_proposal(proposal("Create a local calculator.")))
+
+
+def test_g12_illegal_grounding_target_is_rejected():
+    doc = proposal("Create a local calculator.")
+    doc["source_grounding"][0]["target"] = "invented_target"
+    assert "source_grounding[0]_target" in compiler.validate_planning_proposal(doc)
+
+
+def test_g13_valid_necessary_inference_item_is_accepted():
+    doc = proposal("Create a local calculator.")
+    doc["necessary_inferences"] = ["A bounded input parser is necessary."]
+    assert "necessary_inferences_contains_invalid_item" not in compiler.validate_planning_proposal(doc)
+
+
+def test_g14_invalid_necessary_inference_item_is_rejected():
+    doc = proposal("Create a local calculator.")
+    doc["necessary_inferences"] = [{"text": "invalid"}]
+    assert "necessary_inferences_contains_invalid_item" in compiler.validate_planning_proposal(doc)
+
+
+# Round-B schema repair matrix (R01-R10).
+def _repair_contract(rejected=None, errors=None, sequence=2, brief="sealed"):
+    return compiler.planning_proposal_repair_contract(rejected or {}, errors or [], generation_context={"proposal_sequence": sequence, "sealed_intent": {"brief_sha256": brief}})
+
+
+def test_r01_invalid_target_repair_receives_exact_enum():
+    assert set(_repair_contract(errors=["source_grounding[2]_target"])["legal_source_grounding_targets"]) == compiler.GROUNDED_FIELDS
+
+
+def test_r02_invalid_inference_repair_receives_exact_item_schema():
+    assert _repair_contract(errors=["necessary_inferences_contains_invalid_item"])["necessary_inferences_item_schema"] == {"type": "string", "minLength": 1}
+
+
+def test_r03_repair_contract_requires_only_invalid_field_changes():
+    assert any("change only fields" in item for item in _repair_contract()["invariants"])
+
+
+def test_r04_repair_contract_preserves_valid_semantics():
+    assert any("preserve every" in item for item in _repair_contract()["invariants"])
+
+
+def test_r05_repair_contract_forbids_invented_additions():
+    assert any("do not invent" in item for item in _repair_contract()["invariants"])
+
+
+def test_r06_repair_cannot_bypass_local_validator(tmp_path, monkeypatch):
+    invalid = proposal("Create a local calculator.")
+    invalid["source_grounding"][0]["target"] = "still_invalid"
+    monkeypatch.setattr(pipeline, "provider_text", lambda *_a, **_k: json.dumps(invalid))
+    with pytest.raises(RuntimeError, match="invalid after the single schema repair"):
+        pipeline.provider_stage_checkpoint(provider_mode="live", stage="requirements_planning", context={"goal": "Create a local calculator."}, run_dir=tmp_path, phase_log_path=tmp_path / "log")
+
+
+def test_r07_still_invalid_target_is_rejected():
+    test_g12_illegal_grounding_target_is_rejected()
+
+
+def test_r08_schema_valid_unsupported_addition_is_semantically_rejected():
+    test_g06_patch_unsupported_addition_is_rejected()
+
+
+def test_r09_repair_retains_sealed_brief_identity():
+    assert _repair_contract(brief="brief-19f7")["identity"]["sealed_brief_sha256"] == "brief-19f7"
+
+
+def test_r10_repair_retains_generation_proposal_identity():
+    assert _repair_contract(sequence=3)["identity"]["proposal_sequence"] == 3
+
+
+# Round-B structured-output matrix (S01-S07).
+def test_s01_response_format_uses_canonical_schema():
+    fmt = compiler.planning_proposal_response_format()
+    assert fmt["type"] == "json_schema"
+    assert fmt["json_schema"]["strict"] is True
+    assert fmt["json_schema"]["schema"] == compiler.planning_proposal_json_schema()
+
+
+def test_s02_response_format_projects_grounding_enum():
+    test_g02_provider_schema_contains_legal_grounding_targets()
+
+
+def test_s03_response_format_projects_inference_item_schema():
+    test_g03_provider_schema_reflects_necessary_inference_item_contract()
+
+
+def test_s04_response_format_required_fields_match_canonical_schema():
+    fmt = compiler.planning_proposal_response_format()["json_schema"]["schema"]
+    assert set(fmt["required"]) == set(fmt["properties"])
+
+
+def test_s05_response_format_exposes_no_secret_or_runtime_fields():
+    text = json.dumps(compiler.planning_proposal_response_format()).lower()
+    assert all(term not in text for term in ("api_key", "credential", "run_dir", "runtime_identity"))
+
+
+def test_s06_response_format_is_deterministic():
+    assert compiler.stable_hash(compiler.planning_proposal_response_format()) == compiler.stable_hash(compiler.planning_proposal_response_format())
+
+
+def test_s07_local_validator_remains_final():
+    invalid = proposal("Create a local calculator.")
+    invalid["source_grounding"][0]["target"] = "not_in_provider_schema"
+    assert compiler.validate_planning_proposal(invalid)

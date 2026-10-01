@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-067",
+      "title": "Close strict PlanningProposal generation contract",
+      "priority": 1,
+      "state": "completed",
+      "value": "Align Qwen PlanningProposal generation and surgical schema repair with the existing canonical schema and preservation authority without weakening local validation.",
+      "acceptance": [
+        "Provider structured output is derived from the canonical PlanningProposal JSON Schema",
+        "schema repair receives the rejected proposal, exact errors, legal grounding targets, and necessary-inference item schema",
+        "existing supported planning and sealed intent are explicit generation inputs",
+        "local structural, semantic, preservation, grounding, admission, and lifecycle gates remain fail-closed",
+        "canonical publish verifies remote SHA equality before one managed production revalidation"
+      ]
+    },
+    {
       "id": "PB-066",
       "title": "Decouple canonical generation from MCP request lifetime",
       "priority": 1,

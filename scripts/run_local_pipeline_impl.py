@@ -8262,6 +8262,7 @@ def provider_text(
     routing_policy: ProviderModelRoutingPolicy | None = None,
     last_error: Any = None,
     budget_deadline: float | None = None,
+    response_format: dict[str, Any] | None = None,
 ) -> str:
     adapter_context = surrogate_provider_adapter.current()
     if adapter_context is not None and adapter_context.mode != "live":
@@ -8416,14 +8417,18 @@ def provider_text(
                     "reason": route.get("model_routing_reason", ""),
                 },
             )
+        request_values: dict[str, Any] = {
+            "model": selected_model,
+            "messages": attempt_messages,
+            "temperature": 0.2,
+        }
+        if response_format:
+            request_values["response_format"] = response_format
+        else:
+            request_values["max_tokens"] = effective_max_tokens
         payload = check_connectivity._build_openai_compatible_payload(
             root,
-            {
-                "model": selected_model,
-                "messages": attempt_messages,
-                "temperature": 0.2,
-                "max_tokens": effective_max_tokens,
-            },
+            request_values,
             model=selected_model,
             reasoning_effort=reasoning_effort,
         )
@@ -29887,14 +29892,14 @@ def provider_stage_checkpoint(
     if planning_stage:
         system_content = (
             "You are the formal Provider role for the bounded CGKN requirements_planning stage. "
-            "Return strict JSON only matching this proposal contract: "
-            + json.dumps(
-                canonical_goal_spec_compiler.planning_proposal_prompt_contract(),
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-            + ". Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
+            "Return only the PlanningProposal selected by the attached strict JSON Schema. "
+            "Treat EXISTING_VALID_PLANNING as the baseline and NEW_INFORMATION as a bounded change: preserve "
+            "all unaffected supported intent, modify only grounded affected elements, and never invent goals, "
+            "requirements, capabilities, constraints, or scope. REPLAN may restructure supported planning but "
+            "does not authorize semantic drift. "
+            "Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
             "acceptance anchor, and forbidden substitution with an exact source_grounding row. "
+            "Use only schema-legal grounding targets and string items for necessary_inferences. "
             "Provider content is proposal-only and must not claim canonical, governance, acceptance, maturity, or release authority."
         )
     else:
@@ -29912,6 +29917,8 @@ def provider_stage_checkpoint(
         {"role": "user", "content": json.dumps(context, ensure_ascii=False, sort_keys=True)},
     ]
     last_error = ""
+    last_errors: list[str] = []
+    rejected_proposal: Any = None
     for schema_attempt in range(2):
         active_messages = messages
         if schema_attempt:
@@ -29919,10 +29926,14 @@ def provider_stage_checkpoint(
                 *messages,
                 {
                     "role": "user",
-                    "content": (
-                        "SCHEMA_REPAIR_ATTEMPT_1: the prior response was invalid: "
-                        + last_error
-                        + ". Return only the required strict JSON object."
+                    "content": "SCHEMA_REPAIR_ATTEMPT_1\n" + json.dumps(
+                        canonical_goal_spec_compiler.planning_proposal_repair_contract(
+                            rejected_proposal,
+                            last_errors or [last_error],
+                            generation_context=context,
+                        ),
+                        ensure_ascii=False,
+                        sort_keys=True,
                     ),
                 },
             ]
@@ -29936,12 +29947,19 @@ def provider_stage_checkpoint(
             target_file=artifact_path.relative_to(run_dir).as_posix(),
             phase_log_path=phase_log_path,
             routing_policy=routing_policy,
+            response_format=(
+                canonical_goal_spec_compiler.planning_proposal_response_format()
+                if planning_stage
+                else None
+            ),
         )
         try:
             payload = parse_json_object(raw)
+            rejected_proposal = payload
             if planning_stage:
                 proposal_errors = canonical_goal_spec_compiler.validate_planning_proposal(payload)
                 if proposal_errors:
+                    last_errors = proposal_errors
                     raise ValueError("; ".join(proposal_errors))
             else:
                 if not isinstance(payload.get("summary"), str) or not payload["summary"].strip():
@@ -30122,7 +30140,24 @@ def run_canonical_requirement_planning(
         planning_context: dict[str, Any] = {
             "goal": user_goal,
             "proposal_sequence": sequence,
+            "context_sections": {
+                "SEALED_INTENT": codex_plan_contract,
+                "EXISTING_VALID_PLANNING": {},
+                "NEW_INFORMATION": feedback,
+                "ALLOWED_EVIDENCE": [
+                    "RAW_GOAL",
+                    "CONVERSATION_CONTEXT",
+                    "NECESSARY_INFERENCE",
+                    "SYSTEM_POLICY",
+                ],
+            },
+            "sealed_intent": codex_plan_contract,
         }
+        if history:
+            previous_ref = pathlib.Path(str(history[-1].get("planning_artifact_ref", "")))
+            if previous_ref.is_file():
+                previous_artifact = load_json(previous_ref)
+                planning_context["context_sections"]["EXISTING_VALID_PLANNING"] = previous_artifact.get("proposal", {})
         if feedback:
             planning_context["requirement_replan_feedback"] = feedback
         planning_artifact = provider_stage_checkpoint(
@@ -30144,6 +30179,21 @@ def run_canonical_requirement_planning(
             run_dir,
             context=decision_context,
         )
+        existing_planning = planning_context["context_sections"]["EXISTING_VALID_PLANNING"]
+        preservation_errors = canonical_goal_spec_compiler.validate_planning_preservation(
+            planning_artifact.get("proposal", {}),
+            existing_planning,
+            feedback,
+        )
+        if preservation_errors:
+            result["status"] = "NEEDS_REWORK"
+            result["ready_to_generate"] = False
+            result["requirement_replan"] = {
+                "status": "NEEDS_REWORK",
+                "candidate_repair": False,
+                "required_corrections": preservation_errors,
+                "reason": "EXISTING_PLANNING_NOT_PRESERVED",
+            }
         history_entry = {
             "attempt": sequence,
             "planning_artifact_ref": planning_artifact.get("artifact_ref", ""),

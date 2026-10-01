@@ -53,6 +53,11 @@ SOURCE_KIND_TO_PROVENANCE = {
     "NECESSARY_INFERENCE": "NECESSARY_INFERENCE",
     "SYSTEM_POLICY": "SYSTEM_POLICY",
 }
+PLANNING_PROPOSAL_SCHEMA_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "contracts"
+    / "requirements_planning_proposal_v1.schema.json"
+)
 ALLOWED_PROVENANCE = {
     "USER_EXPLICIT",
     "USER_CONTEXT",
@@ -213,6 +218,94 @@ def planning_proposal_prompt_contract() -> dict[str, Any]:
             }
         ],
     }
+
+
+def planning_proposal_json_schema() -> dict[str, Any]:
+    """Return the checked-in canonical schema used to guide Provider output."""
+    schema = json.loads(PLANNING_PROPOSAL_SCHEMA_PATH.read_text(encoding="utf-8"))
+    if not isinstance(schema, dict):
+        raise RuntimeError("canonical PlanningProposal schema must be an object")
+    return schema
+
+
+def planning_proposal_response_format() -> dict[str, Any]:
+    """Build the OpenAI-compatible strict structured-output contract."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "cgkn_requirements_planning_proposal_v1",
+            "strict": True,
+            "schema": planning_proposal_json_schema(),
+        },
+    }
+
+
+def planning_proposal_repair_contract(
+    rejected_proposal: Any,
+    validation_errors: list[str],
+    *,
+    generation_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Describe one representation-only repair using canonical constraints."""
+    schema = planning_proposal_json_schema()
+    return {
+        "operation": "SCHEMA_REPAIR",
+        "invariants": [
+            "preserve every schema-valid semantic decision",
+            "change only fields required by the reported validation errors",
+            "do not add, remove, or restyle planning content unless required for schema validity",
+            "do not invent goals, requirements, capabilities, constraints, or grounding",
+        ],
+        "validation_errors": list(validation_errors),
+        "rejected_proposal": rejected_proposal,
+        "legal_source_grounding_targets": sorted(GROUNDED_FIELDS),
+        "necessary_inferences_item_schema": schema["$defs"]["strings"]["items"],
+        "provider_schema": schema,
+        "identity": {
+            "proposal_sequence": generation_context.get("proposal_sequence"),
+            "sealed_brief_sha256": generation_context.get("sealed_intent", {}).get("brief_sha256", "")
+            if isinstance(generation_context.get("sealed_intent"), dict)
+            else "",
+        },
+    }
+
+
+def validate_planning_preservation(
+    proposal: dict[str, Any],
+    existing_planning: dict[str, Any] | None,
+    required_corrections: Any = None,
+) -> list[str]:
+    """Reject loss of unaffected supported planning during PATCH or REPLAN.
+
+    A correction may explicitly name a field or value that must change.  All
+    other baseline semantic values remain required; ordering and wording of
+    unrelated container structure are not compared byte-for-byte.
+    """
+    baseline = existing_planning if isinstance(existing_planning, dict) else {}
+    if not baseline:
+        return []
+    correction_text = _norm(canonical_json(required_corrections or {}))
+    errors: list[str] = []
+    semantic_fields = tuple(field for field in PROPOSAL_LIST_FIELDS if field != "source_grounding")
+    def equivalent(left: str, right: str) -> bool:
+        if _norm(left) == _norm(right):
+            return True
+        left_tokens = set(re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]", _text(left).lower()))
+        right_tokens = set(re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]", _text(right).lower()))
+        union = left_tokens | right_tokens
+        return bool(union) and len(left_tokens & right_tokens) / len(union) >= 0.8
+
+    for field in semantic_fields:
+        before = _string_list(baseline.get(field))
+        after = _string_list(proposal.get(field))
+        for value in before:
+            normalized = _norm(value)
+            if any(equivalent(value, candidate) for candidate in after):
+                continue
+            if normalized in correction_text:
+                continue
+            errors.append(f"preservation_missing:{field}:{value}")
+    return sorted(set(errors))
 
 
 def build_planning_artifact(
