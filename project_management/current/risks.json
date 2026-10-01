@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-PROVENANCE-001",
+      "description": "A pre-build Provider stage silently replaces the reviewed route model with an endpoint-incompatible default, preventing the real result and provenance chain from materializing.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Thread the resolved routing policy through requirements planning, test exact model selection and all provenance bindings, then perform one bounded live validation.",
+      "state": "active"
+    },
+    {
       "id": "RK-LAYOUT-001",
       "description": "Moving formal specs breaks a loader, test, or documentation reference.",
       "probability": "medium",

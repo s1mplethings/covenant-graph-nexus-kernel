@@ -1,49 +1,40 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-082",
+  "iteration_id": "ITER-083",
   "project_id": "cgkn",
-  "goal": "Create one fail-closed repository publish authority binding source identity, explicit staging, test evidence, commit, normal push, remote verification, PR metadata, and fast CI.",
-  "backlog_item_ids": ["PB-061"],
-  "workflow_state": "completed_with_limits",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Repair the earliest reviewed Provider model-policy handoff so the existing sealed Attune request can produce real candidate provenance and safely reach formal resume evaluation.",
+  "backlog_item_ids": ["PB-062"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "SourceIdentity remains read-only and fails closed on every required Git command.",
-    "ChangeManifest is the only staging input and unknown, secret, runtime, generated, cache, log, and temporary files cannot be committed by default.",
-    "TestReceipt binds the current source identity and every changed commit path.",
-    "The publish gate stages exact paths, verifies the staged tree, commits, runs post-commit critical checks, detects remote races, pushes without force, and verifies remote SHA equality.",
-    "release_candidate_gate retains release-readiness evaluation but no dirty classifier, concrete commit allowlist, or publish authority.",
-    "Fast CI is bounded, Provider-free, and does not grant product acceptance or delivery authority."
+    "The reviewed run's resolved model policy reaches requirements planning unchanged.",
+    "Provider/model incompatibility remains a classified fail-closed blocker and cannot create a candidate or provenance.",
+    "P01-P12 and provenance replay tests pass without Provider calls.",
+    "Exactly one bounded live validation produces a real Provider result, candidate, explicit provenance binding, and evaluated formal evidence.",
+    "resume safety is derived from canonical evidence and is never manually asserted.",
+    "Canonical repository publish verifies remote SHA equality."
   ],
   "quality_metrics": [
-    {"id": "QM-PUBLISH-AUTHORITY", "measure": "formal repository publish authorities", "target": "1", "method": "source and contract inspection"},
-    {"id": "QM-EXPLICIT-STAGING", "measure": "implicit staging commands in canonical path", "target": "0", "method": "recorded Git runner tests"},
-    {"id": "QM-IDENTITY-BINDING", "measure": "stale or partially covered test receipts accepted", "target": "0", "method": "adversarial temporary-repository tests"},
-    {"id": "QM-REMOTE-TRUTH", "measure": "successful receipts without local/remote SHA equality", "target": "0", "method": "bare-remote integration tests"}
+    {"id": "QM-MODEL-POLICY", "measure": "pre-build calls diverging from reviewed resolved model policy", "target": "0", "method": "focused route-contract tests"},
+    {"id": "QM-FAKE-PROVENANCE", "measure": "invalid or absent Provider receipts accepted", "target": "0", "method": "P01-P12 adversarial tests"},
+    {"id": "QM-LIVE-CHAIN", "measure": "bounded live runs completing real result to provenance binding", "target": "1", "method": "canonical generation result inspection"},
+    {"id": "QM-REMOTE-TRUTH", "measure": "successful publish receipts without local/remote SHA equality", "target": "0", "method": "canonical publish receipt inspection"}
   ],
   "quality_activities": {
-    "prevention": ["Inventory existing Git helpers and remove duplicate classifiers before adding the gate", "Prohibit implicit staging and force options in code and contract"],
-    "assurance": ["Use temporary repositories and bare remotes for adversarial tests", "Statically validate the GitHub workflow"],
-    "control": ["Run publish, source identity, release, hygiene, version, kernel, and mainline smoke tests", "Dogfood the canonical publish path for the final commit and push"],
-    "improvement": ["Retain a bounded publish receipt and separate scoped from repository-global verdicts"]
+    "prevention": ["Preserve one reviewed route and thread its resolved policy into every pre-build Provider stage", "Keep provenance gates fail-closed"],
+    "assurance": ["Exercise missing, stale, wrong-brief, wrong-run, and valid provenance contracts without API calls", "Bind the kernel contract guard to the model-policy handoff"],
+    "control": ["Run focused provenance and requirement-planning tests before one live call", "Inspect provider call, candidate, formal evidence, and resume state independently"],
+    "improvement": ["Report earliest Provider compatibility failures separately from downstream provenance symptoms"]
   },
   "interface_expectations": [
-    "SourceIdentity provides support identity only",
-    "CanonicalRepoPublishGate is the only staging, commit, push, and remote verification authority",
-    "GitHub CI supplies repository contract evidence only",
-    "acceptance, packaging, and delivery authorities remain unchanged"
+    "The reviewed Provider route remains the only production candidate author",
+    "Provider model routing consumes the resolved per-run policy",
+    "ProductionCandidateProvenance remains the independent candidate/result binding",
+    "Formal evidence and resume gates remain separate from transport success",
+    "CanonicalRepoPublishGate remains the only repository publication authority"
   ],
-  "evidence_refs": [
-    "tests/test_canonical_repo_publish.py",
-    "tests/test_source_identity.py",
-    ".github/workflows/repository-fast-ci.yml",
-    "generated/dynamic_agent_tree_fix_eval/test_profiles/quick_result.json",
-    "project_management/summaries/ITER-082-canonical-repository-publish.md"
-  ],
-  "review": {"outcome": "accepted_with_global_limits", "feedback": ["Repository publish scope passes; unrelated global quick failures remain."], "accepted_backlog_item_ids": ["PB-061"]},
-  "retrospective": {
-    "worked": ["Temporary bare-remote tests exposed local/remote truth boundaries", "One manifest classifier removed the concrete release-candidate allowlist"],
-    "did_not_work": ["The repository-global quick baseline remains unhealthy outside this increment"],
-    "experiments": ["Dogfood the final change through the new canonical publish command"]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Thread one resolved policy rather than adding endpoint-specific model mappings"]}
 }

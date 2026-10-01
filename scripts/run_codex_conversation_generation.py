@@ -46,6 +46,11 @@ def main() -> int:
         timeout=args.timeout,
         replay_dir=pathlib.Path(args.replay_dir) if args.replay_dir else None,
         result_path=pathlib.Path(args.result),
+        codex_capability_brief=(
+            pathlib.Path(args.codex_capability_brief)
+            if args.codex_capability_brief
+            else None
+        ),
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

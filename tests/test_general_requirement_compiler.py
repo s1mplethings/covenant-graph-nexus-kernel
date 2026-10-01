@@ -433,3 +433,34 @@ def test_34_resolved_requirement_checkpoint_is_reused_without_provider_call(tmp_
     )
     assert cached == result
     assert cached_artifact["artifact_hash"] == "a"
+
+
+def test_35_requirements_planning_uses_reviewed_run_model_policy(tmp_path, monkeypatch):
+    goal = "Create a local calculator."
+    captured = {}
+    policy = pipeline.ProviderModelRoutingPolicy(
+        small_model="reviewed-small",
+        large_model="reviewed-large",
+        repair_model="reviewed-repair",
+    )
+
+    def fake_provider_text(messages, model, timeout, **kwargs):
+        captured.update({"model": model, "routing_policy": kwargs.get("routing_policy")})
+        return json.dumps(proposal(goal, core=["calculate"]))
+
+    monkeypatch.setattr(pipeline, "provider_text", fake_provider_text)
+    monkeypatch.setattr(
+        pipeline.requirement_decision_lane,
+        "run_requirement_decision",
+        lambda *args, **kwargs: {"status": "PASS", "goal_spec": {"goal_spec_hash": "g"}},
+    )
+    result, _ = pipeline.run_canonical_requirement_planning(
+        provider_mode="live",
+        user_goal=goal,
+        run_dir=tmp_path,
+        phase_log_path=tmp_path / "log.jsonl",
+        codex_plan_contract={},
+        routing_policy=policy,
+    )
+    assert result["status"] == "PASS"
+    assert captured == {"model": "surrogate-stage", "routing_policy": policy}

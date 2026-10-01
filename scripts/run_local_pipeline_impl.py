@@ -29866,6 +29866,7 @@ def provider_stage_checkpoint(
     context: dict[str, Any],
     run_dir: pathlib.Path,
     phase_log_path: pathlib.Path | str,
+    routing_policy: ProviderModelRoutingPolicy | None = None,
 ) -> dict[str, Any]:
     """Parse, validate, and persist one non-live pre-build Provider artifact.
 
@@ -29934,6 +29935,7 @@ def provider_stage_checkpoint(
             component="design",
             target_file=artifact_path.relative_to(run_dir).as_posix(),
             phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
         )
         try:
             payload = json.loads(raw)
@@ -30068,6 +30070,7 @@ def run_canonical_requirement_planning(
     run_dir: pathlib.Path,
     phase_log_path: pathlib.Path | str,
     codex_plan_contract: dict[str, Any],
+    routing_policy: ProviderModelRoutingPolicy | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compile requirements from accepted planning evidence with bounded same-run replan."""
     state_path = requirement_replan_state_path(run_dir)
@@ -30105,6 +30108,7 @@ def run_canonical_requirement_planning(
             context=planning_context,
             run_dir=run_dir,
             phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
         )
         decision_context: dict[str, Any] = {
             "planning_artifact": planning_artifact,
@@ -30392,6 +30396,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         run_dir=run_dir,
         phase_log_path=phase_log_path,
         codex_plan_contract=codex_plan_contract,
+        routing_policy=routing_policy,
     )
     if planning_stage:
         internal_context = (internal_context + "\n\nFormal Provider planning artifact:\n" + json.dumps(

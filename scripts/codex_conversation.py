@@ -6578,7 +6578,9 @@ def run_provider_generation_job(
             use_api=True,
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
-            codex_capability_brief="",
+            codex_capability_brief=str(
+                session.get("codex_capability_brief", "") or ""
+            ),
             provider_mode=provider_mode,
             project_id=identity["candidate_id"],
             replay_dir=replay_dir,
@@ -8960,6 +8962,7 @@ def run_formal_generation_once(
     timeout: int = 1800,
     replay_dir: str | pathlib.Path | None = None,
     result_path: str | pathlib.Path | None = None,
+    codex_capability_brief: str | pathlib.Path | None = None,
 ) -> dict[str, Any]:
     """Run/resume one production conversation generation turn synchronously.
 
@@ -8976,8 +8979,17 @@ def run_formal_generation_once(
     ).hexdigest()[:20]
     path = session_path(session_dir, conversation_id)
     client = CodexConversation()
+    brief_path = (
+        pathlib.Path(codex_capability_brief).expanduser().resolve()
+        if codex_capability_brief
+        else None
+    )
+    if brief_path is not None and (not brief_path.is_file() or brief_path.is_symlink()):
+        raise ValueError("codex_capability_brief must be an existing regular file")
     if not path.is_file():
         session = default_session(conversation_id)
+        if brief_path is not None:
+            session["codex_capability_brief"] = str(brief_path)
         session["messages"].append({"role": "user", "text": goal, "created_at": now()})
         session["whiteboard"].update(
             {
@@ -9003,6 +9015,12 @@ def run_formal_generation_once(
         )
     else:
         session = load_session(session_dir, conversation_id)
+        stored_brief = str(session.get("codex_capability_brief", "") or "")
+        if brief_path is not None and stored_brief and pathlib.Path(stored_brief).resolve() != brief_path:
+            raise ValueError("codex_capability_brief cannot change while resuming a production run")
+        if brief_path is not None and not stored_brief:
+            session["codex_capability_brief"] = str(brief_path)
+            save_session(session_dir, session)
         generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
         stored_mode = str(generation.get("provider_mode", provider_mode) or provider_mode)
         if stored_mode != provider_mode:

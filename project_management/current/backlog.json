@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-062",
+      "title": "Close reviewed Provider production provenance",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Preserve the reviewed generation route's explicit model policy through requirements planning so a real Provider result can produce a candidate and canonical production provenance without weakening fail-closed gates.",
+      "acceptance": [
+        "requirements planning uses the reviewed run's resolved model policy rather than an unrelated built-in default",
+        "unsupported Provider/model combinations remain classified and blocked before candidate acceptance",
+        "P01-P12 provenance invariants and deterministic replay remain fail-closed",
+        "one bounded real Provider run creates a candidate bound to the sealed brief, Provider result, and provenance",
+        "formal evidence evaluates the candidate before resume is considered safe",
+        "the canonical repository publish gate verifies remote SHA equality"
+      ]
+    },
+    {
       "id": "PB-061",
       "title": "Enforce canonical repository publish flow",
       "priority": 1,

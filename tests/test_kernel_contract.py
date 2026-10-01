@@ -307,6 +307,17 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Session/context booleans", contract)
         self.assertIn("short-circuits canonical evidence inspection", contract)
 
+    def test_requirements_planning_consumes_the_reviewed_model_policy(self) -> None:
+        source = read_source("scripts/run_local_pipeline_impl.py")
+        contract = read_source("docs/00_kernel_contract.md")
+        planning = function_body(source, "run_canonical_requirement_planning")
+        checkpoint = function_body(source, "provider_stage_checkpoint")
+
+        self.assertIn("routing_policy=routing_policy", planning)
+        self.assertIn("routing_policy=routing_policy", checkpoint)
+        self.assertIn("requirements_planning", contract)
+        self.assertIn("same resolved policy", contract)
+
     def test_provider_response_is_staged_and_causally_applied_before_evidence(self) -> None:
         source = read_source("scripts/codex_conversation.py")
         provider_job = function_body(source, "run_provider_generation_job")
@@ -1488,6 +1499,7 @@ class KernelContractTests(unittest.TestCase):
         agent_kit_project = read_source("tools/cgkn-agent-kit/pyproject.toml")
         codex_design = read_source("scripts/codex_design_supervision.py")
         codex_bridge = read_source("scripts/codex_conversation.py")
+        conversation_adapter = read_source("scripts/run_codex_conversation_generation.py")
         agents = read_source("AGENTS.md")
 
         self.assertIn("capability supervisor above the librarian's bounded selection", doc)
@@ -1505,7 +1517,9 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"--sandbox",', codex_design)
         self.assertIn('"read-only"', codex_design)
         self.assertIn("provider_planner_pending", codex_bridge)
-        self.assertIn('codex_capability_brief=""', codex_bridge)
+        self.assertIn('session.get("codex_capability_brief", "")', codex_bridge)
+        self.assertIn("codex_capability_brief cannot change while resuming", codex_bridge)
+        self.assertIn("codex_capability_brief=(", conversation_adapter)
         self.assertNotIn("run_codex_design_supervision(", codex_bridge)
         self.assertIn("provider output validation", doc)
         self.assertIn("local_packager", doc)
