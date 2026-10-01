@@ -8,7 +8,7 @@
       "probability": "high",
       "impact": "high",
       "response": "Thread the resolved routing policy through requirements planning, test exact model selection and all provenance bindings, then perform one bounded live validation.",
-      "state": "active"
+      "state": "controlled"
     },
     {
       "id": "RK-LAYOUT-001",

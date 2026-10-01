@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Repair the earliest reviewed Provider model-policy handoff so the existing sealed Attune request can produce real candidate provenance and safely reach formal resume evaluation.",
   "backlog_item_ids": ["PB-062"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "BLOCKED_PROVIDER",
   "acceptance_criteria": [
     "The reviewed run's resolved model policy reaches requirements planning unchanged.",
     "Provider/model incompatibility remains a classified fail-closed blocker and cannot create a candidate or provenance.",
@@ -34,7 +34,16 @@
     "Formal evidence and resume gates remain separate from transport success",
     "CanonicalRepoPublishGate remains the only repository publication authority"
   ],
-  "evidence_refs": [],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Thread one resolved policy rather than adding endpoint-specific model mappings"]}
+  "evidence_refs": [
+    "tests/test_general_requirement_compiler.py",
+    "tests/test_production_candidate_provenance.py",
+    "tests/test_codex_capability_supervisor.py",
+    "project_management/summaries/ITER-083-production-provenance-closure.md"
+  ],
+  "review": {"outcome": "accepted_with_external_blocker", "feedback": ["Scoped repair and canonical publish pass; the sole live Provider attempt was rejected because the configured DashScope free quota is exhausted, so no candidate or formal resume evidence exists."], "accepted_backlog_item_ids": []},
+  "retrospective": {
+    "worked": ["One resolved model policy now reaches requirements planning", "The sealed brief is validated, snapshotted, and logged before Provider invocation", "The live attempt selected qwen3.7-flash and classified the non-retryable HTTP 403 without creating provenance"],
+    "did_not_work": ["The configured Provider account had no available quota, so candidate generation and formal resume evaluation were unreachable"],
+    "experiments": ["Thread one resolved policy rather than adding endpoint-specific model mappings"]
+  }
 }
