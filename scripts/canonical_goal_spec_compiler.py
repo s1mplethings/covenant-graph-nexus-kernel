@@ -66,6 +66,11 @@ ALLOWED_PROVENANCE = {
     "SYSTEM_POLICY",
     "UNGROUNDED",
 }
+DEFAULT_SYSTEM_CONSTRAINTS = (
+    "Preserve the original user goal and explicit constraints.",
+    "Provider planning output has proposal authority only.",
+    "Do not add unrequested cloud processing or replace semantic outcomes with easier proxies.",
+)
 
 
 # ASCII-safe canonical marker definitions.  Unicode escapes keep Windows patch
@@ -129,6 +134,11 @@ def canonicalize_assumptions(*sources: Any) -> list[str]:
             if item
         )
     )
+
+
+def accepted_system_constraints(values: Any = None) -> list[str]:
+    """Return the single bounded policy set shared by generation and validation."""
+    return list(dict.fromkeys([*DEFAULT_SYSTEM_CONSTRAINTS, *_string_list(values)]))
 
 
 def _contains_any(text: str, markers: tuple[str, ...]) -> bool:
@@ -248,6 +258,12 @@ def planning_proposal_repair_contract(
 ) -> dict[str, Any]:
     """Describe one representation-only repair using canonical constraints."""
     schema = planning_proposal_json_schema()
+    rejected = rejected_proposal if isinstance(rejected_proposal, dict) else {}
+    workstream_ids = [
+        _text(item.get("id"))
+        for item in rejected.get("proposed_workstreams", [])
+        if isinstance(item, dict) and _text(item.get("id"))
+    ]
     return {
         "operation": "SCHEMA_REPAIR",
         "invariants": [
@@ -260,6 +276,8 @@ def planning_proposal_repair_contract(
         "rejected_proposal": rejected_proposal,
         "legal_source_grounding_targets": sorted(GROUNDED_FIELDS),
         "necessary_inferences_item_schema": schema["$defs"]["strings"]["items"],
+        "legal_proposed_workstream_ids": workstream_ids,
+        "workstream_grounding_rule": "source_grounding.value must equal the canonical proposed_workstreams[].id, never scope or display text",
         "provider_schema": schema,
         "identity": {
             "proposal_sequence": generation_context.get("proposal_sequence"),
@@ -439,7 +457,13 @@ def _grounding_index(
         elif valid and source_kind == "CONVERSATION_CONTEXT":
             valid = _norm(excerpt) in _norm(context_text)
         elif valid and source_kind == "SYSTEM_POLICY":
-            valid = _norm(excerpt) in _norm(policy_text)
+            excerpt_norm = _norm(excerpt)
+            valid = any(
+                constraint_norm
+                and (constraint_norm in excerpt_norm or excerpt_norm in constraint_norm)
+                for constraint in system_constraints
+                if (constraint_norm := _norm(constraint))
+            )
         elif valid and source_kind == "NECESSARY_INFERENCE":
             valid = len(_text(row.get("rationale"))) >= 8
         if not valid:
@@ -551,11 +575,7 @@ def compile_goal_spec(
 ) -> dict[str, Any]:
     raw_goal = _text(raw_goal)
     conversation_context = dict(conversation_context or {})
-    system_constraints = _string_list(system_constraints or [
-        "Preserve the original user goal and explicit constraints.",
-        "Provider planning output has proposal authority only.",
-        "Do not add unrequested cloud processing or replace semantic outcomes with easier proxies.",
-    ])
+    system_constraints = accepted_system_constraints(system_constraints)
     artifact_errors = validate_planning_artifact(planning_artifact, raw_goal)
     proposal = planning_artifact.get("proposal", {}) if isinstance(planning_artifact, dict) else {}
     proposal = proposal if isinstance(proposal, dict) else {}

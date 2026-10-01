@@ -759,6 +759,20 @@ class ProviderModelRoute(dict):
         return dict.__eq__(self, other)
 
 
+INTERNAL_PROVIDER_MODEL_ALIASES = frozenset({"surrogate-stage"})
+
+
+def is_internal_provider_model_alias(value: Any) -> bool:
+    return str(value or "").strip().lower() in INTERNAL_PROVIDER_MODEL_ALIASES
+
+
+def assert_concrete_provider_model(model: str) -> str:
+    selected = str(model or "").strip()
+    if not selected or is_internal_provider_model_alias(selected) or selected.lower().endswith("-stage"):
+        raise RuntimeError(f"PROVIDER_MODEL_UNRESOLVED_INTERNAL_ALIAS:{selected or '<empty>'}")
+    return selected
+
+
 def provider_model_routing_policy_from_args(args: argparse.Namespace | None = None) -> ProviderModelRoutingPolicy:
     policy = ProviderModelRoutingPolicy(
         small_model=str(os.environ.get("CGNK_PROVIDER_SMALL_MODEL") or ProviderModelRoutingPolicy.small_model),
@@ -818,6 +832,8 @@ def choose_provider_model(
     requested = str(requested_model or "").strip() or policy.small_model
     normalized_stage = str(stage or "").strip().lower()
     if not policy.enable_model_routing:
+        if is_internal_provider_model_alias(requested) or requested.lower().endswith("-stage"):
+            raise RuntimeError(f"PROVIDER_MODEL_ALIAS_REQUIRES_ROUTING:{requested}")
         if policy.repair_model and normalized_stage in {
             "semantic_repair",
             "file_repair",
@@ -881,6 +897,15 @@ def choose_provider_model(
     heavy_stages = {"component_generation"}
     if int(prompt_chars or 0) > int(policy.large_payload_chars) or normalized_stage in heavy_stages:
         return ProviderModelRoute({"selected_model": policy.large_model, "model_routing_reason": "large_payload", "requested_model": requested})
+
+    if is_internal_provider_model_alias(requested):
+        return ProviderModelRoute({
+            "selected_model": policy.large_model,
+            "model_routing_reason": "internal_stage_alias_resolved_by_reviewed_policy",
+            "requested_model": requested,
+        })
+    if requested.lower().endswith("-stage"):
+        raise RuntimeError(f"PROVIDER_MODEL_UNKNOWN_INTERNAL_ALIAS:{requested}")
 
     return ProviderModelRoute({"selected_model": requested, "model_routing_reason": "requested_model_default", "requested_model": requested})
 
@@ -8391,7 +8416,7 @@ def provider_text(
     for attempt in range(max(1, max_attempts)):
         attempt_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
         route = choose_provider_model(stage, legacy_prompt_chars, model, routing_policy, last_error=last_error_text)
-        selected_model = str(route.get("selected_model") or model)
+        selected_model = assert_concrete_provider_model(str(route.get("selected_model") or model))
         attempt_messages = messages
         request_profile: dict[str, Any] = {
             "profile": "full",
@@ -29905,6 +29930,10 @@ def provider_stage_checkpoint(
             "does not authorize semantic drift. "
             "Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
             "acceptance anchor, and forbidden substitution with an exact source_grounding row. "
+            "For proposed_workstreams grounding, source_grounding.value MUST equal the workstream's canonical id exactly; "
+            "never use its scope, title, description, or array index as identity. "
+            "Use stable snake_case capability IDs, and each proposed_workstreams.covers_capabilities entry MUST exactly equal "
+            "an ID present in proposed_core_capabilities or proposed_supporting_capabilities. "
             "Use only schema-legal grounding targets and string items for necessary_inferences. "
             "Provider content is proposal-only and must not claim canonical, governance, acceptance, maturity, or release authority."
         )
@@ -30143,6 +30172,11 @@ def run_canonical_requirement_planning(
         sequence = 1
     while sequence <= MAX_REQUIREMENT_PLANNING_ATTEMPTS:
         feedback = state.get("feedback", {}) if isinstance(state.get("feedback"), dict) else {}
+        accepted_constraints = canonical_goal_spec_compiler.accepted_system_constraints(
+            codex_plan_contract.get("acceptance_checks", [])
+            if isinstance(codex_plan_contract.get("acceptance_checks", []), list)
+            else []
+        )
         planning_context: dict[str, Any] = {
             "goal": user_goal,
             "proposal_sequence": sequence,
@@ -30158,6 +30192,7 @@ def run_canonical_requirement_planning(
                 ],
             },
             "sealed_intent": codex_plan_contract,
+            "accepted_system_constraints": accepted_constraints,
         }
         if history:
             previous_ref = pathlib.Path(str(history[-1].get("planning_artifact_ref", "")))
@@ -30177,6 +30212,7 @@ def run_canonical_requirement_planning(
         decision_context: dict[str, Any] = {
             "planning_artifact": planning_artifact,
             "conversation_context": {},
+            "system_constraints": planning_context["accepted_system_constraints"],
         }
         if codex_plan_contract:
             decision_context["codex_capability_plan_contract"] = codex_plan_contract

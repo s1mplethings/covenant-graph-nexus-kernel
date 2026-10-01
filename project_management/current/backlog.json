@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-068",
+      "title": "Close final planning semantic contract mismatches",
+      "priority": 1,
+      "state": "completed",
+      "value": "Align sealed SYSTEM_POLICY grounding, workstream ID references, and replan alias routing with the existing canonical planning and Provider contracts.",
+      "acceptance": [
+        "sealed acceptance checks form the same bounded accepted constraint set for Provider generation and compiler validation",
+        "unknown SYSTEM_POLICY values remain rejected",
+        "workstream grounding references canonical workstream IDs and dynamic cross-field validation remains local",
+        "internal stage aliases resolve through ProviderModelRoutingPolicy and never cross the HTTP boundary",
+        "A01-A07, B01-B10, C01-C10, D01-D08, existing schema, preservation, admission, lifecycle, and kernel regressions pass",
+        "canonical publish verifies remote SHA equality before one managed production revalidation"
+      ]
+    },
+    {
       "id": "PB-067",
       "title": "Close strict PlanningProposal generation contract",
       "priority": 1,

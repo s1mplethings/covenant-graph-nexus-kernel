@@ -1,58 +1,60 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-088",
+  "iteration_id": "ITER-089",
   "project_id": "cgkn",
-  "goal": "Close the strict PlanningProposal generation, schema-aware repair, and existing-planning preservation contract before one final managed production revalidation.",
-  "backlog_item_ids": ["PB-067"],
+  "goal": "Close the final sealed-intent grounding, workstream identity, and replan routing mismatches without changing the established planning architecture.",
+  "backlog_item_ids": ["PB-068"],
   "workflow_state": "closed",
   "evidence_status": "PASS",
   "acceptance_criteria": [
-    "Provider generation receives the canonical PlanningProposal JSON Schema.",
-    "Grounding target enums and necessary-inference item constraints reach initial generation and repair.",
-    "Repair is surgical and retains rejected proposal and generation identity.",
-    "Existing supported planning and sealed intent are explicit inputs and remain fail-closed under semantic validation.",
-    "Provider retry, routing, admission, lifecycle, provenance, formal evidence, and resume gates remain unchanged."
+    "Provider and compiler consume the same sealed accepted system constraints.",
+    "SYSTEM_POLICY remains identity-bound and fail-closed for unknown constraints.",
+    "Workstream grounding uses canonical IDs and scope text is rejected as identity.",
+    "Replan resolves internal aliases through the reviewed model policy before transport.",
+    "Schema, retry, admission, lifecycle, provenance, formal evidence, and resume gates remain unchanged."
   ],
   "quality_metrics": [
-    {"id": "QM-SCHEMA-DRIFT", "measure": "independently maintained Provider PlanningProposal schemas", "target": "0", "method": "schema projection tests"},
-    {"id": "QM-REPAIR-DRIFT", "measure": "valid semantic decisions rewritten during schema repair", "target": "0", "method": "repair contract tests"}
+    {"id": "QM-SEMANTIC-WORLD", "measure": "accepted system constraints present on only one side of generation/validation", "target": "0", "method": "A and D contract tests"},
+    {"id": "QM-ALIAS-ESCAPE", "measure": "internal stage aliases reaching Provider transport", "target": "0", "method": "C routing tests"}
   ],
   "quality_activities": {
-    "prevention": ["Derive Provider structured output from the canonical checked-in schema"],
-    "assurance": ["Exercise G01-G14, R01-R10, and S01-S07 without Provider calls"],
-    "control": ["Run admission, lifecycle, candidate, formal, resume, kernel, and governance regressions before publication"],
-    "improvement": ["Keep schema repair representation-only and preservation-aware"]
+    "prevention": ["Derive both generation and validation constraints from the sealed plan contract"],
+    "assurance": ["Exercise A01-A07, B01-B10, C01-C10, and D01-D08 without Provider calls"],
+    "control": ["Run schema, preservation, admission, lifecycle, candidate, formal, resume, kernel, and governance regressions before publication"],
+    "improvement": ["Assert concrete model identity at the transport boundary"]
   },
   "interface_expectations": [
-    "Canonical local validation remains final authority",
-    "The checked-in PlanningProposal JSON Schema is the Provider schema source",
-    "ProviderModelRoutingPolicy, bounded retries, and sealed brief identity remain intact",
+    "Canonical local semantic validation remains final authority",
+    "Sealed brief identity remains immutable",
+    "ProviderModelRoutingPolicy remains concrete-model owner",
     "Formal evidence and resume safety remain derived"
   ],
   "evidence_refs": [
-    "G01-G14",
-    "R01-R10",
-    "S01-S07",
-    "113 targeted planning, admission, transport, MCP, and plugin identity tests"
+    "A01-A07",
+    "B01-B10",
+    "C01-C10",
+    "D01-D08",
+    "125 targeted semantic, admission, and transport tests",
+    "151 lifecycle, candidate provenance, formal, resume, release, and kernel tests"
   ],
   "review": {
     "outcome": "accepted",
     "feedback": [
-      "Canonical schema projection, surgical repair context, and local semantic preservation now close the demonstrated planning failures without weakening validation."
+      "Sealed constraints now share one bounded semantic source, workstream references are identity-explicit, and internal aliases are resolved by the reviewed model policy before transport."
     ],
-    "accepted_backlog_item_ids": ["PB-067"]
+    "accepted_backlog_item_ids": ["PB-068"]
   },
   "retrospective": {
     "worked": [
-      "Persisted production evidence isolated generation guidance from validator correctness.",
-      "One checked-in schema now drives Provider structured output and local validation remains authoritative."
+      "The production trace identified three deterministic contract boundaries without reopening structured output or lifecycle architecture.",
+      "Transport-boundary assertions made route ownership executable."
     ],
     "did_not_work": [
-      "Approximate prompt examples and generic repair messages did not communicate finite enums or item schemas."
+      "Passing sealed intent only as Provider context left compiler grounding in a different semantic world."
     ],
     "experiments": [
-      "Keep future structured generation contracts schema-derived and repair operations representation-only."
+      "Keep accepted evidence sets identity-bound and shared at every generation/validation boundary."
     ]
   }
 }

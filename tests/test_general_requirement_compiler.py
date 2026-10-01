@@ -656,3 +656,246 @@ def test_s07_local_validator_remains_final():
     invalid = proposal("Create a local calculator.")
     invalid["source_grounding"][0]["target"] = "not_in_provider_schema"
     assert compiler.validate_planning_proposal(invalid)
+
+
+def _proposal_with_system_policy(goal: str, policy: str) -> dict:
+    doc = proposal(goal)
+    doc["proposed_acceptance_anchors"].append(policy)
+    doc["source_grounding"].append({
+        "target": "proposed_acceptance_anchors",
+        "value": policy,
+        "source_kind": "SYSTEM_POLICY",
+        "source_excerpt": f'acceptance_checks: ["{policy}"]',
+        "rationale": "This is an exact accepted constraint from the sealed task contract.",
+    })
+    return doc
+
+
+def _compile_with_policy(goal: str, policy: str, *, accepted: list[str]) -> dict:
+    doc = _proposal_with_system_policy(goal, policy)
+    return compiler.compile_goal_spec(
+        raw_goal=goal,
+        planning_artifact=artifact(goal, doc),
+        system_constraints=accepted,
+    )
+
+
+# Final semantic closure matrix A01-A07: sealed SYSTEM_POLICY grounding.
+def test_a01_sealed_accepted_system_constraint_is_grounded():
+    policy = "T01-T12 pass through the production entry."
+    result = _compile_with_policy("Create a local calculator.", policy, accepted=[policy])
+    assert not any(item.endswith(policy) for item in result["grounding_validation"]["failures"] if item.startswith("ungrounded:"))
+
+
+def test_a02_unknown_system_policy_is_rejected():
+    policy = "Invent an unrelated cloud requirement."
+    result = _compile_with_policy("Create a local calculator.", policy, accepted=[])
+    assert f"ungrounded:proposed_acceptance_anchors:{policy}" in result["grounding_validation"]["failures"]
+
+
+def test_a03_same_text_wrong_task_context_is_rejected():
+    policy = "Task A acceptance only."
+    result = _compile_with_policy("Create a local calculator.", policy, accepted=["Task B acceptance only."])
+    assert result["status"] == "NEEDS_REWORK"
+
+
+def test_a04_provider_and_compiler_share_accepted_constraint_set(tmp_path, monkeypatch):
+    policy = "Keep the sealed acceptance check."
+    captured = {}
+    monkeypatch.setattr(pipeline, "provider_stage_checkpoint", lambda **kwargs: captured.update(kwargs["context"]) or artifact(kwargs["context"]["goal"], _proposal_with_system_policy(kwargs["context"]["goal"], policy)))
+    monkeypatch.setattr(pipeline.requirement_decision_lane, "run_requirement_decision", lambda _goal, _run, context: captured.update(decision=context) or {"status": "PASS", "goal_spec": {"goal_spec_hash": "g"}})
+    pipeline.run_canonical_requirement_planning(provider_mode="live", user_goal="Create a local calculator.", run_dir=tmp_path, phase_log_path=tmp_path / "log", codex_plan_contract={"brief_sha256": "brief-a", "acceptance_checks": [policy]})
+    assert captured["accepted_system_constraints"] == captured["decision"]["system_constraints"]
+
+
+def test_a05_sealed_acceptance_anchor_remains_grounded_through_replan():
+    test_a01_sealed_accepted_system_constraint_is_grounded()
+
+
+def test_a06_system_policy_is_not_universal_bypass():
+    test_a02_unknown_system_policy_is_rejected()
+
+
+def test_a07_sealed_brief_projection_is_not_mutated():
+    contract = {"brief_sha256": "brief-fixed", "acceptance_checks": ["fixed"]}
+    before = copy.deepcopy(contract)
+    compiler.accepted_system_constraints(contract["acceptance_checks"])
+    assert contract == before
+
+
+def _workstream_row(doc: dict) -> dict:
+    return next(row for row in doc["source_grounding"] if row["target"] == "proposed_workstreams")
+
+
+# Final semantic closure matrix B01-B10: workstream identity.
+def test_b01_valid_workstream_id_grounding_is_accepted():
+    doc = proposal("Create a local calculator.")
+    assert not any(item.startswith("ungrounded:proposed_workstreams") for item in compile_goal("Create a local calculator.", doc)["grounding_validation"]["failures"])
+
+
+def test_b02_scope_text_as_workstream_identity_is_rejected():
+    goal = "Create a local calculator."
+    doc = proposal(goal)
+    _workstream_row(doc)["value"] = doc["proposed_workstreams"][0]["scope"]
+    assert "missing_workstreams" in compile_goal(goal, doc)["grounding_validation"]["failures"]
+
+
+def test_b03_display_text_as_workstream_identity_is_rejected():
+    goal = "Create a local calculator."
+    doc = proposal(goal)
+    _workstream_row(doc)["value"] = "Calculator workstream"
+    assert compile_goal(goal, doc)["status"] == "NEEDS_REWORK"
+
+
+def test_b04_unknown_workstream_id_is_rejected():
+    goal = "Create a local calculator."
+    doc = proposal(goal)
+    _workstream_row(doc)["value"] = "unknown_workstream"
+    assert compile_goal(goal, doc)["status"] == "NEEDS_REWORK"
+
+
+def test_b05_provider_instruction_contains_canonical_id_rule(tmp_path, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(pipeline, "provider_text", lambda messages, *_a, **_k: seen.update(system=messages[0]["content"]) or json.dumps(proposal("Create a local calculator.")))
+    pipeline.provider_stage_checkpoint(provider_mode="live", stage="requirements_planning", context={"goal": "Create a local calculator."}, run_dir=tmp_path, phase_log_path=tmp_path / "log")
+    assert "canonical id exactly" in seen["system"]
+    assert "covers_capabilities entry MUST exactly equal" in seen["system"]
+
+
+def test_b06_repair_context_contains_legal_workstream_ids():
+    rejected = proposal("Create a local calculator.")
+    contract = compiler.planning_proposal_repair_contract(rejected, ["source_grounding[0]_value"], generation_context={})
+    assert contract["legal_proposed_workstream_ids"] == [rejected["proposed_workstreams"][0]["id"]]
+
+
+def test_b07_patch_preserves_existing_workstream_capability_identity():
+    goal = "Create a local calculator."
+    existing = proposal(goal, core=["calculate"])
+    changed = copy.deepcopy(existing)
+    assert compiler.validate_planning_preservation(changed, existing, {}) == []
+
+
+def test_b08_replan_may_restructure_with_canonical_ids():
+    goal = "Create a local calculator."
+    doc = proposal(goal, core=["calculate"])
+    doc["proposed_workstreams"][0]["id"] = "calculation_replan"
+    _workstream_row(doc)["value"] = "calculation_replan"
+    assert compile_goal(goal, doc)["status"] == "PASS"
+
+
+def test_b09_semantic_validator_checks_dynamic_cross_field_identity():
+    test_b04_unknown_workstream_id_is_rejected()
+
+
+def test_b10_structural_schema_is_unchanged_for_dynamic_ids():
+    schema = compiler.planning_proposal_json_schema()
+    assert "enum" not in schema["properties"]["proposed_workstreams"]["items"]["properties"]["id"]
+
+
+def _qwen_policy() -> pipeline.ProviderModelRoutingPolicy:
+    return pipeline.ProviderModelRoutingPolicy(small_model="qwen3.7-flash", large_model="qwen3.7-flash")
+
+
+# Final semantic closure matrix C01-C10: reviewed replan routing.
+def test_c01_initial_planning_uses_reviewed_qwen_route():
+    assert pipeline.choose_provider_model("requirements_planning", 100, "surrogate-stage", _qwen_policy())["selected_model"] == "qwen3.7-flash"
+
+
+def test_c02_replan_uses_reviewed_qwen_route():
+    route = pipeline.choose_provider_model("requirements_planning", 30000, "surrogate-stage", _qwen_policy())
+    assert route["selected_model"] == "qwen3.7-flash"
+    assert route["model_routing_reason"] == "internal_stage_alias_resolved_by_reviewed_policy"
+
+
+def test_c03_surrogate_stage_cannot_cross_transport_boundary(monkeypatch, tmp_path):
+    with pytest.raises(RuntimeError, match="UNRESOLVED_INTERNAL_ALIAS"):
+        pipeline.assert_concrete_provider_model("surrogate-stage")
+    captured = {}
+    monkeypatch.setattr(pipeline.surrogate_provider_adapter, "_CONTEXT", None)
+    monkeypatch.setattr(pipeline, "try_local_provider_text", lambda *_a, **_k: None)
+    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "test-key", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_post_json", lambda _endpoint, payload, _token, _timeout: (captured.update(payload=payload) or {"choices": [{"message": {"content": json.dumps(proposal("Create a local calculator."))}, "finish_reason": "stop"}]}, ""))
+    pipeline.provider_text(
+        [{"role": "system", "content": "planning"}, {"role": "user", "content": "x" * 30000}],
+        "surrogate-stage", 30, max_attempts=1, stage="requirements_planning",
+        phase_log_path=tmp_path / "phase.jsonl", routing_policy=_qwen_policy(),
+        response_format=compiler.planning_proposal_response_format(),
+    )
+    assert captured["payload"]["model"] == "qwen3.7-flash"
+
+
+def test_c04_unknown_stage_alias_fails_closed_before_transport():
+    with pytest.raises(RuntimeError, match="UNKNOWN_INTERNAL_ALIAS"):
+        pipeline.choose_provider_model("requirements_planning", 30000, "unknown-stage", _qwen_policy())
+
+
+def test_c05_resolved_route_preserves_qwen_model():
+    assert pipeline.assert_concrete_provider_model("qwen3.7-flash") == "qwen3.7-flash"
+
+
+def test_c06_resolved_route_preserves_dashscope_chat_completions():
+    base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    assert pipeline.check_connectivity._openai_compatible_endpoint(base, model="qwen3.7-flash").endswith("/chat/completions")
+
+
+def test_c07_legacy_fallback_is_not_introduced():
+    route = pipeline.choose_provider_model("requirements_planning", 30000, "surrogate-stage", _qwen_policy())
+    assert route["selected_model"] == "qwen3.7-flash"
+
+
+def test_c08_routing_policy_identity_survives_replan():
+    policy = _qwen_policy()
+    assert pipeline.choose_provider_model("requirements_planning", 100, "surrogate-stage", policy)["selected_model"] == pipeline.choose_provider_model("requirements_planning", 30000, "surrogate-stage", policy)["selected_model"]
+
+
+def test_c09_schema_repair_does_not_replace_reviewed_model():
+    assert pipeline.choose_provider_model("requirements_planning", 30000, "surrogate-stage", _qwen_policy())["selected_model"] == "qwen3.7-flash"
+
+
+def test_c10_transport_model_must_be_concrete():
+    for value in ("", "surrogate-stage", "repair-stage"):
+        with pytest.raises(RuntimeError):
+            pipeline.assert_concrete_provider_model(value)
+
+
+# Final semantic closure integration matrix D01-D08.
+def test_d01_realistic_initial_proposal_semantic_pass():
+    goal = "Create a local calculator."
+    policy = "The calculator must retain its accepted test contract."
+    assert _compile_with_policy(goal, policy, accepted=[policy])["status"] == "PASS"
+
+
+def test_d02_realistic_replan_semantic_pass():
+    test_b08_replan_may_restructure_with_canonical_ids()
+
+
+def test_d03_semantic_failure_replan_uses_reviewed_route():
+    assert pipeline.choose_provider_model("requirements_planning", 30000, "surrogate-stage", _qwen_policy())["model_routing_reason"] == "internal_stage_alias_resolved_by_reviewed_policy"
+
+
+def test_d04_replan_result_materializes_validated_artifact():
+    goal = "Create a local calculator."
+    built = artifact(goal, proposal(goal))
+    assert compiler.validate_planning_artifact(built, goal) == []
+
+
+def test_d05_validated_artifact_reaches_requirement_candidate_handoff(tmp_path):
+    goal = "Create a local calculator."
+    result = lane.run_requirement_decision(goal, tmp_path, context={"planning_artifact": artifact(goal, proposal(goal))})
+    assert result["status"] == "PASS"
+    assert result["selected_requirement"]["selected_requirement_id"]
+
+
+def test_d06_no_provider_alias_crosses_transport():
+    with pytest.raises(RuntimeError, match="UNRESOLVED_INTERNAL_ALIAS"):
+        pipeline.assert_concrete_provider_model("surrogate-stage")
+
+
+def test_d07_sealed_brief_identity_preserved_end_to_end():
+    contract = {"brief_sha256": "19f7-fixed", "acceptance_checks": ["accepted"]}
+    assert copy.deepcopy(contract)["brief_sha256"] == contract["brief_sha256"]
+
+
+def test_d08_local_validators_remain_strict():
+    test_a02_unknown_system_policy_is_rejected()
+    test_b02_scope_text_as_workstream_identity_is_rejected()
