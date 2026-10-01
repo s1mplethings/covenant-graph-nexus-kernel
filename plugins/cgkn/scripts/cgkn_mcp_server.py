@@ -23,6 +23,7 @@ TEST_CONFIRMATION = "RUN_PROJECT_TESTS"
 PROVIDER_MODES = ("live", "codex_surrogate", "deterministic_replay")
 PROVIDER_KEY_ENV_NAMES = (
     "CGKN_OPENAI_API_KEY_OVERRIDE",
+    "QWEN_API_KEY",
     "CGKN_OPENAI_API_KEY",
     "OPENAI_API_KEY",
 )
@@ -1034,6 +1035,12 @@ class CGKNPluginServer:
         value = str(source or "")
         if value == "CGKN_OPENAI_API_KEY_OVERRIDE":
             return "process_override"
+        if value == "QWEN_API_KEY(User)":
+            return "shared_qwen_user"
+        if value == "QWEN_API_KEY(Machine)":
+            return "shared_qwen_machine"
+        if value == "QWEN_API_KEY":
+            return "shared_qwen_process"
         if value == "CGKN_OPENAI_API_KEY(User)":
             return "canonical_user"
         if value == "CGKN_OPENAI_API_KEY(Machine)":
@@ -1065,6 +1072,11 @@ class CGKNPluginServer:
             "endpoint": str(result.get("endpoint", "")),
             "endpoint_mode": str(result.get("endpoint_mode", "")),
             "model": model,
+            "provider_name": "qwen" if model.lower().startswith("qwen") else "openai_compatible",
+            "credential_present": bool(result.get("configured")),
+            "credential_env_name": str(result.get("api_key_source", "")).split("(", 1)[0],
+            "base_url_host": self.connectivity._base_url_domain(str(result.get("base_url", ""))),
+            "free_tier_only": False,
             "attempts": int(result.get("attempts", 0) or 0),
             "tls_verify": bool(result.get("tls_verify", True)),
             "request_id": str(result.get("request_id", "")),

@@ -106,7 +106,10 @@ def _responses_endpoint(base_url: str) -> str:
 
 def _selected_provider_api_method(base_url: str, model: str = "") -> str:
     del model
-    return "chat_completions" if _is_gptsapi_base_url(base_url) else "responses"
+    return "chat_completions" if (
+        _is_gptsapi_base_url(base_url)
+        or _is_alibaba_model_studio_base_url(base_url)
+    ) else "responses"
 
 
 def _endpoint_mode_from_method(method: str) -> str:
@@ -138,12 +141,19 @@ def _build_openai_compatible_payload(
     reasoning_effort: str = "",
 ) -> dict[str, Any]:
     request_payload = dict(payload)
-    if _is_gptsapi_base_url(base_url):
+    if _selected_provider_api_method(base_url, model) == "chat_completions":
         if "input" in request_payload and "messages" not in request_payload:
             request_payload["messages"] = [{"role": "user", "content": str(request_payload.pop("input"))}]
         if "max_output_tokens" in request_payload and "max_tokens" not in request_payload:
             request_payload["max_tokens"] = request_payload.pop("max_output_tokens")
         request_payload.pop("input", None)
+        effort = str(reasoning_effort or "").strip().lower()
+        if (
+            effort == "none"
+            and _is_alibaba_model_studio_base_url(base_url)
+            and _supports_alibaba_qwen_reasoning_none(model)
+        ):
+            request_payload["enable_thinking"] = False
     else:
         if "messages" in request_payload and "input" not in request_payload:
             request_payload["input"] = _messages_to_input(request_payload.pop("messages"))
@@ -323,6 +333,8 @@ def _resolve_api_credentials() -> dict[str, str]:
     defaults = _load_local_notes_defaults()
     override_key = str(os.environ.get("CGKN_OPENAI_API_KEY_OVERRIDE", "")).strip()
     override_base_url = str(os.environ.get("CGKN_OPENAI_BASE_URL_OVERRIDE", "")).strip()
+    qwen_key = str(os.environ.get("QWEN_API_KEY", "")).strip()
+    qwen_base_url = str(os.environ.get("QWEN_BASE_URL", "")).strip()
     env_key = str(os.environ.get("OPENAI_API_KEY", "")).strip()
     env_base_url = str(os.environ.get("OPENAI_BASE_URL", "")).strip()
     compat_key = str(os.environ.get("CGKN_OPENAI_API_KEY", "")).strip()
@@ -341,9 +353,16 @@ def _resolve_api_credentials() -> dict[str, str]:
     user_legacy_base_url = _windows_env_value("CGNK_OPENAI_BASE_URL", "User")
     machine_legacy_key = _windows_env_value("CGNK_OPENAI_API_KEY", "Machine")
     machine_legacy_base_url = _windows_env_value("CGNK_OPENAI_BASE_URL", "Machine")
+    user_qwen_key = _windows_env_value("QWEN_API_KEY", "User")
+    user_qwen_base_url = _windows_env_value("QWEN_BASE_URL", "User")
+    machine_qwen_key = _windows_env_value("QWEN_API_KEY", "Machine")
+    machine_qwen_base_url = _windows_env_value("QWEN_BASE_URL", "Machine")
     notes_base_url = str(defaults.get("base_url", "")).strip()
     key_candidates = [
         ("CGKN_OPENAI_API_KEY_OVERRIDE", override_key),
+        ("QWEN_API_KEY(User)", user_qwen_key),
+        ("QWEN_API_KEY(Machine)", machine_qwen_key),
+        ("QWEN_API_KEY", qwen_key),
         ("CGKN_OPENAI_API_KEY(User)", user_compat_key),
         ("CGKN_OPENAI_API_KEY(Machine)", machine_compat_key),
         ("CGKN_OPENAI_API_KEY", compat_key),
@@ -359,6 +378,9 @@ def _resolve_api_credentials() -> dict[str, str]:
     ]
     base_candidates = [
         ("CGKN_OPENAI_BASE_URL_OVERRIDE", override_base_url),
+        ("QWEN_BASE_URL(User)", user_qwen_base_url),
+        ("QWEN_BASE_URL(Machine)", machine_qwen_base_url),
+        ("QWEN_BASE_URL", qwen_base_url),
         ("CGKN_OPENAI_BASE_URL(User)", user_compat_base_url),
         ("CGKN_OPENAI_BASE_URL(Machine)", machine_compat_base_url),
         ("CGKN_OPENAI_BASE_URL", compat_base_url),
@@ -577,8 +599,9 @@ def check_api(live: bool, timeout_sec: int, model: str, *, structured: bool = Fa
         result["ok"] = True
         result["status"] = "configured"
         return result
-    endpoint_mode = "chat" if _is_gptsapi_base_url(root) else "responses"
-    endpoint = _openai_compatible_endpoint(root)
+    selected_method = _selected_provider_api_method(root, model)
+    endpoint_mode = _endpoint_mode_from_method(selected_method)
+    endpoint = _openai_compatible_endpoint(root, model=model, requested_method=selected_method)
     payload = _build_provider_probe_payload(root, model, structured=structured)
     doc: dict[str, Any] | None = None
     error = ""

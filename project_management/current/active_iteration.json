@@ -1,49 +1,38 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-083",
+  "iteration_id": "ITER-084",
   "project_id": "cgkn",
-  "goal": "Repair the earliest reviewed Provider model-policy handoff so the existing sealed Attune request can produce real candidate provenance and safely reach formal resume evaluation.",
-  "backlog_item_ids": ["PB-062"],
-  "workflow_state": "closed",
-  "evidence_status": "BLOCKED_PROVIDER",
+  "goal": "Align the sole reviewed CGKN Provider route with Attune's working Qwen/DashScope environment and Chat Completions contract without changing provenance semantics.",
+  "backlog_item_ids": ["PB-063"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "The reviewed run's resolved model policy reaches requirements planning unchanged.",
-    "Provider/model incompatibility remains a classified fail-closed blocker and cannot create a candidate or provenance.",
-    "P01-P12 and provenance replay tests pass without Provider calls.",
-    "Exactly one bounded live validation produces a real Provider result, candidate, explicit provenance binding, and evaluated formal evidence.",
-    "resume safety is derived from canonical evidence and is never manually asserted.",
-    "Canonical repository publish verifies remote SHA equality."
+    "QWEN_API_KEY and QWEN_BASE_URL are the preferred shared credential contract without persisting secret values.",
+    "DashScope qwen3.7-flash uses OpenAI-compatible Chat Completions with thinking disabled.",
+    "Missing credentials and Provider failures remain fail-closed.",
+    "Q01-Q08 pass without Provider calls.",
+    "One bounded canonical Provider smoke determines whether provenance generation may resume.",
+    "Canonical publication verifies remote SHA equality."
   ],
   "quality_metrics": [
-    {"id": "QM-MODEL-POLICY", "measure": "pre-build calls diverging from reviewed resolved model policy", "target": "0", "method": "focused route-contract tests"},
-    {"id": "QM-FAKE-PROVENANCE", "measure": "invalid or absent Provider receipts accepted", "target": "0", "method": "P01-P12 adversarial tests"},
-    {"id": "QM-LIVE-CHAIN", "measure": "bounded live runs completing real result to provenance binding", "target": "1", "method": "canonical generation result inspection"},
-    {"id": "QM-REMOTE-TRUTH", "measure": "successful publish receipts without local/remote SHA equality", "target": "0", "method": "canonical publish receipt inspection"}
+    {"id": "QM-SHARED-CONFIG", "measure": "CGKN resolution differences from Attune Qwen contract", "target": "0", "method": "credential and transport contract tests"},
+    {"id": "QM-SECRET-LEAK", "measure": "secret values persisted or returned by diagnostics", "target": "0", "method": "redaction and plugin tests"},
+    {"id": "QM-LIVE-SMOKE", "measure": "bounded canonical Provider smoke attempts", "target": "1", "method": "CGKN Provider probe receipt"}
   ],
   "quality_activities": {
-    "prevention": ["Preserve one reviewed route and thread its resolved policy into every pre-build Provider stage", "Keep provenance gates fail-closed"],
-    "assurance": ["Exercise missing, stale, wrong-brief, wrong-run, and valid provenance contracts without API calls", "Bind the kernel contract guard to the model-policy handoff"],
-    "control": ["Run focused provenance and requirement-planning tests before one live call", "Inspect provider call, candidate, formal evidence, and resume state independently"],
-    "improvement": ["Report earliest Provider compatibility failures separately from downstream provenance symptoms"]
+    "prevention": ["Reuse Attune's QWEN environment names and Chat Completions semantics", "Retain the reviewed model-policy and provenance handoffs"],
+    "assurance": ["Test precedence, missing-key behavior, endpoint selection, payload shape, and safe diagnostics"],
+    "control": ["Run zero-API tests before one live smoke", "Publish only through CanonicalRepoPublishGate"],
+    "improvement": ["Remove account ambiguity by exposing only safe resolved configuration metadata"]
   },
   "interface_expectations": [
-    "The reviewed Provider route remains the only production candidate author",
-    "Provider model routing consumes the resolved per-run policy",
-    "ProductionCandidateProvenance remains the independent candidate/result binding",
-    "Formal evidence and resume gates remain separate from transport success",
-    "CanonicalRepoPublishGate remains the only repository publication authority"
+    "Attune remains read-only reference configuration",
+    "The reviewed Provider route remains the sole production generation path",
+    "Provider diagnostics never reveal credentials",
+    "Formal evidence and resume safety remain derived gates"
   ],
-  "evidence_refs": [
-    "tests/test_general_requirement_compiler.py",
-    "tests/test_production_candidate_provenance.py",
-    "tests/test_codex_capability_supervisor.py",
-    "project_management/summaries/ITER-083-production-provenance-closure.md"
-  ],
-  "review": {"outcome": "accepted_with_external_blocker", "feedback": ["Scoped repair and canonical publish pass; the sole live Provider attempt was rejected because the configured DashScope free quota is exhausted, so no candidate or formal resume evidence exists."], "accepted_backlog_item_ids": []},
-  "retrospective": {
-    "worked": ["One resolved model policy now reaches requirements planning", "The sealed brief is validated, snapshotted, and logged before Provider invocation", "The live attempt selected qwen3.7-flash and classified the non-retryable HTTP 403 without creating provenance"],
-    "did_not_work": ["The configured Provider account had no available quota, so candidate generation and formal resume evaluation were unreachable"],
-    "experiments": ["Thread one resolved policy rather than adding endpoint-specific model mappings"]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Prefer a shared QWEN environment contract over copying account-specific CGKN credentials"]}
 }

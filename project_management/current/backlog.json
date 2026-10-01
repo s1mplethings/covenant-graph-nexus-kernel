@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-063",
+      "title": "Align CGKN with Attune Qwen provider configuration",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Use one QWEN credential and DashScope transport contract for Attune and the reviewed CGKN route while preserving provenance gates.",
+      "acceptance": [
+        "shared QWEN environment names take precedence over stale CGKN account values",
+        "DashScope uses qwen3.7-flash through Chat Completions with thinking disabled",
+        "safe diagnostics expose configuration identity but no credential",
+        "one bounded live smoke decides whether the sealed provenance run may resume",
+        "canonical publish verifies remote SHA equality"
+      ]
+    },
+    {
       "id": "PB-062",
       "title": "Close reviewed Provider production provenance",
       "priority": 1,

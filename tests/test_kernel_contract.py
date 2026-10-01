@@ -1221,6 +1221,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("provider_qwen_feature_unit_review_enabled", pipeline)
         self.assertIn("provider_qwen_bounded_generation_reasoning_none_enabled", pipeline)
         self.assertIn("def _supports_alibaba_qwen_reasoning_none", connectivity)
+        self.assertIn('"QWEN_API_KEY(User)"', connectivity)
+        self.assertIn('request_payload["enable_thinking"] = False', connectivity)
         self.assertIn("CGKN_QWEN_BOUNDED_GENERATION_REASONING_NONE", pipeline)
         self.assertIn('"semantic_feature_unit_review"', pipeline)
         self.assertIn("max_tokens=1800 if is_feature_unit_review", pipeline)

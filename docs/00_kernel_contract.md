@@ -450,6 +450,8 @@ The reviewed run resolves one `ProviderModelRoutingPolicy` before canonical requ
 
 The formal Codex conversation adapter must carry the validated `CGKNCodexCapabilityBrief` path from the Agent Kit entry point into the sole reviewed Provider run. The run-local pipeline validates and snapshots that brief, records its digest in the planning contract, and rejects a changed brief on resume; merely accepting the CLI flag without consuming the brief is not a valid binding.
 
+Alibaba Qwen/DashScope integration shares the product-facing `QWEN_API_KEY` and `QWEN_BASE_URL` environment contract, uses the OpenAI-compatible Chat Completions endpoint, and projects explicit no-thinking requests as `enable_thinking=false`. The resolver may retain older CGKN/OpenAI names only as lower-priority compatibility inputs; it never persists or reports a credential value.
+
 Canonical source enumeration prunes the same root tool environments, caches, symlinks, and junctions that are excluded from the candidate hash before descending into them. Excluded dependency environments such as `.cgkn_test_env` cannot affect the hash and must not be recursively scanned during provenance or causal-trace inspection.
 
 Canonical customer-runtime evidence stores at most the bounded observation body and hashes those exact stored bytes. It must not hash an unbounded pre-truncation response while recording only a truncated response, because the inspector must be able to reproduce every evidence hash from the persisted artifact.

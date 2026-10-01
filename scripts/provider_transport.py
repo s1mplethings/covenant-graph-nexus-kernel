@@ -7,6 +7,7 @@ import re
 import ssl
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -57,6 +58,13 @@ def _is_gptsapi_base_url(value: str) -> bool:
     }
 
 
+def _is_alibaba_model_studio_base_url(value: str) -> bool:
+    hostname = str(urllib.parse.urlparse(str(value or "").strip()).hostname or "").lower()
+    return hostname in {"dashscope.aliyuncs.com", "dashscope-intl.aliyuncs.com"} or hostname.endswith(
+        ".maas.aliyuncs.com"
+    )
+
+
 def normalize_provider_api_method(value: str | None) -> str:
     text = str(value or "").strip().lower().replace("-", "_")
     aliases = {
@@ -78,7 +86,7 @@ def select_provider_api_method(base_url: str, model: str, requested_method: str 
     if requested:
         return requested
     del model
-    if _is_gptsapi_base_url(base_url):
+    if _is_gptsapi_base_url(base_url) or _is_alibaba_model_studio_base_url(base_url):
         return PROVIDER_API_CHAT_COMPLETIONS
     return PROVIDER_API_RESPONSES
 

@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-PROVIDER-ALIGNMENT-001",
+      "description": "CGKN may resolve a different DashScope account or API method than Attune despite sharing a model name and endpoint host.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Prefer the shared QWEN environment contract, match Chat Completions payload semantics, and verify once through the canonical probe.",
+      "state": "active"
+    },
+    {
       "id": "RK-PROVENANCE-001",
       "description": "A pre-build Provider stage silently replaces the reviewed route model with an endpoint-incompatible default, preventing the real result and provenance chain from materializing.",
       "probability": "high",
