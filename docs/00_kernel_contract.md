@@ -452,6 +452,8 @@ The formal Codex conversation adapter must carry the validated `CGKNCodexCapabil
 
 Alibaba Qwen/DashScope integration shares the product-facing `QWEN_API_KEY` and `QWEN_BASE_URL` environment contract, uses the OpenAI-compatible Chat Completions endpoint, and projects explicit no-thinking requests as `enable_thinking=false`. The resolver may retain older CGKN/OpenAI names only as lower-priority compatibility inputs; it never persists or reports a credential value.
 
+Revalidating the same formal Agent Kit goal after a terminal failed generation creates a fresh production run identity through `start_generation_from_income`; it must not replay the old `REWORK_BLOCKED` result as though a new reviewed run occurred. Waiting surrogate/replan states continue through their same-run checkpoints, while successful terminal deliveries are not implicitly regenerated.
+
 Canonical source enumeration prunes the same root tool environments, caches, symlinks, and junctions that are excluded from the candidate hash before descending into them. Excluded dependency environments such as `.cgkn_test_env` cannot affect the hash and must not be recursively scanned during provenance or causal-trace inspection.
 
 Canonical customer-runtime evidence stores at most the bounded observation body and hashes those exact stored bytes. It must not hash an unbounded pre-truncation response while recording only a truncated response, because the inspector must be able to reproduce every evidence hash from the persisted artifact.

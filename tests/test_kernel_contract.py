@@ -318,6 +318,16 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("requirements_planning", contract)
         self.assertIn("same resolved policy", contract)
 
+    def test_terminal_failed_agent_kit_generation_starts_a_fresh_reviewed_run(self) -> None:
+        source = read_source("scripts/codex_conversation.py")
+        contract = read_source("docs/00_kernel_contract.md")
+        formal_adapter = function_body(source, "run_formal_generation_once")
+
+        self.assertIn("formal_generation_requires_new_run", formal_adapter)
+        self.assertIn("start_generation_from_income(", formal_adapter)
+        self.assertIn('reason="agent_kit_terminal_failure_revalidation"', formal_adapter)
+        self.assertIn("fresh production run identity", contract)
+
     def test_provider_response_is_staged_and_causally_applied_before_evidence(self) -> None:
         source = read_source("scripts/codex_conversation.py")
         provider_job = function_body(source, "run_provider_generation_job")

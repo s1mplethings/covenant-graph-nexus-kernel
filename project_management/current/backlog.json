@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-064",
+      "title": "Restart terminal failed formal generation on explicit revalidation",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Prevent a healthy Provider revalidation from replaying an obsolete REWORK_BLOCKED result without executing the reviewed route.",
+      "acceptance": [
+        "terminal failure statuses create a fresh production entry",
+        "waiting checkpoint states resume the same run",
+        "successful terminal states are not regenerated",
+        "provenance and sealed brief gates remain fail-closed",
+        "canonical publish verifies remote SHA equality"
+      ]
+    },
+    {
       "id": "PB-063",
       "title": "Align CGKN with Attune Qwen provider configuration",
       "priority": 1,

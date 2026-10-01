@@ -1,46 +1,36 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-084",
+  "iteration_id": "ITER-085",
   "project_id": "cgkn",
-  "goal": "Align the sole reviewed CGKN Provider route with Attune's working Qwen/DashScope environment and Chat Completions contract without changing provenance semantics.",
-  "backlog_item_ids": ["PB-063"],
-  "workflow_state": "closed",
-  "evidence_status": "BLOCKED_ENVIRONMENT",
+  "goal": "Allow an explicitly revalidated formal Agent Kit goal to create a fresh production run after a terminal failed generation without weakening same-run or provenance gates.",
+  "backlog_item_ids": ["PB-064"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "QWEN_API_KEY and QWEN_BASE_URL are the preferred shared credential contract without persisting secret values.",
-    "DashScope qwen3.7-flash uses OpenAI-compatible Chat Completions with thinking disabled.",
-    "Missing credentials and Provider failures remain fail-closed.",
-    "Q01-Q08 pass without Provider calls.",
-    "One bounded canonical Provider smoke determines whether provenance generation may resume.",
-    "Canonical publication verifies remote SHA equality."
+    "REWORK_BLOCKED and equivalent terminal failures create a new production run identity.",
+    "Waiting surrogate and requirement-replan states retain same-run resume behavior.",
+    "Successful terminal generations are not implicitly rerun.",
+    "The sealed brief and reviewed Provider route remain unchanged.",
+    "Focused zero-API tests and canonical publish pass before revalidation."
   ],
   "quality_metrics": [
-    {"id": "QM-SHARED-CONFIG", "measure": "CGKN resolution differences from Attune Qwen contract", "target": "0", "method": "credential and transport contract tests"},
-    {"id": "QM-SECRET-LEAK", "measure": "secret values persisted or returned by diagnostics", "target": "0", "method": "redaction and plugin tests"},
-    {"id": "QM-LIVE-SMOKE", "measure": "bounded canonical Provider smoke attempts", "target": "1", "method": "CGKN Provider probe receipt"}
+    {"id": "QM-STALE-RESULT", "measure": "explicit revalidations returning an old terminal failure without execution", "target": "0", "method": "formal adapter contract tests"},
+    {"id": "QM-RUN-IDENTITY", "measure": "fresh retries reusing failed production run identity", "target": "0", "method": "production entry inspection"}
   ],
   "quality_activities": {
-    "prevention": ["Reuse Attune's QWEN environment names and Chat Completions semantics", "Retain the reviewed model-policy and provenance handoffs"],
-    "assurance": ["Test precedence, missing-key behavior, endpoint selection, payload shape, and safe diagnostics"],
-    "control": ["Run zero-API tests before one live smoke", "Publish only through CanonicalRepoPublishGate"],
-    "improvement": ["Remove account ambiguity by exposing only safe resolved configuration metadata"]
+    "prevention": ["Separate same-run waiting checkpoints from terminal failure revalidation"],
+    "assurance": ["Test restartable and non-restartable status sets", "Guard the canonical adapter call path"],
+    "control": ["Run focused formal/provenance tests before canonical publication"],
+    "improvement": ["Make explicit revalidation semantics executable rather than inferred from session presence"]
   },
   "interface_expectations": [
-    "Attune remains read-only reference configuration",
-    "The reviewed Provider route remains the sole production generation path",
-    "Provider diagnostics never reveal credentials",
-    "Formal evidence and resume safety remain derived gates"
+    "start_generation_from_income remains the production-entry authority",
+    "ProviderModelRoutingPolicy and sealed brief forwarding remain intact",
+    "No failed receipt or candidate is reused",
+    "Formal evidence and resume safety remain derived"
   ],
-  "evidence_refs": [
-    "tests/test_qwen_provider_alignment.py",
-    "tests/test_provider_api_transport.py",
-    "project_management/summaries/ITER-084-qwen-provider-alignment.md"
-  ],
-  "review": {"outcome": "accepted_with_environment_blocker", "feedback": ["Source, tests, and canonical publish pass. The already-running MCP server retained its pre-patch credential resolver and Responses routing, so the sole smoke still used the old quota-restricted account."], "accepted_backlog_item_ids": []},
-  "retrospective": {
-    "worked": ["Shared QWEN credential precedence and DashScope Chat Completions behavior are executable contracts", "No secret value entered source, evidence, diagnostics, or Git", "Canonical publish verified the remote commit"],
-    "did_not_work": ["The persistent CGKN MCP process did not reload the published plugin and connectivity modules before the one-call smoke budget was consumed"],
-    "experiments": ["Restart or reload the CGKN plugin process before the next explicitly authorized smoke; do not repeat the call in the stale process"]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Treat terminal failure revalidation as a fresh production identity while preserving waiting-state resume"]}
 }

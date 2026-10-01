@@ -8953,6 +8953,19 @@ def handle_attachment_message(
 # renders returned text or local artifact links in the active task.
 
 
+FORMAL_RESTARTABLE_FAILURE_STATUSES = {
+    "blocked",
+    "error",
+    "failed",
+    "rework_blocked",
+}
+
+
+def formal_generation_requires_new_run(status: object) -> bool:
+    """Return whether a terminal failed formal turn needs a fresh production identity."""
+    return str(status or "").strip().lower() in FORMAL_RESTARTABLE_FAILURE_STATUSES
+
+
 def run_formal_generation_once(
     project_root: str | pathlib.Path,
     *,
@@ -9035,6 +9048,20 @@ def run_formal_generation_once(
                 timeout,
                 announce_start=False,
                 reason="agent_kit_surrogate_resume",
+                background=False,
+            )
+        elif formal_generation_requires_new_run(generation.get("status")):
+            start_generation_from_income(
+                client,
+                conversation_id,
+                session_dir,
+                log_dir,
+                model,
+                timeout,
+                session,
+                reason="agent_kit_terminal_failure_revalidation",
+                provider_mode=provider_mode,
+                replay_dir=replay_dir,
                 background=False,
             )
     session = load_session(session_dir, conversation_id)
