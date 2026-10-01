@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Make Provider transport success explicitly pass strict planning validation before admission, while accepting safely extractable single JSON objects without an unnecessary live repair call.",
   "backlog_item_ids": ["PB-065"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "BLOCKED_PROVIDER",
   "acceptance_criteria": [
     "A safely extractable single JSON object reaches the existing strict planning schema validator without a live envelope-repair request.",
     "Invalid JSON or invalid planning schema remains unadmitted and produces no candidate input artifact.",
@@ -30,7 +30,32 @@
     "A validated artifact reference is the candidate-planning handoff",
     "Formal evidence and resume safety remain derived"
   ],
-  "evidence_refs": [],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "evidence_refs": [
+    "tests/test_provider_result_admission.py",
+    "tests/test_general_requirement_compiler.py",
+    "tests/test_production_candidate_provenance.py",
+    "project_management/summaries/ITER-086-provider-result-admission.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_provider_blocker",
+    "feedback": [
+      "Transport success is now separated from strict planning-result admission and safely extractable single JSON objects avoid a redundant envelope-repair call.",
+      "The bounded live revalidation created a source-bound run, completed one 60-second transport timeout, began a second request, and was terminated by the MCP command's 120-second process boundary before the canonical retry policy completed."
+    ],
+    "accepted_backlog_item_ids": ["PB-065"]
+  },
+  "retrospective": {
+    "worked": [
+      "Persisted run evidence disproved the assumption that the old HTTP 200 was already a valid admissible Provider result",
+      "The repair preserved strict schema validation while accepting one safely extractable JSON object",
+      "Zero-API scoped verification passed 222 tests and canonical publication verified remote SHA equality"
+    ],
+    "did_not_work": [
+      "The live Qwen transport did not produce a completed successful response before the MCP process timeout",
+      "The outer generation result remained the prior run because the interrupted new run never reached result finalization"
+    ],
+    "experiments": [
+      "Keep command lifetime distinct from per-request timeout and canonical retry budget when scheduling future production validation"
+    ]
+  }
 }

@@ -7,7 +7,7 @@
       "id": "PB-065",
       "title": "Separate Provider transport success from formal result admission",
       "priority": 1,
-      "state": "in_progress",
+      "state": "completed_with_limits",
       "value": "Admit a Provider planning result only after identity-bound strict validation, while avoiding a redundant live repair for a safely extractable single JSON object.",
       "acceptance": [
         "transport success alone never authorizes formal admission",
