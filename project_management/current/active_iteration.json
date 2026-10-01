@@ -34,7 +34,7 @@
     "G01-G14",
     "R01-R10",
     "S01-S07",
-    "97 targeted planning, admission, MCP, and plugin identity tests"
+    "113 targeted planning, admission, transport, MCP, and plugin identity tests"
   ],
   "review": {
     "outcome": "accepted",

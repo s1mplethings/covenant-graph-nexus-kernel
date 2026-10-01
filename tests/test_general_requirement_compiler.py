@@ -618,6 +618,16 @@ def test_s01_response_format_uses_canonical_schema():
     assert fmt["type"] == "json_schema"
     assert fmt["json_schema"]["strict"] is True
     assert fmt["json_schema"]["schema"] == compiler.planning_proposal_json_schema()
+    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    assert pipeline.provider_reasoning_effort(base_url, "qwen3.7-flash", "requirements_planning") == "none"
+    payload = pipeline.check_connectivity._build_openai_compatible_payload(
+        base_url,
+        {"model": "qwen3.7-flash", "messages": [], "response_format": fmt},
+        model="qwen3.7-flash",
+        reasoning_effort="none",
+    )
+    assert payload["enable_thinking"] is False
+    assert "max_tokens" not in payload
 
 
 def test_s02_response_format_projects_grounding_enum():

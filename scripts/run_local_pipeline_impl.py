@@ -7718,6 +7718,12 @@ def provider_reasoning_effort(base_url: str, model: str, stage: str) -> str:
         "none"
         if provider_qwen_bounded_generation_reasoning_none_enabled(base_url, model, stage)
         or provider_qwen_feature_unit_review_enabled(base_url, model, stage)
+        or (
+            str(stage or "").strip().lower() == "requirements_planning"
+            and check_connectivity._is_alibaba_model_studio_base_url(base_url)
+            and check_connectivity._supports_alibaba_qwen_reasoning_none(model)
+            and check_connectivity._selected_provider_api_method(base_url, model) == "chat_completions"
+        )
         else ""
     )
 
