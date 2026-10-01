@@ -9,6 +9,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import uuid
 from datetime import datetime, timezone
 from importlib import resources
 from typing import Any, Iterable
@@ -430,3 +432,165 @@ def submit_surrogate_response(
 
 def run_generation(argv: list[str], *, cgkn_root: pathlib.Path, timeout: int) -> subprocess.CompletedProcess[str]:
     return _run(argv, cwd=cgkn_root, timeout=timeout)
+
+
+def generation_job_path(artifact_dir: pathlib.Path) -> pathlib.Path:
+    return pathlib.Path(artifact_dir) / "generation_job.json"
+
+
+def _process_alive(pid: int) -> bool:
+    if int(pid or 0) <= 0:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+def _run_metrics(run_dir: str | pathlib.Path) -> dict[str, Any]:
+    path = pathlib.Path(str(run_dir or "")) / "artifacts" / "provider_execution_metrics.json"
+    if not path.is_file():
+        return {}
+    try:
+        return read_json(path)
+    except AgentKitError:
+        return {}
+
+
+def _transport_attempt_summary(run_dir: str | pathlib.Path) -> dict[str, int]:
+    path = pathlib.Path(str(run_dir or "")) / "provider_phase_log.jsonl"
+    summary = {"completed": 0, "successes": 0, "timeouts": 0, "admitted": 0}
+    if not path.is_file():
+        return summary
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return summary
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("event") == "provider_result_admitted":
+            summary["admitted"] += 1
+            continue
+        if event.get("event") != "provider_transport_attempt":
+            continue
+        summary["completed"] += 1
+        if str(event.get("status", "")).lower() == "ok":
+            summary["successes"] += 1
+        elif "timeout" in json.dumps(event.get("transport_timing", {}), ensure_ascii=False).lower() or event.get("transport_timing", {}).get("failure_phase") == "connect_or_response_headers":
+            summary["timeouts"] += 1
+    return summary
+
+
+def generation_job_status(artifact_dir: pathlib.Path) -> dict[str, Any]:
+    """Project one managed worker and its run-local canonical evidence without mutation."""
+    path = generation_job_path(artifact_dir)
+    if not path.is_file():
+        return {"exists": False, "state": "NOT_STARTED", "job_alive": False}
+    job = read_json(path)
+    pid = int(job.get("process_id", 0) or 0)
+    alive = _process_alive(pid)
+    state = str(job.get("state", "UNKNOWN") or "UNKNOWN").upper()
+    terminal = state in {"COMPLETE", "REWORK_BLOCKED", "FAILED", "CANCELLED"}
+    if not terminal and not alive and pid:
+        state = "FAILED"
+        terminal_reason = "WORKER_PROCESS_NOT_ALIVE"
+    else:
+        terminal_reason = str(job.get("terminal_reason", "") or "")
+    metrics = _run_metrics(str(job.get("run_dir", "") or ""))
+    result_path = pathlib.Path(str(job.get("result_path", "") or ""))
+    result: dict[str, Any] = {}
+    if result_path.is_file():
+        try:
+            candidate = read_json(result_path)
+            if not job.get("run_id") or candidate.get("run_id") == job.get("run_id"):
+                result = candidate
+        except AgentKitError:
+            result = {}
+    attempts_started = int(metrics.get("provider_api_call_count", 0) or 0)
+    attempts = _transport_attempt_summary(str(job.get("run_dir", "") or ""))
+    attempts_completed = int(attempts.get("completed", 0) or job.get("provider_attempts_completed", 0) or 0)
+    return {
+        **job,
+        "exists": True,
+        "state": state,
+        "job_alive": alive,
+        "terminal_reason": terminal_reason,
+        "provider_attempts_started": attempts_started,
+        "provider_attempts_completed": attempts_completed,
+        "provider_successes": int(attempts.get("successes", 0) or job.get("provider_successes", 0) or 0),
+        "provider_timeouts": int(attempts.get("timeouts", 0) or job.get("provider_timeouts", 0) or 0),
+        "admitted_provider_result_present": bool(attempts.get("admitted", 0) or job.get("admitted_provider_result_present")),
+        "candidate_present": bool(result.get("candidate_hash")),
+        "formal_evidence_status": str(result.get("formal_evidence_status", "NOT_EVALUATED")),
+        "resume_safe": bool((result.get("resume", {}) or {}).get("safe", False)),
+    }
+
+
+def start_generation_job(
+    argv: list[str],
+    *,
+    cgkn_root: pathlib.Path,
+    artifact_dir: pathlib.Path,
+    start_timeout: float = 15.0,
+    popen_factory: Any = subprocess.Popen,
+) -> dict[str, Any]:
+    """Start the canonical CLI as one observable worker independent of the caller."""
+    current = generation_job_status(artifact_dir)
+    if current.get("state") in {"STARTING", "RUNNING", "WAITING"} and current.get("job_alive"):
+        return {**current, "started": False, "deduplicated": True}
+    job_id = "generation-job-" + uuid.uuid4().hex
+    path = generation_job_path(artifact_dir)
+    stdout_path = pathlib.Path(artifact_dir) / "generation_job.stdout.log"
+    stderr_path = pathlib.Path(artifact_dir) / "generation_job.stderr.log"
+    result_path = pathlib.Path(artifact_dir) / "generation_result.json"
+    command = [*argv, "--generation-job-state", str(path), "--generation-job-id", job_id]
+    initial = {
+        "kind": "CGKNGenerationJob",
+        "schema_version": "1.0",
+        "job_id": job_id,
+        "run_id": "",
+        "state": "STARTING",
+        "process_id": 0,
+        "started_at": now(),
+        "updated_at": now(),
+        "run_dir": "",
+        "result_path": str(result_path.resolve()),
+        "stdout_path": str(stdout_path.resolve()),
+        "stderr_path": str(stderr_path.resolve()),
+        "terminal_reason": "",
+    }
+    write_json(path, initial)
+    creationflags = 0
+    popen_kwargs: dict[str, Any] = {"cwd": str(cgkn_root), "close_fds": True}
+    if os.name == "nt":
+        creationflags = int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+        popen_kwargs["creationflags"] = creationflags
+    else:
+        popen_kwargs["start_new_session"] = True
+    try:
+        with stdout_path.open("a", encoding="utf-8") as stdout, stderr_path.open("a", encoding="utf-8") as stderr:
+            process = popen_factory(command, stdout=stdout, stderr=stderr, **popen_kwargs)
+    except OSError as exc:
+        failed = {**initial, "state": "FAILED", "terminal_reason": "JOB_START_FAILED", "error": redact(str(exc)), "updated_at": now()}
+        write_json(path, failed)
+        raise AgentKitError(f"Generation job could not start: {exc}") from exc
+    try:
+        observed_after_spawn = read_json(path)
+    except AgentKitError:
+        observed_after_spawn = initial
+    started = {**initial, **observed_after_spawn, "process_id": int(process.pid), "updated_at": now()}
+    write_json(path, started)
+    deadline = time.monotonic() + max(0.0, float(start_timeout))
+    while time.monotonic() < deadline:
+        observed = generation_job_status(artifact_dir)
+        if observed.get("run_id") or observed.get("state") in {"FAILED", "REWORK_BLOCKED", "COMPLETE", "CANCELLED"}:
+            return {**observed, "started": True, "deduplicated": False}
+        time.sleep(0.05)
+    observed = generation_job_status(artifact_dir)
+    return {**observed, "started": True, "deduplicated": False}

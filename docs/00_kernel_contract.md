@@ -1055,6 +1055,19 @@ validated materialized artifact records the response-to-artifact admission
 relationship; `used_in_formal_chain` is evidence of that relationship, not a
 boolean inferred directly from HTTP status.
 
+For the Agent Kit MCP surface, one long-running formal generation is owned by a
+managed worker process rather than the lifetime of the initiating MCP request.
+The start operation executes the unchanged canonical conversation-generation
+command, returns the existing `production-*` run identity after production
+entry is persisted, and deduplicates a live worker for the same project. The
+project-local generation-job record is runtime observation state, not another
+generation identity or formal authority. Read-only status projects worker
+liveness and canonical run-local Provider metrics without starting, resuming,
+or cancelling work. Client disconnect is not cancellation; a missing worker for
+a persisted nonterminal job is reported fail-closed. Provider retry, result
+admission, candidate, provenance, evidence, packaging, and resume semantics stay
+with their existing canonical owners.
+
 Ungrounded Provider additions cannot become canonical capabilities,
 workstreams, constraints, or acceptance anchors. Silent reduction of an
 all-results goal to sampling, automatic behavior to manual-only work, playable

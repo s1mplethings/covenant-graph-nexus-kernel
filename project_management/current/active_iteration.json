@@ -1,61 +1,36 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-086",
+  "iteration_id": "ITER-087",
   "project_id": "cgkn",
-  "goal": "Make Provider transport success explicitly pass strict planning validation before admission, while accepting safely extractable single JSON objects without an unnecessary live repair call.",
-  "backlog_item_ids": ["PB-065"],
-  "workflow_state": "closed",
-  "evidence_status": "BLOCKED_PROVIDER",
+  "goal": "Decouple the canonical Agent Kit generation worker lifetime from one MCP request while preserving one production run identity and all existing semantic gates.",
+  "backlog_item_ids": ["PB-066"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "A safely extractable single JSON object reaches the existing strict planning schema validator without a live envelope-repair request.",
-    "Invalid JSON or invalid planning schema remains unadmitted and produces no candidate input artifact.",
-    "Admission is represented by a validated materialized planning artifact and an identity-bound admission event, not by flipping a reporting flag.",
-    "Timeout diagnostics remain distinct from generation admission.",
-    "Zero-API admission, provenance, formal-chain, kernel, and management tests pass before canonical publication."
+    "MCP generation start returns a production run identity before Provider generation completes.",
+    "The managed worker survives normal MCP request completion and remains observable through read-only status.",
+    "A repeated start deduplicates an existing live worker.",
+    "Run-local Provider metrics remain the call-accounting authority.",
+    "The reviewed route, retry policy, sealed brief, admission, candidate, provenance, formal evidence, and resume gates remain unchanged."
   ],
   "quality_metrics": [
-    {"id": "QM-FALSE-ADMISSION", "measure": "invalid Provider responses admitted into planning", "target": "0", "method": "schema-negative admission tests"},
-    {"id": "QM-UNNECESSARY-REPAIR", "measure": "safely extractable valid JSON responses requiring a second Provider call", "target": "0", "method": "fenced/commentary response tests"}
+    {"id": "QM-REQUEST-OWNERSHIP", "measure": "managed generation workers terminated by normal MCP request completion", "target": "0", "method": "lifecycle tests"},
+    {"id": "QM-DUPLICATE-WORKER", "measure": "duplicate live workers for one project generation job", "target": "0", "method": "deduplication tests"}
   ],
   "quality_activities": {
-    "prevention": ["Separate transport success, schema validation, and formal admission"],
-    "assurance": ["Replay timeout and structured-response cases without Provider calls", "Retain strict proposal validation"],
-    "control": ["Run admission and provenance regressions before canonical publication"],
-    "improvement": ["Persist safe admission/failure events so HTTP success cannot be mistaken for formal success"]
+    "prevention": ["Assign generation completion to one managed worker instead of the MCP request"],
+    "assurance": ["Exercise lifecycle, stale-worker, deduplication, and metrics projection without Provider calls"],
+    "control": ["Run lifecycle, admission, provenance, formal, kernel, and MCP regressions before publication"],
+    "improvement": ["Keep interaction-channel timeouts separate from bounded generation time"]
   },
   "interface_expectations": [
-    "provider_stage_checkpoint remains the sole planning-artifact admission boundary",
+    "cgkn_generate starts the existing canonical command and cgkn_status only observes it",
+    "The existing production-* run identity remains canonical",
     "ProviderModelRoutingPolicy and sealed brief forwarding remain intact",
-    "A validated artifact reference is the candidate-planning handoff",
     "Formal evidence and resume safety remain derived"
   ],
-  "evidence_refs": [
-    "tests/test_provider_result_admission.py",
-    "tests/test_general_requirement_compiler.py",
-    "tests/test_production_candidate_provenance.py",
-    "project_management/summaries/ITER-086-provider-result-admission.md"
-  ],
-  "review": {
-    "outcome": "accepted_with_provider_blocker",
-    "feedback": [
-      "Transport success is now separated from strict planning-result admission and safely extractable single JSON objects avoid a redundant envelope-repair call.",
-      "The bounded live revalidation created a source-bound run, completed one 60-second transport timeout, began a second request, and was terminated by the MCP command's 120-second process boundary before the canonical retry policy completed."
-    ],
-    "accepted_backlog_item_ids": ["PB-065"]
-  },
-  "retrospective": {
-    "worked": [
-      "Persisted run evidence disproved the assumption that the old HTTP 200 was already a valid admissible Provider result",
-      "The repair preserved strict schema validation while accepting one safely extractable JSON object",
-      "Zero-API scoped verification passed 222 tests and canonical publication verified remote SHA equality"
-    ],
-    "did_not_work": [
-      "The live Qwen transport did not produce a completed successful response before the MCP process timeout",
-      "The outer generation result remained the prior run because the interrupted new run never reached result finalization"
-    ],
-    "experiments": [
-      "Keep command lifetime distinct from per-request timeout and canonical retry budget when scheduling future production validation"
-    ]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }

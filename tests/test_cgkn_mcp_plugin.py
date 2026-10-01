@@ -274,7 +274,7 @@ def test_tool_arguments_reject_secrets_and_generation_requires_confirmation(
     assert "Unsupported arguments fields" in wrong_type["structuredContent"]["error"]
 
 
-def test_generate_rejects_a_stale_result_when_runner_does_not_update_it(
+def test_generate_returns_managed_job_without_reusing_a_stale_result(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -297,19 +297,28 @@ def test_generate_rejects_a_stale_result_when_runner_does_not_update_it(
     monkeypatch.setattr(server, "_validated_brief", lambda _project: ({}, brief_path, ROOT))
     monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
     monkeypatch.setattr(server.core, "generation_command", lambda *args, **kwargs: ["runner"])
-    monkeypatch.setattr(server.core, "run_generation", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        server.core,
+        "start_generation_job",
+        lambda *args, **kwargs: {
+            "started": True, "deduplicated": False, "run_id": "production-fresh",
+            "state": "RUNNING", "job_alive": True,
+        },
+    )
 
-    with pytest.raises(module.ToolError, match="without updating generation_result.json"):
-        server.generate(
-            {
-                "project_root": str(project),
-                "goal": "Generate a sample",
-                "confirmation": module.GENERATION_CONFIRMATION,
-            }
-        )
+    result = server.generate(
+        {
+            "project_root": str(project),
+            "goal": "Generate a sample",
+            "confirmation": module.GENERATION_CONFIRMATION,
+        }
+    )
+    assert result["run_id"] == "production-fresh"
+    assert result["state"] == "RUNNING"
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "BLOCKED"
 
 
-def test_generate_embeds_compact_failure_diagnosis(
+def test_generate_projects_managed_start_failure_state(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -330,14 +339,13 @@ def test_generate_embeds_compact_failure_diagnosis(
     monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
     monkeypatch.setattr(server.core, "generation_command", lambda *args, **kwargs: ["runner"])
 
-    def write_blocked_result(*_args: Any, **_kwargs: Any) -> None:
-        result_path.write_text('{"status":"BLOCKED","reason":"provider_fact_blocked"}\n', encoding="utf-8")
-
-    monkeypatch.setattr(server.core, "run_generation", write_blocked_result)
     monkeypatch.setattr(
-        server,
-        "_failure_diagnosis",
-        lambda _project: {"has_failure": True, "primary_failure": {"category": "provider_output_contract"}},
+        server.core,
+        "start_generation_job",
+        lambda *args, **kwargs: {
+            "started": True, "deduplicated": False, "run_id": "",
+            "state": "FAILED", "job_alive": False, "terminal_reason": "JOB_START_FAILED",
+        },
     )
 
     result = server.generate(
@@ -349,7 +357,8 @@ def test_generate_embeds_compact_failure_diagnosis(
     )
 
     assert result["ok"] is False
-    assert result["diagnosis"]["primary_failure"]["category"] == "provider_output_contract"
+    assert result["state"] == "FAILED"
+    assert result["job"]["terminal_reason"] == "JOB_START_FAILED"
 
 
 def test_failure_diagnosis_separates_root_cause_secondary_effects_and_unsafe_resume(

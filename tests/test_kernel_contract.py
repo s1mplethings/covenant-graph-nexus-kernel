@@ -330,6 +330,16 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Provider transport success and formal planning-result admission are distinct", contract)
         self.assertIn("cannot become candidate input", contract)
 
+    def test_agent_kit_mcp_generation_uses_managed_worker_lifetime(self) -> None:
+        server = read_source("plugins/cgkn/scripts/cgkn_mcp_server.py")
+        core = read_source("tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py")
+        contract = read_source("docs/00_kernel_contract.md")
+        self.assertIn("self.core.start_generation_job", server)
+        self.assertNotIn("self.core.run_generation(", server)
+        self.assertIn("def generation_job_status", core)
+        self.assertIn("one long-running formal generation is owned by a", contract)
+        self.assertIn("Client disconnect is not cancellation", contract)
+
     def test_terminal_failed_agent_kit_generation_starts_a_fresh_reviewed_run(self) -> None:
         source = read_source("scripts/codex_conversation.py")
         contract = read_source("docs/00_kernel_contract.md")

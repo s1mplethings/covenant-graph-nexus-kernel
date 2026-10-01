@@ -205,7 +205,7 @@ TOOLS = [
     tool_definition(
         "cgkn_generate",
         "Run reviewed CGKN Provider generation",
-        "Run the existing reviewed CGKN Provider route in explicit live, Codex surrogate, or deterministic replay mode. Codex surrogate safely pauses for canonical file-backed responses and never resolves a live credential.",
+        "Start one managed execution of the existing reviewed CGKN Provider route and return its durable run identity without waiting for generation completion. Repeated starts deduplicate a live job; observe progress with cgkn_status.",
         object_schema(
             {
                 **PROJECT,
@@ -220,8 +220,8 @@ TOOLS = [
             ("project_root", "goal", "confirmation"),
         ),
         object_schema(
-            {"ok": BOOLEAN, "result_path": STRING, "result": JSON_OBJECT, "diagnosis": JSON_OBJECT},
-            ("ok", "result_path", "result", "diagnosis"),
+            {"ok": BOOLEAN, "started": BOOLEAN, "deduplicated": BOOLEAN, "run_id": STRING, "state": STRING, "job": JSON_OBJECT},
+            ("ok", "started", "deduplicated", "run_id", "state", "job"),
         ),
         read_only=False,
         open_world=True,
@@ -943,8 +943,6 @@ class CGKNPluginServer:
         goal = str(args["goal"]).strip()
         _, brief_path, cgkn_root = self._validated_brief(project)
         _, _, _, artifact_dir = self._loaded(project)
-        result_path = artifact_dir / "generation_result.json"
-        prior_result_identity = self._result_identity(result_path)
         argv = self.core.generation_command(
             project,
             goal=goal,
@@ -956,21 +954,21 @@ class CGKNPluginServer:
             replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         try:
-            self.core.run_generation(argv, cgkn_root=cgkn_root, timeout=int(args.get("timeout", 1800)))
+            job = self.core.start_generation_job(
+                argv,
+                cgkn_root=cgkn_root,
+                artifact_dir=artifact_dir,
+            )
         except self.core.AgentKitError as exc:
-            if self._result_identity(result_path) in {None, prior_result_identity}:
-                raise ToolError(str(exc)) from exc
-        if not result_path.is_file():
-            raise ToolError("CGKN generation returned without generation_result.json")
-        if self._result_identity(result_path) == prior_result_identity:
-            raise ToolError("CGKN generation returned without updating generation_result.json")
-        result = self._sanitize(self.core.read_json(result_path))
-        status = str(result.get("status", "")).upper()
+            raise ToolError(str(exc)) from exc
+        clean_job = self._sanitize(job)
         return {
-            "ok": status in {"PASS", "PASS_WITH_LIMITS", "WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"},
-            "result_path": str(result_path),
-            "result": result,
-            "diagnosis": self._failure_diagnosis(project),
+            "ok": str(job.get("state", "")).upper() not in {"FAILED", "CANCELLED"},
+            "started": bool(job.get("started")),
+            "deduplicated": bool(job.get("deduplicated")),
+            "run_id": str(job.get("run_id", "")),
+            "state": str(job.get("state", "UNKNOWN")),
+            "job": clean_job,
         }
 
     def surrogate_status(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -1195,6 +1193,9 @@ class CGKNPluginServer:
                 except self.core.AgentKitError as exc:
                     summary["read_error"] = str(exc)
             artifacts[name] = self._sanitize(summary)
+        artifacts["generation_job"] = self._sanitize(
+            self.core.generation_job_status(artifact_dir)
+        )
         return {
             "ok": True,
             "initialized": True,

@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-066",
+      "title": "Decouple canonical generation from MCP request lifetime",
+      "priority": 1,
+      "state": "in_progress",
+      "value": "Allow the existing bounded Provider generation to finish under one observable worker even after the initiating MCP request returns.",
+      "acceptance": [
+        "generation start returns the canonical production run identity quickly",
+        "normal MCP request completion does not cancel the worker",
+        "status polling is read-only and projects run-local metrics",
+        "a second start does not duplicate a live worker",
+        "canonical publish verifies remote SHA equality"
+      ]
+    },
+    {
       "id": "PB-065",
       "title": "Separate Provider transport success from formal result admission",
       "priority": 1,

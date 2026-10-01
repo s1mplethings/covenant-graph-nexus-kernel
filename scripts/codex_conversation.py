@@ -7961,6 +7961,7 @@ def start_generation_from_income(
     provider_mode: str = "live",
     replay_dir: str | pathlib.Path | None = None,
     background: bool = True,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> bool:
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "idle")).lower()
@@ -8030,6 +8031,8 @@ def start_generation_from_income(
         },
     )
     save_session(session_dir, session)
+    if on_started is not None:
+        on_started(dict(session["generation"]))
     start_kwargs: dict[str, Any] = {"announce_start": False, "reason": reason}
     if not background:
         start_kwargs["background"] = False
@@ -8976,6 +8979,7 @@ def run_formal_generation_once(
     replay_dir: str | pathlib.Path | None = None,
     result_path: str | pathlib.Path | None = None,
     codex_capability_brief: str | pathlib.Path | None = None,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Run/resume one production conversation generation turn synchronously.
 
@@ -9025,6 +9029,7 @@ def run_formal_generation_once(
             provider_mode=provider_mode,
             replay_dir=replay_dir,
             background=False,
+            on_started=on_started,
         )
     else:
         session = load_session(session_dir, conversation_id)
@@ -9039,6 +9044,8 @@ def run_formal_generation_once(
         if stored_mode != provider_mode:
             raise ValueError("provider_mode cannot change while resuming a production run")
         if str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
+            if on_started is not None:
+                on_started(dict(generation))
             start_agent_generation(
                 client,
                 conversation_id,
@@ -9063,7 +9070,22 @@ def run_formal_generation_once(
                 provider_mode=provider_mode,
                 replay_dir=replay_dir,
                 background=False,
+                on_started=on_started,
             )
+        elif str(generation.get("status", "")).lower() in ACTIVE_GENERATION_STATUSES:
+            if on_started is not None:
+                on_started(dict(generation))
+                start_agent_generation(
+                    client,
+                    conversation_id,
+                    session_dir,
+                    log_dir,
+                    model,
+                    timeout,
+                    announce_start=False,
+                    reason="agent_kit_managed_worker_resume",
+                    background=False,
+                )
     session = load_session(session_dir, conversation_id)
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "NOT_EVALUATED"))
