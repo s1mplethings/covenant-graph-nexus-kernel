@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Decouple the canonical Agent Kit generation worker lifetime from one MCP request and deploy that implementation with verifiable plugin package/runtime identity.",
   "backlog_item_ids": ["PB-066"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "MCP generation start returns a production run identity before Provider generation completes.",
     "The managed worker survives normal MCP request completion and remains observable through read-only status.",
@@ -31,7 +31,10 @@
     "ProviderModelRoutingPolicy and sealed brief forwarding remain intact",
     "Formal evidence and resume safety remain derived"
   ],
-  "evidence_refs": [],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "evidence_refs": [
+    "sha256:bce2b53d93124c924e369ad4ea652841f9a8afff2f5ee2c54d7b6870c60304a5",
+    "production-7ba6c807edeb49689520b8ba771db94f"
+  ],
+  "review": {"outcome": "accepted_with_limits", "feedback": ["Managed worker survived MCP completion and status remained responsive; strict downstream Provider schema validation blocked candidate creation."], "accepted_backlog_item_ids": ["PB-066"]},
+  "retrospective": {"worked": ["Versioned plugin installation and runtime identity exposed the serving implementation.", "Managed status projected run-local metrics without starting another run."], "did_not_work": ["The replan Provider outputs did not satisfy the unchanged strict planning schema."], "experiments": ["Keep plugin package identity distinct from repository publication and preserve read-only run-local status as the lifecycle proof."]}
 }
