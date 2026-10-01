@@ -1045,6 +1045,16 @@ compiles the sole downstream `GoalSpec` through
 `scripts/canonical_goal_spec_compiler.py`. Known deterministic domain profiles
 remain optimization hints; open-domain goals do not depend on a keyword table.
 
+Provider transport success and formal planning-result admission are distinct.
+The stage may deterministically extract one complete JSON object from a fenced
+or commentary-wrapped response, but it must then pass the unchanged strict
+planning proposal validator before materializing an identity-bound artifact.
+An HTTP success that fails parsing or proposal validation remains unadmitted,
+cannot become candidate input, and records a safe validation-failure event. A
+validated materialized artifact records the response-to-artifact admission
+relationship; `used_in_formal_chain` is evidence of that relationship, not a
+boolean inferred directly from HTTP status.
+
 Ungrounded Provider additions cannot become canonical capabilities,
 workstreams, constraints, or acceptance anchors. Silent reduction of an
 all-results goal to sampling, automatic behavior to manual-only work, playable

@@ -318,6 +318,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("requirements_planning", contract)
         self.assertIn("same resolved policy", contract)
 
+    def test_requirements_planning_separates_transport_success_from_admission(self) -> None:
+        source = read_source("scripts/run_local_pipeline_impl.py")
+        contract = read_source("docs/00_kernel_contract.md")
+        checkpoint = function_body(source, "provider_stage_checkpoint")
+
+        self.assertIn("parse_json_object(raw)", checkpoint)
+        self.assertIn("validate_planning_proposal", checkpoint)
+        self.assertIn('"provider_result_validation_failed"', checkpoint)
+        self.assertIn('"provider_result_admitted"', checkpoint)
+        self.assertIn("Provider transport success and formal planning-result admission are distinct", contract)
+        self.assertIn("cannot become candidate input", contract)
+
     def test_terminal_failed_agent_kit_generation_starts_a_fresh_reviewed_run(self) -> None:
         source = read_source("scripts/codex_conversation.py")
         contract = read_source("docs/00_kernel_contract.md")

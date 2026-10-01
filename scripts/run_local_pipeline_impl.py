@@ -29938,9 +29938,7 @@ def provider_stage_checkpoint(
             routing_policy=routing_policy,
         )
         try:
-            payload = json.loads(raw)
-            if not isinstance(payload, dict):
-                raise ValueError("object required")
+            payload = parse_json_object(raw)
             if planning_stage:
                 proposal_errors = canonical_goal_spec_compiler.validate_planning_proposal(payload)
                 if proposal_errors:
@@ -29954,8 +29952,20 @@ def provider_stage_checkpoint(
                     for key in ("decisions", "risks")
                 ):
                     raise ValueError("decisions and risks must be string arrays")
-        except (ValueError, TypeError, KeyError) as exc:
+        except (RuntimeError, ValueError, TypeError, KeyError) as exc:
             last_error = str(exc)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_result_validation_failed",
+                    "stage": stage,
+                    "proposal_sequence": proposal_sequence,
+                    "schema_attempt": schema_attempt + 1,
+                    "response_hash": formal_model_contract.stable_hash(raw),
+                    "error": last_error,
+                    "admission_eligible": False,
+                },
+            )
             if schema_attempt == 0:
                 continue
             raise RuntimeError(
@@ -30050,6 +30060,19 @@ def provider_stage_checkpoint(
                 "artifact_path": str(materialized_artifact_path),
                 "proposal_sequence": proposal_sequence,
                 "schema_repair_attempts": schema_attempt,
+            },
+        )
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_result_admitted",
+                "stage": stage,
+                "proposal_sequence": proposal_sequence,
+                "response_hash": formal_model_contract.stable_hash(raw),
+                "artifact_ref": str(materialized_artifact_path.resolve()),
+                "artifact_hash": str(artifact.get("artifact_hash") or artifact.get("payload_sha256") or ""),
+                "admission_eligible": True,
+                "used_in_formal_chain": True,
             },
         )
         return artifact

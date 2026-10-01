@@ -1,44 +1,36 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-085",
+  "iteration_id": "ITER-086",
   "project_id": "cgkn",
-  "goal": "Allow an explicitly revalidated formal Agent Kit goal to create a fresh production run after a terminal failed generation without weakening same-run or provenance gates.",
-  "backlog_item_ids": ["PB-064"],
-  "workflow_state": "closed",
-  "evidence_status": "BLOCKED_PROVIDER",
+  "goal": "Make Provider transport success explicitly pass strict planning validation before admission, while accepting safely extractable single JSON objects without an unnecessary live repair call.",
+  "backlog_item_ids": ["PB-065"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "REWORK_BLOCKED and equivalent terminal failures create a new production run identity.",
-    "Waiting surrogate and requirement-replan states retain same-run resume behavior.",
-    "Successful terminal generations are not implicitly rerun.",
-    "The sealed brief and reviewed Provider route remain unchanged.",
-    "Focused zero-API tests and canonical publish pass before revalidation."
+    "A safely extractable single JSON object reaches the existing strict planning schema validator without a live envelope-repair request.",
+    "Invalid JSON or invalid planning schema remains unadmitted and produces no candidate input artifact.",
+    "Admission is represented by a validated materialized planning artifact and an identity-bound admission event, not by flipping a reporting flag.",
+    "Timeout diagnostics remain distinct from generation admission.",
+    "Zero-API admission, provenance, formal-chain, kernel, and management tests pass before canonical publication."
   ],
   "quality_metrics": [
-    {"id": "QM-STALE-RESULT", "measure": "explicit revalidations returning an old terminal failure without execution", "target": "0", "method": "formal adapter contract tests"},
-    {"id": "QM-RUN-IDENTITY", "measure": "fresh retries reusing failed production run identity", "target": "0", "method": "production entry inspection"}
+    {"id": "QM-FALSE-ADMISSION", "measure": "invalid Provider responses admitted into planning", "target": "0", "method": "schema-negative admission tests"},
+    {"id": "QM-UNNECESSARY-REPAIR", "measure": "safely extractable valid JSON responses requiring a second Provider call", "target": "0", "method": "fenced/commentary response tests"}
   ],
   "quality_activities": {
-    "prevention": ["Separate same-run waiting checkpoints from terminal failure revalidation"],
-    "assurance": ["Test restartable and non-restartable status sets", "Guard the canonical adapter call path"],
-    "control": ["Run focused formal/provenance tests before canonical publication"],
-    "improvement": ["Make explicit revalidation semantics executable rather than inferred from session presence"]
+    "prevention": ["Separate transport success, schema validation, and formal admission"],
+    "assurance": ["Replay timeout and structured-response cases without Provider calls", "Retain strict proposal validation"],
+    "control": ["Run admission and provenance regressions before canonical publication"],
+    "improvement": ["Persist safe admission/failure events so HTTP success cannot be mistaken for formal success"]
   },
   "interface_expectations": [
-    "start_generation_from_income remains the production-entry authority",
+    "provider_stage_checkpoint remains the sole planning-artifact admission boundary",
     "ProviderModelRoutingPolicy and sealed brief forwarding remain intact",
-    "No failed receipt or candidate is reused",
+    "A validated artifact reference is the candidate-planning handoff",
     "Formal evidence and resume safety remain derived"
   ],
-  "evidence_refs": [
-    "tests/test_formal_generation_restart.py",
-    "tests/test_production_candidate_provenance.py",
-    "project_management/summaries/ITER-085-terminal-generation-revalidation.md"
-  ],
-  "review": {"outcome": "accepted_with_provider_blocker", "feedback": ["The repair created a fresh production run and preserved brief/model bindings. The canonical generation exhausted its bounded transport attempts before a valid requirements-planning artifact entered the formal chain."], "accepted_backlog_item_ids": ["PB-064"]},
-  "retrospective": {
-    "worked": ["Fresh host and MCP transport were proven", "Qwen smoke succeeded through Chat Completions", "Terminal failure revalidation created a new run bound to the current commit and sealed brief"],
-    "did_not_work": ["Generation recorded five timeouts and one HTTP 200 response that did not enter the formal chain, so no candidate or provenance was produced"],
-    "experiments": ["Keep the successful raw Provider result inspectable for downstream structured-contract diagnosis without requiring another Provider call"]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }
