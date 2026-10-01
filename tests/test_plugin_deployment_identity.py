@@ -53,7 +53,7 @@ def test_p02_p04_changed_package_uses_cli_and_exposes_managed_server(tmp_path: p
 
     result = deployment.refresh(source=source, cache_root=cache, codex=tmp_path / "codex", runner=runner)
     assert result["changed"] is True
-    assert [call[2] for call in calls] == ["remove", "add"]
+    assert [call[2] for call in calls] == ["add"]
     assert "generation_job" in (pathlib.Path(result["installed_root"]) / "scripts" / "cgkn_mcp_server.py").read_text()
 
 

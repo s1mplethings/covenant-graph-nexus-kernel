@@ -49,9 +49,6 @@ def refresh(*, source: pathlib.Path, cache_root: pathlib.Path, codex: pathlib.Pa
         return {"ok": True, "changed": False, "version": version, "source_digest": source_digest,
                 "installed_digest": prior_digest, "installed_root": str(installed)}
 
-    remove = runner([str(codex), "plugin", "remove", selector])
-    if remove.returncode != 0 and "not installed" not in (remove.stdout + remove.stderr).lower():
-        raise RuntimeError("PLUGIN_REMOVE_FAILED: " + (remove.stderr or remove.stdout).strip())
     add = runner([str(codex), "plugin", "add", selector, "--json"])
     if add.returncode != 0:
         raise RuntimeError("PLUGIN_ADD_FAILED: " + (add.stderr or add.stdout).strip())
