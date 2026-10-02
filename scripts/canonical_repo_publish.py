@@ -414,6 +414,10 @@ def _write_runtime(root: pathlib.Path, name: str, document: dict[str, Any]) -> p
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Canonical fail-closed CGKN repository publish gate.")
     parser.add_argument("--repository-root", default=str(ROOT))
     sub = parser.add_subparsers(dest="command", required=True)
