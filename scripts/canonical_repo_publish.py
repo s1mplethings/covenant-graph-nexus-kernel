@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import pathlib
 import re
-import shlex
 import subprocess
 import sys
 import time
@@ -279,8 +277,8 @@ def reject_force_options(options: Sequence[str]) -> None:
 
 
 def run_version_gate(root: pathlib.Path, command: str | None = None) -> dict[str, Any]:
-    argv = shlex.split(command, posix=os.name != "nt") if command else [sys.executable, "scripts/canonical_version_gate.py"]
-    completed = subprocess.run(argv, cwd=root, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
+    invocation: str | list[str] = command if command else [sys.executable, "scripts/canonical_version_gate.py"]
+    completed = subprocess.run(invocation, cwd=root, shell=bool(command), text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
     if completed.returncode != 0:
         raise PublishBlocked("VERSION_GATE_FAILED", completed.stdout[-2000:] + completed.stderr[-2000:])
     return {"status": "PASS", "command": command or "python scripts/canonical_version_gate.py"}

@@ -156,6 +156,12 @@ def test_version_gate_failure_is_classified(tmp_path: pathlib.Path) -> None:
         gate.run_version_gate(root)
 
 
+def test_explicit_consumer_version_gate_runs_through_command_shell(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    command = f'"{sys.executable}" -c "print(\'consumer gate pass\')"'
+    assert gate.run_version_gate(root, command)["status"] == "PASS"
+
+
 def test_remote_sha_mismatch_blocks_false_success(tmp_path: pathlib.Path) -> None:
     calls = 0
     def runner(_root: pathlib.Path, args: list[str]) -> dict:

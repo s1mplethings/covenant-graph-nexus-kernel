@@ -16,6 +16,7 @@
         "repository root and consumer version gate are explicit",
         "test command output and CLI receipts are encoded deterministically across Windows locales",
         "publication runtime artifacts cannot invalidate their own SourceIdentity binding",
+        "explicit consumer version commands support Windows command shims without changing the default gate route",
         "canonical publication verifies exact staging, normal push, and fetched remote SHA equality"
       ]
     },
