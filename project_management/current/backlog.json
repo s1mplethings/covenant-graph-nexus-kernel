@@ -14,6 +14,7 @@
         "environment credential references do not trigger secret false positives while literal secrets remain blocked",
         "detached publication requires an explicit target branch whose remote SHA equals the local baseline",
         "repository root and consumer version gate are explicit",
+        "test command output is decoded deterministically across Windows locales",
         "canonical publication verifies exact staging, normal push, and fetched remote SHA equality"
       ]
     },

@@ -224,7 +224,7 @@ def run_tests_and_write_receipt(root: pathlib.Path, manifest: dict[str, Any], co
     results: list[dict[str, Any]] = []
     for command in commands:
         started = time.monotonic()
-        completed = subprocess.run(command, cwd=root, shell=True, text=True, capture_output=True, check=False)
+        completed = subprocess.run(command, cwd=root, shell=True, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
         results.append({"command": command, "status": "PASS" if completed.returncode == 0 else "FAIL", "returncode": completed.returncode, "duration_seconds": round(time.monotonic() - started, 3), "stdout_tail": completed.stdout[-2000:], "stderr_tail": completed.stderr[-2000:]})
     document = {
         "kind": "CGKNTestReceipt", "schema_version": "1.0",
@@ -280,7 +280,7 @@ def reject_force_options(options: Sequence[str]) -> None:
 
 def run_version_gate(root: pathlib.Path, command: str | None = None) -> dict[str, Any]:
     argv = shlex.split(command, posix=os.name != "nt") if command else [sys.executable, "scripts/canonical_version_gate.py"]
-    completed = subprocess.run(argv, cwd=root, text=True, capture_output=True, check=False)
+    completed = subprocess.run(argv, cwd=root, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
     if completed.returncode != 0:
         raise PublishBlocked("VERSION_GATE_FAILED", completed.stdout[-2000:] + completed.stderr[-2000:])
     return {"status": "PASS", "command": command or "python scripts/canonical_version_gate.py"}
@@ -361,7 +361,7 @@ def publish(
         raise PublishBlocked("POST_COMMIT_DIRTY", post_status)
     critical: list[dict[str, Any]] = []
     for command in post_commit_commands:
-        completed = subprocess.run(command, cwd=root, shell=True, text=True, capture_output=True, check=False)
+        completed = subprocess.run(command, cwd=root, shell=True, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
         critical.append({"command": command, "status": "PASS" if completed.returncode == 0 else "FAIL", "returncode": completed.returncode})
         if completed.returncode != 0:
             raise PublishBlocked("POST_COMMIT_VERIFICATION_FAILED", critical[-1])

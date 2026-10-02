@@ -85,6 +85,21 @@ def test_literal_key_remains_secret_content(tmp_path: pathlib.Path) -> None:
     assert gate.classify_path("src/provider.ts", tmp_path)[0] == "SECRET"
 
 
+def test_test_receipt_decodes_utf8_output_independent_of_windows_locale(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    receipt_path = root / ".cgkn" / "publish" / "test_receipt.json"
+    receipt = gate.run_tests_and_write_receipt(
+        root,
+        manifest,
+        ['python -c "import sys; sys.stdout.buffer.write(\'通过\'.encode(\'utf-8\'))"'],
+        receipt_path,
+    )
+    assert receipt["scoped_verdict"] == "PASS"
+    assert "通过" in receipt["tests"][0]["stdout_tail"]
+
+
 def test_target_branch_requires_local_baseline_match(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root, _ = init_repo(tmp_path)
     git(root, "switch", "--detach")
