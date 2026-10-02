@@ -14,6 +14,8 @@ Consumer publication may select an explicit repository root, consumer version-ga
 
 Publication runtime under `.cgkn/publish/**` is excluded from SourceIdentity, so writing a manifest or receipt cannot invalidate its own evidence binding in a consumer repository that does not ignore that local-state directory.
 
+If publication is interrupted after the exact verified commit exists but before push, `resume` may continue only when the saved manifest and test-receipt hashes are valid, the receipt remains bound to that manifest, the commit parent equals the recorded baseline, the commit path set exactly equals the manifest, non-excluded state is clean, post-commit checks pass, and the fetched remote target still equals the recorded baseline. It then uses the same normal non-force push and fetched remote-SHA equality check.
+
 Generated projects use the same proportional rule through `scripts/project_version_policy.py`: every project receives one `VERSION`; medium or large long-lived projects declare current architecture, and create a deprecation registry only for real compatibility. An upgrade must remove the old writer and production path; an old reader may remain temporarily as COMPAT_ONLY. This policy is injected into the existing Provider generation context and the ProviderJob merge adds only the universal VERSION truth. It creates no second planner, scheduler, generator, packager, or delivery path.
 
 ## Repository layout and retention

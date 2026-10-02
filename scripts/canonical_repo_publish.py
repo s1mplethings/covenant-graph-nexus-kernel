@@ -276,6 +276,17 @@ def reject_force_options(options: Sequence[str]) -> None:
         raise PublishBlocked("BLOCKED_FORCE_PUSH")
 
 
+def non_excluded_status(root: pathlib.Path, lines: Sequence[str]) -> list[str]:
+    remaining: list[str] = []
+    for line in lines:
+        path_value = line[3:] if len(line) > 3 else ""
+        if " -> " in path_value:
+            path_value = path_value.rsplit(" -> ", 1)[-1]
+        if classify_path(path_value, root)[0] not in EXCLUDE_CLASSES:
+            remaining.append(line)
+    return remaining
+
+
 def run_version_gate(root: pathlib.Path, command: str | None = None) -> dict[str, Any]:
     invocation: str | list[str] = command if command else [sys.executable, "scripts/canonical_version_gate.py"]
     completed = subprocess.run(invocation, cwd=root, shell=bool(command), text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
@@ -354,7 +365,7 @@ def publish(
     committed_tree = require_git(root, ["rev-parse", "HEAD^{tree}"], runner)["stdout"].strip()
     if committed_tree != staged_tree_hash:
         raise PublishBlocked("COMMITTED_TREE_MISMATCH")
-    post_status = _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner))
+    post_status = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))
     if post_status:
         raise PublishBlocked("POST_COMMIT_DIRTY", post_status)
     critical: list[dict[str, Any]] = []
@@ -363,7 +374,7 @@ def publish(
         critical.append({"command": command, "status": "PASS" if completed.returncode == 0 else "FAIL", "returncode": completed.returncode})
         if completed.returncode != 0:
             raise PublishBlocked("POST_COMMIT_VERIFICATION_FAILED", critical[-1])
-    post_test_status = _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner))
+    post_test_status = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))
     if post_test_status:
         raise PublishBlocked("POST_COMMIT_DIRTY", post_test_status)
     branch = target_branch or initial["branch"]
@@ -404,6 +415,65 @@ def publish(
     return document
 
 
+def resume_publish(
+    root: pathlib.Path, *, target_branch: str, test_receipt_path: pathlib.Path,
+    manifest_path: pathlib.Path, post_commit_commands: Sequence[str] = (),
+    version_gate_command: str | None = None, runner: GitRunner = run_git,
+) -> dict[str, Any]:
+    root = pathlib.Path(root).resolve()
+    manifest = load_json(manifest_path)
+    receipt = load_json(test_receipt_path)
+    if manifest.get("change_manifest_hash") != canonical_hash(manifest, ("change_manifest_hash",)):
+        raise PublishBlocked("CHANGE_MANIFEST_HASH_MISMATCH")
+    if receipt.get("test_receipt_hash") != canonical_hash(receipt, ("test_receipt_hash", "created_at")):
+        raise PublishBlocked("TEST_RECEIPT_HASH_MISMATCH")
+    if receipt.get("scoped_verdict") != "PASS" or any(row.get("status") != "PASS" for row in receipt.get("tests", [])):
+        raise PublishBlocked("TEST_RECEIPT_NOT_PASS")
+    if receipt.get("source_identity_hash") != manifest.get("source_identity_hash") or receipt.get("changed_paths") != manifest.get("commit_files"):
+        raise PublishBlocked("TEST_EVIDENCE_STALE")
+    commit_sha = require_git(root, ["rev-parse", "HEAD"], runner)["stdout"].strip()
+    parent_sha = require_git(root, ["rev-parse", "HEAD^"], runner)["stdout"].strip()
+    if parent_sha != manifest.get("baseline_sha"):
+        raise PublishBlocked("RESUME_BASELINE_MISMATCH")
+    committed_paths = sorted(_lines(require_git(root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"], runner)))
+    if committed_paths != sorted(manifest.get("commit_files", [])):
+        raise PublishBlocked("COMMITTED_PATH_SET_MISMATCH", {"expected": manifest.get("commit_files", []), "actual": committed_paths})
+    dirty = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))
+    if dirty:
+        raise PublishBlocked("POST_COMMIT_DIRTY", dirty)
+    version_gate = run_version_gate(root, version_gate_command) if version_gate_command else run_version_gate(root)
+    critical: list[dict[str, Any]] = []
+    for command in post_commit_commands:
+        completed = subprocess.run(command, cwd=root, shell=True, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
+        critical.append({"command": command, "status": "PASS" if completed.returncode == 0 else "FAIL", "returncode": completed.returncode})
+        if completed.returncode != 0:
+            raise PublishBlocked("POST_COMMIT_VERIFICATION_FAILED", critical[-1])
+    dirty = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))
+    if dirty:
+        raise PublishBlocked("POST_COMMIT_DIRTY", dirty)
+    require_git(root, ["fetch", "origin", target_branch], runner)
+    remote_before = require_git(root, ["rev-parse", f"origin/{target_branch}"], runner)["stdout"].strip()
+    if remote_before != parent_sha:
+        raise PublishBlocked("REMOTE_BASELINE_CHANGED", {"local_parent": parent_sha, "remote": remote_before})
+    normal_push_with_retry(root, target_branch, remote_before, ["push", "origin", f"HEAD:refs/heads/{target_branch}"], runner)
+    remote_sha = verify_remote_sha(root, target_branch, commit_sha, runner)
+    document = {
+        "kind": "CGKNRepositoryPublishReceipt", "schema_version": "1.0", "authority": "repository_publish_support_only",
+        "formal_evidence_status": "NOT_EVALUATED", "baseline_sha": parent_sha,
+        "source_identity_hash": manifest["source_identity_hash"], "change_manifest_hash": manifest["change_manifest_hash"],
+        "test_receipt_hash": receipt["test_receipt_hash"], "staged_tree_hash": require_git(root, ["rev-parse", "HEAD^{tree}"], runner)["stdout"].strip(),
+        "commit_sha": commit_sha, "post_commit_verification": "PASS", "critical_tests": critical,
+        "remote_before_sha": remote_before, "remote_after_sha": remote_sha, "push_verified": remote_sha == commit_sha,
+        "force_push": False, "version_gate_status": version_gate["status"], "pr": "NOT_REQUESTED", "ci": "NOT_AVAILABLE",
+        "resumed_after_verified_commit": True, "created_at": now(),
+    }
+    document["publish_receipt_hash"] = canonical_hash(document, ("publish_receipt_hash", "created_at"))
+    output = root / PUBLISH_DIR / "publish_receipt.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return document
+
+
 def _write_runtime(root: pathlib.Path, name: str, document: dict[str, Any]) -> pathlib.Path:
     path = root / PUBLISH_DIR / name
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -434,6 +504,12 @@ def main() -> int:
     publish_parser.add_argument("--post-commit-command", action="append", default=[])
     publish_parser.add_argument("--target-branch")
     publish_parser.add_argument("--version-gate-command")
+    resume_parser = sub.add_parser("resume")
+    resume_parser.add_argument("--test-receipt", default=str(PUBLISH_DIR / "test_receipt.json"))
+    resume_parser.add_argument("--manifest", default=str(PUBLISH_DIR / "change_manifest.json"))
+    resume_parser.add_argument("--post-commit-command", action="append", default=[])
+    resume_parser.add_argument("--target-branch", required=True)
+    resume_parser.add_argument("--version-gate-command")
     args = parser.parse_args()
     repository_root = pathlib.Path(args.repository_root).resolve()
     try:
@@ -452,8 +528,11 @@ def main() -> int:
             verify_test_binding(repository_root, manifest, receipt)
             run_version_gate(repository_root, args.version_gate_command) if args.version_gate_command else run_version_gate(repository_root)
             result = {"status": "PASS", "change_manifest_hash": manifest["change_manifest_hash"], "test_receipt_hash": receipt["test_receipt_hash"]}
-        else:
+        elif args.command == "publish":
             result = publish(repository_root, message=args.message, test_receipt_path=repository_root / args.test_receipt, reviewed_paths=args.review_path, post_commit_commands=args.post_commit_command, target_branch=args.target_branch, version_gate_command=args.version_gate_command)
+            result = {"status": "PASS", "publish_receipt": result}
+        else:
+            result = resume_publish(repository_root, target_branch=args.target_branch, test_receipt_path=repository_root / args.test_receipt, manifest_path=repository_root / args.manifest, post_commit_commands=args.post_commit_command, version_gate_command=args.version_gate_command)
             result = {"status": "PASS", "publish_receipt": result}
     except PublishBlocked as exc:
         result = {"status": "BLOCKED", "classification": exc.classification, "detail": exc.detail}

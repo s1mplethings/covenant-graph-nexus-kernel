@@ -33,7 +33,7 @@
     "Provider and product-delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "81 canonical publisher, source identity, kernel contract, and release-candidate tests",
+    "82 canonical publisher, source identity, kernel contract, and release-candidate tests",
     "canonical_version_gate: PASS",
     "Attune isolated-worktree manifest preflight: 45 COMMIT, 0 REVIEW, 0 BLOCKED"
   ],
@@ -49,14 +49,16 @@
       "Testing the canonical gate against the real isolated Attune worktree exposed consumer-boundary gaps before publication.",
       "Explicit repository root, version command, and target branch preserved exact source and remote identity checks.",
       "The real Windows consumer run exposed locale-dependent subprocess and CLI-output encoding before Attune publication.",
-      "The consumer receipt run exposed publication runtime state feeding back into SourceIdentity when the consumer did not ignore .cgkn."
-      ,"The consumer version gate exposed Windows command-shim resolution differences for npm.cmd."
+      "The consumer receipt run exposed publication runtime state feeding back into SourceIdentity when the consumer did not ignore .cgkn.",
+      "The consumer version gate exposed Windows command-shim resolution differences for npm.cmd.",
+      "The first verified Attune commit exposed inconsistent treatment of excluded publication runtime in post-commit cleanliness."
     ],
     "did_not_work": [
       "Repository-specific path and secret heuristics were too narrow for governed consumer publication.",
       "Implicit locale encoding made UTF-8 test output and receipt printing unsafe on a GBK host.",
-      "SourceIdentity originally treated its own unignored .cgkn/publish artifacts as consumer source state."
-      ,"Explicit consumer version commands were initially launched without the shell required for Windows command shims."
+      "SourceIdentity originally treated its own unignored .cgkn/publish artifacts as consumer source state.",
+      "Explicit consumer version commands were initially launched without the shell required for Windows command shims.",
+      "Post-commit cleanliness initially considered excluded local-state receipts dirty and needed a hash-bound resume path."
     ],
     "experiments": [
       "Keep a consumer-worktree publication scenario in the canonical publisher regression suite."

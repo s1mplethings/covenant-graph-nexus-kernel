@@ -17,6 +17,7 @@
         "test command output and CLI receipts are encoded deterministically across Windows locales",
         "publication runtime artifacts cannot invalidate their own SourceIdentity binding",
         "explicit consumer version commands support Windows command shims without changing the default gate route",
+        "an interrupted verified commit can resume only with exact manifest, receipt, parent, path-set, and remote-baseline equality",
         "canonical publication verifies exact staging, normal push, and fetched remote SHA equality"
       ]
     },

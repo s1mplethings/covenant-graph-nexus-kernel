@@ -116,6 +116,36 @@ def test_target_branch_requires_local_baseline_match(tmp_path: pathlib.Path, mon
     assert result["push_verified"] is True
 
 
+def test_resume_pushes_only_verified_commit_after_post_commit_interruption(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, _ = init_repo(tmp_path)
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    receipt = {
+        "scoped_verdict": "PASS",
+        "source_identity_hash": manifest["source_identity_hash"],
+        "changed_paths": manifest["commit_files"],
+        "tests": [{"status": "PASS"}],
+    }
+    receipt["test_receipt_hash"] = gate.canonical_hash(receipt, ("test_receipt_hash", "created_at"))
+    runtime = root / ".cgkn" / "publish"
+    runtime.mkdir(parents=True)
+    manifest_path = runtime / "change_manifest.json"
+    receipt_path = runtime / "test_receipt.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    git(root, "add", "--", *manifest["commit_files"])
+    git(root, "commit", "-m", "fix: verified interrupted commit")
+    monkeypatch.setattr(gate, "run_version_gate", lambda _root, _command=None: {"status": "PASS"})
+    result = gate.resume_publish(
+        root,
+        target_branch="main",
+        test_receipt_path=receipt_path,
+        manifest_path=manifest_path,
+    )
+    assert result["push_verified"] is True
+    assert result["resumed_after_verified_commit"] is True
+
+
 def test_git_failure_is_blocked_not_clean(tmp_path: pathlib.Path) -> None:
     def broken(_root: pathlib.Path, _args: list[str]) -> dict:
         return {"ok": False, "returncode": 128, "stderr": "boom"}
