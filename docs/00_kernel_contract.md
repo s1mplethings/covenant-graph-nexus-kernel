@@ -12,6 +12,8 @@ Structural replacement follows `SUPERSEDE -> MIGRATE -> VERIFY -> RETIRE -> FREE
 
 Consumer publication may select an explicit repository root, consumer version-gate command, and existing target branch. A detached isolated worktree may push only when the fetched target-branch SHA exactly equals its pre-commit local HEAD. Consumer `.cgnk/governance/**` is current governance, while `.cgkn/**` remains excluded local state; `drizzle/*.sql` requires explicit migration review. Environment-variable credential references are not secrets, but literal credential content remains fail-closed.
 
+Publication runtime under `.cgkn/publish/**` is excluded from SourceIdentity, so writing a manifest or receipt cannot invalidate its own evidence binding in a consumer repository that does not ignore that local-state directory.
+
 Generated projects use the same proportional rule through `scripts/project_version_policy.py`: every project receives one `VERSION`; medium or large long-lived projects declare current architecture, and create a deprecation registry only for real compatibility. An upgrade must remove the old writer and production path; an old reader may remain temporarily as COMPAT_ONLY. This policy is injected into the existing Provider generation context and the ProviderJob merge adds only the universal VERSION truth. It creates no second planner, scheduler, generator, packager, or delivery path.
 
 ## Repository layout and retention

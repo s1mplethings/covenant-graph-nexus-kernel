@@ -13,6 +13,7 @@ from typing import Any
 
 SOURCE_SUFFIXES = {".py", ".json", ".md", ".toml", ".yaml", ".yml", ".ps1"}
 EXCLUDED_PARTS = {".git", ".pytest_cache", "__pycache__", "node_modules", "generated", "workspaces"}
+EXCLUDED_PREFIXES = (".cgkn/publish/",)
 RELEVANT_SOURCE_ROOTS = {"scripts", "contracts", "tests", "plugins", "tools", "docs", "project_management"}
 IDENTITY_MODULES = (
     "scripts/canonical_goal_spec_compiler.py",
@@ -64,6 +65,24 @@ def _require_git(result: subprocess.CompletedProcess[Any], operation: str) -> su
     raise RuntimeError(json.dumps(failure, ensure_ascii=False, sort_keys=True))
 
 
+def _excluded_path(value: str) -> bool:
+    normalized = value.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return any(normalized.startswith(prefix) for prefix in EXCLUDED_PREFIXES)
+
+
+def _identity_status(porcelain: str) -> str:
+    rows = []
+    for line in porcelain.splitlines():
+        path_value = line[3:] if len(line) > 3 else ""
+        if " -> " in path_value:
+            path_value = path_value.rsplit(" -> ", 1)[-1]
+        if not _excluded_path(path_value):
+            rows.append(line)
+    return "\n".join(rows) + ("\n" if rows else "")
+
+
 def _tree_hash(root: pathlib.Path, relative_root: str) -> tuple[str, list[dict[str, Any]]]:
     base = root / relative_root
     rows: list[dict[str, Any]] = []
@@ -84,12 +103,15 @@ def capture(root: pathlib.Path) -> dict[str, Any]:
     root = pathlib.Path(root).resolve()
     head = _require_git(_git(root, "rev-parse", "HEAD"), "rev-parse HEAD")
     status = _require_git(_git(root, "status", "--porcelain=v1", "--untracked-files=all"), "status")
+    identity_status = _identity_status(status.stdout)
     diff = _require_git(subprocess.run(
         ["git", "diff", "--binary", "HEAD"], cwd=root, capture_output=True, check=False,
     ), "diff HEAD")
     untracked = _require_git(_git(root, "ls-files", "--others", "--exclude-standard"), "ls-files")
     relevant_untracked: list[dict[str, Any]] = []
     for value in sorted(line.strip() for line in untracked.stdout.splitlines() if line.strip()):
+        if _excluded_path(value):
+            continue
         path = root / value
         if not path.is_file() or path.suffix.lower() not in SOURCE_SUFFIXES:
             continue
@@ -107,8 +129,8 @@ def capture(root: pathlib.Path) -> dict[str, Any]:
         "authority": "support_identity_only",
         "repository_root": str(root),
         "head_sha": head.stdout.strip(),
-        "working_tree_clean": not bool(status.stdout.strip()),
-        "git_status_sha256": _sha_bytes(status.stdout.encode("utf-8")),
+        "working_tree_clean": not bool(identity_status.strip()),
+        "git_status_sha256": _sha_bytes(identity_status.encode("utf-8")),
         "git_diff_sha256": _sha_bytes(diff.stdout),
         "relevant_untracked_manifest": relevant_untracked,
         "relevant_untracked_manifest_sha256": _sha_bytes(json.dumps(relevant_untracked, sort_keys=True).encode("utf-8")),

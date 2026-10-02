@@ -12,8 +12,9 @@
     "Drizzle SQL migrations require explicit review.",
     "Environment credential references are not false-positive secrets and literal secrets remain blocked.",
     "Detached worktree publication requires explicit target branch and exact remote baseline equality.",
-    "Canonical SourceIdentity, manifest, receipt, exact staging, non-force push, and fetched remote equality remain mandatory."
-    ,"Test and post-commit command output plus CLI receipts use UTF-8 with replacement on Windows."
+    "Canonical SourceIdentity, manifest, receipt, exact staging, non-force push, and fetched remote equality remain mandatory.",
+    "Test and post-commit command output plus CLI receipts use UTF-8 with replacement on Windows.",
+    "Publication runtime state cannot invalidate the SourceIdentity to which its own receipt is bound."
   ],
   "quality_metrics": [
     {"id": "QM-CONSUMER-CLASSIFICATION", "measure": "required consumer governance/source paths classified UNKNOWN or falsely SECRET", "target": "0", "method": "canonical publisher unit tests and Attune manifest preflight"},
@@ -32,7 +33,7 @@
     "Provider and product-delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "79 canonical publisher, source identity, kernel contract, and release-candidate tests",
+    "80 canonical publisher, source identity, kernel contract, and release-candidate tests",
     "canonical_version_gate: PASS",
     "Attune isolated-worktree manifest preflight: 45 COMMIT, 0 REVIEW, 0 BLOCKED"
   ],
@@ -47,11 +48,13 @@
     "worked": [
       "Testing the canonical gate against the real isolated Attune worktree exposed consumer-boundary gaps before publication.",
       "Explicit repository root, version command, and target branch preserved exact source and remote identity checks.",
-      "The real Windows consumer run exposed locale-dependent subprocess and CLI-output encoding before Attune publication."
+      "The real Windows consumer run exposed locale-dependent subprocess and CLI-output encoding before Attune publication.",
+      "The consumer receipt run exposed publication runtime state feeding back into SourceIdentity when the consumer did not ignore .cgkn."
     ],
     "did_not_work": [
       "Repository-specific path and secret heuristics were too narrow for governed consumer publication.",
-      "Implicit locale encoding made UTF-8 test output and receipt printing unsafe on a GBK host."
+      "Implicit locale encoding made UTF-8 test output and receipt printing unsafe on a GBK host.",
+      "SourceIdentity originally treated its own unignored .cgkn/publish artifacts as consumer source state."
     ],
     "experiments": [
       "Keep a consumer-worktree publication scenario in the canonical publisher regression suite."
