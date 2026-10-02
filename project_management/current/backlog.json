@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-069",
+      "title": "Support fail-closed isolated consumer publication",
+      "priority": 1,
+      "state": "completed",
+      "value": "Allow governed consumer repositories to publish an explicit reviewed closure from a detached isolated worktree without adopting unrelated dirty work.",
+      "acceptance": [
+        "consumer governance and reviewed SQL migrations classify deterministically",
+        "environment credential references do not trigger secret false positives while literal secrets remain blocked",
+        "detached publication requires an explicit target branch whose remote SHA equals the local baseline",
+        "repository root and consumer version gate are explicit",
+        "canonical publication verifies exact staging, normal push, and fetched remote SHA equality"
+      ]
+    },
+    {
       "id": "PB-068",
       "title": "Close final planning semantic contract mismatches",
       "priority": 1,

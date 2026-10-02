@@ -26,7 +26,9 @@ CONVENTIONAL_MESSAGE = re.compile(r"^(feat|fix|refactor|test|docs|chore)(\([^)]+
 SECRET_NAMES = re.compile(r"(^|/)(\.env(?:\..*)?|id_rsa.*|private_key.*|credentials.*)(/|$)", re.I)
 SECRET_SUFFIXES = {".pem", ".key"}
 SECRET_CONTENT = re.compile(
-    r"(?i)(?:api[_-]?key|bearer|provider[_-]?secret|access[_-]?token)\s*[:=]\s*['\"]?(?!placeholder|example|dummy|test|changeme)[A-Za-z0-9_\-/.]{16,}"
+    r"(?i)(?:api[_-]?key|bearer|provider[_-]?secret|access[_-]?token)\s*[:=]\s*['\"]?"
+    r"(?!placeholder|example|dummy|test|changeme|env\.|process\.|this\.|config\.|options?\.)"
+    r"[A-Za-z0-9_\-/.]{16,}"
 )
 
 GitRunner = Callable[[pathlib.Path, Sequence[str]], dict[str, Any]]
@@ -152,6 +154,8 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "SECRET", "secret-like name, suffix, or non-placeholder credential content"
     if lower.startswith(".cgkn/"):
         return "LOCAL_STATE", "project-local CGKN state"
+    if lower.startswith(".cgnk/governance/"):
+        return "CURRENT_GOVERNANCE", "consumer current governance state"
     if any(part in {"__pycache__", ".pytest_cache", ".cache", "node_modules"} for part in pure.parts):
         return "CACHE", "cache path"
     if pure.suffix.lower() == ".log" or lower.startswith("raw_logs/"):
@@ -172,6 +176,8 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "SCHEMA", "formal schema/specification"
     if lower.startswith("governance/migrations/"):
         return "MIGRATION", "bounded migration record requires review"
+    if lower.startswith("drizzle/") and pure.suffix.lower() == ".sql":
+        return "MIGRATION", "database migration requires explicit review"
     if lower.startswith("governance/") or lower.startswith("project_management/current/"):
         return "CURRENT_GOVERNANCE", "current governance state"
     if lower.startswith("evidence/"):
@@ -272,11 +278,12 @@ def reject_force_options(options: Sequence[str]) -> None:
         raise PublishBlocked("BLOCKED_FORCE_PUSH")
 
 
-def run_version_gate(root: pathlib.Path) -> dict[str, Any]:
-    completed = subprocess.run([sys.executable, "scripts/canonical_version_gate.py"], cwd=root, text=True, capture_output=True, check=False)
+def run_version_gate(root: pathlib.Path, command: str | None = None) -> dict[str, Any]:
+    argv = shlex.split(command, posix=os.name != "nt") if command else [sys.executable, "scripts/canonical_version_gate.py"]
+    completed = subprocess.run(argv, cwd=root, text=True, capture_output=True, check=False)
     if completed.returncode != 0:
         raise PublishBlocked("VERSION_GATE_FAILED", completed.stdout[-2000:] + completed.stderr[-2000:])
-    return {"status": "PASS", "command": "python scripts/canonical_version_gate.py"}
+    return {"status": "PASS", "command": command or "python scripts/canonical_version_gate.py"}
 
 
 def verify_remote_sha(root: pathlib.Path, branch: str, commit_sha: str, runner: GitRunner = run_git) -> str:
@@ -321,6 +328,7 @@ def publish(
     root: pathlib.Path, *, message: str, test_receipt_path: pathlib.Path,
     reviewed_paths: Sequence[str] = (), post_commit_commands: Sequence[str] = (),
     push_options: Sequence[str] = (), runner: GitRunner = run_git,
+    target_branch: str | None = None, version_gate_command: str | None = None,
 ) -> dict[str, Any]:
     root = pathlib.Path(root).resolve()
     reject_force_options(push_options)
@@ -340,7 +348,7 @@ def publish(
         raise PublishBlocked(classification, {"blocked": manifest["blocked_files"], "review": manifest["review_required_files"]})
     receipt = load_json(test_receipt_path)
     verify_test_binding(root, manifest, receipt)
-    version_gate = run_version_gate(root)
+    version_gate = run_version_gate(root, version_gate_command) if version_gate_command else run_version_gate(root)
     require_git(root, ["add", "--", *manifest["commit_files"]], runner)
     staged_tree_hash = validate_staged_set(root, manifest["commit_files"], runner)
     require_git(root, ["commit", "-m", message], runner)
@@ -360,10 +368,20 @@ def publish(
     post_test_status = _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner))
     if post_test_status:
         raise PublishBlocked("POST_COMMIT_DIRTY", post_test_status)
-    branch = initial["branch"]
-    expected_remote = initial["remote_head"]
+    branch = target_branch or initial["branch"]
+    if not branch:
+        raise PublishBlocked("TARGET_BRANCH_REQUIRED")
+    if target_branch:
+        require_git(root, ["fetch", "origin", branch], runner)
+        expected_remote = require_git(root, ["rev-parse", f"origin/{branch}"], runner)["stdout"].strip()
+        if expected_remote != initial["local_head"]:
+            raise PublishBlocked("REMOTE_BASELINE_CHANGED", {"local": initial["local_head"], "remote": expected_remote})
+    else:
+        expected_remote = initial["remote_head"]
     push_args = ["push", *push_options]
-    if initial["tracking_ref"]:
+    if target_branch:
+        push_args.extend(["origin", f"HEAD:refs/heads/{branch}"])
+    elif initial["tracking_ref"]:
         push_args.extend(["origin", branch])
     else:
         push_args.extend(["-u", "origin", branch])
@@ -397,6 +415,7 @@ def _write_runtime(root: pathlib.Path, name: str, document: dict[str, Any]) -> p
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Canonical fail-closed CGKN repository publish gate.")
+    parser.add_argument("--repository-root", default=str(ROOT))
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("inspect")
     prepare_parser = sub.add_parser("prepare")
@@ -405,30 +424,34 @@ def main() -> int:
     verify_parser = sub.add_parser("verify")
     verify_parser.add_argument("--test-receipt", default=str(PUBLISH_DIR / "test_receipt.json"))
     verify_parser.add_argument("--review-path", action="append", default=[])
+    verify_parser.add_argument("--version-gate-command")
     publish_parser = sub.add_parser("publish")
     publish_parser.add_argument("--message", required=True)
     publish_parser.add_argument("--test-receipt", default=str(PUBLISH_DIR / "test_receipt.json"))
     publish_parser.add_argument("--review-path", action="append", default=[])
     publish_parser.add_argument("--post-commit-command", action="append", default=[])
+    publish_parser.add_argument("--target-branch")
+    publish_parser.add_argument("--version-gate-command")
     args = parser.parse_args()
+    repository_root = pathlib.Path(args.repository_root).resolve()
     try:
-        state = repository_state(ROOT)
-        manifest = build_change_manifest(ROOT, state, reviewed_paths=getattr(args, "review_path", []))
+        state = repository_state(repository_root)
+        manifest = build_change_manifest(repository_root, state, reviewed_paths=getattr(args, "review_path", []))
         if args.command == "inspect":
             result: dict[str, Any] = {"status": "PASS", "repository_state": state, "change_manifest": manifest}
         elif args.command == "prepare":
-            manifest_path = _write_runtime(ROOT, "change_manifest.json", manifest)
-            receipt = run_tests_and_write_receipt(ROOT, manifest, args.test_command, ROOT / PUBLISH_DIR / "test_receipt.json")
+            manifest_path = _write_runtime(repository_root, "change_manifest.json", manifest)
+            receipt = run_tests_and_write_receipt(repository_root, manifest, args.test_command, repository_root / PUBLISH_DIR / "test_receipt.json")
             result = {"status": receipt["scoped_verdict"], "manifest": str(manifest_path), "test_receipt": receipt}
         elif args.command == "verify":
             if manifest["blocked_files"] or manifest["review_required_files"]:
                 raise PublishBlocked("CHANGE_MANIFEST_BLOCKED")
-            receipt = load_json(ROOT / args.test_receipt)
-            verify_test_binding(ROOT, manifest, receipt)
-            run_version_gate(ROOT)
+            receipt = load_json(repository_root / args.test_receipt)
+            verify_test_binding(repository_root, manifest, receipt)
+            run_version_gate(repository_root, args.version_gate_command) if args.version_gate_command else run_version_gate(repository_root)
             result = {"status": "PASS", "change_manifest_hash": manifest["change_manifest_hash"], "test_receipt_hash": receipt["test_receipt_hash"]}
         else:
-            result = publish(ROOT, message=args.message, test_receipt_path=ROOT / args.test_receipt, reviewed_paths=args.review_path, post_commit_commands=args.post_commit_command)
+            result = publish(repository_root, message=args.message, test_receipt_path=repository_root / args.test_receipt, reviewed_paths=args.review_path, post_commit_commands=args.post_commit_command, target_branch=args.target_branch, version_gate_command=args.version_gate_command)
             result = {"status": "PASS", "publish_receipt": result}
     except PublishBlocked as exc:
         result = {"status": "BLOCKED", "classification": exc.classification, "detail": exc.detail}

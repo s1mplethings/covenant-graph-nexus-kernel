@@ -1,60 +1,57 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-089",
+  "iteration_id": "ITER-090",
   "project_id": "cgkn",
-  "goal": "Close the final sealed-intent grounding, workstream identity, and replan routing mismatches without changing the established planning architecture.",
-  "backlog_item_ids": ["PB-068"],
+  "goal": "Make canonical repository publication safely reusable from isolated consumer worktrees without weakening fail-closed staging or remote verification.",
+  "backlog_item_ids": ["PB-069"],
   "workflow_state": "closed",
   "evidence_status": "PASS",
   "acceptance_criteria": [
-    "Provider and compiler consume the same sealed accepted system constraints.",
-    "SYSTEM_POLICY remains identity-bound and fail-closed for unknown constraints.",
-    "Workstream grounding uses canonical IDs and scope text is rejected as identity.",
-    "Replan resolves internal aliases through the reviewed model policy before transport.",
-    "Schema, retry, admission, lifecycle, provenance, formal evidence, and resume gates remain unchanged."
+    "Consumer .cgnk governance files are current governance, while .cgkn remains local state.",
+    "Drizzle SQL migrations require explicit review.",
+    "Environment credential references are not false-positive secrets and literal secrets remain blocked.",
+    "Detached worktree publication requires explicit target branch and exact remote baseline equality.",
+    "Canonical SourceIdentity, manifest, receipt, exact staging, non-force push, and fetched remote equality remain mandatory."
   ],
   "quality_metrics": [
-    {"id": "QM-SEMANTIC-WORLD", "measure": "accepted system constraints present on only one side of generation/validation", "target": "0", "method": "A and D contract tests"},
-    {"id": "QM-ALIAS-ESCAPE", "measure": "internal stage aliases reaching Provider transport", "target": "0", "method": "C routing tests"}
+    {"id": "QM-CONSUMER-CLASSIFICATION", "measure": "required consumer governance/source paths classified UNKNOWN or falsely SECRET", "target": "0", "method": "canonical publisher unit tests and Attune manifest preflight"},
+    {"id": "QM-REMOTE-TARGET", "measure": "detached publication capable of overwriting a changed target branch", "target": "0", "method": "target-branch baseline and remote-SHA tests"}
   ],
   "quality_activities": {
-    "prevention": ["Derive both generation and validation constraints from the sealed plan contract"],
-    "assurance": ["Exercise A01-A07, B01-B10, C01-C10, and D01-D08 without Provider calls"],
-    "control": ["Run schema, preservation, admission, lifecycle, candidate, formal, resume, kernel, and governance regressions before publication"],
-    "improvement": ["Assert concrete model identity at the transport boundary"]
+    "prevention": ["Keep consumer governance, local state, migrations, and secrets as distinct classifier roles"],
+    "assurance": ["Add positive and negative classifier tests plus detached target-branch publication coverage"],
+    "control": ["Run publisher, source identity, kernel contract, and canonical version gates before publication"],
+    "improvement": ["Exercise the repaired gate against the real isolated Attune reconstruction"]
   },
   "interface_expectations": [
-    "Canonical local semantic validation remains final authority",
-    "Sealed brief identity remains immutable",
-    "ProviderModelRoutingPolicy remains concrete-model owner",
-    "Formal evidence and resume safety remain derived"
+    "canonical_repo_publish.py remains the only repository publication authority",
+    "Consumer version validation is explicit and command-bound",
+    "Normal push and fetched remote SHA equality remain mandatory",
+    "Provider and product-delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "A01-A07",
-    "B01-B10",
-    "C01-C10",
-    "D01-D08",
-    "125 targeted semantic, admission, and transport tests",
-    "151 lifecycle, candidate provenance, formal, resume, release, and kernel tests"
+    "78 canonical publisher, source identity, kernel contract, and release-candidate tests",
+    "canonical_version_gate: PASS",
+    "Attune isolated-worktree manifest preflight: 45 COMMIT, 0 REVIEW, 0 BLOCKED"
   ],
   "review": {
     "outcome": "accepted",
     "feedback": [
-      "Sealed constraints now share one bounded semantic source, workstream references are identity-explicit, and internal aliases are resolved by the reviewed model policy before transport."
+      "Consumer governance, migration review, credential-reference handling, explicit version validation, and detached target-branch publication are fail-closed and covered by tests."
     ],
-    "accepted_backlog_item_ids": ["PB-068"]
+    "accepted_backlog_item_ids": ["PB-069"]
   },
   "retrospective": {
     "worked": [
-      "The production trace identified three deterministic contract boundaries without reopening structured output or lifecycle architecture.",
-      "Transport-boundary assertions made route ownership executable."
+      "Testing the canonical gate against the real isolated Attune worktree exposed consumer-boundary gaps before publication.",
+      "Explicit repository root, version command, and target branch preserved exact source and remote identity checks."
     ],
     "did_not_work": [
-      "Passing sealed intent only as Provider context left compiler grounding in a different semantic world."
+      "Repository-specific path and secret heuristics were too narrow for governed consumer publication."
     ],
     "experiments": [
-      "Keep accepted evidence sets identity-bound and shared at every generation/validation boundary."
+      "Keep a consumer-worktree publication scenario in the canonical publisher regression suite."
     ]
   }
 }

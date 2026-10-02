@@ -46,6 +46,7 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("tests/test_app.py", "TEST", "COMMIT"),
         ("src/app.py", "SOURCE", "COMMIT"),
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
+        (".cgnk/governance/governance.lock.json", "CURRENT_GOVERNANCE", "COMMIT"),
     ],
 )
 def test_file_policy(path: str, classification: str, action: str) -> None:
@@ -63,6 +64,41 @@ def test_force_push_options_are_always_blocked() -> None:
     for option in ("-f", "--force", "--force-with-lease"):
         with pytest.raises(gate.PublishBlocked, match="BLOCKED_FORCE_PUSH"):
             gate.reject_force_options([option])
+
+
+def test_consumer_migrations_require_explicit_review() -> None:
+    assert gate.classify_path("drizzle/0017_feature.sql")[0] == "MIGRATION"
+
+
+def test_environment_key_reference_is_not_secret_content(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "src" / "provider.ts"
+    path.parent.mkdir()
+    path.write_text("const request = { apiKey: env.QWEN_API_KEY };\n", encoding="utf-8")
+    assert gate.classify_path("src/provider.ts", tmp_path)[0] == "SOURCE"
+
+
+def test_literal_key_remains_secret_content(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "src" / "provider.ts"
+    path.parent.mkdir()
+    literal = "const request = { apiKey: '" + "sk-super-secret-value-123456" + "' };\n"
+    path.write_text(literal, encoding="utf-8")
+    assert gate.classify_path("src/provider.ts", tmp_path)[0] == "SECRET"
+
+
+def test_target_branch_requires_local_baseline_match(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, _ = init_repo(tmp_path)
+    git(root, "switch", "--detach")
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    identity = gate._read_source_identity(root)
+    receipt = {"scoped_verdict":"PASS","source_identity_hash":identity["source_identity_hash"],"changed_paths":manifest["commit_files"],"tests":[{"status":"PASS"}]}
+    receipt["test_receipt_hash"] = gate.canonical_hash(receipt, ("test_receipt_hash", "created_at"))
+    receipt_path = root / ".cgkn" / "publish" / "test_receipt.json"
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    monkeypatch.setattr(gate, "run_version_gate", lambda _root, _command=None: {"status":"PASS"})
+    result = gate.publish(root, message="fix: publish detached consumer", test_receipt_path=receipt_path, target_branch="main")
+    assert result["push_verified"] is True
 
 
 def test_git_failure_is_blocked_not_clean(tmp_path: pathlib.Path) -> None:
