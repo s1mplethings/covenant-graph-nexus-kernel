@@ -55,6 +55,17 @@ def generation_confirmation_branch(text: str) -> str:
 
 
 class KernelContractTests(unittest.TestCase):
+    def test_selected_external_executor_integration_is_veto_only(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+        implementation = read_source("scripts/external_executor_integration.py")
+        pipeline = read_source("scripts/run_local_pipeline_impl.py")
+        self.assertIn("CGKNExternalExecutorIntegrationContract", contract)
+        self.assertIn('"release_authority": False', implementation)
+        self.assertIn('"formal_acceptance_authority": False', implementation)
+        self.assertIn("external_executor_integration.validate_project_integration", pipeline)
+        self.assertNotIn("local_packager", implementation)
+        self.assertNotIn("public_delivery_gate", implementation)
+
     def test_consumer_governance_is_fail_closed_support_only(self) -> None:
         contract = read_source("docs/00_kernel_contract.md")
         registry = read_source("docs/01_contract_registry.md")

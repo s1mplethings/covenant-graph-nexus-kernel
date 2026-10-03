@@ -35,6 +35,7 @@ import candidate_materializer
 import candidate_sanitizer
 import capability_execution
 import external_executor_discovery
+import external_executor_integration
 import check_test_environment
 import codex_capability_supervisor
 import compose_local_pipeline
@@ -30657,11 +30658,21 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 {"event": "stale_external_executor_trust_rechecked", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
             )
     plan_doc["external_executor_selection"] = executor_selection
-    internal_context = (
-        internal_context
-        + "\n\nExternal executor selection support (facts and bounded trials only; Provider still owns project integration):\n"
-        + json.dumps(executor_selection, ensure_ascii=False, indent=2)
-    ).strip()
+    external_executor_contracts = external_executor_integration.build_integration_contracts(executor_selection)
+    write_json(
+        run_dir / "artifacts" / "external_executor_integration_contract.json",
+        {
+            "kind": "CGKNExternalExecutorIntegrationContractSet",
+            "schema_version": "1.0",
+            "contracts": external_executor_contracts,
+            "release_authority": False,
+            "formal_acceptance_authority": False,
+        },
+    )
+    plan_doc["external_executor_integration_contracts"] = external_executor_contracts
+    integration_projection = external_executor_integration.provider_projection(external_executor_contracts)
+    if integration_projection:
+        internal_context = (internal_context + "\n\n" + integration_projection).strip()
 
     product_stage = provider_stage_checkpoint(
         provider_mode=provider_mode,
@@ -30958,6 +30969,10 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     component_pipeline = apply_codex_capability_supervision(
         component_pipeline,
         codex_brief_projection,
+    )
+    component_pipeline = external_executor_integration.attach_contracts_to_components(
+        component_pipeline,
+        external_executor_contracts,
     )
     technical_stage = provider_stage_checkpoint(
         provider_mode=provider_mode,
@@ -31455,6 +31470,17 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 decomposition_tree_doc=decomposition_tree_doc,
             )
             write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
+            external_integration_receipt = external_executor_integration.validate_project_integration(
+                candidate_dir,
+                external_executor_contracts,
+            ) if external_executor_contracts else {
+                "kind": "CGKNExternalExecutorIntegrationReceipt",
+                "status": "NOT_EVALUATED",
+                "results": [],
+                "release_authority": False,
+                "formal_acceptance_authority": False,
+            }
+            write_json(run_dir / "artifacts" / "external_executor_integration_receipt.json", external_integration_receipt)
             final_bundle_exists = (candidate_dir / "final_project_bundle.zip").exists()
             delivery_manifest_exists = (candidate_dir / "delivery_manifest.json").exists()
             final_truth = final_delivery_truth.run_if_applicable(
@@ -31517,6 +31543,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "candidate_record": post_build.get("candidate_record", first_candidate_record),
                 "initial_issue_ledger": initial_issue_ledger,
                 "final_issue_ledger": final_issue_ledger,
+                "external_executor_integration_receipt": external_integration_receipt,
                 "materialized": False,
                 "generated_files": generated_files,
                 "candidate_files_recovered_from_checkpoints": recovered_candidate_files,
@@ -31697,6 +31724,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         decomposition_tree_doc=decomposition_tree_doc,
     )
     write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
+    external_integration_receipt = external_executor_integration.validate_project_integration(
+        out_dir,
+        external_executor_contracts,
+    ) if external_executor_contracts else {
+        "kind": "CGKNExternalExecutorIntegrationReceipt",
+        "status": "NOT_EVALUATED",
+        "results": [],
+        "release_authority": False,
+        "formal_acceptance_authority": False,
+    }
+    write_json(run_dir / "artifacts" / "external_executor_integration_receipt.json", external_integration_receipt)
+    external_integration_failed = bool(external_executor_contracts) and external_integration_receipt.get("status") != "PASS"
     agent_usage = post_build.get("agent_usage", {}) if isinstance(post_build.get("agent_usage"), dict) else {}
     candidate_index_path = candidate_store_dir / "candidate_versions.json"
     candidate_index = load_json(candidate_index_path) if candidate_index_path.is_file() else {"candidates": []}
@@ -31785,10 +31824,10 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "kind": "RuntimeExecutionResult",
         **generation_only_success_boundary(),
         "workflow_state": "post_build_evaluation_complete",
-        "evidence_status": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
+        "evidence_status": "NOT_EVALUATED" if not final_issue_ledger.get("issues") and not external_integration_failed else "NEEDS_REWORK",
         "release_ready": False,
         "final_delivery_allowed": False,
-        "final_verdict": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
+        "final_verdict": "NOT_EVALUATED" if not final_issue_ledger.get("issues") and not external_integration_failed else "NEEDS_REWORK",
         "generated_at": now(),
         "production_started_at": production_started_at,
         "goal": user_goal,
@@ -31805,6 +31844,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "post_build_finalize": post_build,
         "initial_issue_ledger": initial_issue_ledger,
         "final_issue_ledger": final_issue_ledger,
+        "external_executor_integration_receipt": external_integration_receipt,
         "productivity": productivity,
         "online_input_examples": online_inputs,
         "market_research": market_research,

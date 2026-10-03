@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-EXTERNAL-INTEGRATION-001",
+      "description": "A selected executor may be present in support metadata while generated dependencies or runtime behavior silently ignore it.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Freeze an exact integration contract before generation and independently validate dependency, AST API use, source identity, and runtime evidence.",
+      "state": "active"
+    },
+    {
       "id": "RK-EXTERNAL-TRUST-001",
       "description": "Incomplete or stale maintenance/security metadata could permit a vulnerable or abandoned exact version to enter an automatic trial.",
       "probability": "medium",

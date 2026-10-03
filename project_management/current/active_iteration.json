@@ -1,65 +1,58 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-092",
+  "iteration_id": "ITER-093",
   "project_id": "cgkn",
-  "goal": "Close External Executor maintenance and exact-version security trust so only fully verified candidates can enter automatic trial and selection.",
-  "backlog_item_ids": ["PB-071"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Bind trusted SelectedExecutors to generated dependencies, real source APIs, and runtime evidence, then attempt one official real-project acceptance.",
+  "backlog_item_ids": ["PB-072"],
+  "workflow_state": "closed_with_limits",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
-    "OSV is queried only with allowlisted exact ecosystem, package, and version data.",
-    "Critical/high affected versions block; medium/low/unknown affected versions require review; clean exact-version OSV results pass.",
-    "GitHub archived, disabled, or deprecated repositories block; recent push or release can pass; stale or unavailable facts cannot auto-pass.",
-    "deps.dev advisory metadata is a conservative hint and cannot replace OSV exact-version evaluation.",
-    "Trust PASS is required before trial, and trial PASS cannot override maintenance or security REVIEW/BLOCK/UNKNOWN.",
-    "Resume checkpoints re-evaluate stale time-sensitive trust facts.",
-    "Provider, scheduling, evidence, packaging, delivery, and publication authorities remain unchanged."
+    "Each SelectedExecutor becomes one bounded integration contract with exact dependency, required API symbols, and delegation rules.",
+    "Only responsible generation context receives the selected executor projection and Provider cannot silently substitute a library.",
+    "Dependency and AST source validation are deterministic and ignore README, comments, and dead documentation.",
+    "Integration receipts bind the selected executor and current generated source identity; stale receipts fail closed.",
+    "Runtime evidence identifies the installed exact version and actual external API path.",
+    "Candidate replacement remains bounded and exhaustion yields Agent Build without stale external contracts.",
+    "No new Agent, scheduler, executor type, lifecycle stage, formal authority, packager, or delivery route is introduced."
   ],
   "quality_metrics": [
-    {"id": "QM-TRUST-INTEGRITY", "measure": "auto-selected candidates without maintenance PASS and same-version security PASS", "target": "0", "method": "offline trust-gate fixtures and integration tests"},
-    {"id": "QM-REQUEST-BOUND", "measure": "trust-enriched candidates per discovery run", "target": "<=5", "method": "bounded request tests"},
+    {"id": "QM-INTEGRATION-BINDING", "measure": "selected executors accepted without exact dependency, AST API use, or bound runtime evidence", "target": "0", "method": "offline negative and positive integration tests"},
+    {"id": "QM-FALSE-POSITIVE", "measure": "README/comment/dead example accepted as core runtime usage", "target": "0", "method": "AST and runtime-receipt fixtures"},
     {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, formal stages, or authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
   ],
   "quality_activities": {
-    "prevention": ["Require exact-version OSV and deterministic GitHub maintenance policy before trial"],
-    "assurance": ["Cover every severity, fixed versions, source conflicts, no-release, stale, archived, unavailable, freshness, and trust-binding paths"],
-    "control": ["Run scoped trust, discovery, capability, generation-lane, kernel, version, and bounded quick checks before canonical publication"],
-    "improvement": ["Use one provider-free live trust smoke to verify all four real fact sources"]
+    "prevention": ["Freeze exact package/version/API/delegation constraints before Provider generation"],
+    "assurance": ["Cover exact dependency parsing, AST aliases/import-from, false positives, receipt identity, candidate replacement, and fallback"],
+    "control": ["Run scoped integration/discovery/generation/kernel/version tests plus official real-project acceptance and bounded quick"],
+    "improvement": ["Freeze External Executor Discovery only if discovery, trust, trial, integration, and real runtime all pass"]
   },
   "interface_expectations": [
-    "External Executor Discovery stays inside its current mainline position and module",
-    "OSV is one additional security fact source, not a search or acceptance authority",
+    "Integration contract is a support projection inside the current Provider generation context",
+    "Integration receipt is deterministic validation support and not formal acceptance authority",
     "WorkNode external and ProviderJob concurrency contracts remain unchanged",
     "Provider, formal evidence, local_packager, public delivery, and canonical repository publication authorities remain unchanged"
   ],
   "evidence_refs": [
-    "146 scoped trust, discovery, capability, WorkNode, skill, generation-lane, project-plan, kernel-contract, and release-version tests passed",
-    "kernel_contract_check: PASS",
-    "canonical_version_gate: PASS",
-    "provider-free live trust smoke: pypdf==6.19.0, PyPI/deps.dev/GitHub/OSV reached, trust PASS, isolated trial PASS in 51.44 seconds",
-    "formal quick: TIMEOUT at the bounded 300-second limit with no scoped failure attribution"
+    "tests/test_external_executor_integration.py: 10 passed",
+    "scoped regression: 126 passed, 150 skipped",
+    "scripts/kernel_contract_check.py: PASS",
+    "scripts/canonical_version_gate.py: PASS",
+    "official live run production-ea374b46a92e430f90011b6f1b6b94ea: endpoint model mismatch before discovery",
+    "official live run production-c529e9a941c84775b64daddef7ede828: source-identity git status hung before Provider/discovery",
+    "repository formal quick: TIMEOUT at 300 seconds"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
+    "outcome": "completed_with_limits",
     "feedback": [
-      "Exact-version OSV and deterministic GitHub maintenance facts now gate trial and SelectedExecutor; REVIEW, BLOCK, UNKNOWN, and stale trust cannot auto-select.",
-      "Repository-global quick remains unevaluated because the bounded profile timed out; scoped trust hardening remains separately verified."
+      "Deterministic integration contract, dependency/AST/runtime receipt logic, stale binding, replacement, and fallback tests pass.",
+      "No generated candidate materialized, so real dependency, runtime, PNG, and Chinese-path acceptance remain NOT_EVALUATED and the scoped verdict is NEEDS_REWORK."
     ],
-    "accepted_backlog_item_ids": ["PB-071"]
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": [
-      "Extending the existing candidate and HTTP helper kept trust evaluation inside one module and one mainline stage.",
-      "Fixture-driven source adapters covered severity, conflict, freshness, and no-release policy without internet-dependent CI.",
-      "The real pypdf smoke verified all four sources and the trust-to-trial-to-selection chain with zero Provider calls."
-    ],
-    "did_not_work": [
-      "The first regression retained the old exact allowlist assertion and failed until the guard explicitly included OSV.",
-      "The repository quick profile did not complete within its 300-second bound."
-    ],
-    "experiments": [
-      "On a later bounded iteration, revalidate only expired trust facts while reusing same-version bound trial evidence."
-    ]
+    "worked": ["Bounded contract projection and local independent validators stayed inside the existing Provider route."],
+    "did_not_work": ["The first live run used an endpoint-incompatible default model; the corrected run hung during source identity capture before Provider execution."],
+    "experiments": ["Keep External Executor Discovery ACTIVE until a fresh official run materializes and passes the real project."]
   }
 }

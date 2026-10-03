@@ -1089,6 +1089,12 @@ Repeated proxy-only repair, holdout failure, test-specific branching, or archite
 
 This governance is part of the existing Requirement Decision -> ProviderJob -> post-build evidence -> `local_packager` -> public delivery route. It creates no candidate author, Provider scheduler, partial-acceptance authority, evidence PASS authority, packaging route, or delivery exit.
 
+## Selected external executor integration
+
+When the existing discovery and trust gate selects an external executor, `scripts/external_executor_integration.py` projects only its capability, exact package/version, required API symbols, and delegation rules into a `CGKNExternalExecutorIntegrationContract`. The responsible implementation/dependency/test components receive this bounded contract; the Provider may build an adapter but cannot silently replace the selected library or reimplement its core capability.
+
+After candidate materialization, deterministic dependency and Python AST checks write a source-identity-bound `CGKNExternalExecutorIntegrationReceipt`. README text, comments, tests, examples, and unused imports cannot satisfy source usage, and runtime usage remains separately evidenced. The contract and receipt are veto-only support state with `release_authority=false` and `formal_acceptance_authority=false`; they add no discovery source, planner, agent, scheduler, executor type, formal evidence authority, packaging route, or delivery exit. ProviderJob authorship, post-build evidence, `local_packager`, and the public delivery gate remain unchanged.
+
 ## Canonical open-domain GoalSpec compilation
 
 The `requirements_planning` Provider stage emits a validated

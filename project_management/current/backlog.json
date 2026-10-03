@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-072",
+      "title": "Bind selected external executors to generated projects",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Prove that a trusted SelectedExecutor becomes an exact generated dependency, real source API usage, and independently verified runtime behavior.",
+      "acceptance": [
+        "SelectedExecutor projects to a bounded component integration contract with exact package/version and API requirements",
+        "Provider context forbids library substitution and core-capability reimplementation",
+        "deterministic dependency and Python AST validators reject missing, mismatched, comment-only, README-only, and wrong-library usage",
+        "integration receipts bind selected executor identity to the generated source tree and runtime evidence",
+        "candidate integration failure can select the next trusted candidate and exhaustion falls back cleanly to Agent Build",
+        "one official real Local Video Frame Extractor generation and Chinese-path runtime acceptance is attempted"
+      ]
+    },
+    {
       "id": "PB-071",
       "title": "Harden external executor maintenance and security trust",
       "priority": 1,

@@ -1,0 +1,39 @@
+{
+  "kind": "CGKNExternalExecutorRealProjectAcceptance",
+  "schema_version": "1.0",
+  "goal": "Local Video Frame Extractor: Python, Windows, local-first, MP4 timestamp to PNG, Chinese input/output paths",
+  "official_runs": [
+    {
+      "run_id": "production-ea374b46a92e430f90011b6f1b6b94ea",
+      "provider_mode": "live",
+      "model": "gpt-4.1",
+      "status": "REWORK_BLOCKED",
+      "failure": "PROVIDER_NON_RETRYABLE_HTTP: model_not_found at requirements_planning",
+      "candidate_materialized": false
+    },
+    {
+      "run_id": "production-c529e9a941c84775b64daddef7ede828",
+      "provider_mode": "live",
+      "model": "qwen3.8-max",
+      "status": "BLOCKED_ENVIRONMENT",
+      "failure": "source identity git status made no progress for more than five minutes before Provider or discovery",
+      "candidate_materialized": false
+    }
+  ],
+  "discovery": "NOT_EVALUATED",
+  "trust": "NOT_EVALUATED",
+  "trial": "NOT_EVALUATED",
+  "dependency_binding": "NOT_EVALUATED",
+  "source_usage": "NOT_EVALUATED",
+  "runtime_usage": "NOT_EVALUATED",
+  "project_runtime": "NOT_EVALUATED",
+  "provider_calls": 1,
+  "selected_executor": null,
+  "deterministic_integration_tests": {"status": "PASS", "passed": 10, "failed": 0},
+  "scoped_regression": {"status": "PASS", "passed": 126, "skipped": 150, "failed": 0},
+  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "completed": false},
+  "external_executor_integration_scoped_verdict": "NEEDS_REWORK",
+  "external_executor_discovery_feature_status": "ACTIVE",
+  "release_authority": false,
+  "formal_acceptance_authority": false
+}
