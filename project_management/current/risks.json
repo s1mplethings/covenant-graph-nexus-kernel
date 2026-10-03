@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-EXTERNAL-EXECUTOR-001",
+      "description": "Untrusted external metadata or package code could be mistaken for trustworthy execution capability or leak credentials during a trial.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Allowlist endpoints, bound metadata and candidates, require deterministic filters plus isolated timeout-limited trials with a minimal secret-free environment, and fall back to Agent Build.",
+      "state": "controlled"
+    },
+    {
       "id": "RK-PROVIDER-ALIGNMENT-001",
       "description": "CGKN may resolve a different DashScope account or API method than Attune despite sharing a model name and endpoint host.",
       "probability": "high",

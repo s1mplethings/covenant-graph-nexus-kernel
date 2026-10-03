@@ -48,6 +48,23 @@ For each critical capability, the system must prefer a mature method when one ex
 
 If no mature method is available, the agent must document why and make the fallback status visible.
 
+For an eligible mature commodity capability, this preference is executed through
+the canonical External Executor Discovery support seam:
+
+```text
+current implementation -> approved Skill -> bounded external discovery
+-> fact verification -> compatibility policy -> isolated bounded trial
+-> SelectedExecutor -> Provider adapter/integration
+```
+
+If discovery is unavailable or every candidate is rejected or fails trial, the
+explicit fallback is Agent Build. A candidate cannot enter generated dependency
+files before selection. GitHub, registry, and deps.dev metadata provide facts,
+not trust or acceptance; Facto and Hound are optional enhancements. Exact
+version, compatible license policy, non-archived maintenance state, cleared
+security metadata, sufficient compatibility metadata, and trial `PASS` are all
+required for automatic selection.
+
 ## Critical Questions
 
 Ask a critical question when the difference would materially change the product:

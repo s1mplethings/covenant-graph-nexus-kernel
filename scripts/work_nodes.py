@@ -9,7 +9,7 @@ existing internal contract; production Provider concurrency remains ProviderJob.
 from __future__ import annotations
 
 import pathlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
 
@@ -45,6 +45,7 @@ class WorkNode:
     outputs: tuple[str, ...] = ()
     interfaces: tuple[str, ...] = ()
     executor_type: str = "agent"
+    executor_details: Mapping[str, Any] = field(default_factory=dict)
     owns: tuple[str, ...] = ()
     acceptance: tuple[str, ...] = ()
 
@@ -60,6 +61,7 @@ class WorkNode:
             outputs=_items(value.get("outputs", [])),
             interfaces=_items(value.get("interfaces", [])),
             executor_type=executor_type or "agent",
+            executor_details=dict(executor) if isinstance(executor, Mapping) else {},
             owns=tuple(path for path in (_path(item) for item in value.get("owns", [])) if path),
             acceptance=_items(value.get("acceptance", [])),
         )
@@ -72,7 +74,7 @@ class WorkNode:
             "inputs": list(self.inputs),
             "outputs": list(self.outputs),
             "interfaces": list(self.interfaces),
-            "executor": {"type": self.executor_type},
+            "executor": {**dict(self.executor_details), "type": self.executor_type},
             "owns": list(self.owns),
             "acceptance": list(self.acceptance),
         }

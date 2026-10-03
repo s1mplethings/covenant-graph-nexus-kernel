@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
 from scripts.work_nodes import WorkNode, validate_work_nodes
+from scripts import external_executor_discovery
 
 
 REUSE_ORDER = {"internal": 0, "skill": 1, "oss": 2, "github": 3, "api": 4, "build": 5}
@@ -47,7 +48,11 @@ class Capability:
         return {"id": self.id, "goal": self.goal, "depends_on": list(self.depends_on), "inputs": list(self.input_interfaces), "outputs": list(self.output_interfaces), "acceptance": list(self.acceptance)}
 
 
-def compile_capability_plan(requirement: Mapping[str, Any]) -> dict[str, Any]:
+def compile_capability_plan(
+    requirement: Mapping[str, Any],
+    *,
+    executor_selections: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     raw = requirement.get("capabilities", [])
     if not isinstance(raw, list) or not raw:
         raise ValueError("capability_plan.capabilities_required_before_file_tree")
@@ -64,6 +69,7 @@ def compile_capability_plan(requirement: Mapping[str, Any]) -> dict[str, Any]:
                 errors.append(f"capability_plan.unknown_dependency:{item.id}:{dependency}")
     if errors:
         raise ValueError(";".join(sorted(set(errors))))
+    selections = executor_selections or {}
     nodes = [
         WorkNode(
             id=f"worknode.{item.id}",
@@ -72,6 +78,19 @@ def compile_capability_plan(requirement: Mapping[str, Any]) -> dict[str, Any]:
             inputs=item.input_interfaces,
             outputs=item.output_interfaces,
             interfaces=tuple(dict.fromkeys((*item.input_interfaces, *item.output_interfaces))),
+            executor_type=(
+                "external"
+                if isinstance(selections.get(item.id), Mapping)
+                and selections[item.id].get("executor", {}).get("type") == "external"
+                else "agent"
+            ),
+            executor_details=(
+                dict(selections[item.id].get("executor", {}))
+                | {"selected_executor": dict(selections[item.id])}
+                if isinstance(selections.get(item.id), Mapping)
+                and selections[item.id].get("executor", {}).get("type") == "external"
+                else {}
+            ),
             acceptance=item.acceptance,
         )
         for item in capabilities
@@ -81,6 +100,102 @@ def compile_capability_plan(requirement: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError(";".join(node_errors))
     validate_interface_graph(capabilities)
     return {"kind": "CGKNCapabilityPlan", "goal": str(requirement.get("goal", "")).strip(), "capabilities": [item.as_dict() for item in capabilities], "work_nodes": [item.as_dict() for item in nodes], "release_authority": False}
+
+
+def discover_capability_executors(
+    requirement: Mapping[str, Any],
+    *,
+    skill_root: pathlib.Path | None = None,
+    allow_network: bool = True,
+    discovery: Any = external_executor_discovery.discover_external_executor,
+) -> dict[str, Any]:
+    """Run the canonical Local -> Skill -> External -> Agent Build support seam."""
+    base_plan = compile_capability_plan(requirement)
+    registry = build_skill_registry(skill_root) if skill_root and skill_root.is_dir() else []
+    results: list[dict[str, Any]] = []
+    selections: dict[str, dict[str, Any]] = {}
+    for raw_node, capability in zip(base_plan["work_nodes"], base_plan["capabilities"]):
+        node = WorkNode.from_dict(raw_node)
+        skills = [
+            {
+                "kind": "CGKNSelectedExecutor",
+                "executor": {"type": "skill"},
+                "skill_id": skill.get("skill_id"),
+                "interface_compatible": True,
+                "acceptance_compatible": True,
+                "release_authority": False,
+            }
+            for skill in match_skills(node, registry, constraints=requirement.get("constraints", []))
+        ]
+        result = discovery(
+            capability,
+            language=str(requirement.get("language", "python")),
+            platform=str(requirement.get("platform", "")) or None,
+            constraints=requirement.get("constraints", []),
+            required_interfaces=node.interfaces,
+            skill_candidates=skills,
+            allow_network=allow_network,
+        )
+        results.append(result)
+        selected = result.get("selected_executor")
+        if result.get("route") == "external" and isinstance(selected, Mapping):
+            selections[capability["id"]] = dict(selected)
+    plan = compile_capability_plan(requirement, executor_selections=selections)
+    return {
+        "kind": "CGKNCapabilityExecutorSelection",
+        "schema_version": "1.0",
+        "status": "PASS",
+        "results": results,
+        "capability_plan": plan,
+        "provider_calls": 0,
+        "release_authority": False,
+    }
+
+
+def discover_goal_spec_executors(
+    goal_spec: Mapping[str, Any],
+    *,
+    skill_root: pathlib.Path | None = None,
+    allow_network: bool = True,
+    discovery: Any = external_executor_discovery.discover_external_executor,
+) -> dict[str, Any]:
+    """Adapt canonical GoalSpec string capabilities into the WorkNode seam."""
+    raw_capabilities = goal_spec.get("capabilities", [])
+    capabilities = [str(item).strip() for item in raw_capabilities if str(item).strip()]
+    requirement = {
+        "goal": str(goal_spec.get("goal", "")).strip(),
+        "language": str(goal_spec.get("language", "python") or "python"),
+        "platform": str(goal_spec.get("platform", "") or ""),
+        "constraints": list(goal_spec.get("constraints", [])),
+        "capabilities": [
+            {
+                "id": re.sub(r"[^a-z0-9_]+", "_", item.lower()).strip("_") or f"capability_{index}",
+                "goal": item,
+                "depends_on": [],
+                "inputs": [],
+                "outputs": [f"CapabilityResult.{index}"],
+                "acceptance": list(goal_spec.get("acceptance_behaviors", [])),
+            }
+            for index, item in enumerate(capabilities)
+        ],
+    }
+    if not requirement["capabilities"]:
+        return {
+            "kind": "CGKNCapabilityExecutorSelection",
+            "schema_version": "1.0",
+            "status": "NOT_EVALUATED",
+            "reason": "goal_spec_has_no_capabilities",
+            "results": [],
+            "capability_plan": None,
+            "provider_calls": 0,
+            "release_authority": False,
+        }
+    return discover_capability_executors(
+        requirement,
+        skill_root=skill_root,
+        allow_network=allow_network,
+        discovery=discovery,
+    )
 
 
 def validate_interface_graph(capabilities: Iterable[Capability]) -> None:

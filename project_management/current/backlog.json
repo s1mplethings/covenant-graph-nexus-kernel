@@ -4,6 +4,22 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-070",
+      "title": "Discover and validate reusable external executors",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Prefer verified mature external executors for eligible commodity capabilities and fall back safely to Agent Build when discovery or trials fail.",
+      "acceptance": [
+        "local implementations and approved skills remain ahead of network discovery",
+        "GitHub, PyPI, and deps.dev facts are bounded, allowlisted, timeout-limited, and treated as untrusted until deterministic validation",
+        "license, maintenance, security, compatibility, version, and trial policy fail closed for selection",
+        "selected external executors carry exact provenance and a passing isolated bounded trial",
+        "eligible capability planning projects external selection into the existing WorkNode executor type without a new agent or scheduler",
+        "all unavailable or rejected candidates fall back to Agent Build without blocking project generation",
+        "Provider calls remain zero for discovery validation and canonical authority, packaging, and delivery boundaries remain unchanged"
+      ]
+    },
+    {
       "id": "PB-069",
       "title": "Support fail-closed isolated consumer publication",
       "priority": 1,

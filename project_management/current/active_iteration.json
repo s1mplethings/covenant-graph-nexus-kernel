@@ -1,67 +1,65 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-090",
+  "iteration_id": "ITER-091",
   "project_id": "cgkn",
-  "goal": "Make canonical repository publication safely reusable from isolated consumer worktrees without weakening fail-closed staging or remote verification.",
-  "backlog_item_ids": ["PB-069"],
+  "goal": "Implement External Executor Discovery v1 as a bounded executor-selection support capability without adding an agent, scheduler, authority, or generation path.",
+  "backlog_item_ids": ["PB-070"],
   "workflow_state": "closed",
-  "evidence_status": "PASS",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Consumer .cgnk governance files are current governance, while .cgkn remains local state.",
-    "Drizzle SQL migrations require explicit review.",
-    "Environment credential references are not false-positive secrets and literal secrets remain blocked.",
-    "Detached worktree publication requires explicit target branch and exact remote baseline equality.",
-    "Canonical SourceIdentity, manifest, receipt, exact staging, non-force push, and fetched remote equality remain mandatory.",
-    "Test and post-commit command output plus CLI receipts use UTF-8 with replacement on Windows.",
-    "Publication runtime state cannot invalidate the SourceIdentity to which its own receipt is bound."
+    "Local implementation and approved skill checks precede network discovery.",
+    "GitHub, PyPI, and deps.dev adapters are HTTPS allowlisted, bounded, timeout-limited, and optional.",
+    "Only a fact-verified, compatible, versioned candidate with a passing isolated bounded trial can become SelectedExecutor.",
+    "Archived, deprecated, license-blocked, security-blocked, incompatible, partial-metadata, or failed-trial candidates cannot be selected.",
+    "All candidates exhausted or all sources unavailable produces an explicit Agent Build fallback rather than a project blocker.",
+    "Eligible capability planning consumes discovery through the existing external WorkNode executor type; ProviderJob remains the sole project-work concurrency unit.",
+    "Discovery owns no requirement, planning, scheduling, evidence, acceptance, packaging, delivery, or publication authority."
   ],
   "quality_metrics": [
-    {"id": "QM-CONSUMER-CLASSIFICATION", "measure": "required consumer governance/source paths classified UNKNOWN or falsely SECRET", "target": "0", "method": "canonical publisher unit tests and Attune manifest preflight"},
-    {"id": "QM-REMOTE-TARGET", "measure": "detached publication capable of overwriting a changed target branch", "target": "0", "method": "target-branch baseline and remote-SHA tests"}
+    {"id": "QM-DISCOVERY-BOUNDS", "measure": "unbounded HTTP responses, candidate sets, trial count, subprocess duration, or inherited secrets", "target": "0", "method": "offline deterministic unit tests and source inspection"},
+    {"id": "QM-SELECTION-INTEGRITY", "measure": "SelectedExecutor records missing exact version, adequate metadata, policy clearance, or trial PASS", "target": "0", "method": "selection-policy and negative-path tests"},
+    {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, or formal authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
   ],
   "quality_activities": {
-    "prevention": ["Keep consumer governance, local state, migrations, and secrets as distinct classifier roles"],
-    "assurance": ["Add positive and negative classifier tests plus detached target-branch publication coverage"],
-    "control": ["Run publisher, source identity, kernel contract, and canonical version gates before publication"],
-    "improvement": ["Exercise the repaired gate against the real isolated Attune reconstruction"]
+    "prevention": ["Keep discovery deterministic, bounded, allowlisted, support-only, and separate from Provider scheduling"],
+    "assurance": ["Cover local and skill priority, source normalization, fact policy, trial isolation, fallback, and WorkNode projection"],
+    "control": ["Run scoped discovery, capability, WorkNode, kernel, version, and formal quick checks before canonical publication"],
+    "improvement": ["Use one provider-free real lightweight live smoke to expose metadata and trial assumptions"]
   },
   "interface_expectations": [
-    "canonical_repo_publish.py remains the only repository publication authority",
-    "Consumer version validation is explicit and command-bound",
-    "Normal push and fetched remote SHA equality remain mandatory",
-    "Provider and product-delivery authorities remain unchanged"
+    "Capability Strategy supplies bounded capability intent without becoming a search authority",
+    "WorkNode external remains the existing executor type and ProviderJob remains the sole concurrency unit",
+    "Only selected executors may reach generated dependency materialization and Provider integration context",
+    "Provider, formal evidence, local_packager, public delivery, and canonical repository publication authorities remain unchanged"
   ],
   "evidence_refs": [
-    "82 canonical publisher, source identity, kernel contract, and release-candidate tests",
+    "124 scoped discovery, capability, WorkNode, skill, generation-lane, project-plan, kernel-contract, and release-version tests passed",
+    "kernel_contract_check: PASS",
     "canonical_version_gate: PASS",
-    "Attune isolated-worktree manifest preflight: 45 COMMIT, 0 REVIEW, 0 BLOCKED"
+    "provider-free live smoke selected av==19.0.1 from PyPI/deps.dev after GitHub discovery and completed an isolated API trial in 79.07 seconds",
+    "formal quick: TIMEOUT at the bounded 300-second limit with no scoped failure attribution"
   ],
   "review": {
-    "outcome": "accepted",
+    "outcome": "accepted_with_limits",
     "feedback": [
-      "Consumer governance, migration review, credential-reference handling, explicit version validation, and detached target-branch publication are fail-closed and covered by tests."
+      "External discovery now executes through the existing capability-to-WorkNode seam with deterministic policy, isolated trials, explicit Agent Build fallback, and zero Provider calls.",
+      "Repository-global formal quick remains unevaluated because the bounded profile timed out; this does not convert the scoped support capability into formal delivery evidence."
     ],
-    "accepted_backlog_item_ids": ["PB-069"]
+    "accepted_backlog_item_ids": ["PB-070"]
   },
   "retrospective": {
     "worked": [
-      "Testing the canonical gate against the real isolated Attune worktree exposed consumer-boundary gaps before publication.",
-      "Explicit repository root, version command, and target branch preserved exact source and remote identity checks.",
-      "The real Windows consumer run exposed locale-dependent subprocess and CLI-output encoding before Attune publication.",
-      "The consumer receipt run exposed publication runtime state feeding back into SourceIdentity when the consumer did not ignore .cgkn.",
-      "The consumer version gate exposed Windows command-shim resolution differences for npm.cmd.",
-      "The first verified Attune commit exposed inconsistent treatment of excluded publication runtime in post-commit cleanliness."
+      "Reusing the existing external WorkNode type and ProviderJob boundary avoided a new agent, scheduler, executor type, or authority.",
+      "Mocked source adapters made network and policy behavior deterministic while one live smoke exposed the real PyPI/deps.dev/trial path.",
+      "Failing closed on partial metadata prevented popular GitHub repositories from becoming selected merely because of stars."
     ],
     "did_not_work": [
-      "Repository-specific path and secret heuristics were too narrow for governed consumer publication.",
-      "Implicit locale encoding made UTF-8 test output and receipt printing unsafe on a GBK host.",
-      "SourceIdentity originally treated its own unignored .cgkn/publish artifacts as consumer source state.",
-      "Explicit consumer version commands were initially launched without the shell required for Windows command shims.",
-      "Post-commit cleanliness initially considered excluded local-state receipts dirty and needed a hash-bound resume path."
+      "The first live result stopped retaining lower-ranked candidates after selection; the loop was corrected to preserve the bounded candidate set without running more trials.",
+      "The repository formal quick profile did not complete within its 300-second bound."
     ],
     "experiments": [
-      "Keep a consumer-worktree publication scenario in the canonical publisher regression suite."
+      "Measure source latency and cache only immutable metadata facts in a future version without weakening revalidation or selection policy."
     ]
   }
 }

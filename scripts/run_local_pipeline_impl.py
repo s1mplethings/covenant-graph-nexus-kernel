@@ -33,6 +33,7 @@ import check_connectivity
 import adaptive_project_management_context
 import candidate_materializer
 import candidate_sanitizer
+import capability_execution
 import check_test_environment
 import codex_capability_supervisor
 import compose_local_pipeline
@@ -30621,6 +30622,37 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         }
         write_json(result_path, blocked)
         return blocked
+
+    executor_discovery_checkpoint = run_dir / "artifacts" / "external_executor_discovery_checkpoint.json"
+    if resume_run_dir and executor_discovery_checkpoint.is_file():
+        executor_selection = load_json(executor_discovery_checkpoint).get("result", {})
+        if not isinstance(executor_selection, dict):
+            raise RuntimeError("RESUME_EXTERNAL_EXECUTOR_DISCOVERY_CHECKPOINT_INVALID")
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "completed_stage_reused", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
+        )
+    else:
+        executor_selection = capability_execution.discover_goal_spec_executors(
+            goal_spec,
+            skill_root=PROJECT_ROOT / "skills",
+            allow_network=not bool(os.environ.get("PYTEST_CURRENT_TEST", "").strip()),
+        )
+        write_json(
+            executor_discovery_checkpoint,
+            {
+                "kind": "CGKNExternalExecutorDiscoveryCheckpoint",
+                "schema_version": "1.0",
+                "goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+                "result": executor_selection,
+            },
+        )
+    plan_doc["external_executor_selection"] = executor_selection
+    internal_context = (
+        internal_context
+        + "\n\nExternal executor selection support (facts and bounded trials only; Provider still owns project integration):\n"
+        + json.dumps(executor_selection, ensure_ascii=False, indent=2)
+    ).strip()
 
     product_stage = provider_stage_checkpoint(
         provider_mode=provider_mode,

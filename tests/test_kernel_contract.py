@@ -1892,6 +1892,25 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 12", workflow)
         self.assertNotIn("provider", workflow.lower())
 
+    def test_external_executor_discovery_is_support_only_and_bounded(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        agents = read_source("AGENTS.md")
+        discovery = read_source("scripts/external_executor_discovery.py")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        work_nodes = read_source("scripts/work_nodes.py")
+
+        self.assertIn("CGKNSelectedExecutor", kernel)
+        self.assertIn("CGKNExternalExecutorSearchIntent", registry)
+        self.assertIn("must not default to reimplementing", agents)
+        self.assertIn('ALLOWED_HOSTS = {"api.github.com", "pypi.org", "api.deps.dev"}', discovery)
+        self.assertIn('"pipeline_fallback": "agent_build"', discovery)
+        self.assertIn("MAX_TRIAL_CANDIDATES = 3", discovery)
+        self.assertIn("external_executor_discovery_checkpoint.json", production)
+        self.assertIn('EXECUTOR_TYPES = {"agent", "deterministic", "skill", "external"}', work_nodes)
+        self.assertNotIn("ExternalExecutorAgent", discovery)
+        self.assertNotIn("ThreadPoolExecutor", discovery)
+
 
 if __name__ == "__main__":
     unittest.main()

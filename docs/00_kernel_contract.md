@@ -357,6 +357,33 @@ bounded candidate under run/evidence support state, but never modify `skills/`
 or promote themselves. These records have no evidence, packaging, or delivery
 authority.
 
+`scripts/external_executor_discovery.py` makes the external portion of that
+order executable without creating an Agent, planning lane, scheduler, worker
+pool, executor type, or formal authority. An eligible commodity capability is
+projected into a bounded deterministic search intent only after local
+implementation and approved-Skill checks. GitHub repository search, PyPI
+metadata, and deps.dev enrichment are optional HTTPS allowlisted fact sources;
+Facto and Hound remain optional configured enhancements and are not runtime
+dependencies. All remote results are untrusted candidates. Candidate count,
+query count, response bytes, redirects, timeouts, and trial count are bounded;
+source failures remain structured and fall through rather than blocking project
+generation.
+
+CGKN alone normalizes and deduplicates candidates, applies project compatibility,
+maintenance, license, security, exact-version, and metadata-completeness policy,
+then runs at most three candidates in secret-free temporary workspaces with
+bounded subprocess time. Stars affect ordering only and never establish trust.
+Only a policy-clear candidate with an exact version and a real trial `PASS` may
+become `CGKNSelectedExecutor`; candidate or metadata prose cannot write project
+dependencies. The selected receipt records package, version, repository,
+license, fact sources, metadata timestamp, and trial evidence. Provider work is
+then limited to the adapter/integration around the existing external WorkNode
+executor. If every source or candidate is unavailable, incomplete, rejected, or
+fails trial, the recorded `pipeline_fallback` is Agent Build and project
+generation continues. Discovery has no requirement, planning, Provider,
+execution-scheduling, formal-evidence, acceptance, promotion, packaging,
+delivery, or repository-publication authority.
+
 ## Kernel Responsibilities
 
 CGKN Kernel is fixed responsible for:
