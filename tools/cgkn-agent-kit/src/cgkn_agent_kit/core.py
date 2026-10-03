@@ -326,18 +326,26 @@ def doctor(project_root: pathlib.Path, *, codex_command: str = "") -> dict[str, 
     return report
 
 
+def resolve_provider_mode(provider_mode: str | None, *, usage_beta: bool = False) -> str:
+    mode = str(provider_mode or "").strip().lower()
+    if not mode:
+        return "codex_surrogate" if usage_beta else "live"
+    if mode not in {"live", "codex_surrogate", "deterministic_replay"}:
+        raise AgentKitError(f"Unsupported provider_mode: {mode}")
+    return mode
+
+
 def generation_command(
     project_root: pathlib.Path, *, goal: str, brief_path: pathlib.Path,
     out_dir: pathlib.Path | None = None, model: str = "gpt-4.1",
     allow_network: bool = False, resume_run_dir: pathlib.Path | None = None,
-    provider_mode: str = "live", replay_dir: pathlib.Path | None = None,
+    provider_mode: str | None = None, replay_dir: pathlib.Path | None = None,
+    usage_beta: bool = False,
 ) -> list[str]:
     root, config, cgkn_root = load_project(project_root)
     artifact_dir = root / str(config["artifact_dir"])
     out = (out_dir or (artifact_dir / "generated-project")).resolve()
-    mode = str(provider_mode or "live").strip().lower()
-    if mode not in {"live", "codex_surrogate", "deterministic_replay"}:
-        raise AgentKitError(f"Unsupported provider_mode: {mode}")
+    mode = resolve_provider_mode(provider_mode, usage_beta=usage_beta)
     if mode != "deterministic_replay" and replay_dir is not None:
         raise AgentKitError("replay_dir is valid only for deterministic_replay")
     result_path = (artifact_dir / "generation_result.json").resolve()

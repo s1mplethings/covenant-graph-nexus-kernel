@@ -10,6 +10,16 @@ Structural replacement follows `SUPERSEDE -> MIGRATE -> VERIFY -> RETIRE -> FREE
 
 `scripts/canonical_repo_publish.py` is the single fail-closed repository publication authority. It binds SourceIdentity, an explicit per-file ChangeManifest, and a current TestReceipt; stages only the manifest's exact commit paths; verifies the staged tree and committed tree; runs bounded post-commit checks; detects remote-head races; performs a non-force push; and verifies the fetched remote SHA equals the local commit. Unknown or secret-like paths block. Runtime, generated, cache, log, temporary, screenshot, and local-state paths are excluded. Migration and durable-evidence paths require explicit review. Repository publish and GitHub CI receipts are governance/control evidence only and grant no product acceptance, packaging, formal evidence PASS, or public delivery authority. `scripts/release_candidate_gate.py` remains a release-readiness evaluator and delegates any compatibility classification view to this authority.
 
+Usage Beta is a read-only product-status projection over the existing canonical
+project evidence. It defaults to `codex_surrogate`; an explicit live request
+never falls back. A project is Usage Beta ready only when goal fidelity,
+runnable behavior, core capability, one primary user path, and delivery all
+PASS. Repository-global incompleteness, Formal Quick timeout, unavailable live
+Provider, and an unrelated feature-global External Executor state are recorded
+as limitations rather than project blockers. Usage Beta never grants formal
+acceptance, packaging, delivery, release, or commercial authority, and project-
+level External Executor integration failure remains blocking.
+
 Consumer publication may select an explicit repository root, consumer version-gate command, and existing target branch. An explicit consumer version command runs through the platform command shell so reviewed Windows command shims such as `npm.cmd` resolve, while the default CGKN version gate remains a direct Python invocation. A detached isolated worktree may push only when the fetched target-branch SHA exactly equals its pre-commit local HEAD. Consumer `.cgnk/governance/**` is current governance, while `.cgkn/**` remains excluded local state; `drizzle/*.sql` requires explicit migration review. Environment-variable credential references are not secrets, but literal credential content remains fail-closed.
 
 Publication runtime under `.cgkn/publish/**` is excluded from SourceIdentity, so writing a manifest or receipt cannot invalidate its own evidence binding in a consumer repository that does not ignore that local-state directory.

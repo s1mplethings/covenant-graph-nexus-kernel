@@ -17,6 +17,17 @@ active Codex task is the sole user-facing interaction surface. Uploaded files,
 status updates, review decisions, previews, and final local artifact links all
 remain in that task.
 
+For controlled real-project use, the Agent Kit also exposes Usage Beta:
+
+```text
+cgkn-agent build "your project goal" --usage-beta
+```
+
+Usage Beta defaults to the reviewed `codex_surrogate` execution mode and still
+requires goal fidelity, a runnable project, working core capability, one tested
+primary user path, and complete delivery evidence. Its PASS means usable for
+beta testing, never formal release or commercial readiness.
+
 The production generation route remains:
 
 ```text

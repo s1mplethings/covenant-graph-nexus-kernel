@@ -215,3 +215,24 @@ def test_cli_dry_run_works_from_path_with_spaces(tmp_path: pathlib.Path, capsys:
     assert output["executed"] is False
     assert output["secrets_in_argv"] is False
     assert str(project.resolve()) in " ".join(output["argv"])
+
+
+def test_usage_beta_build_defaults_to_canonical_surrogate(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]) -> None:
+    project = initialized(tmp_path)
+    exit_code = main(["build", "Build a useful local tool", "--project", str(project), "--usage-beta", "--dry-run"])
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["profile"] == "usage_beta"
+    assert output["execution_mode"] == "codex_surrogate"
+    assert "--use-api" not in output["argv"]
+    assert "--allow-provider" not in output["argv"]
+
+
+def test_usage_beta_explicit_live_never_falls_back(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture[str]) -> None:
+    project = initialized(tmp_path)
+    exit_code = main(["build", "Build a useful local tool", "--project", str(project), "--usage-beta", "--provider-mode", "live", "--dry-run"])
+    output = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output["execution_mode"] == "live"
+    assert "--use-api" in output["argv"]
+    assert "--allow-provider" in output["argv"]

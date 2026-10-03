@@ -170,6 +170,7 @@ TOOLS = [
                 "goal": {"type": "string", "minLength": 1, "maxLength": 2000},
                 "model": {"type": "string", "default": "gpt-4.1"},
                 "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "usage_beta": {"type": "boolean", "default": False},
                 "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
             },
@@ -214,6 +215,7 @@ TOOLS = [
                 "confirmation": {"const": GENERATION_CONFIRMATION},
                 "model": {"type": "string", "default": "gpt-4.1"},
                 "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "usage_beta": {"type": "boolean", "default": False},
                 "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
                 "timeout": {"type": "integer", "minimum": 30, "maximum": 7200, "default": 1800},
@@ -920,7 +922,8 @@ class CGKNPluginServer:
             model=str(args.get("model", "gpt-4.1")),
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
-            provider_mode=str(args.get("provider_mode", "live")),
+            provider_mode=(str(args["provider_mode"]) if "provider_mode" in args else None),
+            usage_beta=bool(args.get("usage_beta", False)),
             replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         clean_argv = [self.core.redact(str(item)) for item in argv]
@@ -935,7 +938,10 @@ class CGKNPluginServer:
     def generate(self, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("confirmation") != GENERATION_CONFIRMATION:
             raise ToolError(f"Generation requires confirmation={GENERATION_CONFIRMATION}")
-        provider_mode = str(args.get("provider_mode", "live") or "live")
+        provider_mode = self.core.resolve_provider_mode(
+            str(args["provider_mode"]) if "provider_mode" in args else None,
+            usage_beta=bool(args.get("usage_beta", False)),
+        )
         if provider_mode == "live":
             credentials = self.connectivity._resolve_api_credentials()
             if not str(credentials.get("api_key", "")).strip():
@@ -952,6 +958,7 @@ class CGKNPluginServer:
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
             provider_mode=provider_mode,
+            usage_beta=bool(args.get("usage_beta", False)),
             replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         try:

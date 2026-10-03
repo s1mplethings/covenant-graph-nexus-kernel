@@ -77,12 +77,24 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument(
         "--provider-mode",
         choices=("live", "codex_surrogate", "deterministic_replay"),
-        default="live",
+        default=None,
     )
+    generate.add_argument("--usage-beta", action="store_true", help="Use controlled project-usage gates and default to codex_surrogate")
     generate.add_argument("--replay-dir", default="")
     generate.add_argument("--allow-network", action="store_true", help="Allow existing CGKN online research inputs")
     generate.add_argument("--timeout", type=int, default=1800)
     generate.add_argument("--dry-run", action="store_true")
+
+    build = sub.add_parser("build", help="Build a real project through the reviewed CGKN route")
+    build.add_argument("goal")
+    build.add_argument("--project", default=".")
+    build.add_argument("--usage-beta", action="store_true")
+    build.add_argument("--provider-mode", choices=("live", "codex_surrogate"), default=None)
+    build.add_argument("--model", default="gpt-4.1")
+    build.add_argument("--out-dir", default="")
+    build.add_argument("--allow-network", action="store_true")
+    build.add_argument("--timeout", type=int, default=1800)
+    build.add_argument("--dry-run", action="store_true")
 
     surrogate_status_parser = sub.add_parser("surrogate-status", help="Inspect canonical surrogate Provider requests")
     surrogate_status_parser.add_argument("--project", default=".")
@@ -144,18 +156,24 @@ def execute(args: argparse.Namespace) -> dict:
             ),
         }
     project_root, config, cgkn_root = load_project(root)
-    brief = pathlib.Path(args.brief) if args.brief else project_root / str(config["artifact_dir"]) / "codex_capability_brief.json"
+    usage_beta = bool(getattr(args, "usage_beta", False))
+    goal = str(getattr(args, "goal", ""))
+    brief_value = str(getattr(args, "brief", "") or "")
+    replay_value = str(getattr(args, "replay_dir", "") or "")
+    brief = pathlib.Path(brief_value) if brief_value else project_root / str(config["artifact_dir"]) / "codex_capability_brief.json"
     argv = generation_command(
-        root, goal=args.goal, brief_path=brief,
+        root, goal=goal, brief_path=brief,
         out_dir=pathlib.Path(args.out_dir) if args.out_dir else None,
         model=args.model, allow_network=args.allow_network,
         provider_mode=args.provider_mode,
-        replay_dir=pathlib.Path(args.replay_dir) if args.replay_dir else None,
+        replay_dir=pathlib.Path(replay_value) if replay_value else None,
+        usage_beta=usage_beta,
     )
+    execution_mode = argv[argv.index("--provider-mode") + 1]
     if args.dry_run:
-        return {"ok": True, "command": "generate", "executed": False, "argv": argv, "secrets_in_argv": False}
+        return {"ok": True, "command": args.command, "profile": "usage_beta" if usage_beta else "standard", "execution_mode": execution_mode, "executed": False, "argv": argv, "secrets_in_argv": False}
     completed = run_generation(argv, cgkn_root=cgkn_root, timeout=args.timeout)
-    return {"ok": True, "command": "generate", "executed": True, "stdout": completed.stdout.strip()}
+    return {"ok": True, "command": args.command, "profile": "usage_beta" if usage_beta else "standard", "execution_mode": execution_mode, "executed": True, "stdout": completed.stdout.strip()}
 
 
 def main(argv: list[str] | None = None) -> int:

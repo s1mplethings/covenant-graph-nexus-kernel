@@ -129,6 +129,7 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
         assert tool["annotations"]["destructiveHint"] is False
         assert "api_key" not in json.dumps(tool["inputSchema"]).lower()
     generation = next(tool for tool in tools if tool["name"] == "cgkn_generate")
+    assert generation["inputSchema"]["properties"]["usage_beta"]["default"] is False
     assert generation["annotations"]["openWorldHint"] is True
     assert generation["inputSchema"]["properties"]["confirmation"]["const"] == "RUN_REVIEWED_PROVIDER"
     probe = next(tool for tool in tools if tool["name"] == "cgkn_probe_provider")

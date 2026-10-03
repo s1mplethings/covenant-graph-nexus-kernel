@@ -358,6 +358,20 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("max_pre_header_attempts=2", conversation)
         self.assertIn("bounded to three attempts", contract)
 
+    def test_usage_beta_is_a_non_authoritative_project_evidence_projection(self) -> None:
+        contract = read_source("docs/00_kernel_contract.md")
+        registry = read_source("docs/01_contract_registry.md")
+        evaluator = read_source("scripts/usage_beta.py")
+        self.assertIn("Usage Beta is a read-only product-status projection", contract)
+        self.assertIn("`CGKNUsageBetaVerdict`", registry)
+        self.assertIn("product-use labels, not EvidenceStatus", registry)
+        self.assertIn("def evaluate_usage_beta", evaluator)
+        self.assertIn('"formal_acceptance_authority": False', evaluator)
+        self.assertIn('"packaging_authority": False', evaluator)
+        self.assertIn('"delivery_authority": False', evaluator)
+        self.assertNotIn("provider_text", evaluator)
+        self.assertNotIn("local_packager", evaluator)
+
     def test_agent_kit_mcp_generation_uses_managed_worker_lifetime(self) -> None:
         server = read_source("plugins/cgkn/scripts/cgkn_mcp_server.py")
         core = read_source("tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py")

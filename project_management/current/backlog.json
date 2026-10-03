@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-076",
+      "title": "Enable controlled real-project Usage Beta",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Allow users to build and test real projects now without confusing project usability with repository-wide formal completeness.",
+      "next_fix_selection_policy": "REAL_USAGE_SELECTED",
+      "acceptance": [
+        "default Usage Beta uses codex_surrogate and explicit live never falls back",
+        "five project hard gates determine Usage Beta status independently of global limitations",
+        "release and commercial readiness remain false unless their own authorities pass",
+        "Character Clip Studio is generated and evaluated through the formal surrogate route",
+        "the next backlog fix is the earliest real Usage Beta blocker"
+      ]
+    },
+    {
       "id": "PB-075",
       "title": "Bind structured requirements planning to a bounded output budget",
       "priority": 1,
