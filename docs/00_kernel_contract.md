@@ -1107,6 +1107,17 @@ compiles the sole downstream `GoalSpec` through
 remain optimization hints; open-domain goals do not depend on a keyword table.
 
 Provider transport success and formal planning-result admission are distinct.
+Before the first live `requirements_planning` request in a run, the same
+credential resolver, endpoint method, model, and TLS policy execute one tiny
+probe and one small structured probe. Their privacy-safe checkpoint and the
+measured real-request receipt are support diagnostics with formal status
+`NOT_EVALUATED`; they contain hashes, sizes, and timing rather than prompt or
+credential contents. A failed tiny or structured probe stops before the real
+planning request. Two consecutive same-class failures before response headers
+stop Provider retry; retryable HTTP responses that did return headers remain
+bounded to three attempts. These diagnostics add no Provider, planning,
+evidence, packaging, delivery, or release authority.
+
 The stage may deterministically extract one complete JSON object from a fenced
 or commentary-wrapped response, but it must then pass the unchanged strict
 planning proposal validator before materializing an identity-bound artifact.

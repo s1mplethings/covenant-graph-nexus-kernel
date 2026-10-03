@@ -53,6 +53,7 @@ import visual_evidence
 import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
+import provider_transport
 import public_narration
 import product_design_depth_governance
 import surrogate_provider_adapter
@@ -6194,6 +6195,7 @@ def run_provider_execute_with_retries(
     max_attempts: int = 5,
 ) -> dict[str, Any]:
     last_error: BaseException | None = None
+    retry_attempts: list[dict[str, Any]] = []
     for attempt in range(1, max_attempts + 1):
         try:
             return provider_project_pipeline.execute(args)
@@ -6201,19 +6203,39 @@ def run_provider_execute_with_retries(
             last_error = exc
             retryable = provider_error_is_retryable(exc)
             error_type = provider_error_type(exc)
+            error_text = str(exc)
+            headers_match = re.search(
+                r"response_headers_received=(true|false)", error_text, flags=re.I
+            )
+            headers_received = (
+                headers_match.group(1).lower() == "true" if headers_match else None
+            )
+            retry_attempts.append({
+                "attempt": attempt,
+                "retryable": retryable,
+                "error_type": error_type,
+                "response_headers_received": headers_received,
+            })
+            retry_allowed = provider_transport.should_retry_provider_attempt(
+                retry_attempts,
+                max_pre_header_attempts=2,
+                max_response_header_attempts=3,
+            )
             event = {
                 "kind": "provider_retry",
                 "attempt": attempt,
                 "max_attempts": max_attempts,
                 "retryable": retryable,
                 "provider_error_type": error_type,
-                "http_client_rebuilt_for_next_attempt": bool(retryable and attempt < max_attempts),
+                "response_headers_received": headers_received,
+                "retry_policy_allows_next_attempt": retry_allowed,
+                "http_client_rebuilt_for_next_attempt": bool(retry_allowed and attempt < max_attempts),
                 "error": str(exc),
                 "stage": "api_provider_project_generation",
             }
             append_agent_session_event(session_dir, conversation_id, {"role": "tool", **event})
             write_provider_phase_event(phase_log_path, event)
-            if not retryable or attempt >= max_attempts:
+            if not retry_allowed or attempt >= max_attempts:
                 break
             partial = provider_partial_artifacts(pathlib.Path(str(getattr(args, "out_dir", ""))))
             if partial:

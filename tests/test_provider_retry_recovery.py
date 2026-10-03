@@ -109,6 +109,54 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             self.assertEqual(2, len(retry_events))
             self.assertEqual("rework_blocked", session["generation"]["status"])
 
+    def test_two_explicit_pre_header_timeouts_stop_outer_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            calls = {"count": 0}
+
+            def fake_execute(_args):
+                calls["count"] += 1
+                raise RuntimeError(
+                    "provider_api_request_failed: TimeoutError: timed out "
+                    "[response_headers_received=false, failure_phase=connect_or_response_headers]"
+                )
+
+            bridge.provider_project_pipeline.execute = fake_execute
+            with self.assertRaises(RuntimeError):
+                bridge.run_provider_execute_with_retries(
+                    argparse.Namespace(out_dir=str(root / "project")),
+                    session_dir=root / "sessions",
+                    conversation_id="pre-header-cap",
+                    phase_log_path=root / "phase.jsonl",
+                    max_attempts=5,
+                )
+            self.assertEqual(2, calls["count"])
+
+    def test_response_header_503_can_recover_on_third_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            calls = {"count": 0}
+
+            def fake_execute(_args):
+                calls["count"] += 1
+                if calls["count"] < 3:
+                    raise RuntimeError(
+                        "provider_api_request_failed: HTTP 503 unavailable [retryable=true] "
+                        "[response_headers_received=true, failure_phase=http_response]"
+                    )
+                return {"status": "PASS"}
+
+            bridge.provider_project_pipeline.execute = fake_execute
+            result = bridge.run_provider_execute_with_retries(
+                argparse.Namespace(out_dir=str(root / "project")),
+                session_dir=root / "sessions",
+                conversation_id="header-retry",
+                phase_log_path=root / "phase.jsonl",
+                max_attempts=5,
+            )
+            self.assertEqual("PASS", result["status"])
+            self.assertEqual(3, calls["count"])
+
     def test_retryable_tls_error_exhausted_marks_rework_without_public_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -127,7 +175,7 @@ class ProviderRetryRecoveryTests(unittest.TestCase):
             bridge.run_provider_generation_job(client, conversation_id, session_dir, log_dir, "gpt-test", 30)
 
             session = bridge.load_session(session_dir, conversation_id)
-            self.assertEqual(5, calls["count"])
+            self.assertEqual(3, calls["count"])
             self.assertEqual("rework_blocked", session["generation"]["status"])
             self.assertFalse(session["generation"]["delivery_allowed"])
             self.assertEqual([], client.photos)

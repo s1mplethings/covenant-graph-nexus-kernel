@@ -54,6 +54,7 @@ import post_build_repair
 import post_build_finalize
 import provider_execution_metrics
 import provider_jobs
+import provider_transport
 import project_version_policy
 import repair_acceptance
 import online_input_agent
@@ -8297,6 +8298,7 @@ def provider_text(
     last_error: Any = None,
     budget_deadline: float | None = None,
     response_format: dict[str, Any] | None = None,
+    request_metrics_path: pathlib.Path | None = None,
 ) -> str:
     adapter_context = surrogate_provider_adapter.current()
     if adapter_context is not None and adapter_context.mode != "live":
@@ -8416,6 +8418,9 @@ def provider_text(
     }
     sent_max_tokens = int(max_tokens)
     sent_reasoning_effort = ""
+    retry_attempts: list[dict[str, Any]] = []
+    last_transport_timing: dict[str, Any] = {}
+    last_request_body_sha256 = ""
     for attempt in range(max(1, max_attempts)):
         attempt_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
         route = choose_provider_model(stage, legacy_prompt_chars, model, routing_policy, last_error=last_error_text)
@@ -8470,6 +8475,10 @@ def provider_text(
         request_body_bytes = len(
             json.dumps(payload, ensure_ascii=False).encode("utf-8")
         )
+        request_body_sha256 = hashlib.sha256(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+        last_request_body_sha256 = request_body_sha256
         append_provider_event_log(
             phase_log_path,
             {
@@ -8505,6 +8514,7 @@ def provider_text(
             doc, error = check_connectivity._post_json(
                 endpoint, payload, token, attempt_timeout
             )
+        last_transport_timing = check_connectivity.last_transport_timing()
         append_provider_event_log(
             phase_log_path,
             {
@@ -8528,15 +8538,42 @@ def provider_text(
                 ),
                 "payload_mode": payload_mode,
                 "metric_call_kind": metric_call_kind or payload_mode,
-                "transport_timing": check_connectivity.last_transport_timing(),
+                "request_body_sha256": request_body_sha256,
+                "transport_timing": last_transport_timing,
             },
         )
+        if request_metrics_path is not None:
+            metrics_doc = load_json(request_metrics_path) if request_metrics_path.is_file() else {}
+            existing_attempts = list(metrics_doc.get("attempts", []))
+            attempt_metric = {
+                "attempt": len(existing_attempts) + 1,
+                "request_body_sha256": request_body_sha256,
+                "request_body_bytes": request_body_bytes,
+                "response_headers_received": bool(last_transport_timing.get("response_headers_received", False)),
+                "response_headers_elapsed_ms": last_transport_timing.get("response_headers_elapsed_ms"),
+                "response_body_received": bool(last_transport_timing.get("response_body_received", False)),
+                "response_body_bytes": int(last_transport_timing.get("response_body_bytes", 0) or 0),
+                "total_elapsed_ms": int(last_transport_timing.get("total_elapsed_ms", 0) or 0),
+                "error_type": check_connectivity._provider_error_type(error) if error else "",
+                "status": "PASS" if doc is not None else "FAIL",
+            }
+            metrics_doc["attempts"] = [*existing_attempts, attempt_metric]
+            if attempt_metric["response_headers_elapsed_ms"] is not None:
+                metrics_doc["first_header_ms"] = attempt_metric["response_headers_elapsed_ms"]
+            metrics_doc["status"] = attempt_metric["status"]
+            write_json(request_metrics_path, metrics_doc)
         if doc is not None:
             final_status = "ok"
             break
         last_error_text = error
         final_status = "timeout" if check_connectivity._error_is_retryable(error) else "failed"
-        if not check_connectivity._error_is_retryable(error):
+        retry_attempts.append({
+            "attempt": attempt + 1,
+            "retryable": check_connectivity._error_is_retryable(error),
+            "error_type": check_connectivity._provider_error_type(error),
+            "response_headers_received": bool(last_transport_timing.get("response_headers_received", False)),
+        })
+        if not provider_transport.should_retry_provider_attempt(retry_attempts):
             break
         time.sleep(min(20.0, 2.0 * (attempt + 1)))
     if doc is None:
@@ -8630,7 +8667,12 @@ def provider_text(
                 "reasoning_effort": sent_reasoning_effort or "provider_default",
             },
         )
-        raise RuntimeError(f"provider_api_request_failed: {last_error_text}")
+        raise RuntimeError(
+            f"provider_api_request_failed: {last_error_text} "
+            f"[response_headers_received={str(bool(last_transport_timing.get('response_headers_received', False))).lower()}, "
+            f"failure_phase={last_transport_timing.get('failure_phase', 'unknown')}, "
+            f"request_body_sha256={last_request_body_sha256}]"
+        )
     text = check_connectivity._extract_text(doc)
     finish_reason = provider_response_finish_reason(doc)
     if finish_reason in {"length", "max_tokens", "max_output_tokens", "incomplete"}:
@@ -29898,6 +29940,223 @@ def write_provider_long_context_artifacts(
     }
 
 
+def _requirements_probe_metrics(
+    *,
+    probe_name: str,
+    payload: dict[str, Any],
+    endpoint: str,
+    model: str,
+    timeout: int,
+    attempt: int,
+    status: str,
+    error: str = "",
+    transport_timing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    messages = payload.get("messages", []) if isinstance(payload.get("messages", []), list) else []
+    system_chars = sum(
+        len(str(item.get("content", "")))
+        for item in messages if isinstance(item, dict) and item.get("role") == "system"
+    )
+    user_chars = sum(
+        len(str(item.get("content", "")))
+        for item in messages if isinstance(item, dict) and item.get("role") == "user"
+    )
+    request_body = json.dumps(payload, ensure_ascii=False)
+    timing = dict(transport_timing or {})
+    safe_error = provider_transport._redact(error)[:2000]
+    return {
+        "probe_name": probe_name,
+        "provider": "openai_compatible",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "endpoint_host": re.sub(r"^(https?://[^/]+).*", r"\1", endpoint),
+        "request_body_bytes": len(request_body.encode("utf-8")),
+        "message_count": len(messages),
+        "system_chars": system_chars,
+        "user_chars": user_chars,
+        "total_prompt_chars": system_chars + user_chars,
+        "estimated_input_tokens": (system_chars + user_chars + 3) // 4,
+        "max_output_tokens": int(payload.get("max_tokens", payload.get("max_output_tokens", 0)) or 0),
+        "timeout_seconds": timeout,
+        "attempt": attempt,
+        "response_headers_received": bool(timing.get("response_headers_received", False)),
+        "response_headers_elapsed_ms": timing.get("response_headers_elapsed_ms"),
+        "response_body_received": bool(timing.get("response_body_received", False)),
+        "response_body_bytes": int(timing.get("response_body_bytes", 0) or 0),
+        "total_elapsed_ms": int(timing.get("total_elapsed_ms", 0) or 0),
+        "error_type": check_connectivity._provider_error_type(error) if error else "",
+        "error": safe_error,
+        "status": status,
+        "system_prompt_sha256": formal_model_contract.stable_hash(
+            [item.get("content", "") for item in messages if isinstance(item, dict) and item.get("role") == "system"]
+        ),
+        "user_payload_sha256": formal_model_contract.stable_hash(
+            [item.get("content", "") for item in messages if isinstance(item, dict) and item.get("role") == "user"]
+        ),
+        "request_body_sha256": hashlib.sha256(request_body.encode("utf-8")).hexdigest(),
+    }
+
+
+def requirements_planning_provider_preflight(
+    *,
+    messages: list[dict[str, str]],
+    requested_model: str,
+    timeout: int,
+    run_dir: pathlib.Path,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    response_format: dict[str, Any],
+    max_output_tokens: int = 12000,
+) -> dict[str, Any]:
+    """Run one same-route tiny/structured probe and measure the real request."""
+    checkpoint_path = run_dir / "artifacts" / "provider_preflight_checkpoint.json"
+    metrics_path = run_dir / "artifacts" / "requirements_planning_request_metrics.json"
+    prompt_chars = sum(len(str(item.get("content", ""))) for item in messages if isinstance(item, dict))
+    route = choose_provider_model("requirements_planning", prompt_chars, requested_model, routing_policy)
+    model = assert_concrete_provider_model(str(route.get("selected_model") or requested_model))
+    creds = check_connectivity._resolve_api_credentials()
+    token = str(creds.get("api_key", "")).strip()
+    root = str(creds.get("base_url", "")).rstrip("/")
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
+    probe_timeout = max(1, min(60, int(timeout)))
+    existing = load_json(checkpoint_path) if checkpoint_path.is_file() else {}
+    if (
+        existing.get("status") == "PASS"
+        and existing.get("model") == model
+        and existing.get("endpoint_host") == re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
+    ):
+        return existing
+    if not token:
+        raise RuntimeError("provider_preflight_failed: PROVIDER_BASELINE_UNAVAILABLE missing provider credential")
+
+    probe_results: dict[str, Any] = {}
+    for probe_name, structured in (("tiny", False), ("structured", True)):
+        payload = check_connectivity._build_provider_probe_payload(
+            root,
+            model,
+            structured=structured,
+            max_output_tokens=128 if structured else 32,
+        )
+        doc, error = check_connectivity._post_json(endpoint, payload, token, probe_timeout)
+        text = check_connectivity._extract_text(doc or {}) if doc is not None else ""
+        valid = (
+            text.strip().lower() == "pong"
+            if not structured
+            else check_connectivity._structured_probe_valid(text)
+        )
+        status = "PASS" if doc is not None and valid else "FAIL"
+        metrics = _requirements_probe_metrics(
+            probe_name=probe_name,
+            payload=payload,
+            endpoint=endpoint,
+            model=model,
+            timeout=probe_timeout,
+            attempt=1,
+            status=status,
+            error=error or ("probe response contract failed" if not valid else ""),
+            transport_timing=check_connectivity.last_transport_timing(),
+        )
+        probe_results[probe_name] = metrics
+        if status != "PASS":
+            classification = (
+                "PROVIDER_BASELINE_UNAVAILABLE"
+                if probe_name == "tiny"
+                else "PROVIDER_STRUCTURED_REQUEST_UNAVAILABLE"
+            )
+            checkpoint = {
+                "kind": "CGKNRequirementsPlanningProviderPreflight",
+                "schema_version": "1.0",
+                "formal_evidence_status": "NOT_EVALUATED",
+                "authority": "support_diagnostics_only",
+                "status": "BLOCKED_PROVIDER",
+                "classification": classification,
+                "model": model,
+                "endpoint_mode": "chat_completions",
+                "endpoint_host": metrics["endpoint_host"],
+                "tls_verify": check_connectivity._tls_verify_enabled(),
+                "probes": probe_results,
+            }
+            write_json(checkpoint_path, checkpoint)
+            raise RuntimeError(
+                f"provider_preflight_failed: {classification} "
+                f"[response_headers_received={str(metrics['response_headers_received']).lower()}, "
+                f"failure_phase=provider_preflight]"
+            )
+
+    request_values: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "response_format": response_format,
+    }
+    real_payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        request_values,
+        model=model,
+        reasoning_effort=provider_reasoning_effort(root, model, "requirements_planning"),
+    )
+    measurement = _requirements_probe_metrics(
+        probe_name="real_requirements_planning_measurement",
+        payload=real_payload,
+        endpoint=endpoint,
+        model=model,
+        timeout=max(1, min(120, int(timeout))),
+        attempt=0,
+        status="MEASURED",
+    )
+    user_documents = [
+        str(item.get("content", ""))
+        for item in messages if isinstance(item, dict) and item.get("role") == "user"
+    ]
+    try:
+        planning_context = json.loads(user_documents[0]) if user_documents else {}
+    except (json.JSONDecodeError, TypeError):
+        planning_context = {}
+    goal_chars = len(str(planning_context.get("goal", ""))) if isinstance(planning_context, dict) else 0
+    metrics_receipt = {
+        "kind": "CGKNRequirementsPlanningRequestMetrics",
+        "schema_version": "1.0",
+        "formal_evidence_status": "NOT_EVALUATED",
+        "authority": "support_diagnostics_only",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "request_body_bytes": measurement["request_body_bytes"],
+        "estimated_input_tokens": measurement["estimated_input_tokens"],
+        "system_chars": measurement["system_chars"],
+        "context_chars": measurement["user_chars"],
+        "goal_chars": goal_chars,
+        "deduplicated_chars": 0,
+        "trimmed_chars": 0,
+        "max_output_tokens": int(max_output_tokens),
+        "timeout": measurement["timeout_seconds"],
+        "attempts": [],
+        "first_header_ms": None,
+        "status": "MEASURED",
+        "hashes": {
+            "system_prompt_sha256": measurement["system_prompt_sha256"],
+            "user_payload_sha256": measurement["user_payload_sha256"],
+            "request_body_sha256": measurement["request_body_sha256"],
+        },
+    }
+    write_json(metrics_path, metrics_receipt)
+    checkpoint = {
+        "kind": "CGKNRequirementsPlanningProviderPreflight",
+        "schema_version": "1.0",
+        "formal_evidence_status": "NOT_EVALUATED",
+        "authority": "support_diagnostics_only",
+        "status": "PASS",
+        "classification": "PROVIDER_BASELINE_AVAILABLE",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "endpoint_host": measurement["endpoint_host"],
+        "tls_verify": check_connectivity._tls_verify_enabled(),
+        "probes": probe_results,
+        "real_request_measurement": measurement,
+        "metrics_ref": str(metrics_path),
+    }
+    write_json(checkpoint_path, checkpoint)
+    return checkpoint
+
+
 def provider_stage_checkpoint(
     *,
     provider_mode: str,
@@ -29906,6 +30165,7 @@ def provider_stage_checkpoint(
     run_dir: pathlib.Path,
     phase_log_path: pathlib.Path | str,
     routing_policy: ProviderModelRoutingPolicy | None = None,
+    provider_preflight: bool = False,
 ) -> dict[str, Any]:
     """Parse, validate, and persist one non-live pre-build Provider artifact.
 
@@ -29954,6 +30214,15 @@ def provider_stage_checkpoint(
         },
         {"role": "user", "content": json.dumps(context, ensure_ascii=False, sort_keys=True)},
     ]
+    if planning_stage and provider_mode == "live" and provider_preflight:
+        requirements_planning_provider_preflight(
+            messages=messages,
+            requested_model="surrogate-stage",
+            timeout=60,
+            run_dir=run_dir,
+            routing_policy=routing_policy,
+            response_format=canonical_goal_spec_compiler.planning_proposal_response_format(),
+        )
     last_error = ""
     last_errors: list[str] = []
     rejected_proposal: Any = None
@@ -29988,6 +30257,11 @@ def provider_stage_checkpoint(
             response_format=(
                 canonical_goal_spec_compiler.planning_proposal_response_format()
                 if planning_stage
+                else None
+            ),
+            request_metrics_path=(
+                run_dir / "artifacts" / "requirements_planning_request_metrics.json"
+                if planning_stage and provider_mode == "live"
                 else None
             ),
         )
@@ -30211,6 +30485,7 @@ def run_canonical_requirement_planning(
             run_dir=run_dir,
             phase_log_path=phase_log_path,
             routing_policy=routing_policy,
+            provider_preflight=True,
         )
         decision_context: dict[str, Any] = {
             "planning_artifact": planning_artifact,

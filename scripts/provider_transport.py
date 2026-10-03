@@ -190,6 +190,36 @@ def classify_provider_error(error: str) -> str:
     return "PROVIDER_UNKNOWN_ERROR"
 
 
+def should_retry_provider_attempt(
+    attempts: list[dict[str, Any]],
+    *,
+    max_pre_header_attempts: int = 2,
+    max_response_header_attempts: int = 3,
+) -> bool:
+    """Apply one deterministic retry budget without changing request identity."""
+    if not attempts:
+        return True
+    latest = attempts[-1]
+    if not bool(latest.get("retryable")):
+        return False
+    headers_received = latest.get("response_headers_received")
+    if headers_received is True:
+        return len(attempts) < max(1, int(max_response_header_attempts))
+    if headers_received is False:
+        error_type = str(latest.get("error_type") or "")
+        consecutive = 0
+        for item in reversed(attempts):
+            if (
+                item.get("response_headers_received") is False
+                and str(item.get("error_type") or "") == error_type
+            ):
+                consecutive += 1
+            else:
+                break
+        return consecutive < max(1, int(max_pre_header_attempts))
+    return len(attempts) < max(1, int(max_response_header_attempts))
+
+
 def post_json_once(
     endpoint: str,
     payload: dict[str, Any],

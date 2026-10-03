@@ -19,8 +19,39 @@
       "provider_successes": 0,
       "candidate_materialized": false,
       "delivery_allowed": false
+    },
+    {
+      "run_id": "production-0594163338f34f409c9170e742118eff",
+      "provider_mode": "live",
+      "model": "qwen3.8-max",
+      "status": "REWORK_BLOCKED",
+      "failure": "PROVIDER_TRANSPORT_UNSTABLE: tiny and structured probes passed, then 2 identical real requirements-planning requests timed out before response headers",
+      "source_identity_total_seconds": 0.543167,
+      "provider_attempts_started": 2,
+      "provider_attempts_completed": 2,
+      "provider_successes": 0,
+      "candidate_materialized": false,
+      "delivery_allowed": false
     }
   ],
+  "provider_diagnosis": {
+    "live_calls_total": 4,
+    "tiny_probe": {"status": "PASS", "request_body_bytes": 129, "estimated_input_tokens": 6, "response_headers_elapsed_ms": 8407, "total_elapsed_ms": 8407},
+    "structured_probe": {"status": "PASS", "request_body_bytes": 187, "estimated_input_tokens": 18, "response_headers_elapsed_ms": 8656, "total_elapsed_ms": 8656},
+    "requirements_request": {
+      "status": "BLOCKED_PROVIDER",
+      "request_body_bytes": 7953,
+      "total_prompt_chars": 4688,
+      "estimated_input_tokens": 1172,
+      "attempts": 2,
+      "response_headers_received": false,
+      "attempt_elapsed_ms": [67437, 66063],
+      "request_body_identity_stable": true
+    },
+    "classification": "PROVIDER_TRANSPORT_UNSTABLE",
+    "payload_reduced": false,
+    "reason": "The real request is well below the planning-context size limit; differential evidence does not justify removing goal or constraint context."
+  },
   "source_identity_fix": {
     "status": "PASS",
     "live_capture_seconds": 0.444093,
@@ -34,11 +65,11 @@
   "source_usage": "NOT_EVALUATED",
   "runtime_usage": "NOT_EVALUATED",
   "project_runtime": "NOT_EVALUATED",
-  "provider_calls": 5,
+  "provider_calls": 2,
   "selected_executor": null,
   "deterministic_integration_tests": {"status": "PASS", "passed": 47, "failed": 0},
-  "scoped_regression": {"status": "PASS", "passed": 157, "failed": 0},
-  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "elapsed_seconds_approx": 270, "progress_percent": 8, "observed_failures": 0, "completed": false},
+  "scoped_regression": {"status": "PASS", "passed": 299, "failed": 0},
+  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "elapsed_seconds_approx": 290, "progress_percent": 8, "observed_failures": 0, "completed": false},
   "source_identity_scoped_verdict": "PASS",
   "external_executor_integration_scoped_verdict": "NEEDS_REWORK",
   "external_executor_discovery_feature_status": "ACTIVE",

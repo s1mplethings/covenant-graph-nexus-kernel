@@ -1,53 +1,55 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-094",
+  "iteration_id": "ITER-095",
   "project_id": "cgkn",
-  "goal": "Bound SourceIdentity Git inspection by canonical path and time, fail closed on timeout, and rerun the blocked external-executor real project.",
-  "backlog_item_ids": ["PB-073"],
-  "workflow_state": "closed_with_limits",
+  "goal": "Differentiate Provider availability from requirements-planning request sensitivity, bound repeated pre-header failures, and resume the official external-executor E2E only when the probes pass.",
+  "backlog_item_ids": ["PB-074"],
+  "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Every SourceIdentity Git subprocess has a maximum of 20 seconds and the capture has a 45-second total budget.",
-    "Status, diff, and untracked inspection use one canonical-source pathspec and never use --untracked-files=all.",
-    "Relevant tracked, untracked, and root VERSION changes alter identity while excluded runtime trees do not.",
-    "Timeout is a structured GIT_COMMAND_TIMEOUT and production stops BLOCKED_ENVIRONMENT before Provider or discovery.",
-    "Canonical repository publication retains full-worktree classification and its receipt binding.",
-    "No new production module, Agent, scheduler, executor type, lifecycle stage, or authority is introduced."
+    "Tiny and structured probes use the same endpoint, method, model, TLS policy, and credential resolver as requirements planning and persist only redacted metrics and hashes.",
+    "A failed tiny probe short-circuits structured and real planning requests; a failed structured probe short-circuits real planning.",
+    "Two consecutive same-class pre-header transport timeouts stop the production retry loop, while response-header retryable HTTP remains bounded to three attempts.",
+    "Requirements-planning request bytes, hashes, prompt sizes, estimated tokens, and header/body timing are recorded without prompt contents or secrets.",
+    "Payload reduction is permitted only if tiny and structured probes pass while the measured real request fails and exceeds the bounded planning-context policy.",
+    "No new Provider route, Agent, scheduler, executor type, lifecycle stage, or authority is introduced."
   ],
   "quality_metrics": [
-    {"id": "QM-SOURCE-IDENTITY-LATENCY", "measure": "normal repository SourceIdentity capture time", "target": "less than 10 seconds; hard budget 45 seconds", "method": "capture timing metadata and live production evidence"},
-    {"id": "QM-SOURCE-IDENTITY-SCOPE", "measure": "excluded runtime paths affecting source identity", "target": "0", "method": "local fixture and large excluded-tree regression"},
+    {"id": "QM-PROVIDER-DIAGNOSIS", "measure": "probe/result classifications with endpoint and payload comparability", "target": "100% deterministic and secret-free", "method": "mocked differential tests plus one ordered live probe sequence"},
+    {"id": "QM-PREHEADER-RETRY", "measure": "same-class consecutive pre-header attempts", "target": "maximum 2", "method": "five-failure fixture and live phase log"},
     {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, formal stages, or authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
   ],
   "quality_activities": {
-    "prevention": ["Apply one canonical pathspec and explicit timeout to every read-only Git inspection"],
-    "assurance": ["Cover timeout, Git failure, tracked/untracked/root changes, excluded trees, determinism, and publish compatibility"],
-    "control": ["Run tests in the prescribed order, then official live real-project acceptance and bounded quick"],
-    "improvement": ["Keep publication safety separate from the narrower source identity responsibility"]
+    "prevention": ["Measure tiny, structured, and real request behavior before changing payload or timeout"],
+    "assurance": ["Cover probe short-circuiting, retry phase distinction, request identity, metrics privacy, and payload measurement"],
+    "control": ["Run deterministic tests before the ordered live probes and only resume the full E2E after A and B pass"],
+    "improvement": ["Stop low-information repeated pre-header retries while preserving bounded HTTP response retries"]
   },
   "interface_expectations": [
-    "CGKNSourceIdentityReport keeps schema 1.0 and all existing core fields",
-    "working_tree_clean means canonical/relevant source cleanliness only",
-    "canonical_repo_publish continues full-worktree classification independently",
-    "Provider, discovery, formal evidence, packaging, delivery, and publication authorities remain unchanged"
+    "requirements planning remains on the reviewed Provider route and existing parsing/schema admission path",
+    "probe and request metrics are support_diagnostics_only with NOT_EVALUATED formal status",
+    "raw goals and explicit constraints are never removed by diagnostics",
+    "External Discovery, trust, trial, packaging, delivery, and publication authorities remain unchanged"
   ],
   "evidence_refs": [
     "evidence/external_executor_real_project_acceptance_20261003.json",
-    "tests/test_source_identity.py",
-    "tests/test_run_local_pipeline_usage.py"
+    "tests/test_provider_transport.py",
+    "tests/test_provider_api_transport.py",
+    "tests/test_provider_retry_recovery.py"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "Bounded canonical-source inspection reached Provider in 0.444093 seconds on the official live route.",
-      "The external-executor acceptance remains NEEDS_REWORK because all five upstream Provider attempts timed out before response headers."
+      "Tiny and structured live probes returned headers in 8.407 and 8.656 seconds, proving the Provider baseline and structured method were available.",
+      "Two identical 7,953-byte real planning requests timed out before headers and the new retry policy stopped without attempts three through five.",
+      "Payload reduction was correctly rejected because the measured request was only about 1,172 estimated input tokens."
     ],
-    "accepted_backlog_item_ids": ["PB-073"]
+    "accepted_backlog_item_ids": ["PB-074"]
   },
   "retrospective": {
-    "worked": ["One pathspec, native Git resolution, noninteractive environment, and per-command plus total budgets removed the startup hang."],
-    "did_not_work": ["Git-for-Windows wrapper termination initially left a child process holding captured pipes."],
-    "experiments": ["Keep source identity scoped to canonical source while canonical publication independently classifies the full worktree."]
+    "worked": ["Ordered same-route probes separated baseline availability from real-request transport behavior without exposing prompts or credentials."],
+    "did_not_work": ["The upstream Provider still returned no response headers for the real requirements-planning request."],
+    "experiments": ["Retain two-attempt pre-header fail-fast behavior and compare future live evidence before considering any payload change."]
   }
 }

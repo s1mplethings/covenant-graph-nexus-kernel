@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-REQUIREMENTS-PROVIDER-001",
+      "description": "Requirements planning may spend five long attempts on the same pre-header failure without distinguishing Provider availability from payload sensitivity.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Run ordered same-route probes, record privacy-safe request metrics, and stop after two consecutive same-class pre-header failures.",
+      "state": "controlled"
+    },
+    {
       "id": "RK-SOURCE-IDENTITY-TIMEOUT-001",
       "description": "Repository-wide Git inspection can block production before requirements or external discovery begins.",
       "probability": "high",

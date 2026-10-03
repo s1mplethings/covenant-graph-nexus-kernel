@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-074",
+      "title": "Diagnose and bound requirements-planning Provider transport",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Distinguish Provider baseline failure from planning-request sensitivity before spending repeated long attempts or altering canonical planning context.",
+      "acceptance": [
+        "ordered tiny, structured, and real-request diagnostics share the production endpoint and model",
+        "metrics and hashes are persisted without secrets or full prompts",
+        "two repeated pre-header timeouts stop while response-header HTTP retries remain bounded",
+        "payload is changed only when differential evidence proves it is the blocker",
+        "the official Local Video Frame Extractor run resumes only after baseline probes pass"
+      ]
+    },
+    {
       "id": "PB-073",
       "title": "Bound canonical SourceIdentity Git inspection",
       "priority": 1,

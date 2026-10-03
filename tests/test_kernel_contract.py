@@ -341,6 +341,19 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Provider transport success and formal planning-result admission are distinct", contract)
         self.assertIn("cannot become candidate input", contract)
 
+    def test_requirements_planning_provider_diagnostics_are_bounded_support_only(self) -> None:
+        pipeline = read_source("scripts/run_local_pipeline_impl.py")
+        conversation = read_source("scripts/codex_conversation.py")
+        transport = read_source("scripts/provider_transport.py")
+        contract = read_source("docs/00_kernel_contract.md")
+
+        self.assertIn("def requirements_planning_provider_preflight", pipeline)
+        self.assertIn('"authority": "support_diagnostics_only"', pipeline)
+        self.assertIn('"formal_evidence_status": "NOT_EVALUATED"', pipeline)
+        self.assertIn("def should_retry_provider_attempt", transport)
+        self.assertIn("max_pre_header_attempts=2", conversation)
+        self.assertIn("bounded to three attempts", contract)
+
     def test_agent_kit_mcp_generation_uses_managed_worker_lifetime(self) -> None:
         server = read_source("plugins/cgkn/scripts/cgkn_mcp_server.py")
         core = read_source("tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py")

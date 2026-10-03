@@ -449,6 +449,7 @@ def test_35_requirements_planning_uses_reviewed_run_model_policy(tmp_path, monke
         return json.dumps(proposal(goal, core=["calculate"]))
 
     monkeypatch.setattr(pipeline, "provider_text", fake_provider_text)
+    monkeypatch.setattr(pipeline, "requirements_planning_provider_preflight", lambda **_kwargs: {"status": "PASS"})
     monkeypatch.setattr(
         pipeline.requirement_decision_lane,
         "run_requirement_decision",

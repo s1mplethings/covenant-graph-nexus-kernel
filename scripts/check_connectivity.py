@@ -170,24 +170,30 @@ def _build_openai_compatible_payload(
     return request_payload
 
 
-def _build_provider_probe_payload(base_url: str, model: str, *, structured: bool = False) -> dict[str, Any]:
+def _build_provider_probe_payload(
+    base_url: str,
+    model: str,
+    *,
+    structured: bool = False,
+    max_output_tokens: int | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "model": model,
         "messages": [
             {
                 "role": "user",
                 "content": (
-                    "Reply with exactly one JSON object and no markdown or commentary. "
-                    "Use only keys cgkn_probe, project, patch. cgkn_probe must be ok. "
-                    "Design project.files with at least four coherent relative paths spanning backend, frontend, and tests for a local CSV web tool; "
-                    "project.entrypoint must be one listed file. patch.path must be one listed file and "
-                    "patch.replacement must contain a small runnable root-route code change."
+                    "Return JSON only: {\"cgkn_probe\":\"ok\",\"goal\":\"x\",\"capabilities\":[\"y\"]}"
                     if structured
                     else "Reply with exactly: pong"
                 ),
             }
         ],
-        "max_tokens": 256 if structured else PROVIDER_PROBE_MAX_OUTPUT_TOKENS,
+        "max_tokens": int(
+            max_output_tokens
+            if max_output_tokens is not None
+            else (256 if structured else PROVIDER_PROBE_MAX_OUTPUT_TOKENS)
+        ),
     }
     return _build_openai_compatible_payload(
         base_url,
