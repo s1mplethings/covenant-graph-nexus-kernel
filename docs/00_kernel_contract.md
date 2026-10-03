@@ -1149,10 +1149,13 @@ The start operation executes the unchanged canonical conversation-generation
 command, returns the existing `production-*` run identity after production
 entry is persisted, and deduplicates a live worker for the same project. The
 project-local generation-job record is runtime observation state, not another
-generation identity or formal authority. Read-only status projects worker
-liveness and canonical run-local Provider metrics without starting, resuming,
-or cancelling work. Client disconnect is not cancellation; a missing worker for
-a persisted nonterminal job is reported fail-closed. Provider retry, result
+generation identity or formal authority. Status uses a non-destructive platform
+process query and projects worker liveness and canonical run-local Provider metrics
+without starting, resuming, or cancelling work. A confirmed-dead STARTING,
+RUNNING, or WAITING worker is atomically reconciled to FAILED before a formal
+start/resume may replace it; an UNKNOWN process is conservatively deduplicated,
+while a live active worker is always deduplicated. Client disconnect is not cancellation.
+Provider retry, result
 admission, candidate, provenance, evidence, packaging, and resume semantics stay
 with their existing canonical owners.
 

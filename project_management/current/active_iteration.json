@@ -1,60 +1,27 @@
 {
-  "kind": "CGKNAdaptiveIteration",
-  "schema_version": "1.0",
-  "iteration_id": "ITER-097",
-  "project_id": "cgkn",
-  "goal": "Add a controlled Usage Beta profile that separates real-project usability from repository-global readiness and validate it through one Character Clip Studio surrogate run.",
-  "backlog_item_ids": ["PB-076"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "kind": "CGKNAdaptiveIteration", "schema_version": "1.0", "iteration_id": "ITER-098", "project_id": "cgkn",
+  "goal": "Recover confirmed-dead managed generation workers with non-destructive cross-platform liveness and resume the existing Character Clip Studio run.",
+  "backlog_item_ids": ["PB-077"], "workflow_state": "closed", "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Usage Beta defaults to codex_surrogate while an explicit live request never silently falls back.",
-    "Goal fidelity, runnable behavior, core capability, primary user path, and delivery are the only project-level hard gates.",
-    "Any failed hard gate yields NEEDS_REWORK; any unevaluated hard gate yields BLOCKED; all five PASS despite global limitations yields PASS.",
-    "Usage Beta PASS never changes formal acceptance, release_ready, commercial_ready, packaging, or delivery authority.",
-    "One real Character Clip Studio run uses the existing canonical surrogate, compiler, scheduler, evidence, and packaging route."
+    "Repeated Windows liveness probes are non-destructive.",
+    "Confirmed-dead STARTING, RUNNING, and WAITING jobs atomically become FAILED with WORKER_PROCESS_NOT_ALIVE.",
+    "Live and UNKNOWN active jobs deduplicate while a dead job permits a new identity.",
+    "Worker-written RUNNING state and run_id win the spawn race.",
+    "The existing Character Clip Studio run resumes until candidate or the next primary blocker."
   ],
   "quality_metrics": [
-    {"id": "QM-USAGE-GATES", "measure": "five hard gates backed by real project evidence", "target": "5/5 PASS for Usage Beta PASS", "method": "deterministic evaluator tests and real-run receipts"},
-    {"id": "QM-STATUS-SEPARATION", "measure": "Usage Beta status changing release/global truth", "target": "0 unauthorized changes", "method": "contract tests"},
-    {"id": "QM-ROUTE", "measure": "new agent, scheduler, executor type, or authority", "target": "0", "method": "kernel tests and architecture inspection"}
+    {"id": "QM-LIVENESS", "measure": "destructive process actions", "target": "0", "method": "real Windows child probe"},
+    {"id": "QM-STATE", "measure": "active/dead durable projection divergence", "target": "0", "method": "reconciliation tests"},
+    {"id": "QM-ROUTE", "measure": "new generation authority or path", "target": "0", "method": "kernel tests"}
   ],
   "quality_activities": {
-    "prevention": ["Project the existing evidence instead of defining a second acceptance system"],
-    "assurance": ["Test status precedence, global limitation separation, mode selection, no fallback, and release truth"],
-    "control": ["Run provider-free tests before the real surrogate run and stop at its earliest real blocker"],
-    "improvement": ["Select the next change only from the real run's primary blocker"]
+    "prevention": ["Treat UNKNOWN as alive and write FAILED only for confirmed DEAD."],
+    "assurance": ["Test liveness, active states, deduplication, restart, and spawn race."],
+    "control": ["Resume through the official entry and stop at a second blocker."],
+    "improvement": ["Record the next blocker without scope expansion."]
   },
-  "interface_expectations": [
-    "Codex conversation remains the user-facing entry and local_packager remains the only delivery exit",
-    "codex_surrogate responses still pass through the canonical compiler and ProviderJob boundaries",
-    "Usage Beta is a read-only product status projection with no formal acceptance authority"
-  ],
-  "evidence_refs": [
-    "tests/test_usage_beta.py",
-    "evidence/character_clip_studio_usage_beta_20261003.json",
-    "artifacts/usage_beta_acceptance/usage_beta_verdict.json"
-  ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "The Usage Beta entry, five-gate evaluator, status separation, surrogate default, explicit-live preservation, and authority boundaries passed scoped regression.",
-      "The real Character Clip Studio run reached canonical GoalSpec PASS and consumed design and Agent Build ProviderJobs with zero live Provider or network calls.",
-      "The run stopped honestly at USAGE_BETA_BLOCKED because a managed generation job remained STARTING for a nonexistent PID and the formal entry refused a safe resume; no candidate or downstream project evidence was claimed.",
-      "Repository Formal Quick timed out at 300.049 seconds after pytest displayed approximately 10 percent progress, without a completed failure/error count."
-    ],
-    "accepted_backlog_item_ids": ["PB-076"]
-  },
-  "retrospective": {
-    "worked": [
-      "A thin evidence projection made repository-global limitations non-blocking without weakening any project hard gate.",
-      "The canonical surrogate compiler rejected two insufficient planning proposals and admitted the third only after exact grounding and preservation were satisfied."
-    ],
-    "did_not_work": [
-      "Managed generation resume recorded a stale STARTING job with a nonexistent process and deduplicated the next resume, preventing candidate materialization."
-    ],
-    "experiments": [
-      "Make the next real-usage-selected increment reproduce and fix only stale managed-job liveness/recovery, then resume the same canonical project if identity remains valid."
-    ]
-  }
+  "interface_expectations": ["Canonical generation and local_packager authority remain unchanged.", "Managed job failure does not permanently fail the production run."],
+  "evidence_refs": ["tools/cgkn-agent-kit/tests/test_agent_kit.py", "tests/test_kernel_contract.py", "evidence/character_clip_studio_usage_beta_20261003.json"],
+  "review": {"outcome": "accepted_with_limits", "feedback": ["Managed worker liveness and stale-state recovery passed scoped tests and a real Windows process probe.", "The original production run resumed, consumed the previously pending response, and advanced to the next normal surrogate leaf; candidate materialization remains in progress."], "accepted_backlog_item_ids": ["PB-077"]},
+  "retrospective": {"worked": ["Confirmed-dead reconciliation allowed a new worker identity to bind to the existing production run."], "did_not_work": ["The available run window ended while further surrogate leaves remained."], "experiments": ["Continue the same formal surrogate run without changing lifecycle code."]}
 }

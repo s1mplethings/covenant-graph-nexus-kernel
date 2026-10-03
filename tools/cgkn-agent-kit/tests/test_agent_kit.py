@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
+import sys
 
 import pytest
 
@@ -11,6 +13,51 @@ from cgkn_agent_kit.cli import _emit, main
 
 
 CGKN_ROOT = pathlib.Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows process-query acceptance")
+def test_windows_liveness_probe_is_non_destructive() -> None:
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        observations = [core._process_liveness(child.pid) for _ in range(3)]
+        assert [item["status"] for item in observations] == ["ALIVE"] * 3
+        assert child.poll() is None
+    finally:
+        child.terminate()
+        child.wait(timeout=10)
+    assert core._process_liveness(child.pid)["status"] == "DEAD"
+
+
+@pytest.mark.parametrize("state", ["STARTING", "RUNNING", "WAITING"])
+def test_dead_active_generation_job_is_durably_reconciled(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "old", "state": state, "process_id": 99})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    observed = core.generation_job_status(tmp_path)
+    durable = core.read_json(core.generation_job_path(tmp_path))
+    assert observed["state"] == durable["state"] == "FAILED"
+    assert durable["terminal_reason"] == "WORKER_PROCESS_NOT_ALIVE"
+
+
+def test_unknown_active_generation_job_deduplicates(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "old", "state": "RUNNING", "process_id": 99})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "UNKNOWN", "alive": True, "method": "test", "error_code": 5})
+    result = core.start_generation_job(["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path, popen_factory=lambda *a, **k: pytest.fail("must not spawn"))
+    assert result["deduplicated"] is True
+
+
+def test_dead_generation_job_starts_new_identity_and_preserves_spawn_race(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = core.generation_job_path(tmp_path)
+    core.write_json(path, {"job_id": "old", "state": "WAITING", "process_id": 99})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD" if pid == 99 else "ALIVE", "alive": pid != 99, "method": "test", "error_code": 0})
+    class Process:
+        pid = 100
+    def spawn(command, **kwargs):
+        job_id = command[command.index("--generation-job-id") + 1]
+        core.write_json(path, {"job_id": job_id, "state": "RUNNING", "run_id": "abc", "process_id": 0})
+        return Process()
+    result = core.start_generation_job(["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path, start_timeout=0, popen_factory=spawn)
+    assert result["started"] is True and result["deduplicated"] is False
+    assert result["job_id"] != "old" and result["state"] == "RUNNING" and result["run_id"] == "abc"
 
 
 def test_cli_json_output_reconfigures_legacy_windows_stream_to_utf8() -> None:

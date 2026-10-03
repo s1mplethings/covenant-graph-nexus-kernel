@@ -4,6 +4,19 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-077",
+      "title": "Recover stale managed generation workers safely",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Prevent a dead Windows managed worker from permanently blocking the formal resume path.",
+      "acceptance": [
+        "Windows liveness uses a non-destructive process query and POSIX permission errors preserve existence",
+        "confirmed-dead active jobs are atomically reconciled while UNKNOWN remains conservatively deduplicated",
+        "a stale job can start a new identity without overwriting a worker's RUNNING state or run identity",
+        "the existing Character Clip Studio run resumes through the formal entry until candidate or the next primary blocker"
+      ]
+    },
+    {
       "id": "PB-076",
       "title": "Enable controlled real-project Usage Beta",
       "priority": 1,

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import hashlib
+import ctypes
+import errno
 import os
 import pathlib
 import re
@@ -447,13 +449,63 @@ def generation_job_path(artifact_dir: pathlib.Path) -> pathlib.Path:
 
 
 def _process_alive(pid: int) -> bool:
-    if int(pid or 0) <= 0:
-        return False
+    return bool(_process_liveness(pid)["alive"])
+
+
+def _process_liveness(pid: int) -> dict[str, Any]:
+    selected = int(pid or 0)
+    if selected <= 0:
+        return {"pid": selected, "status": "DEAD", "alive": False, "method": "validation", "error_code": 0, "reason": "INVALID_PID"}
+    if os.name == "nt":
+        access, still_active = 0x1000, 259
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        open_process = kernel32.OpenProcess
+        open_process.argtypes, open_process.restype = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32], ctypes.c_void_p
+        get_exit_code = kernel32.GetExitCodeProcess
+        get_exit_code.argtypes, get_exit_code.restype = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)], ctypes.c_int
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes, close_handle.restype = [ctypes.c_void_p], ctypes.c_int
+        handle = open_process(access, False, selected)
+        if not handle:
+            error_code = int(ctypes.get_last_error())
+            if error_code == 87:
+                return {"pid": selected, "status": "DEAD", "alive": False, "method": "windows_query_exit_code", "error_code": error_code}
+            return {"pid": selected, "status": "UNKNOWN", "alive": True, "method": "windows_query_exit_code", "error_code": error_code, "reason": "ACCESS_DENIED" if error_code == 5 else "QUERY_FAILED"}
+        try:
+            exit_code = ctypes.c_uint32()
+            if not get_exit_code(handle, ctypes.byref(exit_code)):
+                return {"pid": selected, "status": "UNKNOWN", "alive": True, "method": "windows_query_exit_code", "error_code": int(ctypes.get_last_error()), "reason": "QUERY_FAILED"}
+            alive = exit_code.value == still_active
+            return {"pid": selected, "status": "ALIVE" if alive else "DEAD", "alive": alive, "method": "windows_query_exit_code", "error_code": 0, "exit_code": int(exit_code.value)}
+        finally:
+            close_handle(handle)
     try:
-        os.kill(int(pid), 0)
-    except (OSError, ProcessLookupError, PermissionError):
-        return False
-    return True
+        os.kill(selected, 0)
+    except ProcessLookupError:
+        return {"pid": selected, "status": "DEAD", "alive": False, "method": "posix_signal_zero", "error_code": errno.ESRCH}
+    except PermissionError:
+        return {"pid": selected, "status": "ALIVE", "alive": True, "method": "posix_signal_zero", "error_code": errno.EPERM}
+    except OSError as exc:
+        if exc.errno == errno.ESRCH:
+            return {"pid": selected, "status": "DEAD", "alive": False, "method": "posix_signal_zero", "error_code": exc.errno}
+        if exc.errno == errno.EPERM:
+            return {"pid": selected, "status": "ALIVE", "alive": True, "method": "posix_signal_zero", "error_code": exc.errno}
+        return {"pid": selected, "status": "UNKNOWN", "alive": True, "method": "posix_signal_zero", "error_code": exc.errno}
+    return {"pid": selected, "status": "ALIVE", "alive": True, "method": "posix_signal_zero", "error_code": 0}
+
+
+def reconcile_generation_job_state(artifact_dir: pathlib.Path) -> dict[str, Any]:
+    path = generation_job_path(artifact_dir)
+    job = read_json(path)
+    pid = int(job.get("process_id", 0) or 0)
+    liveness = _process_liveness(pid)
+    if str(job.get("state", "")).upper() in {"STARTING", "RUNNING", "WAITING"} and liveness["status"] == "DEAD":
+        latest = read_json(path)
+        if str(latest.get("state", "")).upper() in {"STARTING", "RUNNING", "WAITING"} and int(latest.get("process_id", 0) or 0) == pid:
+            timestamp = now()
+            job = {**latest, "state": "FAILED", "terminal_reason": "WORKER_PROCESS_NOT_ALIVE", "worker_observed_alive": False, "process_liveness": liveness, "failed_at": timestamp, "updated_at": timestamp}
+            write_json(path, job)
+    return {**job, "process_liveness": liveness, "worker_observed_alive": bool(liveness["alive"])}
 
 
 def _run_metrics(run_dir: str | pathlib.Path) -> dict[str, Any]:
@@ -500,16 +552,11 @@ def generation_job_status(artifact_dir: pathlib.Path) -> dict[str, Any]:
     path = generation_job_path(artifact_dir)
     if not path.is_file():
         return {"exists": False, "state": "NOT_STARTED", "job_alive": False}
-    job = read_json(path)
-    pid = int(job.get("process_id", 0) or 0)
-    alive = _process_alive(pid)
+    job = reconcile_generation_job_state(artifact_dir)
+    alive = bool(job["process_liveness"]["alive"])
     state = str(job.get("state", "UNKNOWN") or "UNKNOWN").upper()
     terminal = state in {"COMPLETE", "REWORK_BLOCKED", "FAILED", "CANCELLED"}
-    if not terminal and not alive and pid:
-        state = "FAILED"
-        terminal_reason = "WORKER_PROCESS_NOT_ALIVE"
-    else:
-        terminal_reason = str(job.get("terminal_reason", "") or "")
+    terminal_reason = str(job.get("terminal_reason", "") or "")
     metrics = _run_metrics(str(job.get("run_dir", "") or ""))
     result_path = pathlib.Path(str(job.get("result_path", "") or ""))
     result: dict[str, Any] = {}

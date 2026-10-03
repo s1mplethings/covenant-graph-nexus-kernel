@@ -379,6 +379,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("self.core.start_generation_job", server)
         self.assertNotIn("self.core.run_generation(", server)
         self.assertIn("def generation_job_status", core)
+        self.assertIn("def reconcile_generation_job_state", core)
+        self.assertIn("windows_query_exit_code", core)
         self.assertIn("one long-running formal generation is owned by a", contract)
         self.assertIn("Client disconnect is not cancellation", contract)
 
