@@ -266,6 +266,16 @@ def test_requirements_planning_budget_is_deterministic_and_bounded() -> None:
     assert pipeline.requirements_planning_output_token_budget(complex_context) == 4096
 
 
+def test_complex_real_requirement_selects_4096_initially() -> None:
+    goal = "Local Python video frame extractor with Windows and Chinese-path support"
+    context = {"goal": goal, "canonical_evidence_units": pipeline.canonical_goal_spec_compiler.build_canonical_evidence_units(goal)}
+    assert pipeline.requirements_planning_output_token_budget(context) == 4096
+
+
+def test_tiny_requirement_keeps_small_initial_budget() -> None:
+    assert pipeline.requirements_planning_output_token_budget({"goal": "x"}) == 1200
+
+
 def test_requirements_schema_probe_failure_short_circuits_real_request(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     responses = [
         ({"choices": [{"message": {"content": "pong"}}]}, ""),

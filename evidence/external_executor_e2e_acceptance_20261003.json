@@ -1,0 +1,88 @@
+{
+  "kind": "CGKNExternalExecutorE2EAcceptanceEvidence",
+  "schema_version": "1.0",
+  "generated_at": "2026-10-03T14:22:20.251657+00:00",
+  "run_id": "production-876b3bb9298941f4b956f05b3e02854e",
+  "provider_transport_run_id": "run-ceb520fdbdb8b985c586",
+  "source": {
+    "branch": "codex/external-executor-e2e-closure",
+    "head_sha": "bf66bfbc354ce432c8a18b7d792cbf1535a9bb88",
+    "source_identity_hash": "sha256:2824cfee42ba731e66a6418f9cd85bdf5c0ce99276c97ab93c5fed8fb26a24ea",
+    "version": "0.2.0-rc.2"
+  },
+  "goal": "Local Python video frame extractor with Windows and Chinese-path support",
+  "provider_request": {
+    "model": "qwen3.8-max",
+    "endpoint_mode": "chat_completions",
+    "response_format_present": true,
+    "response_format_type": "json_schema",
+    "max_tokens": 4096,
+    "reasoning_effort": "none",
+    "enable_thinking": false,
+    "request_body_bytes": 7418,
+    "schema_bytes": 2503,
+    "estimated_input_tokens": 1076,
+    "attempts": 1,
+    "first_header_ms": 47265,
+    "status": "PASS",
+    "finish_reason": "stop"
+  },
+  "requirement_grounding": {
+    "status": "PASS",
+    "goal_id": "goal-5970fc3eb91b39fa8906",
+    "goal_spec_hash": "sha256:9ab78a3f0774e6cb80a0a0f2e007ac60d3133f22299a290a84332e9366f40c7e",
+    "proposal_hash": "sha256:87fc555d1a10fe3170c8cfb467f0759601547be7b37cceffb02d383b2954e22c",
+    "evidence_ids": [
+      "ev:goal:001:fb3c5e55e3e2",
+      "ev:goal:002:7b627c61eb5e",
+      "ev:goal:003:0344d63402f4",
+      "ev:policy:004:82a7b0ec9567",
+      "ev:policy:005:50422f265c78",
+      "ev:policy:006:2dbf1789037a"
+    ],
+    "must_cover": {
+      "local_python_video_frame_extractor": "PASS",
+      "windows": "PASS",
+      "chinese_path_support": "PASS"
+    },
+    "unknown_evidence_ids": [],
+    "candidate_materialized": false
+  },
+  "external_discovery": {
+    "status": "PASS",
+    "selected_candidate": {
+      "candidate_id": "candidate.62c498c617f368f4",
+      "package": "av",
+      "ecosystem": "pypi",
+      "version": "19.0.1",
+      "repository": "https://github.com/PyAV-Org/PyAV"
+    },
+    "license": {"status": "KNOWN", "spdx": "BSD-3-Clause", "policy": "ALLOW"},
+    "maintenance": {"status": "PASS", "activity": "ACTIVE"},
+    "security": {"status": "PASS", "osv_exact_version": "19.0.1", "known_advisories": []},
+    "bounded_import_trial": "PASS"
+  },
+  "project_generation": {
+    "status": "BLOCKED",
+    "stage": "provider_semantic_review",
+    "provider_status": "component_generation_failed",
+    "provider_api_calls": 16,
+    "fallback_calls": 12,
+    "files_authored_by_primary": ["pyproject.toml", "requirements.txt"],
+    "files_authored_by_fallback": ["app/main.py", "src/ws_frame_extraction.py", "src/ws_path_handling.py"],
+    "blocker": "tests component leaf repair exhausted after repeated invalid Python unicodeescape sequences in generated Windows paths",
+    "missing_required_files": ["tests/test_goal_behavior_tests.py", "README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"]
+  },
+  "acceptance": {
+    "real_video_processed": "NOT_EVALUATED",
+    "chinese_input_path": "NOT_EVALUATED",
+    "chinese_output_path": "NOT_EVALUATED",
+    "frame_extracted": "NOT_EVALUATED",
+    "image_valid": "NOT_EVALUATED",
+    "integration": "NOT_EVALUATED",
+    "runtime_platform": "Windows",
+    "runtime_acceptance": "NOT_EVALUATED"
+  },
+  "historical_evidence_preserved": "evidence/external_executor_real_project_acceptance_20261003.json",
+  "final_verdict": "BLOCKED_ENVIRONMENT"
+}

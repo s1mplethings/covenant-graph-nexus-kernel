@@ -412,6 +412,7 @@ def test_33_formal_replan_resume_and_accounting_share_one_run(tmp_path):
     assert state["workflow_state"] == "RESOLVED"
     assert [item["attempt"] for item in state["history"]] == [1, 2]
     assert accounting["consumed_attempts"] == 2
+    adapter.configure(mode="live", run_dir=tmp_path / "run", run_id="cleanup-live", project_id="cleanup-live", source_sha="test")
 
 
 def test_34_resolved_requirement_checkpoint_is_reused_without_provider_call(tmp_path, monkeypatch):
@@ -901,3 +902,39 @@ def test_d07_sealed_brief_identity_preserved_end_to_end():
 def test_d08_local_validators_remain_strict():
     test_a02_unknown_system_policy_is_rejected()
     test_b02_scope_text_as_workstream_identity_is_rejected()
+
+
+def test_e01_provider_schema_requires_evidence_selection_not_excerpt_authorship():
+    item = compiler.planning_proposal_json_schema()["properties"]["source_grounding"]["items"]
+    assert "evidence_ids" in item["required"]
+    assert "source_excerpt" not in item["properties"]
+    assert "source_kind" not in item["properties"]
+    assert "uniqueItems" not in item["properties"]["evidence_ids"]
+
+
+def test_e02_unknown_evidence_id_is_hard_rejected():
+    goal = "Create a local calculator."
+    draft = proposal(goal)
+    draft["source_grounding"] = [{"target": "desired_outcomes", "value": goal, "evidence_ids": ["ev:goal:999:aaaaaaaaaaaa"], "rationale": "selected evidence"}]
+    _hydrated, errors = compiler.hydrate_planning_evidence(draft, raw_goal=goal)
+    assert errors == ["unknown_evidence_id:ev:goal:999:aaaaaaaaaaaa"]
+
+
+def test_e03_system_hydrates_exact_immutable_evidence():
+    goal = "Local Python video frame extractor with Windows and Chinese-path support"
+    units = compiler.build_canonical_evidence_units(goal)
+    selected = units[1]
+    draft = proposal(goal)
+    draft["source_grounding"] = [{"target": "explicit_constraints_found", "value": "Windows support", "evidence_ids": [selected["id"]], "rationale": "platform constraint"}]
+    hydrated, errors = compiler.hydrate_planning_evidence(draft, raw_goal=goal)
+    assert errors == []
+    row = hydrated["source_grounding"][0]
+    assert row["source_excerpt"] == selected["exact_text"] == "Windows"
+    assert row["content_hash"] == selected["content_hash"]
+    assert row["source_identity"] == compiler.raw_goal_hash(goal)
+
+
+def test_e04_real_goal_atomization_preserves_all_must_cover_clauses():
+    goal = "Local Python video frame extractor with Windows and Chinese-path support"
+    must_cover = [unit["exact_text"] for unit in compiler.build_canonical_evidence_units(goal) if unit["must_cover"]]
+    assert must_cover == ["Local Python video frame extractor", "Windows", "Chinese-path support"]

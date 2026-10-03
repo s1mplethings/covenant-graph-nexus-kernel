@@ -30029,7 +30029,17 @@ def requirements_planning_output_token_budget(context: dict[str, Any]) -> int:
     workflows = context.get("workflows", context.get("key_workflows", []))
     constraints = context.get("constraints", context.get("explicit_constraints", []))
     item_count = sum(len(value) for value in (capabilities, workflows, constraints) if isinstance(value, list))
-    return max(1200, min(4096, 2048 + (item_count * 64)))
+    context_bytes = len(json.dumps(context, ensure_ascii=False, sort_keys=True).encode("utf-8"))
+    schema_bytes = len(json.dumps(canonical_goal_spec_compiler.planning_proposal_json_schema(), sort_keys=True).encode("utf-8"))
+    estimated_input_tokens = max(1, context_bytes // 4)
+    structural_capacity = item_count + len(context.get("canonical_evidence_units", []))
+    if schema_bytes >= 2400 and (estimated_input_tokens >= 900 or structural_capacity >= 5):
+        return 4096
+    if estimated_input_tokens >= 600 or structural_capacity >= 4:
+        return 3072
+    if estimated_input_tokens >= 250 or structural_capacity >= 2:
+        return 2048
+    return 1200
 
 
 def _minimal_requirements_probe_response_format() -> dict[str, Any]:
@@ -30314,6 +30324,10 @@ def provider_stage_checkpoint(
         else artifact_path
     )
     if planning_stage:
+        goal_text = str(context.get("goal", ""))
+        evidence_units = canonical_goal_spec_compiler.build_canonical_evidence_units(goal_text)
+        context = dict(context)
+        context["canonical_evidence_units"] = evidence_units
         system_content = (
             "You are the formal Provider role for the bounded CGKN requirements_planning stage. "
             "Return only the PlanningProposal selected by the attached strict JSON Schema. "
@@ -30322,7 +30336,8 @@ def provider_stage_checkpoint(
             "requirements, capabilities, constraints, or scope. REPLAN may restructure supported planning but "
             "does not authorize semantic drift. "
             "Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
-            "acceptance anchor, and forbidden substitution with an exact source_grounding row. "
+            "acceptance anchor, and forbidden substitution with a source_grounding row that selects only evidence_ids "
+            "from canonical_evidence_units. Never author source IDs, excerpts, hashes, locations, or canonical evidence text. "
             "For proposed_workstreams grounding, source_grounding.value MUST equal the workstream's canonical id exactly; "
             "never use its scope, title, description, or array index as identity. "
             "Use stable snake_case capability IDs, and each proposed_workstreams.covers_capabilities entry MUST exactly equal "
@@ -30411,7 +30426,11 @@ def provider_stage_checkpoint(
             payload = parse_json_object(raw)
             rejected_proposal = payload
             if planning_stage:
+                payload, evidence_errors = canonical_goal_spec_compiler.hydrate_planning_evidence(
+                    payload, raw_goal=str(context.get("goal", ""))
+                )
                 proposal_errors = canonical_goal_spec_compiler.validate_planning_proposal(payload)
+                proposal_errors = sorted(set([*evidence_errors, *proposal_errors]))
                 if proposal_errors:
                     last_errors = proposal_errors
                     raise ValueError("; ".join(proposal_errors))

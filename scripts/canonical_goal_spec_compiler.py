@@ -105,6 +105,50 @@ def raw_goal_hash(raw_goal: str) -> str:
     return "sha256:" + hashlib.sha256(str(raw_goal).encode("utf-8")).hexdigest()
 
 
+def build_canonical_evidence_units(raw_goal: str, conversation_context: dict[str, Any] | None = None, system_constraints: list[str] | None = None) -> list[dict[str, Any]]:
+    """Atomize canonical inputs; Provider output can select but never author evidence."""
+    units: list[dict[str, Any]] = []
+    def add(source_id: str, source_kind: str, location: str, exact_text: str, must_cover: bool) -> None:
+        text = _text(exact_text)
+        if not text:
+            return
+        identity = stable_hash({"source_id": source_id, "location": location, "exact_text": text})
+        units.append({"id": f"ev:{source_id}:{len(units)+1:03d}:{identity.split(':',1)[1][:12]}", "source_id": source_id, "source_kind": source_kind, "source_identity": raw_goal_hash(raw_goal) if source_kind == "RAW_GOAL" else identity, "location": location, "exact_text": text, "content_hash": "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest(), "must_cover": bool(must_cover)})
+    goal = _text(raw_goal)
+    clauses = [_text(item) for item in re.split(r"[\n,;，；]+|\bwith\b|\band\b|\bplus\b", goal, flags=re.I) if _text(item)] or [goal]
+    for index, clause in enumerate(dict.fromkeys(clauses), 1):
+        add("goal", "RAW_GOAL", f"goal.clause[{index}]", clause, True)
+    context = dict(conversation_context or {})
+    for index, value in enumerate(_string_list(context.get("explicit_constraints")), 1):
+        add("context", "CONVERSATION_CONTEXT", f"explicit_constraints[{index}]", value, True)
+    for index, value in enumerate(accepted_system_constraints(system_constraints), 1):
+        add("policy", "SYSTEM_POLICY", f"system_constraints[{index}]", value, False)
+    return units
+
+
+def hydrate_planning_evidence(proposal: dict[str, Any], *, raw_goal: str, conversation_context: dict[str, Any] | None = None, system_constraints: list[str] | None = None) -> tuple[dict[str, Any], list[str]]:
+    """Replace selected IDs with immutable canonical evidence fields."""
+    units = build_canonical_evidence_units(raw_goal, conversation_context, system_constraints)
+    by_id = {unit["id"]: unit for unit in units}
+    hydrated = json.loads(json.dumps(proposal, ensure_ascii=False)) if isinstance(proposal, dict) else {}
+    errors: list[str] = []
+    rows: list[dict[str, Any]] = []
+    for index, row in enumerate(hydrated.get("source_grounding", [])):
+        if not isinstance(row, dict) or not isinstance(row.get("evidence_ids"), list):
+            rows.append(row)
+            continue
+        if not row["evidence_ids"]:
+            errors.append(f"source_grounding[{index}]_evidence_ids_empty")
+        for evidence_id in row["evidence_ids"]:
+            unit = by_id.get(_text(evidence_id))
+            if unit is None:
+                errors.append(f"unknown_evidence_id:{_text(evidence_id)}")
+                continue
+            rows.append({"target": row.get("target"), "value": row.get("value"), "source_kind": unit["source_kind"], "source_excerpt": unit["exact_text"], "rationale": row.get("rationale"), "evidence_id": unit["id"], "source_id": unit["source_id"], "source_identity": unit["source_identity"], "location": unit["location"], "content_hash": unit["content_hash"], "must_cover": unit["must_cover"]})
+    hydrated["source_grounding"] = rows
+    return hydrated, sorted(set(errors))
+
+
 def _text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip())
 
@@ -189,13 +233,16 @@ def validate_planning_proposal(proposal: dict[str, Any]) -> list[str]:
             errors.append(f"source_grounding[{index}]_target")
         if not _text(row.get("value")):
             errors.append(f"source_grounding[{index}]_value")
-        if _text(row.get("source_kind")) not in SOURCE_KIND_TO_PROVENANCE:
+        selected_ids = row.get("evidence_ids")
+        if _text(row.get("source_kind")) not in SOURCE_KIND_TO_PROVENANCE and not isinstance(selected_ids, list):
             errors.append(f"source_grounding[{index}]_source_kind")
-        if not _text(row.get("source_excerpt")):
+        if not _text(row.get("source_excerpt")) and not isinstance(selected_ids, list):
             errors.append(f"source_grounding[{index}]_source_excerpt")
+        if isinstance(selected_ids, list) and (not selected_ids or any(not _text(item) for item in selected_ids)):
+            errors.append(f"source_grounding[{index}]_evidence_ids")
         if not _text(row.get("rationale")):
             errors.append(f"source_grounding[{index}]_rationale")
-        if set(row) - {"target", "value", "source_kind", "source_excerpt", "rationale"}:
+        if set(row) - {"target", "value", "source_kind", "source_excerpt", "rationale", "evidence_ids", "evidence_id", "source_id", "source_identity", "location", "content_hash", "must_cover"}:
             errors.append(f"source_grounding[{index}]_unexpected_field")
     return sorted(set(errors))
 
@@ -222,8 +269,7 @@ def planning_proposal_prompt_contract() -> dict[str, Any]:
             {
                 "target": "one proposal list field",
                 "value": "exact item value, or workstream id",
-                "source_kind": "RAW_GOAL | CONVERSATION_CONTEXT | NECESSARY_INFERENCE | SYSTEM_POLICY",
-                "source_excerpt": "bounded supporting excerpt",
+                "evidence_ids": ["select only IDs supplied in canonical_evidence_units"],
                 "rationale": "how the source supports the item",
             }
         ],
@@ -235,6 +281,11 @@ def planning_proposal_json_schema() -> dict[str, Any]:
     schema = json.loads(PLANNING_PROPOSAL_SCHEMA_PATH.read_text(encoding="utf-8"))
     if not isinstance(schema, dict):
         raise RuntimeError("canonical PlanningProposal schema must be an object")
+    grounding = schema["properties"]["source_grounding"]["items"]
+    grounding.pop("oneOf", None)
+    grounding["required"] = ["target", "value", "evidence_ids", "rationale"]
+    grounding["properties"].pop("source_kind", None)
+    grounding["properties"].pop("source_excerpt", None)
     return schema
 
 
@@ -270,7 +321,7 @@ def planning_proposal_repair_contract(
             "preserve every schema-valid semantic decision",
             "change only fields required by the reported validation errors",
             "do not add, remove, or restyle planning content unless required for schema validity",
-            "do not invent goals, requirements, capabilities, constraints, or grounding",
+            "do not invent goals, requirements, capabilities, constraints, grounding, evidence IDs, or excerpts",
         ],
         "validation_errors": list(validation_errors),
         "rejected_proposal": rejected_proposal,
