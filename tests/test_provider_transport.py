@@ -189,8 +189,8 @@ def _planning_messages() -> list[dict[str, str]]:
 
 def test_requirements_preflight_tiny_failure_short_circuits(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
-    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://api.example.test/v1"})
-    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://api.example.test/v1/chat/completions")
+    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
     monkeypatch.setattr(pipeline, "choose_provider_model", lambda *_args, **_kwargs: {"selected_model": "qwen3.8-max"})
     monkeypatch.setattr(pipeline.check_connectivity, "_post_json", lambda *_args: (calls.append("tiny") or (None, "TimeoutError: timed out")))
     monkeypatch.setattr(pipeline.check_connectivity, "last_transport_timing", lambda: {"response_headers_received": False, "total_elapsed_ms": 1000})
@@ -227,6 +227,8 @@ def test_requirements_preflight_writes_secret_free_metrics(tmp_path: pathlib.Pat
     responses = [
         ({"choices": [{"message": {"content": "pong"}}]}, ""),
         ({"choices": [{"message": {"content": '{"cgkn_probe":"ok","goal":"x","capabilities":["y"]}'}}]}, ""),
+        ({"choices": [{"message": {"content": '{"cgkn_probe":"ok"}'}}]}, ""),
+        ({"choices": [{"message": {"content": "{}"}, "finish_reason": "length"}]}, ""),
     ]
     monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": secret, "base_url": "https://api.example.test/v1"})
     monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://api.example.test/v1/chat/completions")
@@ -236,30 +238,65 @@ def test_requirements_preflight_writes_secret_free_metrics(tmp_path: pathlib.Pat
 
     result = pipeline.requirements_planning_provider_preflight(
         messages=_planning_messages(), requested_model="qwen3.8-max", timeout=60,
-        run_dir=tmp_path, routing_policy=None, response_format={"type": "json_object"},
+        run_dir=tmp_path, routing_policy=None,
+        response_format=pipeline.canonical_goal_spec_compiler.planning_proposal_response_format(),
     )
     metrics_text = (tmp_path / "artifacts" / "requirements_planning_request_metrics.json").read_text(encoding="utf-8")
     assert result["status"] == "PASS"
     assert result["probes"]["tiny"]["max_output_tokens"] == 32
-    assert result["probes"]["structured"]["max_output_tokens"] == 128
+    assert result["probes"]["json_text"]["max_output_tokens"] == 128
+    assert result["probes"]["json_schema"]["max_output_tokens"] == 256
+    assert result["probes"]["json_schema"]["response_format_type"] == "json_schema"
+    assert result["probes"]["real_512"]["max_output_tokens"] == 512
     assert secret not in metrics_text
     assert "中文路径视频帧" not in metrics_text
     metrics = json.loads(metrics_text)
     assert metrics["hashes"]["request_body_sha256"]
     assert metrics["goal_chars"] == len("中文路径视频帧")
     assert metrics["max_output_tokens"] == 12000
+    assert metrics["response_format_present"] is True
+    assert metrics["schema_sha256"]
+
+
+def test_requirements_planning_budget_is_deterministic_and_bounded() -> None:
+    simple = {"goal": "x"}
+    complex_context = {"capabilities": list(range(100)), "workflows": list(range(100)), "constraints": list(range(100))}
+    assert pipeline.requirements_planning_output_token_budget(simple) == pipeline.requirements_planning_output_token_budget(simple)
+    assert 1200 <= pipeline.requirements_planning_output_token_budget(simple) <= 4096
+    assert pipeline.requirements_planning_output_token_budget(complex_context) == 4096
+
+
+def test_requirements_schema_probe_failure_short_circuits_real_request(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = [
+        ({"choices": [{"message": {"content": "pong"}}]}, ""),
+        ({"choices": [{"message": {"content": '{"cgkn_probe":"ok"}'}}]}, ""),
+        (None, 'HTTP 400: response_format json_schema unsupported [retryable=false]'),
+    ]
+    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
+    monkeypatch.setattr(pipeline, "choose_provider_model", lambda *_args, **_kwargs: {"selected_model": "qwen3.8-max"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_post_json", lambda *_args: responses.pop(0))
+    monkeypatch.setattr(pipeline.check_connectivity, "last_transport_timing", lambda: {"response_headers_received": True, "total_elapsed_ms": 10})
+    with pytest.raises(RuntimeError, match="PROVIDER_JSON_SCHEMA_UNAVAILABLE"):
+        pipeline.requirements_planning_provider_preflight(
+            messages=_planning_messages(), requested_model="qwen3.8-max", timeout=60,
+            run_dir=tmp_path, routing_policy=None, response_format={"type": "json_object"},
+        )
+    assert responses == []
 
 
 def test_provider_text_caps_same_request_pre_header_retries(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload_hashes: list[str] = []
+    payloads: list[dict] = []
     monkeypatch.setattr(pipeline, "try_local_provider_text", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://api.example.test/v1"})
-    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://api.example.test/v1/chat/completions")
+    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
     monkeypatch.setattr(pipeline, "choose_provider_model", lambda *_args, **_kwargs: {"selected_model": "qwen3.8-max", "requested_model": "qwen3.8-max"})
     monkeypatch.setattr(pipeline, "provider_reasoning_effort", lambda *_args: "none")
     monkeypatch.setattr(pipeline.time, "sleep", lambda *_args: None)
 
     def fail(_endpoint, payload, _token, _timeout):
+        payloads.append(payload)
         payload_hashes.append(pipeline.formal_model_contract.stable_hash(payload))
         pipeline.check_connectivity._set_last_transport_timing({"response_headers_received": False, "failure_phase": "connect_or_response_headers", "total_elapsed_ms": 1})
         return None, "TimeoutError: timed out [retryable=true]"
@@ -269,6 +306,33 @@ def test_provider_text_caps_same_request_pre_header_retries(tmp_path: pathlib.Pa
         pipeline.provider_text(
             _planning_messages(), "qwen3.8-max", 60, max_attempts=5,
             stage="requirements_planning", phase_log_path=tmp_path / "events.jsonl",
+            max_tokens=2048,
+            response_format=pipeline.canonical_goal_spec_compiler.planning_proposal_response_format(),
         )
     assert len(payload_hashes) == 2
     assert len(set(payload_hashes)) == 1
+    assert all(item["max_tokens"] == 2048 and item["response_format"]["type"] == "json_schema" for item in payloads)
+
+
+def test_requirements_real_512_pre_header_timeout_is_classified(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = [
+        ({"choices": [{"message": {"content": "pong"}}]}, ""),
+        ({"choices": [{"message": {"content": '{"cgkn_probe":"ok"}'}}]}, ""),
+        ({"choices": [{"message": {"content": '{"cgkn_probe":"ok"}'}}]}, ""),
+        (None, "TimeoutError: timed out [retryable=true]"),
+        (None, "TimeoutError: timed out [retryable=true]"),
+    ]
+    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
+    monkeypatch.setattr(pipeline, "choose_provider_model", lambda *_args, **_kwargs: {"selected_model": "qwen3.8-max"})
+    monkeypatch.setattr(pipeline.check_connectivity, "_post_json", lambda *_args: responses.pop(0))
+    monkeypatch.setattr(pipeline.check_connectivity, "last_transport_timing", lambda: {"response_headers_received": False, "total_elapsed_ms": 60000})
+    with pytest.raises(RuntimeError, match="PROVIDER_REAL_PLANNING_TRANSPORT_UNSTABLE"):
+        pipeline.requirements_planning_provider_preflight(
+            messages=_planning_messages(), requested_model="qwen3.8-max", timeout=60,
+            run_dir=tmp_path, routing_policy=None,
+            response_format=pipeline.canonical_goal_spec_compiler.planning_proposal_response_format(),
+        )
+    checkpoint = json.loads((tmp_path / "artifacts" / "provider_preflight_checkpoint.json").read_text(encoding="utf-8"))
+    assert len(checkpoint["probes"]["real_512"]["attempts"]) == 2
+    assert len({item["request_body_sha256"] for item in checkpoint["probes"]["real_512"]["attempts"]}) == 1

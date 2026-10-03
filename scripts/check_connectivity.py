@@ -176,6 +176,7 @@ def _build_provider_probe_payload(
     *,
     structured: bool = False,
     max_output_tokens: int | None = None,
+    response_format: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "model": model,
@@ -195,6 +196,8 @@ def _build_provider_probe_payload(
             else (256 if structured else PROVIDER_PROBE_MAX_OUTPUT_TOKENS)
         ),
     }
+    if response_format:
+        payload["response_format"] = response_format
     return _build_openai_compatible_payload(
         base_url,
         payload,

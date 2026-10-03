@@ -4,6 +4,20 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-075",
+      "title": "Bind structured requirements planning to a bounded output budget",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Separate JSON Schema support, real planning transport, and output-budget exhaustion while preserving the reviewed Provider route.",
+      "acceptance": [
+        "response_format and max_tokens coexist in the production request",
+        "ordered plain, JSON-text, JSON-schema, and real-512 probes use the production builder",
+        "formal planning has a deterministic 1200-4096 token budget and bounded expansion",
+        "request identity and secret-free schema/request metrics are recorded",
+        "one real qwen3.8-max run determines whether planning and the existing E2E can continue"
+      ]
+    },
+    {
       "id": "PB-074",
       "title": "Diagnose and bound requirements-planning Provider transport",
       "priority": 1,

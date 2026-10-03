@@ -157,6 +157,18 @@ class ProviderApiTransportTests(unittest.TestCase):
                 self.assertIn("messages", payload)
                 self.assertNotIn("reasoning", payload)
 
+    def test_alibaba_qwen_structured_payload_keeps_budget_and_disables_thinking(self) -> None:
+        response_format = {"type": "json_schema", "json_schema": {"name": "probe", "strict": True, "schema": {"type": "object"}}}
+        payload = check_connectivity._build_openai_compatible_payload(
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            {"model": "qwen3.8-max", "messages": [], "max_tokens": 2048, "response_format": response_format},
+            model="qwen3.8-max",
+            reasoning_effort="none",
+        )
+        self.assertEqual(2048, payload["max_tokens"])
+        self.assertEqual(response_format, payload["response_format"])
+        self.assertFalse(payload["enable_thinking"])
+
     def test_reasoning_policy_does_not_change_other_models_or_providers(self) -> None:
         non_qwen = check_connectivity._build_openai_compatible_payload(
             "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",

@@ -32,8 +32,46 @@
       "provider_successes": 0,
       "candidate_materialized": false,
       "delivery_allowed": false
+    },
+    {
+      "run_id": "production-ca5cc52abdab45fea37e0dc9a24242de",
+      "provider_mode": "live",
+      "model": "qwen3.8-max",
+      "status": "REWORK_BLOCKED",
+      "failure": "requirements planning transport and structured output passed; canonical semantic grounding remained NEEDS_REWORK after bounded replans",
+      "provider_attempts_started": 8,
+      "provider_attempts_completed": 8,
+      "provider_successes": 8,
+      "candidate_materialized": false,
+      "delivery_allowed": false
     }
   ],
+  "structured_provider_diagnosis": {
+    "run_id": "production-ca5cc52abdab45fea37e0dc9a24242de",
+    "formal_evidence_status": "NOT_EVALUATED",
+    "authority": "support_diagnostics_only",
+    "tiny": {"status": "PASS", "request_body_bytes": 139, "schema_bytes": 0, "max_tokens": 32, "enable_thinking": false, "headers_ms": 6953, "total_ms": 6953, "error_class": ""},
+    "json_text": {"status": "PASS", "request_body_bytes": 197, "schema_bytes": 0, "max_tokens": 128, "enable_thinking": false, "headers_ms": 7110, "total_ms": 7110, "error_class": ""},
+    "json_schema": {"status": "PASS", "request_body_bytes": 475, "schema_bytes": 201, "schema_sha256": "b113cd6c6cbf119cb1eeb93011230cc70c158022021d4809f3eae34eb18ce4dd", "max_tokens": 256, "enable_thinking": false, "headers_ms": 7328, "total_ms": 7328, "error_class": ""},
+    "real_512": {"status": "TRANSPORT_PASS_OUTPUT_TRUNCATED", "request_body_bytes": 7275, "estimated_input_tokens": 1028, "schema_bytes": 2548, "schema_sha256": "c9c35d4a308537be69679dfbfb84c68356fb779ac3850014262040fa340a0641", "max_tokens": 512, "enable_thinking": false, "headers_ms": 17734, "total_ms": 17734, "finish_reason": "length", "error_class": ""},
+    "formal_planning": {
+      "status": "PASS",
+      "initial_max_tokens": 2048,
+      "initial_headers_ms": 48734,
+      "initial_finish_reason": "length",
+      "expanded_max_tokens": 4096,
+      "expanded_headers_ms": 54609,
+      "expanded_finish_reason": "stop",
+      "schema_bytes": 2548,
+      "schema_sha256": "c9c35d4a308537be69679dfbfb84c68356fb779ac3850014262040fa340a0641",
+      "enable_thinking": false,
+      "error_class": ""
+    },
+    "classification": "RESPONSE_FORMAT_TOKEN_BUDGET_CONTRACT",
+    "requirements_planning_transport_verdict": "PASS",
+    "requirements_planning_semantic_verdict": "NEEDS_REWORK",
+    "raw_context_trimmed": false
+  },
   "provider_diagnosis": {
     "live_calls_total": 4,
     "tiny_probe": {"status": "PASS", "request_body_bytes": 129, "estimated_input_tokens": 6, "response_headers_elapsed_ms": 8407, "total_elapsed_ms": 8407},
@@ -65,15 +103,16 @@
   "source_usage": "NOT_EVALUATED",
   "runtime_usage": "NOT_EVALUATED",
   "project_runtime": "NOT_EVALUATED",
-  "provider_calls": 2,
+  "provider_calls": 8,
   "selected_executor": null,
   "deterministic_integration_tests": {"status": "PASS", "passed": 47, "failed": 0},
-  "scoped_regression": {"status": "PASS", "passed": 299, "failed": 0},
-  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "elapsed_seconds_approx": 290, "progress_percent": 8, "observed_failures": 0, "completed": false},
+  "scoped_regression": {"status": "PASS", "passed": 293, "failed": 0, "groups": {"provider_planning_source_external_publish_kernel": 277, "release_version": 16}},
+  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "elapsed_seconds": 300.049, "progress_percent": 6, "observed_failures": 0, "completed": false},
   "source_identity_scoped_verdict": "PASS",
+  "requirements_planning_structured_request_verdict": "PASS",
   "external_executor_integration_scoped_verdict": "NEEDS_REWORK",
   "external_executor_discovery_feature_status": "ACTIVE",
-  "blocking_authority": "BLOCKED_PROVIDER",
+  "blocking_authority": "REQUIREMENT_PROPOSAL_REWORK",
   "release_authority": false,
   "formal_acceptance_authority": false
 }

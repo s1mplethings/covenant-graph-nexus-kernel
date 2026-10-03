@@ -1,55 +1,56 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-095",
+  "iteration_id": "ITER-096",
   "project_id": "cgkn",
-  "goal": "Differentiate Provider availability from requirements-planning request sensitivity, bound repeated pre-header failures, and resume the official external-executor E2E only when the probes pass.",
-  "backlog_item_ids": ["PB-074"],
+  "goal": "Bind requirements-planning JSON Schema output to an explicit bounded token budget and prove the request contract through ordered same-route differential probes.",
+  "backlog_item_ids": ["PB-075"],
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Tiny and structured probes use the same endpoint, method, model, TLS policy, and credential resolver as requirements planning and persist only redacted metrics and hashes.",
-    "A failed tiny probe short-circuits structured and real planning requests; a failed structured probe short-circuits real planning.",
-    "Two consecutive same-class pre-header transport timeouts stop the production retry loop, while response-header retryable HTTP remains bounded to three attempts.",
-    "Requirements-planning request bytes, hashes, prompt sizes, estimated tokens, and header/body timing are recorded without prompt contents or secrets.",
-    "Payload reduction is permitted only if tiny and structured probes pass while the measured real request fails and exceeds the bounded planning-context policy.",
-    "No new Provider route, Agent, scheduler, executor type, lifecycle stage, or authority is introduced."
+    "Structured Provider requests carry messages, response_format, max_tokens, and qualified Qwen enable_thinking=false simultaneously.",
+    "The existing preflight orders plain text, JSON text, minimal JSON Schema, and real planning at 512 tokens before formal planning.",
+    "Formal planning uses a deterministic explicit output budget between 1200 and 4096 tokens with at most one bounded expansion for finish_reason=length.",
+    "Schema and request sizes and hashes, timing, budget, response-format type, and reasoning controls are recorded without secrets or full prompts.",
+    "Pre-header retries remain capped at two, response-header HTTP retries remain capped at three, and retry identity is stable.",
+    "No SourceIdentity, External Executor, generation route, agent, scheduler, executor type, lifecycle stage, or authority is changed."
   ],
   "quality_metrics": [
-    {"id": "QM-PROVIDER-DIAGNOSIS", "measure": "probe/result classifications with endpoint and payload comparability", "target": "100% deterministic and secret-free", "method": "mocked differential tests plus one ordered live probe sequence"},
-    {"id": "QM-PREHEADER-RETRY", "measure": "same-class consecutive pre-header attempts", "target": "maximum 2", "method": "five-failure fixture and live phase log"},
-    {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, formal stages, or authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
+    {"id": "QM-STRUCTURED-CONTRACT", "measure": "required structured request fields retained together", "target": "100% in deterministic tests and live diagnostics", "method": "payload contract tests plus ordered live probes"},
+    {"id": "QM-OUTPUT-BUDGET", "measure": "formal planning output cap", "target": "deterministic 1200-4096 with at most one expansion", "method": "unit tests and Provider request metrics"},
+    {"id": "QM-PRIVACY", "measure": "diagnostic secret or raw private-context fields", "target": "0", "method": "receipt inspection and regression tests"},
+    {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, stages, or authorities", "target": "0", "method": "kernel and architecture regression tests"}
   ],
   "quality_activities": {
-    "prevention": ["Measure tiny, structured, and real request behavior before changing payload or timeout"],
-    "assurance": ["Cover probe short-circuiting, retry phase distinction, request identity, metrics privacy, and payload measurement"],
-    "control": ["Run deterministic tests before the ordered live probes and only resume the full E2E after A and B pass"],
-    "improvement": ["Stop low-information repeated pre-header retries while preserving bounded HTTP response retries"]
+    "prevention": ["Build probes through the same production payload builder and keep schema/output budget independent"],
+    "assurance": ["Test schema short-circuit, Qwen reasoning control, retry identity, output truncation classification, and non-Qwen compatibility"],
+    "control": ["Run deterministic scoped regressions before DashScope probes, then continue E2E only if the ordered preflight passes"],
+    "improvement": ["Replace the prior JSON-text-only diagnostic with a real JSON Schema baseline and explicit real-512 discriminator"]
   },
   "interface_expectations": [
-    "requirements planning remains on the reviewed Provider route and existing parsing/schema admission path",
-    "probe and request metrics are support_diagnostics_only with NOT_EVALUATED formal status",
-    "raw goals and explicit constraints are never removed by diagnostics",
-    "External Discovery, trust, trial, packaging, delivery, and publication authorities remain unchanged"
+    "requirements planning remains on provider_text and the reviewed canonical schema/admission route",
+    "preflight remains one support-only NOT_EVALUATED checkpoint",
+    "local_packager remains the only delivery exit",
+    "raw goal and context are not trimmed or rewritten"
   ],
   "evidence_refs": [
     "evidence/external_executor_real_project_acceptance_20261003.json",
     "tests/test_provider_transport.py",
     "tests/test_provider_api_transport.py",
-    "tests/test_provider_retry_recovery.py"
+    "tests/test_general_requirement_compiler.py"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "Tiny and structured live probes returned headers in 8.407 and 8.656 seconds, proving the Provider baseline and structured method were available.",
-      "Two identical 7,953-byte real planning requests timed out before headers and the new retry policy stopped without attempts three through five.",
-      "Payload reduction was correctly rejected because the measured request was only about 1,172 estimated input tokens."
+      "All four ordered live probes passed on DashScope qwen3.8-max with TLS verification and thinking disabled.",
+      "The real 512-token request returned finish_reason=length; formal 2048 also exhausted its budget, and the single 4096 expansion returned finish_reason=stop and an admitted PlanningProposal.",
+      "Canonical semantic grounding remained NEEDS_REWORK after bounded replans, so External Discovery and later stages were not evaluated."
     ],
-    "accepted_backlog_item_ids": ["PB-074"]
+    "accepted_backlog_item_ids": ["PB-075"]
   },
   "retrospective": {
-    "worked": ["Ordered same-route probes separated baseline availability from real-request transport behavior without exposing prompts or credentials."],
-    "did_not_work": ["The upstream Provider still returned no response headers for the real requirements-planning request."],
-    "experiments": ["Retain two-attempt pre-header fail-fast behavior and compare future live evidence before considering any payload change."]
+    "worked": ["Separating JSON Schema from token budget identified the prior XOR contract defect and converted the real planning transport from pre-header timeout to a complete structured response."],
+    "did_not_work": ["The admitted proposals still failed existing grounding coverage, which is outside this iteration's transport scope."],
+    "experiments": ["Keep the ordered structured preflight and bounded 2048-to-4096 expansion; address semantic grounding only in a separately scoped iteration."]
   }
 }

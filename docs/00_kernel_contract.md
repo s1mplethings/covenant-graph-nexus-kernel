@@ -1108,11 +1108,17 @@ remain optimization hints; open-domain goals do not depend on a keyword table.
 
 Provider transport success and formal planning-result admission are distinct.
 Before the first live `requirements_planning` request in a run, the same
-credential resolver, endpoint method, model, and TLS policy execute one tiny
-probe and one small structured probe. Their privacy-safe checkpoint and the
+credential resolver, endpoint method, model, TLS policy, and production payload
+builder execute ordered plain-text, JSON-text, minimal JSON Schema, and real
+planning-at-512-token probes. Structured `response_format` never replaces the
+explicit output token budget: the formal request carries both, uses qualified
+Qwen with thinking disabled, and selects a deterministic bounded planning
+budget between 1,200 and 4,096 tokens. One output-budget expansion may follow an
+otherwise successful response ending in `finish_reason=length`; it does not
+change the messages or schema. Their privacy-safe checkpoint and the
 measured real-request receipt are support diagnostics with formal status
 `NOT_EVALUATED`; they contain hashes, sizes, and timing rather than prompt or
-credential contents. A failed tiny or structured probe stops before the real
+credential contents. A failed tiny, JSON-text, or JSON Schema probe stops before the real
 planning request. Two consecutive same-class failures before response headers
 stop Provider retry; retryable HTTP responses that did return headers remain
 bounded to three attempts. These diagnostics add no Provider, planning,
