@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-SOURCE-IDENTITY-TIMEOUT-001",
+      "description": "Repository-wide Git inspection can block production before requirements or external discovery begins.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Use canonical pathspecs, bounded read-only Git calls, a total capture budget, tree pruning, and fail-closed production classification.",
+      "state": "controlled"
+    },
+    {
       "id": "RK-EXTERNAL-INTEGRATION-001",
       "description": "A selected executor may be present in support metadata while generated dependencies or runtime behavior silently ignore it.",
       "probability": "high",

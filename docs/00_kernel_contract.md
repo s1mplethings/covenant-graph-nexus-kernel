@@ -1149,10 +1149,19 @@ repair and never materializes or mutates a candidate.
 
 Every fresh production run captures one immutable
 `CGKNSourceIdentityReport` before Provider work. It records repository HEAD,
-working-tree status and diff hashes, relevant untracked-source manifest hash,
+canonical-source working-tree status and diff hashes, relevant untracked-source manifest hash,
 Agent Kit package hash, plugin version/source hash, and hashes of the canonical
 requirement modules and contracts. This is support identity with formal status
 `NOT_EVALUATED`, not acceptance or release evidence.
+
+Source-identity Git inspection is read-only, canonical-path-scoped, individually
+timeout-bounded, and subject to one total capture budget. Tracked status excludes
+untracked enumeration; relevant untracked source is collected separately through
+the same pathspec. A timeout fails closed as `GIT_COMMAND_TIMEOUT` and production
+stops as `BLOCKED_ENVIRONMENT` before discovery or any Provider call. Runtime,
+generated, workspace, cache, and local-state files do not alter this source
+identity. Canonical repository publication retains its separate full-worktree
+classification and staging safety contract.
 
 ## Consumer-project longitudinal governance
 

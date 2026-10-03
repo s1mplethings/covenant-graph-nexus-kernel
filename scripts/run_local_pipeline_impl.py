@@ -30301,6 +30301,30 @@ def run_canonical_requirement_planning(
     raise AssertionError("unreachable requirement planning loop")
 
 
+def source_identity_environment_blocker(
+    failure: dict[str, Any], *, run_dir: pathlib.Path, result_path: pathlib.Path,
+) -> dict[str, Any]:
+    blocker = {
+        "kind": "RuntimeExecutionResult",
+        "status": "BLOCKED_ENVIRONMENT",
+        "workflow_state": "source_identity_blocked",
+        "evidence_status": "BLOCKED_ENVIRONMENT",
+        "final_verdict": "BLOCKED_ENVIRONMENT",
+        "reason": "SOURCE_IDENTITY_GIT_TIMEOUT",
+        "source_identity_failure": failure,
+        "provider_api_call_count": 0,
+        "external_executor_discovery_status": "NOT_EVALUATED",
+        "candidate_materialized": False,
+        "final_delivery_allowed": False,
+        "generated_at": now(),
+        "run_dir": str(run_dir),
+        "project_dir": None,
+    }
+    write_json(run_dir / "artifacts" / "source_identity_blocker.json", blocker)
+    write_json(result_path, blocker)
+    return blocker
+
+
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     production_started_at = now()
     production_started_monotonic = time.perf_counter()
@@ -30324,10 +30348,23 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "project-" + hashlib.sha256(str(out_dir).encode("utf-8")).hexdigest()[:20]
     )
     run_id = "run-" + hashlib.sha256(str(run_dir).encode("utf-8")).hexdigest()[:20]
-    source_identity_report = source_identity.capture_once(
-        PROJECT_ROOT,
-        run_dir / "artifacts" / "source_identity_report.json",
-    )
+    try:
+        source_identity_report = source_identity.capture_once(
+            PROJECT_ROOT,
+            run_dir / "artifacts" / "source_identity_report.json",
+        )
+    except RuntimeError as exc:
+        try:
+            source_identity_failure = json.loads(str(exc))
+        except json.JSONDecodeError:
+            raise
+        if source_identity_failure.get("classification") != "GIT_COMMAND_TIMEOUT":
+            raise
+        return source_identity_environment_blocker(
+            source_identity_failure,
+            run_dir=run_dir,
+            result_path=result_path,
+        )
     source_sha = str(source_identity_report["source_identity_hash"]).split(":", 1)[-1]
     replay_value = str(getattr(args, "replay_dir", "") or "").strip()
     surrogate_provider_adapter.configure(

@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-073",
+      "title": "Bound canonical SourceIdentity Git inspection",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Prevent production startup from hanging on repository-wide runtime and generated files while preserving fail-closed source binding.",
+      "acceptance": [
+        "all SourceIdentity Git calls and total capture time are bounded",
+        "tracked status, diff, and relevant untracked inspection use one canonical pathspec",
+        "timeouts produce structured GIT_COMMAND_TIMEOUT and stop production before Provider/discovery",
+        "relevant source and VERSION changes alter identity while excluded runtime trees do not",
+        "canonical repository publication remains stricter and fully compatible",
+        "the Local Video Frame Extractor official live E2E is rerun with qwen3.8-max"
+      ]
+    },
+    {
       "id": "PB-072",
       "title": "Bind selected external executors to generated projects",
       "priority": 1,

@@ -1871,6 +1871,18 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"workflow_state": "WAITING_REQUIREMENT_REPLAN"', production)
         self.assertIn('"candidate_repair": False', production)
 
+    def test_source_identity_git_inspection_is_bounded_and_fail_closed(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        identity = read_source("scripts/source_identity.py")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        self.assertIn("canonical-path-scoped", kernel)
+        self.assertIn("GIT_COMMAND_TIMEOUT", kernel)
+        self.assertIn("SOURCE_IDENTITY_TOTAL_BUDGET_SECONDS", identity)
+        self.assertIn('"--untracked-files=no"', identity)
+        self.assertNotIn('"--untracked-files=all"', identity)
+        self.assertIn('"status": "BLOCKED_ENVIRONMENT"', production)
+        self.assertIn('"provider_api_call_count": 0', production)
+
     def test_repository_layout_keeps_specs_examples_evidence_and_runtime_separate(self) -> None:
         kernel = read_source("docs/00_kernel_contract.md")
         guide = read_source("docs/repository_guide.md")

@@ -1,25 +1,32 @@
 {
   "kind": "CGKNExternalExecutorRealProjectAcceptance",
   "schema_version": "1.0",
-  "goal": "Local Video Frame Extractor: Python, Windows, local-first, MP4 timestamp to PNG, Chinese input/output paths",
+  "goal": "Local Video Frame Extractor: Python, Windows, local-first, video timestamp to image, Chinese input/output paths",
   "official_runs": [
+    {"run_id": "production-ea374b46a92e430f90011b6f1b6b94ea", "provider_mode": "live", "model": "gpt-4.1", "status": "REWORK_BLOCKED", "failure": "PROVIDER_NON_RETRYABLE_HTTP: model_not_found at requirements_planning", "candidate_materialized": false},
+    {"run_id": "production-c529e9a941c84775b64daddef7ede828", "provider_mode": "live", "model": "qwen3.8-max", "status": "BLOCKED_ENVIRONMENT", "failure": "unbounded SourceIdentity Git inspection before Provider or discovery", "candidate_materialized": false},
+    {"run_id": "production-2652c8efa5de4b798573081ad4e0fc31", "provider_mode": "live", "model": "qwen3.8-max", "status": "BLOCKED_ENVIRONMENT", "failure": "GIT_COMMAND_TIMEOUT at rev-parse while validating the bounded failure path", "candidate_materialized": false},
+    {"run_id": "production-7ba2a94179a849e3a325c416ecf5051a", "provider_mode": "live", "model": "qwen3.8-max", "status": "BLOCKED_ENVIRONMENT", "failure": "GIT_COMMAND_TIMEOUT exposed the Git-for-Windows wrapper child-process pipe behavior", "candidate_materialized": false},
     {
-      "run_id": "production-ea374b46a92e430f90011b6f1b6b94ea",
-      "provider_mode": "live",
-      "model": "gpt-4.1",
-      "status": "REWORK_BLOCKED",
-      "failure": "PROVIDER_NON_RETRYABLE_HTTP: model_not_found at requirements_planning",
-      "candidate_materialized": false
-    },
-    {
-      "run_id": "production-c529e9a941c84775b64daddef7ede828",
+      "run_id": "production-4cefbf90e7444640b008f9f58759b428",
       "provider_mode": "live",
       "model": "qwen3.8-max",
-      "status": "BLOCKED_ENVIRONMENT",
-      "failure": "source identity git status made no progress for more than five minutes before Provider or discovery",
-      "candidate_materialized": false
+      "status": "REWORK_BLOCKED",
+      "failure": "PROVIDER_TRANSPORT_UNSTABLE: all 5 requirements_planning attempts timed out before response headers",
+      "source_identity_total_seconds": 0.444093,
+      "provider_attempts_started": 5,
+      "provider_attempts_completed": 5,
+      "provider_successes": 0,
+      "candidate_materialized": false,
+      "delivery_allowed": false
     }
   ],
+  "source_identity_fix": {
+    "status": "PASS",
+    "live_capture_seconds": 0.444093,
+    "result": "The official production route completed bounded canonical-source Git inspection and reached requirements_planning.",
+    "limits": "The upstream Provider returned no response headers, so discovery and generated-project acceptance were not reached."
+  },
   "discovery": "NOT_EVALUATED",
   "trust": "NOT_EVALUATED",
   "trial": "NOT_EVALUATED",
@@ -27,13 +34,15 @@
   "source_usage": "NOT_EVALUATED",
   "runtime_usage": "NOT_EVALUATED",
   "project_runtime": "NOT_EVALUATED",
-  "provider_calls": 1,
+  "provider_calls": 5,
   "selected_executor": null,
-  "deterministic_integration_tests": {"status": "PASS", "passed": 10, "failed": 0},
-  "scoped_regression": {"status": "PASS", "passed": 126, "skipped": 150, "failed": 0},
-  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "completed": false},
+  "deterministic_integration_tests": {"status": "PASS", "passed": 47, "failed": 0},
+  "scoped_regression": {"status": "PASS", "passed": 157, "failed": 0},
+  "formal_quick": {"status": "BLOCKED_ENVIRONMENT", "timeout_seconds": 300, "elapsed_seconds_approx": 270, "progress_percent": 8, "observed_failures": 0, "completed": false},
+  "source_identity_scoped_verdict": "PASS",
   "external_executor_integration_scoped_verdict": "NEEDS_REWORK",
   "external_executor_discovery_feature_status": "ACTIVE",
+  "blocking_authority": "BLOCKED_PROVIDER",
   "release_authority": false,
   "formal_acceptance_authority": false
 }

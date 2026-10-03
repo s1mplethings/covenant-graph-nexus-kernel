@@ -4793,6 +4793,29 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertEqual(1, len(classes["quality_blocker"]))
         self.assertEqual(1, len(classes["warning"]))
 
+    def test_source_identity_timeout_blocks_before_provider_or_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            run_dir = root / "run"
+            (run_dir / "artifacts").mkdir(parents=True)
+            result_path = root / "result.json"
+            failure = {
+                "classification": "GIT_COMMAND_TIMEOUT",
+                "operation": "status",
+                "timeout_seconds": 15,
+            }
+            result = run_local_pipeline_impl.source_identity_environment_blocker(
+                failure,
+                run_dir=run_dir,
+                result_path=result_path,
+            )
+
+            self.assertEqual("BLOCKED_ENVIRONMENT", result["status"])
+            self.assertEqual("SOURCE_IDENTITY_GIT_TIMEOUT", result["reason"])
+            self.assertEqual(0, result["provider_api_call_count"])
+            self.assertEqual("NOT_EVALUATED", result["external_executor_discovery_status"])
+            self.assertTrue(result_path.is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
