@@ -34,6 +34,7 @@ import adaptive_project_management_context
 import candidate_materializer
 import candidate_sanitizer
 import capability_execution
+import external_executor_discovery
 import check_test_environment
 import codex_capability_supervisor
 import compose_local_pipeline
@@ -30624,10 +30625,13 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         return blocked
 
     executor_discovery_checkpoint = run_dir / "artifacts" / "external_executor_discovery_checkpoint.json"
+    cached_executor_selection: dict[str, Any] = {}
     if resume_run_dir and executor_discovery_checkpoint.is_file():
-        executor_selection = load_json(executor_discovery_checkpoint).get("result", {})
-        if not isinstance(executor_selection, dict):
+        cached_executor_selection = load_json(executor_discovery_checkpoint).get("result", {})
+        if not isinstance(cached_executor_selection, dict):
             raise RuntimeError("RESUME_EXTERNAL_EXECUTOR_DISCOVERY_CHECKPOINT_INVALID")
+    if cached_executor_selection and external_executor_discovery.discovery_result_trust_is_fresh(cached_executor_selection):
+        executor_selection = cached_executor_selection
         append_provider_event_log(
             phase_log_path,
             {"event": "completed_stage_reused", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
@@ -30647,6 +30651,11 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "result": executor_selection,
             },
         )
+        if cached_executor_selection:
+            append_provider_event_log(
+                phase_log_path,
+                {"event": "stale_external_executor_trust_rechecked", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
+            )
     plan_doc["external_executor_selection"] = executor_selection
     internal_context = (
         internal_context

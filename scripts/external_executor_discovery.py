@@ -35,8 +35,11 @@ MAX_QUERIES = 5
 MAX_SOURCE_RESULTS = 8
 MAX_CANDIDATES = 15
 MAX_TRIAL_CANDIDATES = 3
+MAX_TRUST_CANDIDATES = 5
 TRIAL_TIMEOUT_SECONDS = 90
-ALLOWED_HOSTS = {"api.github.com", "pypi.org", "api.deps.dev"}
+SECURITY_TTL_SECONDS = 6 * 60 * 60
+MAINTENANCE_TTL_SECONDS = 24 * 60 * 60
+ALLOWED_HOSTS = {"api.github.com", "pypi.org", "api.deps.dev", "api.osv.dev"}
 SECRET_ENV_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
 PERMISSIVE_LICENSES = {
@@ -181,9 +184,22 @@ def _blank_candidate(
         "version": None,
         "latest_release": None,
         "license": {"spdx": None, "status": "UNKNOWN", "policy": "UNKNOWN"},
-        "maintenance": {"archived": False, "deprecated": False, "last_activity": None},
+        "maintenance": {
+            "status": "UNKNOWN", "activity": "UNKNOWN", "archived": False,
+            "disabled": False, "deprecated": False, "last_push_at": None,
+            "latest_release_at": None, "latest_release_tag": None,
+            "last_push_age_days": None, "latest_release_age_days": None,
+            "has_published_release": None, "sources": [], "reasons": [],
+            "evaluated_at": None,
+        },
         "popularity": {"stars": None, "downloads": None},
-        "security": {"known_advisories": [], "status": "REVIEW"},
+        "security": {
+            "status": "UNKNOWN", "exact_version_checked": None,
+            "known_advisories": [], "max_severity": None, "affected": None,
+            "fixed_versions": [], "patched_version_available": None,
+            "sources": [], "reasons": ["exact_version_not_checked"],
+            "evaluated_at": None,
+        },
         "compatibility": {
             "language": "UNKNOWN", "platform": "UNKNOWN", "runtime": "UNKNOWN",
             "project_constraints": "UNKNOWN",
@@ -195,10 +211,12 @@ def _blank_candidate(
     }
 
 
-def _safe_json_get(
+def _safe_json_request(
     url: str,
     *,
     source: str,
+    method: str = "GET",
+    json_body: Mapping[str, Any] | None = None,
     headers: Mapping[str, str] | None = None,
     timeout: int = HTTP_TIMEOUT_SECONDS,
     opener: Callable[..., Any] | None = None,
@@ -208,7 +226,14 @@ def _safe_json_get(
         return None, SourceError(source, "ENDPOINT_REJECTED", "endpoint is not allowlisted HTTPS")
     request_headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     request_headers.update(dict(headers or {}))
-    request = urllib.request.Request(url, headers=request_headers, method="GET")
+    normalized_method = str(method).upper()
+    if normalized_method not in {"GET", "POST"}:
+        return None, SourceError(source, "METHOD_REJECTED", "only GET and POST are supported")
+    body = None
+    if json_body is not None:
+        body = json.dumps(dict(json_body), separators=(",", ":")).encode("utf-8")
+        request_headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=body, headers=request_headers, method=normalized_method)
     fetch = opener or urllib.request.urlopen
     try:
         with fetch(request, timeout=max(1, min(int(timeout), 15))) as response:
@@ -219,10 +244,48 @@ def _safe_json_get(
             if len(raw) > MAX_RESPONSE_BYTES:
                 return None, SourceError(source, "RESPONSE_TOO_LARGE", "response exceeded byte limit")
             return json.loads(raw.decode("utf-8")), None
+    except urllib.error.HTTPError as exc:
+        return None, SourceError(source, f"HTTP_{exc.code}", str(exc))
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         return None, SourceError(source, "SOURCE_UNAVAILABLE", str(exc))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         return None, SourceError(source, "INVALID_RESPONSE", str(exc))
+
+
+def _safe_json_get(
+    url: str, *, source: str, headers: Mapping[str, str] | None = None,
+    timeout: int = HTTP_TIMEOUT_SECONDS, opener: Callable[..., Any] | None = None,
+) -> tuple[Any | None, SourceError | None]:
+    return _safe_json_request(url, source=source, method="GET", headers=headers, timeout=timeout, opener=opener)
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    text = _bounded_text(value, 80)
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _age_days(value: Any, now: datetime) -> int | None:
+    parsed = _parse_timestamp(value)
+    return max(0, (now - parsed).days) if parsed else None
+
+
+def parse_github_repository(value: Any) -> tuple[str, str] | None:
+    parsed = urllib.parse.urlparse(_bounded_text(value, 500))
+    if parsed.scheme != "https" or parsed.hostname != "github.com" or parsed.query or parsed.fragment:
+        return None
+    parts = [part for part in parsed.path.strip("/").split("/") if part]
+    if len(parts) != 2:
+        return None
+    owner, repo = parts
+    repo = repo[:-4] if repo.lower().endswith(".git") else repo
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", owner) or not re.fullmatch(r"[A-Za-z0-9_.-]+", repo):
+        return None
+    return owner, repo
 
 
 def _license_policy(spdx: Any, project_policy: Mapping[str, Any] | None = None) -> tuple[str, str]:
@@ -275,9 +338,11 @@ def discover_from_github(
             })
             candidate["license"] = {"spdx": spdx, "status": license_status, "policy": policy}
             candidate["maintenance"] = {
+                **candidate["maintenance"],
                 "archived": bool(item.get("archived")),
-                "deprecated": bool(item.get("disabled")),
-                "last_activity": item.get("pushed_at") or item.get("updated_at"),
+                "disabled": bool(item.get("disabled")),
+                "last_push_at": item.get("pushed_at"),
+                "sources": ["github_search"],
             }
             candidate["popularity"]["stars"] = item.get("stargazers_count")
             language = _bounded_text(item.get("language"), 40).lower()
@@ -372,11 +437,208 @@ def enrich_from_deps_dev(
     ]
     advisories = [item for item in advisories if item]
     result["security"] = {
+        **result["security"],
+        "status": "REVIEW" if advisories else "UNKNOWN",
         "known_advisories": advisories,
-        "status": "BLOCK" if advisories else "PASS",
+        "sources": _unique([*result["security"].get("sources", []), "deps.dev"], 8),
+        "reasons": (
+            ["deps_dev_advisory_requires_exact_version_confirmation"]
+            if advisories else ["osv_exact_version_required"]
+        ),
     }
     result["sources"] = _unique([*result.get("sources", []), "deps.dev"], 8)
     result["metadata_status"] = "COMPLETE" if status == "KNOWN" and result.get("version") else "PARTIAL"
+    return result, None
+
+
+def evaluate_maintenance(candidate: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
+    result = json.loads(json.dumps(candidate))
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    maintenance = dict(result.get("maintenance", {}))
+    push_age = _age_days(maintenance.get("last_push_at"), current)
+    release_age = _age_days(maintenance.get("latest_release_at"), current)
+    maintenance["last_push_age_days"] = push_age
+    maintenance["latest_release_age_days"] = release_age
+    maintenance["evaluated_at"] = current.isoformat()
+    if maintenance.get("archived"):
+        status, activity, reasons = "BLOCK", "ARCHIVED", ["repository_archived"]
+    elif maintenance.get("disabled"):
+        status, activity, reasons = "BLOCK", "ARCHIVED", ["repository_disabled"]
+    elif maintenance.get("deprecated"):
+        status, activity, reasons = "BLOCK", "STALE", ["candidate_deprecated"]
+    elif push_age is not None and push_age <= 365:
+        status, activity, reasons = "PASS", "ACTIVE", ["recent_repository_push"]
+    elif release_age is not None and release_age <= 365:
+        status, activity, reasons = "PASS", "ACTIVE", ["recent_published_release"]
+    elif push_age is None and release_age is None:
+        status, activity, reasons = "UNKNOWN", "UNKNOWN", ["repository_activity_metadata_unavailable"]
+    elif (push_age is None or push_age > 730) and (release_age is None or release_age > 730):
+        status, activity, reasons = "REVIEW", "STALE", ["repository_activity_stale"]
+    else:
+        status, activity, reasons = "REVIEW", "STABLE", ["repository_activity_requires_review"]
+    maintenance.update({"status": status, "activity": activity, "reasons": reasons})
+    result["maintenance"] = maintenance
+    return result
+
+
+def enrich_github_maintenance(
+    candidate: Mapping[str, Any], *, now: datetime | None = None,
+    opener: Callable[..., Any] | None = None,
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    result = json.loads(json.dumps(candidate))
+    identity = parse_github_repository(result.get("repository"))
+    if not identity:
+        result = evaluate_maintenance(result, now=now)
+        result["maintenance"]["reasons"] = ["github_repository_not_applicable"]
+        return result, []
+    owner, repo = identity
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    errors: list[dict[str, str]] = []
+    repo_doc, error = _safe_json_get(
+        f"https://api.github.com/repos/{urllib.parse.quote(owner, safe='')}/{urllib.parse.quote(repo, safe='')}",
+        source="github_maintenance", headers=headers, opener=opener,
+    )
+    if error:
+        errors.append(error.as_dict())
+        return evaluate_maintenance(result, now=now), errors
+    maintenance = dict(result["maintenance"])
+    maintenance.update({
+        "archived": bool((repo_doc or {}).get("archived")),
+        "disabled": bool((repo_doc or {}).get("disabled")),
+        "last_push_at": (repo_doc or {}).get("pushed_at"),
+        "sources": _unique([*maintenance.get("sources", []), "github_repository"], 8),
+    })
+    release_doc, release_error = _safe_json_get(
+        f"https://api.github.com/repos/{urllib.parse.quote(owner, safe='')}/{urllib.parse.quote(repo, safe='')}/releases/latest",
+        source="github_release", headers=headers, opener=opener,
+    )
+    if release_error and release_error.classification == "HTTP_404":
+        maintenance["has_published_release"] = False
+    elif release_error:
+        errors.append(release_error.as_dict())
+        maintenance["has_published_release"] = None
+    else:
+        maintenance.update({
+            "has_published_release": True,
+            "latest_release_at": (release_doc or {}).get("published_at"),
+            "latest_release_tag": _bounded_text((release_doc or {}).get("tag_name"), 100) or None,
+            "sources": _unique([*maintenance.get("sources", []), "github_release"], 8),
+        })
+    result["maintenance"] = maintenance
+    return evaluate_maintenance(result, now=now), errors
+
+
+def normalize_osv_severity(vulnerability: Mapping[str, Any]) -> str:
+    explicit: list[str] = []
+    database = vulnerability.get("database_specific", {})
+    if isinstance(database, Mapping):
+        explicit.append(str(database.get("severity", "")))
+    for item in vulnerability.get("severity", []) if isinstance(vulnerability.get("severity"), list) else []:
+        if isinstance(item, Mapping):
+            explicit.extend([str(item.get("score", "")), str(item.get("type", ""))])
+    text = " ".join(explicit).upper()
+    for label in ("CRITICAL", "HIGH", "MODERATE", "MEDIUM", "LOW"):
+        if re.search(rf"\b{label}\b", text):
+            return "MEDIUM" if label == "MODERATE" else label
+    numeric: list[float] = []
+    for value in explicit:
+        match = re.fullmatch(r"\s*(10(?:\.0+)?|[0-9](?:\.\d+)?)\s*", value)
+        if match:
+            numeric.append(float(match.group(1)))
+    if not numeric:
+        return "UNKNOWN"
+    score = max(numeric)
+    return "CRITICAL" if score >= 9 else "HIGH" if score >= 7 else "MEDIUM" if score >= 4 else "LOW" if score > 0 else "UNKNOWN"
+
+
+def _fixed_versions(vulnerabilities: Iterable[Mapping[str, Any]]) -> list[str]:
+    values: list[str] = []
+    for vulnerability in vulnerabilities:
+        for affected in vulnerability.get("affected", []) if isinstance(vulnerability.get("affected"), list) else []:
+            if not isinstance(affected, Mapping):
+                continue
+            for value_range in affected.get("ranges", []) if isinstance(affected.get("ranges"), list) else []:
+                if not isinstance(value_range, Mapping):
+                    continue
+                for event in value_range.get("events", []) if isinstance(value_range.get("events"), list) else []:
+                    if isinstance(event, Mapping) and event.get("fixed"):
+                        values.append(str(event["fixed"]))
+    return _unique(values, 20)
+
+
+def query_osv_exact_version(
+    ecosystem: str, package: str, version: str, *, opener: Callable[..., Any] | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, str] | None]:
+    mappings = {"pypi": "PyPI", "npm": "npm", "cargo": "crates.io"}
+    osv_ecosystem = mappings.get(str(ecosystem).lower())
+    if not osv_ecosystem or not package or not version:
+        return None, SourceError("osv", "IDENTIFIER_REQUIRED", "supported ecosystem, package, and exact version are required").as_dict()
+    payload = {"package": {"ecosystem": osv_ecosystem, "name": package}, "version": version}
+    document, error = _safe_json_request(
+        "https://api.osv.dev/v1/query", source="osv", method="POST",
+        json_body=payload, opener=opener,
+    )
+    return (document if isinstance(document, dict) else None), (error.as_dict() if error else None)
+
+
+def enrich_security_from_osv(
+    candidate: Mapping[str, Any], *, now: datetime | None = None,
+    opener: Callable[..., Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, str] | None]:
+    result = json.loads(json.dumps(candidate))
+    package = _bounded_text(result.get("package_name"), 200)
+    version = _bounded_text(result.get("version"), 100)
+    evaluated_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    deps_advisories = list(result.get("security", {}).get("known_advisories", []))
+    if not version:
+        result["security"].update({"status": "UNKNOWN", "exact_version_checked": None, "reasons": ["exact_version_required"], "evaluated_at": evaluated_at})
+        return result, SourceError("osv", "IDENTIFIER_REQUIRED", "exact version is required").as_dict()
+    document, error = query_osv_exact_version(str(result.get("ecosystem", "")), package, version, opener=opener)
+    if error:
+        result["security"].update({
+            "status": "REVIEW" if deps_advisories else "UNKNOWN",
+            "exact_version_checked": None,
+            "affected": None,
+            "reasons": ["deps_dev_advisory_requires_exact_version_confirmation"] if deps_advisories else ["osv_unavailable"],
+            "evaluated_at": evaluated_at,
+        })
+        return result, error
+    vulnerabilities = [item for item in (document or {}).get("vulns", []) if isinstance(item, Mapping)]
+    advisories = [{
+        "id": _bounded_text(item.get("id"), 120),
+        "aliases": _unique(item.get("aliases", []), 12),
+        "summary": _bounded_text(item.get("summary"), 500),
+        "severity": normalize_osv_severity(item),
+        "modified": item.get("modified"),
+        "published": item.get("published"),
+    } for item in vulnerabilities]
+    severities = [item["severity"] for item in advisories]
+    rank = {"UNKNOWN": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
+    max_severity = max(severities, key=lambda item: rank[item]) if severities else None
+    fixed = _fixed_versions(vulnerabilities)
+    if not vulnerabilities:
+        status, reasons = "PASS", ["exact_version_no_known_osv_vulnerabilities"]
+    elif max_severity in {"CRITICAL", "HIGH"}:
+        status, reasons = "BLOCK", ["exact_version_high_severity_vulnerability"]
+    else:
+        status, reasons = "REVIEW", ["exact_version_vulnerability_requires_review"]
+    osv_ids = {item["id"] for item in advisories}
+    if deps_advisories and not osv_ids.intersection(deps_advisories):
+        status = "REVIEW"
+        reasons.append("security_source_conflict")
+    result["security"] = {
+        "status": status,
+        "exact_version_checked": version,
+        "known_advisories": advisories,
+        "max_severity": max_severity,
+        "affected": bool(vulnerabilities),
+        "fixed_versions": fixed,
+        "patched_version_available": bool(fixed),
+        "sources": _unique([*result.get("security", {}).get("sources", []), "osv"], 8),
+        "reasons": reasons,
+        "evaluated_at": evaluated_at,
+    }
     return result, None
 
 
@@ -423,13 +685,13 @@ def merge_candidates(candidates: Iterable[Mapping[str, Any]]) -> list[dict[str, 
 
 def candidate_rejection_reasons(candidate: Mapping[str, Any]) -> list[str]:
     reasons: list[str] = []
-    if candidate.get("maintenance", {}).get("archived"):
-        reasons.append("repository_archived")
-    if candidate.get("maintenance", {}).get("deprecated"):
-        reasons.append("candidate_deprecated")
+    maintenance = candidate.get("maintenance", {})
+    if maintenance.get("status") != "PASS":
+        reasons.append("maintenance_not_cleared")
     if candidate.get("license", {}).get("policy") in {"BLOCK", "REVIEW", "UNKNOWN"}:
         reasons.append("license_not_automatically_allowed")
-    if candidate.get("security", {}).get("status") != "PASS":
+    security = candidate.get("security", {})
+    if security.get("status") != "PASS":
         reasons.append("security_not_cleared")
     if not _bounded_text(candidate.get("version"), 100):
         reasons.append("exact_version_missing")
@@ -440,6 +702,8 @@ def candidate_rejection_reasons(candidate: Mapping[str, Any]) -> list[str]:
         reasons.append("compatibility_failed")
     if candidate.get("requirement_fit", {}).get("status") == "FAIL":
         reasons.append("requirement_fit_failed")
+    if security.get("status") == "PASS" and str(security.get("exact_version_checked", "")) != str(candidate.get("version", "")):
+        reasons.append("security_version_identity_mismatch")
     return reasons
 
 
@@ -521,12 +785,47 @@ def _selected_executor(candidate: Mapping[str, Any], intent: Mapping[str, Any]) 
         "version": candidate.get("version"),
         "repository": candidate.get("repository"),
         "license": candidate.get("license"),
+        "maintenance": candidate.get("maintenance"),
+        "security": candidate.get("security"),
         "sources": list(candidate.get("sources", [])),
         "metadata_timestamp": _now(),
         "trial_receipt": candidate.get("trial"),
+        "trust_provenance": {
+            "candidate_id": candidate.get("candidate_id"),
+            "package": candidate.get("package_name"),
+            "exact_version": candidate.get("version"),
+            "repository": candidate.get("repository"),
+            "maintenance_evaluated_at": candidate.get("maintenance", {}).get("evaluated_at"),
+            "security_evaluated_at": candidate.get("security", {}).get("evaluated_at"),
+            "sources": _unique([
+                *candidate.get("sources", []),
+                *candidate.get("maintenance", {}).get("sources", []),
+                *candidate.get("security", {}).get("sources", []),
+            ], 16),
+        },
         "adapter_required": True,
         "release_authority": False,
     }
+
+
+def _timestamp_fresh(value: Any, ttl_seconds: int, *, now: datetime | None = None) -> bool:
+    timestamp = _parse_timestamp(value)
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    return bool(timestamp and 0 <= (current - timestamp).total_seconds() <= ttl_seconds)
+
+
+def discovery_result_trust_is_fresh(result: Mapping[str, Any], *, now: datetime | None = None) -> bool:
+    selected = result.get("selected_executor")
+    if not isinstance(selected, Mapping):
+        return False
+    maintenance = selected.get("maintenance", {})
+    security = selected.get("security", {})
+    return (
+        _timestamp_fresh(maintenance.get("evaluated_at"), MAINTENANCE_TTL_SECONDS, now=now)
+        and _timestamp_fresh(security.get("evaluated_at"), SECURITY_TTL_SECONDS, now=now)
+        and security.get("exact_version_checked") == selected.get("version")
+        and selected.get("trial_receipt", {}).get("status") == "PASS"
+    )
 
 
 def discover_external_executor(
@@ -544,18 +843,31 @@ def discover_external_executor(
 ) -> dict[str, Any]:
     intent = build_search_intent(capability, language=language, platform=platform, constraints=constraints, required_interfaces=required_interfaces)
     if not should_discover_external_executor(capability):
-        return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "NOT_EVALUATED", "route": "agent_build", "intent": intent, "selected_executor": None, "candidates": [], "source_errors": [], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "NOT_EVALUATED", "pypi": "NOT_EVALUATED", "deps.dev": "NOT_EVALUATED", "hound": "UNAVAILABLE"}, "pipeline_fallback": "agent_build", "release_authority": False}
+        return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "NOT_EVALUATED", "route": "agent_build", "intent": intent, "selected_executor": None, "candidates": [], "source_errors": [], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "NOT_EVALUATED", "pypi": "NOT_EVALUATED", "deps.dev": "NOT_EVALUATED", "osv": "NOT_EVALUATED", "hound": "UNAVAILABLE"}, "pipeline_fallback": "agent_build", "release_authority": False}
     for route, candidates in (("local_reuse", local_candidates), ("skill_reuse", skill_candidates)):
         for candidate in candidates:
             if candidate.get("interface_compatible") and candidate.get("acceptance_compatible", True):
-                return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "PASS", "route": route, "intent": intent, "selected_executor": dict(candidate), "candidates": [], "source_errors": [], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "NOT_EVALUATED", "pypi": "NOT_EVALUATED", "deps.dev": "NOT_EVALUATED", "hound": "UNAVAILABLE"}, "pipeline_fallback": None, "release_authority": False}
+                return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "PASS", "route": route, "intent": intent, "selected_executor": dict(candidate), "candidates": [], "source_errors": [], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "NOT_EVALUATED", "pypi": "NOT_EVALUATED", "deps.dev": "NOT_EVALUATED", "osv": "NOT_EVALUATED", "hound": "UNAVAILABLE"}, "pipeline_fallback": None, "release_authority": False}
     if not allow_network:
-        return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "NOT_EVALUATED", "route": "agent_build", "intent": intent, "selected_executor": None, "candidates": [], "source_errors": [SourceError("network", "SOURCE_UNAVAILABLE", "network discovery disabled").as_dict()], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "UNAVAILABLE", "pypi": "UNAVAILABLE", "deps.dev": "UNAVAILABLE", "hound": "UNAVAILABLE"}, "pipeline_fallback": "agent_build", "release_authority": False}
+        return {"kind": "CGKNExternalExecutorDiscoveryResult", "status": "NOT_EVALUATED", "route": "agent_build", "intent": intent, "selected_executor": None, "candidates": [], "source_errors": [SourceError("network", "SOURCE_UNAVAILABLE", "network discovery disabled").as_dict()], "source_status": {"local": "ACTIVE", "skills": "ACTIVE", "facto": "UNAVAILABLE", "github": "UNAVAILABLE", "pypi": "UNAVAILABLE", "deps.dev": "UNAVAILABLE", "osv": "UNAVAILABLE", "hound": "UNAVAILABLE"}, "pipeline_fallback": "agent_build", "release_authority": False}
 
     github, github_errors = discover_from_github(intent, opener=opener)
     registry, registry_errors = discover_from_registry(intent, opener=opener)
     candidates = order_candidates(merge_candidates([*registry, *github]))
     errors = [*github_errors, *registry_errors]
+    trust_evaluated: list[dict[str, Any]] = []
+    for index, candidate in enumerate(candidates):
+        if index >= MAX_TRUST_CANDIDATES:
+            candidate["rejection_reasons"] = ["trust_candidate_limit_reached"]
+            trust_evaluated.append(candidate)
+            continue
+        candidate, maintenance_errors = enrich_github_maintenance(candidate, opener=opener)
+        errors.extend(maintenance_errors)
+        candidate, security_error = enrich_security_from_osv(candidate, opener=opener)
+        if security_error:
+            errors.append(security_error)
+        trust_evaluated.append(candidate)
+    candidates = order_candidates(trust_evaluated)
     runner = trial_runner or run_bounded_python_trial
     evaluated: list[dict[str, Any]] = []
     trial_count = 0
@@ -592,6 +904,7 @@ def discover_external_executor(
             "github": "ACTIVE" if not github_errors else ("ACTIVE" if github else "UNAVAILABLE"),
             "pypi": "ACTIVE" if any("pypi" in item.get("sources", []) for item in candidates) else "UNAVAILABLE",
             "deps.dev": "ACTIVE" if any("deps.dev" in item.get("sources", []) for item in candidates) else "UNAVAILABLE",
+            "osv": "ACTIVE" if any("osv" in item.get("security", {}).get("sources", []) for item in candidates) else "UNAVAILABLE",
             "hound": "UNAVAILABLE",
         },
         "trial_candidate_count": trial_count,

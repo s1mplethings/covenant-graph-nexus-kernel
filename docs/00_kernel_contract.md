@@ -373,10 +373,32 @@ CGKN alone normalizes and deduplicates candidates, applies project compatibility
 maintenance, license, security, exact-version, and metadata-completeness policy,
 then runs at most three candidates in secret-free temporary workspaces with
 bounded subprocess time. Stars affect ordering only and never establish trust.
-Only a policy-clear candidate with an exact version and a real trial `PASS` may
+Trust enrichment is limited to five candidates. GitHub repository plus latest
+published-release metadata deterministically establishes maintenance state:
+archived, disabled, or explicitly deprecated is `BLOCK`; push or release activity
+within 365 days is `PASS`; activity between 365 and 730 days or older than 730
+days is `REVIEW`; unavailable activity metadata is `UNKNOWN`. The absence of a
+GitHub Release is not failure when repository pushes establish current activity.
+
+deps.dev advisory keys are hints, not an exact-version security verdict. The
+allowlisted OSV API receives only ecosystem, package name, and exact version.
+Zero OSV vulnerabilities yields security `PASS` for that exact version at that
+evaluation time; affected critical/high versions are `BLOCK`; affected
+medium/low/unknown-severity versions are `REVIEW`; unavailable OSV evidence is
+`UNKNOWN`, or `REVIEW` when deps.dev has an advisory hint. OSV fixed events are
+recorded but never auto-upgrade or inherit trust: every new exact version must be
+re-enriched and retried independently. A deps.dev/OSV disagreement is
+`security_source_conflict` and `REVIEW`.
+
+Only license policy `ALLOW`, maintenance `PASS`, exact-version security `PASS`
+whose checked version equals the candidate version, complete metadata, compatible
+interfaces, and a real trial `PASS` may
 become `CGKNSelectedExecutor`; candidate or metadata prose cannot write project
 dependencies. The selected receipt records package, version, repository,
-license, fact sources, metadata timestamp, and trial evidence. Provider work is
+license, maintenance/security evaluation timestamps and sources, metadata
+timestamp, and trial evidence. Security trust expires after six hours and
+maintenance trust after 24 hours for mainline checkpoint reuse; stale trust is
+rechecked and cannot remain an indefinite selection fact. Provider work is
 then limited to the adapter/integration around the existing external WorkNode
 executor. If every source or candidate is unavailable, incomplete, rejected, or
 fails trial, the recorded `pipeline_fallback` is Agent Build and project

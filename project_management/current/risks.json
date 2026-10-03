@@ -3,6 +3,14 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-EXTERNAL-TRUST-001",
+      "description": "Incomplete or stale maintenance/security metadata could permit a vulnerable or abandoned exact version to enter an automatic trial.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Require bounded GitHub maintenance enrichment, exact-version OSV evaluation, conservative conflict handling, freshness TTLs, and trust PASS before trial.",
+      "state": "controlled"
+    },
+    {
       "id": "RK-EXTERNAL-EXECUTOR-001",
       "description": "Untrusted external metadata or package code could be mistaken for trustworthy execution capability or leak credentials during a trial.",
       "probability": "medium",

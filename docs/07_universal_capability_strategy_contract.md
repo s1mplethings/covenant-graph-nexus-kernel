@@ -59,11 +59,13 @@ current implementation -> approved Skill -> bounded external discovery
 
 If discovery is unavailable or every candidate is rejected or fails trial, the
 explicit fallback is Agent Build. A candidate cannot enter generated dependency
-files before selection. GitHub, registry, and deps.dev metadata provide facts,
-not trust or acceptance; Facto and Hound are optional enhancements. Exact
-version, compatible license policy, non-archived maintenance state, cleared
-security metadata, sufficient compatibility metadata, and trial `PASS` are all
-required for automatic selection.
+files before selection. GitHub repository/release metadata establishes bounded
+maintenance facts; deps.dev supplies advisory hints; OSV establishes known
+vulnerability facts for the exact package version. These sources provide facts,
+not acceptance, and Facto/Hound remain optional. Automatic selection requires
+license `ALLOW`, maintenance `PASS`, exact-version OSV security `PASS`, complete
+metadata, compatible interfaces, and bounded trial `PASS`. Any `REVIEW`, `BLOCK`,
+or `UNKNOWN` trust state falls through to the next candidate or Agent Build.
 
 ## Critical Questions
 

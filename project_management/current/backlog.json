@@ -4,6 +4,21 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-071",
+      "title": "Harden external executor maintenance and security trust",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Permit automatic external executor selection only from current GitHub maintenance facts and exact-version OSV security facts.",
+      "acceptance": [
+        "OSV exact-version results, normalized severity, and fixed versions drive security PASS, REVIEW, or BLOCK",
+        "GitHub repository and latest-release facts drive deterministic maintenance PASS, REVIEW, BLOCK, or UNKNOWN",
+        "deps.dev advisories remain hints and cannot independently establish exact-version safety or permanent blocking",
+        "only license ALLOW plus maintenance PASS plus exact-version security PASS may enter bounded trial",
+        "trust freshness is bounded on mainline checkpoint resume",
+        "Provider calls remain zero and no agent, scheduler, executor type, stage, or authority is added"
+      ]
+    },
+    {
       "id": "PB-070",
       "title": "Discover and validate reusable external executors",
       "priority": 1,

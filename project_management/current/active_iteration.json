@@ -1,65 +1,65 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-091",
+  "iteration_id": "ITER-092",
   "project_id": "cgkn",
-  "goal": "Implement External Executor Discovery v1 as a bounded executor-selection support capability without adding an agent, scheduler, authority, or generation path.",
-  "backlog_item_ids": ["PB-070"],
+  "goal": "Close External Executor maintenance and exact-version security trust so only fully verified candidates can enter automatic trial and selection.",
+  "backlog_item_ids": ["PB-071"],
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Local implementation and approved skill checks precede network discovery.",
-    "GitHub, PyPI, and deps.dev adapters are HTTPS allowlisted, bounded, timeout-limited, and optional.",
-    "Only a fact-verified, compatible, versioned candidate with a passing isolated bounded trial can become SelectedExecutor.",
-    "Archived, deprecated, license-blocked, security-blocked, incompatible, partial-metadata, or failed-trial candidates cannot be selected.",
-    "All candidates exhausted or all sources unavailable produces an explicit Agent Build fallback rather than a project blocker.",
-    "Eligible capability planning consumes discovery through the existing external WorkNode executor type; ProviderJob remains the sole project-work concurrency unit.",
-    "Discovery owns no requirement, planning, scheduling, evidence, acceptance, packaging, delivery, or publication authority."
+    "OSV is queried only with allowlisted exact ecosystem, package, and version data.",
+    "Critical/high affected versions block; medium/low/unknown affected versions require review; clean exact-version OSV results pass.",
+    "GitHub archived, disabled, or deprecated repositories block; recent push or release can pass; stale or unavailable facts cannot auto-pass.",
+    "deps.dev advisory metadata is a conservative hint and cannot replace OSV exact-version evaluation.",
+    "Trust PASS is required before trial, and trial PASS cannot override maintenance or security REVIEW/BLOCK/UNKNOWN.",
+    "Resume checkpoints re-evaluate stale time-sensitive trust facts.",
+    "Provider, scheduling, evidence, packaging, delivery, and publication authorities remain unchanged."
   ],
   "quality_metrics": [
-    {"id": "QM-DISCOVERY-BOUNDS", "measure": "unbounded HTTP responses, candidate sets, trial count, subprocess duration, or inherited secrets", "target": "0", "method": "offline deterministic unit tests and source inspection"},
-    {"id": "QM-SELECTION-INTEGRITY", "measure": "SelectedExecutor records missing exact version, adequate metadata, policy clearance, or trial PASS", "target": "0", "method": "selection-policy and negative-path tests"},
-    {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, or formal authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
+    {"id": "QM-TRUST-INTEGRITY", "measure": "auto-selected candidates without maintenance PASS and same-version security PASS", "target": "0", "method": "offline trust-gate fixtures and integration tests"},
+    {"id": "QM-REQUEST-BOUND", "measure": "trust-enriched candidates per discovery run", "target": "<=5", "method": "bounded request tests"},
+    {"id": "QM-AUTHORITY-DELTA", "measure": "new agents, schedulers, executor types, formal stages, or authorities", "target": "0", "method": "kernel contract and architecture regression tests"}
   ],
   "quality_activities": {
-    "prevention": ["Keep discovery deterministic, bounded, allowlisted, support-only, and separate from Provider scheduling"],
-    "assurance": ["Cover local and skill priority, source normalization, fact policy, trial isolation, fallback, and WorkNode projection"],
-    "control": ["Run scoped discovery, capability, WorkNode, kernel, version, and formal quick checks before canonical publication"],
-    "improvement": ["Use one provider-free real lightweight live smoke to expose metadata and trial assumptions"]
+    "prevention": ["Require exact-version OSV and deterministic GitHub maintenance policy before trial"],
+    "assurance": ["Cover every severity, fixed versions, source conflicts, no-release, stale, archived, unavailable, freshness, and trust-binding paths"],
+    "control": ["Run scoped trust, discovery, capability, generation-lane, kernel, version, and bounded quick checks before canonical publication"],
+    "improvement": ["Use one provider-free live trust smoke to verify all four real fact sources"]
   },
   "interface_expectations": [
-    "Capability Strategy supplies bounded capability intent without becoming a search authority",
-    "WorkNode external remains the existing executor type and ProviderJob remains the sole concurrency unit",
-    "Only selected executors may reach generated dependency materialization and Provider integration context",
+    "External Executor Discovery stays inside its current mainline position and module",
+    "OSV is one additional security fact source, not a search or acceptance authority",
+    "WorkNode external and ProviderJob concurrency contracts remain unchanged",
     "Provider, formal evidence, local_packager, public delivery, and canonical repository publication authorities remain unchanged"
   ],
   "evidence_refs": [
-    "124 scoped discovery, capability, WorkNode, skill, generation-lane, project-plan, kernel-contract, and release-version tests passed",
+    "146 scoped trust, discovery, capability, WorkNode, skill, generation-lane, project-plan, kernel-contract, and release-version tests passed",
     "kernel_contract_check: PASS",
     "canonical_version_gate: PASS",
-    "provider-free live smoke selected av==19.0.1 from PyPI/deps.dev after GitHub discovery and completed an isolated API trial in 79.07 seconds",
+    "provider-free live trust smoke: pypdf==6.19.0, PyPI/deps.dev/GitHub/OSV reached, trust PASS, isolated trial PASS in 51.44 seconds",
     "formal quick: TIMEOUT at the bounded 300-second limit with no scoped failure attribution"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "External discovery now executes through the existing capability-to-WorkNode seam with deterministic policy, isolated trials, explicit Agent Build fallback, and zero Provider calls.",
-      "Repository-global formal quick remains unevaluated because the bounded profile timed out; this does not convert the scoped support capability into formal delivery evidence."
+      "Exact-version OSV and deterministic GitHub maintenance facts now gate trial and SelectedExecutor; REVIEW, BLOCK, UNKNOWN, and stale trust cannot auto-select.",
+      "Repository-global quick remains unevaluated because the bounded profile timed out; scoped trust hardening remains separately verified."
     ],
-    "accepted_backlog_item_ids": ["PB-070"]
+    "accepted_backlog_item_ids": ["PB-071"]
   },
   "retrospective": {
     "worked": [
-      "Reusing the existing external WorkNode type and ProviderJob boundary avoided a new agent, scheduler, executor type, or authority.",
-      "Mocked source adapters made network and policy behavior deterministic while one live smoke exposed the real PyPI/deps.dev/trial path.",
-      "Failing closed on partial metadata prevented popular GitHub repositories from becoming selected merely because of stars."
+      "Extending the existing candidate and HTTP helper kept trust evaluation inside one module and one mainline stage.",
+      "Fixture-driven source adapters covered severity, conflict, freshness, and no-release policy without internet-dependent CI.",
+      "The real pypdf smoke verified all four sources and the trust-to-trial-to-selection chain with zero Provider calls."
     ],
     "did_not_work": [
-      "The first live result stopped retaining lower-ranked candidates after selection; the loop was corrected to preserve the bounded candidate set without running more trials.",
-      "The repository formal quick profile did not complete within its 300-second bound."
+      "The first regression retained the old exact allowlist assertion and failed until the guard explicitly included OSV.",
+      "The repository quick profile did not complete within its 300-second bound."
     ],
     "experiments": [
-      "Measure source latency and cache only immutable metadata facts in a future version without weakening revalidation or selection policy."
+      "On a later bounded iteration, revalidate only expired trust facts while reusing same-version bound trial evidence."
     ]
   }
 }
