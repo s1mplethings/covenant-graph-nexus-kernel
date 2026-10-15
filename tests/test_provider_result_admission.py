@@ -108,6 +108,27 @@ def test_a03_commentary_wrapped_valid_object_is_admitted(tmp_path, monkeypatch):
     assert [event for event in events if event.get("used_in_formal_chain") is True]
 
 
+def test_a04_known_planning_proposal_envelope_is_canonicalized_without_provider_repair(tmp_path, monkeypatch):
+    raw = json.dumps({"planning_proposal": proposal()})
+    artifact, events = run_checkpoint(tmp_path, monkeypatch, [raw])
+    assert artifact["proposal"]["interpreted_goal"] == GOAL
+    assert artifact["proposal"]["proposed_core_capabilities"] == ["count_text"]
+    assert not [event for event in events if event.get("event") == "provider_result_validation_failed"]
+
+
+def test_a05_mixed_planning_proposal_envelope_fails_closed(tmp_path, monkeypatch):
+    mixed = json.dumps({"planning_proposal": proposal(), "provider_note": "must not be discarded"})
+    with pytest.raises(RuntimeError, match="invalid after the single schema repair"):
+        run_checkpoint(tmp_path, monkeypatch, [mixed, mixed])
+    assert not (tmp_path / "run/artifacts/provider_stage_artifacts/requirements_planning.json").exists()
+
+
+def test_a05b_schema_itself_remains_flat_and_rejects_the_transport_envelope():
+    errors = compiler.validate_planning_proposal({"planning_proposal": proposal()})
+    assert "unexpected_field:planning_proposal" in errors
+    assert "planning_proposal_schema_version" in errors
+
+
 def test_a06_http_text_with_invalid_schema_is_not_admitted(tmp_path, monkeypatch):
     invalid = json.dumps({"schema_version": "1.0", "interpreted_goal": GOAL})
     with pytest.raises(RuntimeError, match="invalid after the single schema repair"):
