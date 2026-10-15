@@ -1,29 +1,1352 @@
 {
   "kind": "CGKNKernelCoverageReport",
-  "schema_version": "1.0",
-  "measured_at_commit": "7b6aa570aa6510254517ed7ea8b38cb7cbdfb1aa",
-  "command": "python -m pytest -p pytest_cov -q tests/component tests/artifacts tests/execution tests/executors tests/state tests/runtime tests/capabilities tests/growth tests/agent tests/telemetry tests/test_artifact_driven_kernel.py tests/test_capability_tree_mvp.py tests/test_provider_transport.py --cov=cgkn --cov-branch --cov-report=term-missing",
-  "result": {"tests_passed": 108, "tests_skipped": 1, "line_and_branch_combined_percent": 72},
-  "completed_focus": {
-    "component_ports": 100,
-    "component_result": 100,
-    "execution_contracts": 94,
-    "execution_dag": 95,
-    "state_models": 94,
-    "state_store": 89,
-    "telemetry_summary": 100
+  "schema_version": "2.0",
+  "source_commit": "801ae0f75d8d416788d768b50ab45ba0d94e8069",
+  "source_tree_sha": "4139be6244936309009bd96ebe025c5b4aef9471",
+  "core_source_hash": "sha256:ff1c3d4d6444d1bad0824f6c57feee3cdce53c5efcf0a31f2458694be6455b0a",
+  "command": "python -m pytest tests/architecture tests/artifacts tests/compiler tests/component tests/orchestration tests/execution tests/executors tests/providers tests/state tests/runtime tests/recovery tests/capabilities tests/growth tests/agent tests/telemetry --cov=cgkn --cov-branch --cov-report=term-missing --cov-report=json:artifacts/kernel-coverage.json --cov-report=xml:artifacts/kernel-coverage.xml",
+  "pytest_result": {
+    "exit_code": 0
   },
-  "must_core_below_target": {
-    "cgkn/artifacts/diff.py": 64,
-    "cgkn/artifacts/lineage.py": 53,
-    "cgkn/executors/factory.py": 77,
-    "cgkn/executors/llm.py": 79,
-    "cgkn/executors/registry.py": 76,
-    "cgkn/orchestration/tree_edits.py": 68,
-    "cgkn/providers/client.py": 54,
-    "cgkn/runtime/invalidation.py": 65,
-    "cgkn/runtime/runner.py": 79
+  "overall": {
+    "statements": 3581,
+    "covered_statements": 3462,
+    "branches": 1070,
+    "covered_branches": 983,
+    "statement_percent": 96.68,
+    "branch_percent": 91.87
   },
-  "decision": "PARTIAL",
-  "reason": "Required profiles pass, but several must-core files remain below the expected 80 percent coverage target and their fault matrices are not complete."
+  "files": {
+    "cgkn/__init__.py": {
+      "statements": 1,
+      "covered_statements": 1,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/agent/__init__.py": {
+      "statements": 4,
+      "covered_statements": 4,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/agent/composer.py": {
+      "statements": 81,
+      "covered_statements": 81,
+      "statement_percent": 100.0,
+      "branches": 28,
+      "covered_branches": 28,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/agent/composer_contract.py": {
+      "statements": 9,
+      "covered_statements": 9,
+      "statement_percent": 100.0,
+      "branches": 2,
+      "covered_branches": 2,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/agent/project_loop.py": {
+      "statements": 64,
+      "covered_statements": 64,
+      "statement_percent": 100.0,
+      "branches": 18,
+      "covered_branches": 18,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/__init__.py": {
+      "statements": 6,
+      "covered_statements": 6,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/diff.py": {
+      "statements": 30,
+      "covered_statements": 30,
+      "statement_percent": 100.0,
+      "branches": 18,
+      "covered_branches": 18,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/hash.py": {
+      "statements": 9,
+      "covered_statements": 9,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/lineage.py": {
+      "statements": 29,
+      "covered_statements": 29,
+      "statement_percent": 100.0,
+      "branches": 4,
+      "covered_branches": 4,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/models.py": {
+      "statements": 95,
+      "covered_statements": 95,
+      "statement_percent": 100.0,
+      "branches": 22,
+      "covered_branches": 22,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/artifacts/store.py": {
+      "statements": 192,
+      "covered_statements": 188,
+      "statement_percent": 97.92,
+      "branches": 70,
+      "covered_branches": 65,
+      "branch_percent": 92.86,
+      "missing_lines": [
+        24,
+        106,
+        140,
+        178
+      ],
+      "missing_branches": [
+        [
+          23,
+          24
+        ],
+        [
+          105,
+          106
+        ],
+        [
+          139,
+          140
+        ],
+        [
+          157,
+          160
+        ],
+        [
+          177,
+          178
+        ]
+      ]
+    },
+    "cgkn/artifacts/types.py": {
+      "statements": 59,
+      "covered_statements": 59,
+      "statement_percent": 100.0,
+      "branches": 18,
+      "covered_branches": 18,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/capabilities/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/capabilities/registry.py": {
+      "statements": 155,
+      "covered_statements": 155,
+      "statement_percent": 100.0,
+      "branches": 50,
+      "covered_branches": 50,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/capabilities/versioning.py": {
+      "statements": 11,
+      "covered_statements": 11,
+      "statement_percent": 100.0,
+      "branches": 4,
+      "covered_branches": 4,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/compiler/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/compiler/artifact_graph.py": {
+      "statements": 241,
+      "covered_statements": 238,
+      "statement_percent": 98.76,
+      "branches": 116,
+      "covered_branches": 115,
+      "branch_percent": 99.14,
+      "missing_lines": [
+        200,
+        201,
+        220
+      ],
+      "missing_branches": [
+        [
+          219,
+          220
+        ]
+      ]
+    },
+    "cgkn/component/__init__.py": {
+      "statements": 7,
+      "covered_statements": 7,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/component/adapter.py": {
+      "statements": 24,
+      "covered_statements": 24,
+      "statement_percent": 100.0,
+      "branches": 2,
+      "covered_branches": 2,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/component/execution.py": {
+      "statements": 94,
+      "covered_statements": 93,
+      "statement_percent": 98.94,
+      "branches": 12,
+      "covered_branches": 11,
+      "branch_percent": 91.67,
+      "missing_lines": [
+        112
+      ],
+      "missing_branches": [
+        [
+          111,
+          112
+        ]
+      ]
+    },
+    "cgkn/component/ports.py": {
+      "statements": 26,
+      "covered_statements": 26,
+      "statement_percent": 100.0,
+      "branches": 6,
+      "covered_branches": 6,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/component/protocol.py": {
+      "statements": 14,
+      "covered_statements": 14,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/component/result.py": {
+      "statements": 18,
+      "covered_statements": 18,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/component/spec.py": {
+      "statements": 69,
+      "covered_statements": 69,
+      "statement_percent": 100.0,
+      "branches": 20,
+      "covered_branches": 20,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/execution/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/execution/contracts.py": {
+      "statements": 147,
+      "covered_statements": 147,
+      "statement_percent": 100.0,
+      "branches": 26,
+      "covered_branches": 26,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/__init__.py": {
+      "statements": 6,
+      "covered_statements": 6,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/factory.py": {
+      "statements": 20,
+      "covered_statements": 20,
+      "statement_percent": 100.0,
+      "branches": 6,
+      "covered_branches": 6,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/llm.py": {
+      "statements": 90,
+      "covered_statements": 90,
+      "statement_percent": 100.0,
+      "branches": 30,
+      "covered_branches": 30,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/local.py": {
+      "statements": 99,
+      "covered_statements": 99,
+      "statement_percent": 100.0,
+      "branches": 22,
+      "covered_branches": 22,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/protocol.py": {
+      "statements": 19,
+      "covered_statements": 19,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/executors/registry.py": {
+      "statements": 27,
+      "covered_statements": 27,
+      "statement_percent": 100.0,
+      "branches": 10,
+      "covered_branches": 10,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/governance/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/governance/consumer.py": {
+      "statements": 498,
+      "covered_statements": 433,
+      "statement_percent": 86.95,
+      "branches": 190,
+      "covered_branches": 149,
+      "branch_percent": 78.42,
+      "missing_lines": [
+        74,
+        75,
+        76,
+        77,
+        79,
+        80,
+        157,
+        241,
+        276,
+        329,
+        358,
+        368,
+        399,
+        403,
+        414,
+        420,
+        422,
+        423,
+        424,
+        425,
+        426,
+        427,
+        428,
+        430,
+        436,
+        437,
+        443,
+        444,
+        448,
+        449,
+        450,
+        451,
+        459,
+        491,
+        492,
+        493,
+        494,
+        504,
+        505,
+        510,
+        511,
+        514,
+        515,
+        516,
+        519,
+        520,
+        521,
+        526,
+        535,
+        536,
+        537,
+        539,
+        543,
+        547,
+        548,
+        549,
+        550,
+        594,
+        596,
+        602,
+        603,
+        604,
+        605,
+        606,
+        610
+      ],
+      "missing_branches": [
+        [
+          72,
+          74
+        ],
+        [
+          74,
+          75
+        ],
+        [
+          74,
+          79
+        ],
+        [
+          76,
+          77
+        ],
+        [
+          76,
+          80
+        ],
+        [
+          156,
+          157
+        ],
+        [
+          240,
+          241
+        ],
+        [
+          275,
+          276
+        ],
+        [
+          328,
+          329
+        ],
+        [
+          357,
+          358
+        ],
+        [
+          366,
+          368
+        ],
+        [
+          398,
+          399
+        ],
+        [
+          402,
+          403
+        ],
+        [
+          411,
+          422
+        ],
+        [
+          413,
+          414
+        ],
+        [
+          419,
+          420
+        ],
+        [
+          422,
+          423
+        ],
+        [
+          422,
+          430
+        ],
+        [
+          425,
+          426
+        ],
+        [
+          425,
+          427
+        ],
+        [
+          447,
+          448
+        ],
+        [
+          458,
+          459
+        ],
+        [
+          490,
+          491
+        ],
+        [
+          491,
+          492
+        ],
+        [
+          491,
+          493
+        ],
+        [
+          501,
+          506
+        ],
+        [
+          503,
+          504
+        ],
+        [
+          509,
+          510
+        ],
+        [
+          513,
+          514
+        ],
+        [
+          518,
+          519
+        ],
+        [
+          525,
+          526
+        ],
+        [
+          529,
+          531
+        ],
+        [
+          538,
+          539
+        ],
+        [
+          540,
+          543
+        ],
+        [
+          546,
+          547
+        ],
+        [
+          571,
+          574
+        ],
+        [
+          579,
+          581
+        ],
+        [
+          593,
+          594
+        ],
+        [
+          595,
+          596
+        ],
+        [
+          600,
+          602
+        ],
+        [
+          609,
+          610
+        ]
+      ]
+    },
+    "cgkn/growth/__init__.py": {
+      "statements": 7,
+      "covered_statements": 7,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/admission.py": {
+      "statements": 24,
+      "covered_statements": 24,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/candidate.py": {
+      "statements": 19,
+      "covered_statements": 19,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/discovery.py": {
+      "statements": 14,
+      "covered_statements": 14,
+      "statement_percent": 100.0,
+      "branches": 2,
+      "covered_branches": 2,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/gap.py": {
+      "statements": 20,
+      "covered_statements": 20,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/loop.py": {
+      "statements": 85,
+      "covered_statements": 85,
+      "statement_percent": 100.0,
+      "branches": 8,
+      "covered_branches": 8,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/growth/sandbox.py": {
+      "statements": 40,
+      "covered_statements": 40,
+      "statement_percent": 100.0,
+      "branches": 2,
+      "covered_branches": 2,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/orchestration/__init__.py": {
+      "statements": 5,
+      "covered_statements": 5,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/orchestration/capability_tree.py": {
+      "statements": 101,
+      "covered_statements": 97,
+      "statement_percent": 96.04,
+      "branches": 46,
+      "covered_branches": 43,
+      "branch_percent": 93.48,
+      "missing_lines": [
+        41,
+        89,
+        135,
+        136
+      ],
+      "missing_branches": [
+        [
+          40,
+          41
+        ],
+        [
+          103,
+          -99
+        ],
+        [
+          134,
+          135
+        ]
+      ]
+    },
+    "cgkn/orchestration/execution_dag.py": {
+      "statements": 88,
+      "covered_statements": 85,
+      "statement_percent": 96.59,
+      "branches": 36,
+      "covered_branches": 33,
+      "branch_percent": 91.67,
+      "missing_lines": [
+        35,
+        102,
+        129
+      ],
+      "missing_branches": [
+        [
+          34,
+          35
+        ],
+        [
+          101,
+          102
+        ],
+        [
+          128,
+          129
+        ]
+      ]
+    },
+    "cgkn/orchestration/invalidation.py": {
+      "statements": 18,
+      "covered_statements": 18,
+      "statement_percent": 100.0,
+      "branches": 8,
+      "covered_branches": 8,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/orchestration/tree_edits.py": {
+      "statements": 88,
+      "covered_statements": 87,
+      "statement_percent": 98.86,
+      "branches": 52,
+      "covered_branches": 48,
+      "branch_percent": 92.31,
+      "missing_lines": [
+        72
+      ],
+      "missing_branches": [
+        [
+          71,
+          72
+        ],
+        [
+          87,
+          93
+        ],
+        [
+          100,
+          105
+        ],
+        [
+          101,
+          -50
+        ]
+      ]
+    },
+    "cgkn/providers/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/providers/client.py": {
+      "statements": 51,
+      "covered_statements": 51,
+      "statement_percent": 100.0,
+      "branches": 12,
+      "covered_branches": 12,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/__init__.py": {
+      "statements": 6,
+      "covered_statements": 6,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/cache.py": {
+      "statements": 36,
+      "covered_statements": 36,
+      "statement_percent": 100.0,
+      "branches": 8,
+      "covered_branches": 8,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/checkpoint.py": {
+      "statements": 12,
+      "covered_statements": 12,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/context.py": {
+      "statements": 53,
+      "covered_statements": 51,
+      "statement_percent": 96.23,
+      "branches": 26,
+      "covered_branches": 23,
+      "branch_percent": 88.46,
+      "missing_lines": [
+        44,
+        76
+      ],
+      "missing_branches": [
+        [
+          43,
+          44
+        ],
+        [
+          75,
+          76
+        ],
+        [
+          77,
+          69
+        ]
+      ]
+    },
+    "cgkn/runtime/dag_runner.py": {
+      "statements": 110,
+      "covered_statements": 109,
+      "statement_percent": 99.09,
+      "branches": 20,
+      "covered_branches": 19,
+      "branch_percent": 95.0,
+      "missing_lines": [
+        46
+      ],
+      "missing_branches": [
+        [
+          44,
+          46
+        ]
+      ]
+    },
+    "cgkn/runtime/delivery.py": {
+      "statements": 25,
+      "covered_statements": 25,
+      "statement_percent": 100.0,
+      "branches": 10,
+      "covered_branches": 10,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/effects.py": {
+      "statements": 26,
+      "covered_statements": 26,
+      "statement_percent": 100.0,
+      "branches": 10,
+      "covered_branches": 10,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/fingerprint.py": {
+      "statements": 6,
+      "covered_statements": 6,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/invalidation.py": {
+      "statements": 36,
+      "covered_statements": 36,
+      "statement_percent": 100.0,
+      "branches": 16,
+      "covered_branches": 14,
+      "branch_percent": 87.5,
+      "missing_lines": [],
+      "missing_branches": [
+        [
+          23,
+          25
+        ],
+        [
+          26,
+          25
+        ]
+      ]
+    },
+    "cgkn/runtime/reference_modules.py": {
+      "statements": 43,
+      "covered_statements": 43,
+      "statement_percent": 100.0,
+      "branches": 10,
+      "covered_branches": 10,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/runtime/runner.py": {
+      "statements": 281,
+      "covered_statements": 250,
+      "statement_percent": 88.97,
+      "branches": 86,
+      "covered_branches": 66,
+      "branch_percent": 76.74,
+      "missing_lines": [
+        58,
+        98,
+        100,
+        101,
+        109,
+        145,
+        152,
+        153,
+        158,
+        164,
+        169,
+        252,
+        253,
+        255,
+        268,
+        269,
+        270,
+        271,
+        280,
+        281,
+        282,
+        285,
+        313,
+        335,
+        339,
+        390,
+        391,
+        392,
+        393,
+        394,
+        395
+      ],
+      "missing_branches": [
+        [
+          57,
+          58
+        ],
+        [
+          97,
+          98
+        ],
+        [
+          99,
+          100
+        ],
+        [
+          107,
+          109
+        ],
+        [
+          144,
+          145
+        ],
+        [
+          157,
+          158
+        ],
+        [
+          163,
+          164
+        ],
+        [
+          168,
+          169
+        ],
+        [
+          211,
+          213
+        ],
+        [
+          251,
+          252
+        ],
+        [
+          254,
+          255
+        ],
+        [
+          267,
+          268
+        ],
+        [
+          269,
+          270
+        ],
+        [
+          269,
+          271
+        ],
+        [
+          280,
+          281
+        ],
+        [
+          280,
+          282
+        ],
+        [
+          283,
+          313
+        ],
+        [
+          284,
+          285
+        ],
+        [
+          334,
+          335
+        ],
+        [
+          338,
+          339
+        ]
+      ]
+    },
+    "cgkn/specs.py": {
+      "statements": 16,
+      "covered_statements": 13,
+      "statement_percent": 81.25,
+      "branches": 6,
+      "covered_branches": 4,
+      "branch_percent": 66.67,
+      "missing_lines": [
+        13,
+        20,
+        25
+      ],
+      "missing_branches": [
+        [
+          12,
+          13
+        ],
+        [
+          19,
+          20
+        ]
+      ]
+    },
+    "cgkn/state/__init__.py": {
+      "statements": 3,
+      "covered_statements": 3,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/state/models.py": {
+      "statements": 60,
+      "covered_statements": 60,
+      "statement_percent": 100.0,
+      "branches": 4,
+      "covered_branches": 4,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/state/store.py": {
+      "statements": 109,
+      "covered_statements": 109,
+      "statement_percent": 100.0,
+      "branches": 16,
+      "covered_branches": 16,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/telemetry/__init__.py": {
+      "statements": 2,
+      "covered_statements": 2,
+      "statement_percent": 100.0,
+      "branches": 0,
+      "covered_branches": 0,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
+    },
+    "cgkn/telemetry/summary.py": {
+      "statements": 43,
+      "covered_statements": 42,
+      "statement_percent": 97.67,
+      "branches": 18,
+      "covered_branches": 17,
+      "branch_percent": 94.44,
+      "missing_lines": [
+        51
+      ],
+      "missing_branches": [
+        [
+          49,
+          51
+        ]
+      ]
+    }
+  },
+  "packages": {
+    "__init__.py": {
+      "statements": 1,
+      "covered_statements": 1,
+      "branches": 0,
+      "covered_branches": 0,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "agent": {
+      "statements": 158,
+      "covered_statements": 158,
+      "branches": 48,
+      "covered_branches": 48,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "artifacts": {
+      "statements": 420,
+      "covered_statements": 416,
+      "branches": 132,
+      "covered_branches": 127,
+      "statement_percent": 99.05,
+      "branch_percent": 96.21
+    },
+    "capabilities": {
+      "statements": 168,
+      "covered_statements": 168,
+      "branches": 54,
+      "covered_branches": 54,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "compiler": {
+      "statements": 243,
+      "covered_statements": 240,
+      "branches": 116,
+      "covered_branches": 115,
+      "statement_percent": 98.77,
+      "branch_percent": 99.14
+    },
+    "component": {
+      "statements": 252,
+      "covered_statements": 251,
+      "branches": 40,
+      "covered_branches": 39,
+      "statement_percent": 99.6,
+      "branch_percent": 97.5
+    },
+    "execution": {
+      "statements": 149,
+      "covered_statements": 149,
+      "branches": 26,
+      "covered_branches": 26,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "executors": {
+      "statements": 261,
+      "covered_statements": 261,
+      "branches": 68,
+      "covered_branches": 68,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "governance": {
+      "statements": 500,
+      "covered_statements": 435,
+      "branches": 190,
+      "covered_branches": 149,
+      "statement_percent": 87.0,
+      "branch_percent": 78.42
+    },
+    "growth": {
+      "statements": 209,
+      "covered_statements": 209,
+      "branches": 12,
+      "covered_branches": 12,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "orchestration": {
+      "statements": 300,
+      "covered_statements": 292,
+      "branches": 142,
+      "covered_branches": 132,
+      "statement_percent": 97.33,
+      "branch_percent": 92.96
+    },
+    "providers": {
+      "statements": 53,
+      "covered_statements": 53,
+      "branches": 12,
+      "covered_branches": 12,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "runtime": {
+      "statements": 634,
+      "covered_statements": 600,
+      "branches": 186,
+      "covered_branches": 160,
+      "statement_percent": 94.64,
+      "branch_percent": 86.02
+    },
+    "specs.py": {
+      "statements": 16,
+      "covered_statements": 13,
+      "branches": 6,
+      "covered_branches": 4,
+      "statement_percent": 81.25,
+      "branch_percent": 66.67
+    },
+    "state": {
+      "statements": 172,
+      "covered_statements": 172,
+      "branches": 20,
+      "covered_branches": 20,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "telemetry": {
+      "statements": 45,
+      "covered_statements": 44,
+      "branches": 18,
+      "covered_branches": 17,
+      "statement_percent": 97.78,
+      "branch_percent": 94.44
+    }
+  },
+  "layers": {
+    "L0": {
+      "statements": 0,
+      "covered_statements": 0,
+      "branches": 0,
+      "covered_branches": 0,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    },
+    "L1": {
+      "statements": 420,
+      "covered_statements": 416,
+      "branches": 132,
+      "covered_branches": 127,
+      "statement_percent": 99.05,
+      "branch_percent": 96.21
+    },
+    "L2": {
+      "statements": 495,
+      "covered_statements": 491,
+      "branches": 156,
+      "covered_branches": 154,
+      "statement_percent": 99.19,
+      "branch_percent": 98.72
+    },
+    "L3": {
+      "statements": 842,
+      "covered_statements": 834,
+      "branches": 254,
+      "covered_branches": 244,
+      "statement_percent": 99.05,
+      "branch_percent": 96.06
+    },
+    "L4": {
+      "statements": 895,
+      "covered_statements": 861,
+      "branches": 254,
+      "covered_branches": 228,
+      "statement_percent": 96.2,
+      "branch_percent": 89.76
+    },
+    "L5": {
+      "statements": 912,
+      "covered_statements": 846,
+      "branches": 268,
+      "covered_branches": 226,
+      "statement_percent": 92.76,
+      "branch_percent": 84.33
+    },
+    "L6": {
+      "statements": 0,
+      "covered_statements": 0,
+      "branches": 0,
+      "covered_branches": 0,
+      "statement_percent": 100.0,
+      "branch_percent": 100.0
+    }
+  },
+  "raw_coverage_hash": "sha256:1b9bb9041e7a81cdee4f04827196c1e2f6aae80a3976743b5eae7bdd4ccf62e0"
 }
