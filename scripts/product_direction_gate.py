@@ -10,6 +10,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 REQUIRED_INVARIANTS = {f"INV-{index:02d}" for index in range(1, 11)}
 
 FORBIDDEN_ACTIVE_PATHS = {
+    "docs/00_product_studio_contract.md",
+    "docs/01_virtual_team_contract.md",
+    "docs/02_product_story_contract.md",
+    "docs/03_execution_flow.md",
+    "docs/04_acceptance_and_evidence.md",
+    "docs/05_agent_operating_contract.md",
     "docs/06_agent_led_layered_architecture.md",
     "docs/requirement_decision_first.md",
     "docs/requirement_decision_lane.md",
@@ -23,6 +29,9 @@ FORBIDDEN_ACTIVE_PATHS = {
     "docs/agent_test_integrated_behavior.md",
     "docs/continuous_verified_generation_loop.md",
     "docs/release_candidate_acceptance.md",
+    "implementation_plan/CGNK_PHASED_IMPLEMENTATION_PLAN.md",
+    "implementation_plan/LONG_CONTEXT_STATE_PROCESS.md",
+    "implementation_plan/MODULAR_PROJECT_GENERATION_PROCESS.md",
     "EDITION.md",
     "TEST_E2E_REPORT.md",
     "WORKTREE_AUDIT.md",
@@ -33,6 +42,7 @@ FORBIDDEN_ACTIVE_PATHS = {
     "detected_entrypoints.md",
     "run_function_stress_pass.py",
     "run_pass2_operational_closure.py",
+    "scripts/check_product_studio_contract.py",
     "scripts/RUN_QWEN_L1_SMOKE_WORKER.ps1",
     "scripts/run_function_stress_pass.py",
     "scripts/run_pass2_operational_closure.py",
@@ -62,6 +72,8 @@ FORBIDDEN_ACTIVE_PATHS = {
     "scripts/run_live_project_regression.py",
     "benchmarks/project_generation_v1",
     "benchmarks/orbit_360_workbench",
+    "tests/test_product_studio_contract.py",
+    "tests/test_product_studio_discipline.py",
     "tests/test_project_generation_benchmark_v1.py",
     "tests/test_failure_to_repair.py",
     "tests/test_trimmed_case_debug.py",
@@ -91,6 +103,7 @@ FORBIDDEN_ACTIVE_PATHS = {
     "tests/test_agent_test_integrated_behavior.py",
     "tests/test_continuous_verified_generation.py",
     "tests/test_release_candidate_gate.py",
+    "schemas/product_studio_run.schema.json",
     "schemas/adaptive_autonomous_validation_report_v1.schema.json",
     "schemas/autonomous_validation_pass3_report_v1.schema.json",
     "schemas/role_driven_validation_pass2_report_v1.schema.json",
@@ -110,6 +123,8 @@ FORBIDDEN_ACTIVE_PREFIXES = {
 
 FORBIDDEN_IMPORT_PREFIXES = {
     "benchmarks.project_generation_v1",
+    "scripts.check_product_studio_contract",
+    "check_product_studio_contract",
     "scripts.adaptive_autonomous_validation",
     "scripts.autonomous_validation_pass3",
     "scripts.role_driven_validation",

@@ -25,12 +25,17 @@ def test_pre_mvp_experiment_families_cannot_return_to_active_source() -> None:
         "run_pass2_operational_closure.py",
         "demo_auto_generation.py",
         "detected_entrypoints.md",
+        "docs/03_execution_flow.md",
+        "implementation_plan/CGNK_PHASED_IMPLEMENTATION_PLAN.md",
+        "scripts/check_product_studio_contract.py",
         "scripts/run_agent_autonomous_diagnosis.py",
         "scripts/run_continuous_verified_generation.py",
         "scripts/release_candidate_gate.py",
+        "schemas/product_studio_run.schema.json",
     ):
         assert path in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
     assert product_direction_gate._forbidden_import("scripts.agent_tree_orchestrator")
     assert product_direction_gate._forbidden_import("agent_director_loop")
+    assert product_direction_gate._forbidden_import("check_product_studio_contract")
     assert product_direction_gate._forbidden_import("continuous_generation_ledger")
     assert product_direction_gate._forbidden_import("release_candidate_gate")
