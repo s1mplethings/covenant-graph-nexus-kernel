@@ -10,7 +10,7 @@ from typing import Any
 from cgkn.capabilities import CapabilityDescriptor, CapabilityRegistry
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
-from cgkn.executors import ExecutorDescriptor, ExecutorRegistry
+from cgkn.executors import ExecutorDescriptor, ExecutorFactoryRegistry, ExecutorRegistry
 
 from .admission import CapabilityAdmissionReceipt, evaluate_admission
 from .discovery import DiscoverySource
@@ -47,10 +47,11 @@ class GrowthOutcome:
 
 
 class GrowthLoop:
-    def __init__(self, registry: CapabilityRegistry, executors: ExecutorRegistry, discovery: DiscoverySource, sandbox: LocalSandbox, *, registry_path: pathlib.Path | str, evidence_root: pathlib.Path | str):
+    def __init__(self, registry: CapabilityRegistry, executors: ExecutorRegistry, discovery: DiscoverySource, sandbox: LocalSandbox, *, factories: ExecutorFactoryRegistry, registry_path: pathlib.Path | str, evidence_root: pathlib.Path | str):
         self.registry, self.executors, self.discovery, self.sandbox = registry, executors, discovery, sandbox
         self.registry_path = pathlib.Path(registry_path)
         self.evidence_root = pathlib.Path(evidence_root)
+        self.factories = factories
         self.invoked_count = 0
 
     def ensure(self, gap: CapabilityGap) -> GrowthOutcome:
@@ -87,11 +88,14 @@ class GrowthLoop:
         refs = {item.descriptor.executor_ref for item in self.executors.list()}
         if descriptor.executor_ref in refs:
             return
-        if descriptor.executor_ref == "python.stdlib.json@1" and descriptor.ref == "json.parse@1":
-            self.executors.register(StdlibJsonExecutor())
-            return
-        raise LookupError(f"admitted capability executor unavailable: {descriptor.executor_ref}")
+        self.executors.register(self.factories.create(descriptor))
 
     @staticmethod
     def _write(path: pathlib.Path, value: dict[str, Any]) -> None:
         path.write_text(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def default_growth_executor_factories() -> ExecutorFactoryRegistry:
+    factories = ExecutorFactoryRegistry()
+    factories.register("json.loads", lambda _descriptor: StdlibJsonExecutor())
+    return factories

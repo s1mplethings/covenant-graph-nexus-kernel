@@ -190,7 +190,7 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "CURRENT_DOC", "current documentation or version truth"
     if lower.startswith("legacy/"):
         return "SOURCE", "tracked legacy source or historical material"
-    if lower.startswith(("scripts/", "cgkn/", "plugins/", "tools/", "src/", ".github/workflows/")) or pure.suffix.lower() in {".py", ".ps1"}:
+    if lower.startswith(("scripts/", "cgkn/", "config/", "plugins/", "tools/", "src/", ".github/workflows/")) or pure.suffix.lower() in {".py", ".ps1"}:
         return "SOURCE", "production or repository source"
     return "UNKNOWN", "no deterministic repository role"
 

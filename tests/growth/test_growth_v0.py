@@ -6,7 +6,7 @@ from cgkn.capabilities import CapabilityRegistry
 from cgkn.component import ComponentSpec, PortSpec
 from cgkn.execution import BlockExecutionRequest, BlockStatus, TaskContext
 from cgkn.executors import ExecutorRegistry
-from cgkn.growth import CapabilityGap, GrowthLoop, LocalDiscoverySource, LocalSandbox
+from cgkn.growth import CapabilityGap, GrowthLoop, LocalDiscoverySource, LocalSandbox, default_growth_executor_factories
 
 
 def component() -> ComponentSpec:
@@ -22,7 +22,7 @@ def test_json_parse_growth_trial_admission_execution_and_persistent_reuse(tmp_pa
     registry = CapabilityRegistry({spec.ref: spec})
     executors = ExecutorRegistry()
     registry_path = tmp_path / "registry.json"
-    loop = GrowthLoop(registry, executors, LocalDiscoverySource(), LocalSandbox(), registry_path=registry_path, evidence_root=tmp_path)
+    loop = GrowthLoop(registry, executors, LocalDiscoverySource(), LocalSandbox(), factories=default_growth_executor_factories(), registry_path=registry_path, evidence_root=tmp_path)
     try:
         registry.resolve("json.parse", "1")
         assert False, "capability must initially be missing"
@@ -43,7 +43,7 @@ def test_json_parse_growth_trial_admission_execution_and_persistent_reuse(tmp_pa
     assert trial["network_calls"] == 0 and trial["files_created"] == []
     loaded = CapabilityRegistry.load(registry_path, {spec.ref: spec})
     second_executors = ExecutorRegistry()
-    second = GrowthLoop(loaded, second_executors, LocalDiscoverySource(), LocalSandbox(), registry_path=registry_path, evidence_root=tmp_path)
+    second = GrowthLoop(loaded, second_executors, LocalDiscoverySource(), LocalSandbox(), factories=default_growth_executor_factories(), registry_path=registry_path, evidence_root=tmp_path)
     reuse = second.ensure(gap("run-2"))
     assert reuse.reused and not reuse.growth_invoked
     assert second.invoked_count == 0

@@ -1,0 +1,14 @@
+{
+  "kind": "CGKNAgentMVPValidation",
+  "schema_version": "1.0",
+  "validated_at": "2026-10-15",
+  "evidence_status": "PASS",
+  "provider_validation": "REAL",
+  "agent": {"model": "qwen3.8-max", "calls": 2, "request_ids": ["chatcmpl-5d196a8b-2d14-9ac7-b455-b1ec3693919a", "chatcmpl-b80ed4b8-a70b-970a-be3f-dd8f06677dad"], "context_hashes": ["5c72ea3a1cdee33e3d5eb3717d4c4efe05417a864ed1347f488940e94537806c", "7534a29abed0daa6621604fdd7c46f0e698ea65b1d1dc13b9bd6057030280f96"]},
+  "worker": {"model": "qwen3.7-flash", "calls": 1, "request_id": "chatcmpl-11c473f6-c09f-9716-be8d-b88322b9deba", "allowed_actions": ["list_files", "patch_file", "read_file", "write_file"], "modified_files": ["math_utils.py"]},
+  "vertical_slice": {"initial_pytest_returncode": 1, "final_pytest_returncode": 0, "final_pytest_summary": "1 passed", "dag_nodes": ["inspect", "fix", "test"], "run_status": "SUCCEEDED"},
+  "fake_provider_scenarios": {"success": "PASS", "controlled_failure_affected_only_repair": "PASS", "worker_escalation_agent_recovery": "PASS", "forbidden_action_rejection": "PASS"},
+  "decision_efficiency": {"baseline": {"model": "qwen3.8-max", "high_model_calls": 1, "status": "PASS"}, "cgkn": {"agent_model": "qwen3.8-max", "high_model_calls": 2, "worker_model": "qwen3.7-flash", "cheap_worker_calls": 1, "status": "PASS"}, "evidence_status": "PASS_WITH_LIMITS", "note": "The direct baseline was not throttled or degraded. CGKN used one additional high-model checkpoint to verify completion; the MVP proves authority separation and observability, not a lower high-model call count on this one-file task."},
+  "local_artifact_root": "artifacts/agent_mvp/benchmark-20261015",
+  "secrets_persisted": false
+}

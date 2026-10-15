@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import pathlib
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Any
 
@@ -77,7 +79,9 @@ class CommandExecutor:
             if any(token in rendered for token in self._blocked):
                 raise PermissionError("dangerous command rejected")
             cwd = _within(self.root, str(config.get("cwd", ".")))
-            completed = subprocess.run(list(command), cwd=cwd, text=True, capture_output=True, timeout=request.timeout_seconds, shell=False)
+            environment = os.environ.copy()
+            environment.update({str(key): str(value) for key, value in dict(config.get("environment", {})).items()})
+            completed = subprocess.run(list(command), cwd=cwd, text=True, capture_output=True, timeout=request.timeout_seconds, shell=False, env=environment)
             outputs = {"command": list(command), "cwd": str(cwd.relative_to(self.root) or "."), "returncode": completed.returncode, "stdout": completed.stdout, "stderr": completed.stderr}
             if completed.returncode:
                 return _result(request, status=BlockStatus.FAILED, started=started, clock=clock, outputs=outputs, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, f"command exited {completed.returncode}"), retryable=True)
@@ -93,10 +97,12 @@ class PythonTestExecutor(CommandExecutor):
     descriptor = ExecutorDescriptor("local.python-test@1", "test", ("*",), ("process.execute", "test.observe"))
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
-        config = dict(request.task_context.node_config)
-        config["command"] = [sys.executable, "-m", "pytest", *list(config.get("pytest_args", ["-q"]))]
-        context = type(request.task_context)(node_goal=request.task_context.node_goal, node_config=config, dependency_results=request.task_context.dependency_results, artifact_refs=request.task_context.artifact_refs, project_constraints=request.task_context.project_constraints, acceptance=request.task_context.acceptance)
-        return super().execute(type(request)(**{**request.__dict__, "task_context": context}))
+        with tempfile.TemporaryDirectory(prefix="cgkn-pycache-") as pycache:
+            config = dict(request.task_context.node_config)
+            config["command"] = [sys.executable, "-m", "pytest", *list(config.get("pytest_args", ["-q"]))]
+            config["environment"] = {"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "PYTHONPYCACHEPREFIX": pycache}
+            context = type(request.task_context)(node_goal=request.task_context.node_goal, node_config=config, dependency_results=request.task_context.dependency_results, artifact_refs=request.task_context.artifact_refs, project_constraints=request.task_context.project_constraints, acceptance=request.task_context.acceptance)
+            return super().execute(type(request)(**{**request.__dict__, "task_context": context}))
 
 
 class LocalActionExecutorAdapter:

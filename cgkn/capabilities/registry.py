@@ -9,6 +9,8 @@ from typing import Any, Mapping
 
 from cgkn.component import ComponentSpec
 
+from .versioning import semantic_version_key
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -70,6 +72,7 @@ class CapabilityRegistry:
         self._items: dict[str, CapabilityDescriptor] = {}
 
     def register_candidate(self, descriptor: CapabilityDescriptor) -> None:
+        semantic_version_key(descriptor.version)
         if descriptor.ref in self._items:
             raise ValueError(f"capability version already registered: {descriptor.ref}")
         component = self.components.get(descriptor.component_ref)
@@ -100,7 +103,7 @@ class CapabilityRegistry:
         candidates = [item for item in self._items.values() if item.capability_id == capability_id and item.lifecycle_status is CapabilityLifecycle.ADMITTED and (version is None or item.version == version)]
         if not candidates:
             raise KeyError(f"admitted capability not found: {capability_id}")
-        return sorted(candidates, key=lambda item: item.version)[-1]
+        return sorted(candidates, key=lambda item: semantic_version_key(item.version))[-1]
 
     def query(self, *, input_port: str | None = None, output_port: str | None = None, effect: str | None = None) -> tuple[CapabilityDescriptor, ...]:
         return tuple(item for item in sorted(self._items.values(), key=lambda value: value.ref) if (input_port is None or input_port in item.input_ports) and (output_port is None or output_port in item.output_ports) and (effect is None or effect in item.declared_effects))

@@ -1,34 +1,28 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-MVP-SELF-GROWTH-V0-005",
+  "iteration_id": "ITER-MVP-AGENT-CHEAP-EXECUTOR-006",
   "project_id": "cgkn",
-  "goal": "Prove one missing low-risk local capability can be discovered, sandbox-trialed, admitted, executed, persisted, and reused without Provider or network calls.",
-  "backlog_item_ids": ["MVP-010"],
+  "goal": "Prove a high-capability Agent can compose and repair a CapabilityTree while a separate bounded low-cost LLM executor performs file work through the existing Block contract.",
+  "backlog_item_ids": ["MVP-013"],
   "workflow_state": "closed",
   "evidence_status": "PASS",
-  "delivery_approach": "adaptive bounded experiment behind stable Foundation contracts",
+  "delivery_approach": "adaptive vertical slice over the stable CapabilityTree, ExecutionDAG, Block, registry, and state authorities",
   "acceptance_criteria": [
-    "json.parse is absent from the initial registry",
-    "offline discovery identifies only the allowlisted Python json.loads candidate",
-    "isolated valid, invalid, no-write, no-network, schema, provenance, and effect checks pass",
-    "an admission receipt binds the candidate and checks before registry admission",
-    "the original DAG node executes after admission",
-    "a second process-style registry load reuses the capability without invoking Growth",
-    "growth modifies zero kernel files and makes zero Provider or network calls"
+    "semantic capability versions resolve 1.10 after 1.9 and before 2.0",
+    "Growth executor creation uses a generic implementation-identity factory",
+    "Agent outputs only validated TreeEdit decisions and is limited to four decisions",
+    "cheap LLM outputs strict read/list/write/patch proposals and deterministic code applies them",
+    "success, failure-repair, and escalation paths preserve unaffected result reuse",
+    "real Provider validation uses different Agent and worker models or readiness remains LEVEL_3"
   ],
   "quality_metrics": [
-    {"id": "QM-GROWTH-INVOKE", "measure": "growth invocation count", "target": "1 across two runs", "actual": "1"},
-    {"id": "QM-GROWTH-TRIAL", "measure": "bounded sandbox trial", "target": "1 trial with all checks PASS", "actual": "1 trial; all checks PASS"},
-    {"id": "QM-GROWTH-REUSE", "measure": "second-run registry reuse", "target": "PASS without rediscovery", "actual": "PASS; persistent registry loaded and Growth not invoked"},
-    {"id": "QM-GROWTH-BOUNDARY", "measure": "kernel modifications, Provider calls, network calls by Growth", "target": "0 / 0 / 0", "actual": "0 / 0 / 0"}
+    {"id": "QM-AGENT-CALLS", "measure": "high-capability Agent decisions", "target": "1-4", "actual": "2 real qwen3.8-max calls"},
+    {"id": "QM-WORKER-SCOPE", "measure": "worker allowed action vocabulary", "target": "read/list/write/patch only", "actual": "4 actions; shell/network/goal/DAG/package/delivery absent"},
+    {"id": "QM-REAL-VERTICAL", "measure": "real edit and real pytest", "target": "PASS", "actual": "initial pytest failed; worker patched math_utils.py; final pytest 1 passed"}
   ],
-  "out_of_scope": ["kernel self-modification", "live Provider work", "external package installation by default", "compatibility-mainline replacement"],
-  "evidence_refs": [
-    "python -m pytest -q tests/growth tests/capabilities tests/runtime tests/execution tests/state tests/executors",
-    "python scripts/run_self_growth_v0.py --run-root <isolated> --json",
-    "canonical External Executor Discovery for text.slugify returned NOT_EVALUATED with no selected executor and zero trials"
-  ],
-  "review": {"outcome": "accepted", "feedback": ["The first run started with json.parse absent, admitted exactly one stdlib candidate, and continued the DAG.", "The second run loaded the persisted registry and reused the capability without another Growth invocation.", "Self-Growth V1 remains NOT_EVALUATED because canonical discovery produced no candidate with complete ALLOW/PASS/exact-version evidence."]},
-  "retrospective": {"worked": ["A fixed allowlisted stdlib identity kept V0 deterministic and offline.", "Positive admission predicates prevented a false rejection after the first sandbox check exposed inverted boolean semantics."], "did_not_work": ["The initial sandbox receipt represented safety as kernel_files_modified=false and a generic all() treated it as failure.", "The optional external search returned incomplete or REVIEW trust evidence and correctly ran no install trial."], "experiments": ["Do not implement V1 admission until canonical discovery can return a complete selected executor for the exact requested package version."]}
+  "out_of_scope": ["kernel self-modification", "shell or network tools exposed to the worker", "compatibility-mainline replacement", "a second execution graph"],
+  "evidence_refs": ["governance/agent_mvp_validation.json", "python -m pytest -q tests/agent tests/capabilities tests/growth tests/executors tests/runtime tests/execution tests/state", "python scripts/run_agent_mvp.py --run-root <isolated> --benchmark --json"],
+  "review": {"outcome": "accepted", "feedback": ["Real high-capability Agent and cheap worker models were separately configured and called.", "The worker changed a real file and the existing PythonTestExecutor observed pytest PASS.", "Fake-provider tests cover controlled repair, escalation, and forbidden action rejection."]},
+  "retrospective": {"worked": ["A machine-readable capability catalog prevented model aliases from becoming execution authority.", "Fail-closed TreeEdit and empty-DAG validation rejected two malformed real attempts before a successful run."], "did_not_work": ["The first high-model attempt used noncanonical payload aliases; the second used an undeclared structural root."], "experiments": ["Use MVP-014 for a real-provider repair checkpoint and aggregate token/context budget evidence."]}
 }

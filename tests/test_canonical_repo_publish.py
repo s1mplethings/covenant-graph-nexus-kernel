@@ -115,6 +115,10 @@ def test_test_receipt_decodes_utf8_output_independent_of_windows_locale(tmp_path
     assert "通过" in receipt["tests"][0]["stdout_tail"]
 
 
+def test_versioned_config_is_classified_as_source(tmp_path: pathlib.Path) -> None:
+    assert gate.classify_path("config/agent_mvp.json", tmp_path)[0] == "SOURCE"
+
+
 def test_target_branch_requires_local_baseline_match(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root, _ = init_repo(tmp_path)
     git(root, "switch", "--detach")

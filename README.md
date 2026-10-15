@@ -34,6 +34,14 @@ bounded local trial, issue an admission receipt, persist the registry, resume
 the original DAG, and reuse the admitted capability in a later run. It cannot
 modify kernel files and makes no Provider or network calls.
 
+The LEVEL 4 Agent MVP adds a sparse high-capability composition loop and a
+separately configured low-cost LLM executor. Agent outputs are validated
+TreeEdits; worker outputs are restricted to read/list/write/patch proposals
+that deterministic code applies. A real Provider run repaired a broken Python
+function and passed real pytest through the existing Block, DAG, registry, and
+FileRunStore authorities. Run it with `python scripts/run_agent_mvp.py
+--run-root <isolated-dir> --benchmark --json`.
+
 The remaining compatibility entrypoints are:
 
 - `scripts/codex_conversation.py`
@@ -50,9 +58,10 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current feature increment
 
-`MVP-002` is complete in the isolated runtime. The next increment is controlled
-capability acquisition and reuse (`MVP-010`); migration into the large
-compatibility runtime remains a separate, later decision.
+`MVP-013` is complete in the isolated runtime. The next minimal increment is a
+real-Provider controlled repair run plus aggregate budget/context telemetry;
+migration into the large compatibility runtime remains a separate, later
+decision.
 
 ## Current reusable substrate
 

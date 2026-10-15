@@ -44,6 +44,11 @@ def test_existing_component_and_graph_types_remain_authoritative() -> None:
     assert authorities["project_run_state"].endswith("FileRunStore")
     assert authorities["dag_runtime"].endswith("DAGRunner")
     assert authorities["capability_registry"].endswith("CapabilityRegistry")
+    assert authorities["agent_decision"].endswith("AgentDecision")
+    assert authorities["agent_project_loop"].endswith("AgentProjectLoop")
+    assert authorities["bounded_llm_executor"].endswith("LLMExecutor")
+    assert authorities["executor_factory"].endswith("ExecutorFactoryRegistry")
+    assert json.loads(read("governance/current_architecture.json"))["implementation_state"]["functional_readiness"] == "LEVEL_4"
 
 
 def test_compatibility_entrypoints_are_retained_but_non_authoritative() -> None:

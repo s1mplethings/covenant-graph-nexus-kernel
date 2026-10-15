@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-010",
+  "current_item_id": "MVP-013",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NOT_EVALUATED",
   "product_authority": [
@@ -181,6 +181,21 @@
         "publishing requires explicit authorization",
         "results feed project state"
       ]
+    },
+    {
+      "id": "MVP-013",
+      "title": "Integrate high-capability Agent and bounded cheap LLM executor",
+      "priority": 13,
+      "state": "done",
+      "value": "Let the Agent make sparse composition and repair decisions while a cheaper model performs bounded node work.",
+      "acceptance": [
+        "Agent decisions compile to validated TreeEdits",
+        "cheap model proposals are strict and deterministically applied",
+        "Agent and worker model roles are separately configured",
+        "a real provider vertical slice edits code and passes pytest",
+        "failure repair and escalation remain bounded"
+      ],
+      "evidence_status": "PASS"
     }
   ]
 }

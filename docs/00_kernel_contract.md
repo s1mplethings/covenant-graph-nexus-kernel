@@ -81,3 +81,11 @@ compatibility, or bounded-trial evidence is `REVIEW`, `BLOCK`, or `UNKNOWN`.
 
 The compatibility conversation and generation entrypoints remain callable and
 are not replaced by this isolated MVP runtime.
+
+The Agent + cheap LLM MVP preserves the same authority split. `AgentComposer`
+may emit only validated `TreeEdit` decisions and is capped at four decisions
+per project loop. `LLMExecutor` remains a replaceable `Executor` behind
+`BlockExecutionRequest` and `BlockExecutionResult`; its model may propose only
+read/list/write/patch actions, while deterministic code validates paths and
+applies effects. It cannot alter the goal, tree, DAG, registry, package, or
+delivery state. Agent and worker model roles must be configured independently.

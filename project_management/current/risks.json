@@ -23,19 +23,19 @@
     {
       "id": "R-MVP-003",
       "title": "Target architecture is not yet wired into the default runtime",
-      "probability": "certain",
+      "probability": "low",
       "impact": "high",
       "signal": "The repository describes CapabilityTree and ExecutionDAG, but real project execution still enters the compatibility pipeline.",
-      "response": "Complete MVP-002 before claiming the target architecture is operational or deleting the compatibility entrypoints.",
+      "response": "Keep the validated isolated route separate until an explicit migration increment replaces compatibility entrypoints.",
       "owner": "MVP runtime"
     },
     {
       "id": "R-MVP-004",
       "title": "Executor interfaces remain fragmented",
-      "probability": "high",
+      "probability": "medium",
       "impact": "high",
       "signal": "Provider, local model, search, script, browser, and test execution use unrelated request and result semantics.",
-      "response": "Consolidate them behind the common Block execution request/result and replaceable Executor protocol.",
+      "response": "Continue adapting remaining executor kinds behind Block execution; the local, test, and bounded LLM adapters now share it.",
       "owner": "executor layer"
     },
     {
@@ -50,10 +50,10 @@
     {
       "id": "R-MVP-006",
       "title": "No real end-to-end MVP vertical slice exists",
-      "probability": "certain",
+      "probability": "low",
       "impact": "high",
       "signal": "Tree and DAG structures exist but no real project change reaches bounded execution, testing, persistence, and Agent completion judgment through the new route.",
-      "response": "After MVP-002, prioritize one small real project over scale, stress, or broad benchmark coverage.",
+      "response": "Preserve the real Agent/worker/file-edit/pytest evidence and extend with a real-provider repair case before broader scale work.",
       "owner": "MVP delivery"
     },
     {
@@ -91,6 +91,24 @@
       "signal": "Workflow runs report startup failure with no jobs or status checks.",
       "response": "Keep all verification as NOT_EVALUATED, do not merge, and obtain an executable focused verification path before promotion.",
       "owner": "repository operations"
+    },
+    {
+      "id": "R-MVP-011",
+      "title": "Model-produced near-synonyms may not satisfy canonical TreeEdit fields",
+      "probability": "medium",
+      "impact": "medium",
+      "signal": "Agent output uses capability, dependencies, tool, runner, or an undeclared structural root.",
+      "response": "Keep machine-readable capability catalogs, strict payload validation, narrow root normalization, and fail closed before DAG execution.",
+      "owner": "Agent composition"
+    },
+    {
+      "id": "R-MVP-012",
+      "title": "Decision efficiency is not yet better than a direct high-model call on tiny tasks",
+      "probability": "high",
+      "impact": "medium",
+      "signal": "The one-file baseline succeeds in one high-model call while CGKN uses compose and finish checkpoints.",
+      "response": "Do not degrade the baseline; evaluate larger repair tasks and reduce high-model checkpoints only when evidence shows authority and recovery remain intact.",
+      "owner": "MVP evaluation"
     }
   ]
 }
