@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import pathlib
+import os
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -48,6 +50,17 @@ class CapabilityDescriptor:
     created_at: str = field(default_factory=now)
     updated_at: str = field(default_factory=now)
 
+    def __post_init__(self) -> None:
+        if not self.capability_id.strip() or not self.component_ref.strip() or not self.executor_ref.strip():
+            raise ValueError("capability, component, and executor identity are required")
+        semantic_version_key(self.version)
+        if self.timeout_seconds <= 0: raise ValueError("capability timeout must be positive")
+        if self.risk_level.upper() not in {"LOW", "MEDIUM", "HIGH"}: raise ValueError("invalid capability risk level")
+        for name in ("allowed_executor_kinds", "input_ports", "output_ports", "declared_effects", "test_refs"):
+            object.__setattr__(self, name, tuple(str(item) for item in getattr(self, name)))
+        if min(self.observed_usage_count, self.observed_success, self.observed_failure) < 0 or self.observed_success + self.observed_failure > self.observed_usage_count:
+            raise ValueError("invalid capability evidence counters")
+
     @property
     def ref(self) -> str:
         return f"{self.capability_id}@{self.version}"
@@ -86,6 +99,8 @@ class CapabilityRegistry:
 
     def admit(self, ref: str) -> None:
         item = self._require(ref)
+        if item.lifecycle_status not in {CapabilityLifecycle.CANDIDATE, CapabilityLifecycle.VERIFIED}:
+            raise ValueError("capability cannot be admitted from current lifecycle state")
         if not item.test_refs:
             raise ValueError("candidate without tests cannot be admitted")
         if item.risk_level.upper() == "HIGH":
@@ -94,9 +109,13 @@ class CapabilityRegistry:
         item.updated_at = now()
 
     def reject(self, ref: str) -> None:
+        if self._require(ref).lifecycle_status not in {CapabilityLifecycle.CANDIDATE, CapabilityLifecycle.VERIFIED}:
+            raise ValueError("capability cannot be rejected from current lifecycle state")
         self._transition(ref, CapabilityLifecycle.REJECTED)
 
     def disable(self, ref: str) -> None:
+        if self._require(ref).lifecycle_status is not CapabilityLifecycle.ADMITTED:
+            raise ValueError("only an admitted capability can be disabled")
         self._transition(ref, CapabilityLifecycle.DISABLED)
 
     def resolve(self, capability_id: str, version: str | None = None) -> CapabilityDescriptor:
@@ -110,6 +129,8 @@ class CapabilityRegistry:
 
     def record_execution_evidence(self, ref: str, succeeded: bool) -> None:
         item = self._require(ref)
+        if item.lifecycle_status is not CapabilityLifecycle.ADMITTED:
+            raise ValueError("execution evidence requires an admitted capability")
         item.observed_usage_count += 1
         if succeeded:
             item.observed_success += 1
@@ -120,20 +141,34 @@ class CapabilityRegistry:
     def save(self, path: pathlib.Path | str) -> None:
         target = pathlib.Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps({"kind": "CGKNCapabilityRegistry", "schema_version": "1.0", "capabilities": [item.as_dict() for item in self.query()]}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        descriptor, temporary = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump({"kind": "CGKNCapabilityRegistry", "schema_version": "1.0", "capabilities": [item.as_dict() for item in self.query()]}, handle, indent=2, sort_keys=True)
+                handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
+            os.replace(temporary, target)
+        finally:
+            pathlib.Path(temporary).unlink(missing_ok=True)
 
     @classmethod
     def load(cls, path: pathlib.Path | str, components: Mapping[str, ComponentSpec]) -> "CapabilityRegistry":
-        value = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+        try:
+            value = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"capability registry is unreadable: {exc}") from exc
         if value.get("kind") != "CGKNCapabilityRegistry" or value.get("schema_version") != "1.0":
             raise ValueError("unsupported capability registry")
         registry = cls(components)
         for raw in value.get("capabilities", []):
+            if not isinstance(raw, dict): raise ValueError("invalid persisted capability")
             item = CapabilityDescriptor.from_dict(raw)
             if item.ref in registry._items:
                 raise ValueError("duplicate capability in persisted registry")
             if item.component_ref not in registry.components:
                 raise ValueError("persisted capability references unknown ComponentSpec")
+            component = registry.components[item.component_ref]
+            if tuple(port.name for port in component.input_ports) != item.input_ports or tuple(port.name for port in component.output_ports) != item.output_ports:
+                raise ValueError("persisted capability ports do not match ComponentSpec")
             registry._items[item.ref] = item
         return registry
 

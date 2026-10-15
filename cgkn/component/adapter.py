@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from .ports import PortSpec
 from .protocol import ComponentInputs, ExecutionContext
 from .result import ComponentResult
-from .spec import ComponentSpec
+from .spec import ComponentSpec, _freeze, _thaw
 
 
 ModuleExecutor = Callable[[dict[str, Any], ComponentInputs, ExecutionContext], ComponentResult]
@@ -16,8 +16,11 @@ ModuleExecutor = Callable[[dict[str, Any], ComponentInputs, ExecutionContext], C
 class ModuleComponentAdapter:
     """Compatibility boundary from a canonical module contract to Component."""
 
-    module_contract: dict[str, Any]
+    module_contract: Mapping[str, Any]
     executor: ModuleExecutor | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "module_contract", _freeze(self.module_contract))
 
     @property
     def spec(self) -> ComponentSpec:
@@ -39,7 +42,7 @@ class ModuleComponentAdapter:
     def execute(self, context: ExecutionContext, inputs: ComponentInputs) -> ComponentResult:
         if self.executor is None:
             raise RuntimeError(f"component has no runtime executor: {self.spec.ref}")
-        return self.executor(self.module_contract, inputs, context)
+        return self.executor(_thaw(self.module_contract), inputs, context)
 
     def _ports(self, side: str) -> tuple[PortSpec, ...]:
         return tuple(

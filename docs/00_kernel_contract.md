@@ -82,6 +82,29 @@ compatibility, or bounded-trial evidence is `REVIEW`, `BLOCK`, or `UNKNOWN`.
 The compatibility conversation and generation entrypoints remain callable and
 are not replaced by this isolated MVP runtime.
 
+The reviewed Codex conversation route remains API/provider project generation,
+provider output validation, post-build finalization, local_packager,
+public_delivery_gate, and delivery_manifest.json. Runtime checks such as
+delivery_fact_check and agent_delivery_judgment remain bounded validation
+layers; they do not become packaging or delivery authorities.
+
+## 14. Pipeline Module Mutation Contract
+
+Any capability that proposes directly modifying, generating, or deleting bounded modules must remain behind reviewed contracts and the canonical runtime
+boundary. It cannot modify truth modules, manufacture formal evidence, or write
+a candidate bundle. Compatibility module mutation is never an alternate
+project-generation or delivery authority.
+
+## 15. Source-bound kernel evidence
+
+Kernel completion uses two phases. A Source Closure commit freezes implementation,
+tests, gates, and test configuration. Machine-generated coverage and test receipts
+then bind to that exact source commit, source tree, and core-source hash. A following
+Evidence Closure commit may change only the declared governance evidence and bounded
+project-management records; it cannot change kernel source, core tests, or core gates.
+`local_packager` remains the only product delivery exit and repository evidence does
+not authorize packaging or public delivery.
+
 The Agent + cheap LLM MVP preserves the same authority split. `AgentComposer`
 may emit only validated `TreeEdit` decisions and is capped at four decisions
 per project loop. `LLMExecutor` remains a replaceable `Executor` behind

@@ -14,6 +14,16 @@ _ARTIFACT_TYPE = re.compile(r"^artifact\.[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$")
 _CONTENT_HASH = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
+def validate_artifact_id(value: str) -> None:
+    if not _SAFE_ID.fullmatch(value):
+        raise ValueError("artifact instance id is unsafe")
+
+
+def validate_artifact_type(value: str) -> None:
+    if not _ARTIFACT_TYPE.fullmatch(value):
+        raise ValueError("artifact_type must be a versioned artifact ref")
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -25,10 +35,8 @@ class ArtifactRef:
     content_hash: str
 
     def __post_init__(self) -> None:
-        if not _SAFE_ID.fullmatch(self.artifact_instance_id):
-            raise ValueError("artifact instance id is unsafe")
-        if not _ARTIFACT_TYPE.fullmatch(self.artifact_type):
-            raise ValueError("artifact_type must be a versioned artifact ref")
+        validate_artifact_id(self.artifact_instance_id)
+        validate_artifact_type(self.artifact_type)
         if not _CONTENT_HASH.fullmatch(self.content_hash):
             raise ValueError("content_hash must be a canonical sha256 value")
 
@@ -94,16 +102,21 @@ class ArtifactInstance:
     supersedes: str | None = None
 
     def __post_init__(self) -> None:
-        if not self.id:
-            raise ValueError("artifact instance id is required")
-        if not self.artifact_type.startswith("artifact.") or "@" not in self.artifact_type:
-            raise ValueError("artifact_type must be a versioned artifact ref")
+        validate_artifact_id(self.id)
+        validate_artifact_type(self.artifact_type)
         if not self.run_id:
             raise ValueError("run_id is required")
         if not self.producer.node_id or not self.producer.module_ref:
             raise ValueError("producer nodeId and moduleRef are required")
         if self.status not in ARTIFACT_STATUSES:
             raise ValueError(f"invalid artifact status: {self.status}")
+        if self.supersedes == self.id:
+            raise ValueError("artifact cannot supersede itself")
+        refs = [item.artifact_instance_id for item in self.provenance.input_artifact_refs]
+        if self.id in refs:
+            raise ValueError("artifact cannot reference itself as input")
+        if len(refs) != len(set(refs)):
+            raise ValueError("artifact input lineage contains a duplicate edge")
         calculated = content_hash(self.content)
         if self.content_hash and self.content_hash != calculated:
             raise ValueError("contentHash does not match canonicalized content")

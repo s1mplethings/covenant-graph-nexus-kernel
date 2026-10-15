@@ -18,6 +18,7 @@ from cgkn.component import (
     ExecutionContext,
     ModuleComponentAdapter,
 )
+from cgkn.component.spec import _thaw
 
 from .cache import ArtifactCache
 from .checkpoint import write_checkpoint
@@ -338,7 +339,7 @@ class ArtifactModuleRunner:
             raise ArtifactValidationError(f"undeclared output ports: {sorted(extra)}")
 
     def _materialize_outputs(self, node, spec, module, inputs, result: ComponentResult) -> list[ArtifactRef]:
-        contents = dict(result.output_contents)
+        contents = _thaw(result.output_contents)
         self._validate_component_outputs(spec, contents)
         pending: list[ArtifactInstance] = []
         module_ref = spec.ref

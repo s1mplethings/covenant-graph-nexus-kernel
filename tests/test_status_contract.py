@@ -4,6 +4,8 @@ import json
 import pathlib
 import re
 
+import pytest
+
 from contracts.status import EVIDENCE_STATUSES, WORKFLOW_STATES
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -45,6 +47,8 @@ def test_delivery_manifest_status_is_public_delivery_subset() -> None:
     assert schema["properties"]["status"]["enum"] == ["PASS", "PASS_WITH_LIMITS", "NEEDS_REWORK"]
 
 
+@pytest.mark.historical_asset
+@pytest.mark.skipif(not (ROOT / "docs/00_product_studio_contract.md").is_file(), reason="historical_asset: retired product-studio formal contract is not present")
 def test_formal_docs_do_not_use_undeclared_statuses() -> None:
     for rel_path in FORMAL_DOCS:
         text = (ROOT / rel_path).read_text(encoding="utf-8", errors="replace")

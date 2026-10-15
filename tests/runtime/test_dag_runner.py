@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sys
 
+import pytest
+
 from cgkn.execution import BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.executors import CommandExecutor, ExecutorRegistry, FileExecutor
 from cgkn.executors import ExecutorDescriptor
@@ -9,6 +11,10 @@ from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
+from cgkn.state import RunState, NodeExecutionRecord, StateStoreError
+
+
+pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
 
 
 def registry(project_root):
@@ -99,3 +105,61 @@ def test_affected_subgraph_rerun_reuses_unaffected_successes(tmp_path) -> None:
     state = store.load_run("p", "r")
     assert len(state.nodes["test"].attempts) == 2
     assert len(state.nodes["inspect"].attempts) == 1
+
+
+@pytest.mark.negative
+def test_runner_rejects_tree_dag_and_persisted_state_mismatch(tmp_path) -> None:
+    tree = CapabilityTree("goal", (CapabilityNode("n", capability_ref="c@1", config={"executor_ref": "recording@1"}),))
+    empty = compile_tree(CapabilityTree("empty", ()))
+    runner = DAGRunner(ExecutorRegistry(), FileRunStore(tmp_path / "runs"))
+    with pytest.raises(ValueError, match="does not match"):
+        runner.run(project_id="p", run_id="r", tree=tree, dag=empty)
+    store = FileRunStore(tmp_path / "runs2")
+    store.save_run(RunState("p", "r", nodes={"other": NodeExecutionRecord("other")}))
+    with pytest.raises(ValueError, match="persisted run state"):
+        DAGRunner(ExecutorRegistry(), store).run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree), resume=True)
+
+
+@pytest.mark.recovery
+def test_missing_resume_state_fails_but_new_run_recovers_from_initial_load_race(tmp_path, monkeypatch) -> None:
+    tree = CapabilityTree("empty", ())
+    store = FileRunStore(tmp_path / "runs")
+    runner = DAGRunner(ExecutorRegistry(), store)
+    with pytest.raises(StateStoreError):
+        runner.run(project_id="p", run_id="missing", tree=tree, dag=compile_tree(tree), resume=True)
+    original = store.load_run
+    monkeypatch.setattr(store, "load_run", lambda *_args: (_ for _ in ()).throw(StateStoreError("race")))
+    summary = runner.run(project_id="p", run_id="new", tree=tree, dag=compile_tree(tree))
+    assert summary.status == "SUCCEEDED" and summary.node_count == 0
+    monkeypatch.setattr(store, "load_run", original)
+
+
+class RaisingExecutor:
+    descriptor = ExecutorDescriptor("raising@1", "fault", ("*",))
+    def execute(self, request):
+        raise RuntimeError(f"boom {request.node_id}")
+
+
+@pytest.mark.fault_injection
+def test_executor_resolution_and_unhandled_exception_fail_closed(tmp_path) -> None:
+    missing_tree = CapabilityTree("missing", (CapabilityNode("missing", capability_ref="c@1", config={"executor_ref": "absent@1"}),))
+    runner = DAGRunner(ExecutorRegistry(), FileRunStore(tmp_path / "missing"))
+    result = runner.run(project_id="p", run_id="r", tree=missing_tree, dag=compile_tree(missing_tree))
+    assert result.failed_nodes == ("missing",)
+    assert runner.store.load_result("p", "r", "missing").error.code is ExecutionErrorCode.EXECUTOR_NOT_FOUND
+    registry = ExecutorRegistry(); registry.register(RaisingExecutor())
+    raised_tree = CapabilityTree("raised", (CapabilityNode("raised", capability_ref="c@1", config={"executor_ref": "raising@1"}),))
+    raised_runner = DAGRunner(registry, FileRunStore(tmp_path / "raised"))
+    raised = raised_runner.run(project_id="p", run_id="r", tree=raised_tree, dag=compile_tree(raised_tree))
+    failure = raised_runner.store.load_result("p", "r", "raised")
+    assert raised.failed_nodes == ("raised",) and failure.retryable
+
+
+@pytest.mark.determinism
+def test_summary_and_event_order_are_deterministic(tmp_path) -> None:
+    project = tmp_path / "project"; project.mkdir()
+    store = FileRunStore(tmp_path / "runs")
+    summary = DAGRunner(registry(project), store).run(project_id="p", run_id="r", tree=hello_tree(), dag=compile_tree(hello_tree()))
+    assert summary.as_dict()["actual_executions"] == ["write", "run", "verify"]
+    event_types = [event.event_type for event in store.load_events("p", "r")]
+    assert event_types[0] == "RUN_CREATED" and event_types[-1] == "RUN_FINISHED"

@@ -36,6 +36,9 @@ class PortSpec:
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "PortSpec":
+        allowed = {"name", "artifactType", "required", "multi", "projection"}
+        if set(value) - allowed:
+            raise ValueError("unknown PortSpec fields")
         return cls(
             name=str(value["name"]),
             artifact_type=str(value["artifactType"]),

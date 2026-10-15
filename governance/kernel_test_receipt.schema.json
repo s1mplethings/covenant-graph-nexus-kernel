@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/governance/kernel_test_receipt.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "source_commit", "source_tree_sha", "core_source_hash", "commands", "totals", "test_node_ids", "profile_results", "coverage_file_hash", "generated_at", "environment", "provider_network_usage", "final_verdict", "receipt_hash"],
+  "properties": {
+    "kind": {"const": "CGKNKernelTestReceipt"},
+    "schema_version": {"const": "1.0"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_tree_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "core_source_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commands": {"type": "array", "items": {"type": "object"}},
+    "totals": {"type": "object", "required": ["passed", "failed", "errors", "skipped", "duration_seconds"], "additionalProperties": {"type": ["integer", "number"]}},
+    "test_node_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "profile_results": {"type": "array", "items": {"type": "object"}},
+    "coverage_file_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "generated_at": {"type": "string"},
+    "environment": {"type": "object"},
+    "provider_network_usage": {"type": "object"},
+    "final_verdict": {"enum": ["PASS", "FAIL", "BLOCKED_ENVIRONMENT"]},
+    "receipt_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

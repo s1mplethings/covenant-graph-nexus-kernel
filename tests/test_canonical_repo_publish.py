@@ -44,6 +44,7 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("generated/app.py", "GENERATED", "EXCLUDE"),
         ("credentials.json", "SECRET", "BLOCK"),
         ("tests/test_app.py", "TEST", "COMMIT"),
+        ("pytest.ini", "TEST", "COMMIT"),
         ("benchmarks/project_generation_v1/cases.json", "TEST", "COMMIT"),
         ("examples/mvp-runtime/hello-pipeline/tree.json", "TEST", "COMMIT"),
         ("config/provider_profiles/project-generation-external-api.json", "CONTRACT", "COMMIT"),

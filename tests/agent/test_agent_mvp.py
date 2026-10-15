@@ -18,6 +18,7 @@ from cgkn.state import FileRunStore
 
 
 FIXTURE = Path(__file__).resolve().parents[2] / "examples" / "agent_mvp_bugfix"
+pytestmark = [pytest.mark.happy_path, pytest.mark.boundary, pytest.mark.local_functional]
 
 
 class FakeClient:
@@ -84,6 +85,7 @@ def test_fake_provider_vertical_slice_edits_file_and_passes_real_pytest(tmp_path
     assert "return a + b" in (project / "math_utils.py").read_text(encoding="utf-8")
 
 
+@pytest.mark.recovery
 def test_failed_test_triggers_affected_only_retry(tmp_path: Path) -> None:
     project = copy_fixture(tmp_path)
     repair = decision(2, [edit("e4", "update_config", "fix", {"config": {"goal": "Repair the failed arithmetic test"}}), edit("e5", "retry_node", "fix")], run=True)
@@ -93,6 +95,7 @@ def test_failed_test_triggers_affected_only_retry(tmp_path: Path) -> None:
     assert result.run_summary and "inspect" in result.run_summary.reused_nodes and result.run_summary.retry_attempts == 2
 
 
+@pytest.mark.recovery
 def test_worker_escalation_returns_to_agent_then_recovers(tmp_path: Path) -> None:
     project = copy_fixture(tmp_path)
     retry = decision(2, [edit("e4", "update_config", "fix", {"config": {"goal": "Use inspect output to fix addition"}}), edit("e5", "retry_node", "fix")], run=True)
@@ -101,6 +104,8 @@ def test_worker_escalation_returns_to_agent_then_recovers(tmp_path: Path) -> Non
     assert result.status == "SUCCEEDED" and result.decision_count == 3 and result.worker_calls == 2
 
 
+@pytest.mark.fault_injection
+@pytest.mark.security
 def test_worker_rejects_shell_and_path_escape(tmp_path: Path) -> None:
     project = copy_fixture(tmp_path)
     bad = worker_patch()

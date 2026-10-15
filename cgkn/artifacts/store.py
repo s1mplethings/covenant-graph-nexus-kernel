@@ -26,9 +26,23 @@ class ArtifactStore:
             self._save_index({"kind": "ArtifactIndex", "schemaVersion": "1", "artifacts": []})
 
     def _load_index(self) -> dict[str, Any]:
-        value = json.loads(self.index_path.read_text(encoding="utf-8"))
+        if self.index_path.is_symlink():
+            raise ArtifactValidationError("artifact index must not be a symlink")
+        try:
+            value = json.loads(self.index_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ArtifactValidationError(f"artifact index is unreadable: {exc}") from exc
         if value.get("kind") != "ArtifactIndex" or value.get("schemaVersion") != "1" or not isinstance(value.get("artifacts"), list):
             raise ArtifactValidationError("artifact index schema is invalid")
+        ids: set[str] = set()
+        for row in value["artifacts"]:
+            if not isinstance(row, dict): raise ArtifactValidationError("artifact index row is invalid")
+            artifact_id = str(row.get("artifactInstanceId", ""))
+            self._path(artifact_id)
+            if artifact_id in ids: raise ArtifactValidationError(f"duplicate artifact index row: {artifact_id}")
+            ids.add(artifact_id)
+            if row.get("status") not in {"fresh", "stale", "invalid", "superseded"}: raise ArtifactValidationError(f"invalid indexed artifact status: {artifact_id}")
+            if row.get("path") != f"artifacts/{artifact_id}.json": raise ArtifactValidationError(f"artifact index path mismatch: {artifact_id}")
         return value
 
     def _save_index(self, value: dict[str, Any]) -> None:
@@ -106,15 +120,24 @@ class ArtifactStore:
                 "path": path.relative_to(self.run_dir).as_posix(),
             }
         )
-        self._save_index(index)
+        try:
+            self._save_index(index)
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
         return artifact.ref
 
     def read_artifact(self, artifact_id: str) -> ArtifactInstance:
         path = self._path(artifact_id)
         if not path.is_file():
             raise ArtifactValidationError(f"artifact instance not found: {artifact_id}")
-        instance = ArtifactInstance.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        try:
+            instance = ArtifactInstance.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ArtifactValidationError(f"artifact instance is corrupt: {artifact_id}: {exc}") from exc
         row = self._row(artifact_id)
+        if instance.artifact_type != row.get("artifactType") or instance.content_hash != row.get("contentHash"):
+            raise ArtifactValidationError(f"artifact instance does not match index: {artifact_id}")
         instance.status = str(row["status"])
         return instance
 
@@ -179,6 +202,10 @@ class ArtifactStore:
         if status not in {"fresh", "stale", "invalid", "superseded"}:
             raise ArtifactValidationError(f"invalid artifact status: {status}")
         index = self._load_index()
+        current = str(self._row_in(index, artifact_id)["status"])
+        allowed = {"fresh": {"fresh", "stale", "invalid", "superseded"}, "stale": {"stale", "fresh", "invalid", "superseded"}, "invalid": {"invalid"}, "superseded": {"superseded"}}
+        if status not in allowed[current]:
+            raise ArtifactValidationError(f"invalid artifact status transition: {current}->{status}")
         self._set_status_in_memory(index, artifact_id, status)
         self._save_index(index)
 

@@ -1,13 +1,13 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-KERNEL-FOUNDATION-006",
+  "iteration_id": "ITER-KERNEL-FOUNDATION-CLOSURE-007",
   "project_id": "cgkn",
-  "goal": "Complete and test every current kernel foundation layer before adding new project-team capabilities.",
+  "goal": "Close current kernel logic, tests, repository failures, and source-bound evidence without adding upper-layer capabilities.",
   "backlog_item_ids": ["MVP-014A"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
-  "delivery_approach": "bottom-up layer completion with machine-enforced authorities and source-to-test responsibility",
+  "workflow_state": "in_progress",
+  "evidence_status": "NOT_EVALUATED",
+  "delivery_approach": "bottom-up source closure followed by an evidence-only closure commit",
   "acceptance_criteria": [
     "all current non-init core sources have test responsibility mappings",
     "architecture, test architecture, and completeness gates pass",
@@ -16,12 +16,13 @@
     "functional_readiness remains LEVEL_4 while kernel_foundation is independently evaluated"
   ],
   "quality_metrics": [
-    {"id": "QM-SOURCE-MAPPING", "measure": "mapped current core sources", "target": "100%", "actual": "49 of 49 mapped"},
-    {"id": "QM-CORE-PROFILES", "measure": "required local profiles", "target": "4 PASS", "actual": "4 PASS"},
-    {"id": "QM-COVERAGE", "measure": "per-layer line and branch coverage", "target": "recorded without false completion", "actual": "72% combined; below-target files recorded"}
+    {"id": "QM-SOURCE-MAPPING", "measure": "source to exact test node to execution mapping", "target": "100%", "actual": "pending"},
+    {"id": "QM-CORE-PROFILES", "measure": "required deterministic profiles", "target": "8 PASS", "actual": "pending"},
+    {"id": "QM-COVERAGE", "measure": "separate statement and branch thresholds", "target": "all P0/P1 thresholds PASS", "actual": "pending"},
+    {"id": "QM-ACTIVE-REPOSITORY", "measure": "active repository failures and errors", "target": "0 failed / 0 errors", "actual": "pending"}
   ],
   "out_of_scope": ["new team roles", "Self-Growth V1", "concurrency", "stress or soak", "public delivery", "compatibility-mainline migration"],
-  "evidence_refs": ["governance/kernel_coverage_report.json", "governance/kernel_completeness.json", "python scripts/run_kernel_profiles.py", "full pytest: 1794 passed, 322 skipped, 19 failed, 16 errors; failures classified as baseline missing ignored assets/contracts"],
-  "review": {"outcome": "accepted_with_limits", "feedback": ["L1 artifact and L2 component foundations are complete.", "DAG, execution envelope, state persistence, and telemetry invariants were hardened.", "Kernel foundation remains PARTIAL because named must-core coverage and fault matrices remain incomplete."]},
-  "retrospective": {"worked": ["Layered profiles isolated kernel evidence from repository-global historical failures.", "Deep immutability plus explicit JSON thawing preserved both safety and executor compatibility."], "did_not_work": ["The remote baseline omits ignored benchmark, historical document, and PMP assets required by parts of the full suite."], "experiments": ["Complete provider, tree-edit, runtime invalidation, and artifact lineage fault matrices before changing kernel_foundation to COMPLETE."]}
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }

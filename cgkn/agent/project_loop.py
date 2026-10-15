@@ -7,7 +7,7 @@ from typing import Any
 from cgkn.execution import BlockStatus
 from cgkn.orchestration.capability_tree import CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
-from cgkn.orchestration.tree_edits import apply_tree_edit
+from cgkn.orchestration.tree_edits import apply_tree_edits
 from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import EventRecord, FileRunStore
 
@@ -49,11 +49,11 @@ class AgentProjectLoop:
             self.store.append_event(EventRecord(str(uuid.uuid4()), project_id, run_id, "AGENT_DECISION", data={"decision_id": decision.decision_id, "decision_number": number, "summary": decision.summary, "request_run": decision.request_run, "finish": decision.finish, "needs_escalation": decision.needs_escalation, "context_hash": decision.context_hash}))
             if decision.needs_escalation:
                 return ProjectLoopResult("BLOCKED", number, number, worker_calls, tree, summary, decision.escalation_reason)
-            retry_node: str | None = None
-            for edit in decision.edits:
-                tree = apply_tree_edit(tree, edit, known_capabilities=self.known_capabilities)
-                if edit.operation == "retry_node":
-                    retry_node = edit.node_id
+            retry_nodes = [edit.node_id for edit in decision.edits if edit.operation == "retry_node"]
+            if len(retry_nodes) > 1:
+                raise ValueError("one Agent decision may retry at most one node")
+            retry_node = retry_nodes[0] if retry_nodes else None
+            tree = apply_tree_edits(tree, decision.edits, known_capabilities=self.known_capabilities)
             if decision.finish:
                 status = "SUCCEEDED" if summary and summary.status == "SUCCEEDED" else "FAILED"
                 return ProjectLoopResult(status, number, number, worker_calls, tree, summary)

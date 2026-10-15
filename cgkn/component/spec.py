@@ -70,6 +70,9 @@ class ComponentSpec:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ComponentSpec":
+        allowed = {"componentId", "version", "inputPorts", "outputPorts", "effects", "policyRef", "metadata"}
+        if set(value) - allowed:
+            raise ValueError("unknown ComponentSpec fields")
         return cls(
             component_id=str(value["componentId"]),
             version=str(value["version"]),

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any, Mapping
 
-from .capability_tree import CapabilityNode, CapabilityTree
+from .capability_tree import CapabilityNode, CapabilityTree, _freeze
 from .execution_dag import compile_tree
 
 
@@ -23,12 +23,36 @@ class TreeEdit:
             raise ValueError("invalid tree edit identity or operation")
         if not self.provenance:
             raise ValueError("tree edit provenance is required")
+        allowed = {
+            "add_node": {"parent_id", "capability_ref", "depends_on", "config"}, "remove_node": set(),
+            "replace_node": {"capability_ref", "config"}, "move_node": {"parent_id"},
+            "add_dependency": {"dependency"}, "remove_dependency": {"dependency"},
+            "replace_executor": {"executor_ref"}, "update_config": {"config"},
+            "retry_node": set(), "request_run": set(), "finish": set(),
+        }
+        if set(self.payload) - allowed[self.operation]:
+            raise ValueError("invalid tree edit payload")
+        object.__setattr__(self, "payload", _freeze(self.payload))
+        object.__setattr__(self, "provenance", _freeze(self.provenance))
+
+
+def apply_tree_edits(tree: CapabilityTree, edits: tuple[TreeEdit, ...], *, known_capabilities: set[str] | frozenset[str]) -> CapabilityTree:
+    ids = [edit.edit_id for edit in edits]
+    if len(ids) != len(set(ids)):
+        raise ValueError("duplicate tree edit id")
+    preview = tree
+    for edit in edits:
+        preview = apply_tree_edit(preview, edit, known_capabilities=known_capabilities)
+    compile_tree(preview)
+    return preview
 
 
 def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities: set[str] | frozenset[str]) -> CapabilityTree:
     nodes = list(tree.nodes)
     index = {node.id: position for position, node in enumerate(nodes)}
     if edit.operation in {"retry_node", "request_run", "finish"}:
+        if edit.operation == "retry_node" and edit.node_id not in {node.id for node in nodes}:
+            raise ValueError("node does not exist")
         return tree
     if edit.operation == "add_node":
         if edit.node_id in index:
@@ -69,9 +93,12 @@ def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities:
             nodes[index[edit.node_id]] = replace(old, depends_on=tuple(values))
         elif edit.operation == "replace_executor":
             config = dict(old.config)
-            config["executor_ref"] = str(edit.payload.get("executor_ref", ""))
+            executor_ref = str(edit.payload.get("executor_ref", ""))
+            if not executor_ref: raise ValueError("executor_ref is required")
+            config["executor_ref"] = executor_ref
             nodes[index[edit.node_id]] = replace(old, config=config)
         elif edit.operation == "update_config":
+            if not isinstance(edit.payload.get("config", {}), Mapping): raise ValueError("config must be an object")
             config = dict(old.config)
             config.update(dict(edit.payload.get("config", {})))
             nodes[index[edit.node_id]] = replace(old, config=config)

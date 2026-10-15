@@ -4,22 +4,25 @@ from typing import Any
 
 from .models import ArtifactRef
 from .store import ArtifactStore
+from .types import ArtifactValidationError
 
 
 def build_lineage(store: ArtifactStore, value: ArtifactRef | str) -> dict[str, Any]:
     artifact = store.resolve_artifact_ref(value)
-    seen: set[str] = set()
+    active: set[str] = set()
 
     def walk(current) -> dict[str, Any]:
-        if current.id in seen:
-            return {"artifactRef": current.ref.as_dict(), "cycle": True, "inputs": []}
-        seen.add(current.id)
-        return {
+        if current.id in active:
+            raise ArtifactValidationError(f"artifact lineage cycle detected: {current.id}")
+        active.add(current.id)
+        result = {
             "artifactRef": current.ref.as_dict(),
             "status": current.status,
             "producer": current.producer.as_dict(),
-            "inputs": [walk(store.resolve_artifact_ref(ref)) for ref in current.provenance.input_artifact_refs],
+            "inputs": [walk(store.resolve_artifact_ref(ref)) for ref in sorted(current.provenance.input_artifact_refs, key=lambda item: item.artifact_instance_id)],
         }
+        active.remove(current.id)
+        return result
 
     return walk(artifact)
 

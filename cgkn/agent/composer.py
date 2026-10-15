@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cgkn.orchestration.capability_tree import CapabilityTree
+from cgkn.orchestration.capability_tree import CapabilityTree, _thaw
 from cgkn.orchestration.tree_edits import TreeEdit
 from cgkn.providers import CompletionClient, ModelRoleConfig, ProviderCompletion, parse_json_object
 
@@ -39,7 +39,7 @@ class AgentDecisionContext:
     failure_details: Mapping[str, Any]
 
     def as_dict(self) -> dict[str, Any]:
-        return {"project_id": self.project_id, "run_id": self.run_id, "goal": self.goal, "decision_number": self.decision_number, "tree": self.tree.as_dict(), "known_capabilities": list(self.known_capabilities), "capability_catalog": dict(self.capability_catalog), "run_summary": dict(self.run_summary), "failure_details": dict(self.failure_details)}
+        return {"project_id": self.project_id, "run_id": self.run_id, "goal": self.goal, "decision_number": self.decision_number, "tree": self.tree.as_dict(), "known_capabilities": list(self.known_capabilities), "capability_catalog": _thaw(self.capability_catalog), "run_summary": _thaw(self.run_summary), "failure_details": _thaw(self.failure_details)}
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ class AgentDecision:
     context_chars: int
 
     def as_dict(self) -> dict[str, Any]:
-        return {"schema_version": "1.0", "decision_id": self.decision_id, "summary": self.summary, "reason": self.reason, "edits": [{"edit_id": item.edit_id, "operation": item.operation, "node_id": item.node_id, "payload": dict(item.payload), "provenance": dict(item.provenance)} for item in self.edits], "request_run": self.request_run, "finish": self.finish, "needs_escalation": self.needs_escalation, "escalation_reason": self.escalation_reason, "provider": dict(self.provider), "context_hash": self.context_hash, "context_chars": self.context_chars}
+        return {"schema_version": "1.0", "decision_id": self.decision_id, "summary": self.summary, "reason": self.reason, "edits": [{"edit_id": item.edit_id, "operation": item.operation, "node_id": item.node_id, "payload": _thaw(item.payload), "provenance": _thaw(item.provenance)} for item in self.edits], "request_run": self.request_run, "finish": self.finish, "needs_escalation": self.needs_escalation, "escalation_reason": self.escalation_reason, "provider": _thaw(self.provider), "context_hash": self.context_hash, "context_chars": self.context_chars}
 
 
 def parse_agent_decision(value: Mapping[str, Any], completion: ProviderCompletion, raw_context: str) -> AgentDecision:

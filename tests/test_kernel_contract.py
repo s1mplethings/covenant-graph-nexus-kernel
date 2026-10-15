@@ -80,3 +80,11 @@ def test_fast_ci_runs_current_direction_and_mvp_contracts() -> None:
     assert "tests/component" in workflow
     assert "test_kernel_contract.py" in workflow
     assert "provider" not in workflow.lower()
+
+
+def test_kernel_evidence_is_source_bound_and_two_phase() -> None:
+    contract = read("docs/00_kernel_contract.md")
+    assert "Source Closure commit" in contract
+    assert "Evidence Closure commit" in contract
+    assert "core-source hash" in contract
+    assert "cannot change kernel source" in contract

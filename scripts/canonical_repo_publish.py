@@ -172,7 +172,7 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "TEST", "deterministic MVP runtime example or fixture"
     if lower.startswith("config/provider_profiles/"):
         return "CONTRACT", "reviewed Provider execution profile"
-    if lower.startswith("tests/") or pure.name.startswith("test_"):
+    if lower == "pytest.ini" or lower.startswith("tests/") or pure.name.startswith("test_"):
         return "TEST", "test source"
     if lower.startswith("contracts/"):
         return "CONTRACT", "formal contract"

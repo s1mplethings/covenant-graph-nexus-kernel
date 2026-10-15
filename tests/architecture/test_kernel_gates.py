@@ -51,10 +51,11 @@ def test_forbidden_low_to_high_import_is_rejected(monkeypatch, tmp_path: pathlib
 def test_unmapped_source_and_missing_test_are_rejected(monkeypatch, tmp_path: pathlib.Path) -> None:
     monkeypatch.setattr(coverage, "ROOT", tmp_path)
     monkeypatch.setattr(coverage, "source_files", lambda: {"cgkn/component/spec.py", "cgkn/component/ports.py"})
-    monkeypatch.setattr(coverage, "load_json", lambda _path: {"sources": {"cgkn/component/spec.py": {"criticality": "P0", "tests": ["tests/missing.py"], "required_classes": ["happy_path", "negative", "boundary"]}}})
+    monkeypatch.setattr(coverage, "collect_test_metadata", lambda: {})
+    monkeypatch.setattr(coverage, "load_json", lambda path: {"sources": {"cgkn/component/spec.py": {"criticality": "P0", "test_cases": [{"nodeid": "tests/missing.py::test_x", "classes": ["happy_path", "negative", "boundary"]}], "required_classes": ["happy_path", "negative", "boundary"]}}} if "coverage" in path else {"kernel_foundation": "PARTIAL"})
     errors = coverage.check()["errors"]
     assert "unmapped_source:cgkn/component/ports.py" in errors
-    assert any(item.startswith("missing_test_file") for item in errors)
+    assert any(item.startswith("orphan_test_mapping") for item in errors)
 
 
 def test_complete_layer_with_blocker_is_rejected(monkeypatch) -> None:

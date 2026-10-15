@@ -22,6 +22,7 @@ def _configure(monkeypatch: pytest.MonkeyPatch, ledger: pathlib.Path) -> None:
         monkeypatch.setenv(name, value)
 
 
+@pytest.mark.live_provider
 def test_budget_ledger_reserves_finalizes_and_redacts(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ledger = tmp_path / "ledger.json"
     _configure(monkeypatch, ledger)

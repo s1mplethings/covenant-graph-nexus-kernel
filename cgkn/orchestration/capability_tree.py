@@ -5,6 +5,18 @@ from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 
 
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping): return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)): return tuple(_freeze(item) for item in value)
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    if isinstance(value, Mapping): return {key: _thaw(item) for key, item in value.items()}
+    if isinstance(value, tuple): return [_thaw(item) for item in value]
+    return value
+
+
 def _items(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(str(item).strip() for item in values if str(item).strip()))
 
@@ -33,7 +45,7 @@ class CapabilityNode:
         object.__setattr__(self, "parent_id", self.parent_id.strip())
         object.__setattr__(self, "capability_ref", self.capability_ref.strip())
         object.__setattr__(self, "depends_on", _items(self.depends_on))
-        object.__setattr__(self, "config", MappingProxyType(dict(self.config)))
+        object.__setattr__(self, "config", _freeze(self.config))
 
     @property
     def executable(self) -> bool:
@@ -45,7 +57,7 @@ class CapabilityNode:
             "parent_id": self.parent_id,
             "capability_ref": self.capability_ref,
             "depends_on": list(self.depends_on),
-            "config": dict(self.config),
+            "config": _thaw(self.config),
         }
 
 
@@ -83,6 +95,18 @@ class CapabilityTree:
             "goal": self.goal,
             "nodes": [node.as_dict() for node in self.nodes],
         }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "CapabilityTree":
+        if set(value) != {"kind", "schema_version", "goal", "nodes"} or value.get("kind") != "CGKNCapabilityTree" or value.get("schema_version") != "1.0":
+            raise ValueError("malformed capability tree")
+        if not isinstance(value.get("nodes"), list): raise ValueError("malformed capability tree nodes")
+        allowed = {"id", "parent_id", "capability_ref", "depends_on", "config"}
+        nodes = []
+        for raw in value["nodes"]:
+            if not isinstance(raw, Mapping) or set(raw) - allowed: raise ValueError("malformed capability node")
+            nodes.append(CapabilityNode(str(raw["id"]), str(raw.get("parent_id", "")), str(raw.get("capability_ref", "")), tuple(str(item) for item in raw.get("depends_on", ())), dict(raw.get("config", {}))))
+        return cls(str(value["goal"]), tuple(nodes))
 
 
 def validate_tree(nodes: Iterable[CapabilityNode]) -> list[str]:

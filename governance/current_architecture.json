@@ -3,6 +3,20 @@
   "schema_version": "1.3",
   "product_version": "0.2.0-rc.2",
   "architecture_generation": "capability-tree-mvp-runtime-foundation",
+  "supersedes": [],
+  "authorities": {
+    "requirement": "PRODUCT_GOAL.md",
+    "assumption": "cgkn.agent.composer:AgentComposer",
+    "planning": "cgkn.agent.composer:AgentComposer",
+    "execution": "cgkn.runtime.dag_runner:DAGRunner",
+    "provider_scheduler": "scripts.provider_jobs:ProviderJob",
+    "evidence": "scripts.test_architecture_gate:check",
+    "acceptance": "scripts.kernel_completeness_gate:check",
+    "promotion": "scripts.local_packager:main",
+    "packaging": "scripts.local_packager:main",
+    "delivery": "scripts.public_delivery_gate:evaluate",
+    "clarification": null
+  },
   "implementation_state": {
     "repository_cleanup": "COMPLETE",
     "runtime_wiring": "ISOLATED_VERTICAL_SLICE_OPERATIONAL",

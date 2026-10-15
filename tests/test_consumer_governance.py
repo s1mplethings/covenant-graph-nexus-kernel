@@ -11,6 +11,7 @@ from cgkn.governance.consumer import GovernanceEngine, GovernanceError, canonica
 
 
 TOOL_ROOT = Path(__file__).resolve().parents[1]
+pytestmark = [pytest.mark.happy_path, pytest.mark.boundary, pytest.mark.roundtrip, pytest.mark.security]
 
 
 def run(cwd: Path, *argv: str) -> str:
@@ -117,6 +118,7 @@ def test_path_mapping_and_upward_dependency_propagation(tmp_path: Path) -> None:
     assert result["affectedCapabilities"] == ["capability.demo.core", "capability.demo.parent"]
 
 
+@pytest.mark.negative
 def test_unmapped_governed_file_blocks(tmp_path: Path) -> None:
     project = fixture(tmp_path)
     (project / "src/new.py").write_text("NEW = True\n")

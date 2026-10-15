@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from cgkn.capabilities import CapabilityRegistry
 from cgkn.component import ComponentSpec, PortSpec
 from cgkn.execution import BlockExecutionRequest, BlockStatus, TaskContext
 from cgkn.executors import ExecutorRegistry
 from cgkn.growth import CapabilityGap, GrowthLoop, LocalDiscoverySource, LocalSandbox, default_growth_executor_factories
+
+
+pytestmark = [pytest.mark.happy_path, pytest.mark.boundary, pytest.mark.roundtrip]
 
 
 def component() -> ComponentSpec:
@@ -17,6 +22,7 @@ def gap(run_id: str) -> CapabilityGap:
     return CapabilityGap(f"gap-{run_id}", "project", run_id, "json.parse", ("text",), ("object",), (), "missing capability", "parse", "LOW")
 
 
+@pytest.mark.recovery
 def test_json_parse_growth_trial_admission_execution_and_persistent_reuse(tmp_path) -> None:
     spec = component()
     registry = CapabilityRegistry({spec.ref: spec})

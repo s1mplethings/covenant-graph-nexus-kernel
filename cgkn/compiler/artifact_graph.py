@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import fnmatch
+import copy
+import hashlib
 import json
 import pathlib
 from collections import defaultdict, deque
@@ -32,6 +34,20 @@ class ArtifactGraph:
             queue.extend(self.node_consumers.get(current, ()))
         return result
 
+    def as_dict(self) -> dict[str, Any]:
+        return {"flowRef": self.flow_ref, "nodeDependencies": {key: list(self.node_dependencies[key]) for key in sorted(self.node_dependencies)}, "nodeConsumers": {key: list(self.node_consumers[key]) for key in sorted(self.node_consumers)}, "nodeOutputs": {key: dict(sorted(self.node_outputs[key].items())) for key in sorted(self.node_outputs)}}
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "ArtifactGraph":
+        if set(value) != {"flowRef", "nodeDependencies", "nodeConsumers", "nodeOutputs"}:
+            raise ValueError("malformed artifact graph")
+        return cls(str(value["flowRef"]), {str(key): tuple(str(item) for item in items) for key, items in dict(value["nodeDependencies"]).items()}, {str(key): tuple(str(item) for item in items) for key, items in dict(value["nodeConsumers"]).items()}, {str(key): {str(port): str(kind) for port, kind in dict(items).items()} for key, items in dict(value["nodeOutputs"]).items()})
+
+    @property
+    def graph_hash(self) -> str:
+        payload = json.dumps(self.as_dict(), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
+
 
 class ArtifactFlowCompiler:
     def __init__(self, root: pathlib.Path):
@@ -61,18 +77,26 @@ class ArtifactFlowCompiler:
         if not policy:
             diagnostics.append(self._diag("CGKN_POLICY_NOT_FOUND", "policy_ref", flow.get("policy_ref")))
         artifact_driven = bool(flow.get("metadata", {}).get("artifact_driven"))
-        nodes = {str(node["id"]): node for node in flow.get("nodes", [])}
+        raw_nodes = flow.get("nodes", [])
+        if not isinstance(raw_nodes, list) or any(not isinstance(node, dict) or not str(node.get("id", "")).strip() for node in raw_nodes):
+            return self._result(flow_ref, diagnostics + [self._diag("CGKN_NODES_INVALID", "nodes", raw_nodes)])
+        ids = [str(node["id"]) for node in raw_nodes]
+        if len(ids) != len(set(ids)):
+            return self._result(flow_ref, diagnostics + [self._diag("CGKN_NODE_DUPLICATE", "nodes", ids)])
+        nodes = {str(node["id"]): node for node in raw_nodes}
         node_components: dict[str, ComponentSpec] = {}
         for name, artifact_type in {**flow.get("inputs", {}), **flow.get("outputs", {})}.items():
             self._check_artifact_type(artifact_type, f"flow.{name}", diagnostics)
         for node_id, node in nodes.items():
+            if bool(node.get("structural")):
+                continue
             component = self.component(str(node.get("uses", "")))
             if not component:
                 diagnostics.append(self._diag("CGKN_MODULE_NOT_FOUND", f"nodes.{node_id}.uses", node.get("uses")))
                 continue
             try:
                 spec = component.spec
-            except (KeyError, TypeError, ValueError) as exc:
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
                 diagnostics.append(self._diag("CGKN_MODULE_CONTRACT_INVALID", f"nodes.{node_id}.uses", node.get("uses"), message=str(exc)))
                 continue
             node_components[node_id] = spec
@@ -86,7 +110,12 @@ class ArtifactFlowCompiler:
         consumers: dict[str, list[str]] = defaultdict(list)
         dependencies: dict[str, list[str]] = defaultdict(list)
         flow_outputs: set[str] = set()
-        for index, edge in enumerate(flow.get("edges", [])):
+        raw_edges = flow.get("edges", [])
+        if not isinstance(raw_edges, list):
+            diagnostics.append(self._diag("CGKN_EDGES_INVALID", "edges", raw_edges)); raw_edges = []
+        for index, edge in enumerate(raw_edges):
+            if not isinstance(edge, dict) or not isinstance(edge.get("from"), dict) or not isinstance(edge.get("to"), dict):
+                diagnostics.append(self._diag("CGKN_EDGE_INVALID", f"edges.{index}", edge)); continue
             source = edge.get("from", {})
             target = edge.get("to", {})
             source_type = self._endpoint_type(source, flow, node_components, "output", diagnostics, f"edges.{index}.from")
@@ -130,7 +159,7 @@ class ArtifactFlowCompiler:
                 "kind": "CompiledContractBundle",
                 "flow_ref": flow_ref,
                 "policy_ref": flow.get("policy_ref", ""),
-                "normalized_flow": flow,
+                "normalized_flow": copy.deepcopy(flow),
                 "topological_order": order,
                 "node_component_refs": {key: component.ref for key, component in node_components.items()},
                 "artifact_dependency_graph": {
@@ -138,6 +167,7 @@ class ArtifactFlowCompiler:
                     "nodeConsumers": {key: list(value) for key, value in graph.node_consumers.items()},
                     "nodeOutputs": graph.node_outputs,
                 },
+                "graph_hash": graph.graph_hash,
                 "checks": {
                     "refs": "ok",
                     "types": "ok",

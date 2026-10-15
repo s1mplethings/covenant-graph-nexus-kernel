@@ -4,7 +4,7 @@ import pytest
 
 from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
-from cgkn.orchestration.invalidation import downstream_closure
+from cgkn.orchestration.invalidation import downstream_closure, invalidate_affected_subgraph
 from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edit
 
 
@@ -22,6 +22,10 @@ def test_downstream_closure_is_smallest_affected_subgraph() -> None:
     _, dag = graph()
     assert downstream_closure(dag, {"test"}) == ("test", "report")
     assert downstream_closure(dag, {"implement"}) == ("implement", "test", "report")
+    assert downstream_closure(dag, set()) == ()
+    assert invalidate_affected_subgraph(dag, {"research"}) == ("research", "implement", "test", "report")
+    with pytest.raises(ValueError, match="unknown invalidation"):
+        downstream_closure(dag, {"missing"})
 
 
 def test_tree_edit_validates_preview_dag_and_provenance() -> None:

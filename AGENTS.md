@@ -4,6 +4,10 @@
 
 Before non-trivial architecture work read PRODUCT_GOAL.md, MVP_SCOPE.md, governance/product_invariants.json, and governance/current_architecture.json. These outrank historical design notes, benchmark reports, and project-management summaries.
 
+CGKN self-hosting uses the reviewed `skills/manage-pmp-agile-quality` method.
+
+The reviewed Codex conversation generation route remains: API/provider project generation -> provider output validation -> post-build finalization -> local_packager -> public_delivery_gate -> delivery_manifest.json. Kernel work must not create a second public delivery route.
+
 ## Current MVP architecture
 
 High-capability Agent -> CapabilityTree -> ExecutionDAG -> Component/Block -> replaceable Executor -> Result/Test -> Project State -> Agent checkpoint

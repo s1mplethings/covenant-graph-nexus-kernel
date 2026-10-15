@@ -5,16 +5,19 @@ import pytest
 from cgkn.telemetry import RunTelemetry
 
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.boundary, pytest.mark.determinism]
+
+
 def test_telemetry_is_deterministic_and_separates_agent_worker_and_reuse() -> None:
     telemetry = RunTelemetry()
-    telemetry.record_provider("worker", {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14}, attempts=2)
-    telemetry.record_provider("agent", {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25})
+    telemetry.record_provider("worker", {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14}, attempts=2, duration_ms=8, context_chars=80)
+    telemetry.record_provider("agent", {"prompt_tokens": 20, "completion_tokens": 5, "total_tokens": 25}, duration_ms=4, context_chars=40)
     telemetry.record_node("b", executor="local.file@1", attempts=1, duration_ms=4, status="SUCCEEDED", reused=True, retryable=False)
     telemetry.record_node("a", executor="llm.cheap@1", attempts=2, duration_ms=8, status="SUCCEEDED", reused=False, retryable=True)
     value = telemetry.as_dict()
     assert list(value["provider_roles"]) == ["agent", "worker"]
     assert list(value["nodes"]) == ["a", "b"]
-    assert value["summary"] == {"agent_calls": 1, "cheap_worker_calls": 1, "actual_executions": 1, "reused_nodes": 1}
+    assert value["summary"] == {"agent_calls": 1, "cheap_worker_calls": 1, "provider_calls": 2, "total_tokens": 39, "actual_executions": 1, "reused_nodes": 1, "rerun_nodes": 1, "retry_attempts": 1, "affected_subgraph_ratio": 0.5}
     assert value["provider_roles"]["worker"]["attempts"] == 2
 
 
@@ -31,3 +34,29 @@ def test_duplicate_and_negative_node_telemetry_is_rejected() -> None:
         telemetry.record_node("n", executor="local.file@1", attempts=1, duration_ms=0, status="SUCCEEDED", reused=False, retryable=False)
     with pytest.raises(ValueError):
         RunTelemetry().record_node("n", executor="e", attempts=-1, duration_ms=0, status="FAILED", reused=False, retryable=False)
+    with pytest.raises(ValueError):
+        RunTelemetry().record_node("n", executor="e", attempts=1, duration_ms=-1, status="FAILED", reused=False, retryable=False)
+
+
+@pytest.mark.roundtrip
+@pytest.mark.security
+def test_round_trip_missing_usage_and_secret_redaction() -> None:
+    telemetry = RunTelemetry()
+    telemetry.record_provider("agent", {"api_key": "SECRET", "prompt_tokens": "bad"})
+    value = telemetry.as_dict()
+    assert "SECRET" not in str(value)
+    assert RunTelemetry.from_dict(value).as_dict() == value
+    assert RunTelemetry().as_dict()["summary"]["affected_subgraph_ratio"] == 0.0
+
+
+@pytest.mark.negative
+@pytest.mark.fault_injection
+@pytest.mark.parametrize("value", [
+    {},
+    {"kind": "CGKNRunTelemetry", "schema_version": "1.0", "provider_roles": {"other": {}}, "nodes": {}},
+    {"kind": "CGKNRunTelemetry", "schema_version": "1.0", "provider_roles": {"agent": {"calls": -1}}, "nodes": {}},
+    {"kind": "CGKNRunTelemetry", "schema_version": "1.0", "provider_roles": {}, "nodes": {"n": "bad"}},
+])
+def test_malformed_telemetry_is_rejected(value) -> None:
+    with pytest.raises(ValueError):
+        RunTelemetry.from_dict(value)
