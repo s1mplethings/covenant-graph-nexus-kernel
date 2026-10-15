@@ -1,0 +1,11 @@
+{
+  "goal": "Prove deterministic failure propagation and retry history.",
+  "run_id": "broken-run",
+  "project_root": "workspace",
+  "nodes": [
+    {"id": "project"},
+    {"id": "write_source", "parent_id": "project", "capability_ref": "source.write@1", "config": {"executor_ref": "local.file@1", "action": "write_file", "path": "broken.py", "content": "raise RuntimeError('intentional failure')\n", "goal": "Write broken source"}},
+    {"id": "run_broken_program", "parent_id": "project", "capability_ref": "program.run@1", "depends_on": ["write_source"], "config": {"executor_ref": "local.command@1", "command": ["python", "broken.py"], "cwd": ".", "goal": "Run broken program"}},
+    {"id": "verify_output", "parent_id": "project", "capability_ref": "output.verify@1", "depends_on": ["run_broken_program"], "config": {"executor_ref": "local.command@1", "assert_dependency_stdout_contains": "never", "goal": "Must be blocked"}}
+  ]
+}

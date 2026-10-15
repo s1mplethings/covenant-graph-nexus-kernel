@@ -1,28 +1,27 @@
 {
   "kind": "CGKNCurrentArchitecture",
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "product_version": "0.2.0-rc.2",
-  "architecture_generation": "capability-tree-mvp",
+  "architecture_generation": "capability-tree-mvp-runtime-foundation",
   "implementation_state": {
     "repository_cleanup": "COMPLETE",
-    "runtime_wiring": "NOT_IMPLEMENTED",
-    "functional_readiness": "NOT_EVALUATED"
+    "runtime_wiring": "ISOLATED_VERTICAL_SLICE_OPERATIONAL",
+    "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
+    "functional_readiness": "LEVEL_2"
   },
-  "product_authority": [
-    "PRODUCT_GOAL.md",
-    "MVP_SCOPE.md",
-    "governance/product_invariants.json"
-  ],
-  "state_authority": [
-    "governance/mvp_cleanup_boundary.json",
-    "docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md"
-  ],
+  "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
+  "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],
   "declared_authorities": {
     "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
     "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
     "component_contract": "cgkn/component/spec.py:ComponentSpec",
     "port_contract": "cgkn/component/ports.py:PortSpec",
     "component_execution_record": "cgkn/component/execution.py:ComponentExecution",
+    "block_execution_envelope": "cgkn/execution/contracts.py:BlockExecutionRequest",
+    "executor_resolution": "cgkn/executors/registry.py:ExecutorRegistry",
+    "project_run_state": "cgkn/state/store.py:FileRunStore",
+    "dag_runtime": "cgkn/runtime/dag_runner.py:DAGRunner",
+    "capability_registry": "cgkn/capabilities/registry.py:CapabilityRegistry",
     "artifact_runtime": "cgkn/runtime/runner.py:ArtifactModuleRunner",
     "provider_executor_adapter": "scripts/provider_jobs.py:ProviderJob",
     "deterministic_action_adapter": "scripts/local_agent_actions.py:LocalAgentActionExecutor",
@@ -31,37 +30,13 @@
     "product_direction_gate": "scripts/product_direction_gate.py:check"
   },
   "target_routes": {
-    "composition": [
-      "high-capability Agent",
-      "cgkn/orchestration/capability_tree.py:CapabilityTree",
-      "cgkn/orchestration/execution_dag.py:compile_tree"
-    ],
-    "execution": [
-      "cgkn/component/spec.py:ComponentSpec",
-      "replaceable Executor adapter",
-      "cgkn/component/execution.py:ComponentExecution",
-      "artifact/result/test projection",
-      "persistent project state"
-    ]
+    "composition": ["high-capability Agent", "CapabilityTree", "compile_tree"],
+    "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
+    "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
   },
-  "compatibility_entrypoints": [
-    "scripts/codex_conversation.py",
-    "scripts/run_codex_conversation_generation.py",
-    "scripts/run_local_pipeline.py",
-    "scripts/run_local_pipeline_impl.py"
-  ],
-  "compatibility_rule": "Compatibility entrypoints remain callable until the target route owns one real vertical slice. They are not the MVP planning or composition authority.",
-  "next_feature_increment": {
-    "id": "MVP-002",
-    "name": "Wire the common Block execution boundary",
-    "migration_target": "Execute ready ExecutionDAG nodes through replaceable bounded executors and persist their results."
-  },
+  "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
+  "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
+  "next_feature_increment": {"id": "MVP-010", "name": "Prove first validated self-growth", "migration_target": "Acquire, trial, admit, execute, and reuse one missing low-risk local capability without Provider or network calls."},
   "forbidden_parallel_authorities": true,
-  "verification": {
-    "github_actions": "NOT_EVALUATED",
-    "github_actions_note": "The baseline branch reported startup failure; this cleanup branch was not evaluated by GitHub Actions.",
-    "product_direction_gate": "PASS",
-    "focused_tests": "PASS",
-    "full_pytest": "NOT_EVALUATED"
-  }
+  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "full_pytest": "NOT_EVALUATED"}
 }

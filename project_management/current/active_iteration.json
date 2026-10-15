@@ -1,77 +1,39 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-MVP-REPOSITORY-PRUNE-003",
+  "iteration_id": "ITER-MVP-RUNTIME-FOUNDATION-004",
   "project_id": "cgkn",
-  "goal": "Remove obsolete pre-MVP copies, orphaned experiments, stale tests, and generated repository outputs without changing runtime behavior.",
-  "backlog_item_ids": [
-    "MVP-001"
-  ],
+  "goal": "Execute, persist, resume, and locally rerun the canonical CapabilityTree-to-ExecutionDAG path, then prove controlled capability acquisition and reuse.",
+  "backlog_item_ids": ["MVP-002", "MVP-003", "MVP-004", "MVP-005", "MVP-006", "MVP-007", "MVP-008", "MVP-009", "MVP-010"],
   "workflow_state": "closed",
-  "evidence_status": "PASS",
-  "precondition": {
-    "repository_cleanup": "PHYSICAL_DELETION_REQUIRED",
-    "boundary_record": "governance/mvp_cleanup_boundary.json",
-    "compatibility_runtime_retained": true
-  },
+  "evidence_status": "PASS_WITH_LIMITS",
+  "delivery_approach": "hybrid: stable kernel contracts with short deterministic vertical increments",
   "acceptance_criteria": [
-    "obsolete pre-MVP archive copies are removed rather than moved",
-    "orphaned branch-agent, full-dynamic resume, scale, and long-test diagnostics are removed with their tests",
-    "tracked generated repository-audit and clarification outputs are removed",
-    "the four compatibility entrypoints and their active dependencies still import",
-    "the product direction gate and focused CapabilityTree MVP checks pass",
-    "runtime wiring remains NOT_IMPLEMENTED and functional readiness remains NOT_EVALUATED"
-  ],
-  "out_of_scope": [
-    "MVP-002 implementation",
-    "Block Runtime, Executor, scheduler, registry, or self-growth implementation",
-    "Provider, stress, soak, scale, benchmark, or long-running validation",
-    "changing generation or delivery semantics"
+    "one Block execution request/result contract projects bounded Component work",
+    "file-backed run state is atomic, append-only where required, resumable, and path confined",
+    "one ExecutorRegistry resolves bounded local adapters",
+    "the canonical ExecutionDAG executes a real success and failure pipeline",
+    "resume reuses successful nodes and explicit retry reruns only the affected subgraph",
+    "tree edits fail closed before commit",
+    "capabilities persist, admit only after tests, and record observed use",
+    "json.parse is discovered from the standard library, trialed, admitted, executed, and reused without Provider or network calls"
   ],
   "quality_metrics": [
-    {
-      "id": "QM-CLEANUP-BOUNDARY",
-      "measure": "product direction and cleanup regression checks",
-      "target": "PASS",
-      "actual": "PASS"
-    },
-    {
-      "id": "QM-COMPATIBILITY-IMPORTS",
-      "measure": "retained compatibility import smoke",
-      "target": "PASS",
-      "actual": "PASS"
-    },
-    {
-      "id": "QM-FOCUSED-MVP",
-      "measure": "focused CapabilityTree MVP pytest set",
-      "target": "PASS",
-      "actual": "PASS"
-    }
+    {"id": "QM-RUNTIME-FOCUSED", "measure": "focused Foundation test suite", "target": "PASS", "actual": "81 passed across the Foundation and cleanup-debt command groups"},
+    {"id": "QM-RUNTIME-VERTICAL", "measure": "hello execute then resume", "target": "3 executed then 3 reused", "actual": "3 executed then 3 reused; PASS"},
+    {"id": "QM-GROWTH-V0", "measure": "json.parse growth then reuse", "target": "one growth invocation then registry reuse", "actual": "NOT_EVALUATED"},
+    {"id": "QM-PROVIDER-NETWORK", "measure": "Provider and network calls", "target": "0", "actual": "0 Provider calls and 0 network calls in Foundation runtime"}
   ],
+  "out_of_scope": ["compatibility mainline replacement", "Provider planning expansion", "public delivery", "fixed role pipelines", "large-scale concurrency", "stress or soak testing"],
   "evidence_refs": [
+    "python -m compileall -q cgkn contracts scripts",
     "python scripts/product_direction_gate.py",
-    "python -m pytest -q tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component",
-    "python -m pytest --collect-only -q",
-    "retained compatibility import smoke"
+    "python -m pytest -q tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component tests/execution tests/state tests/executors tests/runtime tests/capabilities",
+    "python -m pytest -q tests/test_kernel_contract.py tests/test_canonical_repo_publish.py",
+    "python scripts/run_mvp_runtime.py --project-id hello-project --tree examples/mvp-runtime/hello-pipeline/tree.json --run-root <isolated> --json",
+    "python scripts/run_mvp_runtime.py --project-id hello-project --tree examples/mvp-runtime/hello-pipeline/tree.json --run-root <isolated> --resume --json",
+    "git diff --check"
   ],
-  "review": {
-    "outcome": "accepted",
-    "feedback": [
-      "Physical deletion removed duplicate history instead of creating another archive.",
-      "Active compatibility imports remain usable without the retired autonomous-validation ladder.",
-      "Repository cleanup PASS does not change functional readiness."
-    ]
-  },
-  "retrospective": {
-    "worked": [
-      "Import and collection checks exposed stale references that filename-only review missed.",
-      "Deleting old families with their tests and schemas kept the repository internally consistent."
-    ],
-    "did_not_work": [
-      "The first full collection found baseline tests that still imported files already moved out of active source."
-    ],
-    "experiments": [
-      "Require full collection after future physical-prune increments before declaring cleanup complete."
-    ]
-  }
+  "review": {"outcome": "accepted_with_limits", "feedback": ["The isolated runtime proves LEVEL 2 behavior without replacing the compatibility mainline.", "External/provider executors and Self-Growth remain outside this Foundation branch."]},
+  "retrospective": {"worked": ["Extending existing ComponentSpec, PortSpec, CapabilityTree, ExecutionDAG, and ArtifactRef avoided parallel authorities.", "Real subprocess and filesystem fixtures exposed resume and dependency behavior deterministically."], "did_not_work": ["The baseline Kernel Contract tests still asserted retired Product Studio text and had to be realigned before feature work."], "experiments": ["Keep serial execution until deterministic state and retry semantics have repeated evidence."]}
 }

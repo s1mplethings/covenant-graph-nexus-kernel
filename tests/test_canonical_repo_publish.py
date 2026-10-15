@@ -45,6 +45,7 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("credentials.json", "SECRET", "BLOCK"),
         ("tests/test_app.py", "TEST", "COMMIT"),
         ("benchmarks/project_generation_v1/cases.json", "TEST", "COMMIT"),
+        ("examples/mvp-runtime/hello-pipeline/tree.json", "TEST", "COMMIT"),
         ("config/provider_profiles/project-generation-external-api.json", "CONTRACT", "COMMIT"),
         ("src/app.py", "SOURCE", "COMMIT"),
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
@@ -306,7 +307,7 @@ def test_fast_ci_workflow_is_bounded_and_provider_free() -> None:
     workflow = (ROOT / ".github" / "workflows" / "repository-fast-ci.yml").read_text(encoding="utf-8")
     assert "pull_request:" in workflow
     assert "timeout-minutes: 12" in workflow
-    assert "canonical_version_gate.py" in workflow
+    assert "product_direction_gate.py" in workflow
     assert "test_kernel_contract.py" in workflow
     assert "provider" not in workflow.lower()
 

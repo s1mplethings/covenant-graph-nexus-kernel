@@ -22,7 +22,11 @@ Roles such as Project Manager, Developer, Tester, Researcher, Release, or Market
 
 ## Current implementation state
 
-The Component, CapabilityTree, ExecutionDAG, artifact, and deterministic runtime substrate exists, but the target architecture is **not yet wired into the default project runtime**.
+The Component, CapabilityTree, ExecutionDAG, bounded executor, file-backed
+state, and deterministic DAG runtime substrate now owns an isolated real
+vertical slice. It supports resume, explicit retry, affected-subgraph rerun,
+controlled tree edits, and a versioned Capability Registry. It has **not**
+replaced the default compatibility project-generation runtime.
 
 The remaining compatibility entrypoints are:
 
@@ -40,16 +44,9 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current feature increment
 
-The next implementation step is `MVP-002: Wire the common Block execution boundary`:
-
-1. canonical Block execution request/result contracts;
-2. replaceable Executor adapter protocol;
-3. deterministic local-action executor adapter;
-4. ExecutionDAG runtime coordinator;
-5. persisted run/result state;
-6. focused execution tests for a real DAG node.
-
-Only after that path owns one real vertical slice should migration continue into the large compatibility runtime.
+`MVP-002` is complete in the isolated runtime. The next increment is controlled
+capability acquisition and reuse (`MVP-010`); migration into the large
+compatibility runtime remains a separate, later decision.
 
 ## Current reusable substrate
 
@@ -57,6 +54,10 @@ Only after that path owns one real vertical slice should migration continue into
 - `cgkn/orchestration/` — CapabilityTree and ExecutionDAG structures
 - `cgkn/artifacts/` — artifact identity and materialization
 - `cgkn/runtime/` — deterministic component/artifact runtime
+- `cgkn/execution/` — bounded Block request/result envelopes
+- `cgkn/state/` — project/run state, attempt history, and event log
+- `cgkn/executors/` — replaceable executor protocol, registry, and local adapters
+- `cgkn/capabilities/` — versioned capability lifecycle registry
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support
@@ -73,9 +74,10 @@ Run the direction gate with:
 python scripts/product_direction_gate.py
 ```
 
-The cleanup worktree passes the local direction gate, focused CapabilityTree MVP
-tests, retained compatibility import smoke, and full pytest collection. A full
-pytest execution and product functional readiness remain `NOT_EVALUATED`;
-repository cleanup is not a functional-readiness claim.
+The runtime foundation passes the local direction gate, focused Component,
+execution, state, executor, DAG runtime, capability registry, publication, and
+kernel-contract checks. The deterministic vertical slice and local repair path
+are `PASS`; replacement of the compatibility mainline and full production
+readiness remain `NOT_EVALUATED`.
 
 Historical Fixed10, role-driven validation, Agent Tree/Growth experiments, stress/soak/scale gates, commercial-readiness gates, and superseded fixed-flow contracts remain available in Git history only and must not return as MVP authority.

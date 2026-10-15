@@ -18,8 +18,9 @@ def test_mvp_authorities_are_explicit_and_honest() -> None:
     assert "Tree-to-DAG" in product
     assert "Roles are capability bundles/views" in product
     assert "Provider-owned project planning" in scope
-    assert "not yet wired into the default project runtime" in readme
-    assert architecture["implementation_state"]["runtime_wiring"] == "NOT_IMPLEMENTED"
+    assert "has **not** replaced the default compatibility project-generation runtime" in " ".join(readme.split())
+    assert architecture["implementation_state"]["runtime_wiring"] == "ISOLATED_VERTICAL_SLICE_OPERATIONAL"
+    assert architecture["implementation_state"]["compatibility_mainline_replacement"] == "NOT_IMPLEMENTED"
     assert boundary["status"] == "CLEANUP_COMPLETE_FEATURE_IMPLEMENTATION_REQUIRED"
     assert boundary["functional_readiness"] == "NOT_EVALUATED"
     assert boundary["next_increment"]["id"] == "MVP-002"

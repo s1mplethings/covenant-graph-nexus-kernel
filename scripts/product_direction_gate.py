@@ -9,7 +9,8 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REQUIRED_INVARIANTS = {f"INV-{index:02d}" for index in range(1, 11)}
 BOUNDARY_STATUS = "CLEANUP_COMPLETE_FEATURE_IMPLEMENTATION_REQUIRED"
-RUNTIME_WIRING_STATUS = "NOT_IMPLEMENTED"
+BOUNDARY_RUNTIME_WIRING_STATUS = "NOT_IMPLEMENTED"
+CURRENT_RUNTIME_WIRING_STATUS = "ISOLATED_VERTICAL_SLICE_OPERATIONAL"
 
 FORBIDDEN_ACTIVE_PATHS = {
     "legacy/pre_mvp_reset",
@@ -335,7 +336,7 @@ def check() -> list[str]:
         errors.append("product_goal_missing_agent_decision_authority")
     if "Provider-owned project planning" not in scope:
         errors.append("mvp_scope_missing_provider_planning_exclusion")
-    if "not yet wired into the default project runtime" not in readme:
+    if "has **not** replaced the default compatibility project-generation runtime" not in " ".join(readme.split()):
         errors.append("readme_overstates_runtime_wiring")
 
     invariants = _read_json("governance/product_invariants.json")
@@ -348,16 +349,18 @@ def check() -> list[str]:
         errors.append("product_invariants_identity_mismatch")
 
     architecture = _read_json("governance/current_architecture.json")
-    if architecture.get("architecture_generation") != "capability-tree-mvp":
+    if architecture.get("architecture_generation") != "capability-tree-mvp-runtime-foundation":
         errors.append("current_architecture_not_capability_tree_mvp")
     implementation_state = architecture.get("implementation_state", {})
-    if not isinstance(implementation_state, dict) or implementation_state.get("runtime_wiring") != RUNTIME_WIRING_STATUS:
+    if not isinstance(implementation_state, dict) or implementation_state.get("runtime_wiring") != CURRENT_RUNTIME_WIRING_STATUS:
         errors.append("current_architecture_runtime_wiring_misreported")
+    if not isinstance(implementation_state, dict) or implementation_state.get("compatibility_mainline_replacement") != "NOT_IMPLEMENTED":
+        errors.append("current_architecture_compatibility_replacement_misreported")
 
     boundary = _read_json("governance/mvp_cleanup_boundary.json")
     if boundary.get("status") != BOUNDARY_STATUS:
         errors.append("cleanup_boundary_status_mismatch")
-    if boundary.get("current_runtime_wiring") != RUNTIME_WIRING_STATUS:
+    if boundary.get("current_runtime_wiring") != BOUNDARY_RUNTIME_WIRING_STATUS:
         errors.append("cleanup_boundary_runtime_wiring_mismatch")
     if boundary.get("functional_readiness") != "NOT_EVALUATED":
         errors.append("cleanup_boundary_overstates_functional_readiness")
@@ -395,6 +398,11 @@ def check() -> list[str]:
         "cgkn/component/ports.py",
         "cgkn/orchestration/capability_tree.py",
         "cgkn/orchestration/execution_dag.py",
+        "cgkn/execution/contracts.py",
+        "cgkn/executors/registry.py",
+        "cgkn/state/store.py",
+        "cgkn/runtime/dag_runner.py",
+        "cgkn/capabilities/registry.py",
         "benchmarks/mvp_decision_efficiency/README.md"
     ):
         if not (ROOT / path).is_file():

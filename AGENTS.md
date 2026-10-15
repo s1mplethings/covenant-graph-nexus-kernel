@@ -37,3 +37,11 @@ The pre-reset Provider generation, formal evidence, packaging, public-delivery, 
 - Keep team roles above the kernel.
 - Run python scripts/product_direction_gate.py after architecture changes.
 - Preserve guarded repository publishing and do not force push routine changes.
+
+## Canonical repository publication
+
+`scripts/canonical_repo_publish.py` is the sole staging, commit, normal-push,
+and remote-SHA verification authority. Publication must use an explicit
+ChangeManifest and current TestReceipt. Never use implicit bulk staging,
+force push, automatic hard reset, or a successful push exit code as proof of
+publication; the fetched remote branch SHA must match the committed SHA.

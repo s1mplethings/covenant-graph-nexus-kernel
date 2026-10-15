@@ -8,3 +8,6 @@ __all__ = [
     "ExecutionDAG",
     "compile_tree",
 ]
+from .invalidation import downstream_closure, invalidate_affected_subgraph
+
+__all__ = ["downstream_closure", "invalidate_affected_subgraph"]

@@ -59,3 +59,18 @@ scripts/canonical_repo_publish.py remains the guarded repository publication aut
 Architecture work must pass: python scripts/product_direction_gate.py
 
 A change that violates product invariants is an architecture failure even when unit tests pass.
+
+## 13. MVP runtime authorities
+
+The operational MVP route is now bounded by these single authorities:
+
+- `CapabilityTree` owns composition and `compile_tree` owns the one `ExecutionDAG`;
+- `ComponentSpec` and `PortSpec` remain the reusable capability interface truth;
+- `BlockExecutionRequest` and `BlockExecutionResult` are the runtime envelopes around bounded Component work, not replacement Component specifications;
+- `ExecutorRegistry` is the only executor-resolution authority for the new runtime;
+- `FileRunStore` owns human-readable project/run state, immutable attempt history, and append-only events;
+- `DAGRunner` serially executes, resumes, and explicitly retries the smallest affected DAG subgraph;
+- `CapabilityRegistry` owns versioned capability lifecycle and observed execution evidence.
+
+The compatibility conversation and generation entrypoints remain callable and
+are not replaced by this isolated MVP runtime.

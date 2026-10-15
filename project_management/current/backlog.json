@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-002",
+  "current_item_id": "MVP-010",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NOT_EVALUATED",
   "product_authority": [
@@ -31,7 +31,7 @@
       "id": "MVP-002",
       "title": "Wire the common Block execution boundary",
       "priority": 2,
-      "state": "planned",
+      "state": "done",
       "value": "Make the Component/Block contract executable through one replaceable bounded Executor interface.",
       "acceptance": [
         "canonical execution request and result contracts",
@@ -41,65 +41,70 @@
         "ExecutionDAG coordinator executes ready nodes",
         "run and result state are persisted",
         "focused tests execute a real node without Provider-owned project planning"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-003",
       "title": "Finish CapabilityTree composition semantics",
       "priority": 3,
-      "state": "substrate_exists_unwired",
+      "state": "done",
       "value": "Let the high-capability Agent incrementally create and modify a stable composition tree.",
       "acceptance": [
         "stable node identity",
         "structural parent-child composition",
         "add, replace, remove, and expand operations",
         "roles remain optional views over capabilities"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-004",
       "title": "Finish Tree-to-DAG compilation",
       "priority": 4,
-      "state": "substrate_exists_unwired",
+      "state": "done",
       "value": "Compile executable dependencies separately from the human-readable composition tree.",
       "acceptance": [
         "fan-out and fan-in",
         "cycle and unknown-dependency rejection",
         "deterministic topological order",
         "no second execution graph authority"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-005",
       "title": "Create replaceable executor adapters",
       "priority": 5,
-      "state": "started_by_mvp_002",
+      "state": "local_adapters_complete_external_adapters_pending",
       "value": "Run bounded Blocks through cheap models, local models, APIs, search, scripts, browsers, and deterministic tools.",
       "acceptance": [
         "common execute contract",
         "bounded task packet",
         "cost, timeout, and provenance metadata",
         "executor cannot redefine project intent"
-      ]
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
     },
     {
       "id": "MVP-006",
       "title": "Persist project and run state",
       "priority": 6,
-      "state": "planned",
+      "state": "done",
       "value": "Keep goals, tree, DAG, node results, artifacts, failures, and checkpoints without replaying full conversation history.",
       "acceptance": [
         "identity-bound project state",
         "node execution history",
         "artifact and result references",
         "safe resume after interruption"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-007",
       "title": "Prove one real vertical slice",
       "priority": 7,
-      "state": "planned",
+      "state": "done",
       "value": "Complete one real project change through the new tree, DAG, executor, test, and state path.",
       "acceptance": [
         "real repository or project input",
@@ -107,33 +112,36 @@
         "real code or project change",
         "real test or runtime result",
         "high-capability Agent calls measured"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-008",
       "title": "Implement affected-subgraph repair",
       "priority": 8,
-      "state": "planned",
+      "state": "done",
       "value": "Map failures to the smallest safe node/subgraph and rerun only affected work.",
       "acceptance": [
         "failure-to-node mapping",
         "downstream invalidation",
         "unaffected results reused",
         "no default whole-project regeneration"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-009",
       "title": "Build the capability registry",
       "priority": 9,
-      "state": "planned",
+      "state": "done",
       "value": "Allow the Agent to discover capabilities by interface, constraints, cost, executor, and observed quality.",
       "acceptance": [
         "queryable capability metadata",
         "versioned interface identity",
         "test and usage evidence",
         "reuse before new implementation"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-010",

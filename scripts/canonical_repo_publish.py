@@ -168,6 +168,8 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "GENERATED", "generated project or package"
     if lower.startswith("benchmarks/"):
         return "TEST", "benchmark source, fixture, or case data"
+    if lower.startswith("examples/mvp-runtime/"):
+        return "TEST", "deterministic MVP runtime example or fixture"
     if lower.startswith("config/provider_profiles/"):
         return "CONTRACT", "reviewed Provider execution profile"
     if lower.startswith("tests/") or pure.name.startswith("test_"):
