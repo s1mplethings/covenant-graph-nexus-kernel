@@ -1,122 +1,43 @@
-# CGKN Codex Edition
+# CGKN
 
-CGKN is an AI agile engineering kernel. It converts user goals into
-capability/interface DAGs, prefers reuse before fresh implementation, executes
-bounded WorkNodes, validates results with canonical evidence, and delivers
-portable projects. The production route is singular; planning and executor
-choices do not create alternate generation or delivery routes.
+CGKN is a composable autonomous project-team kernel.
 
-CGKN Codex Edition is operated only through the Codex conversation in this
-workspace. There is no standalone chat listener, polling service, secondary
-customer UI, or external messaging delivery adapter.
+The current MVP uses one high-capability Agent for project-level decisions, a Capability Tree for incremental composition, an Execution DAG for runtime dependencies, and replaceable executors for bounded work.
 
-## Use
+Mainline:
 
-Open this repository in Codex and describe the project or change you want. The
-active Codex task is the sole user-facing interaction surface. Uploaded files,
-status updates, review decisions, previews, and final local artifact links all
-remain in that task.
+User Goal -> High-capability Agent -> Capability Tree -> Execution DAG -> Component/Block -> cheap model | local model | API | search | script | test tool -> Result/Test -> Project State -> Agent checkpoint
 
-For controlled real-project use, the Agent Kit also exposes Usage Beta:
+## What remains from the long-term vision
 
-```text
-cgkn-agent build "your project goal" --usage-beta
-```
+CGKN can grow into a project team with project management, coding, testing, research, release, promotion, and other capabilities. These are composed on the same substrate. Roles such as Developer, Tester, Researcher, or Marketing are capability bundles/views, not kernel stages.
 
-Usage Beta defaults to the reviewed `codex_surrogate` execution mode and still
-requires goal fidelity, a runnable project, working core capability, one tested
-primary user path, and complete delivery evidence. Its PASS means usable for
-beta testing, never formal release or commercial readiness.
+## Current MVP priorities
 
-The production generation route remains:
+1. Component/Block boundary
+2. CapabilityTree
+3. Tree-to-DAG compilation
+4. executor assignment and bounded context
+5. real tool/test execution
+6. smallest-affected-subgraph repair
+7. project state
+8. capability reuse and later self-growth
 
-```text
-Codex conversation
--> requirements and whiteboard/agent_session state
--> capability/interface planning and a minimal WorkNode DAG
--> WorkNode-to-ProviderJob adapter
--> parallel isolated Provider work, ownership check, deterministic merge
--> Provider integration/semantic repair
--> Provider output validation
--> post-build finalization
--> canonical test/runtime/visual evidence as applicable
--> sparse read-only Codex False-Pass audit at positive checkpoints
--> user review in the active Codex task when required
--> local_packager
--> public_delivery_gate
--> delivery_manifest.json and conversation-bound delivery receipt
--> Codex result with local artifact links
-```
+Product authority lives in PRODUCT_GOAL.md, MVP_SCOPE.md, governance/product_invariants.json, and governance/current_architecture.json.
 
-`local_packager` is the only delivery exit. `pipeline_manifest` and
-`dynamic_pipeline_runner` remain support/experimental planning components and
-must not become a second production or delivery route.
+Run the direction gate with: python scripts/product_direction_gate.py
 
-## Artifact-driven pipeline kernel (v0.3 capability)
+## Reusable foundation kept
 
-CGKN includes an additive local artifact-runtime lane for typed, incremental
-module execution. Feed-forward means that a validated output
-`ArtifactInstance` becomes a downstream module's typed input; replaying the
-whole conversation is not feed-forward.
+- cgkn/component/: ComponentSpec, PortSpec, execution/result contracts
+- cgkn/artifacts/: artifact identity/materialization
+- cgkn/orchestration/: CapabilityTree and ExecutionDAG
+- cgkn/runtime/: deterministic component/artifact runtime
+- scripts/work_nodes.py: bounded work compatibility contract
+- scripts/provider_jobs.py: Provider executor/PatchSet adapter
+- scripts/real_test_execution.py: real test/runtime support
+- scripts/canonical_repo_publish.py: guarded repository publication
 
-The reference flow is `flow.artifact_driven_project_refactor@1`. It provides
-immutable artifact history and `ArtifactRef` identities, deterministic hashes
-and provenance, module-scoped context projections and budgets, local execution
-fingerprints and cache, lineage, stale marking, affected-only invalidation,
-effect cardinality, and ref-only checkpoints.
+The large pre-reset Provider project-generation and formal-delivery stack remains compatibility/future material. It is not the product-definition authority for the MVP.
 
-```text
-python scripts/demo_artifact_recompute.py --run-dir runs/artifact-v03-demo --json
-python scripts/artifact_lineage.py --run-dir runs/artifact-v03-demo --artifact ai.delivery-judgment.002
-python scripts/explain_flow.py --flow flow.artifact_driven_project_refactor@1
-```
-
-The Todo demo shows an unchanged project snapshot cache hit while
-requirement-dependent descendants recompute. This lane does not replace the
-reviewed Provider generation mainline, canonical evidence producers,
-`local_packager`, or the public delivery gate. See
-`docs/artifact-driven-migration.md` for migration and compatibility details.
-
-## Important files
-
-- `cgkn/` — typed Artifact Kernel source: artifact models, compiler, and runtime.
-- `specs/` — authoritative machine-readable Artifact, Module, Flow, Policy,
-  Migration, and Context Pack registry.
-- `schemas/` and `contracts/` — JSON schemas and stable interface contracts.
-- `examples/` — small human-readable inputs and expected summaries only.
-- `evidence/` — curated claims, metrics, hashes, reproduction commands, and
-  known limits; raw runs are excluded.
-- `tests/fixtures/` — small deterministic test-only fixtures.
-- `scripts/codex_conversation.py` — import-only conversation orchestration,
-  generation entry, guarded replies, evidence gates, and delivery handoff.
-- `scripts/work_nodes.py` — minimal canonical planning contract and bounded local context projection.
-- `scripts/provider_jobs.py` — Provider executor adapter and PatchSet ownership boundary; scheduling remains in `run_local_pipeline_impl.py`.
-- `scripts/cgkn_runtime_supervisor.py` — persistent read-only False-Pass Auditor host.
-- `scripts/cgkn_supervision_router.py` — deterministic project/evidence/kernel routing.
-- `scripts/governed_kernel_repair.py` — isolated allowlisted kernel-repair execution.
-- `scripts/local_packager.py` — sole package and delivery exit.
-- `docs/00_kernel_contract.md` — kernel invariants.
-- `docs/01_contract_registry.md` — authoritative formal artifact registry.
-- `docs/14_codex_cgkn_runtime_supervision_baseline.md` — runtime ownership.
-
-## Verification
-
-```powershell
-python scripts/kernel_contract_check.py
-python scripts/validate_bundle.py --root . --schema
-python scripts/repository_hygiene.py
-python -m pytest tests/test_kernel_contract.py tests/test_codex_conversation.py tests/test_codex_public_delivery_gate.py -q
-```
-
-Local output belongs under ignored `runs/`, `artifacts/`, `generated/`, or
-`workspaces/`. Promote a durable claim with `scripts/promote_evidence.py`; do
-not commit complete run workspaces or live `.cgkn` state. See
-`docs/repository_guide.md` for the retention model.
-
-Provider credentials are used only by the reviewed Provider route. No
-conversation transport credential is required.
-
-`CGKN_PROVIDER_PARALLELISM` defaults to 4. Normal Provider leaves, retries, and
-test failures do not invoke Codex. Project problems return to Provider,
-evidence problems rerun canonical verification, and only demonstrated CGKN
-bugs can enter the separate governed Codex kernel-repair path.
+Historical stress ladders, role-driven validation passes, Fixed10 launchers, and superseded fixed-flow architecture documents must not return as MVP readiness authorities.
