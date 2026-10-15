@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from generate_kernel_test_receipt import _canonical_hash
 from kernel_source_identity import identity
+from run_kernel_profiles import _profile_status
 from verify_kernel_test_receipt import verify
 
 
@@ -53,3 +54,11 @@ def test_receipt_verifier_rejects_tamper_and_source_mismatch(tmp_path: pathlib.P
     result = verify(path)
     assert result["status"] == "FAIL"
     assert {"receipt_hash_mismatch", "receipt_not_pass"}.issubset(result["errors"])
+
+
+@pytest.mark.negative
+def test_live_provider_all_skipped_is_not_reported_as_pass() -> None:
+    status, reason = _profile_status("live-provider", [{"returncode": 0}], {"passed": 0, "failed": 0, "errors": 0, "skipped": 2})
+    assert status == "BLOCKED_ENVIRONMENT"
+    assert reason and "not executed" in reason
+    assert _profile_status("live-provider", [{"returncode": 0}], {"passed": 1, "failed": 0, "errors": 0, "skipped": 0}) == ("PASS", None)

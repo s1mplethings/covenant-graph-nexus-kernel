@@ -71,6 +71,14 @@ def _totals(output: str) -> dict[str, int]:
     return result
 
 
+def _profile_status(name: str, commands: list[dict[str, object]], totals: dict[str, int]) -> tuple[str, str | None]:
+    if not commands or any(item["returncode"] != 0 for item in commands):
+        return "FAIL", None
+    if name == "live-provider" and totals["passed"] == 0:
+        return "BLOCKED_ENVIRONMENT", "live-provider tests were not executed; all selected cases were skipped"
+    return "PASS", None
+
+
 def run_profile(name: str) -> dict[str, object]:
     if name == "live-provider" and not os.environ.get("CGKN_OPENAI_API_KEY"):
         return {"profile": name, "status": "BLOCKED_ENVIRONMENT", "duration_ms": 0, "commands": [], "test_node_ids": [], "totals": {"passed": 0, "failed": 0, "errors": 0, "skipped": 0}, "reason": "CGKN_OPENAI_API_KEY is not configured"}
@@ -90,7 +98,11 @@ def run_profile(name: str) -> dict[str, object]:
         for key in totals: totals[key] += parsed[key]
         commands.append({"argv": executed, "returncode": completed.returncode, "stdout_tail": completed.stdout[-4000:], "stderr_tail": completed.stderr[-2000:]})
         if completed.returncode: break
-    return {"profile": name, "status": "PASS" if commands and all(item["returncode"] == 0 for item in commands) else "FAIL", "duration_ms": int((time.perf_counter() - started) * 1000), "commands": commands, "test_node_ids": sorted(passed_nodeids), "skipped_test_node_ids": sorted(skipped_nodeids), "failed_test_node_ids": sorted(failed_nodeids), "totals": totals}
+    status, reason = _profile_status(name, commands, totals)
+    value = {"profile": name, "status": status, "duration_ms": int((time.perf_counter() - started) * 1000), "commands": commands, "test_node_ids": sorted(passed_nodeids), "skipped_test_node_ids": sorted(skipped_nodeids), "failed_test_node_ids": sorted(failed_nodeids), "totals": totals}
+    if reason:
+        value["reason"] = reason
+    return value
 
 
 def main() -> int:
