@@ -1,533 +1,169 @@
 {
   "kind": "CGKNCurrentBacklog",
-  "schemaVersion": "1",
+  "schemaVersion": "2",
   "project": "CGKN",
+  "product_authority": [
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md",
+    "governance/product_invariants.json",
+    "governance/current_architecture.json"
+  ],
   "items": [
     {
-      "id": "PB-089",
-      "title": "Canonicalize the known Qwen planning envelope",
+      "id": "MVP-001",
+      "title": "Complete repository MVP reset",
       "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Admit the one reviewed planning_proposal envelope without weakening the canonical planning schema or changing downstream fail-closed behavior.",
+      "state": "in_progress",
+      "value": "Remove obsolete active authorities and make the CapabilityTree MVP the only current product direction.",
       "acceptance": [
-        "canonical flat planning passes unchanged",
-        "exact planning_proposal envelope unwraps once before schema validation",
-        "unknown, nested, ambiguous, and malformed responses fail closed",
-        "raw and canonical identities, decision, and schema result are auditable",
-        "related and framework regression tests pass",
-        "one same-case L1 enters real generation and independent evaluation or is classified at its exact failure boundary",
-        "Fixed10 remains stopped unless this single L1 reaches PROJECT_PASS with false pass zero"
+        "direction gate passes",
+        "obsolete fixed-flow documents and validation launchers are outside active paths",
+        "current management files contain no Fixed10, stress, soak, or Provider-planning priority",
+        "cleanup remains on an isolated non-force branch"
       ]
     },
     {
-      "id": "PB-088",
-      "title": "Close Qwen L1 ledger and repair-contract blockers",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Make interrupted Provider calls conservatively accountable and route observable project failures through one production repair-evidence contract before one paid L1 revalidation.",
-      "acceptance": [
-        "Provider calls durably transition through reserved, started, response-received, and terminal lifecycle states",
-        "abandoned pre-send reservations release budget while uncertain sent calls retain conservative budget and unknown usage",
-        "benchmark repairs use the canonical production --repair-evidence contract without exposing hidden evaluation data",
-        "targeted ledger, alias, repair-routing, budget, and kernel rule-guard checks pass",
-        "one detached qwen3.6-plus CASE_01 smoke stays within one planning, one generation, two repair, and four total calls",
-        "Fixed10 remains stopped regardless of the L1 outcome"
-      ]
-    },
-    {
-      "id": "PB-087",
-      "title": "Revalidate Qwen L1 after provider-binding repair",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Prove the corrected alias binding on the same Fixed10 L1 case, then stop if any framework boundary prevents real generation, repair, or clean evaluation.",
-      "acceptance": [
-        "the real HTTP payload uses qwen3.6-plus rather than an internal stage alias",
-        "one generation and at most two repair rounds stay within four total Qwen calls",
-        "interrupted reserved calls have a durable identity-bound recovery outcome",
-        "the formal observed-failure repair entrypoint accepts the canonical repair evidence contract",
-        "a real candidate reaches clean-root independent evaluation before Qwen quality is scored",
-        "full Fixed10 starts only after every smoke gate passes"
-      ]
-    },
-    {
-      "id": "PB-086",
-      "title": "Run one bounded Fixed10 Qwen L1 smoke",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Reuse the existing Qwen Provider chain for one real L1 generation/evaluation smoke with zero Codex project work, then stop before full Fixed10 unless every smoke gate passes.",
-      "acceptance": [
-        "the existing Qwen client, endpoint, credential environment names, model, request schema, parser, retry, timeout, and usage contract are audited without recording a key",
-        "CASE_01 runs with at most four API calls and at most two same-model repair rounds",
-        "the formal ProviderJob route and independent evaluator are used without a benchmark-only generation route",
-        "Codex generation and repair calls remain zero",
-        "a pre-transport CGKN framework failure is reported separately from Qwen project quality",
-        "full Fixed10 does not start unless the L1 smoke satisfies every declared gate"
-      ]
-    },
-    {
-      "id": "PB-085",
-      "title": "Move Fixed10 generation and repair to a budgeted external API profile",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Reduce Codex project-generation and repair usage to zero while preserving the reviewed ProviderJob, independent evaluation, packaging, and delivery authorities.",
-      "acceptance": [
-        "the frozen Fixed10 manifest SHA remains unchanged",
-        "external API credentials and base URL are environment-only and never persisted",
-        "every live call is reserved against explicit call, token, and estimated-cost limits before transport",
-        "generation and affected-only repair use the external Provider with at most two repair rounds and no Codex generation or repair calls",
-        "dependency installation distinguishes Provider network access from an approved wheelhouse or explicitly approved registry",
-        "without explicit configuration and budget the run emits a complete zero-call NOT_EVALUATED readiness package",
-        "Pass 6 long-horizon evidence is neither changed nor reinterpreted"
-      ]
-    },
-    {
-      "id": "PB-084",
-      "title": "Measure and improve real project generation quality",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Run a frozen ten-project quality pass through the reviewed production route, independently exercise real runtime, persistence, integration, goal fidelity, bounded repair, and revision behavior, then fix only the highest-impact general CGKN defects.",
-      "acceptance": [
-        "the frozen catalog contains exactly ten projects with two cases at each of L1 through L5",
-        "generation receives only the visible goal and allowed public context while hidden acceptance remains evaluator-only",
-        "every project is independently exercised through its documented entry point with first-pass and final-after-repair results kept separate",
-        "failed projects receive no more than two existing-route repair rounds and four passing projects receive bounded revisions",
-        "false-pass, false-negative, runtime, persistence, integration, goal-fidelity, repair, revision, time, call, token, and available cost metrics are reported",
-        "any CGKN source fix freezes the current run and requires a new full ten-project run id",
-        "real Provider evaluation remains NOT_EVALUATED without explicit user budget authorization",
-        "Pass 6 long-horizon evidence is neither changed nor reinterpreted",
-        "a support-only role-driven validation MVP executes one same-version, same-budget isolated A/B and independently reproduces every counted finding without leaking hidden acceptance",
-        "a blinded three-project A/B/C follow-up matches B and C boundary actions, independently reproduces every finding, and reports whether roles add value beyond explicit boundary exploration",
-        "a real-model A/C/D study executes bounded feedback-driven exploration on two non-injected projects including one CGKN-generated artifact, independently reproduces findings, and records tokens, estimated cost, adaptation, and marginal value"
-      ]
-    },
-    {
-      "id": "PB-083",
-      "title": "Prove long-horizon reliability and real-model generalization readiness",
-      "priority": 1,
-      "state": "paused",
-      "value": "Produce uninterrupted 24-hour Provider-free reliability evidence and a frozen, contamination-resistant blind-test system with an explicitly budgeted real-model entry point.",
-      "acceptance": [
-        "one uninterrupted 24-hour run accounts for every arrival and retains raw operational and resource time series",
-        "first, middle, and last segments pass declared latency, throughput, memory, handle, disk, queue, retry, and recovery drift gates",
-        "20 to 30 new L1-L5 cases separate visible generation inputs from hidden post-generation acceptance",
-        "contamination validation proves case identity and hidden keywords cannot steer generation",
-        "real-model execution is budget bound and remains NOT_EVALUATED without explicit provider authorization",
-        "the final complete Provider-free regression preserves the existing 2606-test baseline"
-      ]
-    },
-    {
-      "id": "PB-082",
-      "title": "Prove real workload recovery under sustained pressure",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Exercise the existing ProviderJob, Agent Kit recovery, and delivery authorities with real process faults, fixed-rate multi-project arrivals, independent acceptance, and sampled resource telemetry.",
-      "acceptance": [
-        "real worker termination, timeout, cancellation race, duplicate callback, corrupt checkpoint, late result, and identity drift are actually injected and independently observed",
-        "fixed arrival-rate runs cover 1, 5, 10, and 20 concurrent projects across declared ProviderJob concurrency levels",
-        "every planned arrival is reconciled to submitted, rejected, cancelled, timed out, failed, completed, and independently accepted outcomes",
-        "p50, p95, p99, effective throughput, CPU, RSS, disk, handles, and queue depth are sampled and retained as raw evidence",
-        "three isolated short runs gate a wall-clock 30-minute steady-state run; 24-hour soak remains NOT_EVALUATED unless explicitly run",
-        "the final Provider-free regression preserves the fourth-batch baseline without paid Provider calls"
-      ]
-    },
-    {
-      "id": "PB-081",
-      "title": "Converge complete Provider-free regression",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Close shared implementation and test-fixture root causes, retain capability coverage for legal migrations, and prove the final snapshot twice before load testing.",
-      "acceptance": [
-        "one complete baseline accounts for all Provider-free outcomes",
-        "root-cause fixes preserve strict identity, context, evidence, and delivery gates",
-        "retired-contract tests map to current positive and negative capability coverage",
-        "two independent complete runs pass on the same snapshot with one seeded shuffled order",
-        "short production-entrypoint fault probes pass before any sustained load claim"
-      ]
-    },
-    {
-      "id": "PB-080",
-      "title": "Close verdict integrity and managed runtime concurrency",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Make stress verdicts fail on invalid artifacts, serialize identity-bound managed-job transitions, and prove iterative delivery through canonical evidence and public gating before sustained load.",
-      "acceptance": [
-        "empty, forged, partial, duplicate, or semantically changed load results cannot PASS",
-        "job replacement, cancellation, late results, and PID reuse are process-safe and identity-bound",
-        "the operational revision closure uses independent business acceptance and the real public delivery gate",
-        "Provider-free regression uses one recorded interpreter, source snapshot, isolated caches, and complete machine-readable outcomes",
-        "fault and fixed-arrival steady-state work begins only after correctness prerequisites pass"
-      ]
-    },
-    {
-      "id": "PB-079",
-      "title": "Close functional recovery and sustained-load gaps",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Make benchmark isolation, external waiting, cancellation, context completion, iterative delivery, and direct arrival-load outcomes observable on the existing canonical route.",
-      "acceptance": [
-        "benchmark behavior is independent of fixture labels and hidden evaluator inputs remain outside production reachability",
-        "external waits and worker exits are distinct while cancellation and stale results fail closed by identity",
-        "bounded context projection and existing split execution preserve requirements and the final outbound budget gate",
-        "initial build, three revisions, and cold-start delivery execute through canonical gates",
-        "every planned load request has an explicit terminal or non-terminal accounting category"
-      ]
-    },
-    {
-      "id": "PB-078",
-      "title": "Harden core DAG validation and Provider context limits",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Keep large legal dependency graphs, ownership validation, and final Provider requests bounded without weakening canonical generation or delivery gates.",
-      "acceptance": [
-        "legal forward dependency chains validate without Python recursion",
-        "non-conflicting ownership validation scales by indexed path order rather than all-pairs comparison",
-        "the shared Provider boundary measures exact outgoing context and fails closed before transport",
-        "the current ProviderJob scale ladder and recovery/delivery contract tests run through existing entrypoints",
-        "live Provider, local-model, and 24-hour soak results remain separately reported when not executed"
-      ]
-    },
-    {
-      "id": "PB-077",
-      "title": "Recover stale managed generation workers safely",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Prevent a dead Windows managed worker from permanently blocking the formal resume path.",
-      "acceptance": [
-        "Windows liveness uses a non-destructive process query and POSIX permission errors preserve existence",
-        "confirmed-dead active jobs are atomically reconciled while UNKNOWN remains conservatively deduplicated",
-        "a stale job can start a new identity without overwriting a worker's RUNNING state or run identity",
-        "the existing Character Clip Studio run resumes through the formal entry until candidate or the next primary blocker"
-      ]
-    },
-    {
-      "id": "PB-076",
-      "title": "Enable controlled real-project Usage Beta",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Allow users to build and test real projects now without confusing project usability with repository-wide formal completeness.",
-      "next_fix_selection_policy": "REAL_USAGE_SELECTED",
-      "acceptance": [
-        "default Usage Beta uses codex_surrogate and explicit live never falls back",
-        "five project hard gates determine Usage Beta status independently of global limitations",
-        "release and commercial readiness remain false unless their own authorities pass",
-        "Character Clip Studio is generated and evaluated through the formal surrogate route",
-        "the next backlog fix is the earliest real Usage Beta blocker"
-      ]
-    },
-    {
-      "id": "PB-075",
-      "title": "Bind structured requirements planning to a bounded output budget",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Separate JSON Schema support, real planning transport, and output-budget exhaustion while preserving the reviewed Provider route.",
-      "acceptance": [
-        "response_format and max_tokens coexist in the production request",
-        "ordered plain, JSON-text, JSON-schema, and real-512 probes use the production builder",
-        "formal planning has a deterministic 1200-4096 token budget and bounded expansion",
-        "request identity and secret-free schema/request metrics are recorded",
-        "one real qwen3.8-max run determines whether planning and the existing E2E can continue"
-      ]
-    },
-    {
-      "id": "PB-074",
-      "title": "Diagnose and bound requirements-planning Provider transport",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Distinguish Provider baseline failure from planning-request sensitivity before spending repeated long attempts or altering canonical planning context.",
-      "acceptance": [
-        "ordered tiny, structured, and real-request diagnostics share the production endpoint and model",
-        "metrics and hashes are persisted without secrets or full prompts",
-        "two repeated pre-header timeouts stop while response-header HTTP retries remain bounded",
-        "payload is changed only when differential evidence proves it is the blocker",
-        "the official Local Video Frame Extractor run resumes only after baseline probes pass"
-      ]
-    },
-    {
-      "id": "PB-073",
-      "title": "Bound canonical SourceIdentity Git inspection",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Prevent production startup from hanging on repository-wide runtime and generated files while preserving fail-closed source binding.",
-      "acceptance": [
-        "all SourceIdentity Git calls and total capture time are bounded",
-        "tracked status, diff, and relevant untracked inspection use one canonical pathspec",
-        "timeouts produce structured GIT_COMMAND_TIMEOUT and stop production before Provider/discovery",
-        "relevant source and VERSION changes alter identity while excluded runtime trees do not",
-        "canonical repository publication remains stricter and fully compatible",
-        "the Local Video Frame Extractor official live E2E is rerun with qwen3.8-max"
-      ]
-    },
-    {
-      "id": "PB-072",
-      "title": "Bind selected external executors to generated projects",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Prove that a trusted SelectedExecutor becomes an exact generated dependency, real source API usage, and independently verified runtime behavior.",
-      "acceptance": [
-        "SelectedExecutor projects to a bounded component integration contract with exact package/version and API requirements",
-        "Provider context forbids library substitution and core-capability reimplementation",
-        "deterministic dependency and Python AST validators reject missing, mismatched, comment-only, README-only, and wrong-library usage",
-        "integration receipts bind selected executor identity to the generated source tree and runtime evidence",
-        "candidate integration failure can select the next trusted candidate and exhaustion falls back cleanly to Agent Build",
-        "one official real Local Video Frame Extractor generation and Chinese-path runtime acceptance is attempted"
-      ]
-    },
-    {
-      "id": "PB-071",
-      "title": "Harden external executor maintenance and security trust",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Permit automatic external executor selection only from current GitHub maintenance facts and exact-version OSV security facts.",
-      "acceptance": [
-        "OSV exact-version results, normalized severity, and fixed versions drive security PASS, REVIEW, or BLOCK",
-        "GitHub repository and latest-release facts drive deterministic maintenance PASS, REVIEW, BLOCK, or UNKNOWN",
-        "deps.dev advisories remain hints and cannot independently establish exact-version safety or permanent blocking",
-        "only license ALLOW plus maintenance PASS plus exact-version security PASS may enter bounded trial",
-        "trust freshness is bounded on mainline checkpoint resume",
-        "Provider calls remain zero and no agent, scheduler, executor type, stage, or authority is added"
-      ]
-    },
-    {
-      "id": "PB-070",
-      "title": "Discover and validate reusable external executors",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Prefer verified mature external executors for eligible commodity capabilities and fall back safely to Agent Build when discovery or trials fail.",
-      "acceptance": [
-        "local implementations and approved skills remain ahead of network discovery",
-        "GitHub, PyPI, and deps.dev facts are bounded, allowlisted, timeout-limited, and treated as untrusted until deterministic validation",
-        "license, maintenance, security, compatibility, version, and trial policy fail closed for selection",
-        "selected external executors carry exact provenance and a passing isolated bounded trial",
-        "eligible capability planning projects external selection into the existing WorkNode executor type without a new agent or scheduler",
-        "all unavailable or rejected candidates fall back to Agent Build without blocking project generation",
-        "Provider calls remain zero for discovery validation and canonical authority, packaging, and delivery boundaries remain unchanged"
-      ]
-    },
-    {
-      "id": "PB-069",
-      "title": "Support fail-closed isolated consumer publication",
-      "priority": 1,
-      "state": "completed",
-      "value": "Allow governed consumer repositories to publish an explicit reviewed closure from a detached isolated worktree without adopting unrelated dirty work.",
-      "acceptance": [
-        "consumer governance and reviewed SQL migrations classify deterministically",
-        "environment credential references do not trigger secret false positives while literal secrets remain blocked",
-        "detached publication requires an explicit target branch whose remote SHA equals the local baseline",
-        "repository root and consumer version gate are explicit",
-        "test command output and CLI receipts are encoded deterministically across Windows locales",
-        "publication runtime artifacts cannot invalidate their own SourceIdentity binding",
-        "explicit consumer version commands support Windows command shims without changing the default gate route",
-        "an interrupted verified commit can resume only with exact manifest, receipt, parent, path-set, and remote-baseline equality",
-        "canonical publication verifies exact staging, normal push, and fetched remote SHA equality"
-      ]
-    },
-    {
-      "id": "PB-068",
-      "title": "Close final planning semantic contract mismatches",
-      "priority": 1,
-      "state": "completed",
-      "value": "Align sealed SYSTEM_POLICY grounding, workstream ID references, and replan alias routing with the existing canonical planning and Provider contracts.",
-      "acceptance": [
-        "sealed acceptance checks form the same bounded accepted constraint set for Provider generation and compiler validation",
-        "unknown SYSTEM_POLICY values remain rejected",
-        "workstream grounding references canonical workstream IDs and dynamic cross-field validation remains local",
-        "internal stage aliases resolve through ProviderModelRoutingPolicy and never cross the HTTP boundary",
-        "A01-A07, B01-B10, C01-C10, D01-D08, existing schema, preservation, admission, lifecycle, and kernel regressions pass",
-        "canonical publish verifies remote SHA equality before one managed production revalidation"
-      ]
-    },
-    {
-      "id": "PB-067",
-      "title": "Close strict PlanningProposal generation contract",
-      "priority": 1,
-      "state": "completed",
-      "value": "Align Qwen PlanningProposal generation and surgical schema repair with the existing canonical schema and preservation authority without weakening local validation.",
-      "acceptance": [
-        "Provider structured output is derived from the canonical PlanningProposal JSON Schema",
-        "schema repair receives the rejected proposal, exact errors, legal grounding targets, and necessary-inference item schema",
-        "existing supported planning and sealed intent are explicit generation inputs",
-        "local structural, semantic, preservation, grounding, admission, and lifecycle gates remain fail-closed",
-        "canonical publish verifies remote SHA equality before one managed production revalidation"
-      ]
-    },
-    {
-      "id": "PB-066",
-      "title": "Decouple canonical generation from MCP request lifetime",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Allow the existing bounded Provider generation to finish under one observable worker even after the initiating MCP request returns.",
-      "acceptance": [
-        "generation start returns the canonical production run identity quickly",
-        "normal MCP request completion does not cancel the worker",
-        "status polling is read-only and projects run-local metrics",
-        "a second start does not duplicate a live worker",
-        "canonical publish verifies remote SHA equality"
-        ,"the installed plugin cache and serving runtime are identity-bound to the current managed lifecycle package"
-      ]
-    },
-    {
-      "id": "PB-065",
-      "title": "Separate Provider transport success from formal result admission",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Admit a Provider planning result only after identity-bound strict validation, while avoiding a redundant live repair for a safely extractable single JSON object.",
-      "acceptance": [
-        "transport success alone never authorizes formal admission",
-        "fenced or commentary-wrapped single JSON objects use deterministic extraction before strict schema validation",
-        "invalid schema remains fail-closed without a candidate input artifact",
-        "admission events bind the response hash to the materialized planning artifact",
-        "canonical publish verifies remote SHA equality"
-      ]
-    },
-    {
-      "id": "PB-064",
-      "title": "Restart terminal failed formal generation on explicit revalidation",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Prevent a healthy Provider revalidation from replaying an obsolete REWORK_BLOCKED result without executing the reviewed route.",
-      "acceptance": [
-        "terminal failure statuses create a fresh production entry",
-        "waiting checkpoint states resume the same run",
-        "successful terminal states are not regenerated",
-        "provenance and sealed brief gates remain fail-closed",
-        "canonical publish verifies remote SHA equality"
-      ]
-    },
-    {
-      "id": "PB-063",
-      "title": "Align CGKN with Attune Qwen provider configuration",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Use one QWEN credential and DashScope transport contract for Attune and the reviewed CGKN route while preserving provenance gates.",
-      "acceptance": [
-        "shared QWEN environment names take precedence over stale CGKN account values",
-        "DashScope uses qwen3.7-flash through Chat Completions with thinking disabled",
-        "safe diagnostics expose configuration identity but no credential",
-        "one bounded live smoke decides whether the sealed provenance run may resume",
-        "canonical publish verifies remote SHA equality"
-      ]
-    },
-    {
-      "id": "PB-062",
-      "title": "Close reviewed Provider production provenance",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Preserve the reviewed generation route's explicit model policy through requirements planning so a real Provider result can produce a candidate and canonical production provenance without weakening fail-closed gates.",
-      "acceptance": [
-        "requirements planning uses the reviewed run's resolved model policy rather than an unrelated built-in default",
-        "unsupported Provider/model combinations remain classified and blocked before candidate acceptance",
-        "P01-P12 provenance invariants and deterministic replay remain fail-closed",
-        "one bounded real Provider run creates a candidate bound to the sealed brief, Provider result, and provenance",
-        "formal evidence evaluates the candidate before resume is considered safe",
-        "the canonical repository publish gate verifies remote SHA equality"
-      ]
-    },
-    {
-      "id": "PB-061",
-      "title": "Enforce canonical repository publish flow",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Bind tested source identity to an explicit change manifest, exact staging, commit, normal push, remote SHA verification, PR metadata, and bounded CI through one fail-closed publish authority.",
-      "acceptance": [
-        "Git command failure cannot be interpreted as a clean repository",
-        "one classifier and one publish authority select an explicit staging set",
-        "runtime, generated, secret, and unknown files cannot enter formal staging",
-        "test receipts become stale after any covered source change",
-        "post-commit verification, remote race detection, normal push, and remote SHA equality are enforced",
-        "fast CI checks repository contracts without Provider credentials or product acceptance authority"
-      ]
-    },
-    {
-      "id": "PB-060",
-      "title": "Enforce canonical version retirement lifecycle",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Expose only current architecture truth, enforce one active authority per responsibility, and retire superseded production surfaces instead of accumulating parallel implementations.",
-      "acceptance": [
-        "VERSION and current architecture product version agree",
-        "one deterministic retirement gate rejects duplicate authorities, expired compatibility, superseded production references, stale current documentation, legacy producers, and version mismatch",
-        "deprecation registry contains only live COMPAT_ONLY surfaces with bounded removal versions",
-        "at least one obsolete implementation is actually removed or isolated from the active surface",
-        "generated and maintained projects receive complexity-tailored supersession and retirement rules without a second generation path",
-        "scoped regressions and kernel contract pass while the formal quick profile is reported truthfully"
-      ]
-    },
-    {
-      "id": "PB-059",
-      "title": "Reduce requirement decision before clarification",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Create one factual Task Understanding to Project Planning boundary without adding a second question, assumption, planning, or execution authority.",
-      "acceptance": [
-        "legacy question fields are compatibility projections only",
-        "template uncertainties are removed",
-        "canonical assumption source count is one",
-        "understanding readiness gates ProjectPlan construction",
-        "governance, Capability/WorkNode, Provider, evidence, packaging, and delivery routes remain intact"
-      ]
-    },
-    {
-      "id": "PB-058",
-      "title": "Introduce canonical Component execution model",
-      "priority": 1,
-      "state": "needs_rework",
-      "value": "Make ports, executable components, and per-run execution facts first-class while preserving the single artifact-driven runtime path.",
-      "acceptance": [
-        "existing module contracts adapt to immutable ComponentSpec values",
-        "compiler and runtime use the Component abstraction without a parallel path",
-        "ComponentExecution is the canonical per-node execution fact projected into checkpoints and feed rows",
-        "compile-time and runtime artifact boundary validation pass",
-        "targeted, quick/profile, and kernel contract regressions pass"
-      ]
-    },
-    {
-      "id": "PB-057",
-      "title": "Canonicalize validated Calculus Ink Lab candidate",
-      "priority": 1,
-      "state": "completed_with_limits",
-      "value": "Route the existing real Math E2E fixture through canonical finalization, packaging, public delivery gating, and receipt production.",
-      "acceptance": [
-        "formal finalization creates and validates the candidate identity",
-        "test, runtime, and visual evidence bind the same candidate",
-        "local_packager and public_delivery_gate pass for Calculus Ink Lab",
-        "a canonical delivery receipt is produced",
-        "negative cross-candidate and stale-evidence tests remain fail-closed"
-      ]
-    },
-    {
-      "id": "PB-056",
-      "title": "Reduce architecture before reuse and skill learning",
+      "id": "MVP-002",
+      "title": "Consolidate the common Block boundary",
       "priority": 2,
-      "state": "completed_with_limits",
-      "value": "Make the production model smaller for AI while preserving one evidence-backed delivery route, then add bounded reusable executors.",
+      "state": "next",
+      "value": "Make ComponentSpec, PortSpec, execution context, result, and executor adapter the single reusable capability interface.",
       "acceptance": [
-        "reduction acceptance passes before additive work",
-        "one canonical WorkNode planning model",
-        "capability and interface planning precede implementation",
-        "reuse decisions and skill candidates remain bounded executors",
-        "canonical evidence, packaging, and delivery remain unchanged"
+        "one canonical Block/Component definition",
+        "declared typed inputs and outputs",
+        "executor implementation is replaceable",
+        "WorkNode, ProviderJob, and module contracts are adapters rather than competing authorities"
       ]
     },
     {
-      "id": "PB-054",
-      "title": "Repository Layout v1",
+      "id": "MVP-003",
+      "title": "Finish CapabilityTree composition semantics",
       "priority": 3,
-      "state": "completed",
-      "value": "Separate source, formal specs, examples, curated evidence, and local runtime data.",
+      "state": "started",
+      "value": "Let the high-capability Agent incrementally create and modify a stable composition tree.",
       "acceptance": [
-        "specs is the formal registry",
-        "tracked raw runtime is zero",
-        "core flows compile",
-        "repository hygiene passes"
+        "stable node identity",
+        "structural parent-child composition",
+        "add, replace, remove, and expand operations",
+        "roles remain optional views over capabilities"
       ]
     },
     {
-      "id": "PB-055",
-      "title": "Review stable release promotion",
+      "id": "MVP-004",
+      "title": "Finish Tree-to-DAG compilation",
       "priority": 4,
+      "state": "started",
+      "value": "Compile executable dependencies separately from the human-readable composition tree.",
+      "acceptance": [
+        "fan-out and fan-in",
+        "cycle and unknown-dependency rejection",
+        "deterministic topological order",
+        "no second execution graph authority"
+      ]
+    },
+    {
+      "id": "MVP-005",
+      "title": "Create replaceable executor adapters",
+      "priority": 5,
       "state": "planned",
-      "value": "Decide stable release only after independent review of the cleaned Artifact-driven branch.",
-      "acceptance": ["no force push", "reviewed integration strategy", "formal evidence remains independently evaluated"]
+      "value": "Run bounded Blocks through cheap models, local models, APIs, search, scripts, browsers, and deterministic tools.",
+      "acceptance": [
+        "common execute contract",
+        "bounded task packet",
+        "cost and timeout metadata",
+        "executor cannot redefine project intent"
+      ]
+    },
+    {
+      "id": "MVP-006",
+      "title": "Persist project and run state",
+      "priority": 6,
+      "state": "planned",
+      "value": "Keep long-lived project goals, tree, DAG, node results, artifacts, failures, and checkpoints without replaying full conversation history.",
+      "acceptance": [
+        "identity-bound project state",
+        "node execution history",
+        "artifact/result references",
+        "safe resume after interruption"
+      ]
+    },
+    {
+      "id": "MVP-007",
+      "title": "Prove one real vertical slice",
+      "priority": 7,
+      "state": "planned",
+      "value": "Complete one real project change using a high-capability Agent, a cheap model/API executor, a deterministic tool, and an external/search capability.",
+      "acceptance": [
+        "real repository or project input",
+        "CapabilityTree and compiled DAG recorded",
+        "real code or project change",
+        "real test/runtime result",
+        "high-capability Agent calls measured"
+      ]
+    },
+    {
+      "id": "MVP-008",
+      "title": "Implement affected-subgraph repair",
+      "priority": 8,
+      "state": "planned",
+      "value": "Map failures to the smallest safe node/subgraph and rerun only affected work.",
+      "acceptance": [
+        "failure-to-node mapping",
+        "downstream invalidation",
+        "unaffected results reused",
+        "no default whole-project regeneration"
+      ]
+    },
+    {
+      "id": "MVP-009",
+      "title": "Build the capability registry",
+      "priority": 9,
+      "state": "planned",
+      "value": "Allow the Agent to discover capabilities by inputs, outputs, constraints, cost, executor, and observed quality.",
+      "acceptance": [
+        "queryable capability metadata",
+        "versioned interface identity",
+        "test and usage evidence",
+        "reuse before new implementation"
+      ]
+    },
+    {
+      "id": "MVP-010",
+      "title": "Prove first validated self-growth",
+      "priority": 10,
+      "state": "planned",
+      "value": "Discover, integrate, test, register, and reuse one previously missing capability.",
+      "acceptance": [
+        "capability gap detected",
+        "library/API/tool search performed",
+        "bounded trial passes",
+        "new Block is registered and reused in the original project"
+      ]
+    },
+    {
+      "id": "MVP-011",
+      "title": "Add project-team views",
+      "priority": 11,
+      "state": "later",
+      "value": "Expose PM, Developer, Tester, Researcher, Release, and Marketing as capability bundles over the same kernel.",
+      "acceptance": [
+        "no mandatory role chain",
+        "role composition reuses registered capabilities",
+        "one project may use only the roles it needs"
+      ]
+    },
+    {
+      "id": "MVP-012",
+      "title": "Add promotion and publishing capabilities",
+      "priority": 12,
+      "state": "later",
+      "value": "Extend the project team into content, media, social publishing, feedback, and metrics without creating another pipeline system.",
+      "acceptance": [
+        "promotion actions are Blocks",
+        "connectors are replaceable",
+        "publishing requires explicit authorization",
+        "results feed project state"
+      ]
     }
   ]
 }
