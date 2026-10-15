@@ -131,6 +131,23 @@ def test_target_branch_requires_local_baseline_match(tmp_path: pathlib.Path, mon
     assert result["push_verified"] is True
 
 
+def test_publish_can_create_a_new_remote_branch_from_bound_baseline(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, remote = init_repo(tmp_path)
+    git(root, "switch", "-c", "feature")
+    (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")
+    manifest = gate.build_change_manifest(root)
+    receipt = {"scoped_verdict": "PASS", "source_identity_hash": manifest["source_identity_hash"], "changed_paths": manifest["commit_files"], "tests": [{"status": "PASS"}]}
+    receipt["test_receipt_hash"] = gate.canonical_hash(receipt, ("test_receipt_hash", "created_at"))
+    receipt_path = root / ".cgkn" / "publish" / "test_receipt.json"
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    monkeypatch.setattr(gate, "run_version_gate", lambda _root, _command=None: {"status": "PASS"})
+    result = gate.publish(root, message="feat: publish new branch", test_receipt_path=receipt_path, target_branch="feature")
+    assert result["push_verified"] is True
+    assert result["remote_before_sha"] == ""
+    assert git(root, "rev-parse", "HEAD") == subprocess.run(["git", "--git-dir", str(remote), "rev-parse", "refs/heads/feature"], text=True, capture_output=True, check=True).stdout.strip()
+
+
 def test_resume_pushes_only_verified_commit_after_post_commit_interruption(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root, _ = init_repo(tmp_path)
     (root / "scripts" / "example.py").write_text("VALUE = 2\n", encoding="utf-8")

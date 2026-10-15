@@ -323,6 +323,17 @@ def verify_remote_baseline(root: pathlib.Path, branch: str, expected_remote: str
     return current_remote
 
 
+def remote_branch_baseline(root: pathlib.Path, branch: str, runner: GitRunner = run_git) -> str:
+    """Return the remote SHA, or empty only when the named branch does not exist."""
+    fetch = runner(root, ["fetch", "origin", branch])
+    if not fetch.get("ok"):
+        diagnostic = f"{fetch.get('stdout', '')}\n{fetch.get('stderr', '')}".lower()
+        if "couldn't find remote ref" in diagnostic or "could not find remote ref" in diagnostic:
+            return ""
+        raise PublishBlocked("BLOCKED_GIT_STATE", fetch)
+    return require_git(root, ["rev-parse", f"origin/{branch}"], runner)["stdout"].strip()
+
+
 def normal_push_with_retry(
     root: pathlib.Path, branch: str, expected_remote: str, push_args: Sequence[str],
     runner: GitRunner = run_git, attempts: int = 3,
@@ -389,9 +400,8 @@ def publish(
     if not branch:
         raise PublishBlocked("TARGET_BRANCH_REQUIRED")
     if target_branch:
-        require_git(root, ["fetch", "origin", branch], runner)
-        expected_remote = require_git(root, ["rev-parse", f"origin/{branch}"], runner)["stdout"].strip()
-        if expected_remote != initial["local_head"]:
+        expected_remote = remote_branch_baseline(root, branch, runner)
+        if expected_remote and expected_remote != initial["local_head"]:
             raise PublishBlocked("REMOTE_BASELINE_CHANGED", {"local": initial["local_head"], "remote": expected_remote})
     else:
         expected_remote = initial["remote_head"]
@@ -459,9 +469,8 @@ def resume_publish(
     dirty = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))
     if dirty:
         raise PublishBlocked("POST_COMMIT_DIRTY", dirty)
-    require_git(root, ["fetch", "origin", target_branch], runner)
-    remote_before = require_git(root, ["rev-parse", f"origin/{target_branch}"], runner)["stdout"].strip()
-    if remote_before != parent_sha:
+    remote_before = remote_branch_baseline(root, target_branch, runner)
+    if remote_before and remote_before != parent_sha:
         raise PublishBlocked("REMOTE_BASELINE_CHANGED", {"local_parent": parent_sha, "remote": remote_before})
     normal_push_with_retry(root, target_branch, remote_before, ["push", "origin", f"HEAD:refs/heads/{target_branch}"], runner)
     remote_sha = verify_remote_sha(root, target_branch, commit_sha, runner)
