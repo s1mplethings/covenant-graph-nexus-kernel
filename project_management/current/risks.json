@@ -3,6 +3,76 @@
   "schemaVersion": "1",
   "risks": [
     {
+      "id": "RK-EXTERNAL-API-FIXED10-001",
+      "description": "An external project-generation run could leak credentials, exceed cost limits, silently switch models, confuse Provider connectivity with package installation, or fall back to Codex generation.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Require environment-only credentials and explicit models, reserve every call in a process-safe budget ledger before transport, keep dependency authorization separate, record all terminal outcomes, and enforce zero Codex generation and repair calls.",
+      "state": "controlled"
+    },
+    {
+      "id": "RK-PROJECT-GENERATION-QUALITY-001",
+      "description": "A benchmark could overstate project quality by leaking hidden acceptance, accepting file presence or self-tests as success, hiding first-pass failures behind repair, or exercising a support lane instead of the reviewed production route.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Freeze ten identity-bound cases, use the Codex conversation production facade, keep evaluator inputs outside generation, require independent clean-start/runtime/persistence/integration/goal-fidelity observations, cap repair at two rounds, and report first-pass separately from final results.",
+      "state": "active",
+      "observed_outcome": "PGBV1_BASELINE_20261014_04 completed with 0/10 PROJECT_PASS, 0 false-pass, and root failures CODE_GENERATION=4, RUNTIME=5, DEPENDENCY=1. The gate worked, but generated-project quality remains NEEDS_REWORK.",
+      "evidence_refs": [
+        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_RESULTS.json",
+        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_METRICS.json",
+        "project_management/summaries/ITER-106-project-generation-quality-pass.md"
+      ]
+    },
+    {
+      "id": "RK-PASS6-LONG-HORIZON-001",
+      "description": "An interrupted or resource-incomplete run could be mislabeled as a 24-hour reliability PASS, or blind acceptance could leak into model generation and inflate quality results.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Bind each run to frozen identities, require one uninterrupted 86400-second interval with complete denominators and raw time series, physically separate hidden acceptance, scan all generation inputs for leakage, and retain failed/incomplete runs under distinct ids.",
+      "state": "active"
+    },
+    {
+      "id": "RK-PASS6-LATENCY-001",
+      "description": "Whole-run recursive telemetry can phase-lock with fixed arrivals and add O(total retained files) CPU and I/O contention, while unrelated host contention can make short scale medians non-monotonic.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Use incremental per-project accounting with final exact reconciliation, retain legacy mode for A/B only, capture host CPU/memory/disk counters, and require a fresh >=4h first/last-two-hour validation before any new 24-hour run.",
+      "state": "active"
+    },
+    {
+      "id": "RK-REAL-STRESS-001",
+      "description": "A synthetic exception, endpoint-only resource snapshot, or partial completion could be mistaken for real recovery and sustained-load evidence.",
+      "probability": "high",
+      "impact": "high",
+      "response": "Require OS-observed worker termination, identity-bound recovery checks, fixed-rate arrival timestamps, complete denominators, sampled CPU/RSS/disk/handles/queue depth, and fail-closed run validation before any PASS claim.",
+      "state": "controlled"
+    },
+    {
+      "id": "RK-REGRESSION-ORDER-001",
+      "description": "A candidate pytest process can inherit or resolve a deleted temporary root and fail only under a particular repository-test order.",
+      "probability": "low",
+      "impact": "high",
+      "response": "Run candidates in isolated mode with bounded environment, candidate-only import roots, and an execution-owned TEMP, TMP, and pytest basetemp; retain seeded shuffled full regression.",
+      "state": "controlled"
+    },
+    {
+      "id": "RK-FUNCTION-CLOSURE-002",
+      "description": "A benchmark adapter, dead request worker, oversized context, or incomplete load denominator can create false confidence in end-to-end completion.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Isolate benchmark consumers, classify durable external waits separately, bind async result admission to identity, retain exact outbound budgeting, and record every planned load outcome.",
+      "state": "controlled"
+    },
+    {
+      "id": "RK-FUNCTION-STRESS-001",
+      "description": "Large legal dependency graphs or ownership sets can exhaust recursion depth or consume quadratic validation time before Provider work starts.",
+      "probability": "medium",
+      "impact": "high",
+      "response": "Use iterative dependency traversal, sorted ownership indexing, scale regressions, and exact-request context budgeting at the shared Provider boundary.",
+      "state": "controlled"
+    },
+    {
       "id": "RK-REQUIREMENTS-PROVIDER-001",
       "description": "Requirements planning may spend five long attempts on the same pre-header failure without distinguishing Provider availability from payload sensitivity.",
       "probability": "high",

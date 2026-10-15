@@ -7,12 +7,14 @@ import errno
 import os
 import pathlib
 import re
+import signal
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from importlib import resources
 from typing import Any, Iterable
@@ -82,6 +84,84 @@ def write_json(path: pathlib.Path, value: dict[str, Any]) -> pathlib.Path:
         if temp_path.exists():
             temp_path.unlink()
     return path
+
+
+@contextmanager
+def generation_job_lock(artifact_dir: pathlib.Path):
+    """Serialize generation-job read/compare/write operations across processes."""
+    lock_path = pathlib.Path(artifact_dir) / "generation_job.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as handle:
+        handle.seek(0, os.SEEK_END)
+        if handle.tell() == 0:
+            handle.write(b"\0")
+            handle.flush()
+        handle.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            if os.name == "nt":
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _process_identity_token(pid: int) -> str:
+    """Return an OS process-instance token so cancellation cannot trust PID alone."""
+    selected = int(pid or 0)
+    if selected <= 0:
+        return ""
+    if os.name == "nt":
+        access = 0x1000
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        open_process = kernel32.OpenProcess
+        open_process.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        open_process.restype = ctypes.c_void_p
+        get_process_times = kernel32.GetProcessTimes
+        get_process_times.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+        ]
+        get_process_times.restype = ctypes.c_int
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = [ctypes.c_void_p]
+        close_handle.restype = ctypes.c_int
+        handle = open_process(access, False, selected)
+        if not handle:
+            return ""
+        try:
+            created = ctypes.c_ulonglong()
+            exited = ctypes.c_ulonglong()
+            kernel = ctypes.c_ulonglong()
+            user = ctypes.c_ulonglong()
+            if not get_process_times(
+                handle,
+                ctypes.byref(created),
+                ctypes.byref(exited),
+                ctypes.byref(kernel),
+                ctypes.byref(user),
+            ):
+                return ""
+            return f"windows-filetime:{created.value}"
+        finally:
+            close_handle(handle)
+    proc_path = pathlib.Path("/proc") / str(selected)
+    try:
+        return f"proc-ctime-ns:{proc_path.stat().st_ctime_ns}"
+    except OSError:
+        return ""
 
 
 def _valid_cgkn_root(path: pathlib.Path) -> bool:
@@ -448,6 +528,33 @@ def generation_job_path(artifact_dir: pathlib.Path) -> pathlib.Path:
     return pathlib.Path(artifact_dir) / "generation_job.json"
 
 
+ACTIVE_GENERATION_STATES = {
+    "STARTING",
+    "RUNNING",
+    "WAITING",
+}
+EXTERNAL_WAIT_STATES = {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}
+TERMINAL_GENERATION_STATES = {"COMPLETE", "REWORK_BLOCKED", "FAILED", "CANCELLED"}
+
+
+def _surrogate_response_ready(cgkn_root: pathlib.Path, job: dict[str, Any]) -> bool:
+    """Return true only when the current external wait has a submitted, unconsumed response."""
+    if str(job.get("state", "")).upper() not in EXTERNAL_WAIT_STATES:
+        return False
+    run_value = str(job.get("run_dir", "") or "").strip()
+    if not run_value:
+        return False
+    try:
+        report = _load_surrogate_adapter(cgkn_root).status(pathlib.Path(run_value).resolve())
+    except (AgentKitError, OSError, TypeError, ValueError):
+        return False
+    return any(
+        bool(item.get("responded")) and not bool(item.get("consumed"))
+        for item in report.get("requests", [])
+        if isinstance(item, dict)
+    )
+
+
 def _process_alive(pid: int) -> bool:
     return bool(_process_liveness(pid)["alive"])
 
@@ -496,14 +603,22 @@ def _process_liveness(pid: int) -> dict[str, Any]:
 
 def reconcile_generation_job_state(artifact_dir: pathlib.Path) -> dict[str, Any]:
     path = generation_job_path(artifact_dir)
-    job = read_json(path)
-    pid = int(job.get("process_id", 0) or 0)
-    liveness = _process_liveness(pid)
-    if str(job.get("state", "")).upper() in {"STARTING", "RUNNING", "WAITING"} and liveness["status"] == "DEAD":
-        latest = read_json(path)
-        if str(latest.get("state", "")).upper() in {"STARTING", "RUNNING", "WAITING"} and int(latest.get("process_id", 0) or 0) == pid:
+    with generation_job_lock(artifact_dir):
+        job = read_json(path)
+        pid = int(job.get("process_id", 0) or 0)
+        liveness = _process_liveness(pid)
+        if str(job.get("state", "")).upper() in ACTIVE_GENERATION_STATES and liveness["status"] == "DEAD":
             timestamp = now()
-            job = {**latest, "state": "FAILED", "terminal_reason": "WORKER_PROCESS_NOT_ALIVE", "worker_observed_alive": False, "process_liveness": liveness, "failed_at": timestamp, "updated_at": timestamp}
+            job = {
+                **job,
+                "state": "FAILED",
+                "terminal_reason": "WORKER_PROCESS_NOT_ALIVE",
+                "worker_observed_alive": False,
+                "process_liveness": liveness,
+                "failed_at": timestamp,
+                "updated_at": timestamp,
+                "revision": int(job.get("revision", 0) or 0) + 1,
+            }
             write_json(path, job)
     return {**job, "process_liveness": liveness, "worker_observed_alive": bool(liveness["alive"])}
 
@@ -555,7 +670,7 @@ def generation_job_status(artifact_dir: pathlib.Path) -> dict[str, Any]:
     job = reconcile_generation_job_state(artifact_dir)
     alive = bool(job["process_liveness"]["alive"])
     state = str(job.get("state", "UNKNOWN") or "UNKNOWN").upper()
-    terminal = state in {"COMPLETE", "REWORK_BLOCKED", "FAILED", "CANCELLED"}
+    terminal = state in TERMINAL_GENERATION_STATES
     terminal_reason = str(job.get("terminal_reason", "") or "")
     metrics = _run_metrics(str(job.get("run_dir", "") or ""))
     result_path = pathlib.Path(str(job.get("result_path", "") or ""))
@@ -563,7 +678,14 @@ def generation_job_status(artifact_dir: pathlib.Path) -> dict[str, Any]:
     if result_path.is_file():
         try:
             candidate = read_json(result_path)
-            if not job.get("run_id") or candidate.get("run_id") == job.get("run_id"):
+            result_job_id = str(candidate.get("generation_job_id", "") or "")
+            if (
+                result_job_id == str(job.get("job_id", "") or "")
+                and str(candidate.get("generation_attempt_id", "") or "")
+                == str(job.get("attempt_id", "") or "")
+                and (not job.get("run_id") or candidate.get("run_id") == job.get("run_id"))
+                and state != "CANCELLED"
+            ):
                 result = candidate
         except AgentKitError:
             result = {}
@@ -582,8 +704,32 @@ def generation_job_status(artifact_dir: pathlib.Path) -> dict[str, Any]:
         "provider_timeouts": int(attempts.get("timeouts", 0) or job.get("provider_timeouts", 0) or 0),
         "admitted_provider_result_present": bool(attempts.get("admitted", 0) or job.get("admitted_provider_result_present")),
         "candidate_present": bool(result.get("candidate_hash")),
+        "result_identity_valid": bool(result),
         "formal_evidence_status": str(result.get("formal_evidence_status", "NOT_EVALUATED")),
         "resume_safe": bool((result.get("resume", {}) or {}).get("safe", False)),
+        "execution_classification": (
+            "external_wait"
+            if state in EXTERNAL_WAIT_STATES
+            else "worker_active"
+            if state in ACTIVE_GENERATION_STATES and alive
+            else "worker_exit"
+            if state == "FAILED" and terminal_reason == "WORKER_PROCESS_NOT_ALIVE"
+            else "terminal"
+            if terminal
+            else "unknown"
+        ),
+        "waiting_for": (
+            "surrogate_response"
+            if state == "WAITING_SURROGATE_RESPONSE"
+            else "requirement_replan"
+            if state == "WAITING_REQUIREMENT_REPLAN"
+            else ""
+        ),
+        "next_action": (
+            "submit the identity-bound pending response or cancel this job"
+            if state in EXTERNAL_WAIT_STATES
+            else ""
+        ),
     }
 
 
@@ -596,19 +742,28 @@ def start_generation_job(
     popen_factory: Any = subprocess.Popen,
 ) -> dict[str, Any]:
     """Start the canonical CLI as one observable worker independent of the caller."""
-    current = generation_job_status(artifact_dir)
-    if current.get("state") in {"STARTING", "RUNNING", "WAITING"} and current.get("job_alive"):
-        return {**current, "started": False, "deduplicated": True}
     job_id = "generation-job-" + uuid.uuid4().hex
+    attempt_id = "generation-attempt-" + uuid.uuid4().hex
     path = generation_job_path(artifact_dir)
     stdout_path = pathlib.Path(artifact_dir) / "generation_job.stdout.log"
     stderr_path = pathlib.Path(artifact_dir) / "generation_job.stderr.log"
-    result_path = pathlib.Path(artifact_dir) / "generation_result.json"
-    command = [*argv, "--generation-job-state", str(path), "--generation-job-id", job_id]
+    result_path = pathlib.Path(artifact_dir) / f"generation_result.{job_id}.{attempt_id}.json"
+    command = list(argv)
+    if "--result" in command:
+        command[command.index("--result") + 1] = str(result_path.resolve())
+    else:
+        command.extend(["--result", str(result_path.resolve())])
+    command.extend([
+        "--generation-job-state", str(path),
+        "--generation-job-id", job_id,
+        "--generation-attempt-id", attempt_id,
+    ])
     initial = {
         "kind": "CGKNGenerationJob",
         "schema_version": "1.0",
         "job_id": job_id,
+        "attempt_id": attempt_id,
+        "revision": 1,
         "run_id": "",
         "state": "STARTING",
         "process_id": 0,
@@ -620,7 +775,6 @@ def start_generation_job(
         "stderr_path": str(stderr_path.resolve()),
         "terminal_reason": "",
     }
-    write_json(path, initial)
     creationflags = 0
     popen_kwargs: dict[str, Any] = {"cwd": str(cgkn_root), "close_fds": True}
     if os.name == "nt":
@@ -628,19 +782,60 @@ def start_generation_job(
         popen_kwargs["creationflags"] = creationflags
     else:
         popen_kwargs["start_new_session"] = True
-    try:
-        with stdout_path.open("a", encoding="utf-8") as stdout, stderr_path.open("a", encoding="utf-8") as stderr:
-            process = popen_factory(command, stdout=stdout, stderr=stderr, **popen_kwargs)
-    except OSError as exc:
-        failed = {**initial, "state": "FAILED", "terminal_reason": "JOB_START_FAILED", "error": redact(str(exc)), "updated_at": now()}
-        write_json(path, failed)
-        raise AgentKitError(f"Generation job could not start: {exc}") from exc
-    try:
+    with generation_job_lock(artifact_dir):
+        if path.is_file():
+            current = read_json(path)
+            state = str(current.get("state", "") or "").upper()
+            liveness = _process_liveness(int(current.get("process_id", 0) or 0))
+            response_ready = state in EXTERNAL_WAIT_STATES and _surrogate_response_ready(cgkn_root, current)
+            if (state in EXTERNAL_WAIT_STATES and not response_ready) or state in ACTIVE_GENERATION_STATES and liveness["alive"]:
+                return {
+                    **current,
+                    "process_liveness": liveness,
+                    "job_alive": bool(liveness["alive"]),
+                    "started": False,
+                    "deduplicated": True,
+                }
+            if state in ACTIVE_GENERATION_STATES and liveness["status"] == "DEAD":
+                timestamp = now()
+                current = {
+                    **current,
+                    "state": "FAILED",
+                    "terminal_reason": "WORKER_PROCESS_NOT_ALIVE",
+                    "failed_at": timestamp,
+                    "updated_at": timestamp,
+                    "revision": int(current.get("revision", 0) or 0) + 1,
+                }
+                write_json(path, current)
+        write_json(path, initial)
+        try:
+            with stdout_path.open("a", encoding="utf-8") as stdout, stderr_path.open("a", encoding="utf-8") as stderr:
+                process = popen_factory(command, stdout=stdout, stderr=stderr, **popen_kwargs)
+        except OSError as exc:
+            failed = {
+                **initial,
+                "state": "FAILED",
+                "terminal_reason": "JOB_START_FAILED",
+                "error": redact(str(exc)),
+                "updated_at": now(),
+                "revision": 2,
+            }
+            write_json(path, failed)
+            raise AgentKitError(f"Generation job could not start: {exc}") from exc
         observed_after_spawn = read_json(path)
-    except AgentKitError:
-        observed_after_spawn = initial
-    started = {**initial, **observed_after_spawn, "process_id": int(process.pid), "updated_at": now()}
-    write_json(path, started)
+        if (
+            str(observed_after_spawn.get("job_id", "") or "") != job_id
+            or str(observed_after_spawn.get("attempt_id", "") or "") != attempt_id
+        ):
+            raise AgentKitError("generation job identity changed during worker spawn")
+        started = {
+            **observed_after_spawn,
+            "process_id": int(process.pid),
+            "process_identity": _process_identity_token(int(process.pid)),
+            "updated_at": now(),
+            "revision": int(observed_after_spawn.get("revision", 0) or 0) + 1,
+        }
+        write_json(path, started)
     deadline = time.monotonic() + max(0.0, float(start_timeout))
     while time.monotonic() < deadline:
         observed = generation_job_status(artifact_dir)
@@ -649,3 +844,54 @@ def start_generation_job(
         time.sleep(0.05)
     observed = generation_job_status(artifact_dir)
     return {**observed, "started": True, "deduplicated": False}
+
+
+def cancel_generation_job(
+    artifact_dir: pathlib.Path,
+    *,
+    expected_job_id: str,
+    terminate: Any | None = None,
+) -> dict[str, Any]:
+    """Cancel exactly one managed worker; duplicate cancellation is idempotent."""
+    path = generation_job_path(artifact_dir)
+    if not path.is_file():
+        return {"exists": False, "state": "NOT_STARTED", "cancelled": False}
+    if not str(expected_job_id or "").strip():
+        raise AgentKitError("expected_job_id is required for cancellation")
+    with generation_job_lock(artifact_dir):
+        current = read_json(path)
+        job_id = str(current.get("job_id", "") or "")
+        if expected_job_id != job_id:
+            raise AgentKitError("generation job identity mismatch; cancellation refused")
+        state = str(current.get("state", "") or "").upper()
+        if state == "CANCELLED":
+            duplicate = True
+            cancelled_now = True
+        elif state in TERMINAL_GENERATION_STATES:
+            duplicate = True
+            cancelled_now = False
+        else:
+            duplicate = False
+            cancelled_now = True
+            timestamp = now()
+            current = {
+                **current,
+                "state": "CANCELLED",
+                "terminal_reason": "EXPLICIT_CANCELLATION",
+                "cancel_requested_at": timestamp,
+                "updated_at": timestamp,
+                "revision": int(current.get("revision", 0) or 0) + 1,
+            }
+            write_json(path, current)
+        pid = int(current.get("process_id", 0) or 0)
+        expected_process_identity = str(current.get("process_identity", "") or "")
+    if duplicate:
+        return {**generation_job_status(artifact_dir), "cancelled": cancelled_now, "deduplicated": True}
+    if pid > 0:
+        actual_process_identity = _process_identity_token(pid)
+        if expected_process_identity and actual_process_identity == expected_process_identity:
+            try:
+                (terminate or (lambda selected: os.kill(selected, signal.SIGTERM)))(pid)
+            except (OSError, ProcessLookupError):
+                pass
+    return {**generation_job_status(artifact_dir), "cancelled": True, "deduplicated": False}

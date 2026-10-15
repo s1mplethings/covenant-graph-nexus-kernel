@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import sys
 from datetime import datetime, timezone
 from typing import Any
+
+import pytest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -19,6 +22,32 @@ DEFAULT_SKIPPED_MARKERS = (
     "e2e",
     "benchmark",
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_process_global_provider_adapter() -> Any:
+    """Prevent one non-live Provider test from redirecting later live tests.
+
+    The executable scripts intentionally retain adapter context across calls so
+    a single process can resume a run.  A pytest process, however, executes
+    unrelated runs in the same interpreter.  Clear every loaded import spelling
+    at test boundaries while preserving resume behavior inside each test.
+    """
+    module_names = ("surrogate_provider_adapter", "scripts.surrogate_provider_adapter")
+    previous = {
+        name: getattr(sys.modules[name], "_CONTEXT", None)
+        for name in module_names
+        if name in sys.modules
+    }
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            module._CONTEXT = None
+    yield
+    for name in module_names:
+        module = sys.modules.get(name)
+        if module is not None:
+            module._CONTEXT = previous.get(name)
 
 
 def _now() -> str:

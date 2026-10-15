@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/testability_contract_v1.schema.json",
+  "title": "CGKN Generated Project Testability Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "project_goal", "adapter", "operations", "scenarios", "observable_state", "final_artifacts", "execution_limits"],
+  "properties": {
+    "kind": {"const": "CGKNTestabilityContract"},
+    "schema_version": {"const": "1.0"},
+    "project_goal": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "adapter": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "working_directory", "business_logic_entrypoint"],
+      "properties": {
+        "type": {"enum": ["cli", "python_api", "file"]},
+        "working_directory": {"type": "string", "pattern": "^(\\.|[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)$"},
+        "business_logic_entrypoint": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "operations": {
+      "type": "array", "minItems": 1, "maxItems": 24,
+      "items": {"$ref": "#/$defs/operation"}
+    },
+    "scenarios": {
+      "type": "array", "minItems": 1, "maxItems": 16,
+      "items": {"$ref": "#/$defs/scenario"}
+    },
+    "observable_state": {
+      "type": "array", "maxItems": 24,
+      "items": {"$ref": "#/$defs/path_record"}
+    },
+    "final_artifacts": {
+      "type": "array", "minItems": 1, "maxItems": 24,
+      "items": {"$ref": "#/$defs/path_record"}
+    },
+    "execution_limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["network", "shell", "max_operations", "timeout_seconds"],
+      "properties": {
+        "network": {"const": false},
+        "shell": {"const": false},
+        "max_operations": {"type": "integer", "minimum": 1, "maximum": 40},
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 120}
+      }
+    }
+  },
+  "$defs": {
+    "path_record": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "path", "format", "verification"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+        "path": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$"},
+        "format": {"enum": ["json", "text", "csv", "binary"]},
+        "verification": {"type": "string", "minLength": 1, "maxLength": 500}
+      }
+    },
+    "operation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description", "input_schema", "argv", "expected_exit_codes", "oracle", "affected_files"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+        "description": {"type": "string", "minLength": 1, "maxLength": 800},
+        "input_schema": {"type": "object"},
+        "argv": {"type": "array", "minItems": 2, "maxItems": 30, "items": {"type": "string", "maxLength": 500}},
+        "expected_exit_codes": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "integer", "minimum": 0, "maximum": 255}},
+        "oracle": {
+          "type": "object", "additionalProperties": false,
+          "required": ["stdout_format", "state_change"],
+          "properties": {
+            "stdout_format": {"enum": ["none", "text", "json"]},
+            "stdout_schema": {"type": "object"},
+            "state_change": {"enum": ["any", "must_change", "must_not_change"]},
+            "state_paths": {"type": "array", "maxItems": 12, "items": {"type": "string"}},
+            "required_artifacts": {"type": "array", "maxItems": 12, "items": {"type": "string"}}
+          }
+        },
+        "affected_files": {"type": "array", "maxItems": 20, "items": {"type": "string"}}
+      }
+    },
+    "scenario": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "user_task", "steps", "success_conditions"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+        "user_task": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "steps": {
+          "type": "array", "minItems": 1, "maxItems": 12,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["operation", "args"],
+            "properties": {"operation": {"type": "string"}, "args": {"type": "object"}}
+          }
+        },
+        "success_conditions": {
+          "type": "array", "minItems": 1, "maxItems": 20,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["kind", "path"],
+            "properties": {
+              "kind": {"enum": ["file_exists", "json_pointer_equals", "json_pointer_number_equals", "text_contains"]},
+              "path": {"type": "string"},
+              "pointer": {"type": "string"},
+              "expected": {},
+              "contains": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

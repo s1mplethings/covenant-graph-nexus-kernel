@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/schemas/autonomous_project_acceptance_report_v1.schema.json",
+  "title": "CGKN Autonomous Project Acceptance Recommendation",
+  "type": "object",
+  "required": [
+    "kind", "schema_version", "created_at", "recommendation_status",
+    "formal_evidence_status", "release_authority", "project_dir",
+    "candidate_source_hash", "testability_contract_ref", "adapter_assessment",
+    "reason", "blockers", "actions", "observations", "findings",
+    "model_calls", "invalid_proposals", "invalid_executions",
+    "all_findings_reproduced", "repair_evidence_ref", "known_limits",
+    "report_sha256"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNAutonomousProjectAcceptanceReport"},
+    "schema_version": {"const": "1.0"},
+    "recommendation_status": {"enum": ["ACCEPTED", "REPAIR_REQUIRED", "BLOCKED", "NOT_EVALUATED"]},
+    "formal_evidence_status": {"const": "NOT_EVALUATED"},
+    "release_authority": {"const": false},
+    "invalid_executions": {"const": 0},
+    "report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

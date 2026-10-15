@@ -1,27 +1,71 @@
 {
-  "kind": "CGKNAdaptiveIteration", "schema_version": "1.0", "iteration_id": "ITER-098", "project_id": "cgkn",
-  "goal": "Recover confirmed-dead managed generation workers with non-destructive cross-platform liveness and resume the existing Character Clip Studio run.",
-  "backlog_item_ids": ["PB-077"], "workflow_state": "closed", "evidence_status": "PASS_WITH_LIMITS",
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-112",
+  "project_id": "cgkn",
+  "goal": "Canonicalize only the reviewed Qwen planning_proposal envelope, then revalidate the same CASE_01 once.",
+  "backlog_item_ids": ["PB-089"],
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
-    "Repeated Windows liveness probes are non-destructive.",
-    "Confirmed-dead STARTING, RUNNING, and WAITING jobs atomically become FAILED with WORKER_PROCESS_NOT_ALIVE.",
-    "Live and UNKNOWN active jobs deduplicate while a dead job permits a new identity.",
-    "Worker-written RUNNING state and run_id win the spawn race.",
-    "The existing Character Clip Studio run resumes until candidate or the next primary blocker."
+    "Pass canonical flat planning through unchanged and unwrap only the exact planning_proposal envelope once.",
+    "Reject unknown, nested, ambiguous, and malformed responses without synthesizing fields or weakening schema.",
+    "Persist raw response identity, canonicalization decision, canonical object identity, and schema result.",
+    "Pass related compiler, Provider, benchmark framework, and kernel rule-guard tests before a paid call.",
+    "Run only the unchanged CASE_01 with qwen3.6-plus and the existing four-call budget.",
+    "Start Fixed10 only if this L1 reaches PROJECT_PASS with false pass zero."
   ],
   "quality_metrics": [
-    {"id": "QM-LIVENESS", "measure": "destructive process actions", "target": "0", "method": "real Windows child probe"},
-    {"id": "QM-STATE", "measure": "active/dead durable projection divergence", "target": "0", "method": "reconciliation tests"},
-    {"id": "QM-ROUTE", "measure": "new generation authority or path", "target": "0", "method": "kernel tests"}
+    {"id": "QM-PLANNING-CANONICALIZATION", "measure": "focused envelope tests", "target": "PASS", "actual": "8 passed"},
+    {"id": "QM-FRAMEWORK-REGRESSION", "measure": "requirement compiler and benchmark framework", "target": "PASS", "actual": "110 + 46 passed"},
+    {"id": "QM-QWEN-CODEX", "measure": "Codex generation and repair calls", "target": "0", "actual": "0"},
+    {"id": "QM-QWEN-PROGRESSION", "measure": "ProviderJob and generation reached", "target": ">0", "actual": "0"},
+    {"id": "QM-QWEN-FIXED10", "measure": "full Fixed10 started", "target": "false", "actual": "false"}
   ],
   "quality_activities": {
-    "prevention": ["Treat UNKNOWN as alive and write FAILED only for confirmed DEAD."],
-    "assurance": ["Test liveness, active states, deduplication, restart, and spawn race."],
-    "control": ["Resume through the official entry and stop at a second blocker."],
-    "improvement": ["Record the next blocker without scope expansion."]
+    "prevention": ["Allow only flat canonical planning or the exact one-level planning_proposal envelope."],
+    "assurance": ["Verify semantic preservation, fail-closed wrapper cases, audit persistence, compiler behavior, and framework regression."],
+    "control": ["Keep qwen3.6-plus, the case, prompt, evaluator, repair scope, and call budget unchanged; stop after L1."],
+    "improvement": ["Separate envelope compatibility from canonical planning schema correctness in durable evidence."]
   },
-  "interface_expectations": ["Canonical generation and local_packager authority remain unchanged.", "Managed job failure does not permanently fail the production run."],
-  "evidence_refs": ["tools/cgkn-agent-kit/tests/test_agent_kit.py", "tests/test_kernel_contract.py", "evidence/character_clip_studio_usage_beta_20261003.json"],
-  "review": {"outcome": "accepted_with_limits", "feedback": ["Managed worker liveness and stale-state recovery passed scoped tests and a real Windows process probe.", "The original production run resumed, consumed the previously pending response, and advanced to the next normal surrogate leaf; candidate materialization remains in progress."], "accepted_backlog_item_ids": ["PB-077"]},
-  "retrospective": {"worked": ["Confirmed-dead reconciliation allowed a new worker identity to bind to the existing production run."], "did_not_work": ["The available run window ended while further surrogate leaves remained."], "experiments": ["Continue the same formal surrogate run without changing lifecycle code."]}
+  "interface_expectations": [
+    "The external API is the Provider transport, not a second generation route.",
+    "ProviderJob remains the only project-work concurrency unit.",
+    "local_packager remains the only delivery exit.",
+    "Smoke artifacts cannot authorize formal evidence PASS.",
+    "The independent launcher owns the paid process; the status script is read-only.",
+    "Planning canonicalization cannot grant ProviderJob, acceptance, packaging, or release authority."
+  ],
+  "evidence_refs": [
+    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/PLANNING_CANONICALIZATION_AUDIT.json",
+    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/FRAMEWORK_REGRESSION.json",
+    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_CLASSIFIED_RESULT.json",
+    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_CALL_LEDGER.json",
+    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_REPORT.md"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The exact planning_proposal envelope was unwrapped once with complete identity and schema audit evidence.",
+      "The enclosed Provider object remained non-canonical and failed the unchanged planning schema.",
+      "ProviderJob and generation were not reached; evaluator rejection and empty repair scope remained correct downstream effects.",
+      "Fixed10 remained stopped."
+    ],
+    "accepted_backlog_item_ids": ["PB-089"]
+  },
+  "retrospective": {
+    "worked": [
+      "The known envelope was recognized without recursive search or semantic mutation.",
+      "Focused and framework regressions passed before the paid L1.",
+      "The audit chain clearly separated canonicalization PASS from schema FAIL."
+    ],
+    "did_not_work": [
+      "The Qwen object inside the known envelope was not a canonical planning proposal.",
+      "The single-planning-call budget prevented schema repair, so generation was not reached."
+    ],
+    "experiments": [
+      "Treat any next work as planning-contract quality, not repair-scope or evaluator work.",
+      "Do not start Fixed10 until one L1 reaches PROJECT_PASS with false pass zero."
+    ]
+  }
 }

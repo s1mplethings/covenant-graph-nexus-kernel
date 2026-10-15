@@ -520,8 +520,13 @@ class CodexConversationCustomerBridgeTests(unittest.TestCase):
             self.assertEqual(session["generation"]["run_id"], provider_staging.name)
             self.assertNotEqual(final_candidate, provider_staging)
             self.assertEqual("api_provider_project_generation", session["generation"]["driver"])
-            self.assertFalse(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
+            # The fake client records the attempted upload but returns no
+            # identity-bound send receipt, so the public gate must not count it
+            # as a delivered artifact.
+            self.assertTrue(any(path.name == "final_project_bundle.zip" for _, path, _ in client.documents))
             self.assertEqual("rework_blocked", session["generation"]["status"])
+            self.assertFalse(session["generation"]["delivery_gate"]["delivery_allowed"])
+            self.assertTrue(session["generation"]["delivery_gate"]["delivery_send_diagnostic"]["reason"])
             self.assert_public_reply_style(client.messages[-1][1])
 
     def test_generation_confirmation_does_not_require_backend_control_command(self) -> None:

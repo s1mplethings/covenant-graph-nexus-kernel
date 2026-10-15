@@ -400,7 +400,7 @@ def test_component_quality_rejects_unpublished_manifest_symbol() -> None:
     )
 
     assert validation["status"] == "fail"
-    assert "src/app.js does not publish expected symbols: runPipeline" in validation["blockers"]
+    assert "src/app.js does not implement expected symbols: runPipeline" in validation["blockers"]
 
 
 def test_document_manifest_symbols_are_migrated_to_prose_anchors() -> None:

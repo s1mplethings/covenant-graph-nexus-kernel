@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from scripts import run_trimmed_case_debug as trimmed
+from benchmarks.project_generation_v1 import run_trimmed_case_debug as trimmed
 
 
 def test_trimmed_case_debug_routes_factory_app_and_methods(tmp_path) -> None:
@@ -114,7 +114,7 @@ def test_trimmed_case_debug_detects_forbidden_side_branch_artifact(tmp_path) -> 
 
 
 def test_trimmed_case_debug_has_no_delivery_or_scale_imports() -> None:
-    source = (trimmed.ROOT / "scripts" / "run_trimmed_case_debug.py").read_text(encoding="utf-8")
+    source = (trimmed.ROOT / "benchmarks" / "project_generation_v1" / "run_trimmed_case_debug.py").read_text(encoding="utf-8")
 
     assert "from scripts import final_promotion" not in source
     assert "import run_acfv_scale_benchmark" not in source

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run candidate-only CASE01/CASE03 diagnostics through the reviewed mainline."""
+"""Run benchmark-only candidate diagnostics through the reviewed mainline."""
 
 from __future__ import annotations
 
@@ -19,12 +19,13 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from benchmarks.project_generation_v1 import evaluator, run_benchmark  # noqa: E402
-from scripts import audit_failure_to_repair, provider_jobs, provider_resilience  # noqa: E402
+from benchmarks.project_generation_v1 import audit_failure_to_repair  # noqa: E402
+from scripts import provider_jobs, provider_resilience  # noqa: E402
 from scripts.customer_runtime_runner import _wait_for_health  # noqa: E402
 
 

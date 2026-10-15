@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Audit evaluator failure -> issue -> ProviderJob -> delta -> acceptance."""
+"""Benchmark-only audit of evaluator failure -> issue -> ProviderJob -> delta -> acceptance."""
 
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import pathlib
 import re
+import tomllib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -342,20 +344,297 @@ def score_drop_analysis(
     }
 
 
+def _case_production_result(run_dir: pathlib.Path, case_dir: pathlib.Path) -> tuple[pathlib.Path | None, dict[str, Any]]:
+    receipt = read_json(case_dir / "production_execution_receipt.json")
+    relative = str(receipt.get("result_path", "")).strip()
+    path = (run_dir / relative).resolve() if relative else None
+    return path, read_json(path)
+
+
+def _documented_entrypoint(candidate: pathlib.Path) -> str:
+    readme = candidate / "README.md"
+    if not readme.is_file():
+        return ""
+    text = readme.read_text(encoding="utf-8", errors="replace")
+    patterns = (
+        r"(?m)^\s*(python(?:\.exe)?\s+(?:-m\s+)?[^\r\n`]+)",
+        r"(?m)^\s*(uvicorn\s+[^\r\n`]+)",
+        r"(?m)^\s*(flask\s+[^\r\n`]+)",
+        r"(?m)^\s*(npm\s+(?:start|run\s+[^\r\n`]+))",
+    )
+    direct = next(
+        (
+            match.group(1).strip()
+            for pattern in patterns
+            if (match := re.search(pattern, text))
+        ),
+        "",
+    )
+    if direct:
+        return direct
+    inline = re.search(
+        r"`((?:python(?:\.exe)?\s+(?:-m\s+)?|uvicorn\s+|flask\s+|npm\s+)[^`]+)`",
+        text,
+        flags=re.I,
+    )
+    return inline.group(1).strip() if inline else ""
+
+
+def _dependency_contract(candidate: pathlib.Path) -> dict[str, Any]:
+    declared: set[str] = set()
+    requirements = candidate / "requirements.txt"
+    if requirements.is_file():
+        for line in requirements.read_text(encoding="utf-8", errors="replace").splitlines():
+            match = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9_.-]*)", line)
+            if match and not line.lstrip().startswith("#"):
+                declared.add(re.sub(r"[-_.]+", "-", match.group(1).lower()))
+    pyproject = candidate / "pyproject.toml"
+    if pyproject.is_file():
+        try:
+            dependencies = tomllib.loads(pyproject.read_text(encoding="utf-8")).get("project", {}).get("dependencies", [])
+        except (OSError, TypeError, tomllib.TOMLDecodeError):
+            dependencies = []
+        for value in dependencies:
+            match = re.match(r"([A-Za-z0-9][A-Za-z0-9_.-]*)", str(value))
+            if match:
+                declared.add(re.sub(r"[-_.]+", "-", match.group(1).lower()))
+    imports: dict[str, list[str]] = {}
+    local = {
+        path.relative_to(candidate).parts[0]
+        for path in candidate.rglob("*.py")
+        if path.relative_to(candidate).parts
+    }
+    for path in candidate.rglob("*.py"):
+        if any(part in {".venv", "venv", "__pycache__"} for part in path.parts):
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        except (OSError, SyntaxError, ValueError):
+            continue
+        for node in ast.walk(tree):
+            roots = (
+                [alias.name.split(".", 1)[0] for alias in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module.split(".", 1)[0]]
+                if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module
+                else []
+            )
+            for root in roots:
+                if root not in local and root not in __import__("sys").stdlib_module_names:
+                    imports.setdefault(root, []).append(path.relative_to(candidate).as_posix())
+    alias = {"pil": "pillow"}
+    missing = {
+        name: sorted(set(paths))
+        for name, paths in imports.items()
+        if re.sub(r"[-_.]+", "-", alias.get(name.lower(), name.lower())) not in declared
+    }
+    return {
+        "manifest_present": requirements.is_file() or pyproject.is_file(),
+        "declared_distributions": sorted(declared),
+        "third_party_imports": {key: sorted(set(value)) for key, value in sorted(imports.items())},
+        "undeclared_imports": missing,
+        "status": "PASS" if (requirements.is_file() or pyproject.is_file()) and not missing else "FAIL",
+    }
+
+
+def fixed10_failure_audit(run_dir: pathlib.Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    cases: list[dict[str, Any]] = []
+    cluster_cases: dict[str, set[str]] = {}
+    cluster_evidence: dict[str, list[str]] = {}
+
+    def cluster(root_cause_id: str, case_id: str, evidence: str) -> None:
+        cluster_cases.setdefault(root_cause_id, set()).add(case_id)
+        cluster_evidence.setdefault(root_cause_id, []).append(evidence)
+
+    for case_dir in sorted((run_dir / "cases").iterdir()):
+        if not case_dir.is_dir():
+            continue
+        result = read_json(case_dir / "case_result.json")
+        case_id = str(result.get("case_id", case_dir.name))
+        production_path, production = _case_production_result(run_dir, case_dir)
+        production_run = pathlib.Path(str(production.get("run_dir", ""))).resolve()
+        provider_result_path = production_run / "provider_generation_result.json"
+        provider_result = read_json(provider_result_path)
+        candidate = case_dir / "candidate_terminal_snapshot"
+        if not candidate.is_dir():
+            candidate = case_dir / "candidate"
+        observation_path = latest_path(case_dir / "evaluations", "external_observations.json")
+        observations = read_json(observation_path).get("observations", [])
+        failed = [
+            item for item in observations
+            if isinstance(item, dict) and str(item.get("status", "")).upper() != "PASS"
+        ]
+        evaluator_receipt = read_json(latest_path(case_dir / "evaluations", "evaluator_execution_receipt.json"))
+        runtime_rows = [item for item in failed if "runtime" in str(item.get("criterion_id", "")).lower()]
+        ledgers = [
+            read_json(path)
+            for path in production_run.rglob("post_build_issue_ledger*.json")
+            if path.is_file()
+        ] if production_run.is_dir() else []
+        affected_files = sorted({
+            str(path)
+            for ledger in ledgers
+            for issue in ledger.get("issues", [])
+            if isinstance(issue, dict)
+            for path in issue.get("affected_files", [])
+        })
+        affected_nodes = sorted({
+            str(issue.get("tree_node_id") or issue.get("affected_provider_job"))
+            for ledger in ledgers
+            for issue in ledger.get("issues", [])
+            if isinstance(issue, dict) and (issue.get("tree_node_id") or issue.get("affected_provider_job"))
+        })
+        production_text = json.dumps(provider_result, ensure_ascii=False)
+        dependency = _dependency_contract(candidate) if candidate.is_dir() else {"status": "NOT_EVALUATED", "undeclared_imports": {}}
+        candidate_materialized = bool(
+            production.get("candidate_hash")
+            or provider_result.get("candidate_materialized")
+            or (candidate / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").is_file()
+        )
+        repairs = [item for item in result.get("repairs", []) if isinstance(item, dict)]
+        repair = result.get("repair", {}) if isinstance(result.get("repair"), dict) else {}
+        repair_attempted = bool(repair.get("attempted")) or any(item.get("attempted") for item in repairs)
+        blocking_reasons = [
+            str(value)
+            for value in [repair.get("blocking_reason"), *(item.get("blocking_reason") for item in repairs)]
+            if value
+        ]
+        repair_reason = "" if repair_attempted else (
+            blocking_reasons[-1]
+            if blocking_reasons
+            else "ordinary independent failure did not enter an affected-only ProviderJob repair"
+        )
+        if "PROVIDER_INPUT_CONTEXT_BUDGET_EXCEEDED" in production_text:
+            cluster("RC-SEMANTIC-REVIEW-CONTEXT-BUDGET", case_id, str(provider_result_path))
+        frontend_missing = candidate.is_dir() and not any(
+            (candidate / relative).is_file()
+            for relative in ("frontend/index.html", "index.html", "templates/index.html")
+        )
+        if candidate_materialized and frontend_missing and runtime_rows:
+            cluster("RC-VISUAL-SCOPE-PRUNED-BEFORE-DESIGN", case_id, str(observation_path or ""))
+        if dependency.get("undeclared_imports") or str(result.get("root_failure")) == "DEPENDENCY":
+            cluster("RC-DEPENDENCY-MANIFEST-CLOSURE", case_id, json.dumps(dependency.get("undeclared_imports", {}), sort_keys=True))
+        if str(result.get("dependency_status", "")).upper() == "FAIL":
+            cluster("RC-OFFLINE-DEPENDENCY-PREP", case_id, str(observation_path or ""))
+        cluster("RC-INDEPENDENT-RUNTIME-NOT-CLEAN", case_id, str(latest_path(case_dir / "evaluations", "evaluator_execution_receipt.json") or ""))
+        if repair_reason:
+            cluster("RC-REPAIR-ROUTING-TERMINAL-COLLAPSE", case_id, str(case_dir / "case_result.json"))
+        cases.append(
+            {
+                "case_id": case_id,
+                "level": result.get("level"),
+                "generation_completed": str(production.get("status", "")).upper() not in {"", "WAITING_SURROGATE_RESPONSE"},
+                "candidate_exists": candidate.is_dir(),
+                "candidate_materialized": candidate_materialized,
+                "dependency_install_result": "NOT_EVALUATED_SHARED_HOST_ENVIRONMENT",
+                "dependency_contract": dependency,
+                "documented_entry_point": _documented_entrypoint(candidate) if candidate.is_dir() else "",
+                "runtime_start_result": "FAIL" if runtime_rows else result.get("runtime_status", "NOT_EVALUATED"),
+                "runtime_error": "; ".join(str(item.get("details", "")) for item in runtime_rows)[:8000],
+                "generated_tests_result": evaluator_receipt.get("pytest", {"status": "NOT_EVALUATED"}),
+                "independent_acceptance_result": result.get("result"),
+                "failure_category": result.get("root_failure"),
+                "failure_message": result.get("hard_failures", []),
+                "failure_stack": json.dumps(provider_result.get("diagnostics", {}), ensure_ascii=False)[:12000],
+                "blocking_reason": result.get("workflow_state", ""),
+                "repair_eligible": str(result.get("root_failure", "")).upper() in {"CODE_GENERATION", "DEPENDENCY", "RUNTIME", "INTEGRATION", "PERSISTENCE", "TEST", "EVIDENCE", "REPAIR", "DELIVERY"},
+                "repair_not_run_reason": repair_reason,
+                "affected_files": affected_files,
+                "affected_work_nodes": affected_nodes,
+                "evidence_refs": [str(path) for path in (production_path, provider_result_path, observation_path) if path],
+            }
+        )
+    cluster_descriptions = {
+        "RC-SEMANTIC-REVIEW-CONTEXT-BUDGET": "The preliminary semantic payload estimate did not reserve the exact outbound wrapper/output context, so the monolithic request reached the shared hard budget instead of split review.",
+        "RC-VISUAL-SCOPE-PRUNED-BEFORE-DESIGN": "GoalSpec pruning removed frontend before bounded design research declared a visual surface, while backend entrypoints still expected that surface.",
+        "RC-DEPENDENCY-MANIFEST-CLOSURE": "Generated Python imports and delivered dependency manifests were not checked as one deterministic contract.",
+        "RC-INDEPENDENT-RUNTIME-NOT-CLEAN": "No candidate passed the complete clean-root startup, operation, persistence, integration, and shutdown lifecycle.",
+        "RC-OFFLINE-DEPENDENCY-PREP": "Declared third-party packages were unavailable under the zero-network clean-environment dependency preparation contract.",
+        "RC-REPAIR-ROUTING-TERMINAL-COLLAPSE": "Aggregate goal-fidelity failure masked concrete operational failures, so ordinary evaluator failures were classified outside the affected-only ProviderJob repair set.",
+    }
+    clusters = [
+        {
+            "root_cause_id": root_cause_id,
+            "description": cluster_descriptions[root_cause_id],
+            "case_ids": sorted(case_ids),
+            "case_count": len(case_ids),
+            "evidence": sorted(set(cluster_evidence[root_cause_id])),
+            "case_specific_fix": False,
+        }
+        for root_cause_id, case_ids in sorted(cluster_cases.items())
+    ]
+    failure_audit = {
+        "kind": "CGKNFixed10FailureAudit",
+        "schema_version": "1.0",
+        "run_id": run_dir.name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "cases": cases,
+        "case_count": len(cases),
+        "formal_evidence_status": "NOT_EVALUATED",
+    }
+    root_audit = {
+        "kind": "CGKNFixed10RootCauseClusters",
+        "schema_version": "1.0",
+        "run_id": run_dir.name,
+        "clusters": clusters,
+        "all_cases_have_evidence": len(cases) == 10 and all(item["evidence_refs"] for item in cases),
+        "formal_evidence_status": "NOT_EVALUATED",
+    }
+    repair_audit = {
+        "kind": "CGKNRepairRoutingAudit",
+        "schema_version": "1.0",
+        "run_id": run_dir.name,
+        "before": {
+            "ordinary_failures": len(cases),
+            "repair_rounds_executed": sum(
+                int(
+                    bool(result.get("repair", {}).get("attempted"))
+                    or any(
+                        repair.get("attempted")
+                        for repair in result.get("repairs", [])
+                        if isinstance(repair, dict)
+                    )
+                )
+                for item in cases
+                for result in [read_json(run_dir / "cases" / item["case_id"] / "case_result.json")]
+            ),
+            "terminal_projection": "REWORK_BLOCKED",
+        },
+        "root_cause_id": "RC-REPAIR-ROUTING-TERMINAL-COLLAPSE",
+        "repairable_categories": ["CODE_GENERATION", "DEPENDENCY", "RUNTIME", "INTEGRATION", "PERSISTENCE", "TEST", "EVIDENCE", "REPAIR", "DELIVERY"],
+        "true_blockers": ["missing_user_information", "policy_violation", "mandatory_external_dependency_unavailable", "repair_budget_exhausted", "immutable_contract_conflict", "unsafe_repair", "provider_unavailable"],
+        "maximum_rounds": 2,
+        "authority": "existing ProviderJob scheduler and canonical production resume only",
+        "formal_evidence_status": "NOT_EVALUATED",
+    }
+    return failure_audit, root_audit, repair_audit
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case-run-dir", action="append", type=pathlib.Path, required=True)
+    parser.add_argument("--case-run-dir", action="append", type=pathlib.Path)
+    parser.add_argument("--fixed10-run-dir", type=pathlib.Path)
     parser.add_argument("--product-convergence-report", type=pathlib.Path)
     parser.add_argument("--case01-old-candidate", type=pathlib.Path)
     parser.add_argument("--case01-previous-candidate", type=pathlib.Path)
     parser.add_argument("--case01-old-result", type=pathlib.Path)
     parser.add_argument("--case01-previous-result", type=pathlib.Path)
-    parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--output", type=pathlib.Path)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.fixed10_run_dir:
+        run_dir = args.fixed10_run_dir.resolve()
+        failure_audit, root_audit, repair_audit = fixed10_failure_audit(run_dir)
+        write_json(run_dir / "FIXED10_FAILURE_AUDIT.json", failure_audit)
+        write_json(run_dir / "FIXED10_ROOT_CAUSE_CLUSTERS.json", root_audit)
+        write_json(run_dir / "REPAIR_ROUTING_AUDIT.json", repair_audit)
+        print(json.dumps({"status": "FIXED10_AUDIT_COMPLETE", "run_dir": str(run_dir)}, ensure_ascii=False, indent=2))
+        return 0
+    if not args.case_run_dir or not args.output:
+        raise SystemExit("--case-run-dir and --output are required unless --fixed10-run-dir is used")
     convergence = read_json(args.product_convergence_report)
     selected_model = str(convergence.get("model") or (convergence.get("provider_auto_select") or {}).get("selected_model") or "")
     cases = [audit_case(path.resolve()) for path in args.case_run_dir]

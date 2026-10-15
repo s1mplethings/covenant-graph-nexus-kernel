@@ -292,6 +292,69 @@ def test_goal_plan_workstream_relationships_become_leaf_dependencies_and_symbols
     assert by_path["app/main.py"]["expected_symbols"] == ["main"]
 
 
+def test_generic_direct_cli_keeps_reviewed_provider_dependency_graph() -> None:
+    manifest = [
+        {"path": "backend/repository.py", "dependencies": []},
+        {
+            "path": "backend/service.py",
+            "dependencies": ["backend/repository.py"],
+        },
+        {
+            "path": "main.py",
+            "dependencies": ["backend/repository.py", "backend/service.py"],
+        },
+    ]
+    component = {
+        "id": "backend",
+        "contract_slice": {"architecture_mode": "direct_cli_application"},
+        "canonical_goal_spec": {
+            "entities": ["Expense", "LedgerRepository", "ExpenseService"],
+            "capabilities": ["add_expense", "list_expenses", "summarize_expenses"],
+        },
+        "business_workstreams": [
+            {
+                "id": "application_entry",
+                "expected_outputs": ["main.py"],
+                "depends_on": [],
+            }
+        ],
+    }
+
+    normalized = run_local_pipeline_impl.normalize_goal_plan_manifest_dependency_contract(
+        manifest, component
+    )
+    by_path = {entry["path"]: entry for entry in normalized}
+
+    assert by_path["backend/service.py"]["dependencies"] == [
+        "backend/repository.py"
+    ]
+    assert by_path["main.py"]["dependencies"] == [
+        "backend/repository.py",
+        "backend/service.py",
+    ]
+
+
+def test_explicit_testability_contract_is_owned_by_delivery_workstream() -> None:
+    goal = (
+        "Build Pocket Expense Ledger with Python stdlib. CLI: main.py add "
+        "--amount DECIMAL --category TEXT --note TEXT; main.py list --json; "
+        "main.py summary --out summary.json. Persist ledger.json atomically. "
+        "Reject non-positive amounts and blank categories with nonzero exit and "
+        "no mutation. Summary has exact count, numeric total, and by_category "
+        "totals. Include README, tests, and testability_contract.json describing "
+        "the real CLI."
+    )
+    goal_spec = requirement_decision_lane.build_goal_spec(goal)
+    project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
+    delivery = next(
+        row for row in project_plan["workstreams"] if row["id"] == "delivery"
+    )
+
+    assert "testability_contract.json" in project_plan["expected_project_structure"]
+    assert "testability_contract.json" in delivery["expected_outputs"]
+    assert "testability_contract.json" not in project_plan["business_outputs"]
+
+
 def test_production_component_route_consumes_canonical_goal_plan() -> None:
     for case in CASES:
         goal = str(case["goal"])

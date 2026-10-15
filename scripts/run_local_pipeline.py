@@ -30,6 +30,7 @@ merge_component_files = _impl.merge_component_files
 validate_provider_files = _impl.validate_provider_files
 write_provider_files = _impl.write_provider_files
 prepare_supervision_provider_repair = _impl.prepare_supervision_provider_repair
+prepare_observed_project_failure_provider_repair = _impl.prepare_observed_project_failure_provider_repair
 
 DEFAULT_GENERATED_DIR = _impl.DEFAULT_GENERATED_DIR
 DEFAULT_RUN_DIR = _impl.DEFAULT_RUN_DIR

@@ -28,6 +28,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import check_connectivity
 import adaptive_delivery
+import autonomous_project_acceptance
 import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
@@ -182,6 +183,38 @@ def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
             if attempt == 4:
                 raise
             time.sleep(0.05 * (attempt + 1))
+
+
+def write_timeout_failure_result(args: argparse.Namespace, timeout: int, result_path: pathlib.Path) -> dict[str, Any]:
+    """Persist an explainable fail-closed result when managed generation times out."""
+    project_slug = str(getattr(args, "project_slug", "") or "").strip()
+    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
+    phase_path = run_dir / "artifacts" / "generation_phase_log.jsonl"
+    recent: list[dict[str, Any]] = []
+    if phase_path.is_file():
+        for line in phase_path.read_text(encoding="utf-8", errors="replace").splitlines()[-20:]:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                recent.append(row)
+    diagnostics = read_json(run_dir / "agent_usage" / "usage_planning_diagnostics.json", {})
+    result = {
+        "kind": "CGKNConversationGenerationResult",
+        "status": "BLOCKED",
+        "formal_evidence_status": "BLOCKED_ENVIRONMENT",
+        "reason": "generation subprocess exceeded total timeout",
+        "timeout_seconds": int(timeout),
+        "last_known_phase": str((recent[-1] if recent else {}).get("phase", "unknown")),
+        "recent_phase_events": recent,
+        "timeout_diagnostics": diagnostics,
+        "missing_artifacts": ["generation_result.json", "delivery_manifest.json", "final_project_bundle.zip"],
+        "can_retry": True,
+        "created_at": now(),
+    }
+    write_json(pathlib.Path(result_path), result)
+    return result
 
 
 def append_jsonl(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -5319,6 +5352,73 @@ def required_image_backend_missing_config(session: dict[str, Any]) -> list[str]:
     return ["local_image_model_backend"]
 
 
+def run_or_resume_autonomous_acceptance(
+    *,
+    project_dir: pathlib.Path,
+    production_run_dir: pathlib.Path,
+    public_goal: str,
+    model: str,
+) -> tuple[dict[str, Any], pathlib.Path, bool]:
+    """Run acceptance once per exact candidate and reuse only hash-bound completion."""
+    candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
+    candidate_key = candidate_hash.split(":", 1)[-1][:16]
+    root = production_run_dir / "autonomous_acceptance" / candidate_key
+    checkpoint_path = root / "checkpoint.json"
+    checkpoint = read_json(checkpoint_path, {}) if checkpoint_path.is_file() else {}
+    if (
+        isinstance(checkpoint, dict)
+        and checkpoint.get("status") == "completed"
+        and checkpoint.get("candidate_hash") == candidate_hash
+    ):
+        report_path = pathlib.Path(str(checkpoint.get("report_ref", "")))
+        if report_path.is_file() and canonical_evidence_hash.sha256_file(report_path) == checkpoint.get("report_sha256"):
+            report = read_json(report_path, {})
+            if isinstance(report, dict) and report.get("recommendation_status"):
+                report["execution_reused"] = True
+                return report, report_path, True
+    prior_attempt = int(checkpoint.get("attempt", 0) or 0) if isinstance(checkpoint, dict) else 0
+    attempt = prior_attempt + 1
+    attempt_dir = root / f"attempt-{attempt:03d}"
+    write_json(
+        checkpoint_path,
+        {
+            "kind": "CGKNAutonomousAcceptanceCheckpoint",
+            "schema_version": 1,
+            "status": "running",
+            "candidate_hash": candidate_hash,
+            "attempt": attempt,
+            "recovered_from_interruption": bool(checkpoint),
+            "started_at": now(),
+        },
+    )
+    report = autonomous_project_acceptance.run_acceptance(
+        project_dir,
+        attempt_dir,
+        public_goal=public_goal,
+        model=model,
+    )
+    report_path = attempt_dir / autonomous_project_acceptance.REPORT_FILE
+    if not report_path.is_file():
+        raise RuntimeError("autonomous acceptance returned without a durable report")
+    write_json(
+        checkpoint_path,
+        {
+            "kind": "CGKNAutonomousAcceptanceCheckpoint",
+            "schema_version": 1,
+            "status": "completed",
+            "candidate_hash": candidate_hash,
+            "attempt": attempt,
+            "recovered_from_interruption": bool(checkpoint),
+            "report_ref": str(report_path.resolve()),
+            "report_sha256": canonical_evidence_hash.sha256_file(report_path),
+            "recommendation_status": report.get("recommendation_status", "NOT_EVALUATED"),
+            "finished_at": now(),
+        },
+    )
+    report["execution_reused"] = False
+    return report, report_path, False
+
+
 def post_build_finalize_provider_project(
     project_dir: pathlib.Path,
     provider_result: dict[str, Any],
@@ -5428,6 +5528,51 @@ def post_build_finalize_provider_project(
             conversation_id,
             {"kind": "post_build_provider_repair_required", "role": "system", "repair": repair_result, "dependency_setup": dependency_setup},
         )
+    provider_model = (
+        str(provider_result.get("provider", {}).get("model", ""))
+        if isinstance(provider_result.get("provider"), dict)
+        else ""
+    ) or str(provider_result.get("model", "")) or "qwen3.5-flash"
+    autonomous_acceptance, autonomous_report_path, autonomous_reused = run_or_resume_autonomous_acceptance(
+        project_dir=project_dir,
+        production_run_dir=production_run_dir,
+        public_goal=_requirement_text(session, str(provider_result.get("goal", ""))),
+        model=provider_model,
+    )
+    autonomous_acceptance["report_ref"] = str(autonomous_report_path.resolve())
+    append_agent_session_event(
+        session_dir,
+        conversation_id,
+        {
+            "kind": "autonomous_project_acceptance",
+            "role": "tool",
+            "recommendation_status": autonomous_acceptance.get("recommendation_status", "NOT_EVALUATED"),
+            "report_ref": str(autonomous_report_path.resolve()),
+            "finding_count": len(autonomous_acceptance.get("findings", [])),
+            "execution_reused": autonomous_reused,
+        },
+    )
+    if autonomous_acceptance.get("recommendation_status") != "ACCEPTED":
+        autonomous_audit = autonomous_project_acceptance.acceptance_audit(autonomous_acceptance)
+        return {
+            "test_result": preseal_test_result,
+            "preseal_test_result": preseal_test_result,
+            "runtime_result": {"status": "NOT_EVALUATED", "reason": "autonomous_acceptance_not_accepted"},
+            "visual_evidence_result": {"status": "NOT_EVALUATED"},
+            "image_result": image_result,
+            "video_result": video_result,
+            "browser_visual_required": False,
+            "autonomous_acceptance": autonomous_acceptance,
+            "false_pass_audit": autonomous_audit,
+            "manifest": {},
+            "gate": {
+                "status": "NEEDS_REWORK" if autonomous_acceptance.get("recommendation_status") == "REPAIR_REQUIRED" else "BLOCKED",
+                "verdict": autonomous_acceptance.get("recommendation_status"),
+                "delivery_allowed": False,
+                "missing": [f"autonomous_acceptance:{autonomous_acceptance.get('recommendation_status', 'NOT_EVALUATED')}"],
+            },
+            "ok": False,
+        }
     candidate_manifest = canonical_evidence_hash.candidate_source_manifest(project_dir)
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
     candidate_manifest_hash = canonical_evidence_hash.canonical_json_hash(
@@ -5779,6 +5924,7 @@ def post_build_finalize_provider_project(
             "post_build_browser_visual_evidence": visual_evidence_result,
             "post_build_video_evidence": video_result,
             "post_build_product_maturity": maturity_evaluation,
+            "autonomous_project_acceptance": autonomous_acceptance,
         },
     )
     media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
@@ -5803,6 +5949,11 @@ def post_build_finalize_provider_project(
             "role": "goal_acceptance",
             "ref": str(goal_receipt_path),
             "sha256": canonical_evidence_hash.sha256_file(goal_receipt_path),
+        },
+        {
+            "role": "autonomous_project_acceptance",
+            "ref": str(autonomous_report_path.resolve()),
+            "sha256": canonical_evidence_hash.sha256_file(autonomous_report_path),
         },
     ]
     for role, ref in maturity_evaluation.get("paths", {}).items():
@@ -5856,6 +6007,7 @@ def post_build_finalize_provider_project(
             "production_provenance": provenance,
             "provider_causal_trace": causal_trace,
             "false_pass_audit": final_audit,
+            "autonomous_acceptance": autonomous_acceptance,
             "manifest": {},
             "product_maturity": maturity_evaluation,
             "gate": product_design_depth_governance.attach_maturity_to_delivery_gate(
@@ -5923,6 +6075,7 @@ def post_build_finalize_provider_project(
         "production_provenance": provenance,
         "provider_causal_trace": causal_trace,
         "false_pass_audit": final_audit,
+        "autonomous_acceptance": autonomous_acceptance,
         "product_maturity": maturity_evaluation,
         "canonical_verification": canonical_verification,
         "canonical_governance": canonical_governance,
@@ -6530,6 +6683,8 @@ def run_provider_generation_job(
         if isinstance(session.get("generation"), dict)
         else {}
     )
+    generation_model = str(prior_generation.get("generation_model", model) or model).strip()
+    repair_model = str(prior_generation.get("repair_model", "") or "").strip()
     provider_mode = str(prior_generation.get("provider_mode", "live") or "live").strip().lower()
     replay_dir = str(prior_generation.get("replay_dir", "") or "").strip()
     identity = production_generation_identity(conversation_id, session)
@@ -6557,6 +6712,8 @@ def run_provider_generation_job(
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
         "provider_mode": provider_mode,
+        "generation_model": generation_model,
+        "repair_model": repair_model,
         "replay_dir": replay_dir,
     }
     if formal_entry:
@@ -6593,7 +6750,7 @@ def run_provider_generation_job(
             out_dir=str(provider_staging_dir),
             run_dir=str(run_dir),
             result=str(result_path),
-            model=model,
+            model=generation_model,
             timeout=timeout,
             allow_network=provider_mode == "live",
             allow_provider=provider_mode == "live",
@@ -6606,12 +6763,22 @@ def run_provider_generation_job(
             provider_mode=provider_mode,
             project_id=identity["candidate_id"],
             replay_dir=replay_dir,
-            small_model=model,
-            large_model=model,
-            repair_model=model,
+            small_model=generation_model,
+            large_model=generation_model,
+            repair_model=repair_model,
             resume_run_dir=(
                 str(run_dir)
-                if provider_mode != "live" and (run_dir / surrogate_provider_adapter.HANDSHAKE_DIR / "provider_mode_state.json").is_file()
+                if (
+                    (run_dir / "artifacts" / "pending_repair_plan.json").is_file()
+                    or (
+                        provider_mode != "live"
+                        and (
+                            run_dir
+                            / surrogate_provider_adapter.HANDSHAKE_DIR
+                            / "provider_mode_state.json"
+                        ).is_file()
+                    )
+                )
                 else ""
             ),
         )
@@ -6625,7 +6792,7 @@ def run_provider_generation_job(
             run_dir=run_dir,
             result_path=result_path,
             identity=identity,
-            model=model,
+            model=generation_model,
             formal_entry=formal_entry,
         )
 
@@ -6755,29 +6922,81 @@ def run_provider_generation_job(
             {"kind": "provider_phase", "stage": "post_build_finalize", "status": "started", "project_dir": str(project_dir)},
         )
         finalize: dict[str, Any] = {}
+        autonomous_repair_rounds = 0
 
         def finalize_once() -> dict[str, Any]:
-            nonlocal finalize, provider_result
-            provider_result = round_state["provider_result"]
-            runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
-            finalize = post_build_finalize_provider_project(
-                project_dir,
-                provider_result,
-                runtime_artifacts,
-                session,
-                session_dir=session_dir,
-                conversation_id=conversation_id,
-                production_identity=identity,
-                production_run_dir=run_dir,
-                stage_receipts={
-                    "production_entry": entry_receipt,
-                    "provider_generation": round_state["generation_receipt"],
-                    "provider_validation": round_state["validation_receipt"],
-                },
-                provider_result_path=result_path,
-                provider_causal_capture=round_state["causal_capture"],
-            )
-            return dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
+            nonlocal finalize, provider_result, round_state, autonomous_repair_rounds
+            while True:
+                provider_result = round_state["provider_result"]
+                runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
+                finalize = post_build_finalize_provider_project(
+                    project_dir,
+                    provider_result,
+                    runtime_artifacts,
+                    session,
+                    session_dir=session_dir,
+                    conversation_id=conversation_id,
+                    production_identity=identity,
+                    production_run_dir=run_dir,
+                    stage_receipts={
+                        "production_entry": entry_receipt,
+                        "provider_generation": round_state["generation_receipt"],
+                        "provider_validation": round_state["validation_receipt"],
+                    },
+                    provider_result_path=result_path,
+                    provider_causal_capture=round_state["causal_capture"],
+                )
+                autonomous_result = (
+                    finalize.get("autonomous_acceptance", {})
+                    if isinstance(finalize.get("autonomous_acceptance"), dict)
+                    else {}
+                )
+                if autonomous_result.get("recommendation_status") != "REPAIR_REQUIRED":
+                    break
+                if autonomous_repair_rounds >= 2:
+                    autonomous_result["repair_budget_exhausted"] = True
+                    break
+                evidence_path = pathlib.Path(str(autonomous_result.get("repair_evidence_ref", "")))
+                evidence = read_json(evidence_path, {}) if evidence_path.is_file() else {}
+                if not evidence:
+                    break
+                autonomous_repair_rounds += 1
+                evidence["repair_round"] = autonomous_repair_rounds
+                preparation = provider_project_pipeline.prepare_observed_project_failure_provider_repair(
+                    run_dir,
+                    evidence,
+                    user_goal=requirement,
+                    candidate_dir=project_dir,
+                )
+                append_agent_session_event(
+                    session_dir,
+                    conversation_id,
+                    {
+                        "kind": "autonomous_acceptance_provider_repair_prepared",
+                        "role": "tool",
+                        "repair_round": autonomous_repair_rounds,
+                        "result": preparation,
+                    },
+                )
+                if preparation.get("status") != "pending_provider_repair":
+                    break
+                args.resume_run_dir = str(run_dir)
+                round_state = execute_validated_provider_round(
+                    args,
+                    session_dir=session_dir,
+                    conversation_id=conversation_id,
+                    phase_log_path=phase_log_path,
+                    project_dir=project_dir,
+                    provider_staging_dir=provider_staging_dir,
+                    run_dir=run_dir,
+                    result_path=result_path,
+                    identity=identity,
+                    model=model,
+                    formal_entry=formal_entry,
+                )
+            audit = dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
+            audit["autonomous_repair_rounds"] = autonomous_repair_rounds
+            return audit
 
         def repair_provider_before_final(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
             preparation = repair_provider(audit, route)
@@ -6802,15 +7021,27 @@ def run_provider_generation_job(
                 production_run_dir=run_dir,
             )
 
-        final_recovery = run_supervision_recovery_cycle(
-            finalize_once(),
-            reaudit=finalize_once,
-            handlers={
-                "rework_project": repair_provider_before_final,
-                "recheck_evidence": recheck_final_evidence,
-                "repair_kernel": execute_governed_supervision_repair,
-            },
-        )
+        initial_final_audit = finalize_once()
+        autonomous_final = finalize.get("autonomous_acceptance", {}) if isinstance(finalize.get("autonomous_acceptance"), dict) else {}
+        if autonomous_final and autonomous_final.get("recommendation_status") != "ACCEPTED":
+            final_recovery = {
+                "outcome": "needs_rework" if autonomous_final.get("recommendation_status") == "REPAIR_REQUIRED" else "blocked",
+                "workflow_state": "rework_blocked",
+                "evidence_status": "NEEDS_REWORK" if autonomous_final.get("recommendation_status") == "REPAIR_REQUIRED" else "BLOCKED",
+                "audit": initial_final_audit,
+                "autonomous_acceptance": autonomous_final,
+                "autonomous_repair_rounds": autonomous_repair_rounds,
+            }
+        else:
+            final_recovery = run_supervision_recovery_cycle(
+                initial_final_audit,
+                reaudit=finalize_once,
+                handlers={
+                    "rework_project": repair_provider_before_final,
+                    "recheck_evidence": recheck_final_evidence,
+                    "repair_kernel": execute_governed_supervision_repair,
+                },
+            )
         if final_recovery.get("outcome") != "resumed":
             finish_supervision_recovery_stop(
                 client,
@@ -7981,6 +8212,7 @@ def start_generation_from_income(
     reason: str,
     generation_mode: str = "api",
     provider_mode: str = "live",
+    repair_model: str = "",
     replay_dir: str | pathlib.Path | None = None,
     background: bool = True,
     on_started: Callable[[dict[str, Any]], None] | None = None,
@@ -8038,6 +8270,8 @@ def start_generation_from_income(
             entry_receipt
         ),
         "provider_mode": str(provider_mode or "live").strip().lower(),
+        "generation_model": str(model or "").strip(),
+        "repair_model": str(repair_model or "").strip(),
         "replay_dir": str(pathlib.Path(replay_dir).resolve()) if replay_dir else "",
     }
     append_agent_session_event(
@@ -8748,6 +8982,35 @@ def handle_text(
             timeout=timeout,
             reason="project_update",
         )
+    completed_candidate_statuses = {
+        "ready",
+        "ready_with_warnings",
+        "completed",
+        "delivered",
+        "delivered_with_warnings",
+        "final_delivered",
+    }
+    if generation_status in completed_candidate_statuses:
+        direct_text, _ = reject_off_topic_public_reply(
+            session_dir,
+            conversation_id,
+            session,
+            str(turn.get("reply", "")),
+            source=str(turn.get("source", "customer_service_reply")),
+        )
+        send_customer_reply(
+            client,
+            conversation_id,
+            session_dir,
+            session,
+            event="model_frontdesk_reply",
+            source=str(turn.get("source", "customer_service_reply")),
+            direct_text=direct_text,
+        )
+        record_provider_design_scope(
+            client, conversation_id, session_dir, log_dir, session
+        )
+        return
     auto_start, start_reason = should_auto_start_generation(session, analysis, text)
     if not auto_start:
         record_generation_start_waiting(session_dir, conversation_id, session, analysis, start_reason)
@@ -8997,10 +9260,12 @@ def run_formal_generation_once(
     goal: str,
     provider_mode: str = "live",
     model: str = "gpt-4.1",
+    repair_model: str = "",
     timeout: int = 1800,
     replay_dir: str | pathlib.Path | None = None,
     result_path: str | pathlib.Path | None = None,
     codex_capability_brief: str | pathlib.Path | None = None,
+    observed_failure: str | pathlib.Path | None = None,
     on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Run/resume one production conversation generation turn synchronously.
@@ -9049,6 +9314,7 @@ def run_formal_generation_once(
             session,
             reason="agent_kit_formal_generation",
             provider_mode=provider_mode,
+            repair_model=repair_model,
             replay_dir=replay_dir,
             background=False,
             on_started=on_started,
@@ -9065,7 +9331,63 @@ def run_formal_generation_once(
         stored_mode = str(generation.get("provider_mode", provider_mode) or provider_mode)
         if stored_mode != provider_mode:
             raise ValueError("provider_mode cannot change while resuming a production run")
-        if str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
+        stored_generation_model = str(generation.get("generation_model", model) or model)
+        stored_repair_model = str(generation.get("repair_model", "") or "")
+        if stored_generation_model != str(model or ""):
+            raise ValueError("generation model cannot change while resuming a production run")
+        if stored_repair_model != str(repair_model or ""):
+            raise ValueError("repair model cannot change while resuming a production run")
+        observed_repair_handled = False
+        if observed_failure is not None:
+            observed_path = pathlib.Path(observed_failure).expanduser().resolve()
+            if not observed_path.is_file() or observed_path.is_symlink():
+                raise ValueError("observed_failure must be an existing regular file")
+            observed_doc = json.loads(observed_path.read_text(encoding="utf-8"))
+            if not isinstance(observed_doc, dict):
+                raise ValueError("observed_failure must contain a JSON object")
+            provider_run_dir = pathlib.Path(
+                str(generation.get("provider_run_dir", ""))
+            ).resolve()
+            project_dir = pathlib.Path(str(generation.get("project_dir", ""))).resolve()
+            if not provider_run_dir.is_dir() or not project_dir.is_dir():
+                raise RuntimeError("observed_failure_generation_identity_missing")
+            preparation = (
+                provider_project_pipeline.prepare_observed_project_failure_provider_repair(
+                    provider_run_dir,
+                    observed_doc,
+                    user_goal=goal,
+                    candidate_dir=project_dir,
+                )
+            )
+            session["observed_failure_repair"] = preparation
+            append_agent_session_event(
+                session_dir,
+                conversation_id,
+                {
+                    "kind": "observed_project_failure_repair_prepared",
+                    "role": "tool",
+                    "result": preparation,
+                },
+            )
+            save_session(session_dir, session)
+            observed_repair_handled = True
+            if str(preparation.get("status", "")) == "pending_provider_repair":
+                if on_started is not None:
+                    on_started(dict(generation))
+                start_agent_generation(
+                    client,
+                    conversation_id,
+                    session_dir,
+                    log_dir,
+                    model,
+                    timeout,
+                    announce_start=False,
+                    reason="agent_kit_observed_failure_provider_repair",
+                    background=False,
+                )
+        if observed_repair_handled:
+            pass
+        elif str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
             if on_started is not None:
                 on_started(dict(generation))
             start_agent_generation(
@@ -9090,6 +9412,7 @@ def run_formal_generation_once(
                 session,
                 reason="agent_kit_terminal_failure_revalidation",
                 provider_mode=provider_mode,
+                repair_model=repair_model,
                 replay_dir=replay_dir,
                 background=False,
                 on_started=on_started,
@@ -9134,6 +9457,10 @@ def run_formal_generation_once(
         "workflow_state": str(generation.get("workflow_state") or generation.get("canonical_finalization_state", {}).get("state") or normalized_status),
         "formal_evidence_status": formal_evidence_status,
         "provider_mode": str(generation.get("provider_mode", provider_mode)),
+        "execution_mode": "external_api" if str(generation.get("provider_mode", provider_mode)) == "live" else str(generation.get("provider_mode", provider_mode)),
+        "generation_model": str(generation.get("generation_model", model)),
+        "repair_model": str(generation.get("repair_model", "") or generation.get("generation_model", model)),
+        "repair_model_escalation_configured": bool(str(generation.get("repair_model", "")).strip()),
         "real_provider_calls": int(generation.get("real_provider_calls", 0) or 0),
         "network_attempts": int(generation.get("network_attempts", 0) or 0),
         "provider_schedulers": int(generation.get("provider_schedulers", 1) or 1),
@@ -9161,6 +9488,7 @@ def run_formal_generation_once(
         "promotion_manifest": generation.get("promotion_manifest", {}),
         "user_review_policy": generation.get("user_review_policy", {}),
         "product_maturity": generation.get("product_maturity", {}),
+        "observed_failure_repair": session.get("observed_failure_repair", {}),
         "conversation_session_path": str(path.resolve()),
         "public_messages": client.messages,
         "public_artifacts": client.artifacts,

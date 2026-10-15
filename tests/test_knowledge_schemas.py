@@ -9,6 +9,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+KNOWLEDGE_EXAMPLES = ROOT / "examples" / "project-generation" / "knowledge"
 
 
 class KnowledgeSchemaTests(unittest.TestCase):
@@ -37,30 +38,30 @@ class KnowledgeSchemaTests(unittest.TestCase):
         return list(validator.iter_errors(doc))
 
     def test_all_new_examples_validate_against_schemas(self) -> None:
-        pack = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        pack = json.loads((KNOWLEDGE_EXAMPLES / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(pack, "project_knowledge_pack.schema.json"))
-        query = json.loads((ROOT / "examples" / "knowledge" / "knowledge_retrieval_query.example.json").read_text(encoding="utf-8"))
+        query = json.loads((KNOWLEDGE_EXAMPLES / "knowledge_retrieval_query.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(query, "knowledge_retrieval_query.schema.json"))
-        context = json.loads((ROOT / "examples" / "knowledge" / "agent_context_pack.example.json").read_text(encoding="utf-8"))
+        context = json.loads((KNOWLEDGE_EXAMPLES / "agent_context_pack.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(context, "agent_context_pack.schema.json"))
-        report = json.loads((ROOT / "examples" / "knowledge" / "knowledge_update_report.example.json").read_text(encoding="utf-8"))
+        report = json.loads((KNOWLEDGE_EXAMPLES / "knowledge_update_report.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(report, "knowledge_update_report.schema.json"))
-        points = json.loads((ROOT / "examples" / "knowledge" / "dialogue_keypoints.example.json").read_text(encoding="utf-8"))
+        points = json.loads((KNOWLEDGE_EXAMPLES / "dialogue_keypoints.example.json").read_text(encoding="utf-8"))
         for point in points["keypoints"]:
             self.assertEqual([], self.validate_doc(point, "key_point.schema.json"))
 
     def test_invalid_importance_enum_fails(self) -> None:
-        doc = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        doc = json.loads((KNOWLEDGE_EXAMPLES / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         doc["all_items"][0]["importance"] = "urgent"
         self.assertTrue(self.validate_doc(doc, "project_knowledge_pack.schema.json"))
 
     def test_invalid_retention_enum_fails(self) -> None:
-        doc = json.loads((ROOT / "examples" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
+        doc = json.loads((KNOWLEDGE_EXAMPLES / "cgkn_refactor.project_knowledge_pack.json").read_text(encoding="utf-8"))
         doc["all_items"][0]["retention"] = "forever"
         self.assertTrue(self.validate_doc(doc, "project_knowledge_pack.schema.json"))
 
     def test_valid_agent_context_pack_passes(self) -> None:
-        context = json.loads((ROOT / "examples" / "knowledge" / "agent_context_pack.example.json").read_text(encoding="utf-8"))
+        context = json.loads((KNOWLEDGE_EXAMPLES / "agent_context_pack.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(context, "agent_context_pack.schema.json"))
 
 

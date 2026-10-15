@@ -138,14 +138,21 @@ def _normalize_command(
     if command[:3] == ["python", "-m", "pytest"]:
         pytest_args: list[str] = []
         if project is not None:
+            candidate_python_roots = [project.resolve(), (project / "src").resolve()]
+            pythonpath_override = " ".join(
+                f'"{path.as_posix()}"' for path in candidate_python_roots
+            )
             pytest_args = [
                 "--rootdir",
                 str(project.resolve()),
                 "-c",
                 _pytest_config(project) or str(pathlib.Path(isolated_config).resolve()),
+                "-o",
+                f"pythonpath={pythonpath_override}",
             ]
         return [
             str(python_executable or sys.executable),
+            "-I",
             "-m",
             "pytest",
             *pytest_args,
@@ -196,24 +203,79 @@ def run_tests(
     exit_code: int | None = None
     timed_out = False
 
-    env_classification = "clean_env_overlay"
+    env_classification = "isolated_minimal_env"
     if not argv:
         status = "FAIL"
         stderr = "tests directory missing or no executable test command detected"
         counts = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
     else:
-        env = os.environ.copy()
+        allowed_parent_environment = {
+            "APPDATA",
+            "COMSPEC",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "LOCALAPPDATA",
+            "NUMBER_OF_PROCESSORS",
+            "OS",
+            "PATH",
+            "PATHEXT",
+            "PROCESSOR_ARCHITECTURE",
+            "PROGRAMDATA",
+            "PROGRAMFILES",
+            "PROGRAMFILES(X86)",
+            "SYSTEMDRIVE",
+            "SYSTEMROOT",
+            "USERPROFILE",
+            "WINDIR",
+        }
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key.upper() in allowed_parent_environment
+        }
+        # A candidate pytest invocation is an independent test process, not a
+        # child phase of the repository's own pytest session.  Inheriting the
+        # outer runner's plugin/options/current-node controls makes collection
+        # order dependent and can redirect candidate events into the parent
+        # evidence stream.
+        for inherited_pytest_control in (
+            "PYTEST_ADDOPTS",
+            "PYTEST_PLUGINS",
+            "PYTEST_CURRENT_TEST",
+            "CGKN_PYTEST_EVENT_LOG",
+        ):
+            env.pop(inherited_pytest_control, None)
         python_paths = [str(project)]
         src_path = project / "src"
         if src_path.exists():
             python_paths.append(str(src_path))
-        if env.get("PYTHONPATH"):
-            python_paths.append(env["PYTHONPATH"])
-        env["PYTHONPATH"] = os.pathsep.join(python_paths)
+        # Candidate tests are a separate trust boundary.  Even an inherited
+        # path that exists at this instant can name a parent test's temporary
+        # directory and disappear (or inject sitecustomize) before the child
+        # interpreter collects.  Candidate-local roots are the only required
+        # import roots; installed dependencies remain available via site-packages.
+        env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(python_paths))
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
         env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
         try:
             with tempfile.TemporaryDirectory(prefix="cgkn_test_outputs_") as test_output_dir:
                 env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
+                env["TEMP"] = test_output_dir
+                env["TMP"] = test_output_dir
+                if len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]:
+                    # Bind pytest's own temporary tree to the execution-owned
+                    # directory as well.  A parent suite (or candidate config)
+                    # can otherwise leave a now-deleted basetemp behind, making
+                    # an otherwise isolated candidate fail only in some orders.
+                    target_count = max(0, len(commands[0]) - 3)
+                    insert_at = len(argv) - target_count
+                    argv = [
+                        *argv[:insert_at],
+                        "--basetemp",
+                        str(pathlib.Path(test_output_dir) / "pytest"),
+                        *argv[insert_at:],
+                    ]
                 try:
                     proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
                     stdout = proc.stdout or ""
@@ -228,7 +290,7 @@ def run_tests(
             if isolated_pytest_config is not None:
                 isolated_pytest_config.unlink(missing_ok=True)
         counts = _pytest_counts(stdout, stderr, int(exit_code))
-        is_pytest = len(argv) >= 3 and argv[1:3] == ["-m", "pytest"]
+        is_pytest = len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]
         if not is_pytest and exit_code == 0 and counts["collected"] == 0:
             counts = {**counts, "collected": 1, "passed": 1}
         minimum_collected = max(1, int(minimum_collected or 1))

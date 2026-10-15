@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 import re
 import statistics
@@ -40,12 +41,23 @@ ALLOWED_EXTERNAL_PRODUCERS = {
     "benchmark_file_probe",
     "benchmark_persistence_probe",
     "benchmark_fault_probe",
+    "benchmark_goal_fidelity_probe",
+    "benchmark_scope_probe",
+    "benchmark_revision_probe",
 }
+FAILURE_TAXONOMY = (
+    "REQUIREMENT_UNDERSTANDING", "PLANNING", "CONTEXT", "CODE_GENERATION", "DEPENDENCY",
+    "RUNTIME", "INTEGRATION", "PERSISTENCE", "TEST", "EVIDENCE", "REPAIR", "DELIVERY",
+    "MODEL_LIMIT", "PROVIDER_FAILURE", "ENVIRONMENT", "UNKNOWN",
+)
 PROVIDER_BLOCKER_PATTERNS = (
-    r"\b403\b",
+    r"\b(?:401|403|429|5\d\d)\b",
+    r"auth(?:entication|orization)?(?:\s+failed)?",
+    r"rate[ _-]?limit",
     r"quota",
     r"insufficient[_ ]quota",
     r"provider.*(?:unavailable|timeout|timed out)",
+    r"provider_api_request_failed",
     r"tls|ssl|certificate",
     r"connection (?:error|refused|reset)",
     r"blocked_provider",
@@ -265,8 +277,8 @@ def validate_repair_scope(repair: dict[str, Any]) -> tuple[bool, list[str]]:
     invalidated = {str(item) for item in repair.get("invalidated_evidence", [])}
     reemitted = {str(item) for item in repair.get("reemitted_evidence", [])}
     problems: list[str] = []
-    if not repair.get("injected_after_happy_path", False):
-        problems.append("fault was not injected after happy-path success")
+    if not (repair.get("triggered_by_independent_failure") or repair.get("injected_after_happy_path")):
+        problems.append("repair has no independent failure trigger")
     if not affected:
         problems.append("affected job scope is empty")
     if not recalled.issubset(affected):
@@ -274,6 +286,50 @@ def validate_repair_scope(repair: dict[str, Any]) -> tuple[bool, list[str]]:
     if invalidated and not invalidated.issubset(reemitted):
         problems.append("stale evidence was not fully re-emitted")
     return not problems, problems
+
+
+def classify_root_failure(result: dict[str, Any]) -> str:
+    explicit = str(result.get("root_failure", "")).upper()
+    if explicit in FAILURE_TAXONOMY:
+        return explicit
+    failures = " ".join(str(item).lower() for item in result.get("hard_failures", []))
+    missing = " ".join(str(item).lower() for item in result.get("criteria_not_evaluated", []))
+    blocker = str(result.get("provider_blocker", "")).lower()
+    if blocker:
+        return "MODEL_LIMIT" if classify_provider_blocker(blocker) else "ENVIRONMENT"
+    if "candidate_missing" in failures:
+        return "CODE_GENERATION"
+    # Goal-fidelity probes are aggregate checks: a dependency, runtime,
+    # persistence, or integration failure normally makes them fail too. Route
+    # the concrete operational failure first so an ordinary project defect can
+    # enter bounded Provider repair instead of being collapsed into a
+    # non-repairable requirement-understanding classification.
+    for status_key, category in (
+        ("dependency_status", "DEPENDENCY"),
+        ("runtime_status", "RUNTIME"),
+        ("persistence_status", "PERSISTENCE"),
+        ("integration_status", "INTEGRATION"),
+        ("delivery_status", "DELIVERY"),
+    ):
+        if str(result.get(status_key, "")).upper() == "FAIL":
+            return category
+    if "dependency" in failures or "import" in failures:
+        return "DEPENDENCY"
+    if "runtime" in failures:
+        return "RUNTIME"
+    if "persist" in failures:
+        return "PERSISTENCE"
+    if "integration" in failures or "export" in failures or "dashboard" in failures:
+        return "INTEGRATION"
+    if "repair" in failures:
+        return "REPAIR"
+    if "delivery" in failures:
+        return "DELIVERY"
+    if missing or "observation" in failures or "visual" in failures:
+        return "EVIDENCE"
+    if "goal_fidelity" in failures or "requirement" in failures:
+        return "REQUIREMENT_UNDERSTANDING"
+    return "UNKNOWN"
 
 
 def collect_invocation_metrics(case_dir: pathlib.Path) -> dict[str, Any]:
@@ -381,7 +437,8 @@ def evaluate_case(
     provider_error: str = "",
     repair: dict[str, Any] | None = None,
     dry_run: bool = False,
-    require_repair: bool = True,
+    require_repair: bool = False,
+    production_claim: str = "NOT_EVALUATED",
 ) -> dict[str, Any]:
     case_id = str(case["case_id"])
     candidate_sha = candidate_tree_hash(candidate_dir)
@@ -453,6 +510,14 @@ def evaluate_case(
             missing_criteria.append("visual.independent")
         elif visual.get("status") != "PASS" or visual.get("producer") != "benchmark_browser_probe":
             hard_failures.append("visual_independent_failed")
+        goal_fidelity = by_id.get("goal_fidelity.independent")
+        if not goal_fidelity:
+            missing_criteria.append("goal_fidelity.independent")
+        elif goal_fidelity.get("status") != "PASS" or goal_fidelity.get("producer") != "benchmark_goal_fidelity_probe":
+            hard_failures.append("goal_fidelity_failed")
+        scope = by_id.get("scope.independent")
+        if scope and scope.get("status") != "PASS":
+            hard_failures.append("overengineering_or_underimplementation")
     if rejected:
         hard_failures.extend(rejected)
     runtime_criteria = [item for item in criteria if item.get("category") == "runtime"]
@@ -475,7 +540,7 @@ def evaluate_case(
         result = "PROJECT_FAIL"
     if dry_run:
         result = "NOT_EVALUATED"
-    return {
+    result_doc = {
         "kind": "ProjectGenerationBenchmarkCaseResult",
         "schema_version": SCHEMA_VERSION,
         "evaluated_at": utc_now(),
@@ -489,6 +554,20 @@ def evaluate_case(
         "hard_failures": sorted(set(hard_failures)),
         "criteria_not_evaluated": sorted(set(missing_criteria)),
         "runtime_status": "PASS" if runtime_pass else "FAIL",
+        "dependency_status": (
+            "PASS" if by_id.get("dependency.independent", {}).get("status") == "PASS" else "FAIL"
+        ),
+        "persistence_status": "PASS" if all(
+            by_id.get(str(item["id"]), {}).get("status") == "PASS"
+            for item in criteria if item.get("category") == "persistence"
+        ) and any(item.get("category") == "persistence" for item in criteria) else "FAIL",
+        "integration_status": "PASS" if all(
+            by_id.get(str(item["id"]), {}).get("status") == "PASS"
+            for item in criteria if item.get("category") == "integration"
+        ) and any(item.get("category") == "integration" for item in criteria) else "FAIL",
+        "goal_fidelity_status": "NOT_EVALUATED" if dry_run else (
+            "PASS" if by_id.get("goal_fidelity.independent", {}).get("status") == "PASS" else "FAIL"
+        ),
         "delivery_status": "PASS" if delivery_pass else "FAIL",
         "candidate_sha256": candidate_sha,
         "accepted_observation_count": len(accepted),
@@ -497,21 +576,34 @@ def evaluate_case(
         "repair": repair or {"attempted": False},
         "dry_run": dry_run,
         "production_verdict_used": False,
+        "production_claim": str(production_claim or "NOT_EVALUATED").upper(),
     }
+    result_doc["false_pass"] = result_doc["production_claim"] in {"PASS", "DELIVERED", "DELIVERED_WITH_WARNINGS"} and result != "PROJECT_PASS"
+    result_doc["false_negative"] = result_doc["production_claim"] in {"FAIL", "BLOCKED", "NEEDS_REWORK", "REWORK_BLOCKED"} and result == "PROJECT_PASS"
+    result_doc["root_failure"] = classify_root_failure(result_doc) if result != "PROJECT_PASS" else None
+    return result_doc
 
 
 def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
-    counts = {key: 0 for key in ("PROJECT_PASS", "PROJECT_FAIL", "BLOCKED_PROVIDER", "NOT_EVALUATED")}
+    counts = {key: 0 for key in ("PROJECT_PASS", "PROJECT_FAIL", "BLOCKED_PROVIDER", "BUDGET_EXHAUSTED", "NOT_EVALUATED")}
     live_scores: list[float] = []
     provider_calls = codex_calls = tokens = 0
     actual_cost = elapsed = 0.0
     actual_cost_known = True
     attempted_repairs = successful_repairs = one_shot_passes = 0
+    repair_round1_attempted = repair_round1_success = 0
+    repair_round2_attempted = repair_round2_success = 0
     attempts: list[float] = []
     reuse_values: list[float] = []
     scope_values: list[float] = []
     stale_rejections = rejected_total = 0
-    failure_taxonomy: dict[str, int] = {}
+    failure_taxonomy: dict[str, int] = {key: 0 for key in FAILURE_TAXONOMY}
+    first_pass_count = repair_success_count = false_pass = false_negative = 0
+    runtime_pass = dependency_pass = persistence_pass = integration_pass = goal_fidelity_pass = 0
+    final_fail_count = rework_blocked_count = 0
+    recoverable_failures = recovered_failures = 0
+    repair_round_values: list[int] = []
+    wall_times: list[float] = []
     for result in results:
         counts[str(result.get("result", "NOT_EVALUATED"))] = counts.get(str(result.get("result")), 0) + 1
         if result.get("result") in {"PROJECT_PASS", "PROJECT_FAIL"} and isinstance(result.get("score"), (int, float)):
@@ -525,11 +617,37 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         else:
             actual_cost_known = False
         elapsed += float(metrics.get("elapsed_seconds", 0.0) or 0.0)
+        wall_times.append(float(metrics.get("elapsed_seconds", 0.0) or 0.0))
+        first_result = str(result.get("first_result", result.get("result", "NOT_EVALUATED")))
+        first_pass_count += int(first_result == "PROJECT_PASS")
+        repairs = [item for item in result.get("repairs", []) if isinstance(item, dict)]
+        repair = result.get("repair", {}) if isinstance(result.get("repair"), dict) else {}
+        any_repair_attempted = bool(repair.get("attempted")) or any(item.get("attempted") for item in repairs)
+        repair_rounds = int(result.get("repair_rounds", 0) or 0) if any_repair_attempted else 0
+        repair_round_values.append(repair_rounds)
+        repair_success_count += int(first_result == "PROJECT_FAIL" and result.get("result") == "PROJECT_PASS")
+        repair_round1_attempted += int(any(int(item.get("repair_round", 0) or 0) == 1 and item.get("attempted") for item in repairs))
+        repair_round1_success += int(any(int(item.get("repair_round", 0) or 0) == 1 and item.get("recovery_status") == "PASS" for item in repairs))
+        repair_round2_attempted += int(any(int(item.get("repair_round", 0) or 0) == 2 and item.get("attempted") for item in repairs))
+        repair_round2_success += int(any(int(item.get("repair_round", 0) or 0) == 2 and item.get("recovery_status") == "PASS" for item in repairs))
+        ordinary = str(result.get("first_root_failure", result.get("root_failure", ""))).upper() in {
+            "CODE_GENERATION", "DEPENDENCY", "RUNTIME", "INTEGRATION", "PERSISTENCE", "TEST", "EVIDENCE", "REPAIR", "DELIVERY",
+        }
+        recoverable_failures += int(first_result == "PROJECT_FAIL" and ordinary)
+        recovered_failures += int(first_result == "PROJECT_FAIL" and ordinary and result.get("result") == "PROJECT_PASS")
+        final_fail_count += int(result.get("result") == "PROJECT_FAIL" and str(result.get("workflow_state", "")).upper() == "FINAL_FAIL")
+        rework_blocked_count += int(str(result.get("workflow_state", "")).upper() == "REWORK_BLOCKED")
+        false_pass += int(bool(result.get("false_pass")))
+        false_negative += int(bool(result.get("false_negative")))
+        runtime_pass += int(result.get("runtime_status") == "PASS")
+        dependency_pass += int(result.get("dependency_status") == "PASS")
+        persistence_pass += int(result.get("persistence_status") == "PASS")
+        integration_pass += int(result.get("integration_status") == "PASS")
+        goal_fidelity_pass += int(result.get("goal_fidelity_status") == "PASS")
         if isinstance(metrics.get("attempts_to_success"), (int, float)):
             attempts.append(float(metrics["attempts_to_success"]))
         if isinstance(metrics.get("job_reuse_rate"), (int, float)):
             reuse_values.append(float(metrics["job_reuse_rate"]))
-        repair = result.get("repair", {}) if isinstance(result.get("repair"), dict) else {}
         if repair.get("initial_happy_path_pass") is True:
             one_shot_passes += 1
         if repair.get("attempted") or repair.get("injected_after_happy_path"):
@@ -541,11 +659,9 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         rejected = list(result.get("rejected_observations", []))
         rejected_total += len(rejected) + int(result.get("accepted_observation_count", 0) or 0)
         stale_rejections += sum("stale_candidate_identity" in str(item) for item in rejected)
-        for failure in result.get("hard_failures", []):
-            label = str(failure).split(":", 1)[0]
-            failure_taxonomy[label] = failure_taxonomy.get(label, 0) + 1
-        if result.get("result") == "BLOCKED_PROVIDER":
-            failure_taxonomy["provider_blocker"] = failure_taxonomy.get("provider_blocker", 0) + 1
+        if result.get("result") in {"PROJECT_FAIL", "BLOCKED_PROVIDER", "BUDGET_EXHAUSTED"}:
+            label = classify_root_failure(result)
+            failure_taxonomy[label] += 1
     evaluated = counts["PROJECT_PASS"] + counts["PROJECT_FAIL"]
     summary = {
         "case_count": len(results),
@@ -566,6 +682,34 @@ def aggregate_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         "repair_scope_accuracy": round(sum(scope_values) / len(scope_values), 4) if scope_values else None,
         "stale_evidence_rejection_rate": round(stale_rejections / rejected_total, 4) if rejected_total else None,
         "failure_taxonomy": dict(sorted(failure_taxonomy.items())),
+        "projects_total": len(results),
+        "first_pass_count": first_pass_count,
+        "first_pass_rate": round(first_pass_count / len(results), 4) if results else None,
+        "final_pass_count": counts["PROJECT_PASS"],
+        "final_pass_rate": round(counts["PROJECT_PASS"] / len(results), 4) if results else None,
+        "repair_success_count": repair_success_count,
+        "repair_round1_attempted": repair_round1_attempted,
+        "repair_round1_success": repair_round1_success,
+        "repair_round2_attempted": repair_round2_attempted,
+        "repair_round2_success": repair_round2_success,
+        "recoverable_failure_repair_rate": round(recovered_failures / recoverable_failures, 4) if recoverable_failures else None,
+        "final_fail_count": final_fail_count,
+        "rework_blocked_count": rework_blocked_count,
+        "average_repair_rounds": round(sum(repair_round_values) / len(repair_round_values), 3) if repair_round_values else 0.0,
+        "max_repair_rounds": max(repair_round_values, default=0),
+        "false_pass": false_pass,
+        "false_negative": false_negative,
+        "runtime_pass": runtime_pass,
+        "dependency_pass": dependency_pass,
+        "persistence_pass": persistence_pass,
+        "integration_pass": integration_pass,
+        "goal_fidelity_pass": goal_fidelity_pass,
+        "median_time_per_project": statistics.median(wall_times) if wall_times else None,
+        "p95_time_per_project": (
+            sorted(wall_times)[max(0, min(len(wall_times) - 1, round(0.95 * len(wall_times) + 0.5) - 1))]
+            if wall_times else None
+        ),
+        "calls_per_project": round(provider_calls / len(results), 3) if results else None,
     }
     successful = [result for result in results if result.get("result") == "PROJECT_PASS"]
     evaluated_results = [result for result in results if result.get("result") in {"PROJECT_PASS", "PROJECT_FAIL"}]
@@ -596,10 +740,16 @@ def compare_reports(current: dict[str, Any], baseline: dict[str, Any]) -> dict[s
 def scan_production_contamination(repo_root: pathlib.Path) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     production_roots = [repo_root / "scripts", repo_root / "agents", repo_root / "skills"]
+    paths: list[pathlib.Path] = []
+    ignored_dirs = {".git", "node_modules", "__pycache__", ".pytest_cache", ".venv", "venv", "dist", "build"}
     for root in production_roots:
         if not root.is_dir():
             continue
-        for path in root.rglob("*"):
+        for current_root, directories, filenames in os.walk(root):
+            directories[:] = [name for name in directories if name not in ignored_dirs]
+            current = pathlib.Path(current_root)
+            paths.extend(current / name for name in filenames)
+    for path in paths:
             if not path.is_file() or path.suffix.lower() not in {".py", ".json", ".md", ".yaml", ".yml"}:
                 continue
             try:

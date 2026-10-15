@@ -30,6 +30,34 @@ class FakeCodexConversation:
         self.actions.append((str(conversation_id), action))
 
 
+def test_external_api_generation_profile_preserves_kernel_authorities() -> None:
+    contract = read_source("docs/00_kernel_contract.md")
+    registry = read_source("docs/01_contract_registry.md")
+    budget = read_source("scripts/provider_api_budget.py")
+    profile = json.loads(read_source("config/provider_profiles/project-generation-external-api.json"))
+    assert "External API project-generation execution profile" in contract
+    assert "ProviderJob" in contract and "local_packager" in contract and "public delivery" in contract
+    assert "CGKNExternalProviderCostLedger" in registry
+    assert "class ProviderBudgetExhausted" in budget
+    assert profile["codex_generation_calls_allowed"] == 0
+    assert profile["codex_repair_calls_allowed"] == 0
+    assert profile["credentials_must_come_from_environment"] is True
+    assert "must never be sent to the external API" in contract
+    assert "external_api_only and not is_internal_provider_model_alias(model)" in read_source(
+        "scripts/run_local_pipeline_impl.py"
+    )
+    assert "REQUEST_STARTED" in budget
+    assert "INTERRUPTED_UNKNOWN" in budget
+    assert "CANCELLED_BEFORE_SEND" in budget
+    assert "--repair-evidence" in read_source("scripts/run_codex_conversation_generation.py")
+    assert "--observed-failure" not in read_source("benchmarks/project_generation_v1/run_benchmark.py")
+    assert "repair_evidence_contract.build" in read_source("benchmarks/project_generation_v1/run_benchmark.py")
+    assert "repair_evidence_contract.validate" in read_source("scripts/run_local_pipeline_impl.py")
+    assert "canonicalize_requirements_planning_response" in read_source("scripts/run_local_pipeline_impl.py")
+    assert "REJECT_UNKNOWN_ENVELOPE" in read_source("scripts/run_local_pipeline_impl.py")
+    assert "semantic_fields_modified" in read_source("scripts/run_local_pipeline_impl.py")
+
+
 def read_source(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8", errors="replace")
 
@@ -128,6 +156,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("AMBIGUOUS_RECORD_DOMAINS", requirement)
         self.assertIn("goal_decision_blockers", requirement)
         self.assertIn("ProviderJob` remains the natural ownership", contract)
+        self.assertIn("shared final Provider-call boundary", contract)
+        self.assertIn("enforce_provider_request_context_budget", pipeline)
         self.assertIn("at most one completion call", contract)
         self.assertIn("Each bounded emission requests", contract)
         self.assertIn("self-imposed insufficient request", contract)
@@ -138,6 +168,10 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Issue-ledger normalization runs even when no external evaluator", contract)
         self.assertIn("complete current", contract)
         self.assertIn("Mock/Fake product surrogate", contract)
+        self.assertIn("selected interpreter's isolated", contract)
+        self.assertIn('env["PYTHONPATH"] = os.pathsep.join', read_source("scripts/real_test_execution.py"))
+        self.assertIn('"-I",', read_source("scripts/real_test_execution.py"))
+        self.assertIn('"--basetemp",', read_source("scripts/real_test_execution.py"))
         self.assertIn("MIN_COMPLETION_RESERVE", contract)
         self.assertIn("durably checkpointed", contract)
         self.assertIn("MIN_COMPLETION_RESERVE_SECONDS = 95", pipeline)
@@ -317,6 +351,26 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGKNProductionCandidateProvenance", contract)
         self.assertIn("Session/context booleans", contract)
         self.assertIn("short-circuits canonical evidence inspection", contract)
+
+    def test_autonomous_project_acceptance_is_a_pre_delivery_veto_on_the_provider_route(self) -> None:
+        source = read_source("scripts/codex_conversation.py")
+        integration = read_source("scripts/autonomous_project_acceptance.py")
+        contract = read_source("docs/00_kernel_contract.md")
+        provider_job = function_body(source, "run_provider_generation_job")
+        finalize = function_body(source, "post_build_finalize_provider_project")
+
+        self.assertIn("autonomous_project_acceptance.run_acceptance", finalize)
+        self.assertLess(
+            finalize.find("autonomous_project_acceptance.run_acceptance"),
+            finalize.find("production_candidate_provenance.produce"),
+        )
+        self.assertIn("prepare_observed_project_failure_provider_repair", provider_job)
+        self.assertIn("autonomous_repair_rounds >= 2", provider_job)
+        self.assertIn("testability_contract.json", integration)
+        self.assertIn('"release_authority": False', integration)
+        self.assertIn("Missing or invalid executable control contracts are `BLOCKED`", contract)
+        self.assertIn("project acceptance recommendations", contract)
+        self.assertIn("cannot promote, package, deliver", contract)
 
     def test_requirements_planning_consumes_the_reviewed_model_policy(self) -> None:
         source = read_source("scripts/run_local_pipeline_impl.py")
@@ -570,6 +624,14 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("CGNK_LOCAL_COMPONENT_MAX_PROMPT_CHARS", pipeline_source)
         self.assertIn("component_required_manifest_paths", pipeline_source)
         self.assertIn("named_direct_cli_leaf_contract_error", pipeline_source)
+        self.assertIn("_uses_legacy_note_cli_contract", pipeline_source)
+        self.assertIn("Generic direct CLIs are Provider-defined", pipeline_source)
+        self.assertIn("provider_defined_direct_cli", pipeline_source)
+        self.assertIn(
+            'and not _uses_legacy_note_cli_contract(goal_spec)', pipeline_source
+        )
+        self.assertIn('"testability_contract.json"', read_source("scripts/requirement_decision_lane.py"))
+        self.assertIn("unsafe_path_argument", read_source("scripts/autonomous_project_acceptance.py"))
         self.assertIn("named direct CLI pyproject.toml must declare requires-python", pipeline_source)
         self.assertIn("CGNK_LOCAL_DIRECT_CLI_CONFIG_FALLBACK_ATTEMPTS", pipeline_source)
         self.assertIn(
@@ -590,6 +652,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("frontend_repair_leaf or direct_cli_contract", post_build_repair_source)
         self.assertIn("missing service command dispatch", pipeline_source)
         self.assertIn("one coherent executable API across all leaves", doc)
+        self.assertIn("must never be rewritten into the Notes sample", doc)
         self.assertIn("post-build repair reloads the same named-package leaf contract", doc)
         self.assertIn("direct-CLI foundation contract also freezes valid PEP 621", doc)
         self.assertIn("capped at two total attempts", doc)
@@ -817,6 +880,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("required_anti_copying_statement", pipeline_source)
         self.assertIn("seen_blockers", pipeline_source)
         self.assertIn("owner = legal_owner_for_path(path, pipeline_components)", pipeline_source)
+        self.assertIn('"app/main.py", "src/*.py"', pipeline_source)
+        self.assertIn('"DELIVERY_NOTES.md", "docs/**"', pipeline_source)
         self.assertIn("Repair the evidenced semantic blocker in this exact file", pipeline_source)
         self.assertIn('raw_files = blocker.get("files_hint", [])', pipeline_source)
         self.assertIn("structured_blockers or blockers", pipeline_source)
@@ -884,6 +949,12 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("do not create or regenerate an upstream component", pipeline_source)
         self.assertIn("pending_semantic_repair_plan_refreshed", pipeline_source)
         self.assertIn("repair_plan_refreshed_on_resume", pipeline_source)
+        self.assertIn("completed_repair_components", pipeline_source)
+        self.assertIn("completed_repair_files", pipeline_source)
+        self.assertIn("_PENDING_REPAIR_CONTEXT_LOCK", pipeline_source)
+        self.assertIn("if run_dir is not None and emitted_paths", pipeline_source)
+        self.assertIn("Commit every validated response before yielding", pipeline_source)
+        self.assertIn("persist_completed_semantic_repair_component", pipeline_source)
         self.assertIn("semantic_resume_goal_matches", pipeline_source)
         self.assertIn("allow_spec_mismatch=bool(recover_manifest_from_checkpoints)", pipeline_source)
         self.assertIn("javascript_local_import_contract", pipeline_source)
@@ -1301,7 +1372,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('request_payload["enable_thinking"] = False', connectivity)
         self.assertIn("CGKN_QWEN_BOUNDED_GENERATION_REASONING_NONE", pipeline)
         self.assertIn('"semantic_feature_unit_review"', pipeline)
-        self.assertIn("max_tokens=1800 if is_feature_unit_review", pipeline)
+        self.assertIn("review_output_tokens = 1800 if is_feature_unit_review", pipeline)
+        self.assertIn("max_tokens=review_output_tokens", pipeline)
         self.assertIn('resolved_out.name == "generated-project"', pipeline)
         self.assertIn('resolved_out.parent.name == "agent-kit"', pipeline)
         self.assertIn("provider_leaf_contract_error = feature_unit_leaf_contract_error", pipeline)
@@ -1588,6 +1660,7 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("formal_evidence_authorized", supervisor)
         self.assertIn('"formal_evidence_status": "NOT_EVALUATED"', supervisor)
         self.assertIn("ordinary interface requests are Provider Planner input", doc)
+        self.assertIn("terminal completed or delivered workflow state", doc)
         self.assertIn("Media-only or short non-visual function requests do not acquire GUI scope", doc)
         self.assertIn("build_escalation_request", codex_design)
         self.assertIn('"candidate_write_authorized": False', supervisor)
@@ -1595,6 +1668,8 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"--sandbox",', codex_design)
         self.assertIn('"read-only"', codex_design)
         self.assertIn("provider_planner_pending", codex_bridge)
+        self.assertIn("completed_candidate_statuses", codex_bridge)
+        self.assertIn("record_provider_design_scope(", codex_bridge)
         self.assertIn('session.get("codex_capability_brief", "")', codex_bridge)
         self.assertIn("codex_capability_brief cannot change while resuming", codex_bridge)
         self.assertIn("codex_capability_brief=(", conversation_adapter)
@@ -1916,6 +1991,37 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('"status": "BLOCKED_ENVIRONMENT"', production)
         self.assertIn('"provider_api_call_count": 0', production)
 
+    def test_generation_wait_cancel_and_context_preflight_preserve_authority(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        agent_kit = read_source("tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py")
+        worker = read_source("scripts/run_codex_conversation_generation.py")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        connectivity = read_source("scripts/check_connectivity.py")
+
+        self.assertIn("external-wait states, not proof", kernel)
+        self.assertIn("bound to the current generation-job identity", kernel)
+        self.assertIn("exact final serialized request", kernel)
+        self.assertIn("A live-Provider resume request", kernel)
+        self.assertIn("identity-bound handshake state", kernel)
+        self.assertIn('EXTERNAL_WAIT_STATES = {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}', agent_kit)
+        self.assertIn("def _surrogate_response_ready(", agent_kit)
+        self.assertIn("responded", agent_kit)
+        self.assertIn("not bool(item.get(\"consumed\"))", agent_kit)
+        self.assertIn("submitted, unconsumed response", kernel)
+        self.assertIn("def cancel_generation_job(", agent_kit)
+        self.assertIn("generation_job_lock", agent_kit)
+        self.assertIn("expected_job_id is required", agent_kit)
+        self.assertIn("generation_attempt_id", agent_kit)
+        self.assertIn("process-instance token", kernel)
+        self.assertIn("requested_job_id != current_job_id", worker)
+        self.assertIn("requested_attempt_id != current_attempt_id", worker)
+        self.assertIn("prepare_provider_request_within_context_budget", production)
+        self.assertIn("RESUME_REQUIREMENT_CHECKPOINT_MISSING_OR_UNRESOLVED", production)
+        self.assertIn("enforce_provider_request_context_budget(", production)
+        self.assertIn("enable_thinking", production)
+        self.assertIn('request_payload["enable_thinking"] = False', connectivity)
+        self.assertIn('request_payload["reasoning"] = {"effort": effort}', connectivity)
+
     def test_repository_layout_keeps_specs_examples_evidence_and_runtime_separate(self) -> None:
         kernel = read_source("docs/00_kernel_contract.md")
         guide = read_source("docs/repository_guide.md")
@@ -1970,6 +2076,35 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn('EXECUTOR_TYPES = {"agent", "deterministic", "skill", "external"}', work_nodes)
         self.assertNotIn("ExternalExecutorAgent", discovery)
         self.assertNotIn("ThreadPoolExecutor", discovery)
+
+    def test_observed_project_failure_reuses_providerjob_and_clean_runtime_contract(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        conversation = read_source("scripts/codex_conversation.py")
+        benchmark = read_source("benchmarks/project_generation_v1/run_benchmark.py")
+
+        self.assertIn("prepare_observed_project_failure_provider_repair", kernel)
+        self.assertIn("at most two such rounds", kernel)
+        self.assertIn("fresh root", kernel)
+        self.assertIn("TRUE_PROJECT_REPAIR_BLOCKERS", production)
+        self.assertIn("CGKNObservedProjectFailureProviderRepairPlan", production)
+        self.assertIn("observed_failure_repair", conversation)
+        self.assertIn("--repair-command is forbidden", benchmark)
+
+    def test_semantic_aggregate_and_finalize_recovery_remain_support_only(self) -> None:
+        kernel = read_source("docs/00_kernel_contract.md")
+        production = read_source("scripts/run_local_pipeline_impl.py")
+        conversation = read_source("scripts/codex_conversation.py")
+        metrics = read_source("scripts/provider_execution_metrics.py")
+
+        self.assertIn("The split cross-component semantic aggregate must project repeated component-planning bodies", kernel)
+        self.assertIn("Autonomous acceptance likewise uses a Windows-safe candidate key", kernel)
+        self.assertIn("CGKNSemanticAggregateCompactionReceipt", production)
+        self.assertIn("CGKNPostBuildFinalizeCheckpoint", production)
+        self.assertIn("CGKNAutonomousAcceptanceCheckpoint", conversation)
+        self.assertIn("execution_reused", conversation)
+        self.assertIn("uuid.uuid4().hex", metrics)
+        self.assertIn("except PermissionError", metrics)
 
 
 if __name__ == "__main__":

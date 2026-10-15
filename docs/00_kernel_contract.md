@@ -8,7 +8,7 @@ Structural replacement follows `SUPERSEDE -> MIGRATE -> VERIFY -> RETIRE -> FREE
 
 `scripts/canonical_version_gate.py` is the deterministic repository retirement check. It rejects duplicate or missing authority, version mismatch, expired or missing compatibility, compatibility writers, superseded production imports, retained retired entrypoints, and stale current-document claims. Its result is governance/control evidence only and cannot authorize formal delivery PASS.
 
-`scripts/canonical_repo_publish.py` is the single fail-closed repository publication authority. It binds SourceIdentity, an explicit per-file ChangeManifest, and a current TestReceipt; stages only the manifest's exact commit paths; verifies the staged tree and committed tree; runs bounded post-commit checks; detects remote-head races; performs a non-force push; and verifies the fetched remote SHA equals the local commit. Unknown or secret-like paths block. Runtime, generated, cache, log, temporary, screenshot, and local-state paths are excluded. Migration and durable-evidence paths require explicit review. Repository publish and GitHub CI receipts are governance/control evidence only and grant no product acceptance, packaging, formal evidence PASS, or public delivery authority. `scripts/release_candidate_gate.py` remains a release-readiness evaluator and delegates any compatibility classification view to this authority.
+`scripts/canonical_repo_publish.py` is the single fail-closed repository publication authority. It binds SourceIdentity, an explicit per-file ChangeManifest, and a current TestReceipt; stages only the manifest's exact commit paths; verifies the staged tree and committed tree; runs bounded post-commit checks; detects remote-head races; performs a non-force push; and verifies the fetched remote SHA equals the local commit. Exact path accounting disables Git rename collapsing so a move remains an explicit deletion plus addition matching the manifest. Unknown or secret-like paths block. Runtime, generated, cache, log, temporary, screenshot, and local-state paths are excluded. Migration and durable-evidence paths require explicit review. Registered benchmark source, fixtures, and case data are test material; reviewed `config/provider_profiles/` documents are contract material. Repository publish and GitHub CI receipts are governance/control evidence only and grant no product acceptance, packaging, formal evidence PASS, or public delivery authority. `scripts/release_candidate_gate.py` remains a release-readiness evaluator and delegates any compatibility classification view to this authority.
 
 Usage Beta is a read-only product-status projection over the existing canonical
 project evidence. It defaults to `codex_surrogate`; an explicit live request
@@ -237,7 +237,10 @@ reached.
 Every validated partial emission is durably checkpointed before the ownership
 unit finishes. A missing co-owned path does not invalidate verified peer paths
 unless an explicit manifest dependency makes the peer its consumer; resume and
-the next bounded attempt request only the missing paths. The fixed generation
+the next bounded attempt request only the missing paths. During semantic repair,
+each validated emission also merges its completed paths into the pending repair
+plan under a process-local lock before another emission may yield for surrogate
+input; ownership-unit completion is not required to preserve that progress. The fixed generation
 budget has a `MIN_COMPLETION_RESERVE` of 95 seconds measured against the original
 hard deadline, which progress reporting cannot extend. Earlier emission chains
 must stop at that reserve; once an ownership unit has verified partial output,
@@ -317,6 +320,17 @@ a repository artifact directory cannot inherit a parent repository's exclusion
 rules and be falsely reported as zero tests collected. A pytest execution that
 collects zero tests is always `FAIL`; only a successful non-pytest executable
 probe may represent its one command as one passed check.
+The clean candidate-test environment uses the selected interpreter's isolated
+mode, replaces inherited `PYTHONPATH` with candidate import roots, inherits only
+a bounded operating-system process environment, and assigns `TEMP`/`TMP` to a
+directory owned for the duration of that execution. Candidate pytest also binds
+`--basetemp` to that execution-owned directory; a candidate configuration or
+parent order cannot point collection at a deleted temporary tree. A parent-run index or
+temporary-workspace path cannot inject startup code, disappear during
+collection, or be mistaken for a candidate failure. Installed system
+dependencies remain available through the selected interpreter. This
+sanitization does not weaken the zero-test rule or change candidate source
+identity.
 Generated tests may assert an exact project symbol identity only when the
 symbol is explicitly backed by a public API, a cross-component frozen
 interface, or acceptance. Provider-selected private helper names are
@@ -347,6 +361,13 @@ thread-local response-header/body timing without credentials. Fallback
 observability distinguishes consideration, execution, and successful
 selection; concurrency may be reduced for a local Provider only after an
 actual fallback execution event, never from consideration alone.
+
+The shared final Provider-call boundary measures the exact outgoing messages
+before surrogate, local, or API transport. It enforces a bounded prompt and
+combined estimated input/output context budget, records the non-sensitive
+measurement, and fails closed on overflow. Upstream compaction or decomposition
+must preserve the required contract; the boundary never obtains a pass by
+silently truncating required context.
 
 This contract defines the stable kernel boundary for CovenantGraph Nexus Kernel. Future changes may add capabilities around the kernel, but they must not replace the generation mainline or bypass the safety and delivery boundaries described here.
 
@@ -505,13 +526,49 @@ The kernel is stable. The pipeline is agent-generated per project. The project i
 
 For generated projects with a visual surface, the same reviewed Provider route runs design discovery before component generation. `scripts/design_research_agent.py` searches multiple bounded reference classes, records source URLs and reuse boundaries, compares three visual directions, and selects one project-specific design contract. The generation-context librarian exposes only the bounded selected direction, design tokens, relevant references, and interaction/accessibility constraints to frontend, media, and design-document leaves. Provider output must include `docs/design_research.md` and `docs/design_system.md`, and component plus assembled-project validation rejects missing token reuse, responsive layout, keyboard focus, interaction feedback, reduced-motion behavior, source traceability, or selected-direction implementation. These are support planning and source-quality receipts only: they cannot replace canonical browser visual evidence, user review, packaging, or public delivery PASS, and they do not create another generation or delivery route.
 
+Component ownership must cover the exact paths emitted by the frozen project plan. Python application adapters at `app/main.py` and Python domain modules at `src/*.py` are backend-owned; browser assets under `frontend/**`, `index.html`, and JavaScript/CSS/HTML files under `src/` are frontend-owned; design documents under `docs/**` are docs-owned. Broad frontend allowances must not absorb Python backend paths, and an allowed path that is absent from the component's ownership manifest cannot satisfy component review.
+
 ## Consolidated Kernel Rule
 
 CGKN Codex conversation default generation uses API/provider project generation as the formal project-file generator. The provider route must write real project files, validate provider output, run post-build finalization, produce canonical test/runtime/visual evidence, record required user review, package through `local_packager`, pass public delivery gate, record delivery receipts, and write the canonical final verdict before claiming completion.
 
+After Provider output validation and a runnable pre-seal test, but before
+production provenance, canonical promotion, packaging, or the public delivery
+gate, the same formal route runs one `CGKNAutonomousProjectAcceptanceReport`.
+It consumes a declarative `CGKNTestabilityContract`, executes real public
+CLI/API/File operations only in isolated candidate copies, combines
+deterministic business scenarios with one model-neutral semantic exploration,
+applies deterministic Oracles, and reproduces every finding in a second fresh
+copy. Missing or invalid executable control contracts are `BLOCKED`, never an
+implicit success. Its `ACCEPTED`, `REPAIR_REQUIRED`, `BLOCKED`, and
+`NOT_EVALUATED` values are project acceptance recommendations, not canonical
+EvidenceStatus values, and cannot promote, package, deliver, or overwrite any
+formal status. `REPAIR_REQUIRED` is converted into
+`CGKNObservedProjectFailureEvidence` and enters the existing affected-only
+ProviderJob repair route for at most two rounds; the same autonomous scenarios
+and all prior successful scenarios run again after every repair. The
+Testability Contract is declarative, may not embed executable test helpers or
+success shortcuts, and its operations must invoke the real public business
+entrypoint. Conditional multi-round semantic exploration remains disabled.
+`contracts/observed_project_failure_evidence_v1.schema.json` and
+`scripts/repair_evidence_contract.py` are the single schema/construction
+authority for this evidence. The production CLI accepts it only through the
+generic `--repair-evidence` input. Benchmark callers may not invent a repair
+flag, hidden repair entrypoint, or parallel repair schema.
+
 Before canonical test/runtime/visual evidence, the formal provider route must freeze one `CGKNProductionCandidateProvenance` from `scripts.codex_conversation.start_generation_from_income -> run_provider_generation_job -> provider validation -> source-changing post-build`. It binds a unique run and candidate, the repository commit, the real customer candidate path, ordered self-hashed stage receipts, provider artifacts, and the independently reproducible candidate source manifest/hash. `scripts.production_candidate_provenance.inspect` must reread disk and recompute the manifest and candidate hash. Session/context booleans, `source_inspection="PASS"`, adaptive judgment, fixture output, acceptance output, and repository commit hashes cannot authorize this provenance. A provenance failure short-circuits canonical evidence inspection and adaptive delivery judgment.
 
 The reviewed run resolves one `ProviderModelRoutingPolicy` before canonical requirement planning. Every live pre-build Provider call, including `requirements_planning`, must consume that same resolved policy; a stage-local placeholder model name cannot fall back to an unrelated built-in model or override the reviewed route. Unsupported Provider/model combinations remain transport blockers and cannot create validation receipts, candidates, or production provenance.
+
+At the formal `requirements_planning` response boundary, CGKN performs one
+strict known-envelope canonicalization before applying the unchanged planning
+schema. A canonical flat planning object passes through without semantic
+mutation. The sole accepted envelope is exactly
+`{"planning_proposal": <canonical planning object>}` and is unwrapped once.
+Recursive lookup, unknown or ambiguous wrappers, nested envelopes, missing-field
+synthesis, and schema weakening are forbidden. Every attempt durably records
+the raw response identity, canonicalization decision, canonical object identity,
+and schema-validation result before the planning artifact may be admitted.
 
 The formal Codex conversation adapter must carry the validated `CGKNCodexCapabilityBrief` path from the Agent Kit entry point into the sole reviewed Provider run. The run-local pipeline validates and snapshots that brief, records its digest in the planning contract, and rejects a changed brief on resume; merely accepting the CLI flag without consuming the brief is not a valid binding.
 
@@ -576,6 +633,12 @@ Every Provider-generation request first derives one canonical `GoalSpec` in the 
 Fixed product profiles are primary-intent decisions, not keyword substitutions. When the raw goal declares four or more distinct workflows, one secondary feature such as Pomodoro, CSV import, search, or reporting cannot replace the broader product: a fixed profile may win only when its own signals dominate the explicit workflow set; otherwise the requirement lane preserves the stated workflows in a goal-derived `custom_local_application` plan. Codex capability supervision may enrich the existing decision with bounded, goal-grounded guidance, acceptance checks, safety constraints, and concrete repair targets, but it remains advisory and cannot become a second product planner or override the raw goal. Planning-contract symbol constraints require explicit `required code symbol Name` wording; ordinary technology prose such as `with SQLite` is not a code-symbol contract. A named capability in an acceptance check becomes forbidden only when its own clause carries explicit negative language; a bounded statement such as using subprocess solely to feed a CLI test through stdin cannot be reinterpreted as a product-wide subprocess ban.
 
 An explicit record-oriented CLI with at least three named commands is a `direct_cli_application`, not a multi-stage governance pipeline. The requirement lane derives its record entity, concrete command capabilities, CLI/local-store interfaces, persistence and error constraints, and executable acceptance behaviors directly from the user's goal. Discovery may therefore publish empty `required_pipeline_stages` and `required_stage_artifacts` for that architecture while retaining real command, persistence, test, documentation, runtime, and delivery obligations. Component enrichment must not inject `stages.py`, `orchestrator.py`, `artifact_store.py`, or generic adapters solely to satisfy a complexity floor; the Provider implements the typed model, repository, service, and direct CLI handlers through the same reviewed generation and evidence route. Planning and Provider manifests use the same `backend/` core paths, freeze the model/repository -> service -> CLI -> root entry dependency order and public symbols, and give each split leaf a compact API/return-value/persistence/test contract. Direct CLI Python uses safe postponed annotations when an earlier class method can shadow a builtin generic name, and the same execution-safety check applies to Provider post-build repair output. Large retrieved source excerpts are omitted from this bounded direct-CLI leaf context because exact dependency interfaces are supplied separately. An underspecified CLI still returns `INSUFFICIENT_GOAL_PLAN`.
+
+The historical unnamed Notes CLI leaf contract applies only when the canonical GoalSpec explicitly selects the `Note` entity or note capabilities. Every other direct CLI preserves the dependency and symbol contracts in its current reviewed Provider manifest through both goal-plan and direct-CLI normalization. A generic record-oriented project must never be rewritten into the Notes sample or have its dependency graph erased merely because it uses the same direct-CLI architecture shape.
+
+When the public goal explicitly requests `testability_contract.json`, the canonical project plan assigns that declarative artifact to the existing delivery/docs workstream. It is generated through the same ProviderJob route and may describe only real public operations; it does not create a test-only product path, a second generation route, or acceptance authority.
+
+Autonomous-acceptance operation proposals are schema-validated before queue admission. Placeholders explicitly bound to CLI output/path flags must resolve to workspace-relative paths without drive, root, or parent traversal; unsafe proposals are recorded as unsupported and are never executed or silently remapped.
 
 Canonical list-valued `GoalSpec` and component fields normalize an explicit JSON `null` to an empty list before component checkpoint identity is computed. Missing optional interaction modes, report formats, dependencies, capabilities, constraints, responsibilities, outputs, or required paths therefore cannot crash the reviewed Provider route or create a distinct reusable checkpoint identity from the equivalent empty-list form.
 
@@ -956,6 +1019,13 @@ CGKN may maintain local conversation, active project, managed project, and revis
 
 Project revisions must preserve the previous active project until the new revision passes the reviewed provider route, post-build finalization, `local_packager`, factual checking, final adaptive judgment, and `delivery_manifest.json`. `NOT_EVALUATED` does not promote a revision to `current`; only a final allowed verdict may promote it. A failed revision records failure state and never replaces the current revision.
 
+An ordinary interface or design update received after a candidate has reached a
+terminal completed or delivered workflow state records bounded Provider Planner
+scope but must not silently start a new generation job or replace that candidate.
+Versioned changes continue through the explicit project revision lane, which
+preserves the current delivered candidate until the revised candidate passes all
+canonical generation, evidence, packaging, and delivery gates.
+
 When one syntax-valid direct-CLI test leaf contains an invalid literal task ID, a lazy corrupt-storage service construction, and an invented exact exception-message assertion, the bounded task-ID micro composes all three AST-derived local replacements into one exact expected source. The repair therefore captures the returned string ID, executes the repository read, and verifies that the original malformed file remains unchanged without requiring a fourth attempt for an already-detectable contradiction. Split direct-CLI pytest contracts assign the current ordered `goal_acceptance_tests` round-robin to part01, part02, and part03 and freeze those exact symbols at generation and post-build validation. A candidate-only accepted leaf missing a newly required goal symbol, or publishing a symbol assigned to another part, cannot be revalidated or overwrite the current generated suite.
 
 The direct-CLI requirement decision lane expands explicit raw-goal qualifiers into separate acceptance behaviors instead of collapsing them into generic CRUD verbs. Status filtering, duplicate-identifier rejection, merge and replace import semantics, success/error CLI exit codes, and matching `python -m package` plus console entry execution each receive a stable goal-test identity and flow through the existing behavior-test workstream. During reviewed Provider fallback, a direct-CLI Python test leaf receives at most one additional bounded local attempt when the first returned source fails only the ordinary undefined-name/output boundary; the retry includes the exact missing-name diagnostic and normal standard-library import guidance, while all test symbols and interface validators remain binding. If a complete syntax-valid Provider test leaf's only remaining local output error is a missing whitelisted ordinary standard-library import, the same adapter may insert only that exact import, record `local_component_test_stdlib_import_deterministic_repair`, and rerun the unchanged safety/interface/output boundary. The substantive test source remains model-produced and formal model participation remains true; unknown names, fixture mistakes, syntax errors, and behavioral contradictions are never synthesized away.
@@ -1085,7 +1155,15 @@ Provider/model auto-selection qualifies eligible models with one bounded structu
 
 Fresh CASE product-convergence validation passes the configured worker count to that existing split-file leaf executor. It must not silently fall back to benchmark harness parallelism one when the production executor is configured for bounded parallel work; this is execution of the same ProviderJob DAG, not another scheduler or a longer timeout.
 
-Runtime/browser/evaluator failures that do not match an existing internal issue may create new issue-led repair input only when deterministic evidence maps them to one or two exact paths already owned by existing ProviderJobs. Each ownership unit receives its own issue, current source, expected and observed behavior, evaluator evidence, and affected-behavior acceptance. Evidence without an exact owned path remains non-repairable and cannot expand to a component-wide repair. `audit_failure_to_repair.py` is read-only support evidence that traces evaluator failures through issue, job, call, delta, and acceptance; it cannot authorize formal evidence, mutate a candidate, package, or deliver.
+Runtime/browser/evaluator failures that do not match an existing internal issue may create new issue-led repair input only when deterministic evidence maps them to one or two exact paths already owned by existing ProviderJobs. Each ownership unit receives its own issue, current source, expected and observed behavior, evaluator evidence, and affected-behavior acceptance. Evidence without an exact owned path remains non-repairable and cannot expand to a component-wide repair. `benchmarks/project_generation_v1/audit_failure_to_repair.py` is benchmark-only, read-only support evidence that traces evaluator failures through issue, job, call, delta, and acceptance; it cannot authorize formal evidence, mutate a candidate, package, or deliver. Benchmark-specific probes and case identities must remain outside production `scripts/`, `agents/`, and `skills/` trees.
+
+An identity-bound sealed external evaluator failure may re-enter that same production run only through `prepare_observed_project_failure_provider_repair` and the existing affected-only ProviderJob scheduler. The submitted facts may name failed acceptance ids, observed runtime/test behavior, stack text, existing owned paths and tree nodes, but may not include hidden expected implementations. Ordinary code-generation, dependency, documented-entrypoint, runtime, integration, persistence, generated-test, evidence, repair, and delivery failures receive at most two such rounds. Missing user information, policy violation, an unavailable mandatory external dependency, exhausted repair budget, immutable-contract conflict, unsafe repair, or Provider unavailability without fallback remain true blockers. This re-entry creates no benchmark patcher, candidate author, evidence authority, packaging route, or delivery exit.
+
+Candidate coherence checks bind Python imports to the delivered dependency manifest and bind a copyable README start command to an existing Python target or package script before expensive runtime work. Independent acceptance remains separate: it copies or extracts the sealed candidate to a fresh root, prepares declared dependencies in an isolated environment, runs syntax/import checks and generated tests, executes the documented entrypoint, binds readiness to the new PID/start time/workspace/port owner, performs real operations and restart checks, captures browser evidence when applicable, and shuts that exact process down. Static or generated-test PASS alone cannot grant project PASS.
+
+The semantic-review context gate measures the exact outbound messages together with the reserved output allowance. An oversized monolithic review deterministically enters the existing split semantic-review pipeline before transport rather than failing after dispatch. GoalSpec scope pruning also retains a bounded copy of a removed frontend and its dependency edges until design context is known; when design research requires a visual surface, those same declared components are restored before ProviderJob construction. Neither behavior adds a generation path or changes delivery authority.
+
+The split cross-component semantic aggregate must project repeated component-planning bodies into bounded component ids, dependency edges, required paths, user constraints, acceptance decisions, entrypoints, and structured review findings. The same bounded projection rule applies to non-planning semantic design stages before transport. The exact goal, complete component pipeline or stage context, review records, and per-file content hashes remain in run-local source evidence, and a compaction receipt records sizes, omissions, hashes, references, and any evidence gap. Unchanged oversized input is never retried or made acceptable by raising the context budget. Candidate post-build finalization records capability-scoped step progress and a hash-bound completion checkpoint; interrupted work may resume, while a completed checkpoint for the same generated input is reused without repeating tests or acceptance operations. Autonomous acceptance likewise uses a Windows-safe candidate key and one hash-bound attempt checkpoint, so a repeated finalize cannot execute the same accepted candidate twice. These checkpoints are workflow support only and cannot authorize evidence, packaging, or delivery.
 
 ## Product Design Depth Governance
 
@@ -1159,6 +1237,49 @@ Provider retry, result
 admission, candidate, provenance, evidence, packaging, and resume semantics stay
 with their existing canonical owners.
 
+Qualified Alibaba Qwen bounded component generation and semantic feature-unit
+review explicitly disable reasoning on both approved transports: Chat
+Completions sends `enable_thinking=false`, while Responses sends
+`reasoning.effort=none`. Other providers and stages do not inherit this setting.
+
+`WAITING_SURROGATE_RESPONSE` and `WAITING_REQUIREMENT_REPLAN` are durable
+external-wait states, not proof that a worker should still be computing. A
+dead request worker therefore does not convert either state into failure or
+authorize a restart. Status must expose the awaited party and next action.
+An unanswered external wait remains deduplicated. Once the canonical surrogate
+handshake records a submitted, unconsumed response for the same run, job, and
+attempt, Agent Kit may start a new managed worker attempt to resume that same
+production run; it cannot create a second run or consume an unbound response.
+Only `STARTING`, `RUNNING`, and internal `WAITING` require a live owned worker;
+a confirmed exit in those states is reconciled to `FAILED`. Cancellation is
+bound to the current generation-job identity, is idempotent, revokes result
+admission before terminating the recorded owned process, and prevents late or
+replaced-worker results from becoming candidate or delivery authority. Every
+active mutation of the project-local generation-job record is serialized by a
+cross-process lock and advances a monotonic revision. Cancellation requires the
+expected job id, and process termination additionally requires the recorded OS
+process-instance token to match, so PID reuse cannot terminate an unrelated
+process. A result is admissible only when its run id, generation job id, and
+generation attempt id all match the current record; legacy or incomplete result
+identity remains readable but is quarantined from candidate authority. Each
+attempt writes a unique result path rather than overwriting another attempt.
+
+Provider request preparation may compact lossless serialization and project
+retrieved source bodies to identity-bound interface summaries before the
+transport boundary. Goals, constraints, target source, acceptance inputs, and
+artifact identities remain present. The exact final serialized request is
+still checked by the unchanged outbound context-budget gate; unsafe overflow
+is rejected before transport and cannot be made acceptable by truncating a
+required field or increasing the configured budget.
+
+A live-Provider resume request whose pending stage is later than requirement
+planning must carry a PASS requirement-decision checkpoint and a `RESOLVED`
+replan state from that same run. An incomplete legacy or synthetic live pending
+plan fails with an explicit checkpoint diagnosis before any Provider preflight;
+it cannot rebuild missing authority by silently replaying upstream planning.
+Surrogate and replay modes instead resume their identity-bound handshake state
+machine, including an unfinished requirement-planning or replan attempt.
+
 Ungrounded Provider additions cannot become canonical capabilities,
 workstreams, constraints, or acceptance anchors. Silent reduction of an
 all-results goal to sampling, automatic behavior to manual-only work, playable
@@ -1215,3 +1336,76 @@ checker types, stale mutation fixtures, unmapped governed source, or lock drift
 cannot become PASS. This governance produces support evidence only: it does not
 call Provider, author a customer candidate, grant formal evidence PASS, package,
 or deliver, and it adds no consumer runtime dependency.
+Provider execution metrics use a run-local receipt, unique temporary siblings,
+and bounded Windows sharing-violation retries. Metrics persistence failures remain
+explicit generation failures; retry never changes Provider, evidence, or delivery authority.
+Autonomous acceptance preserves its run-local evidence copy but executes from a
+short isolated temporary copy when the Windows working-directory limit would make
+the declared real business command unlaunchable; the executed artifacts are copied
+back before Oracle evaluation and the temporary copy grants no evidence authority.
+Deterministic contract scenarios and one-shot semantic exploration execute in
+separate fresh copies, so later exploratory mutations cannot rewrite an earlier
+scenario Oracle result; independent reproduction uses the same bounded short-path rule.
+After `local_packager` and the public delivery gate succeed, the formal CLI adapter
+may atomically materialize that exact approved directory at its declared `--out-dir`.
+It must reuse only an identity-equal manifest and must never overwrite or repackage a
+different candidate; this is a delivery handoff, not a second delivery exit.
+
+Resumable semantic repair persists completed ProviderJob components within the
+current repair cycle. Resume recompilation excludes those completed components,
+while a newly compiled blocker cycle clears the progress marker. This prevents a
+surrogate or interrupted Provider workflow from replaying already completed repair
+components or consuming the bounded repair budget without new evidence.
+Within an incomplete component, every validated ProviderJob leaf is checkpointed
+and recorded before a concurrent surrogate wait yields control. Resume excludes
+those completed repair files while retaining the component until its remaining
+dependency closure and component review finish. A newly compiled blocker cycle
+clears both component-level and file-level progress markers.
+
+## External API project-generation execution profile
+
+`config/provider_profiles/project-generation-external-api.json` is the reviewed
+OpenAI-compatible execution profile for bounded project-generation studies. It
+does not create a generation path: requests still enter the production facade,
+execute as `ProviderJob` work, pass Provider output validation and post-build
+finalization, and can leave only through `local_packager` and the public delivery
+gate. Ordinary generation and affected-only repair use the external Provider;
+Codex generation and repair calls are zero. A separately configured repair model
+is an explicit escalation, never an implicit model switch.
+
+The profile may still receive a reviewed internal planning-stage alias such as
+`surrogate-stage` from the canonical planning checkpoint. That alias must be
+resolved through the same explicit Provider routing policy before the transport
+boundary; it is never a model id and must never be sent to the external API.
+Concrete generation and repair model ids remain pinned by the profile, so this
+resolution does not authorize escalation or a second Provider implementation.
+
+Credentials and the base URL come only from declared environment variables and
+must never enter manifests, logs, prompts, or evidence. A live run fails closed
+before transport unless it has explicit call, input-token, output-token, and
+estimated-cost limits. `scripts/provider_api_budget.py` reserves every live call
+before transport in a process-safe run ledger and stops with workflow outcome
+`BUDGET_EXHAUSTED` when the next reservation would exceed a limit; this outcome
+is not an EvidenceStatus. The ledger records call purpose, model, duration,
+tokens, retry count, status, and estimated cost without recording credentials or
+prompt bodies.
+The call ledger is a durable state machine. `RESERVED` means only that budget
+was held before send; immediately before HTTP transport it becomes
+`REQUEST_STARTED`, a real response becomes `RESPONSE_RECEIVED`, and every
+normal completion becomes `SUCCEEDED` or `FAILED`. On identity-bound resume, an
+abandoned pre-send reservation becomes `CANCELLED_BEFORE_SEND` and releases its
+slot, while an abandoned started request becomes `INTERRUPTED_UNKNOWN`, retains
+a conservative call slot, and records token/cost availability as unknown rather
+than zero. Budget summaries distinguish reserved, started, completed, unknown,
+and cancelled calls. The local smoke launcher owns the benchmark process; the
+Codex conversation only reads its durable status.
+
+Provider network permission and generated-project dependency permission are
+separate. Clean evaluation prefers an approved wheelhouse; package-registry
+access requires explicit approval and is recorded independently. Missing
+dependency authorization cannot be disguised by an unconditional `--no-index`
+failure. Hidden acceptance remains evaluator-only, failed observable behavior is
+the only repair feedback, and a maximum of two affected-only repair rounds stays
+in force. Without explicit Provider configuration and budget, the benchmark may
+write a zero-call readiness package only; generation, evaluation, packaging,
+delivery, and formal evidence remain `NOT_EVALUATED`.

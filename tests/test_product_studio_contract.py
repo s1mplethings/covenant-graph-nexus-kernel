@@ -41,12 +41,13 @@ class ProductStudioContractCheckerTests(unittest.TestCase):
             copy_checker_inputs(temp_root)
 
             readme = temp_root / "README.md"
-            readme.write_text(readme.read_text(encoding="utf-8").replace("agent-led", "agent led"), encoding="utf-8")
+            required_phrase = checker.README_PHRASES[0]
+            readme.write_text(readme.read_text(encoding="utf-8").replace(required_phrase, "removed positioning"), encoding="utf-8")
 
             result = checker.check_root(temp_root)
             self.assertFalse(result["ok"])
             self.assertIn("missing_phrase", {issue["type"] for issue in result["issues"]})
-            self.assertIn("agent-led", {issue["item"] for issue in result["issues"]})
+            self.assertIn(required_phrase, {issue["item"] for issue in result["issues"]})
 
     def test_json_output_is_parseable(self) -> None:
         proc = subprocess.run(

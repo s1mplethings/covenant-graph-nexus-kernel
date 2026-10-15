@@ -118,17 +118,30 @@ def browser_report() -> dict[str, Any]:
     return result
 
 
-def check_environment(candidate_dir: pathlib.Path = DEFAULT_CANDIDATE_DIR) -> dict[str, Any]:
+def check_environment(
+    candidate_dir: pathlib.Path = DEFAULT_CANDIDATE_DIR,
+    *,
+    require_node: bool = True,
+    require_browser: bool = True,
+    require_ffmpeg: bool = False,
+) -> dict[str, Any]:
     warnings: list[str] = []
     failures: list[str] = []
-    node = executable_report("node")
-    npm = executable_report("npm")
-    npx = executable_report("npx")
-    git = executable_report("git")
-    ffmpeg = executable_report("ffmpeg")
-    browser = browser_report()
+    node = executable_report("node") if require_node else {"path": shutil.which("node") or "", "version": "not_checked", "available": bool(shutil.which("node"))}
+    npm = executable_report("npm") if require_node else {"path": shutil.which("npm") or "", "version": "not_checked", "available": bool(shutil.which("npm"))}
+    npx = executable_report("npx") if require_node else {"path": shutil.which("npx") or "", "version": "not_checked", "available": bool(shutil.which("npx"))}
+    git = {"path": shutil.which("git") or "", "version": "not_checked", "available": bool(shutil.which("git"))}
+    ffmpeg = executable_report("ffmpeg") if require_ffmpeg else {"path": shutil.which("ffmpeg") or "", "version": "not_checked", "available": bool(shutil.which("ffmpeg"))}
+    browser = browser_report() if require_browser else {
+        "playwright_available": False,
+        "chromium_available": False,
+        "chromium_executable": "",
+        "chrome_path": "",
+        "msedge_path": "",
+        "error": "not_checked",
+    }
     port_ok, port = free_port()
-    server_ok = localhost_http_server_ok()
+    server_ok = localhost_http_server_ok() if require_browser else True
     filesystem = {
         "repo_writable": writable(ROOT),
         "temp_writable": writable(pathlib.Path(tempfile.gettempdir())),
@@ -136,15 +149,15 @@ def check_environment(candidate_dir: pathlib.Path = DEFAULT_CANDIDATE_DIR) -> di
     }
     long_path_warning = sys.platform.startswith("win") and len(str(candidate_dir.resolve())) > 180
 
-    if not node["available"]:
+    if require_node and not node["available"]:
         failures.append("node unavailable")
-    if not npm["available"]:
+    if require_node and not npm["available"]:
         failures.append("npm unavailable")
-    if not npx["available"]:
+    if require_node and not npx["available"]:
         warnings.append("npx unavailable")
-    if not browser["playwright_available"] or not browser["chromium_available"]:
+    if require_browser and (not browser["playwright_available"] or not browser["chromium_available"]):
         failures.append("browser automation unavailable")
-    if not ffmpeg["available"]:
+    if require_ffmpeg and not ffmpeg["available"]:
         warnings.append("ffmpeg unavailable")
     if not port_ok:
         failures.append("free TCP port unavailable")
@@ -176,6 +189,11 @@ def check_environment(candidate_dir: pathlib.Path = DEFAULT_CANDIDATE_DIR) -> di
             "free_port": port,
         },
         "filesystem": filesystem,
+        "required_capabilities": {
+            "node": require_node,
+            "browser": require_browser,
+            "ffmpeg": require_ffmpeg,
+        },
         "warnings": warnings,
         "failures": failures,
     }

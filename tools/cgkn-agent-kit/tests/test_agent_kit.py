@@ -5,6 +5,8 @@ import os
 import pathlib
 import subprocess
 import sys
+import threading
+import time
 
 import pytest
 
@@ -28,6 +30,26 @@ def test_windows_liveness_probe_is_non_destructive() -> None:
     assert core._process_liveness(child.pid)["status"] == "DEAD"
 
 
+def test_real_worker_exit_is_reconciled_without_synthetic_state_mutation(tmp_path: pathlib.Path) -> None:
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    core.write_json(
+        core.generation_job_path(tmp_path),
+        {"job_id": "real-exit", "state": "RUNNING", "process_id": child.pid},
+    )
+    try:
+        assert core.generation_job_status(tmp_path)["state"] == "RUNNING"
+        child.terminate()
+        child.wait(timeout=10)
+        observed = core.generation_job_status(tmp_path)
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=10)
+    assert observed["state"] == "FAILED"
+    assert observed["terminal_reason"] == "WORKER_PROCESS_NOT_ALIVE"
+    assert observed["execution_classification"] == "worker_exit"
+
+
 @pytest.mark.parametrize("state", ["STARTING", "RUNNING", "WAITING"])
 def test_dead_active_generation_job_is_durably_reconciled(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
     core.write_json(core.generation_job_path(tmp_path), {"job_id": "old", "state": state, "process_id": 99})
@@ -38,11 +60,167 @@ def test_dead_active_generation_job_is_durably_reconciled(tmp_path: pathlib.Path
     assert durable["terminal_reason"] == "WORKER_PROCESS_NOT_ALIVE"
 
 
+def test_live_external_wait_is_not_misclassified_as_worker_failure(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "wait-1", "state": "WAITING_SURROGATE_RESPONSE", "process_id": 99})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "ALIVE", "alive": True, "method": "test", "error_code": 0})
+    observed = core.generation_job_status(tmp_path)
+    assert observed["state"] == "WAITING_SURROGATE_RESPONSE"
+    assert observed["job_alive"] is True
+
+
+@pytest.mark.parametrize(("state", "waiting_for"), [("WAITING_SURROGATE_RESPONSE", "surrogate_response"), ("WAITING_REQUIREMENT_REPLAN", "requirement_replan")])
+def test_external_wait_survives_expected_worker_exit(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, state: str, waiting_for: str) -> None:
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "wait-2", "state": state, "process_id": 99})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    observed = core.generation_job_status(tmp_path)
+    assert observed["state"] == state
+    assert observed["execution_classification"] == "external_wait"
+    assert observed["waiting_for"] == waiting_for
+
+
+def test_cancel_is_identity_bound_idempotent_and_rejects_late_result(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = core.generation_job_path(tmp_path)
+    result_path = tmp_path / "generation_result.json"
+    core.write_json(path, {"job_id": "job-current", "attempt_id": "attempt-current", "run_id": "run-current", "state": "WAITING_SURROGATE_RESPONSE", "process_id": 99, "process_identity": "test-process-99", "result_path": str(result_path)})
+    alive = {99: True}
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "ALIVE" if alive.get(pid) else "DEAD", "alive": bool(alive.get(pid)), "method": "test", "error_code": 0})
+    monkeypatch.setattr(core, "_process_identity_token", lambda pid: f"test-process-{pid}")
+
+    def terminate(pid: int) -> None:
+        alive[pid] = False
+
+    with pytest.raises(core.AgentKitError, match="identity mismatch"):
+        core.cancel_generation_job(tmp_path, expected_job_id="wrong", terminate=terminate)
+    cancelled = core.cancel_generation_job(tmp_path, expected_job_id="job-current", terminate=terminate)
+    assert cancelled["state"] == "CANCELLED" and cancelled["cancelled"] is True
+    assert core.cancel_generation_job(tmp_path, expected_job_id="job-current", terminate=terminate)["deduplicated"] is True
+    core.write_json(result_path, {"generation_job_id": "job-current", "generation_attempt_id": "attempt-current", "run_id": "run-current", "candidate_hash": "late"})
+    observed = core.generation_job_status(tmp_path)
+    assert observed["candidate_present"] is False
+
+
+def test_result_from_replaced_job_identity_is_not_admitted(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result_path = tmp_path / "generation_result.json"
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "new-job", "run_id": "new-run", "state": "COMPLETE", "process_id": 0, "result_path": str(result_path)})
+    core.write_json(result_path, {"generation_job_id": "old-job", "run_id": "new-run", "candidate_hash": "stale"})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    assert core.generation_job_status(tmp_path)["candidate_present"] is False
+
+
+def test_result_without_complete_job_and_attempt_identity_is_quarantined(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result_path = tmp_path / "generation_result.json"
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "job", "attempt_id": "attempt", "run_id": "run", "state": "COMPLETE", "process_id": 0, "result_path": str(result_path)})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    for incomplete in (
+        {"run_id": "run", "candidate_hash": "missing-job"},
+        {"generation_job_id": "job", "run_id": "run", "candidate_hash": "missing-attempt"},
+    ):
+        core.write_json(result_path, incomplete)
+        observed = core.generation_job_status(tmp_path)
+        assert observed["candidate_present"] is False
+        assert observed["result_identity_valid"] is False
+
+
+def test_matching_result_identity_is_admitted(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result_path = tmp_path / "generation_result.json"
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "job", "attempt_id": "attempt", "run_id": "run", "state": "COMPLETE", "process_id": 0, "result_path": str(result_path)})
+    core.write_json(result_path, {"generation_job_id": "job", "generation_attempt_id": "attempt", "run_id": "run", "candidate_hash": "current"})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    observed = core.generation_job_status(tmp_path)
+    assert observed["candidate_present"] is True
+    assert observed["result_identity_valid"] is True
+
+
+def test_cancel_requires_identity_and_cannot_overwrite_replacement(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = core.generation_job_path(tmp_path)
+    core.write_json(path, {"job_id": "old-job", "attempt_id": "old-attempt", "state": "RUNNING", "process_id": 0})
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "DEAD", "alive": False, "method": "test", "error_code": 0})
+    with pytest.raises(TypeError):
+        core.cancel_generation_job(tmp_path)
+
+    errors: list[BaseException] = []
+    with core.generation_job_lock(tmp_path):
+        thread = threading.Thread(
+            target=lambda: _capture_cancel_error(core, tmp_path, errors),
+            daemon=True,
+        )
+        thread.start()
+        time.sleep(0.05)
+        core.write_json(path, {"job_id": "new-job", "attempt_id": "new-attempt", "state": "WAITING_SURROGATE_RESPONSE", "process_id": 0})
+    thread.join(timeout=5)
+
+    assert not thread.is_alive()
+    assert len(errors) == 1
+    assert isinstance(errors[0], core.AgentKitError)
+    assert core.read_json(path)["job_id"] == "new-job"
+    assert core.read_json(path)["state"] == "WAITING_SURROGATE_RESPONSE"
+
+
+def test_cancel_does_not_signal_reused_pid(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = core.generation_job_path(tmp_path)
+    core.write_json(path, {
+        "job_id": "job",
+        "attempt_id": "attempt",
+        "state": "RUNNING",
+        "process_id": 4321,
+        "process_identity": "original-process",
+    })
+    monkeypatch.setattr(core, "_process_identity_token", lambda pid: "replacement-process")
+    monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "ALIVE", "alive": True, "method": "test", "error_code": 0})
+    signalled: list[int] = []
+
+    observed = core.cancel_generation_job(
+        tmp_path,
+        expected_job_id="job",
+        terminate=signalled.append,
+    )
+
+    assert observed["state"] == "CANCELLED"
+    assert signalled == []
+
+
+def _capture_cancel_error(core_module, artifact_dir: pathlib.Path, errors: list[BaseException]) -> None:
+    try:
+        core_module.cancel_generation_job(artifact_dir, expected_job_id="old-job")
+    except BaseException as exc:
+        errors.append(exc)
+
+
 def test_unknown_active_generation_job_deduplicates(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     core.write_json(core.generation_job_path(tmp_path), {"job_id": "old", "state": "RUNNING", "process_id": 99})
     monkeypatch.setattr(core, "_process_liveness", lambda pid: {"pid": pid, "status": "UNKNOWN", "alive": True, "method": "test", "error_code": 5})
     result = core.start_generation_job(["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path, popen_factory=lambda *a, **k: pytest.fail("must not spawn"))
     assert result["deduplicated"] is True
+
+
+def test_answered_surrogate_wait_starts_new_attempt(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = core.generation_job_path(tmp_path)
+    core.write_json(path, {"job_id": "waiting", "attempt_id": "old-attempt", "state": "WAITING_SURROGATE_RESPONSE", "process_id": 99, "run_dir": str(tmp_path / "run")})
+    monkeypatch.setattr(core, "_surrogate_response_ready", lambda cgkn_root, job: True)
+
+    class Process:
+        pid = 1234
+
+    monkeypatch.setattr(core, "_process_identity_token", lambda pid: "test-process-1234")
+    monkeypatch.setattr(core, "generation_job_status", lambda artifact_dir: {**core.read_json(path), "state": "RUNNING", "run_id": "resumed-run"})
+    result = core.start_generation_job(
+        ["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path,
+        start_timeout=0, popen_factory=lambda *args, **kwargs: Process(),
+    )
+    saved = core.read_json(path)
+    assert result["started"] is True and result["deduplicated"] is False
+    assert saved["job_id"] != "waiting"
+    assert saved["attempt_id"] != "old-attempt"
+
+
+def test_unanswered_surrogate_wait_still_deduplicates(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    core.write_json(core.generation_job_path(tmp_path), {"job_id": "waiting", "attempt_id": "old-attempt", "state": "WAITING_SURROGATE_RESPONSE", "process_id": 99, "run_dir": str(tmp_path / "run")})
+    monkeypatch.setattr(core, "_surrogate_response_ready", lambda cgkn_root, job: False)
+    result = core.start_generation_job(
+        ["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path,
+        popen_factory=lambda *args, **kwargs: pytest.fail("must not spawn"),
+    )
+    assert result["started"] is False and result["deduplicated"] is True
 
 
 def test_dead_generation_job_starts_new_identity_and_preserves_spawn_race(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -53,7 +231,8 @@ def test_dead_generation_job_starts_new_identity_and_preserves_spawn_race(tmp_pa
         pid = 100
     def spawn(command, **kwargs):
         job_id = command[command.index("--generation-job-id") + 1]
-        core.write_json(path, {"job_id": job_id, "state": "RUNNING", "run_id": "abc", "process_id": 0})
+        attempt_id = command[command.index("--generation-attempt-id") + 1]
+        core.write_json(path, {"job_id": job_id, "attempt_id": attempt_id, "state": "RUNNING", "run_id": "abc", "process_id": 0, "revision": 2})
         return Process()
     result = core.start_generation_job(["python", "worker.py"], cgkn_root=tmp_path, artifact_dir=tmp_path, start_timeout=0, popen_factory=spawn)
     assert result["started"] is True and result["deduplicated"] is False

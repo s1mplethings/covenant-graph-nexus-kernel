@@ -453,7 +453,7 @@ class CGKNPluginServer:
         return brief, brief_path, cgkn_root
 
     def _matching_resume_run_dir(self, project: pathlib.Path, goal: str) -> pathlib.Path | None:
-        _, _, _, artifact_dir = self._loaded(project)
+        _, _, cgkn_root, artifact_dir = self._loaded(project)
         result_path = artifact_dir / "generation_result.json"
         if result_path.is_file():
             try:
@@ -630,6 +630,30 @@ class CGKNPluginServer:
         pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
         result = self._read_optional_json(result_path)
         pending = self._read_optional_json(pending_path)
+        job_path = self.core.generation_job_path(artifact_dir)
+        job_status = (
+            self.core.generation_job_status(artifact_dir)
+            if job_path.is_file()
+            else {"state": "NOT_STARTED"}
+        )
+        job_state = str(job_status.get("state", "") or "").upper()
+        external_wait = job_state in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}
+        surrogate_report: dict[str, Any] = {}
+        if external_wait and str(job_status.get("run_dir", "") or "").strip():
+            try:
+                surrogate_report = self.core.surrogate_status(
+                    project,
+                    run_dir=pathlib.Path(str(job_status["run_dir"])),
+                )
+            except (self.core.AgentKitError, OSError, TypeError, ValueError):
+                surrogate_report = {}
+        submitted_unconsumed = [
+            item
+            for item in surrogate_report.get("requests", [])
+            if isinstance(item, dict)
+            and bool(item.get("responded"))
+            and not bool(item.get("consumed"))
+        ]
         events, log_truncated = self._read_jsonl_tail(phase_log_path)
         observed_status = str(result.get("status", "NOT_EVALUATED") or "NOT_EVALUATED").upper()
         has_failure = observed_status not in {"PASS", "PASS_WITH_LIMITS", "NOT_EVALUATED"}
@@ -796,13 +820,20 @@ class CGKNPluginServer:
 
         pending_goal = str(pending.get("raw_user_goal", "")).strip()
         result_goal = str(result.get("goal", "")).strip()
-        resume_available = bool(
+        response_ready = external_wait and bool(submitted_unconsumed)
+        resume_available = response_ready or bool(
             pending.get("status") == "pending"
             and pending.get("stage") in {"component_file_generation", "provider_semantic_repair"}
             and (not result_goal or pending_goal == result_goal)
         )
-        resume_safe = resume_available and (identity_bound_pending or not drift_components)
-        if resume_available and identity_bound_pending:
+        resume_safe = response_ready or (
+            resume_available and (identity_bound_pending or not drift_components)
+        )
+        if response_ready:
+            resume_reason = "submitted_unconsumed_surrogate_response"
+        elif external_wait:
+            resume_reason = "awaiting_identity_bound_surrogate_response"
+        elif resume_available and identity_bound_pending:
             resume_reason = "matching_identity_bound_pending_plan"
         elif drift_components:
             resume_reason = "checkpoint_identity_drift"
@@ -816,7 +847,11 @@ class CGKNPluginServer:
             "available": resume_available,
             "safe": resume_safe,
             "reason": resume_reason,
-            "run_dir": str(run_dir) if resume_available else "",
+            "run_dir": (
+                str(job_status.get("run_dir", "") or "")
+                if response_ready
+                else str(run_dir) if resume_available else ""
+            ),
         }
 
         provider_unavailable = bool(
@@ -828,7 +863,11 @@ class CGKNPluginServer:
                 "provider_usage_limit",
             }
         )
-        if not has_failure:
+        if response_ready:
+            action = "Resume the same production run; its identity-bound surrogate response is submitted and not yet consumed."
+        elif external_wait:
+            action = "Submit the identity-bound pending surrogate response, then resume the same production run."
+        elif not has_failure:
             action = "No blocked generation failure is recorded."
         elif provider_unavailable and resume_safe:
             action = "Resolve Provider authentication or account availability, then resume the matching safe pending plan through the reviewed Provider route."
@@ -843,7 +882,12 @@ class CGKNPluginServer:
         else:
             action = "Repair the primary failure through the reviewed Provider route before starting a new bounded run."
 
-        sources = [str(path) for path in (result_path, phase_log_path, pending_path) if path.exists()]
+        sources = [str(path) for path in (result_path, phase_log_path, pending_path, job_path) if path.exists()]
+        sources.extend(
+            str(item.get("response_path", "") or item.get("request_path", ""))
+            for item in submitted_unconsumed
+            if str(item.get("response_path", "") or item.get("request_path", "")).strip()
+        )
         return self._sanitize(
             {
                 "has_failure": has_failure,
@@ -852,6 +896,12 @@ class CGKNPluginServer:
                 "contributing_failures": contributing[:8],
                 "secondary_effects": secondary_effects[:8],
                 "resume": resume,
+                "external_wait": {
+                    "active": external_wait,
+                    "state": job_state if external_wait else "",
+                    "submitted_unconsumed_responses": len(submitted_unconsumed),
+                    "waiting_for": str(job_status.get("waiting_for", "") or ""),
+                },
                 "counts": {
                     "observed_events": len(events),
                     "leaf_failures": len(leaf_failures),

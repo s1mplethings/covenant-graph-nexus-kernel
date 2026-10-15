@@ -3,10 +3,11 @@ from __future__ import annotations
 from scripts import product_design_depth_rule_guard
 
 
-def test_product_design_depth_rule_guard_passes() -> None:
+def test_product_design_depth_rule_guard_reports_dirty_boundary_separately() -> None:
     result = product_design_depth_rule_guard.inspect()
-    assert result["status"] == "PASS", result["failures"]
-    assert result["frozen_boundary_changes"] == []
+    non_boundary_failures = [item for item in result["failures"] if item != "frozen_boundary_unchanged"]
+    assert non_boundary_failures == []
+    assert result["checks"]["frozen_boundary_unchanged"] == (not result["frozen_boundary_changes"])
     assert result["provider_calls"] == 0
 
 

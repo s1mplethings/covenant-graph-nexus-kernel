@@ -11,7 +11,8 @@
       "hidden_acceptance": [{"id":"csv.clean","category":"functional","description":"A real process imports a mixed CSV and removes duplicates","hard":true,"requirement_ids":["R1","R2"]},{"id":"csv.missing","category":"functional","description":"Missing values are handled and reported","hard":true,"requirement_ids":["R3"]},{"id":"csv.preview","category":"functional","description":"Observed output presents a before-and-after preview","hard":true,"requirement_ids":["R4"]},{"id":"csv.malformed","category":"functional","description":"Malformed input is explicitly reported","hard":true,"requirement_ids":["R6"]},{"id":"csv.runtime","category":"runtime","description":"Documented local entry point starts and exits correctly","hard":true,"requirement_ids":["R1"]},{"id":"csv.persist","category":"persistence","description":"The emitted CSV remains readable after the cleaner process exits","hard":true,"requirement_ids":["R5"]},{"id":"csv.integration","category":"integration","description":"Preview and summary counts match the actual exported file","hard":true,"requirement_ids":["R2","R4","R5","R6"]}],
       "runtime_requirements": ["Run offline from the delivered project", "Return a non-zero status for unusable input"],
       "visual_requirements": ["Human-readable console summary; a GUI is not required"],
-      "delivery_requirements": ["Runnable package includes source, README, and test instructions"]
+      "delivery_requirements": ["Runnable package includes source, README, and test instructions"],
+      "revision": {"revision_id":"REV_A_ADD_FIELD","change_type":"ADD_FEATURE","user_request":"在不改变现有清洗规则的前提下，为每次导出增加一份 JSON 格式的清洗统计报告。","acceptance":["JSON report contains counts that match the exported CSV","Existing CSV cleaning and malformed-input behavior remain correct"]}
     },
     {
       "case_id": "CASE_02_MARKDOWN_BATCH_CONVERTER", "level": "L1", "title": "Markdown Batch Converter",
@@ -44,14 +45,14 @@
       "delivery_requirements": ["Runnable package includes a sample CSV and README"]
     },
     {
-      "case_id": "CASE_05_PERSONAL_FINANCE_TRACKER", "level": "L3", "title": "Personal Finance Tracker",
-      "user_goal": "我想要一个本地个人收支管理工具，记录收入和支出，按月份和类别查看，有简单图表，可以导入和导出数据。",
-      "allowed_assumptions": ["Single currency per workspace", "Single local user", "No bank connection is required"],
-      "hard_requirements": [{"id":"R1","description":"Record income and expense transactions with categories"},{"id":"R2","description":"Show accurate monthly/category summaries and balance"},{"id":"R3","description":"Render a simple data visualization"},{"id":"R4","description":"Import and export data"},{"id":"R5","description":"Persist finance records"}],
-      "hidden_acceptance": [{"id":"finance.ledger","category":"functional","description":"Income, expense, and category operations work","hard":true,"requirement_ids":["R1"]},{"id":"finance.math","category":"functional","description":"Monthly totals and calculated balance are exact","hard":true,"requirement_ids":["R2"]},{"id":"finance.chart","category":"functional","description":"A real visual representation matches the totals","hard":true,"requirement_ids":["R3"]},{"id":"finance.runtime","category":"runtime","description":"Application runs locally","hard":true,"requirement_ids":["R1"]},{"id":"finance.persist","category":"persistence","description":"Ledger survives restart","hard":true,"requirement_ids":["R5"]},{"id":"finance.transfer","category":"integration","description":"Import/export preserves decimal amounts and categories","hard":true,"requirement_ids":["R4"]}],
-      "runtime_requirements": ["All finance data stays local", "Decimal arithmetic is stable"],
-      "visual_requirements": ["Monthly balance, category spend, and budget state are readily readable"],
-      "delivery_requirements": ["Runnable package includes schema/migration notes and README"]
+      "case_id": "CASE_05_HOME_OPERATIONS_HUB", "level": "L5", "title": "Home Operations Hub",
+      "user_goal": "帮我们家做一个本地使用的家庭事务管理工具。平时有杂事、重要资料和需要跟进的事情，希望不容易忘，也方便家人看懂。你自己设计第一版。",
+      "allowed_assumptions": ["A small household shares one local installation", "No cloud account is required", "The product should explain its chosen organization model"],
+      "hard_requirements": [{"id":"R1","description":"Turn the ambiguous request into a coherent household workflow"},{"id":"R2","description":"Preserve household records and follow-up state"},{"id":"R3","description":"Make pending and important items easy to understand"},{"id":"R4","description":"Avoid unrelated enterprise features and unnecessary complexity"}],
+      "hidden_acceptance": [{"id":"home.coherence","category":"functional","description":"An unseen scenario can move from capture to understandable follow-up","hard":true,"requirement_ids":["R1","R3"]},{"id":"home.depth","category":"functional","description":"The product provides useful organization beyond a flat text list","hard":true,"requirement_ids":["R1","R3"]},{"id":"home.scope","category":"functional","description":"The first version stays local and proportionate without auth, cloud, or microservices","hard":true,"requirement_ids":["R4"]},{"id":"home.runtime","category":"runtime","description":"The chosen product starts and remains usable locally","hard":true,"requirement_ids":["R1"]},{"id":"home.persist","category":"persistence","description":"Records and follow-up state survive a fresh process","hard":true,"requirement_ids":["R2"]},{"id":"home.integration","category":"integration","description":"Capture, importance, and follow-up views operate on one state","hard":true,"requirement_ids":["R1","R2","R3"]}],
+      "runtime_requirements": ["Run locally with durable state", "The evaluator may create an unseen multi-step household scenario"],
+      "visual_requirements": ["The information hierarchy makes pending, important, and completed work understandable"],
+      "delivery_requirements": ["Runnable package includes design rationale, setup, backup, and reset guidance"]
     },
     {
       "case_id": "CASE_06_NOTES_SEARCH_WORKSPACE", "level": "L3", "title": "Notes + Search Workspace",
@@ -61,7 +62,8 @@
       "hidden_acceptance": [{"id":"notes.crud","category":"functional","description":"Multiple notes can be created, edited, and deleted","hard":true,"requirement_ids":["R1"]},{"id":"notes.search","category":"functional","description":"Tags and text search return correct notes","hard":true,"requirement_ids":["R2"]},{"id":"notes.markdown","category":"functional","description":"Markdown renders semantically","hard":true,"requirement_ids":["R3"]},{"id":"notes.empty","category":"functional","description":"Empty state is understandable and usable","hard":true,"requirement_ids":["R5"]},{"id":"notes.runtime","category":"runtime","description":"Workspace runs locally","hard":true,"requirement_ids":["R1"]},{"id":"notes.persist","category":"persistence","description":"Notes survive restart","hard":true,"requirement_ids":["R4"]},{"id":"notes.integration","category":"integration","description":"Search reflects the current edited Markdown and tags","hard":true,"requirement_ids":["R2","R3"]}],
       "runtime_requirements": ["Search works on a clean restart", "No remote service is needed"],
       "visual_requirements": ["Navigation, editor, rendered content, and search results are distinct"],
-      "delivery_requirements": ["Runnable package includes backup/restore instructions"]
+      "delivery_requirements": ["Runnable package includes backup/restore instructions"],
+      "revision": {"revision_id":"REV_C_REMOVE_FEATURE","change_type":"REMOVE_FEATURE","user_request":"我们不再需要删除笔记功能，请移除删除入口和相关操作，但保留已有笔记、编辑、标签、搜索和 Markdown。","acceptance":["Delete capability and its documented UI or command are absent","Existing notes, tags, search, Markdown, and stored data remain correct"]}
     },
     {
       "case_id": "CASE_07_IMAGE_BATCH_PROCESSOR", "level": "L3", "title": "Image Batch Processor",
@@ -81,7 +83,8 @@
       "hidden_acceptance": [{"id":"rss.feeds","category":"functional","description":"Multiple controlled feeds retrieve successfully","hard":true,"requirement_ids":["R1"]},{"id":"rss.group","category":"functional","description":"Articles are grouped by correct source","hard":true,"requirement_ids":["R2"]},{"id":"rss.state","category":"functional","description":"Read and unread state changes correctly","hard":true,"requirement_ids":["R3"]},{"id":"rss.runtime","category":"runtime","description":"Dashboard and refresh function start together","hard":true,"requirement_ids":["R1"]},{"id":"rss.persist","category":"persistence","description":"Feeds and reading state survive restart","hard":true,"requirement_ids":["R4"]},{"id":"rss.isolation","category":"integration","description":"A failed feed does not block valid feed refresh","hard":true,"requirement_ids":["R5"]}],
       "runtime_requirements": ["Controlled feed refresh over HTTP", "Feeds and read state remain after restart"],
       "visual_requirements": ["Feed list, article list, detail view, and state indicators are usable"],
-      "delivery_requirements": ["Runnable package includes local storage and network configuration guidance"]
+      "delivery_requirements": ["Runnable package includes local storage and network configuration guidance"],
+      "revision": {"revision_id":"REV_B_CHANGE_CONSTRAINT","change_type":"CHANGE_CONSTRAINT","user_request":"刷新时最多允许同时请求两个订阅源，并为失败源显示可重试状态；其他阅读与持久化行为保持不变。","acceptance":["Observed refresh concurrency never exceeds two and failed feeds remain retryable","Valid feeds, read state, restart persistence, and failure isolation still pass"]}
     },
     {
       "case_id": "CASE_09_LOCAL_REST_SERVICE_DASHBOARD", "level": "L4", "title": "Local REST Service + Dashboard",
@@ -91,7 +94,8 @@
       "hidden_acceptance": [{"id":"rest.crud","category":"functional","description":"External HTTP client verifies API CRUD","hard":true,"requirement_ids":["R1"]},{"id":"rest.invalid","category":"functional","description":"Malformed API input gets a clear non-success response","hard":true,"requirement_ids":["R5"]},{"id":"rest.runtime","category":"runtime","description":"Service and dashboard respond locally","hard":true,"requirement_ids":["R1","R2"]},{"id":"rest.persist","category":"persistence","description":"API data survives a process restart","hard":true,"requirement_ids":["R4"]},{"id":"rest.dashboard","category":"integration","description":"API mutations appear in UI and UI mutations appear in API","hard":true,"requirement_ids":["R2","R3"]}],
       "runtime_requirements": ["Start a local API and browser UI with documented instructions", "Restart preserves the shared data"],
       "visual_requirements": ["Dashboard supports list, create, edit, errors, and pagination without overlap"],
-      "delivery_requirements": ["Runnable package includes API examples, setup, and test instructions"]
+      "delivery_requirements": ["Runnable package includes API examples, setup, and test instructions"],
+      "revision": {"revision_id":"REV_D_CHANGE_FLOW","change_type":"CHANGE_FLOW_OR_FORMAT","user_request":"把网页编辑流程改为先预览再确认保存，并让 API 的更新响应返回完整的更新后记录；不要改变已有数据。","acceptance":["UI requires a preview-confirm step and API update returns the complete updated record","Old CRUD, shared API/UI state, invalid-input handling, and persisted records remain correct"]}
     },
     {
       "case_id": "CASE_10_CUSTOMER_FEEDBACK_MANAGER", "level": "L5", "title": "Customer Feedback Manager",

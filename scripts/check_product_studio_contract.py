@@ -22,9 +22,9 @@ REQUIRED_DOCS = [
 ]
 
 README_PHRASES = [
-    "agent-led",
-    "contract-guarded",
-    "Autonomous Project Studio Kernel",
+    "AI agile engineering kernel",
+    "capability/interface DAGs",
+    "canonical evidence",
     "delivery_manifest",
 ]
 

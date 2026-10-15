@@ -9,6 +9,8 @@ import socketserver
 import threading
 import uuid
 
+import pytest
+
 from playwright.sync_api import sync_playwright
 
 from scripts.capability_execution import compile_capability_plan, select_reuse
@@ -19,6 +21,9 @@ from scripts import codex_conversation
 from scripts import production_candidate_provenance
 from scripts import provider_causal_trace
 from scripts.work_nodes import WorkNode
+
+
+pytestmark = pytest.mark.e2e
 
 
 CAPABILITIES = [

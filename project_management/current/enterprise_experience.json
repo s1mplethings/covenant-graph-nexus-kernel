@@ -24,8 +24,8 @@
         "tests/test_kernel_contract.py"
       ],
       "experience_state": "approved",
-      "usage_count": 46,
-      "successful_usage_count": 45,
+      "usage_count": 54,
+      "successful_usage_count": 53,
       "owner": "quality-management",
       "supersedes": []
     },
@@ -84,13 +84,25 @@
         "scripts/promote_evidence.py"
       ],
       "experience_state": "approved",
-      "usage_count": 0,
-      "successful_usage_count": 0,
+      "usage_count": 3,
+      "successful_usage_count": 3,
       "owner": "repository-maintenance",
       "supersedes": []
     }
   ],
   "usage_receipts": [
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-104",
+      "applied": true,
+      "outcome": "inconclusive",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/SANITY_RUN_RESULT.json",
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/SOAK_SUMMARY.json",
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/CONTAMINATION_RESULTS.json"
+      ]
+    },
     {
       "experience_id": "EXP-CGKN-QUALITY-001",
       "project_id": "cgkn",
@@ -151,7 +163,7 @@
       "applied": true,
       "outcome": "inconclusive",
       "evidence_refs": [
-        "artifacts/clarification_reduction/reduction_acceptance.json",
+        "evidence/clarification-reduction-v1/reduction_acceptance.json",
         "tests/test_clarification_reduction_boundary.py"
       ]
     },
@@ -164,6 +176,160 @@
       "evidence_refs": [
         "evidence/canonical-version-retirement-v1/acceptance.json",
         "tests/test_canonical_version_gate.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-099",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "tests/test_architecture_reduction.py",
+        "tests/test_generation_scale_ladder.py",
+        "tests/test_kernel_contract.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-LIBRARIAN-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-099",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "scripts/run_local_pipeline_impl.py",
+        "tests/test_formal_provider_fallback.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-100",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass2-functional-closure/"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-101",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass3-verdict-runtime-closure/FUNCTION_MATRIX.json",
+        "cgkn-function-stress-pass/pass3-verdict-runtime-closure/regression-old-failures-02/regression_summary.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-102",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass4-regression-convergence/full-baseline-01/regression_summary.json",
+        "cgkn-function-stress-pass/pass4-regression-convergence/full-final-normal-07/regression_summary.json",
+        "cgkn-function-stress-pass/pass4-regression-convergence/fault-probes/regression_summary.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-103",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass5-real-workload-recovery/independent_acceptance.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-105",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/FULL_REGRESSION_RESULTS.json",
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/STATE_SCALE_AB.json",
+        "cgkn-function-stress-pass/pass6-long-horizon-reliability/runs/midterm-20261012T164559Z/MIDTERM_VALIDATION.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/summaries/ITER-106-role-driven-validation-mvp.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-REPO-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/summaries/ITER-106-role-driven-validation-mvp.md"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "runs/role-driven-validation/pass2-cross-project-20261014-r4/validation_report.json",
+        "tests/test_role_driven_validation_pass2.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-REPO-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/summaries/ITER-106-role-driven-validation-pass2.md",
+        "runs/role-driven-validation/pass2-cross-project-20261014-r4/validation_report.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "runs/autonomous-validation/pass3-real-projects-20261014-r2/validation_report.json",
+        "tests/test_autonomous_validation_pass3.py"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-REPO-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "project_management/summaries/ITER-106-autonomous-validation-pass3.md",
+        "runs/autonomous-validation/pass3-real-projects-20261014-r2/validation_report.json"
+      ]
+    },
+    {
+      "experience_id": "EXP-CGKN-QUALITY-001",
+      "project_id": "cgkn",
+      "iteration_id": "ITER-106",
+      "applied": true,
+      "outcome": "successful",
+      "evidence_refs": [
+        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_RESULTS.json",
+        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_METRICS.json",
+        "project_management/summaries/ITER-106-project-generation-quality-pass.md"
       ]
     }
   ]

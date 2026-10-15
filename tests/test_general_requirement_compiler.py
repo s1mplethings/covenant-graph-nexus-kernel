@@ -467,9 +467,118 @@ def test_35_requirements_planning_uses_reviewed_run_model_policy(tmp_path, monke
     assert captured == {"model": "surrogate-stage", "routing_policy": policy}
 
 
+def test_requirements_planning_boundary_persists_known_envelope_audit(tmp_path, monkeypatch):
+    goal = "Create a local calculator."
+    inner = proposal(goal, core=["calculate"])
+    monkeypatch.setattr(
+        pipeline,
+        "provider_text",
+        lambda *_args, **_kwargs: json.dumps({"planning_proposal": inner}),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "requirements_planning_provider_preflight",
+        lambda **_kwargs: {"status": "PASS"},
+    )
+    monkeypatch.setattr(
+        pipeline.requirement_decision_lane,
+        "run_requirement_decision",
+        lambda *args, **kwargs: {"status": "PASS", "goal_spec": {"goal_spec_hash": "g"}},
+    )
+    result, artifact = pipeline.run_canonical_requirement_planning(
+        provider_mode="live",
+        user_goal=goal,
+        run_dir=tmp_path,
+        phase_log_path=tmp_path / "log.jsonl",
+        codex_plan_contract={},
+    )
+    audit_path = (
+        tmp_path / "artifacts" / "provider_stage_artifacts"
+        / "requirements_planning.canonicalization.attempt-0001.schema-01.json"
+    )
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert result["status"] == "PASS"
+    assert artifact["proposal"] == inner
+    assert audit["decision"] == "UNWRAP_KNOWN_PLANNING_PROPOSAL_ENVELOPE"
+    assert audit["schema_validation_result"] == "PASS"
+    assert audit["canonical_object_sha256"] == pipeline.formal_model_contract.stable_hash(inner)
+    assert audit["raw_response_sha256"]
+
+
 # Round-B generation contract matrix (G01-G14).
 def test_g01_valid_minimal_planning_proposal_is_accepted():
     assert compiler.validate_planning_proposal(proposal("Create a local calculator.")) == []
+
+
+def test_planning_response_canonicalization_passes_flat_object_unchanged():
+    flat = proposal("Create a local calculator.")
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(
+        flat, raw_response_sha256="raw-flat"
+    )
+    assert canonical is flat
+    assert audit["decision"] == "PASS_THROUGH_CANONICAL_FLAT_OBJECT"
+    assert audit["raw_response_sha256"] == "raw-flat"
+    assert audit["canonical_object_sha256"] == pipeline.formal_model_contract.stable_hash(flat)
+
+
+def test_planning_response_canonicalization_unwraps_one_known_envelope():
+    inner = proposal("Create a local calculator.")
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(
+        {"planning_proposal": inner}, raw_response_sha256="raw-envelope"
+    )
+    assert canonical is inner
+    assert compiler.validate_planning_proposal(canonical) == []
+    assert audit["decision"] == "UNWRAP_KNOWN_PLANNING_PROPOSAL_ENVELOPE"
+    assert audit["canonical_object_sha256"] == pipeline.formal_model_contract.stable_hash(inner)
+
+
+def test_planning_response_canonicalization_rejects_unknown_wrapper():
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(
+        {"proposal_result": proposal("Create a local calculator.")}
+    )
+    assert canonical is None
+    assert audit["decision"] == "REJECT_UNKNOWN_ENVELOPE"
+    assert audit["schema_validation_result"] == "FAIL"
+
+
+@pytest.mark.parametrize(
+    ("payload", "decision"),
+    [
+        (
+            {"planning_proposal": {"planning_proposal": proposal("Create a local calculator.")}},
+            "REJECT_NESTED_ENVELOPE",
+        ),
+        (
+            {"planning_proposal": proposal("Create a local calculator."), "metadata": {}},
+            "REJECT_AMBIGUOUS_ENVELOPE",
+        ),
+    ],
+)
+def test_planning_response_canonicalization_rejects_nested_or_ambiguous_envelope(payload, decision):
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(payload)
+    assert canonical is None
+    assert audit["decision"] == decision
+    assert audit["schema_validation_result"] == "FAIL"
+
+
+def test_planning_response_canonicalization_does_not_make_malformed_planning_valid():
+    malformed = {"schema_version": "1.0", "interpreted_goal": "x"}
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(malformed)
+    assert canonical is malformed
+    assert audit["decision"] == "PASS_THROUGH_CANONICAL_FLAT_OBJECT"
+    assert compiler.validate_planning_proposal(canonical)
+
+
+def test_planning_response_canonicalization_preserves_every_semantic_field():
+    inner = proposal("Create a local calculator.")
+    before = json.loads(json.dumps(inner))
+    canonical, audit = pipeline.canonicalize_requirements_planning_response(
+        {"planning_proposal": inner}
+    )
+    assert canonical == before
+    assert inner == before
+    assert audit["semantic_fields_modified"] is False
+    assert audit["canonical_object_sha256"] == pipeline.formal_model_contract.stable_hash(before)
 
 
 def test_g02_provider_schema_contains_legal_grounding_targets():
@@ -821,6 +930,49 @@ def test_c03_surrogate_stage_cannot_cross_transport_boundary(monkeypatch, tmp_pa
         [{"role": "system", "content": "planning"}, {"role": "user", "content": "x" * 30000}],
         "surrogate-stage", 30, max_attempts=1, stage="requirements_planning",
         phase_log_path=tmp_path / "phase.jsonl", routing_policy=_qwen_policy(),
+        response_format=compiler.planning_proposal_response_format(),
+    )
+    assert captured["payload"]["model"] == "qwen3.7-flash"
+
+
+def test_c03b_external_api_only_resolves_planning_alias_to_reviewed_model(monkeypatch, tmp_path):
+    captured = {}
+    monkeypatch.setenv("CGKN_EXTERNAL_API_ONLY", "1")
+    monkeypatch.setattr(pipeline.surrogate_provider_adapter, "_CONTEXT", None)
+    monkeypatch.setattr(
+        pipeline.check_connectivity,
+        "_resolve_api_credentials",
+        lambda: {
+            "api_key": "test-key",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline.check_connectivity,
+        "_post_json",
+        lambda _endpoint, payload, _token, _timeout: (
+            captured.update(payload=payload)
+            or {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(proposal("Create a local calculator."))
+                        },
+                        "finish_reason": "stop",
+                    }
+                ]
+            },
+            "",
+        ),
+    )
+    pipeline.provider_text(
+        [{"role": "system", "content": "planning"}, {"role": "user", "content": "x" * 30000}],
+        "surrogate-stage",
+        30,
+        max_attempts=1,
+        stage="requirements_planning",
+        phase_log_path=tmp_path / "phase.jsonl",
+        routing_policy=_qwen_policy(),
         response_format=compiler.planning_proposal_response_format(),
     )
     assert captured["payload"]["model"] == "qwen3.7-flash"

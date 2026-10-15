@@ -6,6 +6,7 @@ import pathlib
 from scripts.provider_jobs import (
     provider_job_from_work_node,
     provider_jobs_from_leaf_graph,
+    validate_jobs,
     work_node_from_provider_job,
 )
 from scripts.work_nodes import WorkNode, bounded_work_node_context, validate_work_nodes
@@ -88,6 +89,42 @@ def test_cycle_detection_and_ownership_conflict() -> None:
     assert any("cycle" in item for item in validate_work_nodes(cycle))
     conflict = [WorkNode("a", "A", owns=("shared/",)), WorkNode("b", "B", owns=("shared/x.py",))]
     assert any("ownership_conflict" in item for item in validate_work_nodes(conflict))
+
+
+def test_deep_legal_dependency_chains_do_not_use_python_recursion() -> None:
+    count = 2500
+    nodes = [
+        WorkNode(
+            f"node_{index:04d}",
+            "bounded work",
+            depends_on=((f"node_{index + 1:04d}",) if index < count - 1 else ()),
+            owns=(f"src/{index}.py",),
+        )
+        for index in range(count)
+    ]
+    jobs = [provider_job_from_work_node(node) for node in nodes]
+
+    assert validate_work_nodes(nodes) == []
+    assert validate_jobs(jobs) == []
+
+
+def test_scaled_ownership_index_preserves_exact_and_directory_conflicts() -> None:
+    nodes = [
+        WorkNode("root", "root", owns=("src/",)),
+        WorkNode("nested", "nested", owns=("src/pkg/module.py",)),
+        WorkNode("first", "first", owns=("README.md",)),
+        WorkNode("second", "second", owns=("README.md",)),
+        *[
+            WorkNode(f"free_{index}", "free", owns=(f"generated/{index}.py",))
+            for index in range(2500)
+        ],
+    ]
+
+    errors = validate_work_nodes(nodes)
+
+    assert "work_node.ownership_conflict:root:nested:src/:src/pkg/module.py" in errors
+    assert "work_node.ownership_conflict:first:second:README.md:README.md" in errors
+    assert len(errors) == 2
 
 
 def test_large_dag_context_is_bounded_to_direct_dependencies() -> None:

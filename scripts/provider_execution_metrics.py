@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import threading
 import time
+import uuid
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -100,9 +102,24 @@ def _persist(key: str) -> None:
     for private in [item for item in state if item.startswith("_")]:
         state.pop(private, None)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
+    temporary = path.with_name(
+        f"{path.name}.{os.getpid()}.{threading.get_ident()}.{uuid.uuid4().hex}.tmp"
+    )
     temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    try:
+        for attempt in range(5):
+            try:
+                temporary.replace(path)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.02 * (attempt + 1))
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _reconcile_phase_log(state: dict[str, Any], key: str) -> None:

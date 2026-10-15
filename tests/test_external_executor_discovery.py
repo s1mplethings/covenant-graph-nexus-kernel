@@ -163,6 +163,8 @@ def test_selected_requires_trial_and_all_fail_falls_back(monkeypatch: pytest.Mon
     candidate = complete_candidate()
     monkeypatch.setattr(discovery, "discover_from_github", lambda *a, **k: ([], []))
     monkeypatch.setattr(discovery, "discover_from_registry", lambda *a, **k: ([candidate], []))
+    monkeypatch.setattr(discovery, "enrich_github_maintenance", lambda value, **_k: (dict(value), []))
+    monkeypatch.setattr(discovery, "enrich_security_from_osv", lambda value, **_k: (dict(value), None))
     passed = discovery.discover_external_executor(video_capability(), trial_runner=lambda value: dict(value) | {"trial": {"status": "PASS", "command": "fixture", "evidence": ["ok"]}})
     assert passed["route"] == "external"
     assert passed["selected_executor"]["version"] == "0.2.0"

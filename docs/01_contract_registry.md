@@ -138,6 +138,90 @@ and `UNKNOWN` as command-result states. They are not canonical formal
 These artifacts support CGKN self-hosting and generated-project planning. They
 are not formal delivery evidence and cannot authorize a formal gate.
 
+`CGKNRoleDrivenValidationSupportReport` is an additive black-box validation
+support artifact defined by
+`schemas/role_driven_validation_report_v1.schema.json` and produced only by
+`scripts/role_driven_validation.py`. It records evidence-derived roles,
+isolated real interface execution, independent deterministic evaluation,
+finding reproduction, and a controlled A/B comparison. Its
+`formal_evidence_status` is always `NOT_EVALUATED`, `release_authority` is
+always false, and it cannot authorize generation, repair, packaging, delivery,
+or a formal PASS.
+
+`CGKNRoleDrivenValidationCrossProjectReport` is the Pass 2 research artifact
+defined by `schemas/role_driven_validation_pass2_report_v1.schema.json` and
+produced only by `scripts/role_driven_validation_pass2.py`. It compares an
+ordinary arm, a role-labelled boundary arm, and a matched unlabelled boundary
+arm across three isolated project variants. Public execution records exclude
+the hidden defect corpus, injection receipts, and independent oracle text;
+every finding requires fresh-worktree reproduction. It is deterministic,
+records zero LLM calls, remains `NOT_EVALUATED`, has no release authority, and
+cannot authorize any formal gate or delivery action.
+
+`CGKNAutonomousValidationPass3Report` is the real-model A/C/D research artifact
+defined by `schemas/autonomous_validation_pass3_report_v1.schema.json` and
+produced only by `scripts/autonomous_validation_pass3.py`. A is one-shot
+ordinary model testing, C is deterministic boundary exploration, and D is a
+bounded observe/hypothesize/execute/update loop. The model may propose only
+reviewed public adapter operations and cannot authorize findings. Counted
+findings require a deterministic independent oracle and fresh-workspace
+reproduction. Provider receipts and estimated cost are support accounting
+only. The report is always `NOT_EVALUATED`, has `release_authority=false`, and
+cannot authorize generation, repair, formal acceptance, packaging, or delivery.
+
+`CGKNAdaptiveAutonomousValidationReport` is the integrated A/B/C/D research
+artifact defined by
+`schemas/adaptive_autonomous_validation_report_v1.schema.json` and produced
+only by `scripts/adaptive_autonomous_validation.py`. It reuses the Pass 3
+adapters, isolation, deterministic oracles, and fresh-workspace reproduction;
+adds per-operation JSON Schema validation, loss-audited observation
+compression, and an evidence-gated single follow-up; and records unequal
+strategy budgets without interpreting coverage as causal superiority. Unknown
+or invalid operations are unsupported and cannot be mapped or executed. The
+report is always `NOT_EVALUATED`, has `release_authority=false`, and cannot
+authorize generation, repair, formal acceptance, packaging, or delivery.
+
+`CGKNTestabilityContract` is the generated-project control contract defined by
+`schemas/testability_contract_v1.schema.json`. It declares public operations
+and input Schemas, observable state, user tasks and success conditions, final
+artifacts, execution permissions, and adapter type. It is declarative support
+input only: commands must invoke a real public business entrypoint, test-only
+success shortcuts are forbidden, and the contract cannot assert evidence or
+delivery success.
+
+`CGKNAutonomousProjectAcceptanceReport` is the production integration support
+artifact defined by
+`schemas/autonomous_project_acceptance_report_v1.schema.json` and produced by
+`scripts/autonomous_project_acceptance.py` from the reviewed Provider candidate
+inside `scripts/codex_conversation.py`. Its project recommendation is one of
+`ACCEPTED`, `REPAIR_REQUIRED`, `BLOCKED`, or `NOT_EVALUATED`; those labels are
+not formal EvidenceStatus values. Findings require deterministic Oracle
+evidence and fresh-copy reproduction. `REPAIR_REQUIRED` may create bounded
+`CGKNObservedProjectFailureEvidence` for the existing ProviderJob repair route,
+but the report remains formal `NOT_EVALUATED`, has no release authority, and
+cannot replace canonical test/runtime/visual evidence, promotion,
+`local_packager`, or the public delivery gate.
+
+`CGKNObservedProjectFailureEvidence` is formally shaped by
+`contracts/observed_project_failure_evidence_v1.schema.json` and constructed or
+validated only by `scripts/repair_evidence_contract.py`. It contains observable
+failure facts, candidate and requirement identities, affected interfaces/files/
+work nodes when known, and the bounded repair round. Hidden acceptance,
+expected implementations, evaluator source, and benchmark answers are
+forbidden. `--repair-evidence` is the production adapter input; the artifact
+remains support evidence and never authorizes formal PASS.
+
+`CGKNSemanticAggregateSourceEvidence` and
+`CGKNSemanticAggregateCompactionReceipt` are run-local support records produced
+by the existing split semantic-review lane. They preserve the exact goal,
+complete component pipeline, component reviews, file hashes, bounded outbound
+size, omissions, and evidence gaps; neither is Provider output or evidence
+authority. `CGKNPostBuildFinalizeCheckpoint` and
+`CGKNAutonomousAcceptanceCheckpoint` are hash-bound workflow checkpoints used
+only to recover or reuse the same candidate finalization. Their `running` and
+`completed` values are workflow state, not EvidenceStatus, and they cannot
+authorize promotion, packaging, delivery, or formal PASS.
+
 | Artifact kind | Schema | Producer | Consumers | State rules |
 | --- | --- | --- | --- | --- |
 | `CGKNAdaptiveProjectManagementPack` | `schemas/adaptive_project_management_pack.schema.json` | `scripts/pmp_agile_quality_manager.py` or an approved project-management agent | project lead, context librarian, provider planning context | `workflow_state` is not EvidenceStatus; `evidence_status` uses only canonical values |
@@ -313,6 +397,7 @@ workflow state, not an EvidenceStatus.
 | `CGKNRequirementReplanState` | inline v1 contract; canonical requirement loop | same-run Provider scheduler and formal request/submit/resume | workflow support only; `WAITING_REQUIREMENT_REPLAN`, `RESOLVED`, or `REPLAN_EXHAUSTED` are not EvidenceStatus; bounded to three attempts and cannot invoke candidate repair |
 | `CGKNSourceIdentityReport` | inline v1 contract; `scripts/source_identity.py` | run audit and acceptance reporting | immutable start-of-run support identity with `NOT_EVALUATED`; hashes source state but grants no evidence or delivery authority |
 | `CGKNChangeManifest` / `CGKNTestReceipt` / `CGKNRepositoryPublishReceipt` | inline v1 support contracts; `scripts/canonical_repo_publish.py` | exact Git staging, commit, normal push, and remote-SHA verification | sole repository publish authority; identity- and path-bound control evidence only; cannot authorize product evidence, acceptance, packaging, or delivery |
+| `CGKNExternalProviderProfile` / `CGKNExternalProviderCostLedger` | `config/provider_profiles/project-generation-external-api.json`; `scripts/provider_api_budget.py` | existing Provider transport beneath the production facade and Fixed10 audit/reporting | environment-only OpenAI-compatible configuration and process-safe pre-transport budget control; no prompt or secret storage; `BUDGET_EXHAUSTED` is workflow state only; creates no generator, evaluator authority, packaging route, delivery exit, or formal PASS authority |
 
 Canonical requirement provenance labels are `USER_EXPLICIT`, `USER_CONTEXT`,
 `NECESSARY_INFERENCE`, `PROVIDER_PROPOSAL`, `SYSTEM_POLICY`, and `UNGROUNDED`.

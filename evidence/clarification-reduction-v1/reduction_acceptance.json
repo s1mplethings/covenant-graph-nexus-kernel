@@ -1,0 +1,30 @@
+{
+  "kind": "CGKNClarificationReductionAcceptance",
+  "schema_version": "1.0",
+  "baseline_sha": "8ced95694a8a828a4b49dfa9d75a26ae2f8e1ddd",
+  "final_sha": "e9460786b01e9462249079692d3977046123b84f",
+  "final_sha_scope": "reduction implementation commit before acceptance metadata",
+  "legacy_question_authority_removed": true,
+  "template_uncertainties_removed": true,
+  "canonical_assumption_source_count": 1,
+  "understanding_planning_boundary_present": true,
+  "parallel_clarification_lane_created": false,
+  "canonical_execution_route_preserved": true,
+  "capability_worknode_model_preserved": true,
+  "provider_route_preserved": true,
+  "evidence_route_preserved": true,
+  "packaging_route_preserved": true,
+  "delivery_route_preserved": true,
+  "tests": [
+    {"name": "clarification reduction plus requirement and kernel regression", "result": "PASS", "detail": "128 passed"},
+    {"name": "requested related regression matrix", "result": "PASS", "detail": "114 passed; 2 profile-marked tests then explicitly executed and passed"},
+    {"name": "requirement decision pipeline integration", "result": "PASS", "detail": "2 passed with profile-marked tests enabled"},
+    {"name": "kernel contract guard", "result": "PASS"},
+    {"name": "formal quick profile", "result": "TIMEOUT", "detail": "900 seconds; captured output contained pre-existing failures and errors"},
+    {"name": "known quick-profile first failure reproduction", "result": "FAIL", "detail": "test_component_quality_rejects_unpublished_manifest_symbol expects 'publish' while unchanged implementation returns 'implement'"}
+  ],
+  "blockers": [
+    "The repository formal quick profile does not pass on the reconciled baseline; the first reproduced failure is outside the clarification reduction files."
+  ],
+  "status": "NEEDS_REWORK"
+}

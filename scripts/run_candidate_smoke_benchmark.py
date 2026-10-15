@@ -9,15 +9,14 @@ import time
 from typing import Any
 
 
-SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-import check_test_environment
-import run_local_pipeline_impl as run_local_pipeline
-
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts import check_test_environment
+from scripts import run_local_pipeline_impl as run_local_pipeline
+
+
 DEFAULT_REPORT = ROOT / "examples" / "test_results" / "candidate_smoke_benchmark_report.json"
 DEFAULT_RUN_DIR = ROOT / "examples" / "runtime_runs" / "local-pipeline-execution"
 

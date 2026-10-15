@@ -9,11 +9,97 @@ existing internal contract; production Provider concurrency remains ProviderJob.
 from __future__ import annotations
 
 import pathlib
+from bisect import bisect_left
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
 
 EXECUTOR_TYPES = {"agent", "deterministic", "skill", "external"}
+
+
+def ownership_conflicts(
+    owners_by_node: Iterable[tuple[str, Iterable[str]]],
+) -> list[tuple[str, str, str, str]]:
+    """Return cross-node exact and directory-prefix ownership conflicts.
+
+    The previous validator compared every owner with every later owner.  This
+    sorted index keeps the no-conflict path O(P log P), while still enumerating
+    every real conflict (which is necessarily O(conflicts)).
+    """
+    entries: list[tuple[str, int, str]] = []
+    for node_index, (node_id, owners) in enumerate(owners_by_node):
+        entries.extend((str(owner), node_index, str(node_id)) for owner in owners)
+    entries.sort(key=lambda item: (item[0], item[1], item[2]))
+    paths = [item[0] for item in entries]
+    conflicts: set[tuple[int, int, str, str, str, str]] = set()
+
+    start = 0
+    while start < len(entries):
+        end = start + 1
+        while end < len(entries) and entries[end][0] == entries[start][0]:
+            end += 1
+        for left_offset in range(start, end):
+            for right_offset in range(left_offset + 1, end):
+                left_path, left_index, left_id = entries[left_offset]
+                right_path, right_index, right_id = entries[right_offset]
+                if left_index == right_index:
+                    continue
+                if left_index > right_index:
+                    left_index, right_index = right_index, left_index
+                    left_id, right_id = right_id, left_id
+                    left_path, right_path = right_path, left_path
+                conflicts.add((left_index, right_index, left_id, right_id, left_path, right_path))
+        start = end
+
+    for owner_path, owner_index, owner_id in entries:
+        if not owner_path.endswith("/"):
+            continue
+        first = bisect_left(paths, owner_path)
+        for other_offset in range(first, len(entries)):
+            other_path, other_index, other_id = entries[other_offset]
+            if not other_path.startswith(owner_path):
+                break
+            if other_path == owner_path or other_index == owner_index:
+                continue
+            if owner_index < other_index:
+                conflict = (owner_index, other_index, owner_id, other_id, owner_path, other_path)
+            else:
+                conflict = (other_index, owner_index, other_id, owner_id, other_path, owner_path)
+            conflicts.add(conflict)
+    return [(left_id, right_id, left_path, right_path) for _, _, left_id, right_id, left_path, right_path in sorted(conflicts)]
+
+
+def dependency_cycle_nodes(
+    node_ids: Iterable[str], dependencies: Mapping[str, Iterable[str]]
+) -> list[str]:
+    """Detect dependency back-edges without consuming Python recursion depth."""
+    known = set(node_ids)
+    state: dict[str, int] = {}
+    cycle_nodes: set[str] = set()
+    for root in sorted(known):
+        if state.get(root, 0):
+            continue
+        state[root] = 1
+        stack: list[tuple[str, list[str], int]] = [
+            (root, list(dependencies.get(root, ())), 0)
+        ]
+        while stack:
+            node_id, node_dependencies, offset = stack[-1]
+            if offset >= len(node_dependencies):
+                state[node_id] = 2
+                stack.pop()
+                continue
+            dependency = node_dependencies[offset]
+            stack[-1] = (node_id, node_dependencies, offset + 1)
+            if dependency not in known:
+                continue
+            dependency_state = state.get(dependency, 0)
+            if dependency_state == 1:
+                cycle_nodes.add(dependency)
+            elif dependency_state == 0:
+                state[dependency] = 1
+                stack.append((dependency, list(dependencies.get(dependency, ())), 0))
+    return sorted(cycle_nodes)
 
 
 def _items(value: Any) -> tuple[str, ...]:
@@ -96,29 +182,16 @@ def validate_work_nodes(nodes: Iterable[WorkNode]) -> list[str]:
                 errors.append(f"work_node.unknown_dependency:{node.id}:{dependency}")
             if dependency == node.id:
                 errors.append(f"work_node.self_dependency:{node.id}")
-    for index, left in enumerate(values):
-        for right in values[index + 1 :]:
-            for left_owner in left.owns:
-                for right_owner in right.owns:
-                    if left_owner == right_owner or (left_owner.endswith("/") and right_owner.startswith(left_owner)) or (right_owner.endswith("/") and left_owner.startswith(right_owner)):
-                        errors.append(f"work_node.ownership_conflict:{left.id}:{right.id}:{left_owner}:{right_owner}")
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(node_id: str) -> None:
-        if node_id in visiting:
-            errors.append(f"work_node.cycle:{node_id}")
-            return
-        if node_id in visited or node_id not in by_id:
-            return
-        visiting.add(node_id)
-        for dependency in by_id[node_id].depends_on:
-            visit(dependency)
-        visiting.remove(node_id)
-        visited.add(node_id)
-
-    for node_id in sorted(by_id):
-        visit(node_id)
+    for left_id, right_id, left_owner, right_owner in ownership_conflicts(
+        (node.id, node.owns) for node in values
+    ):
+        errors.append(
+            f"work_node.ownership_conflict:{left_id}:{right_id}:{left_owner}:{right_owner}"
+        )
+    for node_id in dependency_cycle_nodes(
+        by_id, {node.id: node.depends_on for node in values if node.id}
+    ):
+        errors.append(f"work_node.cycle:{node_id}")
     return sorted(set(errors))
 
 

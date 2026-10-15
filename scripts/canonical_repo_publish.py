@@ -166,6 +166,10 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "RUNTIME", "runtime artifact"
     if lower.startswith(("generated/", "workspaces/", "examples/generated_projects/")) or pure.suffix.lower() == ".zip":
         return "GENERATED", "generated project or package"
+    if lower.startswith("benchmarks/"):
+        return "TEST", "benchmark source, fixture, or case data"
+    if lower.startswith("config/provider_profiles/"):
+        return "CONTRACT", "reviewed Provider execution profile"
     if lower.startswith("tests/") or pure.name.startswith("test_"):
         return "TEST", "test source"
     if lower.startswith("contracts/"):
@@ -253,7 +257,7 @@ def verify_test_binding(root: pathlib.Path, manifest: dict[str, Any], receipt: d
 
 
 def validate_staged_set(root: pathlib.Path, expected: Sequence[str], runner: GitRunner = run_git) -> str:
-    actual = sorted(_lines(require_git(root, ["diff", "--cached", "--name-only"], runner)))
+    actual = sorted(_lines(require_git(root, ["diff", "--cached", "--name-only", "--no-renames"], runner)))
     if actual != sorted(expected):
         raise PublishBlocked("STAGING_SET_MISMATCH", {"expected": sorted(expected), "actual": actual})
     for path in actual:
@@ -435,7 +439,7 @@ def resume_publish(
     parent_sha = require_git(root, ["rev-parse", "HEAD^"], runner)["stdout"].strip()
     if parent_sha != manifest.get("baseline_sha"):
         raise PublishBlocked("RESUME_BASELINE_MISMATCH")
-    committed_paths = sorted(_lines(require_git(root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"], runner)))
+    committed_paths = sorted(_lines(require_git(root, ["diff-tree", "--no-commit-id", "--name-only", "--no-renames", "-r", "HEAD"], runner)))
     if committed_paths != sorted(manifest.get("commit_files", [])):
         raise PublishBlocked("COMMITTED_PATH_SET_MISMATCH", {"expected": manifest.get("commit_files", []), "actual": committed_paths})
     dirty = non_excluded_status(root, _lines(require_git(root, ["status", "--porcelain=v1", "--untracked-files=all"], runner)))

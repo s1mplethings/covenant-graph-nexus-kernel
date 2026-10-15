@@ -34,7 +34,11 @@ class StartedProcess:
 
 
 def start(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(core, "_process_alive", lambda pid: int(pid) == 4242)
+    monkeypatch.setattr(
+        core,
+        "_process_liveness",
+        lambda pid: {"pid": int(pid), "status": "ALIVE" if int(pid) == 4242 else "DEAD", "alive": int(pid) == 4242, "method": "test", "error_code": 0},
+    )
     before = time.perf_counter()
     result = core.start_generation_job(
         [sys.executable, "canonical-worker.py"],
@@ -93,11 +97,14 @@ def test_l05_second_start_deduplicates_live_worker(tmp_path, monkeypatch):
 def write_job(tmp_path: pathlib.Path, **overrides):
     artifact_dir = tmp_path / "artifacts"
     run_dir = artifact_dir / "runs" / "production-managed-1"
-    result_path = artifact_dir / "generation_result.json"
+    job_id = "generation-job-1"
+    attempt_id = "generation-attempt-1"
+    result_path = artifact_dir / f"generation_result.{job_id}.{attempt_id}.json"
     value = {
         "kind": "CGKNGenerationJob",
         "schema_version": "1.0",
-        "job_id": "generation-job-1",
+        "job_id": job_id,
+        "attempt_id": attempt_id,
         "run_id": "production-managed-1",
         "run_dir": str(run_dir),
         "result_path": str(result_path),
@@ -112,7 +119,14 @@ def write_job(tmp_path: pathlib.Path, **overrides):
 
 def test_l06_running_job_reaches_terminal_success(tmp_path, monkeypatch):
     artifact_dir, _run_dir, result_path = write_job(tmp_path, state="COMPLETE", process_id=0)
-    core.write_json(result_path, {"run_id": "production-managed-1", "candidate_hash": "sha256:candidate", "formal_evidence_status": "PASS", "resume": {"safe": True}})
+    core.write_json(result_path, {
+        "generation_job_id": "generation-job-1",
+        "generation_attempt_id": "generation-attempt-1",
+        "run_id": "production-managed-1",
+        "candidate_hash": "sha256:candidate",
+        "formal_evidence_status": "PASS",
+        "resume": {"safe": True},
+    })
     monkeypatch.setattr(core, "_process_alive", lambda _pid: False)
     status = core.generation_job_status(artifact_dir)
     assert status["state"] == "COMPLETE"
@@ -189,3 +203,108 @@ def test_m06_outer_projection_equals_run_local_metrics(tmp_path, monkeypatch):
     core.write_json(run_dir / "artifacts" / "provider_execution_metrics.json", {"provider_api_call_count": 6})
     monkeypatch.setattr(core, "_process_alive", lambda _pid: True)
     assert core.generation_job_status(artifact_dir)["provider_attempts_started"] == 6
+
+
+class CapturedResumeProcess:
+    pid = 5252
+    command: list[str] = []
+
+    def __init__(self, command, **_kwargs):
+        type(self).command = list(command)
+
+
+class SurrogateReport:
+    def __init__(self, *, responded: bool, consumed: bool):
+        self.responded = responded
+        self.consumed = consumed
+
+    def status(self, _run_dir):
+        return {
+            "requests": [
+                {
+                    "job_id": "provider-job-2",
+                    "attempt_id": "attempt-2",
+                    "responded": self.responded,
+                    "consumed": self.consumed,
+                }
+            ]
+        }
+
+
+def _external_wait_job(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
+    artifact_dir, run_dir, _ = write_job(
+        tmp_path,
+        state="WAITING_REQUIREMENT_REPLAN",
+        terminal_reason="WAITING_REQUIREMENT_REPLAN",
+        process_id=4242,
+    )
+    run_dir.mkdir(parents=True)
+    return artifact_dir, run_dir
+
+
+def test_fsv_001_replan_response_resumes_same_run(tmp_path, monkeypatch):
+    artifact_dir, run_dir = _external_wait_job(tmp_path)
+    monkeypatch.setattr(core, "_load_surrogate_adapter", lambda _root: SurrogateReport(responded=True, consumed=False))
+    monkeypatch.setattr(
+        core,
+        "_process_liveness",
+        lambda pid: {
+            "pid": int(pid),
+            "status": "ALIVE" if int(pid) == 5252 else "DEAD",
+            "alive": int(pid) == 5252,
+            "method": "test",
+            "error_code": 0,
+        },
+    )
+
+    result = core.start_generation_job(
+        [sys.executable, "canonical-worker.py", "--resume-run-dir", str(run_dir)],
+        cgkn_root=tmp_path,
+        artifact_dir=artifact_dir,
+        start_timeout=0,
+        popen_factory=CapturedResumeProcess,
+    )
+
+    assert result["started"] is True
+    assert result["deduplicated"] is False
+    assert "--resume-run-dir" in CapturedResumeProcess.command
+    assert CapturedResumeProcess.command[CapturedResumeProcess.command.index("--resume-run-dir") + 1] == str(run_dir)
+    assert result["run_id"] == ""
+    assert result["job_id"] != "generation-job-1"
+
+
+def test_fsv_001_unanswered_replan_remains_deduplicated(tmp_path, monkeypatch):
+    artifact_dir, _run_dir = _external_wait_job(tmp_path)
+    monkeypatch.setattr(core, "_load_surrogate_adapter", lambda _root: SurrogateReport(responded=False, consumed=False))
+    monkeypatch.setattr(
+        core,
+        "_process_liveness",
+        lambda pid: {"pid": int(pid), "status": "DEAD", "alive": False, "method": "test", "error_code": 0},
+    )
+
+    result = core.start_generation_job(
+        [sys.executable, "canonical-worker.py"],
+        cgkn_root=tmp_path,
+        artifact_dir=artifact_dir,
+        start_timeout=0,
+        popen_factory=lambda *_args, **_kwargs: pytest.fail("unanswered external wait must not restart"),
+    )
+
+    assert result["deduplicated"] is True
+    assert result["state"] == "WAITING_REQUIREMENT_REPLAN"
+
+
+def test_fsv_001_external_wait_status_is_not_a_dead_worker_failure(tmp_path, monkeypatch):
+    artifact_dir, _run_dir = _external_wait_job(tmp_path)
+    monkeypatch.setattr(
+        core,
+        "_process_liveness",
+        lambda pid: {"pid": int(pid), "status": "DEAD", "alive": False, "method": "test", "error_code": 0},
+    )
+
+    status = core.generation_job_status(artifact_dir)
+
+    assert status["state"] == "WAITING_REQUIREMENT_REPLAN"
+    assert status["execution_classification"] == "external_wait"
+    assert status["waiting_for"] == "requirement_replan"
+    assert "submit" in status["next_action"]

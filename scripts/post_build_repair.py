@@ -249,7 +249,13 @@ def classify_post_build_failures(finalize_result: dict[str, Any]) -> list[str]:
         "not_evaluated",
         "skipped",
     }
-    if visual_surface_required and browser_was_reached and not finalize_result.get("screenshots"):
+    screenshot_capture_status = str(
+        (finalize_result.get("screenshot_capture", {}) or {}).get("status", "")
+    ).strip().lower()
+    if visual_surface_required and (
+        (browser_was_reached and not finalize_result.get("screenshots"))
+        or screenshot_capture_status in {"blocked", "failed", "error"}
+    ):
         failures.add("screenshot_failure")
     if visual_surface_required and ("browser_unavailable" in log or "playwright install" in log or "executable doesn't exist" in log):
         failures.add("browser_unavailable")
@@ -1454,8 +1460,16 @@ def compile_post_build_repair_plan(
         "runtime_feature_failure",
         "candidate_contract_failure",
     }
+    # A recognized deterministic runtime/tooling failure is also surfaced as
+    # the generic ``test_failure`` umbrella.  Do not let that umbrella force a
+    # Provider call before the bounded deterministic repair has been tried and
+    # revalidated.  Any independent product/fixture/contract failure still
+    # keeps the Provider repair actions.
+    provider_required_beyond_generic_test = provider_required_failure_types - {
+        "test_failure"
+    }
     deterministic_only = bool(deterministic_failure_types & set(failures)) and not bool(
-        provider_required_failure_types & set(failures)
+        provider_required_beyond_generic_test & set(failures)
     )
     if target_files and not executable_missing and not deterministic_only and "candidate_not_runnable" not in failures:
         for rel in target_files:

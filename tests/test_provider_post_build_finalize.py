@@ -442,7 +442,7 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
             self.assertFalse(list(project.rglob("*.webm")))
             self.assertTrue(any("video_blocked" in item for item in result["manifest"]["known_limits"]))
 
-    def test_post_build_finalize_repair_uses_final_candidate_hash(self) -> None:
+    def test_post_build_finalize_does_not_mutate_failed_provider_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             project = root / "project"
@@ -478,12 +478,16 @@ class ProviderPostBuildFinalizeTests(unittest.TestCase):
 
             first_attempt = result["preseal_test_result"]
             self.assertFalse(first_attempt.get("ok"), first_attempt)
-            self.assertNotEqual(first_attempt.get("candidate_hash"), result["test_result"].get("candidate_hash"))
+            self.assertEqual(first_attempt.get("candidate_hash"), result["test_result"].get("candidate_hash"))
+            self.assertEqual("provider_repair_required", result["test_result"]["deterministic_repair"]["status"])
+            self.assertFalse(result["test_result"]["deterministic_repair"]["changed"])
             for field in ("run_id", "candidate_id", "candidate_hash", "commit_sha"):
                 self.assertEqual(result["test_result"].get(field), result["runtime_result"].get(field), field)
                 self.assertEqual(result["test_result"].get(field), result["visual_evidence_result"].get(field), field)
-            self.assertEqual("PASS", result["gate"]["canonical_evidence_gate"]["status"])
-            self.assertTrue(result["gate"]["canonical_evidence_gate"]["identity_consistent"])
+            self.assertFalse(result["ok"])
+            self.assertEqual("NEEDS_REWORK", result["gate"]["status"])
+            self.assertFalse(result["gate"]["delivery_allowed"])
+            self.assertEqual("NEEDS_REWORK", result["canonical_verification"]["status"])
 
 
 if __name__ == "__main__":

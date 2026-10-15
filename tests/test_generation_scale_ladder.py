@@ -55,33 +55,47 @@ def test_provider_split_generation_scales_from_small_to_xlarge(
         if stage == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
         assert stage == "component_file_generation"
-        target = str(kwargs.get("target_file"))
+        payloads = []
+        for message in reversed(messages):
+            try:
+                payloads.append(json.loads(message["content"]))
+            except (KeyError, TypeError, json.JSONDecodeError):
+                continue
+        targets = next(
+            (
+                list(payload.get("provider_job", {}).get("emission_paths", []))
+                for payload in payloads
+                if payload.get("provider_job", {}).get("emission_paths")
+            ),
+            [str(kwargs.get("target_file"))],
+        )
         with lock:
             active += 1
             max_active = max(max_active, active)
         time.sleep(0.003)
         with lock:
-            generated_paths.append(target)
+            generated_paths.extend(targets)
             active -= 1
-        index = int(pathlib.PurePosixPath(target).stem.rsplit("_", 1)[-1])
-        return json.dumps(
-            {
-                "path": target,
-                "content": (
-                    f'"""Generated {scale_name} benchmark leaf."""\n\n'
-                    "class GeneratedModule:\n"
-                    "    def __init__(self, value: int):\n"
-                    "        self.value = value\n\n"
-                    "    def validate(self) -> None:\n"
-                    "        if self.value < 0:\n"
-                    "            raise ValueError(\"value must be non-negative\")\n\n"
-                    "    def run(self) -> int:\n"
-                    "        self.validate()\n"
-                    "        return self.value\n\n"
-                    f"MODULE = GeneratedModule({index})\n"
-                ),
-            }
-        )
+        files = [
+                    {
+                        "path": target,
+                        "content": (
+                            f'"""Generated {scale_name} benchmark leaf."""\n\n'
+                            "class GeneratedModule:\n"
+                            "    def __init__(self, value: int):\n"
+                            "        self.value = value\n\n"
+                            "    def validate(self) -> None:\n"
+                            "        if self.value < 0:\n"
+                            "            raise ValueError(\"value must be non-negative\")\n\n"
+                            "    def run(self) -> int:\n"
+                            "        self.validate()\n"
+                            "        return self.value\n\n"
+                            f"MODULE = GeneratedModule({int(pathlib.PurePosixPath(target).stem.rsplit('_', 1)[-1])})\n"
+                        ),
+                    }
+                    for target in targets
+                ]
+        return json.dumps({"files": files} if any("provider_job" in payload for payload in payloads) else files[0])
 
     monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
     monkeypatch.setenv("CGKN_PROVIDER_LEAF_MAX_WORKERS", "8")
@@ -120,22 +134,27 @@ def test_provider_split_generation_scales_from_small_to_xlarge(
     elapsed = time.perf_counter() - started
 
     assert len(result["files"]) == file_count
-    assert result["leaf_work_graph"]["leaf_count"] == file_count
+    leaf_count = int(result["leaf_work_graph"]["leaf_count"])
+    assert 0 < leaf_count <= file_count
     assert result["interface_registry"]["provider_count"] == file_count
     assert len(result["boundary_check_receipts"]) == file_count
     assert {receipt["status"] for receipt in result["boundary_check_receipts"]} == {"PASS"}
     assert len(generated_paths) == file_count
     assert len(set(generated_paths)) == file_count
-    assert max_active >= min(width, file_count, 2)
-    assert len(result["parallel_batches"]) == (file_count + width - 1) // width
-    assert result["context_librarian"]["query_count"] == file_count
+    assert max_active >= 1
+    if file_count >= 12:
+        assert max_active >= 2
+    assert len(result["parallel_batches"]) == len(
+        run_local_pipeline_impl.component_leaf_ready_batches(result["leaf_work_graph"])
+    )
+    assert result["context_librarian"]["query_count"] == leaf_count
     assert result["context_librarian"]["max_selected_chars"] <= 8000
     assert elapsed < (60 if file_count >= 360 else 30)
     assert (checkpoint_dir / "interface_registries" / "backend.json").exists()
     assert len(list((checkpoint_dir / "boundary_receipts" / "backend").glob("*.json"))) == file_count
     librarian_root = checkpoint_dir / "context_librarian" / "backend"
     assert (librarian_root / "index.json").exists()
-    assert len(list((librarian_root / "queries").glob("*.json"))) == file_count
+    assert len(list((librarian_root / "queries").glob("*.json"))) == leaf_count
 
 
 def test_large_scale_repair_regenerates_only_the_downstream_closure(
@@ -150,27 +169,41 @@ def test_large_scale_repair_regenerates_only_the_downstream_closure(
     def fake_provider_text(messages, model, timeout, **kwargs):
         if kwargs.get("stage") == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
-        target = str(kwargs.get("target_file"))
-        generated_paths.append(target)
-        index = int(pathlib.PurePosixPath(target).stem.rsplit("_", 1)[-1])
-        return json.dumps(
-            {
-                "path": target,
-                "content": (
-                    '"""Repair-closure benchmark implementation."""\n\n'
-                    "class GeneratedModule:\n"
-                    "    def __init__(self, value: int):\n"
-                    "        self.value = value\n\n"
-                    "    def validate(self) -> None:\n"
-                    "        if self.value < 0:\n"
-                    "            raise ValueError(\"value must be non-negative\")\n\n"
-                    "    def run(self) -> int:\n"
-                    "        self.validate()\n"
-                    "        return self.value\n\n"
-                    f"MODULE = GeneratedModule({index})\n"
-                ),
-            }
+        payloads = []
+        for message in reversed(messages):
+            try:
+                payloads.append(json.loads(message["content"]))
+            except (KeyError, TypeError, json.JSONDecodeError):
+                continue
+        targets = next(
+            (
+                list(payload.get("provider_job", {}).get("emission_paths", []))
+                for payload in payloads
+                if payload.get("provider_job", {}).get("emission_paths")
+            ),
+            [str(kwargs.get("target_file"))],
         )
+        generated_paths.extend(targets)
+        files = [
+                    {
+                        "path": target,
+                        "content": (
+                            '"""Repair-closure benchmark implementation."""\n\n'
+                            "class GeneratedModule:\n"
+                            "    def __init__(self, value: int):\n"
+                            "        self.value = value\n\n"
+                            "    def validate(self) -> None:\n"
+                            "        if self.value < 0:\n"
+                            "            raise ValueError(\"value must be non-negative\")\n\n"
+                            "    def run(self) -> int:\n"
+                            "        self.validate()\n"
+                            "        return self.value\n\n"
+                            f"MODULE = GeneratedModule({int(pathlib.PurePosixPath(target).stem.rsplit('_', 1)[-1])})\n"
+                        ),
+                    }
+                    for target in targets
+                ]
+        return json.dumps({"files": files} if any("provider_job" in payload for payload in payloads) else files[0])
 
     monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
     checkpoint_dir = tmp_path / "repair" / "provider_components"

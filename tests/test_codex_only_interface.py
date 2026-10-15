@@ -30,11 +30,21 @@ def repository_text_files() -> list[pathlib.Path]:
         capture_output=True,
         check=True,
     )
-    return [
-        ROOT / pathlib.Path(raw.decode("utf-8"))
-        for raw in proc.stdout.split(b"\0")
-        if raw and pathlib.Path(raw.decode("utf-8")).suffix.lower() in TEXT_SUFFIXES
-    ]
+    files = []
+    for raw in proc.stdout.split(b"\0"):
+        if not raw:
+            continue
+        relative = pathlib.Path(raw.decode("utf-8"))
+        if relative.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        # Historical evidence, benchmark-only probes, tests, and task prompts
+        # are not executable customer interfaces. Active launch/interface code
+        # remains covered, so moving a retired adapter back under scripts or a
+        # plugin is still detected.
+        if relative.parts and relative.parts[0] not in {"scripts", "plugins", "cgkn", "src"}:
+            continue
+        files.append(ROOT / relative)
+    return files
 
 
 def test_repository_has_only_codex_conversation_interface() -> None:

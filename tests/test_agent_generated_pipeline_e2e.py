@@ -15,6 +15,9 @@ sys.path.insert(0, str(ROOT))
 
 import scripts.local_packager as local_packager
 import scripts.pipeline_manifest as pipeline_manifest
+import scripts.pipeline_planner_agent as pipeline_planner_agent
+import scripts.dynamic_pipeline_runner as dynamic_pipeline_runner
+import scripts.agent_conversation_loop as agent_conversation_loop
 import scripts.codex_conversation as bridge
 
 
@@ -125,8 +128,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_step_agent = bridge.dynamic_pipeline_runner._call_step_provider
+            original_plan = pipeline_planner_agent.plan_pipeline
+            original_step_agent = dynamic_pipeline_runner._call_step_provider
 
             def fake_step_agent(events, model, timeout):
                 prompt = str(events[0].get("content", ""))
@@ -160,8 +163,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
-                bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
-                bridge.dynamic_pipeline_runner._call_step_provider = fake_step_agent
+                pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
+                dynamic_pipeline_runner._call_step_provider = fake_step_agent
 
                 bridge.handle_text(client, "chat-e2e-pipeline", "做一个本地 hello 工具", session_dir, log_dir, "gpt-test", 5)
                 bridge.handle_text(client, "chat-e2e-pipeline", "开始生成", session_dir, log_dir, "gpt-test", 5)
@@ -170,8 +173,8 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner._call_step_provider = original_step_agent
+                pipeline_planner_agent.plan_pipeline = original_plan
+                dynamic_pipeline_runner._call_step_provider = original_step_agent
 
             project_dir = log_dir / "agent_projects" / "chat-e2e-pipeline"
             session = bridge.load_session(session_dir, "chat-e2e-pipeline")
@@ -198,9 +201,9 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
             original_commit_sha = bridge.repository_commit_sha
             original_start_policy = bridge.should_auto_start_generation
             original_provider_job = bridge.run_provider_generation_job
-            original_plan = bridge.pipeline_planner_agent.plan_pipeline
-            original_runner = bridge.dynamic_pipeline_runner.run_dynamic_pipeline
-            original_loop = bridge.agent_conversation_loop.run_agent_loop
+            original_plan = pipeline_planner_agent.plan_pipeline
+            original_runner = dynamic_pipeline_runner.run_dynamic_pipeline
+            original_loop = agent_conversation_loop.run_agent_loop
 
             def fake_loop(*, session_path, project_dir, model, timeout, max_turns):
                 project = pathlib.Path(project_dir)
@@ -217,9 +220,9 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.repository_commit_sha = lambda: "0123456789abcdef0123456789abcdef01234567"
                 bridge.should_auto_start_generation = lambda session, analysis, user_text: (False, "test_wait")
                 bridge.run_provider_generation_job = bridge.run_agent_generation_job
-                bridge.pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
-                bridge.dynamic_pipeline_runner.run_dynamic_pipeline = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("runner failed"))
-                bridge.agent_conversation_loop.run_agent_loop = fake_loop
+                pipeline_planner_agent.plan_pipeline = lambda *args, **kwargs: simple_manifest()
+                dynamic_pipeline_runner.run_dynamic_pipeline = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("runner failed"))
+                agent_conversation_loop.run_agent_loop = fake_loop
 
                 bridge.handle_text(client, "chat-fallback-e2e", "做一个本地 hello 工具", session_dir, log_dir, "gpt-test", 5)
                 bridge.handle_text(client, "chat-fallback-e2e", "开始生成", session_dir, log_dir, "gpt-test", 5)
@@ -228,9 +231,9 @@ class AgentGeneratedPipelineE2ETests(unittest.TestCase):
                 bridge.repository_commit_sha = original_commit_sha
                 bridge.should_auto_start_generation = original_start_policy
                 bridge.run_provider_generation_job = original_provider_job
-                bridge.pipeline_planner_agent.plan_pipeline = original_plan
-                bridge.dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
-                bridge.agent_conversation_loop.run_agent_loop = original_loop
+                pipeline_planner_agent.plan_pipeline = original_plan
+                dynamic_pipeline_runner.run_dynamic_pipeline = original_runner
+                agent_conversation_loop.run_agent_loop = original_loop
 
             session = bridge.load_session(session_dir, "chat-fallback-e2e")
             events = read_jsonl(bridge.agent_session_path(session_dir, "chat-fallback-e2e"))

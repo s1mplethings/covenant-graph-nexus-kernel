@@ -14,7 +14,12 @@ import pathlib
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from scripts.work_nodes import WorkNode, validate_work_nodes
+from scripts.work_nodes import (
+    WorkNode,
+    dependency_cycle_nodes,
+    ownership_conflicts,
+    validate_work_nodes,
+)
 
 
 def _hash(value: Any) -> str:
@@ -133,31 +138,16 @@ def validate_jobs(jobs: list[ProviderJob]) -> list[str]:
                 errors.append(f"provider_job.unknown_dependency:{job.id}:{dependency}")
             if dependency == job.id:
                 errors.append(f"provider_job.self_dependency:{job.id}")
-    for index, left in enumerate(jobs):
-        for right in jobs[index + 1 :]:
-            for left_owner in left.owns:
-                for right_owner in right.owns:
-                    if left_owner == right_owner or (
-                        left_owner.endswith("/") and right_owner.startswith(left_owner)
-                    ) or (right_owner.endswith("/") and left_owner.startswith(right_owner)):
-                        errors.append(f"provider_job.ownership_conflict:{left.id}:{right.id}:{left_owner}:{right_owner}")
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(job_id: str) -> None:
-        if job_id in visiting:
-            errors.append(f"provider_job.cycle:{job_id}")
-            return
-        if job_id in visited or job_id not in by_id:
-            return
-        visiting.add(job_id)
-        for dependency in by_id[job_id].depends_on:
-            visit(dependency)
-        visiting.remove(job_id)
-        visited.add(job_id)
-
-    for job_id in sorted(by_id):
-        visit(job_id)
+    for left_id, right_id, left_owner, right_owner in ownership_conflicts(
+        (job.id, job.owns) for job in jobs
+    ):
+        errors.append(
+            f"provider_job.ownership_conflict:{left_id}:{right_id}:{left_owner}:{right_owner}"
+        )
+    for job_id in dependency_cycle_nodes(
+        by_id, {job.id: job.depends_on for job in jobs if job.id}
+    ):
+        errors.append(f"provider_job.cycle:{job_id}")
     return sorted(set(errors))
 
 

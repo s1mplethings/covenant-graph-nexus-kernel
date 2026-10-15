@@ -4,6 +4,189 @@
   "project": "CGKN",
   "items": [
     {
+      "id": "PB-089",
+      "title": "Canonicalize the known Qwen planning envelope",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Admit the one reviewed planning_proposal envelope without weakening the canonical planning schema or changing downstream fail-closed behavior.",
+      "acceptance": [
+        "canonical flat planning passes unchanged",
+        "exact planning_proposal envelope unwraps once before schema validation",
+        "unknown, nested, ambiguous, and malformed responses fail closed",
+        "raw and canonical identities, decision, and schema result are auditable",
+        "related and framework regression tests pass",
+        "one same-case L1 enters real generation and independent evaluation or is classified at its exact failure boundary",
+        "Fixed10 remains stopped unless this single L1 reaches PROJECT_PASS with false pass zero"
+      ]
+    },
+    {
+      "id": "PB-088",
+      "title": "Close Qwen L1 ledger and repair-contract blockers",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Make interrupted Provider calls conservatively accountable and route observable project failures through one production repair-evidence contract before one paid L1 revalidation.",
+      "acceptance": [
+        "Provider calls durably transition through reserved, started, response-received, and terminal lifecycle states",
+        "abandoned pre-send reservations release budget while uncertain sent calls retain conservative budget and unknown usage",
+        "benchmark repairs use the canonical production --repair-evidence contract without exposing hidden evaluation data",
+        "targeted ledger, alias, repair-routing, budget, and kernel rule-guard checks pass",
+        "one detached qwen3.6-plus CASE_01 smoke stays within one planning, one generation, two repair, and four total calls",
+        "Fixed10 remains stopped regardless of the L1 outcome"
+      ]
+    },
+    {
+      "id": "PB-087",
+      "title": "Revalidate Qwen L1 after provider-binding repair",
+      "priority": 1,
+      "state": "needs_rework",
+      "value": "Prove the corrected alias binding on the same Fixed10 L1 case, then stop if any framework boundary prevents real generation, repair, or clean evaluation.",
+      "acceptance": [
+        "the real HTTP payload uses qwen3.6-plus rather than an internal stage alias",
+        "one generation and at most two repair rounds stay within four total Qwen calls",
+        "interrupted reserved calls have a durable identity-bound recovery outcome",
+        "the formal observed-failure repair entrypoint accepts the canonical repair evidence contract",
+        "a real candidate reaches clean-root independent evaluation before Qwen quality is scored",
+        "full Fixed10 starts only after every smoke gate passes"
+      ]
+    },
+    {
+      "id": "PB-086",
+      "title": "Run one bounded Fixed10 Qwen L1 smoke",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Reuse the existing Qwen Provider chain for one real L1 generation/evaluation smoke with zero Codex project work, then stop before full Fixed10 unless every smoke gate passes.",
+      "acceptance": [
+        "the existing Qwen client, endpoint, credential environment names, model, request schema, parser, retry, timeout, and usage contract are audited without recording a key",
+        "CASE_01 runs with at most four API calls and at most two same-model repair rounds",
+        "the formal ProviderJob route and independent evaluator are used without a benchmark-only generation route",
+        "Codex generation and repair calls remain zero",
+        "a pre-transport CGKN framework failure is reported separately from Qwen project quality",
+        "full Fixed10 does not start unless the L1 smoke satisfies every declared gate"
+      ]
+    },
+    {
+      "id": "PB-085",
+      "title": "Move Fixed10 generation and repair to a budgeted external API profile",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Reduce Codex project-generation and repair usage to zero while preserving the reviewed ProviderJob, independent evaluation, packaging, and delivery authorities.",
+      "acceptance": [
+        "the frozen Fixed10 manifest SHA remains unchanged",
+        "external API credentials and base URL are environment-only and never persisted",
+        "every live call is reserved against explicit call, token, and estimated-cost limits before transport",
+        "generation and affected-only repair use the external Provider with at most two repair rounds and no Codex generation or repair calls",
+        "dependency installation distinguishes Provider network access from an approved wheelhouse or explicitly approved registry",
+        "without explicit configuration and budget the run emits a complete zero-call NOT_EVALUATED readiness package",
+        "Pass 6 long-horizon evidence is neither changed nor reinterpreted"
+      ]
+    },
+    {
+      "id": "PB-084",
+      "title": "Measure and improve real project generation quality",
+      "priority": 1,
+      "state": "needs_rework",
+      "value": "Run a frozen ten-project quality pass through the reviewed production route, independently exercise real runtime, persistence, integration, goal fidelity, bounded repair, and revision behavior, then fix only the highest-impact general CGKN defects.",
+      "acceptance": [
+        "the frozen catalog contains exactly ten projects with two cases at each of L1 through L5",
+        "generation receives only the visible goal and allowed public context while hidden acceptance remains evaluator-only",
+        "every project is independently exercised through its documented entry point with first-pass and final-after-repair results kept separate",
+        "failed projects receive no more than two existing-route repair rounds and four passing projects receive bounded revisions",
+        "false-pass, false-negative, runtime, persistence, integration, goal-fidelity, repair, revision, time, call, token, and available cost metrics are reported",
+        "any CGKN source fix freezes the current run and requires a new full ten-project run id",
+        "real Provider evaluation remains NOT_EVALUATED without explicit user budget authorization",
+        "Pass 6 long-horizon evidence is neither changed nor reinterpreted",
+        "a support-only role-driven validation MVP executes one same-version, same-budget isolated A/B and independently reproduces every counted finding without leaking hidden acceptance",
+        "a blinded three-project A/B/C follow-up matches B and C boundary actions, independently reproduces every finding, and reports whether roles add value beyond explicit boundary exploration",
+        "a real-model A/C/D study executes bounded feedback-driven exploration on two non-injected projects including one CGKN-generated artifact, independently reproduces findings, and records tokens, estimated cost, adaptation, and marginal value"
+      ]
+    },
+    {
+      "id": "PB-083",
+      "title": "Prove long-horizon reliability and real-model generalization readiness",
+      "priority": 1,
+      "state": "paused",
+      "value": "Produce uninterrupted 24-hour Provider-free reliability evidence and a frozen, contamination-resistant blind-test system with an explicitly budgeted real-model entry point.",
+      "acceptance": [
+        "one uninterrupted 24-hour run accounts for every arrival and retains raw operational and resource time series",
+        "first, middle, and last segments pass declared latency, throughput, memory, handle, disk, queue, retry, and recovery drift gates",
+        "20 to 30 new L1-L5 cases separate visible generation inputs from hidden post-generation acceptance",
+        "contamination validation proves case identity and hidden keywords cannot steer generation",
+        "real-model execution is budget bound and remains NOT_EVALUATED without explicit provider authorization",
+        "the final complete Provider-free regression preserves the existing 2606-test baseline"
+      ]
+    },
+    {
+      "id": "PB-082",
+      "title": "Prove real workload recovery under sustained pressure",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Exercise the existing ProviderJob, Agent Kit recovery, and delivery authorities with real process faults, fixed-rate multi-project arrivals, independent acceptance, and sampled resource telemetry.",
+      "acceptance": [
+        "real worker termination, timeout, cancellation race, duplicate callback, corrupt checkpoint, late result, and identity drift are actually injected and independently observed",
+        "fixed arrival-rate runs cover 1, 5, 10, and 20 concurrent projects across declared ProviderJob concurrency levels",
+        "every planned arrival is reconciled to submitted, rejected, cancelled, timed out, failed, completed, and independently accepted outcomes",
+        "p50, p95, p99, effective throughput, CPU, RSS, disk, handles, and queue depth are sampled and retained as raw evidence",
+        "three isolated short runs gate a wall-clock 30-minute steady-state run; 24-hour soak remains NOT_EVALUATED unless explicitly run",
+        "the final Provider-free regression preserves the fourth-batch baseline without paid Provider calls"
+      ]
+    },
+    {
+      "id": "PB-081",
+      "title": "Converge complete Provider-free regression",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Close shared implementation and test-fixture root causes, retain capability coverage for legal migrations, and prove the final snapshot twice before load testing.",
+      "acceptance": [
+        "one complete baseline accounts for all Provider-free outcomes",
+        "root-cause fixes preserve strict identity, context, evidence, and delivery gates",
+        "retired-contract tests map to current positive and negative capability coverage",
+        "two independent complete runs pass on the same snapshot with one seeded shuffled order",
+        "short production-entrypoint fault probes pass before any sustained load claim"
+      ]
+    },
+    {
+      "id": "PB-080",
+      "title": "Close verdict integrity and managed runtime concurrency",
+      "priority": 1,
+      "state": "needs_rework",
+      "value": "Make stress verdicts fail on invalid artifacts, serialize identity-bound managed-job transitions, and prove iterative delivery through canonical evidence and public gating before sustained load.",
+      "acceptance": [
+        "empty, forged, partial, duplicate, or semantically changed load results cannot PASS",
+        "job replacement, cancellation, late results, and PID reuse are process-safe and identity-bound",
+        "the operational revision closure uses independent business acceptance and the real public delivery gate",
+        "Provider-free regression uses one recorded interpreter, source snapshot, isolated caches, and complete machine-readable outcomes",
+        "fault and fixed-arrival steady-state work begins only after correctness prerequisites pass"
+      ]
+    },
+    {
+      "id": "PB-079",
+      "title": "Close functional recovery and sustained-load gaps",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Make benchmark isolation, external waiting, cancellation, context completion, iterative delivery, and direct arrival-load outcomes observable on the existing canonical route.",
+      "acceptance": [
+        "benchmark behavior is independent of fixture labels and hidden evaluator inputs remain outside production reachability",
+        "external waits and worker exits are distinct while cancellation and stale results fail closed by identity",
+        "bounded context projection and existing split execution preserve requirements and the final outbound budget gate",
+        "initial build, three revisions, and cold-start delivery execute through canonical gates",
+        "every planned load request has an explicit terminal or non-terminal accounting category"
+      ]
+    },
+    {
+      "id": "PB-078",
+      "title": "Harden core DAG validation and Provider context limits",
+      "priority": 1,
+      "state": "completed_with_limits",
+      "value": "Keep large legal dependency graphs, ownership validation, and final Provider requests bounded without weakening canonical generation or delivery gates.",
+      "acceptance": [
+        "legal forward dependency chains validate without Python recursion",
+        "non-conflicting ownership validation scales by indexed path order rather than all-pairs comparison",
+        "the shared Provider boundary measures exact outgoing context and fails closed before transport",
+        "the current ProviderJob scale ladder and recovery/delivery contract tests run through existing entrypoints",
+        "live Provider, local-model, and 24-hour soak results remain separately reported when not executed"
+      ]
+    },
+    {
       "id": "PB-077",
       "title": "Recover stale managed generation workers safely",
       "priority": 1,

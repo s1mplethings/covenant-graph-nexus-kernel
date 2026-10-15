@@ -1,0 +1,69 @@
+{
+  "kind": "CGKNClarificationReductionArchitectureInventory",
+  "schema_version": "1.0",
+  "baseline_sha": "8ced95694a8a828a4b49dfa9d75a26ae2f8e1ddd",
+  "task_understanding": {
+    "entrypoint": "scripts.requirement_decision_lane.build_goal_spec",
+    "provider_grounded_compiler": "scripts.canonical_goal_spec_compiler.compile_goal_spec",
+    "fast_path": "scripts.requirement_decision_lane._goal_profile"
+  },
+  "goal_spec_authority": {
+    "canonical_provider_route": "canonical_requirement_authority",
+    "compatibility_fast_path": "build_goal_spec direct projection",
+    "problem": "assumptions are assembled independently in both routes"
+  },
+  "assumption_sources": [
+    "goal profile assumptions and build_goal_spec fallback defaults",
+    "canonical compiler proposal assumptions, necessary inferences, and fast-path profile assumptions",
+    "generate_need_interpretations assumption fields",
+    "select_requirement fallback known_assumptions",
+    "backend dialogue defaults outside formal GoalSpec"
+  ],
+  "open_question_sources": [
+    "canonical planning proposal open_questions",
+    "select_requirement unconditional open_questions_not_blocking template",
+    "customer_goal_brief unconditional Key uncertainties template",
+    "backend dialogue soft and critical questions outside formal GoalSpec"
+  ],
+  "blocking_question_sources": [
+    "goal_decision_blockers projected by build_goal_spec",
+    "Codex conversation whiteboard compatibility fields"
+  ],
+  "project_planning": {
+    "entrypoint": "scripts.requirement_decision_lane.build_goal_project_plan",
+    "first_goal_spec_conversion": "build_goal_project_plan",
+    "current_gate": "goal_spec.status == PASS"
+  },
+  "user_answer_decisions": [
+    "goal_decision_blockers and build_goal_spec",
+    "backend_dialogue_loop critical question analysis",
+    "codex_conversation whiteboard readiness and blocking-question projection"
+  ],
+  "template_only_uncertainty": [
+    "Confirm exact runtime platform and preferred UI style before final polish.",
+    "Exact user role and daily workflow may need confirmation.",
+    "Runtime platform and dependency constraints may need confirmation.",
+    "Whether external services are allowed is not assumed."
+  ],
+  "compatibility_fields_in_use": [
+    "decision_blockers",
+    "blocking_questions",
+    "open_questions_not_blocking",
+    "known_assumptions",
+    "default_assumptions",
+    "ready_to_generate"
+  ],
+  "protected_mainline": [
+    "Capability",
+    "Interface",
+    "WorkNode",
+    "Executor",
+    "Result",
+    "Acceptance",
+    "ProviderJob",
+    "Component",
+    "ArtifactStore",
+    "longitudinal consumer governance",
+    "canonical evidence, packaging, and delivery"
+  ]
+}

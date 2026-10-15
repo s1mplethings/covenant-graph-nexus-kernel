@@ -94,8 +94,8 @@ def test_component_provider_orchestration() -> None:
         plan = {
             "kind": "ComponentPipelinePlan",
             "components": [
-                {"id": "foundation", "depends_on": [], "path_hints": ["src/**"]},
-                {"id": "docs", "depends_on": ["foundation"], "path_hints": ["README.md", "TEST_PLAN.md"]},
+                {"id": "foundation", "depends_on": [], "path_hints": ["src/**"], "required_paths": ["src/app.py"]},
+                {"id": "docs", "depends_on": ["foundation"], "path_hints": ["README.md", "TEST_PLAN.md"], "required_paths": ["README.md", "TEST_PLAN.md"]},
             ],
             "merge_policy": {"required_final_files": ["README.md", "TEST_PLAN.md"]},
         }
@@ -113,7 +113,10 @@ def test_component_provider_orchestration() -> None:
     finally:
         run_local_pipeline._impl.provider_generate_project_component = original
     paths = {row["path"] for row in generation["files"]}
-    assert_true(paths == {"src/app.py", "README.md", "TEST_PLAN.md"}, "component orchestration produced wrong files")
+    assert_true(
+        paths == {"src/app.py", "README.md", "TEST_PLAN.md", "VERSION"},
+        "component orchestration produced wrong files",
+    )
     assert_true([row["id"] for row in generation["components"]] == ["foundation", "docs"], "component order not preserved")
 
 

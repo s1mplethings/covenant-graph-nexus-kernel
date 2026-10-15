@@ -44,6 +44,8 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("generated/app.py", "GENERATED", "EXCLUDE"),
         ("credentials.json", "SECRET", "BLOCK"),
         ("tests/test_app.py", "TEST", "COMMIT"),
+        ("benchmarks/project_generation_v1/cases.json", "TEST", "COMMIT"),
+        ("config/provider_profiles/project-generation-external-api.json", "CONTRACT", "COMMIT"),
         ("src/app.py", "SOURCE", "COMMIT"),
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
         (".cgnk/governance/governance.lock.json", "CURRENT_GOVERNANCE", "COMMIT"),
@@ -83,6 +85,16 @@ def test_literal_key_remains_secret_content(tmp_path: pathlib.Path) -> None:
     literal = "const request = { apiKey: '" + "sk-super-secret-value-123456" + "' };\n"
     path.write_text(literal, encoding="utf-8")
     assert gate.classify_path("src/provider.ts", tmp_path)[0] == "SECRET"
+
+
+def test_staged_path_validation_counts_rename_as_delete_plus_add(tmp_path: pathlib.Path) -> None:
+    root, _ = init_repo(tmp_path)
+    old_path = root / "scripts" / "example.py"
+    new_path = root / "scripts" / "renamed.py"
+    old_path.rename(new_path)
+    git(root, "add", "--", "scripts/example.py", "scripts/renamed.py")
+    tree = gate.validate_staged_set(root, ["scripts/example.py", "scripts/renamed.py"])
+    assert tree
 
 
 def test_test_receipt_decodes_utf8_output_independent_of_windows_locale(tmp_path: pathlib.Path) -> None:

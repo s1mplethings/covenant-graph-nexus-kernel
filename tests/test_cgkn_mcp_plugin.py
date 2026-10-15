@@ -362,6 +362,73 @@ def test_generate_projects_managed_start_failure_state(
     assert result["job"]["terminal_reason"] == "JOB_START_FAILED"
 
 
+def test_fsv_001_diagnosis_reports_submitted_replan_response_as_safe_resume(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    module = load_server_module()
+    server = module.CGKNPluginServer(ROOT)
+    project = tmp_path / "waiting-replan"
+    artifact_dir = project / ".cgkn" / "agent-kit"
+    artifact_dir.mkdir(parents=True)
+    (project / server.core.CONFIG_PATH).parent.mkdir(parents=True, exist_ok=True)
+    (project / server.core.CONFIG_PATH).write_text("{}\n", encoding="utf-8")
+    run_dir = artifact_dir / "runs" / "production-replan"
+    run_dir.mkdir(parents=True)
+    response_path = run_dir / "response.json"
+    response_path.write_text("{}\n", encoding="utf-8")
+    server.core.write_json(
+        server.core.generation_job_path(artifact_dir),
+        {
+            "job_id": "generation-job-1",
+            "attempt_id": "generation-attempt-1",
+            "state": "WAITING_REQUIREMENT_REPLAN",
+            "run_dir": str(run_dir),
+            "process_id": 0,
+            "result_path": str(artifact_dir / "missing-result.json"),
+        },
+    )
+    monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
+    monkeypatch.setattr(
+        server.core,
+        "generation_job_status",
+        lambda _artifact_dir: {
+            "state": "WAITING_REQUIREMENT_REPLAN",
+            "run_dir": str(run_dir),
+            "waiting_for": "requirement_replan",
+        },
+    )
+    monkeypatch.setattr(
+        server.core,
+        "surrogate_status",
+        lambda *_args, **_kwargs: {
+            "requests": [
+                {
+                    "job_id": "provider-job-2",
+                    "attempt_id": "attempt-2",
+                    "responded": True,
+                    "consumed": False,
+                    "response_path": str(response_path),
+                }
+            ]
+        },
+    )
+
+    diagnosis = server._failure_diagnosis(project)
+
+    assert diagnosis["has_failure"] is False
+    assert diagnosis["external_wait"] == {
+        "active": True,
+        "state": "WAITING_REQUIREMENT_REPLAN",
+        "submitted_unconsumed_responses": 1,
+        "waiting_for": "requirement_replan",
+    }
+    assert diagnosis["resume"]["safe"] is True
+    assert diagnosis["resume"]["reason"] == "submitted_unconsumed_surrogate_response"
+    assert "Resume the same production run" in diagnosis["recommended_next_action"]
+    assert str(response_path) in diagnosis["sources"]
+
+
 def test_failure_diagnosis_separates_root_cause_secondary_effects_and_unsafe_resume(
     client: MCPClient,
     tmp_path: pathlib.Path,
