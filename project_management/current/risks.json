@@ -1,156 +1,87 @@
 {
-  "kind": "CGKNCurrentRiskRegister",
-  "schemaVersion": "1",
+  "kind": "CGKNCurrentRisks",
+  "schema_version": "2.0",
   "risks": [
     {
-      "id": "RK-EXTERNAL-API-FIXED10-001",
-      "description": "An external project-generation run could leak credentials, exceed cost limits, silently switch models, confuse Provider connectivity with package installation, or fall back to Codex generation.",
+      "id": "R-MVP-001",
+      "title": "Compatibility stack remains much larger than the new MVP substrate",
+      "probability": "high",
+      "impact": "high",
+      "signal": "New work keeps extending run_local_pipeline_impl, formal delivery, or old planning contracts instead of the CapabilityTree substrate.",
+      "response": "Treat the pre-reset Provider generation and formal-delivery stack as compatibility/future material; require product_direction_gate for architecture changes.",
+      "owner": "kernel architecture"
+    },
+    {
+      "id": "R-MVP-002",
+      "title": "Multiple planning and graph abstractions compete for authority",
+      "probability": "high",
+      "impact": "high",
+      "signal": "CapabilityTree, WorkNode, ProviderJob, decomposition tree, module flow, or planning proposal each acts as a project-level source of truth.",
+      "response": "Make CapabilityTree the composition truth and ExecutionDAG the execution truth; keep other structures as adapters or migrate them out.",
+      "owner": "composition runtime"
+    },
+    {
+      "id": "R-MVP-003",
+      "title": "High-capability Agent is not yet wired as the composition authority",
+      "probability": "high",
+      "impact": "high",
+      "signal": "A cheap Provider still performs whole-project planning or the Agent only audits after decisions are made.",
+      "response": "Define bounded Agent tree-edit actions and keep executor tasks local to a node.",
+      "owner": "agent composer"
+    },
+    {
+      "id": "R-MVP-004",
+      "title": "Executor interfaces remain fragmented",
       "probability": "medium",
       "impact": "high",
-      "response": "Require environment-only credentials and explicit models, reserve every call in a process-safe budget ledger before transport, keep dependency authorization separate, record all terminal outcomes, and enforce zero Codex generation and repair calls.",
-      "state": "controlled"
+      "signal": "Provider, local model, search, script, browser, and tests require separate scheduling or result semantics.",
+      "response": "Consolidate them behind the common Component/Block execute contract and result envelope.",
+      "owner": "executor layer"
     },
     {
-      "id": "RK-PROJECT-GENERATION-QUALITY-001",
-      "description": "A benchmark could overstate project quality by leaking hidden acceptance, accepting file presence or self-tests as success, hiding first-pass failures behind repair, or exercising a support lane instead of the reviewed production route.",
+      "id": "R-MVP-005",
+      "title": "Legacy tests encode superseded architecture",
       "probability": "high",
-      "impact": "high",
-      "response": "Freeze ten identity-bound cases, use the Codex conversation production facade, keep evaluator inputs outside generation, require independent clean-start/runtime/persistence/integration/goal-fidelity observations, cap repair at two rounds, and report first-pass separately from final results.",
-      "state": "active",
-      "observed_outcome": "PGBV1_BASELINE_20261014_04 completed with 0/10 PROJECT_PASS, 0 false-pass, and root failures CODE_GENERATION=4, RUNTIME=5, DEPENDENCY=1. The gate worked, but generated-project quality remains NEEDS_REWORK.",
-      "evidence_refs": [
-        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_RESULTS.json",
-        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_METRICS.json",
-        "project_management/summaries/ITER-106-project-generation-quality-pass.md"
-      ]
+      "impact": "medium",
+      "signal": "Full pytest fails because tests require Fixed10, role-driven validation, mandatory Provider planning, or old delivery authority wording.",
+      "response": "Archive tests together with retired paths and retain focused tests for still-supported compatibility behavior.",
+      "owner": "test architecture"
     },
     {
-      "id": "RK-PASS6-LONG-HORIZON-001",
-      "description": "An interrupted or resource-incomplete run could be mislabeled as a 24-hour reliability PASS, or blind acceptance could leak into model generation and inflate quality results.",
-      "probability": "high",
+      "id": "R-MVP-006",
+      "title": "No real end-to-end MVP vertical slice yet",
+      "probability": "certain",
       "impact": "high",
-      "response": "Bind each run to frozen identities, require one uninterrupted 86400-second interval with complete denominators and raw time series, physically separate hidden acceptance, scan all generation inputs for leakage, and retain failed/incomplete runs under distinct ids.",
-      "state": "active"
+      "signal": "Tree and DAG unit tests pass but no real project change reaches execution, testing, and Agent completion judgment.",
+      "response": "Prioritize one small real project over scale, stress, or broad benchmark coverage.",
+      "owner": "MVP delivery"
     },
     {
-      "id": "RK-PASS6-LATENCY-001",
-      "description": "Whole-run recursive telemetry can phase-lock with fixed arrivals and add O(total retained files) CPU and I/O contention, while unrelated host contention can make short scale medians non-monotonic.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Use incremental per-project accounting with final exact reconciliation, retain legacy mode for A/B only, capture host CPU/memory/disk counters, and require a fresh >=4h first/last-two-hour validation before any new 24-hour run.",
-      "state": "active"
-    },
-    {
-      "id": "RK-REAL-STRESS-001",
-      "description": "A synthetic exception, endpoint-only resource snapshot, or partial completion could be mistaken for real recovery and sustained-load evidence.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Require OS-observed worker termination, identity-bound recovery checks, fixed-rate arrival timestamps, complete denominators, sampled CPU/RSS/disk/handles/queue depth, and fail-closed run validation before any PASS claim.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-REGRESSION-ORDER-001",
-      "description": "A candidate pytest process can inherit or resolve a deleted temporary root and fail only under a particular repository-test order.",
-      "probability": "low",
-      "impact": "high",
-      "response": "Run candidates in isolated mode with bounded environment, candidate-only import roots, and an execution-owned TEMP, TMP, and pytest basetemp; retain seeded shuffled full regression.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-FUNCTION-CLOSURE-002",
-      "description": "A benchmark adapter, dead request worker, oversized context, or incomplete load denominator can create false confidence in end-to-end completion.",
+      "id": "R-MVP-007",
+      "title": "Self-growth could become unrestricted self-modification",
       "probability": "medium",
       "impact": "high",
-      "response": "Isolate benchmark consumers, classify durable external waits separately, bind async result admission to identity, retain exact outbound budgeting, and record every planned load outcome.",
-      "state": "controlled"
+      "signal": "A discovered capability changes kernel invariants or bypasses interface/test registration.",
+      "response": "Limit self-growth to search, bounded trial, validated Block integration, registry admission, and measured reuse.",
+      "owner": "capability registry"
     },
     {
-      "id": "RK-FUNCTION-STRESS-001",
-      "description": "Large legal dependency graphs or ownership sets can exhaust recursion depth or consume quadratic validation time before Provider work starts.",
+      "id": "R-MVP-008",
+      "title": "Project-team features may reintroduce fixed role pipelines",
       "probability": "medium",
       "impact": "high",
-      "response": "Use iterative dependency traversal, sorted ownership indexing, scale regressions, and exact-request context budgeting at the shared Provider boundary.",
-      "state": "controlled"
+      "signal": "PM, Developer, QA, Researcher, or Marketing becomes a required sequential stage.",
+      "response": "Represent roles only as optional capability bundles/views over the same tree and DAG.",
+      "owner": "product architecture"
     },
     {
-      "id": "RK-REQUIREMENTS-PROVIDER-001",
-      "description": "Requirements planning may spend five long attempts on the same pre-header failure without distinguishing Provider availability from payload sensitivity.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Run ordered same-route probes, record privacy-safe request metrics, and stop after two consecutive same-class pre-header failures.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-SOURCE-IDENTITY-TIMEOUT-001",
-      "description": "Repository-wide Git inspection can block production before requirements or external discovery begins.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Use canonical pathspecs, bounded read-only Git calls, a total capture budget, tree pruning, and fail-closed production classification.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-EXTERNAL-INTEGRATION-001",
-      "description": "A selected executor may be present in support metadata while generated dependencies or runtime behavior silently ignore it.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Freeze an exact integration contract before generation and independently validate dependency, AST API use, source identity, and runtime evidence.",
-      "state": "active"
-    },
-    {
-      "id": "RK-EXTERNAL-TRUST-001",
-      "description": "Incomplete or stale maintenance/security metadata could permit a vulnerable or abandoned exact version to enter an automatic trial.",
+      "id": "R-MVP-009",
+      "title": "Repository CI may not execute on the isolated branch",
       "probability": "medium",
-      "impact": "high",
-      "response": "Require bounded GitHub maintenance enrichment, exact-version OSV evaluation, conservative conflict handling, freshness TTLs, and trust PASS before trial.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-EXTERNAL-EXECUTOR-001",
-      "description": "Untrusted external metadata or package code could be mistaken for trustworthy execution capability or leak credentials during a trial.",
-      "probability": "medium",
-      "impact": "high",
-      "response": "Allowlist endpoints, bound metadata and candidates, require deterministic filters plus isolated timeout-limited trials with a minimal secret-free environment, and fall back to Agent Build.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-PROVIDER-ALIGNMENT-001",
-      "description": "CGKN may resolve a different DashScope account or API method than Attune despite sharing a model name and endpoint host.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Prefer the shared QWEN environment contract, match Chat Completions payload semantics, and verify once through the canonical probe.",
-      "state": "active"
-    },
-    {
-      "id": "RK-PROVENANCE-001",
-      "description": "A pre-build Provider stage silently replaces the reviewed route model with an endpoint-incompatible default, preventing the real result and provenance chain from materializing.",
-      "probability": "high",
-      "impact": "high",
-      "response": "Thread the resolved routing policy through requirements planning, test exact model selection and all provenance bindings, then perform one bounded live validation.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-LAYOUT-001",
-      "description": "Moving formal specs breaks a loader, test, or documentation reference.",
-      "probability": "medium",
-      "impact": "high",
-      "response": "Use a specs-first compatibility loader, reference graph, legacy-path scan, schema validation, and compilation of all important flows.",
-      "state": "active"
-    },
-    {
-      "id": "RK-LAYOUT-002",
-      "description": "Runtime cleanup deletes local user data.",
-      "probability": "low",
-      "impact": "high",
-      "response": "Use git rm --cached only; keep local artifacts, workspaces, memories, and historical iteration files ignored and recoverable.",
-      "state": "controlled"
-    },
-    {
-      "id": "RK-LAYOUT-003",
-      "description": "Curated evidence is mistaken for delivery authority.",
-      "probability": "low",
-      "impact": "high",
-      "response": "Every promoted bundle carries a canonical status, limitations, reproduction command, and explicit support-only authority note.",
-      "state": "controlled"
+      "impact": "medium",
+      "signal": "Workflow runs show startup failure or no jobs/status checks.",
+      "response": "Record CI as NOT_EVALUATED, keep the branch unmerged, and run the focused gate locally before promotion.",
+      "owner": "repository operations"
     }
   ]
 }
