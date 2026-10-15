@@ -130,3 +130,15 @@ def test_reference_adapter_conditional_branches() -> None:
     assert any("confirmation" in item for item in architecture["decisions"])
     plan = reference_modules.plan_refactor({"architecture": architecture, "snapshot": snapshot}, {})["plan"]
     assert any("confirmation" in item.lower() for item in plan["steps"])
+
+
+@pytest.mark.negative
+def test_artifact_runner_adapter_helper_boundaries() -> None:
+    runner = _SCENARIOS.ArtifactModuleRunner
+    assert runner._provider_payload('{"ok": true}') == {"ok": True}
+    with pytest.raises(ValueError, match="JSON object"):
+        runner._provider_payload([])
+    with pytest.raises(_SCENARIOS.ModuleExecutionError, match="invalid local function"):
+        runner._import_callable("missing-separator")
+    with pytest.raises(_SCENARIOS.ModuleExecutionError, match="not callable"):
+        runner._import_callable("json:decoder")

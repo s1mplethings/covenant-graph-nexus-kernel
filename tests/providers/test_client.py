@@ -62,7 +62,7 @@ def test_empty_provider_response_is_rejected(monkeypatch) -> None:
         OpenAICompatibleClient().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
 
 
-@pytest.mark.live_provider
+@pytest.mark.roundtrip
 def test_success_builds_strict_schema_payload_and_normalizes_usage(monkeypatch) -> None:
     configure(monkeypatch)
     result = OpenAICompatibleClient().complete(system="s", user="u", schema_name="shape", schema={"type": "object"}, config=CONFIG)

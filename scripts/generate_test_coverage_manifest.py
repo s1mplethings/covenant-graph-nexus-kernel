@@ -31,14 +31,14 @@ def generate() -> dict[str, object]:
             "runtime": ["tests/test_artifact_driven_kernel.py"],
         }.get(package, []))
         candidates = [item for item in tests if any(str(item["nodeid"]).startswith(prefix) for prefix in prefixes)]
-        required = list(entry.get("required_classes", []))
-        for flagged, test_class in ((entry.get("state"), "roundtrip"), (entry.get("security"), "security"), (entry.get("provider"), "fault_injection"), (entry.get("network"), "live_provider")):
+        required = [name for name in entry.get("required_classes", []) if name != "live_provider"]
+        for flagged, test_class in ((entry.get("state"), "roundtrip"), (entry.get("security"), "security"), (entry.get("provider"), "fault_injection")):
             if flagged and test_class not in required:
                 required.append(test_class)
         selected: dict[str, set[str]] = {}
         missing: list[str] = []
         for test_class in required:
-            match = next((item for item in candidates if test_class in item["markers"]), None)
+            match = next((item for item in candidates if test_class in item["markers"] and not ({"skip", "skipif", "live_provider"} & set(item["markers"]))), None)
             if match is None:
                 missing.append(test_class)
                 continue

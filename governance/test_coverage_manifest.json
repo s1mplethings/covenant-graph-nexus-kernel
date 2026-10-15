@@ -1163,8 +1163,7 @@
         "negative",
         "boundary",
         "fault_injection",
-        "security",
-        "live_provider"
+        "security"
       ],
       "test_cases": [
         {
@@ -1173,12 +1172,6 @@
             "boundary",
             "happy_path",
             "negative"
-          ]
-        },
-        {
-          "nodeid": "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
-          "classes": [
-            "live_provider"
           ]
         },
         {

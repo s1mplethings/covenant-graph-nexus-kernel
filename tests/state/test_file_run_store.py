@@ -116,3 +116,11 @@ def test_resolved_escape_guard_is_independently_enforced(tmp_path, monkeypatch: 
     monkeypatch.setattr(FileRunStore, "_validate_segment", staticmethod(lambda _value: None))
     with pytest.raises(StateStoreError, match="escapes"):
         store.run_dir("..", "escape")
+
+
+@pytest.mark.negative
+def test_persisted_state_models_reject_unsupported_schemas() -> None:
+    with pytest.raises(ValueError, match="corrupt run state"):
+        RunState.from_dict({"kind": "CGKNRunState", "schema_version": "2.0"})
+    with pytest.raises(ValueError, match="event record schema"):
+        EventRecord.from_dict({"schema_version": "2.0"})
