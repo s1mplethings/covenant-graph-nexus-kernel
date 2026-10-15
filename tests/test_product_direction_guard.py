@@ -15,3 +15,12 @@ def test_mvp_authorities_are_explicit() -> None:
     assert "Roles are capability bundles/views" in product
     assert "Provider-owned project planning" in scope
     assert "Fixed10 as a product-readiness gate" in scope
+
+
+def test_pre_mvp_experiment_families_cannot_return_to_active_source() -> None:
+    assert "scripts/agent_tree_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
+    assert "scripts/agent_growth_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
+    assert "run_function_stress_pass.py" in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
+    assert "run_pass2_operational_closure.py" in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
+    assert product_direction_gate._forbidden_import("scripts.agent_tree_orchestrator")
+    assert product_direction_gate._forbidden_import("agent_director_loop")

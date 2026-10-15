@@ -25,6 +25,8 @@ FORBIDDEN_ACTIVE_PATHS = {
     "test_e2e_service.py",
     "START_QWEN_L1_SMOKE.ps1",
     "CHECK_QWEN_L1_SMOKE.ps1",
+    "run_function_stress_pass.py",
+    "run_pass2_operational_closure.py",
     "scripts/RUN_QWEN_L1_SMOKE_WORKER.ps1",
     "scripts/run_function_stress_pass.py",
     "scripts/run_pass2_operational_closure.py",
@@ -36,6 +38,15 @@ FORBIDDEN_ACTIVE_PATHS = {
     "scripts/role_driven_validation_pass2.py",
     "scripts/autonomous_validation_pass3.py",
     "scripts/adaptive_autonomous_validation.py",
+    "scripts/agent_long_run_evaluator.py",
+    "scripts/agent_long_run_trace_bundle.py",
+    "scripts/run_agent_led_verify.py",
+    "scripts/run_agent_led_generalization_benchmark.py",
+    "scripts/run_large_project_agent_led_benchmark.py",
+    "scripts/run_long_agent_led_stability_test.py",
+    "scripts/run_complexity_scale_benchmark.py",
+    "scripts/run_complexity_scale_workbench_benchmark.py",
+    "scripts/run_quick_large_sync_tree_benchmark.py",
     "benchmarks/project_generation_v1",
     "benchmarks/orbit_360_workbench",
     "tests/test_project_generation_benchmark_v1.py",
@@ -51,10 +62,30 @@ FORBIDDEN_ACTIVE_PATHS = {
     "tests/test_real_workload_recovery_stress.py",
     "tests/test_role_driven_validation.py",
     "tests/test_role_driven_validation_pass2.py",
+    "tests/test_dynamic_agent_tree_growth_eval.py",
+    "tests/test_dynamic_agent_tree_long_run_eval.py",
+    "tests/test_agent_led_generalization_benchmark.py",
+    "tests/test_large_project_agent_led_benchmark.py",
+    "tests/test_long_agent_led_stability_test.py",
+    "tests/test_verify_repo_agent_led_mode.py",
+    "tests/test_complexity_scale_benchmark.py",
+    "tests/test_quick_large_sync_tree_benchmark.py",
+    "tests/test_sync_tree_growth_audit.py",
     "schemas/adaptive_autonomous_validation_report_v1.schema.json",
     "schemas/autonomous_validation_pass3_report_v1.schema.json",
     "schemas/role_driven_validation_pass2_report_v1.schema.json",
     "schemas/role_driven_validation_report_v1.schema.json",
+}
+
+FORBIDDEN_ACTIVE_PREFIXES = {
+    "scripts/agent_tree_",
+    "tests/test_agent_tree_",
+    "scripts/agent_growth_",
+    "tests/test_agent_growth_",
+    "scripts/agent_pruning_",
+    "tests/test_agent_pruning_",
+    "scripts/agent_director_",
+    "tests/test_agent_director_",
 }
 
 FORBIDDEN_IMPORT_PREFIXES = {
@@ -67,6 +98,20 @@ FORBIDDEN_IMPORT_PREFIXES = {
     "autonomous_validation_pass3",
     "role_driven_validation",
     "role_driven_validation_pass2",
+    "scripts.agent_tree_",
+    "agent_tree_",
+    "scripts.agent_growth_",
+    "agent_growth_",
+    "scripts.agent_pruning_",
+    "agent_pruning_",
+    "scripts.agent_director_loop",
+    "agent_director_loop",
+    "scripts.agent_decision_ledger",
+    "agent_decision_ledger",
+    "scripts.agent_state_observer",
+    "agent_state_observer",
+    "scripts.agent_tool_registry",
+    "agent_tool_registry",
 }
 
 
@@ -95,6 +140,10 @@ def _active_python_files() -> list[pathlib.Path]:
         for path in ROOT.rglob("*.py")
         if not any(part in ignored for part in path.relative_to(ROOT).parts)
     ]
+
+
+def _forbidden_import(imported: str) -> bool:
+    return any(imported == prefix or imported.startswith(prefix) for prefix in FORBIDDEN_IMPORT_PREFIXES)
 
 
 def check() -> list[str]:
@@ -133,8 +182,10 @@ def check() -> list[str]:
 
     for path in _active_python_files():
         relative = path.relative_to(ROOT).as_posix()
+        if any(relative.startswith(prefix) for prefix in FORBIDDEN_ACTIVE_PREFIXES):
+            errors.append(f"obsolete_active_prefix:{relative}")
         for imported in _imports(path):
-            if any(imported == prefix or imported.startswith(prefix + ".") for prefix in FORBIDDEN_IMPORT_PREFIXES):
+            if _forbidden_import(imported):
                 errors.append(f"obsolete_active_import:{relative}:{imported}")
 
     for path in (
