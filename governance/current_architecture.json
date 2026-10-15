@@ -1,14 +1,23 @@
 {
   "kind": "CGKNCurrentArchitecture",
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "product_version": "0.2.0-rc.2",
   "architecture_generation": "capability-tree-mvp",
+  "implementation_state": {
+    "repository_cleanup": "COMPLETE_UNVERIFIED",
+    "runtime_wiring": "NOT_IMPLEMENTED",
+    "functional_readiness": "NOT_EVALUATED"
+  },
   "product_authority": [
     "PRODUCT_GOAL.md",
     "MVP_SCOPE.md",
     "governance/product_invariants.json"
   ],
-  "authorities": {
+  "state_authority": [
+    "governance/mvp_cleanup_boundary.json",
+    "docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md"
+  ],
+  "declared_authorities": {
     "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
     "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
     "component_contract": "cgkn/component/spec.py:ComponentSpec",
@@ -16,30 +25,42 @@
     "component_execution_record": "cgkn/component/execution.py:ComponentExecution",
     "artifact_runtime": "cgkn/runtime/runner.py:ArtifactModuleRunner",
     "provider_executor_adapter": "scripts/provider_jobs.py:ProviderJob",
+    "deterministic_action_adapter": "scripts/local_agent_actions.py:LocalAgentActionExecutor",
     "real_test_support": "scripts/real_test_execution.py",
     "repository_publish": "scripts/canonical_repo_publish.py:publish",
     "product_direction_gate": "scripts/product_direction_gate.py:check"
   },
-  "canonical_routes": {
-    "mvp_composition": [
+  "target_routes": {
+    "composition": [
       "high-capability Agent",
       "cgkn/orchestration/capability_tree.py:CapabilityTree",
       "cgkn/orchestration/execution_dag.py:compile_tree"
     ],
-    "mvp_execution": [
+    "execution": [
       "cgkn/component/spec.py:ComponentSpec",
-      "replaceable executor adapter",
+      "replaceable Executor adapter",
       "cgkn/component/execution.py:ComponentExecution",
-      "artifact/result/test projection"
+      "artifact/result/test projection",
+      "persistent project state"
     ]
   },
-  "compatibility_or_future_systems": [
-    "scripts/codex_conversation.py formal delivery route",
-    "scripts/run_local_pipeline_impl.py Provider project-generation stack",
-    "scripts/canonical_finalization.py formal evidence/promotion stack",
-    "scripts/local_packager.py packaging stack",
-    "public delivery gates and false-pass supervision"
+  "compatibility_entrypoints": [
+    "scripts/codex_conversation.py",
+    "scripts/run_codex_conversation_generation.py",
+    "scripts/run_local_pipeline.py",
+    "scripts/run_local_pipeline_impl.py"
   ],
+  "compatibility_rule": "Compatibility entrypoints remain callable until the target route owns one real vertical slice. They are not the MVP planning or composition authority.",
+  "next_feature_increment": {
+    "id": "MVP-002",
+    "name": "Wire the common Block execution boundary",
+    "migration_target": "Execute ready ExecutionDAG nodes through replaceable bounded executors and persist their results."
+  },
   "forbidden_parallel_authorities": true,
-  "migration_rule": "Compatibility systems may remain callable, but new MVP architecture work must not make them the planning or composition authority."
+  "verification": {
+    "github_actions": "STARTUP_FAILURE",
+    "product_direction_gate": "NOT_EVALUATED",
+    "focused_tests": "NOT_EVALUATED",
+    "full_pytest": "NOT_EVALUATED"
+  }
 }

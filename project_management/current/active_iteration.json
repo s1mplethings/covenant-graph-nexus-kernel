@@ -1,31 +1,51 @@
 {
   "kind": "CGKNAdaptiveIteration",
-  "schema_version": "1.0",
-  "iteration_id": "ITER-MVP-RESET-001",
+  "schema_version": "1.1",
+  "iteration_id": "ITER-MVP-BLOCK-EXEC-002",
   "project_id": "cgkn",
-  "goal": "Reset the active repository around the composable CapabilityTree -> ExecutionDAG MVP and remove superseded fixed-flow validation authority.",
-  "backlog_item_ids": [],
+  "goal": "Wire the common Block execution boundary so ready ExecutionDAG nodes can run through replaceable bounded executors and persist honest results.",
+  "backlog_item_ids": [
+    "MVP-002",
+    "MVP-005"
+  ],
   "workflow_state": "in_progress",
   "evidence_status": "NOT_EVALUATED",
+  "precondition": {
+    "repository_cleanup": "COMPLETE_UNVERIFIED",
+    "boundary_record": "governance/mvp_cleanup_boundary.json",
+    "compatibility_runtime_retained": true
+  },
   "acceptance_criteria": [
-    "product and MVP authority are singular and explicit",
-    "ten machine-readable invariants prevent fixed-flow drift",
-    "CapabilityTree is structurally distinct from ExecutionDAG",
-    "role-driven/autonomous stress ladders are not active MVP authority",
-    "pre-reset fixed-flow design documents leave active docs",
-    "repository fast CI runs the product direction gate",
-    "cleanup uses no force push and does not merge"
+    "one canonical execution request contract",
+    "one canonical execution result contract",
+    "one replaceable Executor protocol",
+    "a deterministic local-action adapter implements the protocol",
+    "an ExecutionDAG coordinator selects and executes ready nodes",
+    "node results and failures are persisted without replaying the full conversation",
+    "focused tests prove real node execution without Provider-owned project planning"
+  ],
+  "out_of_scope": [
+    "replacing the entire codex_conversation compatibility entrypoint",
+    "rewriting run_local_pipeline_impl before a replacement path exists",
+    "stress, soak, scale, commercial-readiness, or Fixed10 validation",
+    "self-growth and project-team role views"
   ],
   "quality_metrics": [
     {
-      "id": "QM-DIRECTION-GATE",
-      "measure": "product_direction_gate",
+      "id": "QM-BLOCK-CONTRACT",
+      "measure": "canonical Block execution contract tests",
       "target": "PASS",
       "actual": "NOT_EVALUATED"
     },
     {
-      "id": "QM-TREE-DAG",
-      "measure": "CapabilityTree/ExecutionDAG focused tests",
+      "id": "QM-DAG-EXECUTION",
+      "measure": "focused ExecutionDAG node execution tests",
+      "target": "PASS",
+      "actual": "NOT_EVALUATED"
+    },
+    {
+      "id": "QM-DIRECTION-GATE",
+      "measure": "product_direction_gate",
       "target": "PASS",
       "actual": "NOT_EVALUATED"
     }

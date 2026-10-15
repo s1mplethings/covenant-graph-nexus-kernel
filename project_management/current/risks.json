@@ -1,86 +1,95 @@
 {
   "kind": "CGKNCurrentRisks",
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "risks": [
     {
       "id": "R-MVP-001",
-      "title": "Compatibility stack remains much larger than the new MVP substrate",
+      "title": "Compatibility runtime remains much larger than the new MVP substrate",
       "probability": "high",
       "impact": "high",
       "signal": "New work keeps extending run_local_pipeline_impl, formal delivery, or old planning contracts instead of the CapabilityTree substrate.",
-      "response": "Treat the pre-reset Provider generation and formal-delivery stack as compatibility/future material; require product_direction_gate for architecture changes.",
+      "response": "Treat the compatibility stack as migration material only and require the product direction gate for architecture changes.",
       "owner": "kernel architecture"
     },
     {
       "id": "R-MVP-002",
-      "title": "Multiple planning and graph abstractions compete for authority",
+      "title": "Multiple planning and graph abstractions may compete for authority",
       "probability": "high",
       "impact": "high",
-      "signal": "CapabilityTree, WorkNode, ProviderJob, decomposition tree, module flow, or planning proposal each acts as a project-level source of truth.",
-      "response": "Make CapabilityTree the composition truth and ExecutionDAG the execution truth; keep other structures as adapters or migrate them out.",
+      "signal": "WorkNode, ProviderJob, decomposition tree, module flow, or planning proposal acts as a project-level source of truth beside CapabilityTree and ExecutionDAG.",
+      "response": "CapabilityTree is composition truth and ExecutionDAG is execution truth; other structures must be adapters or compatibility data.",
       "owner": "composition runtime"
     },
     {
       "id": "R-MVP-003",
-      "title": "High-capability Agent is not yet wired as the composition authority",
-      "probability": "high",
+      "title": "Target architecture is not yet wired into the default runtime",
+      "probability": "certain",
       "impact": "high",
-      "signal": "A cheap Provider still performs whole-project planning or the Agent only audits after decisions are made.",
-      "response": "Define bounded Agent tree-edit actions and keep executor tasks local to a node.",
-      "owner": "agent composer"
+      "signal": "The repository describes CapabilityTree and ExecutionDAG, but real project execution still enters the compatibility pipeline.",
+      "response": "Complete MVP-002 before claiming the target architecture is operational or deleting the compatibility entrypoints.",
+      "owner": "MVP runtime"
     },
     {
       "id": "R-MVP-004",
       "title": "Executor interfaces remain fragmented",
-      "probability": "medium",
+      "probability": "high",
       "impact": "high",
-      "signal": "Provider, local model, search, script, browser, and tests require separate scheduling or result semantics.",
-      "response": "Consolidate them behind the common Component/Block execute contract and result envelope.",
+      "signal": "Provider, local model, search, script, browser, and test execution use unrelated request and result semantics.",
+      "response": "Consolidate them behind the common Block execution request/result and replaceable Executor protocol.",
       "owner": "executor layer"
     },
     {
       "id": "R-MVP-005",
-      "title": "Legacy tests encode superseded architecture",
-      "probability": "high",
-      "impact": "medium",
-      "signal": "Full pytest fails because tests require Fixed10, role-driven validation, mandatory Provider planning, or old delivery authority wording.",
-      "response": "Archive tests together with retired paths and retain focused tests for still-supported compatibility behavior.",
-      "owner": "test architecture"
+      "title": "Retained compatibility modules may silently regain product authority",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "New documentation, CI, or features cite compatibility planning and readiness modules as the canonical MVP route.",
+      "response": "Keep the migration boundary machine-readable and fail the product direction gate when archived authorities reappear.",
+      "owner": "product architecture"
     },
     {
       "id": "R-MVP-006",
-      "title": "No real end-to-end MVP vertical slice yet",
+      "title": "No real end-to-end MVP vertical slice exists",
       "probability": "certain",
       "impact": "high",
-      "signal": "Tree and DAG unit tests pass but no real project change reaches execution, testing, and Agent completion judgment.",
-      "response": "Prioritize one small real project over scale, stress, or broad benchmark coverage.",
+      "signal": "Tree and DAG structures exist but no real project change reaches bounded execution, testing, persistence, and Agent completion judgment through the new route.",
+      "response": "After MVP-002, prioritize one small real project over scale, stress, or broad benchmark coverage.",
       "owner": "MVP delivery"
     },
     {
       "id": "R-MVP-007",
+      "title": "Deletion may outrun replacement functionality",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Compatibility entrypoints are removed before the new DAG runtime owns equivalent execution, test, state, and result behavior.",
+      "response": "Enforce the cleanup boundary: migrate one vertical slice first, then delete only modules with no remaining consumer.",
+      "owner": "migration lead"
+    },
+    {
+      "id": "R-MVP-008",
       "title": "Self-growth could become unrestricted self-modification",
       "probability": "medium",
       "impact": "high",
-      "signal": "A discovered capability changes kernel invariants or bypasses interface/test registration.",
+      "signal": "A discovered capability changes kernel invariants or bypasses interface, test, and registry admission.",
       "response": "Limit self-growth to search, bounded trial, validated Block integration, registry admission, and measured reuse.",
       "owner": "capability registry"
     },
     {
-      "id": "R-MVP-008",
+      "id": "R-MVP-009",
       "title": "Project-team features may reintroduce fixed role pipelines",
       "probability": "medium",
       "impact": "high",
-      "signal": "PM, Developer, QA, Researcher, or Marketing becomes a required sequential stage.",
+      "signal": "PM, Developer, QA, Researcher, Release, or Marketing becomes a required sequential stage.",
       "response": "Represent roles only as optional capability bundles/views over the same tree and DAG.",
       "owner": "product architecture"
     },
     {
-      "id": "R-MVP-009",
-      "title": "Repository CI may not execute on the isolated branch",
-      "probability": "medium",
+      "id": "R-MVP-010",
+      "title": "Repository CI is not executing on the isolated branch",
+      "probability": "high",
       "impact": "medium",
-      "signal": "Workflow runs show startup failure or no jobs/status checks.",
-      "response": "Record CI as NOT_EVALUATED, keep the branch unmerged, and run the focused gate locally before promotion.",
+      "signal": "Workflow runs report startup failure with no jobs or status checks.",
+      "response": "Keep all verification as NOT_EVALUATED, do not merge, and obtain an executable focused verification path before promotion.",
       "owner": "repository operations"
     }
   ]

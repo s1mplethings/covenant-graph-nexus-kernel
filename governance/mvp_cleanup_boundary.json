@@ -1,0 +1,50 @@
+{
+  "kind": "MVPCleanupBoundary",
+  "schema_version": "1.0",
+  "recorded_at": "2026-10-15",
+  "branch": "codex/mvp-kernel-reset-20261015",
+  "status": "CLEANUP_COMPLETE_FEATURE_IMPLEMENTATION_REQUIRED",
+  "active_architecture": "capability-tree-mvp",
+  "current_runtime_wiring": "NOT_IMPLEMENTED",
+  "functional_readiness": "NOT_EVALUATED",
+  "cleanup_scope": {
+    "obsolete_product_authorities_archived": true,
+    "standalone_pre_mvp_validation_entrypoints_archived": true,
+    "fixed_role_and_agent_tree_experiments_archived": true,
+    "stress_soak_scale_and_commercial_gates_archived": true,
+    "history_preserved_under": "legacy/pre_mvp_reset/"
+  },
+  "compatibility_entrypoints": [
+    "scripts/codex_conversation.py",
+    "scripts/run_codex_conversation_generation.py",
+    "scripts/run_local_pipeline.py",
+    "scripts/run_local_pipeline_impl.py"
+  ],
+  "retained_compatibility_modules": [
+    "scripts/provider_jobs.py",
+    "scripts/local_agent_actions.py",
+    "scripts/real_test_execution.py",
+    "scripts/local_packager.py",
+    "scripts/canonical_repo_publish.py",
+    "scripts/canonical_finalization.py"
+  ],
+  "deletion_boundary": "Do not remove the remaining compatibility runtime until a CapabilityTree/ExecutionDAG runtime owns one real vertical slice with execution, tests, persisted state, and completion judgment.",
+  "next_increment": {
+    "id": "MVP-002",
+    "name": "Wire the common Block execution boundary",
+    "required_outputs": [
+      "canonical Block execution request and result contracts",
+      "replaceable Executor adapter protocol",
+      "deterministic local-action executor adapter",
+      "ExecutionDAG runtime coordinator",
+      "focused real-node execution tests",
+      "persisted run and result state"
+    ]
+  },
+  "verification": {
+    "github_actions": "STARTUP_FAILURE",
+    "product_direction_gate": "NOT_EVALUATED",
+    "focused_tests": "NOT_EVALUATED",
+    "full_pytest": "NOT_EVALUATED"
+  }
+}

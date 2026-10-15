@@ -1,7 +1,10 @@
 {
   "kind": "CGKNCurrentBacklog",
-  "schemaVersion": "2",
+  "schemaVersion": "3",
   "project": "CGKN",
+  "current_item_id": "MVP-002",
+  "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
+  "verification_status": "NOT_EVALUATED",
   "product_authority": [
     "PRODUCT_GOAL.md",
     "MVP_SCOPE.md",
@@ -13,33 +16,37 @@
       "id": "MVP-001",
       "title": "Complete repository MVP reset",
       "priority": 1,
-      "state": "in_progress",
+      "state": "done_unverified",
       "value": "Remove obsolete active authorities and make the CapabilityTree MVP the only current product direction.",
       "acceptance": [
-        "direction gate passes",
-        "obsolete fixed-flow documents and validation launchers are outside active paths",
-        "current management files contain no Fixed10, stress, soak, or Provider-planning priority",
+        "obsolete fixed-flow authorities are outside active paths",
+        "historical material remains under legacy/pre_mvp_reset",
+        "cleanup boundary is machine-readable",
         "cleanup remains on an isolated non-force branch"
-      ]
+      ],
+      "evidence_status": "NOT_EVALUATED"
     },
     {
       "id": "MVP-002",
-      "title": "Consolidate the common Block boundary",
+      "title": "Wire the common Block execution boundary",
       "priority": 2,
-      "state": "next",
-      "value": "Make ComponentSpec, PortSpec, execution context, result, and executor adapter the single reusable capability interface.",
+      "state": "in_progress",
+      "value": "Make the Component/Block contract executable through one replaceable bounded Executor interface.",
       "acceptance": [
-        "one canonical Block/Component definition",
-        "declared typed inputs and outputs",
-        "executor implementation is replaceable",
-        "WorkNode, ProviderJob, and module contracts are adapters rather than competing authorities"
+        "canonical execution request and result contracts",
+        "typed declared inputs and outputs",
+        "replaceable Executor adapter protocol",
+        "deterministic local-action adapter",
+        "ExecutionDAG coordinator executes ready nodes",
+        "run and result state are persisted",
+        "focused tests execute a real node without Provider-owned project planning"
       ]
     },
     {
       "id": "MVP-003",
       "title": "Finish CapabilityTree composition semantics",
       "priority": 3,
-      "state": "started",
+      "state": "substrate_exists_unwired",
       "value": "Let the high-capability Agent incrementally create and modify a stable composition tree.",
       "acceptance": [
         "stable node identity",
@@ -52,7 +59,7 @@
       "id": "MVP-004",
       "title": "Finish Tree-to-DAG compilation",
       "priority": 4,
-      "state": "started",
+      "state": "substrate_exists_unwired",
       "value": "Compile executable dependencies separately from the human-readable composition tree.",
       "acceptance": [
         "fan-out and fan-in",
@@ -65,12 +72,12 @@
       "id": "MVP-005",
       "title": "Create replaceable executor adapters",
       "priority": 5,
-      "state": "planned",
+      "state": "started_by_mvp_002",
       "value": "Run bounded Blocks through cheap models, local models, APIs, search, scripts, browsers, and deterministic tools.",
       "acceptance": [
         "common execute contract",
         "bounded task packet",
-        "cost and timeout metadata",
+        "cost, timeout, and provenance metadata",
         "executor cannot redefine project intent"
       ]
     },
@@ -79,11 +86,11 @@
       "title": "Persist project and run state",
       "priority": 6,
       "state": "planned",
-      "value": "Keep long-lived project goals, tree, DAG, node results, artifacts, failures, and checkpoints without replaying full conversation history.",
+      "value": "Keep goals, tree, DAG, node results, artifacts, failures, and checkpoints without replaying full conversation history.",
       "acceptance": [
         "identity-bound project state",
         "node execution history",
-        "artifact/result references",
+        "artifact and result references",
         "safe resume after interruption"
       ]
     },
@@ -92,12 +99,12 @@
       "title": "Prove one real vertical slice",
       "priority": 7,
       "state": "planned",
-      "value": "Complete one real project change using a high-capability Agent, a cheap model/API executor, a deterministic tool, and an external/search capability.",
+      "value": "Complete one real project change through the new tree, DAG, executor, test, and state path.",
       "acceptance": [
         "real repository or project input",
         "CapabilityTree and compiled DAG recorded",
         "real code or project change",
-        "real test/runtime result",
+        "real test or runtime result",
         "high-capability Agent calls measured"
       ]
     },
@@ -119,7 +126,7 @@
       "title": "Build the capability registry",
       "priority": 9,
       "state": "planned",
-      "value": "Allow the Agent to discover capabilities by inputs, outputs, constraints, cost, executor, and observed quality.",
+      "value": "Allow the Agent to discover capabilities by interface, constraints, cost, executor, and observed quality.",
       "acceptance": [
         "queryable capability metadata",
         "versioned interface identity",
@@ -135,9 +142,9 @@
       "value": "Discover, integrate, test, register, and reuse one previously missing capability.",
       "acceptance": [
         "capability gap detected",
-        "library/API/tool search performed",
+        "library, API, or tool search performed",
         "bounded trial passes",
-        "new Block is registered and reused in the original project"
+        "new Block is registered and reused"
       ]
     },
     {
@@ -149,7 +156,7 @@
       "acceptance": [
         "no mandatory role chain",
         "role composition reuses registered capabilities",
-        "one project may use only the roles it needs"
+        "one project uses only the roles it needs"
       ]
     },
     {
@@ -157,7 +164,7 @@
       "title": "Add promotion and publishing capabilities",
       "priority": 12,
       "state": "later",
-      "value": "Extend the project team into content, media, social publishing, feedback, and metrics without creating another pipeline system.",
+      "value": "Extend the project team into content, media, social publishing, feedback, and metrics without another pipeline system.",
       "acceptance": [
         "promotion actions are Blocks",
         "connectors are replaceable",
