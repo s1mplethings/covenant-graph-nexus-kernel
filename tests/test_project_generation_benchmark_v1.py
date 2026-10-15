@@ -120,6 +120,18 @@ def test_live_runner_pins_requested_model_and_parallelism() -> None:
     assert 'production_env["CGKN_PROVIDER_PARALLELISM"] = str(args.parallelism)' in source
 
 
+def test_live_runner_reports_candidate_kernel_scope_and_real_evaluator_target() -> None:
+    module = __import__("benchmarks.project_generation_v1.run_benchmark", fromlist=["build_report", "run_case"])
+    report_source = inspect.getsource(module.build_report)
+    run_case_source = inspect.getsource(module.run_case)
+    assert '"production_scope": "candidate_kernel_only_not_formal_delivery"' in report_source
+    assert '"local_packager"' not in report_source
+    assert '"public_delivery_gate"' not in report_source
+    assert "if candidate_present" in run_case_source
+    assert 'initial["evaluator_target_present"] = candidate_present' in run_case_source
+    assert 'initial["external_evaluator_invoked"]' in run_case_source
+
+
 def test_external_process_and_http_runtime_probes_are_real(tmp_path: pathlib.Path) -> None:
     _, _, csv_observations = _fixture_result(tmp_path / "csv", 1, run_id="RUNTIME")
     _, _, board_observations = _fixture_result(tmp_path / "board", 3, run_id="RUNTIME")
