@@ -20,7 +20,17 @@ def test_mvp_authorities_are_explicit() -> None:
 def test_pre_mvp_experiment_families_cannot_return_to_active_source() -> None:
     assert "scripts/agent_tree_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
     assert "scripts/agent_growth_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
-    assert "run_function_stress_pass.py" in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
-    assert "run_pass2_operational_closure.py" in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
+    for path in (
+        "run_function_stress_pass.py",
+        "run_pass2_operational_closure.py",
+        "demo_auto_generation.py",
+        "detected_entrypoints.md",
+        "scripts/run_agent_autonomous_diagnosis.py",
+        "scripts/run_continuous_verified_generation.py",
+        "scripts/release_candidate_gate.py",
+    ):
+        assert path in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
     assert product_direction_gate._forbidden_import("scripts.agent_tree_orchestrator")
     assert product_direction_gate._forbidden_import("agent_director_loop")
+    assert product_direction_gate._forbidden_import("continuous_generation_ledger")
+    assert product_direction_gate._forbidden_import("release_candidate_gate")

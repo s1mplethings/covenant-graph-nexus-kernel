@@ -18,9 +18,9 @@ jobs:
           python-version: "3.11"
       - name: Product direction gate
         run: python scripts/product_direction_gate.py
-      - name: MVP tree/DAG and benchmark contracts
+      - name: Compile current MVP substrate
+        run: python -m compileall -q cgkn scripts/product_direction_gate.py
+      - name: MVP tree, DAG, component, and benchmark contracts
         run: python -m pytest -q tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component
-      - name: Repository publication and version contracts
-        run: |
-          python scripts/canonical_version_gate.py
-          python -m pytest -q tests/test_source_identity.py tests/test_canonical_repo_publish.py tests/test_release_candidate_gate.py
+      - name: Repository publication safety
+        run: python -m pytest -q tests/test_source_identity.py tests/test_canonical_repo_publish.py

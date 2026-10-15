@@ -19,12 +19,18 @@ FORBIDDEN_ACTIVE_PATHS = {
     "docs/80_autonomous_validation_pass3.md",
     "docs/81_adaptive_autonomous_validation.md",
     "docs/82_autonomous_project_acceptance_integration.md",
+    "docs/62_agent_failure_routing_cheatsheet.md",
+    "docs/agent_test_integrated_behavior.md",
+    "docs/continuous_verified_generation_loop.md",
+    "docs/release_candidate_acceptance.md",
     "EDITION.md",
     "TEST_E2E_REPORT.md",
     "WORKTREE_AUDIT.md",
     "test_e2e_service.py",
     "START_QWEN_L1_SMOKE.ps1",
     "CHECK_QWEN_L1_SMOKE.ps1",
+    "demo_auto_generation.py",
+    "detected_entrypoints.md",
     "run_function_stress_pass.py",
     "run_pass2_operational_closure.py",
     "scripts/RUN_QWEN_L1_SMOKE_WORKER.ps1",
@@ -47,6 +53,13 @@ FORBIDDEN_ACTIVE_PATHS = {
     "scripts/run_complexity_scale_benchmark.py",
     "scripts/run_complexity_scale_workbench_benchmark.py",
     "scripts/run_quick_large_sync_tree_benchmark.py",
+    "scripts/run_agent_autonomous_diagnosis.py",
+    "scripts/run_agent_fault_injection_suite.py",
+    "scripts/agent_problem_classifier.py",
+    "scripts/continuous_generation_ledger.py",
+    "scripts/run_continuous_verified_generation.py",
+    "scripts/release_candidate_gate.py",
+    "scripts/run_live_project_regression.py",
     "benchmarks/project_generation_v1",
     "benchmarks/orbit_360_workbench",
     "tests/test_project_generation_benchmark_v1.py",
@@ -71,6 +84,13 @@ FORBIDDEN_ACTIVE_PATHS = {
     "tests/test_complexity_scale_benchmark.py",
     "tests/test_quick_large_sync_tree_benchmark.py",
     "tests/test_sync_tree_growth_audit.py",
+    "tests/test_agent_autonomous_diagnosis.py",
+    "tests/test_agent_fault_injection_suite.py",
+    "tests/test_agent_diagnosis_report_schema.py",
+    "tests/test_agent_problem_classifier.py",
+    "tests/test_agent_test_integrated_behavior.py",
+    "tests/test_continuous_verified_generation.py",
+    "tests/test_release_candidate_gate.py",
     "schemas/adaptive_autonomous_validation_report_v1.schema.json",
     "schemas/autonomous_validation_pass3_report_v1.schema.json",
     "schemas/role_driven_validation_pass2_report_v1.schema.json",
@@ -112,6 +132,12 @@ FORBIDDEN_IMPORT_PREFIXES = {
     "agent_state_observer",
     "scripts.agent_tool_registry",
     "agent_tool_registry",
+    "scripts.agent_problem_classifier",
+    "agent_problem_classifier",
+    "scripts.continuous_generation_ledger",
+    "continuous_generation_ledger",
+    "scripts.release_candidate_gate",
+    "release_candidate_gate",
 }
 
 
@@ -187,6 +213,14 @@ def check() -> list[str]:
         for imported in _imports(path):
             if _forbidden_import(imported):
                 errors.append(f"obsolete_active_import:{relative}:{imported}")
+
+    fast_ci_path = ROOT / ".github" / "workflows" / "repository-fast-ci.yml"
+    if not fast_ci_path.is_file():
+        errors.append("missing_repository_fast_ci")
+    else:
+        fast_ci = fast_ci_path.read_text(encoding="utf-8", errors="replace")
+        if "release_candidate_gate" in fast_ci or "commercial_readiness" in fast_ci:
+            errors.append("fast_ci_contains_pre_mvp_readiness_authority")
 
     for path in (
         "cgkn/component/spec.py",
