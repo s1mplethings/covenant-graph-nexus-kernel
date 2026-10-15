@@ -269,12 +269,27 @@ def run_case(case: dict[str, Any], *, run_id: str, run_dir: pathlib.Path, args: 
             result = blocked_case_result(case, provider_error)
             result["metrics"] = metrics
         else:
-            observations = run_external_evaluator(case, run_id, candidate, case_dir, args)
-            if candidate.is_dir():
+            candidate_present = candidate.is_dir()
+            # Do not solicit external evidence for a path that is not a real
+            # materialized candidate. The built-in evaluator still records
+            # candidate_missing and the provider failure.
+            observations = (
+                run_external_evaluator(case, run_id, candidate, case_dir, args)
+                if candidate_present
+                else []
+            )
+            if candidate_present:
                 observations.append(inspect_delivery(candidate, case_dir, case_id=str(case["case_id"]), run_id=run_id))
             initial = evaluate_case(
                 case, run_id=run_id, candidate_dir=candidate, observations=observations, metrics=metrics,
                 provider_error=provider_error, require_repair=False,
+            )
+            initial["evaluator_target_present"] = candidate_present
+            initial["evaluator_candidate_sha256"] = (
+                candidate_tree_hash(candidate) if candidate_present else ""
+            )
+            initial["external_evaluator_invoked"] = bool(
+                candidate_present and args.evaluator_command
             )
             if initial["result"] == "PROJECT_PASS":
                 repair = run_controlled_repair(case, candidate, case_dir, args)
@@ -323,16 +338,16 @@ def build_report(run_id: str, manifest: dict[str, Any], cases: list[dict[str, An
         "evaluator_independent": True,
         "production_verdict_used": False,
         "harness_checks": dry_checks,
+        "production_scope": "candidate_kernel_only_not_formal_delivery",
         "production_call_graph": [
             "benchmark runner",
-            "scripts/run_local_pipeline.py reviewed production facade",
-            "existing ProviderJob leaf executor",
-            "Provider output validation",
-            "post-build finalization",
-            "local_packager",
-            "public_delivery_gate",
+            "scripts/run_local_pipeline.py inner candidate-generation facade",
+            "canonical requirements planning and provider design stages",
+            "component generation; ProviderJob DAG only when split generation is selected",
+            "candidate materialization",
+            "candidate post-build evaluation and affected-only repair",
             "independent black-box evaluator",
-            "controlled one-unit fault and existing CGKN recovery",
+            "controlled one-unit fault and existing CGKN recovery after a happy-path pass",
             "independent re-evaluation"
         ],
         "summary": aggregate_results(results),
