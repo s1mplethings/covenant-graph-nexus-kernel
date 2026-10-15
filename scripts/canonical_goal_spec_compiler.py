@@ -126,11 +126,32 @@ def build_canonical_evidence_units(raw_goal: str, conversation_context: dict[str
     return units
 
 
+def canonicalize_planning_provider_output(value: Any) -> dict[str, Any]:
+    """Normalize one known Provider envelope without relaxing PlanningProposal.
+
+    The canonical schema remains the flat PlanningProposal object. Some
+    OpenAI-compatible providers can accept response_format=json_schema yet
+    still wrap the constrained object in {"planning_proposal": ...}.
+    Accept only that exact, single-key transport envelope. Mixed, recursive,
+    or unknown envelopes remain untouched so normal schema validation fails
+    closed instead of silently discarding Provider output.
+    """
+    if not isinstance(value, dict):
+        return {}
+    if set(value) != {"planning_proposal"}:
+        return value
+    nested = value.get("planning_proposal")
+    if not isinstance(nested, dict):
+        return value
+    return json.loads(json.dumps(nested, ensure_ascii=False))
+
+
 def hydrate_planning_evidence(proposal: dict[str, Any], *, raw_goal: str, conversation_context: dict[str, Any] | None = None, system_constraints: list[str] | None = None) -> tuple[dict[str, Any], list[str]]:
-    """Replace selected IDs with immutable canonical evidence fields."""
+    """Normalize Provider transport shape, then hydrate canonical evidence."""
     units = build_canonical_evidence_units(raw_goal, conversation_context, system_constraints)
     by_id = {unit["id"]: unit for unit in units}
-    hydrated = json.loads(json.dumps(proposal, ensure_ascii=False)) if isinstance(proposal, dict) else {}
+    canonical = canonicalize_planning_provider_output(proposal)
+    hydrated = json.loads(json.dumps(canonical, ensure_ascii=False)) if isinstance(canonical, dict) else {}
     errors: list[str] = []
     rows: list[dict[str, Any]] = []
     for index, row in enumerate(hydrated.get("source_grounding", [])):
