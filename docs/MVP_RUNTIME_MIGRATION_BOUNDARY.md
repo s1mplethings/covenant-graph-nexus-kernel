@@ -4,7 +4,10 @@
 
 Repository cleanup has reached the point where further deletion would remove the only remaining compatibility runtime before a replacement exists.
 
-The cleanup phase is therefore structurally complete, but unverified. This is **not** a functional-readiness claim. GitHub Actions on the isolated branch has reported startup failure, so the product direction gate, focused tests, and full pytest suite remain `NOT_EVALUATED`.
+The cleanup phase is structurally complete and locally verified by the product
+direction gate, focused CapabilityTree MVP tests, compatibility import smoke,
+and full pytest collection. This is **not** a functional-readiness claim. A
+full pytest execution and GitHub Actions verification remain `NOT_EVALUATED`.
 
 Machine-readable status lives in `governance/mvp_cleanup_boundary.json`.
 
@@ -56,7 +59,9 @@ The active repository no longer treats the following as MVP authority:
 - customer-journey simulations and standalone benchmark launchers;
 - fixed Product Studio stage contracts and superseded implementation plans.
 
-Historical material is retained under `legacy/pre_mvp_reset/` and in Git history.
+Historical material was removed from the working tree after reference and import
+auditing. Git history remains the archive; no replacement `legacy`, `archive`, or
+backup tree is maintained in the repository.
 
 ## Feature implementation now required
 

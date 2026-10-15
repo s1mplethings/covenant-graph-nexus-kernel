@@ -352,26 +352,6 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Session/context booleans", contract)
         self.assertIn("short-circuits canonical evidence inspection", contract)
 
-    def test_autonomous_project_acceptance_is_a_pre_delivery_veto_on_the_provider_route(self) -> None:
-        source = read_source("scripts/codex_conversation.py")
-        integration = read_source("scripts/autonomous_project_acceptance.py")
-        contract = read_source("docs/00_kernel_contract.md")
-        provider_job = function_body(source, "run_provider_generation_job")
-        finalize = function_body(source, "post_build_finalize_provider_project")
-
-        self.assertIn("autonomous_project_acceptance.run_acceptance", finalize)
-        self.assertLess(
-            finalize.find("autonomous_project_acceptance.run_acceptance"),
-            finalize.find("production_candidate_provenance.produce"),
-        )
-        self.assertIn("prepare_observed_project_failure_provider_repair", provider_job)
-        self.assertIn("autonomous_repair_rounds >= 2", provider_job)
-        self.assertIn("testability_contract.json", integration)
-        self.assertIn('"release_authority": False', integration)
-        self.assertIn("Missing or invalid executable control contracts are `BLOCKED`", contract)
-        self.assertIn("project acceptance recommendations", contract)
-        self.assertIn("cannot promote, package, deliver", contract)
-
     def test_requirements_planning_consumes_the_reviewed_model_policy(self) -> None:
         source = read_source("scripts/run_local_pipeline_impl.py")
         contract = read_source("docs/00_kernel_contract.md")
@@ -630,8 +610,6 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn(
             'and not _uses_legacy_note_cli_contract(goal_spec)', pipeline_source
         )
-        self.assertIn('"testability_contract.json"', read_source("scripts/requirement_decision_lane.py"))
-        self.assertIn("unsafe_path_argument", read_source("scripts/autonomous_project_acceptance.py"))
         self.assertIn("named direct CLI pyproject.toml must declare requires-python", pipeline_source)
         self.assertIn("CGNK_LOCAL_DIRECT_CLI_CONFIG_FALLBACK_ATTEMPTS", pipeline_source)
         self.assertIn(
@@ -1294,8 +1272,6 @@ class KernelContractTests(unittest.TestCase):
         self.assertIn("Stable stage artifacts are mapped to their semantic producer", doc)
         self.assertIn("Every path is relative to the project root", pipeline_source)
         self.assertIn("paths_to_parse", pipeline_source)
-        materializer_source = read_source("scripts/implementation_structure_materializer.py")
-        self.assertIn("stage_artifact_pairs", materializer_source)
         self.assertIn("changed upstream implementations or contracts invalidate stale downstream reuse", doc)
         self.assertIn("unrelated passed component checkpoints remain reusable", doc)
         self.assertIn("direct script entry adds both the repository root and scripts directory", doc)
@@ -1320,9 +1296,6 @@ class KernelContractTests(unittest.TestCase):
         requirement = read_source("scripts/requirement_decision_lane.py")
         pipeline = read_source("scripts/run_local_pipeline_impl.py")
         discovery = read_source("scripts/discovery_selection_lane.py")
-        agent_tree = read_source("scripts/agent_tree_planner.py")
-        leaf_builder = read_source("scripts/agent_tree_leaf_builder.py")
-        context_reducer = read_source("scripts/agent_tree_context_reducer.py")
         media_validation = read_source("scripts/canonical_media_validation.py")
         complexity_check = read_source("scripts/complexity_project_contract_check.py")
         goal_acceptance = read_source("scripts/goal_acceptance.py")
@@ -1405,12 +1378,6 @@ class KernelContractTests(unittest.TestCase):
         self.assertNotIn("def _data_ops_candidate", discovery)
         self.assertNotIn("def _asset_pack_candidate", discovery)
         self.assertIn("goal_spec=goal_spec", pipeline)
-        self.assertIn('project_plan = shared_context.get("project_plan", {})', agent_tree)
-        self.assertNotIn("document_service.py", leaf_builder)
-        self.assertNotIn("search_service.py", leaf_builder)
-        self.assertNotIn("report_service.py", leaf_builder)
-        self.assertNotIn("document_service.py", context_reducer)
-        self.assertNotIn("search_service.py", context_reducer)
         self.assertIn('ImageChops.difference(rgb, solid)', media_validation)
         self.assertIn('path.as_posix().lower().endswith("/" + target)', complexity_check)
         self.assertIn("def evaluate_goal_acceptance", goal_acceptance)

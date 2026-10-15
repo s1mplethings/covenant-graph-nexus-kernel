@@ -4,7 +4,7 @@
   "product_version": "0.2.0-rc.2",
   "architecture_generation": "capability-tree-mvp",
   "implementation_state": {
-    "repository_cleanup": "COMPLETE_UNVERIFIED",
+    "repository_cleanup": "COMPLETE",
     "runtime_wiring": "NOT_IMPLEMENTED",
     "functional_readiness": "NOT_EVALUATED"
   },
@@ -58,9 +58,10 @@
   },
   "forbidden_parallel_authorities": true,
   "verification": {
-    "github_actions": "STARTUP_FAILURE",
-    "product_direction_gate": "NOT_EVALUATED",
-    "focused_tests": "NOT_EVALUATED",
+    "github_actions": "NOT_EVALUATED",
+    "github_actions_note": "The baseline branch reported startup failure; this cleanup branch was not evaluated by GitHub Actions.",
+    "product_direction_gate": "PASS",
+    "focused_tests": "PASS",
     "full_pytest": "NOT_EVALUATED"
   }
 }

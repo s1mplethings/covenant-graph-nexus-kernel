@@ -2,15 +2,34 @@ from __future__ import annotations
 
 import json
 import pathlib
+import binascii
+import struct
 import sys
 import zipfile
+import zlib
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import artifact_integrity
-import delivery_evidence_builder
+
+
+def _nonblank_png() -> bytes:
+    def chunk(kind: bytes, payload: bytes) -> bytes:
+        checksum = binascii.crc32(kind + payload) & 0xFFFFFFFF
+        return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", checksum)
+
+    width, height = 16, 16
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    rows = []
+    for y in range(height):
+        pixels = b"".join(
+            bytes((20, 20, 20) if x < 8 and y < 8 else (255, 255, 255))
+            for x in range(width)
+        )
+        rows.append(b"\x00" + pixels)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b"")
 
 
 def test_final_package_integrity_requires_real_final_bundle_and_manifest(tmp_path: pathlib.Path) -> None:
@@ -19,7 +38,7 @@ def test_final_package_integrity_requires_real_final_bundle_and_manifest(tmp_pat
     for name in ("README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"):
         (project / name).write_text(name, encoding="utf-8")
     screenshot = project / "screenshot.png"
-    delivery_evidence_builder.render_status_png(screenshot, {"status": "PASS", "argv": ["pytest"]})
+    screenshot.write_bytes(_nonblank_png())
     bundle = project / "final_project_bundle.zip"
     with zipfile.ZipFile(bundle, "w") as zf:
         for name in ("README.md", "TEST_REPORT.md", "DELIVERY_NOTES.md", "screenshot.png"):

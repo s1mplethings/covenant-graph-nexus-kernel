@@ -5,8 +5,6 @@ import json
 import pytest
 
 from scripts import compose_local_pipeline, discovery_selection_lane, requirement_blueprint, requirement_decision_lane, run_local_pipeline_impl
-from scripts.agent_tree_planner import build_agent_tree_dag
-from scripts.agent_tree_shared_context import create_shared_context
 
 
 CASES = [
@@ -66,9 +64,7 @@ def test_goal_spec_and_project_plan_follow_product_goal(case: dict[str, object])
     goal = str(case["goal"])
     goal_spec = requirement_decision_lane.build_goal_spec(goal)
     project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
-    shared_context = create_shared_context(str(case["name"]), goal)
-    dag = build_agent_tree_dag(shared_context)
-    combined = normalized({"goal_spec": goal_spec, "project_plan": project_plan, "dag": dag})
+    combined = normalized({"goal_spec": goal_spec, "project_plan": project_plan})
 
     assert goal_spec["status"] == "PASS"
     assert goal_spec["domain"] == case["domain"]
@@ -332,27 +328,6 @@ def test_generic_direct_cli_keeps_reviewed_provider_dependency_graph() -> None:
         "backend/repository.py",
         "backend/service.py",
     ]
-
-
-def test_explicit_testability_contract_is_owned_by_delivery_workstream() -> None:
-    goal = (
-        "Build Pocket Expense Ledger with Python stdlib. CLI: main.py add "
-        "--amount DECIMAL --category TEXT --note TEXT; main.py list --json; "
-        "main.py summary --out summary.json. Persist ledger.json atomically. "
-        "Reject non-positive amounts and blank categories with nonzero exit and "
-        "no mutation. Summary has exact count, numeric total, and by_category "
-        "totals. Include README, tests, and testability_contract.json describing "
-        "the real CLI."
-    )
-    goal_spec = requirement_decision_lane.build_goal_spec(goal)
-    project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
-    delivery = next(
-        row for row in project_plan["workstreams"] if row["id"] == "delivery"
-    )
-
-    assert "testability_contract.json" in project_plan["expected_project_structure"]
-    assert "testability_contract.json" in delivery["expected_outputs"]
-    assert "testability_contract.json" not in project_plan["business_outputs"]
 
 
 def test_production_component_route_consumes_canonical_goal_plan() -> None:

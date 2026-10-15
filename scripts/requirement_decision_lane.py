@@ -1529,8 +1529,6 @@ def build_feature_unit_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]
             }
         )
     delivery_outputs = ["README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"]
-    if "testability_contract.json" in str(goal_spec.get("goal", "")).casefold():
-        delivery_outputs.append("testability_contract.json")
     workstreams.append(
         {
             "id": "delivery",
@@ -1829,8 +1827,6 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         application_entry_workstream["expected_symbols"] = ["main"]
     delivery_dependencies = [workstreams[-1]["id"]] if workstreams else ["foundation"]
     delivery_outputs = ["README.md", "TEST_PLAN.md", "DELIVERY_NOTES.md"]
-    if "testability_contract.json" in str(goal_spec.get("goal", "")).casefold():
-        delivery_outputs.append("testability_contract.json")
     workstreams.append({
         "id": "delivery",
         "scope": "Document local startup, known constraints, and expected project contents for the existing delivery path.",
@@ -1852,7 +1848,7 @@ def build_goal_project_plan(goal_spec: dict[str, Any]) -> dict[str, Any]:
         for workstream in workstreams
     ]
     expected_structure = list(dict.fromkeys(path for row in workstreams for path in row["expected_outputs"]))
-    business_outputs = [path for path in expected_structure if path not in {"README.md", "pyproject.toml", "requirements.txt", application_entry, "TEST_PLAN.md", "DELIVERY_NOTES.md", "testability_contract.json"}]
+    business_outputs = [path for path in expected_structure if path not in {"README.md", "pyproject.toml", "requirements.txt", application_entry, "TEST_PLAN.md", "DELIVERY_NOTES.md"}]
     return {
         "kind": "GoalDrivenProjectPlan",
         "status": "PASS",

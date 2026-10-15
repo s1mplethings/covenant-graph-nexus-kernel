@@ -8,11 +8,11 @@
   "current_runtime_wiring": "NOT_IMPLEMENTED",
   "functional_readiness": "NOT_EVALUATED",
   "cleanup_scope": {
-    "obsolete_product_authorities_archived": true,
-    "standalone_pre_mvp_validation_entrypoints_archived": true,
-    "fixed_role_and_agent_tree_experiments_archived": true,
-    "stress_soak_scale_and_commercial_gates_archived": true,
-    "history_preserved_under": "legacy/pre_mvp_reset/"
+    "obsolete_product_authorities_removed": true,
+    "standalone_pre_mvp_validation_entrypoints_removed": true,
+    "fixed_role_and_agent_tree_experiments_removed": true,
+    "stress_soak_scale_and_commercial_gates_removed": true,
+    "history_preserved_under": "git_history"
   },
   "compatibility_entrypoints": [
     "scripts/codex_conversation.py",
@@ -42,9 +42,11 @@
     ]
   },
   "verification": {
-    "github_actions": "STARTUP_FAILURE",
-    "product_direction_gate": "NOT_EVALUATED",
-    "focused_tests": "NOT_EVALUATED",
+    "github_actions": "NOT_EVALUATED",
+    "github_actions_note": "The baseline branch reported startup failure; this cleanup branch was not evaluated by GitHub Actions.",
+    "product_direction_gate": "PASS",
+    "focused_tests": "PASS",
+    "pytest_collection": "PASS",
     "full_pytest": "NOT_EVALUATED"
   }
 }

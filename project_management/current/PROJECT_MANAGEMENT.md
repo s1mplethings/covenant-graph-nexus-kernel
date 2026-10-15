@@ -4,9 +4,12 @@ Current project management follows the product authority in `PRODUCT_GOAL.md`, `
 
 ## Current status
 
-The repository-reset cleanup has reached its deletion boundary and is recorded as `COMPLETE_UNVERIFIED` in `governance/mvp_cleanup_boundary.json`.
+The repository-reset cleanup is closed. Obsolete pre-MVP copies and
+orphaned experiment families have been physically deleted from the working tree;
+Git history is the archive.
 
-This means obsolete active authorities and standalone pre-MVP validation systems have been moved under `legacy/pre_mvp_reset/`. It does not mean the new runtime is operational, and it does not establish functional readiness.
+This does not mean the new runtime is operational, and it does not establish
+functional readiness.
 
 The remaining compatibility runtime is intentionally retained:
 
@@ -17,9 +20,16 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Active increment
+## Current maintenance increment
 
-The single active increment is `MVP-002: Wire the common Block execution boundary`.
+`ITER-MVP-REPOSITORY-PRUNE-003` removed obsolete source, tests, documents, and
+generated outputs while preserving the compatibility runtime. The product
+direction gate, focused MVP tests, compatibility imports, and pytest collection
+passed. It added no product functionality.
+
+## Next feature increment
+
+The next feature increment remains `MVP-002: Wire the common Block execution boundary`.
 
 Execution order:
 
@@ -55,4 +65,6 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-GitHub Actions on the isolated reset branch has reported startup failure. The product direction gate, focused tests, and full pytest suite remain `NOT_EVALUATED`. The branch must remain unmerged until executable verification exists.
+Local direction, focused, import, and collection checks pass. Full pytest
+execution and GitHub Actions verification remain `NOT_EVALUATED` and cannot be
+inferred from cleanup evidence.

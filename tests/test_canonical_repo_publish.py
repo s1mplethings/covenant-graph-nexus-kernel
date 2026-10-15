@@ -48,6 +48,8 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("config/provider_profiles/project-generation-external-api.json", "CONTRACT", "COMMIT"),
         ("src/app.py", "SOURCE", "COMMIT"),
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
+        (".gitignore", "CURRENT_DOC", "COMMIT"),
+        ("legacy/pre_mvp_reset/README.md", "SOURCE", "COMMIT"),
         (".cgnk/governance/governance.lock.json", "CURRENT_GOVERNANCE", "COMMIT"),
     ],
 )

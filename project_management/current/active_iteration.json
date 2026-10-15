@@ -1,57 +1,77 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-MVP-BLOCK-EXEC-002",
+  "iteration_id": "ITER-MVP-REPOSITORY-PRUNE-003",
   "project_id": "cgkn",
-  "goal": "Wire the common Block execution boundary so ready ExecutionDAG nodes can run through replaceable bounded executors and persist honest results.",
+  "goal": "Remove obsolete pre-MVP copies, orphaned experiments, stale tests, and generated repository outputs without changing runtime behavior.",
   "backlog_item_ids": [
-    "MVP-002",
-    "MVP-005"
+    "MVP-001"
   ],
-  "workflow_state": "in_progress",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
   "precondition": {
-    "repository_cleanup": "COMPLETE_UNVERIFIED",
+    "repository_cleanup": "PHYSICAL_DELETION_REQUIRED",
     "boundary_record": "governance/mvp_cleanup_boundary.json",
     "compatibility_runtime_retained": true
   },
   "acceptance_criteria": [
-    "one canonical execution request contract",
-    "one canonical execution result contract",
-    "one replaceable Executor protocol",
-    "a deterministic local-action adapter implements the protocol",
-    "an ExecutionDAG coordinator selects and executes ready nodes",
-    "node results and failures are persisted without replaying the full conversation",
-    "focused tests prove real node execution without Provider-owned project planning"
+    "obsolete pre-MVP archive copies are removed rather than moved",
+    "orphaned branch-agent, full-dynamic resume, scale, and long-test diagnostics are removed with their tests",
+    "tracked generated repository-audit and clarification outputs are removed",
+    "the four compatibility entrypoints and their active dependencies still import",
+    "the product direction gate and focused CapabilityTree MVP checks pass",
+    "runtime wiring remains NOT_IMPLEMENTED and functional readiness remains NOT_EVALUATED"
   ],
   "out_of_scope": [
-    "replacing the entire codex_conversation compatibility entrypoint",
-    "rewriting run_local_pipeline_impl before a replacement path exists",
-    "stress, soak, scale, commercial-readiness, or Fixed10 validation",
-    "self-growth and project-team role views"
+    "MVP-002 implementation",
+    "Block Runtime, Executor, scheduler, registry, or self-growth implementation",
+    "Provider, stress, soak, scale, benchmark, or long-running validation",
+    "changing generation or delivery semantics"
   ],
   "quality_metrics": [
     {
-      "id": "QM-BLOCK-CONTRACT",
-      "measure": "canonical Block execution contract tests",
+      "id": "QM-CLEANUP-BOUNDARY",
+      "measure": "product direction and cleanup regression checks",
       "target": "PASS",
-      "actual": "NOT_EVALUATED"
+      "actual": "PASS"
     },
     {
-      "id": "QM-DAG-EXECUTION",
-      "measure": "focused ExecutionDAG node execution tests",
+      "id": "QM-COMPATIBILITY-IMPORTS",
+      "measure": "retained compatibility import smoke",
       "target": "PASS",
-      "actual": "NOT_EVALUATED"
+      "actual": "PASS"
     },
     {
-      "id": "QM-DIRECTION-GATE",
-      "measure": "product_direction_gate",
+      "id": "QM-FOCUSED-MVP",
+      "measure": "focused CapabilityTree MVP pytest set",
       "target": "PASS",
-      "actual": "NOT_EVALUATED"
+      "actual": "PASS"
     }
   ],
+  "evidence_refs": [
+    "python scripts/product_direction_gate.py",
+    "python -m pytest -q tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component",
+    "python -m pytest --collect-only -q",
+    "retained compatibility import smoke"
+  ],
   "review": {
-    "outcome": "pending",
-    "feedback": []
+    "outcome": "accepted",
+    "feedback": [
+      "Physical deletion removed duplicate history instead of creating another archive.",
+      "Active compatibility imports remain usable without the retired autonomous-validation ladder.",
+      "Repository cleanup PASS does not change functional readiness."
+    ]
+  },
+  "retrospective": {
+    "worked": [
+      "Import and collection checks exposed stale references that filename-only review missed.",
+      "Deleting old families with their tests and schemas kept the repository internally consistent."
+    ],
+    "did_not_work": [
+      "The first full collection found baseline tests that still imported files already moved out of active source."
+    ],
+    "experiments": [
+      "Require full collection after future physical-prune increments before declaring cleanup complete."
+    ]
   }
 }

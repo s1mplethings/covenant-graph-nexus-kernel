@@ -46,6 +46,10 @@ Real tests and runtime checks remain important, but Fixed10, role-driven validat
 
 The repository still contains substantial pre-reset Provider generation, formal evidence, packaging, public-delivery, and false-pass code. It is retained as compatibility/future material while the new substrate is integrated. It must not be expanded as the default answer to new MVP requirements.
 
+The retired autonomous-validation ladder and its project-acceptance wrapper are
+not part of that compatibility boundary. Project-level goal, test, runtime,
+visual, packaging, false-pass, and public-delivery controls remain in force.
+
 ## 11. Publication
 
 scripts/canonical_repo_publish.py remains the guarded repository publication authority. Routine work uses normal non-force publication and remote-SHA verification.

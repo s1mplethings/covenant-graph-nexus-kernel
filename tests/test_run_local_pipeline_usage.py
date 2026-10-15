@@ -23,7 +23,6 @@ import scripts.run_local_pipeline as run_local_pipeline
 import scripts.run_local_pipeline_impl as run_local_pipeline_impl
 import scripts.local_packager as local_packager
 import scripts.check_test_environment as check_test_environment
-import scripts.run_candidate_smoke_benchmark as run_candidate_smoke_benchmark
 import scripts.visual_evidence as visual_evidence
 
 
@@ -3487,35 +3486,6 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
             else:
                 os.environ["CGNK_TEST_GENERATED_ROOT"] = original
 
-    def test_run_candidate_smoke_benchmark_read_only_on_existing_candidate(self) -> None:
-        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = pathlib.Path(temp_dir)
-            project = make_temp_candidate_project(root)
-            sentinel = project / "sentinel.txt"
-            sentinel.write_text("keep\n", encoding="utf-8")
-
-            def fake_finalize(**kwargs):
-                return {
-                    "test_result": {"status": "pass", "returncode": 0},
-                    "ui_smoke": {"status": "pass"},
-                    "screenshots": [],
-                    "video": "",
-                    "artifact_integrity": {"status": "pass", "issues": []},
-                    "candidate_review_ready": False,
-                }
-
-            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
-            try:
-                report = run_candidate_smoke_benchmark.run_benchmark(project, root / "run")
-            finally:
-                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
-
-            self.assertTrue(sentinel.exists())
-            self.assertFalse((project / "final_project_bundle.zip").exists())
-            self.assertFalse((project / "delivery_manifest.json").exists())
-            self.assertEqual("NEEDS_REWORK", report["verdict"])
-
     def test_candidate_screenshot_generated_after_tests_pass(self) -> None:
         original_capture = run_local_pipeline_impl.capture_candidate_screenshot
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -4107,47 +4077,6 @@ class RunLocalPipelineUsageTests(unittest.TestCase):
         self.assertTrue(bundle_exists)
         self.assertEqual("fail", report["status"])
         self.assertIn("missing screenshot or screenshot_blocked", report["issues"])
-
-    def test_candidate_smoke_benchmark_outputs_report(self) -> None:
-        original_finalize = run_local_pipeline_impl.run_candidate_post_build_finalize
-        with tempfile.TemporaryDirectory() as temp_dir:
-            project = pathlib.Path(temp_dir) / "candidate"
-            project.mkdir()
-            (project / "package.json").write_text(json.dumps({"scripts": {"test": "node -e \"process.exit(0)\""}}), encoding="utf-8")
-
-            def fake_finalize(**kwargs):
-                run_dir = pathlib.Path(kwargs["run_dir"])
-                run_dir.mkdir(parents=True, exist_ok=True)
-                screenshot = project / "shot.png"
-                screenshot.write_bytes(tiny_nonblank_png())
-                return {
-                    "test_result": {"status": "pass", "returncode": 0},
-                    "ui_smoke": {"status": "pass", "body_text_length": 120, "keywords_found": ["Task Board"]},
-                    "screenshots": [str(screenshot)],
-                    "video": "",
-                    "video_blocked": "",
-                    "artifact_integrity": {"status": "pass", "issues": []},
-                    "candidate_review_ready": True,
-                }
-
-            run_local_pipeline_impl.run_candidate_post_build_finalize = fake_finalize
-            try:
-                report = run_candidate_smoke_benchmark.run_benchmark(project, pathlib.Path(temp_dir) / "run")
-            finally:
-                run_local_pipeline_impl.run_candidate_post_build_finalize = original_finalize
-
-        self.assertEqual("ASK_USER_REVIEW", report["verdict"])
-        self.assertEqual("pass", report["npm_test"]["status"])
-        self.assertTrue(run_candidate_smoke_benchmark.DEFAULT_REPORT.exists())
-
-    def test_candidate_smoke_benchmark_does_not_generate_final_zip_or_manifest(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            project = pathlib.Path(temp_dir) / "candidate"
-            project.mkdir()
-            run_local_pipeline_impl.write_json(project / "candidate_review_summary.json", {"verdict": "ASK_USER_REVIEW", "final_delivery": False})
-
-            self.assertFalse((project / "final_project_bundle.zip").exists())
-            self.assertFalse((project / "delivery_manifest.json").exists())
 
     def test_missing_zip_prevents_pass_final_but_allows_ask_user_review(self) -> None:
         verdict = run_local_pipeline_impl.decide_adaptive_final_verdict(

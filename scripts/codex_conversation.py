@@ -28,7 +28,6 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 import check_connectivity
 import adaptive_delivery
-import autonomous_project_acceptance
 import backend_dialogue_loop
 import browser_visual_evidence
 import capability_strategy
@@ -5352,73 +5351,6 @@ def required_image_backend_missing_config(session: dict[str, Any]) -> list[str]:
     return ["local_image_model_backend"]
 
 
-def run_or_resume_autonomous_acceptance(
-    *,
-    project_dir: pathlib.Path,
-    production_run_dir: pathlib.Path,
-    public_goal: str,
-    model: str,
-) -> tuple[dict[str, Any], pathlib.Path, bool]:
-    """Run acceptance once per exact candidate and reuse only hash-bound completion."""
-    candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
-    candidate_key = candidate_hash.split(":", 1)[-1][:16]
-    root = production_run_dir / "autonomous_acceptance" / candidate_key
-    checkpoint_path = root / "checkpoint.json"
-    checkpoint = read_json(checkpoint_path, {}) if checkpoint_path.is_file() else {}
-    if (
-        isinstance(checkpoint, dict)
-        and checkpoint.get("status") == "completed"
-        and checkpoint.get("candidate_hash") == candidate_hash
-    ):
-        report_path = pathlib.Path(str(checkpoint.get("report_ref", "")))
-        if report_path.is_file() and canonical_evidence_hash.sha256_file(report_path) == checkpoint.get("report_sha256"):
-            report = read_json(report_path, {})
-            if isinstance(report, dict) and report.get("recommendation_status"):
-                report["execution_reused"] = True
-                return report, report_path, True
-    prior_attempt = int(checkpoint.get("attempt", 0) or 0) if isinstance(checkpoint, dict) else 0
-    attempt = prior_attempt + 1
-    attempt_dir = root / f"attempt-{attempt:03d}"
-    write_json(
-        checkpoint_path,
-        {
-            "kind": "CGKNAutonomousAcceptanceCheckpoint",
-            "schema_version": 1,
-            "status": "running",
-            "candidate_hash": candidate_hash,
-            "attempt": attempt,
-            "recovered_from_interruption": bool(checkpoint),
-            "started_at": now(),
-        },
-    )
-    report = autonomous_project_acceptance.run_acceptance(
-        project_dir,
-        attempt_dir,
-        public_goal=public_goal,
-        model=model,
-    )
-    report_path = attempt_dir / autonomous_project_acceptance.REPORT_FILE
-    if not report_path.is_file():
-        raise RuntimeError("autonomous acceptance returned without a durable report")
-    write_json(
-        checkpoint_path,
-        {
-            "kind": "CGKNAutonomousAcceptanceCheckpoint",
-            "schema_version": 1,
-            "status": "completed",
-            "candidate_hash": candidate_hash,
-            "attempt": attempt,
-            "recovered_from_interruption": bool(checkpoint),
-            "report_ref": str(report_path.resolve()),
-            "report_sha256": canonical_evidence_hash.sha256_file(report_path),
-            "recommendation_status": report.get("recommendation_status", "NOT_EVALUATED"),
-            "finished_at": now(),
-        },
-    )
-    report["execution_reused"] = False
-    return report, report_path, False
-
-
 def post_build_finalize_provider_project(
     project_dir: pathlib.Path,
     provider_result: dict[str, Any],
@@ -5528,51 +5460,6 @@ def post_build_finalize_provider_project(
             conversation_id,
             {"kind": "post_build_provider_repair_required", "role": "system", "repair": repair_result, "dependency_setup": dependency_setup},
         )
-    provider_model = (
-        str(provider_result.get("provider", {}).get("model", ""))
-        if isinstance(provider_result.get("provider"), dict)
-        else ""
-    ) or str(provider_result.get("model", "")) or "qwen3.5-flash"
-    autonomous_acceptance, autonomous_report_path, autonomous_reused = run_or_resume_autonomous_acceptance(
-        project_dir=project_dir,
-        production_run_dir=production_run_dir,
-        public_goal=_requirement_text(session, str(provider_result.get("goal", ""))),
-        model=provider_model,
-    )
-    autonomous_acceptance["report_ref"] = str(autonomous_report_path.resolve())
-    append_agent_session_event(
-        session_dir,
-        conversation_id,
-        {
-            "kind": "autonomous_project_acceptance",
-            "role": "tool",
-            "recommendation_status": autonomous_acceptance.get("recommendation_status", "NOT_EVALUATED"),
-            "report_ref": str(autonomous_report_path.resolve()),
-            "finding_count": len(autonomous_acceptance.get("findings", [])),
-            "execution_reused": autonomous_reused,
-        },
-    )
-    if autonomous_acceptance.get("recommendation_status") != "ACCEPTED":
-        autonomous_audit = autonomous_project_acceptance.acceptance_audit(autonomous_acceptance)
-        return {
-            "test_result": preseal_test_result,
-            "preseal_test_result": preseal_test_result,
-            "runtime_result": {"status": "NOT_EVALUATED", "reason": "autonomous_acceptance_not_accepted"},
-            "visual_evidence_result": {"status": "NOT_EVALUATED"},
-            "image_result": image_result,
-            "video_result": video_result,
-            "browser_visual_required": False,
-            "autonomous_acceptance": autonomous_acceptance,
-            "false_pass_audit": autonomous_audit,
-            "manifest": {},
-            "gate": {
-                "status": "NEEDS_REWORK" if autonomous_acceptance.get("recommendation_status") == "REPAIR_REQUIRED" else "BLOCKED",
-                "verdict": autonomous_acceptance.get("recommendation_status"),
-                "delivery_allowed": False,
-                "missing": [f"autonomous_acceptance:{autonomous_acceptance.get('recommendation_status', 'NOT_EVALUATED')}"],
-            },
-            "ok": False,
-        }
     candidate_manifest = canonical_evidence_hash.candidate_source_manifest(project_dir)
     candidate_hash = canonical_evidence_hash.candidate_source_hash(project_dir)
     candidate_manifest_hash = canonical_evidence_hash.canonical_json_hash(
@@ -5924,7 +5811,6 @@ def post_build_finalize_provider_project(
             "post_build_browser_visual_evidence": visual_evidence_result,
             "post_build_video_evidence": video_result,
             "post_build_product_maturity": maturity_evaluation,
-            "autonomous_project_acceptance": autonomous_acceptance,
         },
     )
     media_evidence_required = bool(req.get("generated_image") or req.get("background") or req.get("sprite") or req.get("video") or req.get("demo_video"))
@@ -5949,11 +5835,6 @@ def post_build_finalize_provider_project(
             "role": "goal_acceptance",
             "ref": str(goal_receipt_path),
             "sha256": canonical_evidence_hash.sha256_file(goal_receipt_path),
-        },
-        {
-            "role": "autonomous_project_acceptance",
-            "ref": str(autonomous_report_path.resolve()),
-            "sha256": canonical_evidence_hash.sha256_file(autonomous_report_path),
         },
     ]
     for role, ref in maturity_evaluation.get("paths", {}).items():
@@ -6007,7 +5888,6 @@ def post_build_finalize_provider_project(
             "production_provenance": provenance,
             "provider_causal_trace": causal_trace,
             "false_pass_audit": final_audit,
-            "autonomous_acceptance": autonomous_acceptance,
             "manifest": {},
             "product_maturity": maturity_evaluation,
             "gate": product_design_depth_governance.attach_maturity_to_delivery_gate(
@@ -6075,7 +5955,6 @@ def post_build_finalize_provider_project(
         "production_provenance": provenance,
         "provider_causal_trace": causal_trace,
         "false_pass_audit": final_audit,
-        "autonomous_acceptance": autonomous_acceptance,
         "product_maturity": maturity_evaluation,
         "canonical_verification": canonical_verification,
         "canonical_governance": canonical_governance,
@@ -6922,81 +6801,29 @@ def run_provider_generation_job(
             {"kind": "provider_phase", "stage": "post_build_finalize", "status": "started", "project_dir": str(project_dir)},
         )
         finalize: dict[str, Any] = {}
-        autonomous_repair_rounds = 0
 
         def finalize_once() -> dict[str, Any]:
-            nonlocal finalize, provider_result, round_state, autonomous_repair_rounds
-            while True:
-                provider_result = round_state["provider_result"]
-                runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
-                finalize = post_build_finalize_provider_project(
-                    project_dir,
-                    provider_result,
-                    runtime_artifacts,
-                    session,
-                    session_dir=session_dir,
-                    conversation_id=conversation_id,
-                    production_identity=identity,
-                    production_run_dir=run_dir,
-                    stage_receipts={
-                        "production_entry": entry_receipt,
-                        "provider_generation": round_state["generation_receipt"],
-                        "provider_validation": round_state["validation_receipt"],
-                    },
-                    provider_result_path=result_path,
-                    provider_causal_capture=round_state["causal_capture"],
-                )
-                autonomous_result = (
-                    finalize.get("autonomous_acceptance", {})
-                    if isinstance(finalize.get("autonomous_acceptance"), dict)
-                    else {}
-                )
-                if autonomous_result.get("recommendation_status") != "REPAIR_REQUIRED":
-                    break
-                if autonomous_repair_rounds >= 2:
-                    autonomous_result["repair_budget_exhausted"] = True
-                    break
-                evidence_path = pathlib.Path(str(autonomous_result.get("repair_evidence_ref", "")))
-                evidence = read_json(evidence_path, {}) if evidence_path.is_file() else {}
-                if not evidence:
-                    break
-                autonomous_repair_rounds += 1
-                evidence["repair_round"] = autonomous_repair_rounds
-                preparation = provider_project_pipeline.prepare_observed_project_failure_provider_repair(
-                    run_dir,
-                    evidence,
-                    user_goal=requirement,
-                    candidate_dir=project_dir,
-                )
-                append_agent_session_event(
-                    session_dir,
-                    conversation_id,
-                    {
-                        "kind": "autonomous_acceptance_provider_repair_prepared",
-                        "role": "tool",
-                        "repair_round": autonomous_repair_rounds,
-                        "result": preparation,
-                    },
-                )
-                if preparation.get("status") != "pending_provider_repair":
-                    break
-                args.resume_run_dir = str(run_dir)
-                round_state = execute_validated_provider_round(
-                    args,
-                    session_dir=session_dir,
-                    conversation_id=conversation_id,
-                    phase_log_path=phase_log_path,
-                    project_dir=project_dir,
-                    provider_staging_dir=provider_staging_dir,
-                    run_dir=run_dir,
-                    result_path=result_path,
-                    identity=identity,
-                    model=model,
-                    formal_entry=formal_entry,
-                )
-            audit = dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
-            audit["autonomous_repair_rounds"] = autonomous_repair_rounds
-            return audit
+            nonlocal finalize, provider_result, round_state
+            provider_result = round_state["provider_result"]
+            runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
+            finalize = post_build_finalize_provider_project(
+                project_dir,
+                provider_result,
+                runtime_artifacts,
+                session,
+                session_dir=session_dir,
+                conversation_id=conversation_id,
+                production_identity=identity,
+                production_run_dir=run_dir,
+                stage_receipts={
+                    "production_entry": entry_receipt,
+                    "provider_generation": round_state["generation_receipt"],
+                    "provider_validation": round_state["validation_receipt"],
+                },
+                provider_result_path=result_path,
+                provider_causal_capture=round_state["causal_capture"],
+            )
+            return dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
 
         def repair_provider_before_final(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
             preparation = repair_provider(audit, route)
@@ -7022,26 +6849,15 @@ def run_provider_generation_job(
             )
 
         initial_final_audit = finalize_once()
-        autonomous_final = finalize.get("autonomous_acceptance", {}) if isinstance(finalize.get("autonomous_acceptance"), dict) else {}
-        if autonomous_final and autonomous_final.get("recommendation_status") != "ACCEPTED":
-            final_recovery = {
-                "outcome": "needs_rework" if autonomous_final.get("recommendation_status") == "REPAIR_REQUIRED" else "blocked",
-                "workflow_state": "rework_blocked",
-                "evidence_status": "NEEDS_REWORK" if autonomous_final.get("recommendation_status") == "REPAIR_REQUIRED" else "BLOCKED",
-                "audit": initial_final_audit,
-                "autonomous_acceptance": autonomous_final,
-                "autonomous_repair_rounds": autonomous_repair_rounds,
-            }
-        else:
-            final_recovery = run_supervision_recovery_cycle(
-                initial_final_audit,
-                reaudit=finalize_once,
-                handlers={
-                    "rework_project": repair_provider_before_final,
-                    "recheck_evidence": recheck_final_evidence,
-                    "repair_kernel": execute_governed_supervision_repair,
-                },
-            )
+        final_recovery = run_supervision_recovery_cycle(
+            initial_final_audit,
+            reaudit=finalize_once,
+            handlers={
+                "rework_project": repair_provider_before_final,
+                "recheck_evidence": recheck_final_evidence,
+                "repair_kernel": execute_governed_supervision_repair,
+            },
+        )
         if final_recovery.get("outcome") != "resumed":
             finish_supervision_recovery_stop(
                 client,

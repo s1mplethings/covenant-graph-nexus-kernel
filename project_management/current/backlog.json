@@ -16,21 +16,22 @@
       "id": "MVP-001",
       "title": "Complete repository MVP reset",
       "priority": 1,
-      "state": "done_unverified",
+      "state": "done",
       "value": "Remove obsolete active authorities and make the CapabilityTree MVP the only current product direction.",
       "acceptance": [
         "obsolete fixed-flow authorities are outside active paths",
-        "historical material remains under legacy/pre_mvp_reset",
+        "historical material is removed from the working tree and remains recoverable from Git history",
+        "orphaned branch-agent, full-dynamic resume, scale, and long-test diagnostics are removed",
         "cleanup boundary is machine-readable",
         "cleanup remains on an isolated non-force branch"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-002",
       "title": "Wire the common Block execution boundary",
       "priority": 2,
-      "state": "in_progress",
+      "state": "planned",
       "value": "Make the Component/Block contract executable through one replaceable bounded Executor interface.",
       "acceptance": [
         "canonical execution request and result contracts",

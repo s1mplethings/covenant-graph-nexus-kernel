@@ -73,6 +73,9 @@ Run the direction gate with:
 python scripts/product_direction_gate.py
 ```
 
-The isolated reset branch has not produced a successful GitHub Actions job. Direction-gate, focused-test, and full-pytest results are therefore `NOT_EVALUATED`; repository cleanup is not a functional-readiness claim.
+The cleanup worktree passes the local direction gate, focused CapabilityTree MVP
+tests, retained compatibility import smoke, and full pytest collection. A full
+pytest execution and product functional readiness remain `NOT_EVALUATED`;
+repository cleanup is not a functional-readiness claim.
 
-Historical Fixed10, role-driven validation, Agent Tree/Growth experiments, stress/soak/scale gates, commercial-readiness gates, and superseded fixed-flow contracts remain under `legacy/pre_mvp_reset/` or Git history and must not return as MVP authority.
+Historical Fixed10, role-driven validation, Agent Tree/Growth experiments, stress/soak/scale gates, commercial-readiness gates, and superseded fixed-flow contracts remain available in Git history only and must not return as MVP authority.

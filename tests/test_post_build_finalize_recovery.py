@@ -5,7 +5,6 @@ import pathlib
 
 import pytest
 
-from scripts import autonomous_project_acceptance
 from scripts import codex_conversation
 from scripts import provider_execution_metrics
 from scripts import run_codex_conversation_generation
@@ -127,7 +126,7 @@ def test_nonplanning_provider_stage_projects_repeated_context(
             "goal": "Build a local CLI",
             "selected_project_direction": {"id": "cli", "domain": "local", "blob": "x" * 30_000},
             "complexity_project_contract": {
-                "required_paths": ["main.py", "testability_contract.json"],
+                "required_paths": ["main.py", "DELIVERY_NOTES.md"],
                 "duplicate_history": "y" * 40_000,
             },
         },
@@ -229,116 +228,6 @@ def test_finalize_recovers_interruption_and_reuses_completed_result(
     assert '"status": "reused"' in (run_dir / "provider_phase_log.jsonl").read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("recommendation", ["ACCEPTED", "REPAIR_REQUIRED"])
-def test_autonomous_acceptance_checkpoint_records_success_or_failure(
-    tmp_path: pathlib.Path,
-    monkeypatch: pytest.MonkeyPatch,
-    recommendation: str,
-) -> None:
-    project = tmp_path / "project"
-    project.mkdir()
-    (project / "main.py").write_text("print('ok')\n", encoding="utf-8")
-    calls = {"count": 0}
-
-    def fake_acceptance(_project, run_dir, **_kwargs):
-        calls["count"] += 1
-        report = {
-            "recommendation_status": recommendation,
-            "formal_evidence_status": "NOT_EVALUATED",
-            "findings": [] if recommendation == "ACCEPTED" else [{"id": "f1"}],
-        }
-        run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / autonomous_project_acceptance.REPORT_FILE).write_text(
-            json.dumps(report), encoding="utf-8"
-        )
-        return report
-
-    monkeypatch.setattr(codex_conversation.autonomous_project_acceptance, "run_acceptance", fake_acceptance)
-    first, report_path, reused = codex_conversation.run_or_resume_autonomous_acceptance(
-        project_dir=project,
-        production_run_dir=tmp_path / "production",
-        public_goal="goal",
-        model="test-model",
-    )
-    second, second_path, second_reused = codex_conversation.run_or_resume_autonomous_acceptance(
-        project_dir=project,
-        production_run_dir=tmp_path / "production",
-        public_goal="goal",
-        model="test-model",
-    )
-    checkpoint = _read(report_path.parent.parent / "checkpoint.json")
-
-    assert first["recommendation_status"] == recommendation
-    assert second["recommendation_status"] == recommendation
-    assert reused is False and second_reused is True
-    assert report_path == second_path and report_path.is_file()
-    assert checkpoint["status"] == "completed"
-    assert checkpoint["recommendation_status"] == recommendation
-    assert calls["count"] == 1
-    assert ":" not in report_path.parent.parent.name
-
-
-def test_missing_testability_contract_is_blocked_with_report(tmp_path: pathlib.Path) -> None:
-    project = tmp_path / "project"
-    project.mkdir()
-    (project / "main.py").write_text("print('ok')\n", encoding="utf-8")
-    run_dir = tmp_path / "acceptance"
-
-    result = autonomous_project_acceptance.run_acceptance(
-        project,
-        run_dir,
-        public_goal="goal",
-        model="unused",
-    )
-
-    report_path = run_dir / autonomous_project_acceptance.REPORT_FILE
-    assert result["recommendation_status"] == "BLOCKED"
-    assert report_path.is_file()
-    assert _read(report_path)["reason"] == "testability_contract_missing"
-
-
-def test_acceptance_failure_stops_before_delivery_manifest(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    project = tmp_path / "project"
-    project.mkdir()
-    (project / "main.py").write_text("print('ok')\n", encoding="utf-8")
-    report_path = tmp_path / "production" / "acceptance.json"
-    report_path.parent.mkdir()
-    report_path.write_text(json.dumps({"recommendation_status": "REPAIR_REQUIRED"}), encoding="utf-8")
-    monkeypatch.setattr(codex_conversation, "collect_provider_image_evidence", lambda *_args: {"ok": True})
-    monkeypatch.setattr(codex_conversation, "infer_public_delivery_requirements", lambda *_args: {})
-    monkeypatch.setattr(codex_conversation, "run_provider_project_tests", lambda *_args, **_kwargs: {"ok": True, "status": "PASS"})
-    monkeypatch.setattr(
-        codex_conversation,
-        "run_or_resume_autonomous_acceptance",
-        lambda **_kwargs: (
-            {"recommendation_status": "REPAIR_REQUIRED", "findings": [{"id": "f1"}]},
-            report_path,
-            False,
-        ),
-    )
-
-    result = codex_conversation.post_build_finalize_provider_project(
-        project,
-        {"goal": "goal", "model": "test-model"},
-        {},
-        {"requirement": "goal"},
-        session_dir=tmp_path / "session",
-        conversation_id="conversation",
-        production_identity={"run_id": "run", "candidate_id": "candidate", "commit_sha": "commit"},
-        production_run_dir=tmp_path / "production",
-        stage_receipts={},
-        provider_result_path=tmp_path / "provider.json",
-        provider_causal_capture={},
-    )
-
-    assert result["ok"] is False
-    assert result["gate"]["verdict"] == "REPAIR_REQUIRED"
-    assert result["manifest"] == {}
-    assert not (project / "delivery_manifest.json").exists()
-
-
 def test_provider_metrics_persist_retries_windows_share_violation(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -361,52 +250,6 @@ def test_provider_metrics_persist_retries_windows_share_violation(
     assert json.loads(receipt.read_text(encoding="utf-8"))["provider_jobs_total"] == 1
     assert attempts["count"] == 2
     assert not list(receipt.parent.glob("provider_execution_metrics.json.*.tmp"))
-
-
-def test_autonomous_acceptance_detects_windows_long_execution_path(tmp_path: pathlib.Path) -> None:
-    short = tmp_path / "project"
-    long = tmp_path / ("x" * 230) / "project"
-
-    assert autonomous_project_acceptance._windows_execution_path_too_long(
-        short, platform_name="nt"
-    ) is False
-    assert autonomous_project_acceptance._windows_execution_path_too_long(
-        long, platform_name="nt"
-    ) is True
-    assert autonomous_project_acceptance._windows_execution_path_too_long(
-        long, platform_name="posix"
-    ) is False
-
-
-def test_semantic_actions_do_not_recheck_deterministic_scenario_state(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    indexes: list[int] = []
-    monkeypatch.setattr(
-        autonomous_project_acceptance,
-        "_execute",
-        lambda _project, _contract, action, index: (
-            indexes.append(index)
-            or {"operation": action["operation"], "independent_issues": []}
-        ),
-    )
-    monkeypatch.setattr(
-        autonomous_project_acceptance,
-        "scenario_oracle",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("scenario oracle must not run")),
-    )
-
-    rows, issues = autonomous_project_acceptance._execute_sequence(
-        tmp_path,
-        {"scenarios": [{}]},
-        [{"operation": "semantic"}],
-        start_index=5,
-        evaluate_scenarios=False,
-    )
-
-    assert indexes == [5]
-    assert rows[0]["operation"] == "semantic"
-    assert issues == []
 
 
 def test_successful_formal_result_materializes_generated_project_once(tmp_path: pathlib.Path) -> None:

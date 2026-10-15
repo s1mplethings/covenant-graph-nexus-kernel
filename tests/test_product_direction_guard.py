@@ -30,6 +30,8 @@ def test_pre_mvp_experiment_families_cannot_return_to_active_source() -> None:
     assert "scripts/agent_growth_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
     assert "scripts/commercial_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
     assert "scripts/customer_agent_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
+    assert "scripts/agent_leaf_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
+    assert "scripts/full_dynamic_project_" in product_direction_gate.FORBIDDEN_ACTIVE_PREFIXES
 
     for path in (
         "run_function_stress_pass.py",
@@ -50,6 +52,19 @@ def test_pre_mvp_experiment_families_cannot_return_to_active_source() -> None:
         "schemas/product_studio_run.schema.json"
     ):
         assert path in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
+
+    for path in (
+        "legacy/pre_mvp_reset",
+        "legacy/docs/pre_mvp_reset",
+        "scripts/full_pytest_timeout_diagnosis.py",
+        "scripts/autonomous_project_acceptance.py",
+        "scripts/pytest_hang_diagnostics.py",
+        "schemas/autonomous_project_acceptance_report_v1.schema.json",
+        "schemas/testability_contract_v1.schema.json",
+        "tests/test_generation_scale_ladder.py",
+    ):
+        assert path in product_direction_gate.FORBIDDEN_ACTIVE_PATHS
+        assert not (product_direction_gate.ROOT / path).exists()
 
     assert product_direction_gate._forbidden_import("scripts.agent_tree_orchestrator")
     assert product_direction_gate._forbidden_import("agent_director_loop")

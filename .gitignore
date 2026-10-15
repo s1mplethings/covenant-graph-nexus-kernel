@@ -31,6 +31,11 @@ Thumbs.db
 /.cache/
 /.cgkn/
 /workspaces/
+/evidence/repository-layout-v1/
+/evidence/clarification-reduction-v1/
+/evidence/final-live-acceptance-v1/
+/evidence/*_usage_beta_*.json
+/evidence/external_executor_real_project_acceptance_*.json
 .pytest_cache/
 examples/runtime_runs/
 examples/generated_projects/

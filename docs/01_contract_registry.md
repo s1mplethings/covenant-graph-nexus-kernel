@@ -182,26 +182,6 @@ report is always `NOT_EVALUATED`, has `release_authority=false`, and cannot
 authorize generation, repair, formal acceptance, packaging, or delivery.
 
 `CGKNTestabilityContract` is the generated-project control contract defined by
-`schemas/testability_contract_v1.schema.json`. It declares public operations
-and input Schemas, observable state, user tasks and success conditions, final
-artifacts, execution permissions, and adapter type. It is declarative support
-input only: commands must invoke a real public business entrypoint, test-only
-success shortcuts are forbidden, and the contract cannot assert evidence or
-delivery success.
-
-`CGKNAutonomousProjectAcceptanceReport` is the production integration support
-artifact defined by
-`schemas/autonomous_project_acceptance_report_v1.schema.json` and produced by
-`scripts/autonomous_project_acceptance.py` from the reviewed Provider candidate
-inside `scripts/codex_conversation.py`. Its project recommendation is one of
-`ACCEPTED`, `REPAIR_REQUIRED`, `BLOCKED`, or `NOT_EVALUATED`; those labels are
-not formal EvidenceStatus values. Findings require deterministic Oracle
-evidence and fresh-copy reproduction. `REPAIR_REQUIRED` may create bounded
-`CGKNObservedProjectFailureEvidence` for the existing ProviderJob repair route,
-but the report remains formal `NOT_EVALUATED`, has no release authority, and
-cannot replace canonical test/runtime/visual evidence, promotion,
-`local_packager`, or the public delivery gate.
-
 `CGKNObservedProjectFailureEvidence` is formally shaped by
 `contracts/observed_project_failure_evidence_v1.schema.json` and constructed or
 validated only by `scripts/repair_evidence_contract.py`. It contains observable
