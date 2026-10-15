@@ -51,6 +51,9 @@ examples/test_results/*
 /project_management/ENTERPRISE_EXPERIENCE.md
 /project_management/enterprise_experience.json
 *.zip
+.coverage
+coverage.xml
+htmlcov/
 
 examples/product_studio/runs/direct_*/
 examples/product_studio/runs/tmp_*/

@@ -103,7 +103,7 @@ class LLMExecutor:
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
         context = request.task_context.as_dict()
-        prompt = {"node_id": request.node_id, "goal": request.task_context.node_goal, "config": dict(request.task_context.node_config), "dependency_results": dict(request.task_context.dependency_results), "constraints": list(request.task_context.project_constraints), "acceptance": list(request.task_context.acceptance), "allowed_actions": sorted(ALLOWED_ACTIONS)}
+        prompt = {"node_id": request.node_id, "goal": request.task_context.node_goal, "config": context["node_config"], "dependency_results": context["dependency_results"], "constraints": list(request.task_context.project_constraints), "acceptance": list(request.task_context.acceptance), "allowed_actions": sorted(ALLOWED_ACTIONS)}
         import json
         raw_prompt = json.dumps(prompt, ensure_ascii=False, sort_keys=True)
         usage: dict[str, Any] = {}

@@ -45,7 +45,7 @@ class AgentProjectLoop:
         worker_calls = 0
         for number in range(1, self.max_decisions + 1):
             decision = self.composer.decide(AgentDecisionContext(project_id, run_id, goal, number, tree, tuple(sorted(self.known_capabilities)), self.capability_catalog, summary.as_dict() if summary else {}, failure_details))
-            self.store.atomic_json(self.store.run_dir(project_id, run_id) / "agent" / f"decision-{number:02d}.json", decision.as_dict())
+            self.store.save_agent_decision(project_id, run_id, number, decision.as_dict())
             self.store.append_event(EventRecord(str(uuid.uuid4()), project_id, run_id, "AGENT_DECISION", data={"decision_id": decision.decision_id, "decision_number": number, "summary": decision.summary, "request_run": decision.request_run, "finish": decision.finish, "needs_escalation": decision.needs_escalation, "context_hash": decision.context_hash}))
             if decision.needs_escalation:
                 return ProjectLoopResult("BLOCKED", number, number, worker_calls, tree, summary, decision.escalation_reason)

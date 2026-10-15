@@ -7,6 +7,22 @@ from typing import Any, Mapping
 from .capability_tree import CapabilityTree
 
 
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze(item) for item in value)
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _thaw(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw(item) for item in value]
+    return value
+
+
 @dataclass(frozen=True)
 class ExecutionNode:
     id: str
@@ -17,13 +33,20 @@ class ExecutionNode:
     def __post_init__(self) -> None:
         if not self.id.strip() or not self.capability_ref.strip():
             raise ValueError("execution node id and capability_ref are required")
-        object.__setattr__(self, "config", MappingProxyType(dict(self.config)))
+        object.__setattr__(self, "depends_on", tuple(self.depends_on))
+        object.__setattr__(self, "config", _freeze(self.config))
 
 
 @dataclass(frozen=True)
 class ExecutionDAG:
     goal: str
     nodes: tuple[ExecutionNode, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "nodes", tuple(self.nodes))
+        ids = [node.id for node in self.nodes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("execution_dag.duplicate_node_id")
 
     @property
     def by_id(self) -> dict[str, ExecutionNode]:
@@ -66,12 +89,33 @@ class ExecutionDAG:
                     "id": node.id,
                     "capability_ref": node.capability_ref,
                     "depends_on": list(node.depends_on),
-                    "config": dict(node.config),
+                    "config": _thaw(node.config),
                 }
                 for node in self.nodes
             ],
             "topological_order": list(self.topological_order()),
         }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ExecutionDAG":
+        if value.get("kind") != "CGKNExecutionDAG" or value.get("schema_version") != "1.0":
+            raise ValueError("execution_dag.invalid_schema")
+        dag = cls(
+            goal=str(value["goal"]),
+            nodes=tuple(
+                ExecutionNode(
+                    id=str(node["id"]),
+                    capability_ref=str(node["capability_ref"]),
+                    depends_on=tuple(str(item) for item in node.get("depends_on", ())),
+                    config=dict(node.get("config", {})),
+                )
+                for node in value.get("nodes", ())
+            ),
+        )
+        dag.topological_order()
+        if "topological_order" in value and tuple(value["topological_order"]) != dag.topological_order():
+            raise ValueError("execution_dag.topological_order_mismatch")
+        return dag
 
 
 def compile_tree(tree: CapabilityTree) -> ExecutionDAG:

@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any
+from typing import Any, Mapping
 
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
@@ -67,7 +67,7 @@ class CommandExecutor:
         try:
             expected = config.get("assert_dependency_stdout_contains")
             if expected is not None:
-                observed = "".join(str(value.get("stdout", "")) for value in request.task_context.dependency_results.values() if isinstance(value, dict))
+                observed = "".join(str(value.get("stdout", "")) for value in request.task_context.dependency_results.values() if isinstance(value, Mapping))
                 outputs = {"expected": str(expected), "observed_stdout": observed, "matched": str(expected) in observed}
                 if not outputs["matched"]:
                     return _result(request, status=BlockStatus.FAILED, started=started, clock=clock, outputs=outputs, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, "expected text absent from dependency stdout"))

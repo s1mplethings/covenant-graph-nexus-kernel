@@ -10,6 +10,7 @@ def test_valid_port_defaults_and_projection_is_immutable() -> None:
     assert port.required is True
     assert port.multi is False
     assert port.projection == ("goal",)
+    assert PortSpec.from_dict(port.as_dict()) == port
 
 
 @pytest.mark.parametrize("name, artifact_type", [("", "artifact.goal@1"), ("goal", "goal")])

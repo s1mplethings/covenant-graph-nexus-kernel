@@ -35,6 +35,13 @@ class FileRunStore:
             raise StateStoreError("invalid state identity path segment")
 
     def atomic_json(self, path: pathlib.Path, value: Mapping[str, Any]) -> None:
+        path = pathlib.Path(path)
+        try:
+            path.resolve().relative_to(self.root)
+        except ValueError as exc:
+            raise StateStoreError("state write path escapes configured root") from exc
+        if path.is_symlink():
+            raise StateStoreError("state write target must not be a symlink")
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
         try:
@@ -73,12 +80,30 @@ class FileRunStore:
         return path
 
     def save_result(self, result: BlockExecutionResult) -> pathlib.Path:
+        self._validate_segment(result.node_id)
+        self._validate_segment(result.attempt_id)
         run_dir = self.run_dir(result.project_id, result.run_id)
         attempt_path = run_dir / "attempts" / result.node_id / f"{result.attempt_id}.json"
         latest_path = run_dir / "node_results" / f"{result.node_id}.json"
+        if attempt_path.exists():
+            raise StateStoreError(f"attempt result already exists: {result.attempt_id}")
         self.atomic_json(attempt_path, result.as_dict())
         self.atomic_json(latest_path, result.as_dict())
         return attempt_path
+
+    def save_agent_decision(self, project_id: str, run_id: str, number: int, value: Mapping[str, Any]) -> pathlib.Path:
+        if number < 1:
+            raise StateStoreError("agent decision number must be positive")
+        path = self.run_dir(project_id, run_id) / "agent" / f"decision-{number:02d}.json"
+        if path.exists():
+            raise StateStoreError(f"agent decision already exists: {number}")
+        self.atomic_json(path, value)
+        return path
+
+    def save_run_summary(self, project_id: str, run_id: str, value: Mapping[str, Any]) -> pathlib.Path:
+        path = self.run_dir(project_id, run_id) / "run_summary.json"
+        self.atomic_json(path, value)
+        return path
 
     def load_result(self, project_id: str, run_id: str, node_id: str) -> BlockExecutionResult:
         self._validate_segment(node_id)
@@ -96,3 +121,10 @@ class FileRunStore:
             handle.flush()
             os.fsync(handle.fileno())
         return path
+
+    def load_events(self, project_id: str, run_id: str) -> tuple[EventRecord, ...]:
+        path = self.run_dir(project_id, run_id) / "events.jsonl"
+        try:
+            return tuple(EventRecord.from_dict(json.loads(line)) for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise StateStoreError(f"cannot load event log: {exc}") from exc

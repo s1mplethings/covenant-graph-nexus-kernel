@@ -89,7 +89,7 @@ class DAGRunner:
         state.updated_at = utc_now()
         self.store.save_run(state)
         summary = RunSummary(project_id, run_id, state.status, len(state.nodes), tuple(actual), tuple(reused), failed, blocked, sum(max(0, len(value.attempts) - 1) for value in state.nodes.values()))
-        self.store.atomic_json(self.store.run_dir(project_id, run_id) / "run_summary.json", summary.as_dict())
+        self.store.save_run_summary(project_id, run_id, summary.as_dict())
         self._event(project_id, run_id, "RUN_FINISHED", data=summary.as_dict())
         return summary
 

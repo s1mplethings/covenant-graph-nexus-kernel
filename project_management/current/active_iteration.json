@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Complete and test every current kernel foundation layer before adding new project-team capabilities.",
   "backlog_item_ids": ["MVP-014A"],
-  "workflow_state": "running",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "delivery_approach": "bottom-up layer completion with machine-enforced authorities and source-to-test responsibility",
   "acceptance_criteria": [
     "all current non-init core sources have test responsibility mappings",
@@ -16,12 +16,12 @@
     "functional_readiness remains LEVEL_4 while kernel_foundation is independently evaluated"
   ],
   "quality_metrics": [
-    {"id": "QM-SOURCE-MAPPING", "measure": "mapped current core sources", "target": "100%", "actual": "pending"},
-    {"id": "QM-CORE-PROFILES", "measure": "required local profiles", "target": "4 PASS", "actual": "pending"},
-    {"id": "QM-COVERAGE", "measure": "per-layer line and branch coverage", "target": "recorded without false completion", "actual": "pending"}
+    {"id": "QM-SOURCE-MAPPING", "measure": "mapped current core sources", "target": "100%", "actual": "49 of 49 mapped"},
+    {"id": "QM-CORE-PROFILES", "measure": "required local profiles", "target": "4 PASS", "actual": "4 PASS"},
+    {"id": "QM-COVERAGE", "measure": "per-layer line and branch coverage", "target": "recorded without false completion", "actual": "72% combined; below-target files recorded"}
   ],
   "out_of_scope": ["new team roles", "Self-Growth V1", "concurrency", "stress or soak", "public delivery", "compatibility-mainline migration"],
-  "evidence_refs": [],
-  "review": {"outcome": "pending", "feedback": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "evidence_refs": ["governance/kernel_coverage_report.json", "governance/kernel_completeness.json", "python scripts/run_kernel_profiles.py", "full pytest: 1794 passed, 322 skipped, 19 failed, 16 errors; failures classified as baseline missing ignored assets/contracts"],
+  "review": {"outcome": "accepted_with_limits", "feedback": ["L1 artifact and L2 component foundations are complete.", "DAG, execution envelope, state persistence, and telemetry invariants were hardened.", "Kernel foundation remains PARTIAL because named must-core coverage and fault matrices remain incomplete."]},
+  "retrospective": {"worked": ["Layered profiles isolated kernel evidence from repository-global historical failures.", "Deep immutability plus explicit JSON thawing preserved both safety and executor compatibility."], "did_not_work": ["The remote baseline omits ignored benchmark, historical document, and PMP assets required by parts of the full suite."], "experiments": ["Complete provider, tree-edit, runtime invalidation, and artifact lineage fault matrices before changing kernel_foundation to COMPLETE."]}
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import tempfile
 from typing import Any, Iterable
 
 from .models import ArtifactInstance, ArtifactRef
@@ -18,22 +19,50 @@ class ArtifactStore:
         self.artifacts_dir = self.run_dir / "artifacts"
         self.index_path = self.run_dir / "artifact_index.json"
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
+        self._assert_local_path(self.artifacts_dir)
+        if self.index_path.is_symlink():
+            raise ArtifactValidationError("artifact index must not be a symlink")
         if not self.index_path.exists():
             self._save_index({"kind": "ArtifactIndex", "schemaVersion": "1", "artifacts": []})
 
     def _load_index(self) -> dict[str, Any]:
-        return json.loads(self.index_path.read_text(encoding="utf-8"))
+        value = json.loads(self.index_path.read_text(encoding="utf-8"))
+        if value.get("kind") != "ArtifactIndex" or value.get("schemaVersion") != "1" or not isinstance(value.get("artifacts"), list):
+            raise ArtifactValidationError("artifact index schema is invalid")
+        return value
 
     def _save_index(self, value: dict[str, Any]) -> None:
         self.run_dir.mkdir(parents=True, exist_ok=True)
-        temp = self.index_path.with_suffix(".tmp")
-        temp.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        os.replace(temp, self.index_path)
+        self._atomic_json(self.index_path, value)
 
     def _path(self, artifact_id: str) -> pathlib.Path:
         if not artifact_id or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for char in artifact_id):
             raise ArtifactValidationError(f"unsafe artifact instance id: {artifact_id!r}")
-        return self.artifacts_dir / f"{artifact_id}.json"
+        path = self.artifacts_dir / f"{artifact_id}.json"
+        self._assert_local_path(path)
+        if path.is_symlink():
+            raise ArtifactValidationError("artifact path must not be a symlink")
+        return path
+
+    def _assert_local_path(self, path: pathlib.Path) -> None:
+        try:
+            path.resolve().relative_to(self.run_dir)
+        except ValueError as exc:
+            raise ArtifactValidationError(f"artifact path escapes run directory: {path}") from exc
+
+    def _atomic_json(self, path: pathlib.Path, value: dict[str, Any]) -> None:
+        self._assert_local_path(path)
+        descriptor, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+        temp = pathlib.Path(temp_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(value, handle, ensure_ascii=False, indent=2)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp, path)
+        finally:
+            temp.unlink(missing_ok=True)
 
     def allocate_id(self, artifact_type: str) -> str:
         slug = artifact_type.split("@", 1)[0].removeprefix("artifact.").replace("_", "-").replace(".", "-")
@@ -65,9 +94,7 @@ class ArtifactStore:
             if not any(row["artifactInstanceId"] == artifact.supersedes for row in rows):
                 raise ArtifactValidationError(f"superseded artifact does not exist: {artifact.supersedes}")
             self._set_status_in_memory(index, artifact.supersedes, "superseded")
-        temp = path.with_suffix(".tmp")
-        temp.write_text(json.dumps(artifact.as_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        os.replace(temp, path)
+        self._atomic_json(path, artifact.as_dict())
         rows.append(
             {
                 **artifact.ref.as_dict(),

@@ -69,3 +69,13 @@ class EventRecord:
 
     def as_dict(self) -> dict[str, Any]:
         return {"schema_version": self.schema_version, "event_id": self.event_id, "project_id": self.project_id, "run_id": self.run_id, "event_type": self.event_type, "node_id": self.node_id, "attempt_id": self.attempt_id, "data": dict(self.data), "created_at": self.created_at}
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "EventRecord":
+        if value.get("schema_version") != "1.0":
+            raise ValueError("unsupported event record schema")
+        return cls(
+            event_id=str(value["event_id"]), project_id=str(value["project_id"]), run_id=str(value["run_id"]),
+            event_type=str(value["event_type"]), node_id=value.get("node_id"), attempt_id=value.get("attempt_id"),
+            data=dict(value.get("data", {})), created_at=str(value["created_at"]), schema_version=str(value["schema_version"]),
+        )

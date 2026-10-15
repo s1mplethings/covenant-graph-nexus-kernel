@@ -3,11 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+import re
 
 from .hash import content_hash
 
 
 ARTIFACT_STATUSES = {"fresh", "stale", "invalid", "superseded"}
+_SAFE_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+_ARTIFACT_TYPE = re.compile(r"^artifact\.[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$")
+_CONTENT_HASH = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def utc_now() -> str:
@@ -19,6 +23,14 @@ class ArtifactRef:
     artifact_instance_id: str
     artifact_type: str
     content_hash: str
+
+    def __post_init__(self) -> None:
+        if not _SAFE_ID.fullmatch(self.artifact_instance_id):
+            raise ValueError("artifact instance id is unsafe")
+        if not _ARTIFACT_TYPE.fullmatch(self.artifact_type):
+            raise ValueError("artifact_type must be a versioned artifact ref")
+        if not _CONTENT_HASH.fullmatch(self.content_hash):
+            raise ValueError("content_hash must be a canonical sha256 value")
 
     def as_dict(self) -> dict[str, str]:
         return {

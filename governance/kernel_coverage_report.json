@@ -1,0 +1,29 @@
+{
+  "kind": "CGKNKernelCoverageReport",
+  "schema_version": "1.0",
+  "measured_at_commit": "7b6aa570aa6510254517ed7ea8b38cb7cbdfb1aa",
+  "command": "python -m pytest -p pytest_cov -q tests/component tests/artifacts tests/execution tests/executors tests/state tests/runtime tests/capabilities tests/growth tests/agent tests/telemetry tests/test_artifact_driven_kernel.py tests/test_capability_tree_mvp.py tests/test_provider_transport.py --cov=cgkn --cov-branch --cov-report=term-missing",
+  "result": {"tests_passed": 108, "tests_skipped": 1, "line_and_branch_combined_percent": 72},
+  "completed_focus": {
+    "component_ports": 100,
+    "component_result": 100,
+    "execution_contracts": 94,
+    "execution_dag": 95,
+    "state_models": 94,
+    "state_store": 89,
+    "telemetry_summary": 100
+  },
+  "must_core_below_target": {
+    "cgkn/artifacts/diff.py": 64,
+    "cgkn/artifacts/lineage.py": 53,
+    "cgkn/executors/factory.py": 77,
+    "cgkn/executors/llm.py": 79,
+    "cgkn/executors/registry.py": 76,
+    "cgkn/orchestration/tree_edits.py": 68,
+    "cgkn/providers/client.py": 54,
+    "cgkn/runtime/invalidation.py": 65,
+    "cgkn/runtime/runner.py": 79
+  },
+  "decision": "PARTIAL",
+  "reason": "Required profiles pass, but several must-core files remain below the expected 80 percent coverage target and their fault matrices are not complete."
+}

@@ -5,7 +5,7 @@ import json
 import pytest
 
 from cgkn.execution import BlockExecutionResult, BlockStatus
-from cgkn.state import FileRunStore, NodeExecutionRecord, RunState, StateStoreError
+from cgkn.state import EventRecord, FileRunStore, NodeExecutionRecord, RunState, StateStoreError
 
 
 def test_state_round_trip_atomic_and_resume_success(tmp_path) -> None:
@@ -23,6 +23,9 @@ def test_attempt_history_never_overwrites(tmp_path) -> None:
     assert (store.run_dir("p", "r") / "attempts/n/a1.json").is_file()
     assert (store.run_dir("p", "r") / "attempts/n/a2.json").is_file()
     assert store.load_result("p", "r", "n").outputs["attempt"] == "a2"
+    duplicate = BlockExecutionResult(project_id="p", run_id="r", attempt_id="a2", node_id="n", executor_ref="e", status=BlockStatus.SUCCEEDED)
+    with pytest.raises(StateStoreError, match="already exists"):
+        store.save_result(duplicate)
 
 
 def test_corrupt_state_and_path_traversal_fail_closed(tmp_path) -> None:
@@ -33,3 +36,18 @@ def test_corrupt_state_and_path_traversal_fail_closed(tmp_path) -> None:
         store.load_run("p", "r")
     with pytest.raises(StateStoreError):
         store.run_dir("../escape", "r")
+    with pytest.raises(StateStoreError):
+        store.atomic_json(tmp_path.parent / "escape.json", {})
+    escaped = BlockExecutionResult(project_id="p", run_id="r", attempt_id="a", node_id="../escape", executor_ref="e", status=BlockStatus.SUCCEEDED)
+    with pytest.raises(StateStoreError):
+        store.save_result(escaped)
+
+
+def test_event_log_round_trip_and_corruption_fail_closed(tmp_path) -> None:
+    store = FileRunStore(tmp_path)
+    event = EventRecord("event.1", "p", "r", "RUN_CREATED", data={"source": "test"})
+    store.append_event(event)
+    assert store.load_events("p", "r") == (event,)
+    (store.run_dir("p", "r") / "events.jsonl").write_text("{broken\n", encoding="utf-8")
+    with pytest.raises(StateStoreError, match="cannot load event log"):
+        store.load_events("p", "r")
