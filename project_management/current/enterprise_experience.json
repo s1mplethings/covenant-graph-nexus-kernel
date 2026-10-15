@@ -1,336 +1,55 @@
 {
-  "kind": "CGKNEnterpriseExperiencePack",
-  "schema_version": "1.0",
-  "organization": "CGKN",
-  "items": [
+  "kind": "CGKNEnterpriseExperience",
+  "schema_version": "2.0",
+  "lessons": [
     {
-      "id": "EXP-CGKN-QUALITY-001",
-      "title": "Separate planning, implementation, and delivery truth",
-      "situation": "Planning artifacts or generated files exist while canonical runtime, review, package, or delivery evidence may be incomplete.",
-      "action": "Evaluate each evidence layer independently and allow only canonical producers and inspectors to authorize formal gates.",
-      "outcome": "Progress remains visible without a false public delivery PASS.",
-      "applicable_when": [
-        "CGKN planning, implementation, acceptance, and delivery work"
-      ],
-      "not_applicable_when": [],
-      "tags": [
-        "cgkn",
-        "quality",
-        "evidence",
-        "governance"
-      ],
-      "evidence_refs": [
-        "docs/01_contract_registry.md",
-        "tests/test_kernel_contract.py"
-      ],
-      "experience_state": "approved",
-      "usage_count": 54,
-      "successful_usage_count": 53,
-      "owner": "quality-management",
-      "supersedes": []
+      "id": "EXP-MVP-001",
+      "title": "Composition tree and execution DAG are different truths",
+      "statement": "Use a tree for incremental Agent composition and a DAG for executable dependencies, fan-out, fan-in, and reruns.",
+      "applies_when": ["planning capabilities", "editing project structure", "compiling execution"],
+      "avoid": ["treating parent-child hierarchy as execution order", "maintaining multiple execution graphs"]
     },
     {
-      "id": "EXP-CGKN-LIBRARIAN-001",
-      "title": "Use bounded artifact projections instead of whole-history context",
-      "situation": "A project has enough files or upstream evidence that copying complete context is noisy and expensive.",
-      "action": "Keep complete local lineage and provide each bounded module only its declared artifacts, projections, policy, and contract.",
-      "outcome": "Context remains traceable and unaffected checkpoints remain reusable.",
-      "applicable_when": [
-        "Artifact-driven modules",
-        "large Provider jobs",
-        "incremental repair"
-      ],
-      "not_applicable_when": [
-        "A tiny single-file change where the projection exceeds the source"
-      ],
-      "tags": [
-        "cgkn",
-        "artifact",
-        "context",
-        "librarian"
-      ],
-      "evidence_refs": [
-        "docs/00_kernel_contract.md",
-        "evidence/artifact-kernel/v0.3/verification_summary.json"
-      ],
-      "experience_state": "approved",
-      "usage_count": 29,
-      "successful_usage_count": 27,
-      "owner": "context-librarian",
-      "supersedes": []
+      "id": "EXP-MVP-002",
+      "title": "Roles are views, not kernel stages",
+      "statement": "PM, Developer, Tester, Researcher, Release, and Marketing should compose reusable capabilities without acquiring mandatory sequencing authority.",
+      "applies_when": ["building project-team UX", "adding a new department or role"],
+      "avoid": ["fixed virtual-team chains", "one expensive Agent call per role"]
     },
     {
-      "id": "EXP-CGKN-REPO-001",
-      "title": "Promote curated evidence instead of tracking raw runs",
-      "situation": "Reproducible runtime output accumulates in Git and obscures source, specs, and durable claims.",
-      "action": "Keep runs local and promote only claim, status, metrics, hashes, reproduction commands, and limitations.",
-      "outcome": "HEAD stays reviewable while important claims remain reproducible.",
-      "applicable_when": [
-        "Repository evidence retention",
-        "benchmark publication",
-        "release summaries"
-      ],
-      "not_applicable_when": [
-        "Canonical runtime storage during an active local run"
-      ],
-      "tags": [
-        "cgkn",
-        "repository",
-        "evidence",
-        "hygiene"
-      ],
-      "evidence_refs": [
-        "docs/repository_guide.md",
-        "scripts/promote_evidence.py"
-      ],
-      "experience_state": "approved",
-      "usage_count": 3,
-      "successful_usage_count": 3,
-      "owner": "repository-maintenance",
-      "supersedes": []
-    }
-  ],
-  "usage_receipts": [
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-104",
-      "applied": true,
-      "outcome": "inconclusive",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/SANITY_RUN_RESULT.json",
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/SOAK_SUMMARY.json",
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/CONTAMINATION_RESULTS.json"
-      ]
+      "id": "EXP-MVP-003",
+      "title": "Cheap executors need bounded tasks, not the whole project conversation",
+      "statement": "Send each executor only its node goal, declared inputs, relevant direct dependencies, constraints, context, and acceptance condition.",
+      "applies_when": ["calling a cheap model", "calling a local model", "using an external API"],
+      "avoid": ["full-history replay", "executor-owned project planning", "unbounded context growth"]
     },
     {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-076",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "evidence/repository-layout-v1/repository_metrics_after.json",
-        "tests/test_repository_hygiene.py",
-        "tests/test_kernel_contract.py"
-      ]
+      "id": "EXP-MVP-004",
+      "title": "Functional proof precedes scale proof",
+      "statement": "One real project that composes, executes, tests, repairs locally, and finishes is more valuable than large DAG, concurrency, latency, or soak results before the substrate works.",
+      "applies_when": ["selecting the next benchmark", "reviewing readiness"],
+      "avoid": ["Fixed10 before one vertical slice", "stress tests as a substitute for product function"]
     },
     {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-077",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "evidence/architecture-reduction-v1/final_acceptance.json"
-      ]
+      "id": "EXP-MVP-005",
+      "title": "Archive before physical deletion during authority migration",
+      "statement": "Move superseded source, tests, schemas, and documents together under a clearly non-active legacy path before later deletion, while Git history remains the final archive.",
+      "applies_when": ["removing an old authority", "cleaning architecture"],
+      "avoid": ["leaving active tests for removed modules", "keeping stale current documentation"]
     },
     {
-      "experience_id": "EXP-CGKN-LIBRARIAN-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-077",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "tests/test_architecture_reduction.py"
-      ]
+      "id": "EXP-MVP-006",
+      "title": "Self-growth is validated capability acquisition",
+      "statement": "A capability gap should trigger search, bounded trial, interface adaptation, tests, registry admission, and reuse; it should not trigger unrestricted kernel rewriting.",
+      "applies_when": ["learning a new tool", "integrating a library or service"],
+      "avoid": ["silent invariant changes", "unverified capability registration"]
     },
     {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-078",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "evidence/candidate-canonicalization-v1/math_training_e2e.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-LIBRARIAN-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-079",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "tests/test_component_flow_compile.py",
-        "tests/test_component_runtime_integration.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-080",
-      "applied": true,
-      "outcome": "inconclusive",
-      "evidence_refs": [
-        "evidence/clarification-reduction-v1/reduction_acceptance.json",
-        "tests/test_clarification_reduction_boundary.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-081",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "evidence/canonical-version-retirement-v1/acceptance.json",
-        "tests/test_canonical_version_gate.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-099",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "tests/test_architecture_reduction.py",
-        "tests/test_generation_scale_ladder.py",
-        "tests/test_kernel_contract.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-LIBRARIAN-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-099",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "scripts/run_local_pipeline_impl.py",
-        "tests/test_formal_provider_fallback.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-100",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass2-functional-closure/"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-101",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass3-verdict-runtime-closure/FUNCTION_MATRIX.json",
-        "cgkn-function-stress-pass/pass3-verdict-runtime-closure/regression-old-failures-02/regression_summary.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-102",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass4-regression-convergence/full-baseline-01/regression_summary.json",
-        "cgkn-function-stress-pass/pass4-regression-convergence/full-final-normal-07/regression_summary.json",
-        "cgkn-function-stress-pass/pass4-regression-convergence/fault-probes/regression_summary.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-103",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass5-real-workload-recovery/independent_acceptance.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-105",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/FULL_REGRESSION_RESULTS.json",
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/STATE_SCALE_AB.json",
-        "cgkn-function-stress-pass/pass6-long-horizon-reliability/runs/midterm-20261012T164559Z/MIDTERM_VALIDATION.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "project_management/summaries/ITER-106-role-driven-validation-mvp.md"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-REPO-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "project_management/summaries/ITER-106-role-driven-validation-mvp.md"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "runs/role-driven-validation/pass2-cross-project-20261014-r4/validation_report.json",
-        "tests/test_role_driven_validation_pass2.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-REPO-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "project_management/summaries/ITER-106-role-driven-validation-pass2.md",
-        "runs/role-driven-validation/pass2-cross-project-20261014-r4/validation_report.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "runs/autonomous-validation/pass3-real-projects-20261014-r2/validation_report.json",
-        "tests/test_autonomous_validation_pass3.py"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-REPO-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "project_management/summaries/ITER-106-autonomous-validation-pass3.md",
-        "runs/autonomous-validation/pass3-real-projects-20261014-r2/validation_report.json"
-      ]
-    },
-    {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-106",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_RESULTS.json",
-        "artifacts/project_generation_benchmark/PGBV1_BASELINE_20261014_04/PROJECT_GENERATION_METRICS.json",
-        "project_management/summaries/ITER-106-project-generation-quality-pass.md"
-      ]
+      "id": "EXP-MVP-007",
+      "title": "Repository and product evidence are separate",
+      "statement": "A commit, remote SHA, or CI pass proves repository state only; it does not prove that a real project was generated, executed, or accepted.",
+      "applies_when": ["publishing a branch", "reporting readiness"],
+      "avoid": ["raising product level from test count", "treating CI as runtime acceptance"]
     }
   ]
 }
