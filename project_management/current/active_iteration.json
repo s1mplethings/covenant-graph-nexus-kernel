@@ -1,28 +1,27 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-MVP-AGENT-CHEAP-EXECUTOR-006",
+  "iteration_id": "ITER-KERNEL-FOUNDATION-006",
   "project_id": "cgkn",
-  "goal": "Prove a high-capability Agent can compose and repair a CapabilityTree while a separate bounded low-cost LLM executor performs file work through the existing Block contract.",
-  "backlog_item_ids": ["MVP-013"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS",
-  "delivery_approach": "adaptive vertical slice over the stable CapabilityTree, ExecutionDAG, Block, registry, and state authorities",
+  "goal": "Complete and test every current kernel foundation layer before adding new project-team capabilities.",
+  "backlog_item_ids": ["MVP-014A"],
+  "workflow_state": "running",
+  "evidence_status": "NOT_EVALUATED",
+  "delivery_approach": "bottom-up layer completion with machine-enforced authorities and source-to-test responsibility",
   "acceptance_criteria": [
-    "semantic capability versions resolve 1.10 after 1.9 and before 2.0",
-    "Growth executor creation uses a generic implementation-identity factory",
-    "Agent outputs only validated TreeEdit decisions and is limited to four decisions",
-    "cheap LLM outputs strict read/list/write/patch proposals and deterministic code applies them",
-    "success, failure-repair, and escalation paths preserve unaffected result reuse",
-    "real Provider validation uses different Agent and worker models or readiness remains LEVEL_3"
+    "all current non-init core sources have test responsibility mappings",
+    "architecture, test architecture, and completeness gates pass",
+    "P0 layers include negative, boundary, recovery or fault tests where applicable",
+    "full-core static, unit, boundary, and local-functional profiles pass",
+    "functional_readiness remains LEVEL_4 while kernel_foundation is independently evaluated"
   ],
   "quality_metrics": [
-    {"id": "QM-AGENT-CALLS", "measure": "high-capability Agent decisions", "target": "1-4", "actual": "2 real qwen3.8-max calls"},
-    {"id": "QM-WORKER-SCOPE", "measure": "worker allowed action vocabulary", "target": "read/list/write/patch only", "actual": "4 actions; shell/network/goal/DAG/package/delivery absent"},
-    {"id": "QM-REAL-VERTICAL", "measure": "real edit and real pytest", "target": "PASS", "actual": "initial pytest failed; worker patched math_utils.py; final pytest 1 passed"}
+    {"id": "QM-SOURCE-MAPPING", "measure": "mapped current core sources", "target": "100%", "actual": "pending"},
+    {"id": "QM-CORE-PROFILES", "measure": "required local profiles", "target": "4 PASS", "actual": "pending"},
+    {"id": "QM-COVERAGE", "measure": "per-layer line and branch coverage", "target": "recorded without false completion", "actual": "pending"}
   ],
-  "out_of_scope": ["kernel self-modification", "shell or network tools exposed to the worker", "compatibility-mainline replacement", "a second execution graph"],
-  "evidence_refs": ["governance/agent_mvp_validation.json", "python -m pytest -q tests/agent tests/capabilities tests/growth tests/executors tests/runtime tests/execution tests/state", "python scripts/run_agent_mvp.py --run-root <isolated> --benchmark --json"],
-  "review": {"outcome": "accepted", "feedback": ["Real high-capability Agent and cheap worker models were separately configured and called.", "The worker changed a real file and the existing PythonTestExecutor observed pytest PASS.", "Fake-provider tests cover controlled repair, escalation, and forbidden action rejection."]},
-  "retrospective": {"worked": ["A machine-readable capability catalog prevented model aliases from becoming execution authority.", "Fail-closed TreeEdit and empty-DAG validation rejected two malformed real attempts before a successful run."], "did_not_work": ["The first high-model attempt used noncanonical payload aliases; the second used an undeclared structural root."], "experiments": ["Use MVP-014 for a real-provider repair checkpoint and aggregate token/context budget evidence."]}
+  "out_of_scope": ["new team roles", "Self-Growth V1", "concurrency", "stress or soak", "public delivery", "compatibility-mainline migration"],
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }

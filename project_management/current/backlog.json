@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-013",
+  "current_item_id": "MVP-014A",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NOT_EVALUATED",
   "product_authority": [
@@ -196,6 +196,16 @@
         "failure repair and escalation remain bounded"
       ],
       "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-014A",
+      "title": "Freeze and complete the kernel foundation",
+      "priority": 14,
+      "state": "in_progress",
+      "value": "Make every current kernel layer fail-closed, tested, mapped, and governed before adding leaves.",
+      "acceptance": ["single authorities", "complete source-to-test mapping", "static, unit, boundary, and local-functional profiles", "foundation vertical slice", "independent kernel completeness status"],
+      "blocked_successors": ["MVP-014B", "Research", "PM", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "evidence_status": "NOT_EVALUATED"
     }
   ]
 }

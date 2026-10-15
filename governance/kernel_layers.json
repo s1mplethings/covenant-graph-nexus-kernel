@@ -1,0 +1,24 @@
+{
+  "kind": "CGKNKernelLayers",
+  "schema_version": "1.0",
+  "direction": "higher layers may depend on the same or lower layers only",
+  "layers": [
+    {"id": "L0", "packages": [], "description": "product contracts and common identity"},
+    {"id": "L1", "packages": ["cgkn.artifacts"], "description": "artifact identity and storage"},
+    {"id": "L2", "packages": ["cgkn.component", "cgkn.compiler"], "description": "component and compilation contracts"},
+    {"id": "L3", "packages": ["cgkn.capabilities", "cgkn.orchestration", "cgkn.execution", "cgkn.state", "cgkn.providers"], "description": "composition metadata, envelopes, state and provider transport"},
+    {"id": "L4", "packages": ["cgkn.executors", "cgkn.runtime"], "description": "bounded execution, coordination and recovery"},
+    {"id": "L5", "packages": ["cgkn.agent", "cgkn.growth", "cgkn.governance", "cgkn.telemetry"], "description": "agent, governed growth and telemetry"},
+    {"id": "L6", "packages": [], "description": "application and optional team capabilities"}
+  ],
+  "exceptions": [
+    {"from": "cgkn.providers", "to": "scripts.check_connectivity", "reason": "reviewed compatibility Provider transport adapter"},
+    {"from": "cgkn.providers", "to": "scripts.provider_transport", "reason": "reviewed compatibility Provider transport adapter"}
+  ],
+  "forbidden": [
+    {"from": "cgkn.component", "to": "cgkn.agent"},
+    {"from": "cgkn.state", "to": "cgkn.agent"},
+    {"from": "cgkn.orchestration", "to": "cgkn.providers"},
+    {"from": "cgkn.runtime", "to": "project_roles"}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "kind": "CGKNKernelCompleteness",
+  "schema_version": "1.0",
+  "functional_readiness": "LEVEL_4",
+  "kernel_foundation": "PARTIAL",
+  "layers": {
+    "L0": {"status": "COMPLETE", "criticality": "P0", "required_capabilities": ["product invariants", "single authority registry"], "required_test_classes": ["negative", "boundary"], "evidence": ["scripts/product_direction_gate.py", "scripts/kernel_architecture_gate.py"], "blockers": []},
+    "L1": {"status": "PARTIAL", "criticality": "P0", "required_capabilities": ["artifact identity", "integrity", "atomic storage"], "required_test_classes": ["happy_path", "negative", "roundtrip", "fault_injection", "security"], "evidence": [], "blockers": ["phase 1 not reviewed"]},
+    "L2": {"status": "PARTIAL", "criticality": "P0", "required_capabilities": ["component and port contracts"], "required_test_classes": ["happy_path", "negative", "roundtrip", "boundary"], "evidence": [], "blockers": ["phase 1 not reviewed"]},
+    "L3": {"status": "PARTIAL", "criticality": "P0", "required_capabilities": ["tree", "DAG", "execution envelope", "state", "provider boundary", "capability lifecycle"], "required_test_classes": ["happy_path", "negative", "roundtrip", "boundary", "fault_injection", "security"], "evidence": [], "blockers": ["phases 2-5 and 7 not reviewed"]},
+    "L4": {"status": "PARTIAL", "criticality": "P0", "required_capabilities": ["executor boundary", "runtime", "affected-only recovery"], "required_test_classes": ["happy_path", "negative", "boundary", "recovery", "fault_injection", "security"], "evidence": [], "blockers": ["phases 4 and 6 not reviewed"]},
+    "L5": {"status": "PARTIAL", "criticality": "P0", "required_capabilities": ["agent authority", "growth admission", "telemetry"], "required_test_classes": ["happy_path", "negative", "boundary", "fault_injection", "security"], "evidence": [], "blockers": ["phases 7-9 not reviewed"]},
+    "L6": {"status": "BLOCKED", "criticality": "P1", "required_capabilities": [], "required_test_classes": [], "evidence": [], "blockers": ["blocked_by_kernel_foundation"]}
+  },
+  "last_reviewed_commit": "aae094cc3c91a0a8ee31aa1563256b040b4f6bd0"
+}
