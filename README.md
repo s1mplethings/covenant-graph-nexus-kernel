@@ -28,6 +28,12 @@ vertical slice. It supports resume, explicit retry, affected-subgraph rerun,
 controlled tree edits, and a versioned Capability Registry. It has **not**
 replaced the default compatibility project-generation runtime.
 
+Self-Growth V0 can now discover the allowlisted Python standard-library
+`json.loads` implementation for a missing `json.parse@1` capability, run a
+bounded local trial, issue an admission receipt, persist the registry, resume
+the original DAG, and reuse the admitted capability in a later run. It cannot
+modify kernel files and makes no Provider or network calls.
+
 The remaining compatibility entrypoints are:
 
 - `scripts/codex_conversation.py`
@@ -58,6 +64,7 @@ compatibility runtime remains a separate, later decision.
 - `cgkn/state/` — project/run state, attempt history, and event log
 - `cgkn/executors/` — replaceable executor protocol, registry, and local adapters
 - `cgkn/capabilities/` — versioned capability lifecycle registry
+- `cgkn/growth/` — local gap, discovery, sandbox trial, admission, and reuse loop
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support

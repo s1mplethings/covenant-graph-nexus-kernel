@@ -403,6 +403,8 @@ def check() -> list[str]:
         "cgkn/state/store.py",
         "cgkn/runtime/dag_runner.py",
         "cgkn/capabilities/registry.py",
+        "cgkn/growth/loop.py",
+        "cgkn/growth/admission.py",
         "benchmarks/mvp_decision_efficiency/README.md"
     ):
         if not (ROOT / path).is_file():

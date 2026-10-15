@@ -147,14 +147,15 @@
       "id": "MVP-010",
       "title": "Prove first validated self-growth",
       "priority": 10,
-      "state": "planned",
+      "state": "done",
       "value": "Discover, integrate, test, register, and reuse one previously missing capability.",
       "acceptance": [
         "capability gap detected",
         "library, API, or tool search performed",
         "bounded trial passes",
         "new Block is registered and reused"
-      ]
+      ],
+      "evidence_status": "PASS"
     },
     {
       "id": "MVP-011",

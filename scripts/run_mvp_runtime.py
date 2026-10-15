@@ -28,12 +28,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--tree", type=pathlib.Path, required=True)
     parser.add_argument("--run-root", type=pathlib.Path, required=True)
+    parser.add_argument("--project-root", type=pathlib.Path, help="override the fixture workspace directory")
     parser.add_argument("--executor-config", type=pathlib.Path)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--retry-node")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     tree, run_id, project_root = load_tree(args.tree.resolve())
+    project_root = args.project_root.resolve() if args.project_root else project_root
     project_root.mkdir(parents=True, exist_ok=True)
     registry = ExecutorRegistry()
     for executor in (LocalActionExecutorAdapter(project_root), CommandExecutor(project_root), PythonTestExecutor(project_root), FileExecutor(project_root)):

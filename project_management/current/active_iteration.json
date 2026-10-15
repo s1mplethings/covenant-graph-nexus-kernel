@@ -1,39 +1,34 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-MVP-RUNTIME-FOUNDATION-004",
+  "iteration_id": "ITER-MVP-SELF-GROWTH-V0-005",
   "project_id": "cgkn",
-  "goal": "Execute, persist, resume, and locally rerun the canonical CapabilityTree-to-ExecutionDAG path, then prove controlled capability acquisition and reuse.",
-  "backlog_item_ids": ["MVP-002", "MVP-003", "MVP-004", "MVP-005", "MVP-006", "MVP-007", "MVP-008", "MVP-009", "MVP-010"],
+  "goal": "Prove one missing low-risk local capability can be discovered, sandbox-trialed, admitted, executed, persisted, and reused without Provider or network calls.",
+  "backlog_item_ids": ["MVP-010"],
   "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
-  "delivery_approach": "hybrid: stable kernel contracts with short deterministic vertical increments",
+  "evidence_status": "PASS",
+  "delivery_approach": "adaptive bounded experiment behind stable Foundation contracts",
   "acceptance_criteria": [
-    "one Block execution request/result contract projects bounded Component work",
-    "file-backed run state is atomic, append-only where required, resumable, and path confined",
-    "one ExecutorRegistry resolves bounded local adapters",
-    "the canonical ExecutionDAG executes a real success and failure pipeline",
-    "resume reuses successful nodes and explicit retry reruns only the affected subgraph",
-    "tree edits fail closed before commit",
-    "capabilities persist, admit only after tests, and record observed use",
-    "json.parse is discovered from the standard library, trialed, admitted, executed, and reused without Provider or network calls"
+    "json.parse is absent from the initial registry",
+    "offline discovery identifies only the allowlisted Python json.loads candidate",
+    "isolated valid, invalid, no-write, no-network, schema, provenance, and effect checks pass",
+    "an admission receipt binds the candidate and checks before registry admission",
+    "the original DAG node executes after admission",
+    "a second process-style registry load reuses the capability without invoking Growth",
+    "growth modifies zero kernel files and makes zero Provider or network calls"
   ],
   "quality_metrics": [
-    {"id": "QM-RUNTIME-FOCUSED", "measure": "focused Foundation test suite", "target": "PASS", "actual": "81 passed across the Foundation and cleanup-debt command groups"},
-    {"id": "QM-RUNTIME-VERTICAL", "measure": "hello execute then resume", "target": "3 executed then 3 reused", "actual": "3 executed then 3 reused; PASS"},
-    {"id": "QM-GROWTH-V0", "measure": "json.parse growth then reuse", "target": "one growth invocation then registry reuse", "actual": "NOT_EVALUATED"},
-    {"id": "QM-PROVIDER-NETWORK", "measure": "Provider and network calls", "target": "0", "actual": "0 Provider calls and 0 network calls in Foundation runtime"}
+    {"id": "QM-GROWTH-INVOKE", "measure": "growth invocation count", "target": "1 across two runs", "actual": "1"},
+    {"id": "QM-GROWTH-TRIAL", "measure": "bounded sandbox trial", "target": "1 trial with all checks PASS", "actual": "1 trial; all checks PASS"},
+    {"id": "QM-GROWTH-REUSE", "measure": "second-run registry reuse", "target": "PASS without rediscovery", "actual": "PASS; persistent registry loaded and Growth not invoked"},
+    {"id": "QM-GROWTH-BOUNDARY", "measure": "kernel modifications, Provider calls, network calls by Growth", "target": "0 / 0 / 0", "actual": "0 / 0 / 0"}
   ],
-  "out_of_scope": ["compatibility mainline replacement", "Provider planning expansion", "public delivery", "fixed role pipelines", "large-scale concurrency", "stress or soak testing"],
+  "out_of_scope": ["kernel self-modification", "live Provider work", "external package installation by default", "compatibility-mainline replacement"],
   "evidence_refs": [
-    "python -m compileall -q cgkn contracts scripts",
-    "python scripts/product_direction_gate.py",
-    "python -m pytest -q tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component tests/execution tests/state tests/executors tests/runtime tests/capabilities",
-    "python -m pytest -q tests/test_kernel_contract.py tests/test_canonical_repo_publish.py",
-    "python scripts/run_mvp_runtime.py --project-id hello-project --tree examples/mvp-runtime/hello-pipeline/tree.json --run-root <isolated> --json",
-    "python scripts/run_mvp_runtime.py --project-id hello-project --tree examples/mvp-runtime/hello-pipeline/tree.json --run-root <isolated> --resume --json",
-    "git diff --check"
+    "python -m pytest -q tests/growth tests/capabilities tests/runtime tests/execution tests/state tests/executors",
+    "python scripts/run_self_growth_v0.py --run-root <isolated> --json",
+    "canonical External Executor Discovery for text.slugify returned NOT_EVALUATED with no selected executor and zero trials"
   ],
-  "review": {"outcome": "accepted_with_limits", "feedback": ["The isolated runtime proves LEVEL 2 behavior without replacing the compatibility mainline.", "External/provider executors and Self-Growth remain outside this Foundation branch."]},
-  "retrospective": {"worked": ["Extending existing ComponentSpec, PortSpec, CapabilityTree, ExecutionDAG, and ArtifactRef avoided parallel authorities.", "Real subprocess and filesystem fixtures exposed resume and dependency behavior deterministically."], "did_not_work": ["The baseline Kernel Contract tests still asserted retired Product Studio text and had to be realigned before feature work."], "experiments": ["Keep serial execution until deterministic state and retry semantics have repeated evidence."]}
+  "review": {"outcome": "accepted", "feedback": ["The first run started with json.parse absent, admitted exactly one stdlib candidate, and continued the DAG.", "The second run loaded the persisted registry and reused the capability without another Growth invocation.", "Self-Growth V1 remains NOT_EVALUATED because canonical discovery produced no candidate with complete ALLOW/PASS/exact-version evidence."]},
+  "retrospective": {"worked": ["A fixed allowlisted stdlib identity kept V0 deterministic and offline.", "Positive admission predicates prevented a false rejection after the first sandbox check exposed inverted boolean semantics."], "did_not_work": ["The initial sandbox receipt represented safety as kernel_files_modified=false and a generic all() treated it as failure.", "The optional external search returned incomplete or REVIEW trust evidence and correctly ran no install trial."], "experiments": ["Do not implement V1 admission until canonical discovery can return a complete selected executor for the exact requested package version."]}
 }

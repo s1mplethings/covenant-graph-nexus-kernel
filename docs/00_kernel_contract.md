@@ -71,6 +71,13 @@ The operational MVP route is now bounded by these single authorities:
 - `FileRunStore` owns human-readable project/run state, immutable attempt history, and append-only events;
 - `DAGRunner` serially executes, resumes, and explicitly retries the smallest affected DAG subgraph;
 - `CapabilityRegistry` owns versioned capability lifecycle and observed execution evidence.
+- `GrowthLoop` owns bounded capability-gap handling; `LocalSandbox` produces trial evidence and `CapabilityAdmissionReceipt` is the only V0 admission decision record.
+
+Self-Growth V0 is limited to allowlisted local discovery and cannot write kernel
+source, use Provider work, or access the network. External candidates retain
+the canonical External Executor Discovery trust requirements and cannot be
+admitted while license, maintenance, exact-version security, metadata,
+compatibility, or bounded-trial evidence is `REVIEW`, `BLOCK`, or `UNKNOWN`.
 
 The compatibility conversation and generation entrypoints remain callable and
 are not replaced by this isolated MVP runtime.
