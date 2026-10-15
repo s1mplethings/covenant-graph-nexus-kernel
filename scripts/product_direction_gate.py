@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import ast
 import json
 import pathlib
 
@@ -18,6 +19,10 @@ FORBIDDEN_ACTIVE_PATHS = {
     "docs/80_autonomous_validation_pass3.md",
     "docs/81_adaptive_autonomous_validation.md",
     "docs/82_autonomous_project_acceptance_integration.md",
+    "EDITION.md",
+    "TEST_E2E_REPORT.md",
+    "WORKTREE_AUDIT.md",
+    "test_e2e_service.py",
     "START_QWEN_L1_SMOKE.ps1",
     "CHECK_QWEN_L1_SMOKE.ps1",
     "scripts/RUN_QWEN_L1_SMOKE_WORKER.ps1",
@@ -31,11 +36,65 @@ FORBIDDEN_ACTIVE_PATHS = {
     "scripts/role_driven_validation_pass2.py",
     "scripts/autonomous_validation_pass3.py",
     "scripts/adaptive_autonomous_validation.py",
+    "benchmarks/project_generation_v1",
+    "benchmarks/orbit_360_workbench",
+    "tests/test_project_generation_benchmark_v1.py",
+    "tests/test_failure_to_repair.py",
+    "tests/test_trimmed_case_debug.py",
+    "tests/test_external_api_dependency_policy.py",
+    "tests/test_adaptive_autonomous_validation.py",
+    "tests/test_autonomous_validation_pass3.py",
+    "tests/test_function_stress_runner.py",
+    "tests/test_pass2_operational_closure.py",
+    "tests/test_pass6_latency_audit.py",
+    "tests/test_pass6_long_horizon.py",
+    "tests/test_real_workload_recovery_stress.py",
+    "tests/test_role_driven_validation.py",
+    "tests/test_role_driven_validation_pass2.py",
+    "schemas/adaptive_autonomous_validation_report_v1.schema.json",
+    "schemas/autonomous_validation_pass3_report_v1.schema.json",
+    "schemas/role_driven_validation_pass2_report_v1.schema.json",
+    "schemas/role_driven_validation_report_v1.schema.json",
+}
+
+FORBIDDEN_IMPORT_PREFIXES = {
+    "benchmarks.project_generation_v1",
+    "scripts.adaptive_autonomous_validation",
+    "scripts.autonomous_validation_pass3",
+    "scripts.role_driven_validation",
+    "scripts.role_driven_validation_pass2",
+    "adaptive_autonomous_validation",
+    "autonomous_validation_pass3",
+    "role_driven_validation",
+    "role_driven_validation_pass2",
 }
 
 
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def _imports(path: pathlib.Path) -> set[str]:
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, SyntaxError, ValueError):
+        return set()
+    values: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            values.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            values.add(node.module)
+    return values
+
+
+def _active_python_files() -> list[pathlib.Path]:
+    ignored = {".git", ".venv", "venv", "__pycache__", "legacy", "generated", "artifacts", "runs"}
+    return [
+        path
+        for path in ROOT.rglob("*.py")
+        if not any(part in ignored for part in path.relative_to(ROOT).parts)
+    ]
 
 
 def check() -> list[str]:
@@ -72,15 +131,22 @@ def check() -> list[str]:
         if (ROOT / path).exists():
             errors.append(f"obsolete_active_path:{path}")
 
+    for path in _active_python_files():
+        relative = path.relative_to(ROOT).as_posix()
+        for imported in _imports(path):
+            if any(imported == prefix or imported.startswith(prefix + ".") for prefix in FORBIDDEN_IMPORT_PREFIXES):
+                errors.append(f"obsolete_active_import:{relative}:{imported}")
+
     for path in (
         "cgkn/component/spec.py",
         "cgkn/component/ports.py",
         "cgkn/orchestration/capability_tree.py",
         "cgkn/orchestration/execution_dag.py",
+        "benchmarks/mvp_decision_efficiency/README.md",
     ):
         if not (ROOT / path).is_file():
             errors.append(f"missing_mvp_core:{path}")
-    return errors
+    return sorted(set(errors))
 
 
 def main() -> int:
