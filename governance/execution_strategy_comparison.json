@@ -1,0 +1,14 @@
+{
+  "kind": "CGKNExecutionStrategyComparisonSummary",
+  "schema_version": "1.0",
+  "source_commit": "c7bda86408e240f997f752bf0fe9a124bea40d4e",
+  "fixed_provider_family": "openai_compatible",
+  "direct_model": "qwen3.8-max",
+  "dag_worker_model": "qwen3.7-flash",
+  "stage_1_initial": {"direct": "0/1", "dag": "0/1", "direct_calls": 1, "dag_calls": 3, "direct_tokens": 9969, "dag_tokens": 17342},
+  "stage_1_after_affected_repair": {"direct": "0/1", "dag": "0/1", "direct_calls": 1, "dag_calls": 5, "direct_tokens": 9629, "dag_tokens": 23253, "dag_repair_rounds": 2, "dag_reused_nodes": ["WU-CORE", "WU-DOCS"], "whole_replans": 0, "manual_edits": 0},
+  "repeat": "NOT_EVALUATED",
+  "orchestration_value": "NOT_ESTABLISHED",
+  "stop_reason": "DAG did not pass Stage 1; the >=2/3 repeat gate cannot be evaluated",
+  "evidence_status": "NEEDS_REWORK"
+}

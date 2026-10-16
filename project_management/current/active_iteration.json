@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Establish a ratcheted source-bound baseline, then compile user requirements into traceable executable obligations before comparing direct Agent and composed DAG execution.",
   "backlog_item_ids": ["PB-017"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "waiting_user_review",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
     "Phase 0 separates Kernel, Application, and Experiment receipt freshness and promotes BASELINE-OBLIGATION-001 only after fast regression passes",
     "obligations, dependency policies, error semantics, and traceability are immutable, deterministic, source-bound, and complete before generation",
@@ -44,8 +44,10 @@
     ,"artifacts/baselines/phase3-fast.json"
     ,"governance/baselines/receipts/BASELINE-OBLIGATION-005.json"
     ,"artifacts/baselines/phase4-fast.json"
+    ,"governance/obligation_compiler_status.json"
+    ,"governance/execution_strategy_comparison.json"
   ],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "review": {"outcome": "needs_rework", "feedback": ["Real Direct and composed DAG Stage 1 both failed; repeat and semantic A/B/C rerun remain gated."], "accepted_backlog_item_ids": []},
   "retrospective": {
     "worked": [
       "Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed.",
@@ -54,7 +56,7 @@
       "Phase 3 bound TestPlan and three cohesive WorkUnitContracts to a real fake-Provider DAG that passed compile, pytest, runtime, snapshot, and hidden acceptance.",
       "Phase 4 formalized pre-execution routing and a bounded Direct Agent route; fake Direct and DAG runs passed independently with the same obligation facts."
     ],
-    "did_not_work": [],
+    "did_not_work": ["The first real DAG public-test worker produced invalid pytest teardown logic; two affected-only repair rounds preserved core/docs but did not recover pytest.", "The real Direct Agent route also failed hidden acceptance in both Stage 1 attempts."],
     "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
   }
 }
