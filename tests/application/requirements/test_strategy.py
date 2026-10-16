@@ -92,6 +92,7 @@ def test_direct_and_dag_comparison_uses_independent_workspaces_and_fixed_routes(
     assert result["direct"]["successes"] == result["dag"]["successes"] == 1
     assert result["direct"]["provider_calls"] == 1 and result["dag"]["provider_calls"] == 3
     assert result["runs"][0]["workspace"] != result["runs"][1]["workspace"]
+    assert json.loads(json.dumps(result))["runs"][0]["oracle_evidence"]
 
 
 def test_direct_oracle_routes_broken_public_test_to_test_scope(tmp_path) -> None:

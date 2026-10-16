@@ -12,6 +12,15 @@ from .dag import ObligationDAGService
 from .direct import DirectAgentService
 
 
+def _plain(value: Any) -> Any:
+    """Recursively materialize immutable semantic values for durable JSON receipts."""
+    if isinstance(value, Mapping):
+        return {str(key): _plain(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_plain(item) for item in value]
+    return value
+
+
 class RecordingClient:
     def __init__(self, delegate: CompletionClient):
         self.delegate = delegate
@@ -45,7 +54,7 @@ class StrategyComparison:
             }
         return {
             "kind": "CGKNExecutionStrategyComparison", "schema_version": "1.0", "created_at": self.created_at,
-            "runs": [dict(item) for item in self.runs], "direct": aggregate(direct), "dag": aggregate(dag),
+            "runs": [_plain(item) for item in self.runs], "direct": aggregate(direct), "dag": aggregate(dag),
             "orchestration_value": "POSITIVE" if aggregate(dag)["success_rate"] >= aggregate(direct)["success_rate"] else "NEGATIVE",
         }
 
