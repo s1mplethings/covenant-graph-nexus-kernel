@@ -4,4 +4,5 @@ from .executor import OracleExecutor
 from .evaluator import EvidenceComparator, FailureClass, FailureEvidence, PublicTestEvidence, PublicTestStatus
 from .registry import OracleRegistry
 
-__all__ = ["CSV_OBLIGATION_IDS", "EvidenceComparator", "FailureClass", "FailureEvidence", "OracleEvidence", "OracleExecutor", "OracleKind", "OraclePlan", "OraclePlanCompiler", "OracleRegistry", "OracleSpec", "OracleStatus", "PublicTestEvidence", "PublicTestStatus"]
+__all__ = ["CSV_OBLIGATION_IDS", "EvidenceComparator", "FailureClass", "FailureEvidence", "ObligationOracleExecutorAdapter", "OracleEvidence", "OracleExecutor", "OracleKind", "OraclePlan", "OraclePlanCompiler", "OracleRegistry", "OracleSpec", "OracleStatus", "PublicTestEvidence", "PublicTestStatus"]
+from .adapter import ObligationOracleExecutorAdapter

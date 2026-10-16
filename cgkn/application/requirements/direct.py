@@ -33,6 +33,9 @@ class DirectAgentResult:
     hidden_acceptance: str
     manual_edits: int = 0
     whole_replans: int = 0
+    public_pytest: str = "FAIL"
+    oracle_status: str = "NOT_EVALUATED"
+    oracle_evidence: tuple[Mapping[str, Any], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -40,7 +43,8 @@ class DirectAgentResult:
             "workspace": str(self.workspace), "provider_calls": self.provider_calls, "tokens": self.tokens,
             "wall_time_ms": self.wall_time_ms, "repair_rounds": self.repair_rounds,
             "hidden_acceptance": self.hidden_acceptance, "manual_edits": self.manual_edits,
-            "whole_replans": self.whole_replans,
+            "whole_replans": self.whole_replans, "public_pytest": self.public_pytest,
+            "oracle_status": self.oracle_status, "oracle_evidence": [dict(item) for item in self.oracle_evidence],
         }
 
 
@@ -59,6 +63,7 @@ class DirectAgentService:
         workspace, run_root = workspace.resolve(), run_root.resolve()
         workspace.mkdir(parents=True, exist_ok=True); run_root.mkdir(parents=True, exist_ok=True)
         compilation = compile_csv_cleaner()
+        from cgkn.application.verification import OracleExecutor, OraclePlanCompiler, OracleStatus
         if compilation.preflight.as_dict()["status"] != "COMPLETE":
             raise ValueError("obligation preflight must be COMPLETE before Provider execution")
         write_obligation_preflight(run_root / "obligation_preflight.json", compilation.preflight)
@@ -91,10 +96,20 @@ class DirectAgentService:
             [sys.executable, "-m", "csv_cleaner", "--help"],
         )
         gate_env = os.environ.copy(); gate_env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-        passed = all(subprocess.run(command, cwd=workspace, capture_output=True, timeout=60, env=gate_env).returncode == 0 for command in commands)
+        gate_results = tuple(subprocess.run(command, cwd=workspace, capture_output=True, timeout=60, env=gate_env) for command in commands)
+        passed = all(item.returncode == 0 for item in gate_results)
+        public_pytest = "PASS" if gate_results[1].returncode == 0 else "FAIL"
+        oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, policy)
+        oracle_rows = OracleExecutor((policy,)).execute_plan(oracle_plan, workspace)
+        oracle_status = "PASS" if all(item.status is OracleStatus.PASS for item in oracle_rows) else "FAIL"
         env = os.environ.copy()
         env.update({"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "CGKN_GENERATED_PROJECT": str(workspace), "PYTHONPATH": str(workspace), "CGKN_TEST_ALLOWED_PACKAGES": "pytest"})
         hidden_run = subprocess.run([sys.executable, "-m", "pytest", "-q", str(self.root / "benchmarks" / "real_project_generation" / "acceptance" / "test_cli_csv_cleaner.py")], cwd=workspace, capture_output=True, timeout=60, env=env)
         hidden = "PASS" if hidden_run.returncode == 0 else "FAIL"
-        status = "PASS" if passed and hidden == "PASS" else "FAIL"
-        return DirectAgentResult(status, run_id, workspace, 1, int(completion.usage.get("total_tokens", 0)), int((time.perf_counter() - started) * 1000), 0, hidden)
+        status = "PASS" if passed and oracle_status == "PASS" and hidden == "PASS" else "FAIL"
+        return DirectAgentResult(
+            status, run_id, workspace, 1, int(completion.usage.get("total_tokens", 0)),
+            int((time.perf_counter() - started) * 1000), 0, hidden,
+            public_pytest=public_pytest, oracle_status=oracle_status,
+            oracle_evidence=tuple(item.as_dict() for item in oracle_rows),
+        )

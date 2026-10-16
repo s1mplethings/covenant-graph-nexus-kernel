@@ -291,19 +291,25 @@ class OracleExecutor:
                 errors.extend(command_errors)
         assert last is not None
         if "stdout_csv" in spec.expected:
-            rows = list(csv.reader(io.StringIO(last.stdout)))
+            rows = [row for row in csv.reader(io.StringIO(last.stdout)) if row]
             csv_expected = spec.expected["stdout_csv"]
             if not rows or rows[0] != list(csv_expected["header"]) or rows[1:] != [list(row) for row in csv_expected["rows"]]:
                 errors.append("preview stdout CSV mismatch")
-        output_path = _inside(root, str(spec.setup.get("output_path", "output.csv")))
+        output_declared = (
+            "output_path" in spec.setup
+            or "output_created" in spec.expected
+            or "output_created" in spec.side_effect_assertions
+            or spec.forbidden.get("successful_output_commit") is True
+        )
+        output_path = _inside(root, str(spec.setup.get("output_path", "output.csv"))) if output_declared else None
         should_exist = spec.expected.get("output_created") is True
         must_not_exist = spec.side_effect_assertions.get("output_created") is False or spec.forbidden.get("successful_output_commit") is True
-        if should_exist and not output_path.is_file():
+        if should_exist and (output_path is None or not output_path.is_file()):
             errors.append("expected output side effect missing")
-        if must_not_exist and output_path.exists():
+        if must_not_exist and output_path is not None and output_path.exists():
             errors.append("forbidden output side effect observed")
-        artifacts = ({"path": output_path.relative_to(root).as_posix(), "sha256": _sha(output_path)},) if output_path.is_file() else ()
-        return ({"_passed": not errors, "return_code": last.returncode, "output_created": output_path.is_file(), "assertion_errors": errors}, last.returncode, last.stdout, last.stderr, artifacts)
+        artifacts = ({"path": output_path.relative_to(root).as_posix(), "sha256": _sha(output_path)},) if output_path is not None and output_path.is_file() else ()
+        return ({"_passed": not errors, "return_code": last.returncode, "output_created": bool(output_path and output_path.is_file()), "assertion_errors": errors}, last.returncode, last.stdout, last.stderr, artifacts)
 
     def _policy(self, spec: OracleSpec) -> DependencyPolicy:
         if len(spec.dependency_policy_refs) != 1:

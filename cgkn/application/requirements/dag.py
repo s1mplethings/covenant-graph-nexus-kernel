@@ -37,6 +37,11 @@ class ObligationDAGResult:
     hidden_acceptance: str
     manual_edits: int = 0
     whole_replans: int = 0
+    public_pytest: str = "FAIL"
+    oracle_status: str = "NOT_EVALUATED"
+    oracle_evidence: tuple[Mapping[str, Any], ...] = ()
+    repair_owners: tuple[str, ...] = ()
+    reused_work_units: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -44,7 +49,10 @@ class ObligationDAGResult:
             "run_id": self.run_id, "workspace": str(self.workspace), "provider_calls": self.provider_calls,
             "tokens": self.tokens, "wall_time_ms": self.wall_time_ms, "repair_rounds": self.repair_rounds,
             "hidden_acceptance": self.hidden_acceptance, "manual_edits": self.manual_edits,
-            "whole_replans": self.whole_replans, "summary": dict(self.summary),
+            "whole_replans": self.whole_replans, "public_pytest": self.public_pytest,
+            "oracle_status": self.oracle_status, "oracle_evidence": [dict(item) for item in self.oracle_evidence],
+            "repair_owners": list(self.repair_owners), "reused_work_units": list(self.reused_work_units),
+            "summary": dict(self.summary),
         }
 
 
@@ -62,10 +70,16 @@ class ObligationDAGService:
         workspace.mkdir(parents=True, exist_ok=True)
         run_root.mkdir(parents=True, exist_ok=True)
         compilation = compile_csv_cleaner()
+        from cgkn.application.verification import (
+            EvidenceComparator, ObligationOracleExecutorAdapter, OracleEvidence,
+            OraclePlanCompiler, OracleStatus, PublicTestEvidence, PublicTestStatus,
+        )
         if compilation.preflight.as_dict()["status"] != "COMPLETE":
             raise ValueError("obligation preflight must be COMPLETE before Provider execution")
         write_obligation_preflight(run_root / "obligation_preflight.json", compilation.preflight)
         test_plan = TestPlanCompiler().compile(compilation.obligations)
+        dependency_policy = next(item.dependency_policy for item in compilation.obligations.obligations if item.dependency_policy)
+        oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, dependency_policy)
         units = compile_csv_work_units(compilation)
         obligation_by_id = {item.obligation_id: item for item in compilation.obligations.obligations}
         nodes: list[CapabilityNode] = []
@@ -89,13 +103,15 @@ class ObligationDAGService:
             CapabilityNode("compile", capability_ref="project.python.compile@1", depends_on=worker_ids, config={"executor_ref": "local.command@1", "goal": "compile", "command": [sys.executable, "-m", "compileall", "-q", "."], "timeout_seconds": 60}),
             CapabilityNode("pytest", capability_ref="project.python.pytest@1", depends_on=("compile",), config={"executor_ref": "local.python-test@1", "goal": "public pytest", "pytest_args": ["-q"], "timeout_seconds": 60}),
             CapabilityNode("runtime", capability_ref="project.command.smoke@1", depends_on=("compile",), config={"executor_ref": "local.command@1", "goal": "runtime", "command": [sys.executable, "-m", "csv_cleaner", "--help"], "timeout_seconds": 60}),
-            CapabilityNode("snapshot", capability_ref="project.snapshot@1", depends_on=("pytest", "runtime"), config={"executor_ref": "project.snapshot@1", "goal": "snapshot", "entrypoints": ["csv_cleaner/__main__.py"], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [f"{sys.executable} -m csv_cleaner --help"]}),
+            CapabilityNode("oracle", capability_ref="project.obligation-oracle-plan@1", depends_on=("compile",), config={"executor_ref": "project.obligation-oracle@1", "goal": "deterministic obligation verification", "oracle_plan": oracle_plan.as_dict(), "dependency_policies": [dependency_policy.as_dict()]}),
+            CapabilityNode("snapshot", capability_ref="project.snapshot@1", depends_on=("pytest", "runtime", "oracle"), config={"executor_ref": "project.snapshot@1", "goal": "snapshot", "entrypoints": ["csv_cleaner/__main__.py"], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [f"{sys.executable} -m csv_cleaner --help"]}),
             CapabilityNode("accept", capability_ref="project.acceptance.external@1", depends_on=("snapshot",), config={"executor_ref": "project.acceptance@1", "goal": "hidden acceptance", "case_id": "cli_csv_cleaner", "dependency_policy": next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy), "timeout_seconds": 60}),
         ))
         tree = CapabilityTree("execute compiled CSV obligations", tuple(nodes))
         registry = ExecutorRegistry()
         registry.register(ObligationWorkUnitExecutor(workspace, self.client, self.worker))
         registry.register(CommandExecutor(workspace)); registry.register(PythonTestExecutor(workspace))
+        registry.register(ObligationOracleExecutorAdapter(workspace))
         registry.register(ProjectSnapshotExecutor(workspace)); registry.register(ExternalAcceptanceExecutor(workspace, self.root / "benchmarks" / "real_project_generation" / "acceptance"))
         run_id = f"csv-obligation-{uuid.uuid4().hex[:10]}"
         store = FileRunStore(run_root)
@@ -104,20 +120,62 @@ class ObligationDAGService:
             constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
         )
         repair_rounds = 0
+        repair_owners: list[str] = []
+        reused_work_units: set[str] = set()
         while summary.status != "SUCCEEDED" and repair_rounds < 2:
             failed = summary.failed_nodes[0] if summary.failed_nodes else ""
-            owner = "WU-TESTS" if failed == "pytest" else failed if failed in {item.work_unit_id for item in units} else ""
+            owner = failed if failed in {item.work_unit_id for item in units} else ""
+            failure: Mapping[str, Any]
+            if failed in {"pytest", "oracle"} or ({"pytest", "oracle"} & set(summary.failed_nodes)):
+                try:
+                    oracle_result = store.load_result("cli_csv_cleaner", run_id, "oracle")
+                    oracle_rows = tuple(OracleEvidence.from_dict(item) for item in oracle_result.outputs.get("evidence", ()))
+                except Exception:
+                    oracle_rows = ()
+                try:
+                    pytest_result = store.load_result("cli_csv_cleaner", run_id, "pytest")
+                    pytest_pass = pytest_result.status.value == "SUCCEEDED"
+                    pytest_stdout = str(pytest_result.outputs.get("stdout", ""))
+                    pytest_stderr = str(pytest_result.outputs.get("stderr", ""))
+                except Exception:
+                    pytest_pass, pytest_stdout, pytest_stderr = False, "", "pytest evidence unavailable"
+                test_asset_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"}
+                selected = next((
+                    item for item in oracle_rows
+                    if item.status is not OracleStatus.PASS and not set(item.obligation_ids) <= test_asset_obligations
+                ), None)
+                if selected is None and pytest_pass:
+                    selected = next((item for item in oracle_rows if item.status is not OracleStatus.PASS), None)
+                if selected is None:
+                    selected = next((item for item in oracle_rows if not set(item.obligation_ids) <= test_asset_obligations), None)
+                if selected is not None:
+                    setup_failed = "ERROR collecting" in pytest_stdout or "fixture" in (pytest_stdout + pytest_stderr).lower()
+                    public = PublicTestEvidence(
+                        "EVIDENCE-PUBLIC-PYTEST", PublicTestStatus.PASS if pytest_pass else PublicTestStatus.FAIL,
+                        tuple(item.obligation_id for item in compilation.obligations.obligations), ("PUBLIC-PYTEST",),
+                        return_code=0 if pytest_pass else 1, stdout_summary=pytest_stdout[-2000:], stderr_summary=pytest_stderr[-2000:],
+                        setup_status="FAIL" if setup_failed else "PASS",
+                    )
+                    attributed = EvidenceComparator().compare(selected, public, dependency_policy=dependency_policy)
+                    owner = attributed.effective_owner or ""
+                    failure = attributed.as_dict() | {"failed_node": failed}
+                else:
+                    failure = {"failed_node": failed, "failure_class": "HARNESS_FAILURE", "allowed_repair_scope": []}
+            else:
+                result = store.load_result("cli_csv_cleaner", run_id, failed)
+                failure = {
+                    "failed_node": failed,
+                    "owner_work_unit": owner,
+                    "error": result.error.message if result.error else "validation failed",
+                    "stdout": str(result.outputs.get("stdout", ""))[-8000:],
+                    "stderr": str(result.outputs.get("stderr", ""))[-8000:],
+                    "allowed_repair_scope": list(next(item.target_paths for item in units if item.work_unit_id == owner)) if owner else [],
+                }
             if not owner:
                 break
-            result = store.load_result("cli_csv_cleaner", run_id, failed)
-            failure = {
-                "failed_node": failed,
-                "owner_work_unit": owner,
-                "error": result.error.message if result.error else "validation failed",
-                "stdout": str(result.outputs.get("stdout", ""))[-8000:],
-                "stderr": str(result.outputs.get("stderr", ""))[-8000:],
-                "allowed_repair_scope": list(next(item.target_paths for item in units if item.work_unit_id == owner)),
-            }
+            repair_owners.append(owner)
+            if owner == "WU-TESTS":
+                reused_work_units.update(("WU-CORE", "WU-DOCS"))
             tree = apply_tree_edits(tree, (
                 TreeEdit(f"repair-config-{repair_rounds}", "update_config", owner, {"config": {"failure_evidence": failure}}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
                 TreeEdit(f"repair-retry-{repair_rounds}", "retry_node", owner, {}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
@@ -128,11 +186,24 @@ class ObligationDAGService:
             )
             repair_rounds += 1
         hidden = "FAIL"
+        public_pytest = "FAIL"
+        oracle_status = "NOT_EVALUATED"
+        oracle_evidence: tuple[Mapping[str, Any], ...] = ()
         try:
             hidden = str(store.load_result("cli_csv_cleaner", run_id, "accept").outputs.get("status", "FAIL"))
         except Exception:
             pass
-        status = "PASS" if summary.status == "SUCCEEDED" and hidden == "PASS" else "FAIL"
+        try:
+            public_pytest = "PASS" if store.load_result("cli_csv_cleaner", run_id, "pytest").status.value == "SUCCEEDED" else "FAIL"
+        except Exception:
+            pass
+        try:
+            oracle_result = store.load_result("cli_csv_cleaner", run_id, "oracle")
+            oracle_status = str(oracle_result.outputs.get("status", "FAIL"))
+            oracle_evidence = tuple(dict(item) for item in oracle_result.outputs.get("evidence", ()))
+        except Exception:
+            pass
+        status = "PASS" if summary.status == "SUCCEEDED" and hidden == "PASS" and public_pytest == "PASS" and oracle_status == "PASS" else "FAIL"
         calls = len(getattr(self.client, "calls", ()))
         tokens = 0
         for unit in units:
@@ -140,4 +211,9 @@ class ObligationDAGService:
                 tokens += int(store.load_result("cli_csv_cleaner", run_id, unit.work_unit_id).usage.get("total_tokens", 0))
             except Exception:
                 pass
-        return ObligationDAGResult(status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens, int((time.perf_counter() - started) * 1000), repair_rounds, hidden)
+        return ObligationDAGResult(
+            status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens,
+            int((time.perf_counter() - started) * 1000), repair_rounds, hidden,
+            public_pytest=public_pytest, oracle_status=oracle_status, oracle_evidence=oracle_evidence,
+            repair_owners=tuple(repair_owners), reused_work_units=tuple(sorted(reused_work_units)),
+        )
