@@ -4,7 +4,7 @@
   "project": "CGKN",
   "current_item_id": "MVP-016",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
-  "verification_status": "NOT_EVALUATED",
+  "verification_status": "NEEDS_REWORK",
   "product_authority": [
     "PRODUCT_GOAL.md",
     "MVP_SCOPE.md",
@@ -226,7 +226,7 @@
       "id": "MVP-016",
       "title": "Select a canonical semantic artifact interface",
       "priority": 16,
-      "state": "in_progress",
+      "state": "partial",
       "value": "Replace prompt-coupled L6 coordination with validated contract, state, evidence, interface, and repair facts chosen through a fair A/B/C experiment.",
       "acceptance": [
         "three complete designs pass the same deterministic and fake-provider contract suite",
@@ -236,7 +236,7 @@
         "Kernel foundation remains COMPLETE and candidate projects receive zero manual edits"
       ],
       "blocked_successors": ["Web generation", "API generation", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "NEEDS_REWORK"
     }
   ]
 }

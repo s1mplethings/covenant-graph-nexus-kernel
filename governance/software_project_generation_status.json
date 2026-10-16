@@ -1,20 +1,22 @@
 {
   "kind": "CGKNSoftwareProjectGenerationStatus",
   "schema_version": "1.0",
-  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
+  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
+  "semantic_artifact_interface": "PARTIAL",
   "generation_readiness": "GENERATION_LEVEL_0",
   "bundle_status": "PARTIAL",
   "single_project": "FAIL",
-  "repeatability": "NOT_EVALUATED",
+  "repeatability": "FAIL",
   "multitype": "NOT_EVALUATED",
-  "repair": "NOT_EVALUATED",
-  "hidden_acceptance": "NOT_EVALUATED",
+  "repair": "PASS_WITH_LIMITS",
+  "hidden_acceptance": "FAIL",
   "false_pass": "PASS",
   "provider_validation": "NEEDS_REWORK",
   "blockers": [
-    "Stage 1 exhausted two Application Repair Rounds without a final project PASS",
-    "real Provider workers regressed generated interfaces and public tests within the fixed budget",
-    "Stages 2 through 5 were not run after the bounded stop condition"
+    "Designs A, B, and C each achieved 0/3 real CLI repeatability and failed their single CLI run",
+    "generated projects did not encode strict malformed-CSV rejection as an executable semantic obligation",
+    "generated public tests imported pytest despite the generated-project stdlib-only hygiene boundary",
+    "no semantic artifact design met the minimum production qualification threshold"
   ],
   "evidence": {
     "kernel_receipt": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e",
@@ -24,6 +26,10 @@
       "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1"
     ],
     "exploratory_source_commit": "094d5c567bdc42eeb5d33f9f81f91cd9f8ae5628",
-    "final_frozen_suite": "NOT_EVALUATED"
+    "final_frozen_suite": "NOT_EVALUATED",
+    "semantic_artifact_decision": "governance/semantic_artifact_design_decision.json",
+    "semantic_artifact_validation": "governance/semantic_artifact_validation_receipt.json",
+    "experiment_source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
+    "experiment_result": "NEEDS_REWORK"
   }
 }

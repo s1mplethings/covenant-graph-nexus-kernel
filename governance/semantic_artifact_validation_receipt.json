@@ -1,0 +1,45 @@
+{
+  "kind": "CGKNSemanticArtifactValidationReceipt",
+  "schema_version": "1.0",
+  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
+  "source_tree": "f0ecd1c5a181662ab6bde725be4a49e86c227d8c",
+  "evidence_status": "NEEDS_REWORK",
+  "semantic_artifact_interface": "PARTIAL",
+  "winner": "NONE",
+  "deterministic_validation": {
+    "schema_profile": {"status": "PASS", "passed": 19},
+    "fake_profile": {"status": "PASS", "passed": 6},
+    "round_trip": "PASS",
+    "hash_stability": "PASS",
+    "interface_extractor": "PASS",
+    "interface_guard": "PASS",
+    "failure_attribution": "PASS"
+  },
+  "real_provider_validation": {
+    "live_single": {"A": "FAIL", "B": "FAIL", "C": "FAIL"},
+    "live_repair": {"A": "PASS", "B": "PASS", "C": "PASS"},
+    "repeat": {"A": "0/3", "B": "0/3", "C": "0/3"},
+    "manual_candidate_edits": 0,
+    "whole_project_replans": 0,
+    "accepted_breaking_changes": 0,
+    "hidden_source_exposed": false
+  },
+  "comparison": {
+    "sha256": "ed628878cc132c4ca2525f248a186289dfed5845d6f054306fefbc923b40f12c",
+    "winner": "NONE"
+  },
+  "production_validation": "NOT_EVALUATED",
+  "kernel_regression": {
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "kernel_test_receipt_verification": "PASS",
+    "kernel_completeness_gate": "NEEDS_REWORK",
+    "unit_profile": "NEEDS_REWORK",
+    "unit_profile_detail": "326 passed, 1 skipped, 1 failed; the only failure was test_current_kernel_governance_passes_all_gates delegating to the same source-bound completeness check",
+    "remaining_profiles": "NOT_EVALUATED",
+    "note": "The old kernel receipt remains valid for the unchanged L0-L5 core hash, but the completeness gate intentionally rejects source files added after its c607705 source boundary. Production integration did not occur, so a new kernel source/evidence closure was not created; the combined profile command stopped after the unit profile failed."
+  },
+  "stop_condition": "B"
+}

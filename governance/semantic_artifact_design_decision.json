@@ -1,0 +1,145 @@
+{
+  "kind": "CGKNSemanticArtifactDesignDecision",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-SEMANTIC-ARTIFACT-DESIGN-009",
+  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
+  "source_tree": "f0ecd1c5a181662ab6bde725be4a49e86c227d8c",
+  "tested_designs": [
+    {
+      "design": "A",
+      "structure": "fine-grained immutable typed artifacts",
+      "core_types": 11,
+      "artifact_kinds": 10,
+      "schema_count": 10,
+      "score": 69.25,
+      "qualified": false,
+      "known_weaknesses": [
+        "highest type and evolution cost",
+        "the experiment represented the ten common facts but did not add the separately named SourceArtifact, TestArtifact, and ExecutionEvidence refinements from the original A sketch"
+      ]
+    },
+    {
+      "design": "B",
+      "structure": "one immutable SemanticArtifact envelope with a strict schema registry",
+      "core_types": 2,
+      "artifact_kinds": 10,
+      "schema_count": 10,
+      "score": 73.25,
+      "qualified": false,
+      "known_weaknesses": [
+        "weaker static type ergonomics",
+        "payload safety depends on mandatory registry validation"
+      ]
+    },
+    {
+      "design": "C",
+      "structure": "Contract, State, and Evidence envelopes with strict typed payload schemas",
+      "core_types": 4,
+      "artifact_kinds": 10,
+      "schema_count": 10,
+      "score": 74.25,
+      "qualified": false,
+      "known_weaknesses": [
+        "family envelopes remain broad",
+        "family classification alone did not close missing acceptance semantics"
+      ]
+    }
+  ],
+  "provider_config": {
+    "agent_model": "qwen3.8-max",
+    "worker_model": "qwen3.7-flash",
+    "agent_max_decisions": 4,
+    "worker_call_limit": 20,
+    "provider_call_limit": 24,
+    "repair_round_limit": 2,
+    "manual_candidate_edits": 0
+  },
+  "receipt_batches": [
+    {
+      "profile": "live-single",
+      "path": "experiments/semantic_artifact_design/receipts/live-single-20261016T040705Z.json",
+      "sha256": "bba3b6da0f71552f35a11bd56908d260887335227944ad1c1f3d2466f3c019e8"
+    },
+    {
+      "profile": "live-repair",
+      "path": "experiments/semantic_artifact_design/receipts/live-repair-20261016T040743Z.json",
+      "sha256": "750e0084ce5a281dd928be832a0e27615a614f26a941c4e1397f11ca528064a7"
+    },
+    {
+      "profile": "repeat",
+      "path": "experiments/semantic_artifact_design/receipts/repeat-20261016T043423Z.json",
+      "sha256": "4d1ae4b995e47c3daefc34f5223278ba3ada53074e779ca4cf7f5b4332cbf4ab"
+    }
+  ],
+  "metrics": {
+    "A": {
+      "cli_single": "FAIL",
+      "seeded_repair": "PASS",
+      "cli_repeat": "0/3",
+      "agent_calls": 10,
+      "worker_calls": 10,
+      "provider_calls": 21,
+      "tokens": 70375,
+      "wall_time_ms": 565411,
+      "interface_violations": 0,
+      "accepted_breaking_changes": 0,
+      "repair_rounds": 7,
+      "whole_replans": 0,
+      "hidden_acceptance_rate": 0.25
+    },
+    "B": {
+      "cli_single": "FAIL",
+      "seeded_repair": "PASS",
+      "cli_repeat": "0/3",
+      "agent_calls": 10,
+      "worker_calls": 10,
+      "provider_calls": 23,
+      "tokens": 73781,
+      "wall_time_ms": 467994,
+      "interface_violations": 0,
+      "accepted_breaking_changes": 0,
+      "repair_rounds": 7,
+      "whole_replans": 0,
+      "hidden_acceptance_rate": 0.25
+    },
+    "C": {
+      "cli_single": "FAIL",
+      "seeded_repair": "PASS",
+      "cli_repeat": "0/3",
+      "agent_calls": 10,
+      "worker_calls": 10,
+      "provider_calls": 24,
+      "tokens": 80377,
+      "wall_time_ms": 583461,
+      "interface_violations": 0,
+      "accepted_breaking_changes": 0,
+      "repair_rounds": 7,
+      "whole_replans": 0,
+      "hidden_acceptance_rate": 0.25
+    }
+  },
+  "hard_disqualifications": {
+    "A": [
+      "CLI repeatability below 2/3",
+      "hidden acceptance did not pass for every successful-target run",
+      "the requested fine-grained A type inventory was not complete"
+    ],
+    "B": [
+      "CLI repeatability below 2/3",
+      "hidden acceptance did not pass for every successful-target run"
+    ],
+    "C": [
+      "CLI repeatability below 2/3",
+      "hidden acceptance did not pass for every successful-target run"
+    ]
+  },
+  "winner": "NONE",
+  "runner_up": "NONE",
+  "decision_rationale": "All three designs passed deterministic schema and fake-provider integration and repaired the seeded defect with preserved tree and interface state. All three failed the real CLI single run and all three independent repeat runs. No design met the predeclared two-of-three CLI threshold, so selecting the numerically highest score would violate the minimum qualification rule.",
+  "common_failure_points": [
+    "The public acceptance semantics were not decomposed into sufficiently explicit executable constraints for strict malformed-CSV rejection.",
+    "Generated public tests imported pytest even though the generated project hygiene rule permits only stdlib or project modules.",
+    "Artifact shape improved state transfer and repair locality, but did not prove that acceptance boundary facts were complete before generation."
+  ],
+  "production_integration": "NOT_EVALUATED"
+}
