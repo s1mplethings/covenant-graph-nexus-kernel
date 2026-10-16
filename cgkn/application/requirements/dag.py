@@ -11,6 +11,7 @@ from cgkn.application.software_project.acceptance import ExternalAcceptanceExecu
 from cgkn.application.software_project.snapshot import ProjectSnapshotExecutor
 from cgkn.executors import CommandExecutor, ExecutorRegistry, PythonTestExecutor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
+from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edits
 from cgkn.providers import CompletionClient, ModelRoleConfig
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
@@ -102,6 +103,30 @@ class ObligationDAGService:
             project_id="cli_csv_cleaner", run_id=run_id, tree=tree, dag=compile_tree(tree),
             constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
         )
+        repair_rounds = 0
+        while summary.status != "SUCCEEDED" and repair_rounds < 2:
+            failed = summary.failed_nodes[0] if summary.failed_nodes else ""
+            owner = "WU-TESTS" if failed == "pytest" else failed if failed in {item.work_unit_id for item in units} else ""
+            if not owner:
+                break
+            result = store.load_result("cli_csv_cleaner", run_id, failed)
+            failure = {
+                "failed_node": failed,
+                "owner_work_unit": owner,
+                "error": result.error.message if result.error else "validation failed",
+                "stdout": str(result.outputs.get("stdout", ""))[-8000:],
+                "stderr": str(result.outputs.get("stderr", ""))[-8000:],
+                "allowed_repair_scope": list(next(item.target_paths for item in units if item.work_unit_id == owner)),
+            }
+            tree = apply_tree_edits(tree, (
+                TreeEdit(f"repair-config-{repair_rounds}", "update_config", owner, {"config": {"failure_evidence": failure}}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
+                TreeEdit(f"repair-retry-{repair_rounds}", "retry_node", owner, {}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
+            ), known_capabilities={node.capability_ref for node in tree.nodes if node.capability_ref})
+            summary = DAGRunner(registry, store).run(
+                project_id="cli_csv_cleaner", run_id=run_id, tree=tree, dag=compile_tree(tree), resume=True,
+                retry_node=owner, constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
+            )
+            repair_rounds += 1
         hidden = "FAIL"
         try:
             hidden = str(store.load_result("cli_csv_cleaner", run_id, "accept").outputs.get("status", "FAIL"))
@@ -115,4 +140,4 @@ class ObligationDAGService:
                 tokens += int(store.load_result("cli_csv_cleaner", run_id, unit.work_unit_id).usage.get("total_tokens", 0))
             except Exception:
                 pass
-        return ObligationDAGResult(status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens, int((time.perf_counter() - started) * 1000), 0, hidden)
+        return ObligationDAGResult(status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens, int((time.perf_counter() - started) * 1000), repair_rounds, hidden)

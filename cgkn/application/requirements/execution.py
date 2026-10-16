@@ -75,7 +75,7 @@ class ObligationWorkUnitExecutor:
             reads = tuple(str(item) for item in unit.get("allowed_read_paths", ()))
             scope = _ScopeAdapter(tuple(dict.fromkeys((*targets, *reads))), targets, (".git", ".github", ".cgkn", "benchmarks", "artifacts", "governance", "cgkn"))
             current = {}
-            for relative in reads:
+            for relative in scope.allowed_paths:
                 path = self.root / pathlib.PurePosixPath(relative)
                 if path.is_file():
                     current[relative] = path.read_text(encoding="utf-8")
