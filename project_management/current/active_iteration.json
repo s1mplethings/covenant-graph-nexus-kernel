@@ -1,62 +1,46 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-010",
+  "iteration_id": "ITER-OBLIGATION-ORACLE-011",
   "project_id": "cgkn",
-  "goal": "Establish a ratcheted source-bound baseline, then compile user requirements into traceable executable obligations before comparing direct Agent and composed DAG execution.",
-  "backlog_item_ids": ["PB-017"],
-  "workflow_state": "waiting_user_review",
-  "evidence_status": "NEEDS_REWORK",
+  "goal": "Compile canonical CSV obligations into deterministic executable Oracles, compare Oracle and public-test evidence, and route only the affected WorkUnit for repair without weakening any prior baseline guarantee.",
+  "backlog_item_ids": ["MVP-017"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "Phase 0 separates Kernel, Application, and Experiment receipt freshness and promotes BASELINE-OBLIGATION-001 only after fast regression passes",
-    "obligations, dependency policies, error semantics, and traceability are immutable, deterministic, source-bound, and complete before generation",
-    "hidden acceptance cannot introduce an untraceable project requirement",
-    "direct Agent and composed DAG routes use independent workspaces and the same obligation and acceptance facts",
+    "BASELINE-OBLIGATION-006 is promoted from remote fd59a83 before Oracle implementation begins",
+    "all 16 canonical CSV obligations have at least one deterministic Oracle route and malformed CSV remains UNSPECIFIED",
+    "Oracle contracts and evidence are immutable, versioned, round-trip safe, source-traceable, and deterministically hashed",
+    "Oracle execution covers COMMAND, FILE, CSV, CLI, DEPENDENCY, STATIC_PYTHON, and DOCUMENTATION without shell=True",
+    "Oracle/public-test disagreement deterministically distinguishes TEST_DEFECT, SOURCE_DEFECT, HARNESS_FAILURE, and CONTRACT_GAP",
+    "fake DAG disagreement repairs only WU-TESTS or WU-CORE as attributed and reuses unaffected results",
+    "Direct and DAG real CSV generation both pass required Oracles, public pytest, runtime, and hidden acceptance before repeat is authorized",
     "no prior protected guarantee is removed or silently weakened"
   ],
   "quality_metrics": [
-    {"id": "QM-BASELINE-RATCHET", "measure": "promoted baselines with passing targeted and fast regression", "target": "100%", "method": "validate every promotion receipt against the baseline ledger and fast regression receipt"},
-    {"id": "QM-TRACEABILITY", "measure": "public-test and hidden-acceptance obligation coverage", "target": "100%", "method": "compare compiled obligation ids with public and hidden acceptance mappings"},
-    {"id": "QM-DAG-CLI", "measure": "real composed-DAG CLI success", "target": ">=2/3", "method": "run three independently generated CLI cases under the fixed Provider matrix"},
-    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "method": "inspect baseline receipts, interface diffs, repair traces, and candidate workspace hashes"}
+    {"id": "QM-ORACLE-TRACEABILITY", "measure": "required CSV obligations with a deterministic Oracle", "target": "16/16 and 100%", "method": "compile the canonical ObligationSet and run the Oracle traceability gate"},
+    {"id": "QM-ORACLE-DETERMINISM", "measure": "identical inputs producing identical plan and evidence identities", "target": "100% in repeated contract tests", "method": "round-trip, stable-hash, ordering, and duplicate/dangling-reference tests"},
+    {"id": "QM-ATTRIBUTION", "measure": "four Oracle/public-test evidence combinations routed to the declared owner", "target": "4/4", "method": "seeded source-correct/test-broken and source-broken/test-weak scenarios"},
+    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "method": "validate each phase baseline and run targeted plus Fast regression"},
+    {"id": "QM-REAL-DAG", "measure": "real DAG CSV single-run correctness", "target": "all required Oracles, public pytest, runtime, and hidden acceptance PASS within two repair rounds", "method": "fixed qwen3.8-max Agent and qwen3.7-flash Worker profile with bounded call ledger"}
   ],
   "quality_activities": {
-    "prevention": ["Freeze Kernel behavior and define measurable acceptance before each bounded phase"],
-    "assurance": ["Run source-bound receipt freshness, ledger validation, and targeted contract tests"],
-    "control": ["Run the fast baseline before promoting each new baseline"],
-    "improvement": ["Record ratchet failures and feed only evidence-backed changes into the next phase"]
+    "prevention": ["Use the canonical Obligation and DependencyPolicy as Oracle compiler inputs; forbid a parallel requirement authority"],
+    "assurance": ["Run contract, compiler, executor, comparator, fake-integration, source-boundary, and receipt-freshness checks"],
+    "control": ["Run targeted tests then the Fast Baseline before every baseline promotion"],
+    "improvement": ["Classify each disagreement from recorded OracleEvidence rather than broad Provider-failure labels"]
   },
   "interface_expectations": [
-    "Kernel, Application, and Experiment receipts use separate source boundaries",
-    "obligations preserve deterministic source traceability across direct and DAG routes"
+    "Contract plus current state enters a bounded verification capability and returns evidence without granting release authority",
+    "Direct and DAG routes share the same immutable OraclePlan but execute in independent workspaces",
+    "public generated tests remain required development evidence but cannot independently authorize final correctness"
   ],
   "evidence_refs": [
     "governance/current_baseline.json",
-    "governance/baselines/baseline_index.json",
-    "governance/baselines/receipts/BASELINE-OBLIGATION-001.json",
-    "governance/baselines/receipts/BASELINE-OBLIGATION-002.json",
-    "governance/kernel_test_receipt.json",
-    "artifacts/baselines/phase0-postreceipt-fast.json",
-    "artifacts/baselines/phase1-postreceipt-fast.json"
-    ,"governance/baselines/receipts/BASELINE-OBLIGATION-003.json"
-    ,"artifacts/baselines/phase2-postreceipt-fast.json"
-    ,"governance/baselines/receipts/BASELINE-OBLIGATION-004.json"
-    ,"artifacts/baselines/phase3-fast.json"
-    ,"governance/baselines/receipts/BASELINE-OBLIGATION-005.json"
-    ,"artifacts/baselines/phase4-fast.json"
-    ,"governance/obligation_compiler_status.json"
-    ,"governance/execution_strategy_comparison.json"
+    "governance/baselines/receipts/BASELINE-OBLIGATION-006.json",
+    "governance/oracle_execution_status.json",
+    "governance/execution_strategy_comparison.json"
   ],
-  "review": {"outcome": "needs_rework", "feedback": ["Real Direct and composed DAG Stage 1 both failed; repeat and semantic A/B/C rerun remain gated."], "accepted_backlog_item_ids": []},
-  "retrospective": {
-    "worked": [
-      "Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed.",
-      "Phase 1 added source-bound obligation, dependency-policy, completeness, and traceability contracts while the ratchet caught and repaired both stale receipts.",
-      "Phase 2 compiled the full CSV public contract, removed an unauthorized malformed-CSV hidden assertion, and achieved complete hidden obligation traceability.",
-      "Phase 3 bound TestPlan and three cohesive WorkUnitContracts to a real fake-Provider DAG that passed compile, pytest, runtime, snapshot, and hidden acceptance.",
-      "Phase 4 formalized pre-execution routing and a bounded Direct Agent route; fake Direct and DAG runs passed independently with the same obligation facts."
-    ],
-    "did_not_work": ["The first real DAG public-test worker produced invalid pytest teardown logic; two affected-only repair rounds preserved core/docs but did not recover pytest.", "The real Direct Agent route also failed hidden acceptance in both Stage 1 attempts."],
-    "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
-  }
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Use independent deterministic Oracles to separate generated-test defects from source defects."]}
 }

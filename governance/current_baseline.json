@@ -1,13 +1,13 @@
 {
   "kind": "CGKNBaselineReceipt",
   "schema_version": "1.0",
-  "baseline_id": "BASELINE-OBLIGATION-005",
-  "parent_baseline_id": "BASELINE-OBLIGATION-004",
-  "source_commit": "79b52ed043742b8dd062ae75f6af025297fe5c39",
-  "source_tree_sha": "8414fdb23ef01edf33e2702c80153199e58200a7",
+  "baseline_id": "BASELINE-OBLIGATION-006",
+  "parent_baseline_id": "BASELINE-OBLIGATION-005",
+  "source_commit": "fd59a83beb2d9ff7a98dc2f386e11e4acf1e5db1",
+  "source_tree_sha": "439f4c9a30f8e287e90dea1ce76de14bb2cb2a41",
   "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
   "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
-  "l6_receipt_hash": "sha256:6c26bbdb3e3f2033b8d97b1658fee62ece03121967edce5ed5881ca9c120573a",
+  "l6_receipt_hash": "sha256:d3e1bd7e855164d8d8b5b43d7c4f8ad2677e9c41751ed8e4a6de931cfcee5713",
   "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
   "profiles": {
     "static": "PASS",
@@ -22,8 +22,9 @@
   },
   "test_counts": {"passed": 3099, "failed": 0, "errors": 0, "skipped": 355},
   "known_blockers": [
+    "deterministic obligation Oracle execution is not yet implemented",
     "semantic artifact winner is NONE",
-    "real CLI direct and DAG repeatability are not evaluated",
+    "real CLI direct and DAG repeatability are not evaluated under an independent Oracle",
     "generation readiness is GENERATION_LEVEL_0"
   ],
   "protected_invariants": [
@@ -31,27 +32,33 @@
     "functional_readiness=LEVEL_4",
     "L0-L5=COMPLETE",
     "L6=PARTIAL",
+    "obligation_compiler=COMPLETE",
+    "traceability_public_coverage=100%",
+    "public_test_traceability=100%",
+    "hidden_acceptance_traceability=100%",
+    "orphan_tests=0",
+    "harness_contract_gaps=0",
     "seeded_repair_A_B_C=PASS",
     "accepted_interface_breakages=0",
     "whole_project_repair_replans=0",
     "manual_candidate_edits=0",
     "hidden_source_exposed=false",
+    "direct_agent_declared_route=true",
+    "execution_strategy_decided_before_run=true",
+    "fake_direct_dag=PASS",
     "generation_readiness=GENERATION_LEVEL_0",
     "semantic_artifact_winner=NONE"
   ],
-  "inherits": "BASELINE-OBLIGATION-004",
+  "inherits": "BASELINE-OBLIGATION-005",
   "added_guarantees": [
-    "direct_agent_execute@1 is a declared bounded application capability",
-    "execution strategy is deterministically recorded before execution and never used as a failure fallback",
-    "Direct Agent and composed DAG use the same obligations, dependency policy, TestPlan, and hidden acceptance in independent workspaces",
-    "both routes retain non-bypassable compile, pytest, runtime, and hidden acceptance gates",
-    "fake Direct and DAG comparison passes with zero manual edits and zero whole replans"
+    "affected-only real DAG repair continuity is present and reuses unaffected WU-CORE and WU-DOCS results without a whole-project replan",
+    "the current obligation application source passes the Fast Baseline, targeted obligation/application regression, seeded fake repair, and baseline ledger"
   ],
   "unchanged_guarantees": [
-    "all protected invariants and guarantees from BASELINE-OBLIGATION-004"
+    "all protected invariants and guarantees from BASELINE-OBLIGATION-005"
   ],
   "removed_guarantees": [],
-  "created_at": "2026-10-16T09:52:07.0315601Z",
+  "created_at": "2026-10-16T12:44:51.3204775Z",
   "evidence_status": "PASS_WITH_LIMITS",
-  "baseline_hash": "sha256:532becc3621678f0119263780b5b4cd65d10ca63b27fa243511602e7886db530"
+  "baseline_hash": "sha256:f12202fddaf12a40ab0b8f9c31005590715836d93d1a3d75483d067942e6d936"
 }
