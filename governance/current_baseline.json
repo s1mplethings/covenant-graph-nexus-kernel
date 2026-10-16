@@ -1,13 +1,13 @@
 {
   "kind": "CGKNBaselineReceipt",
   "schema_version": "1.0",
-  "baseline_id": "BASELINE-OBLIGATION-004",
-  "parent_baseline_id": "BASELINE-OBLIGATION-003",
-  "source_commit": "0d9e12853c35d3325184935329190028d71bcc3d",
-  "source_tree_sha": "53ea57f968dcf70a8c088b4f4726260f2496bad8",
+  "baseline_id": "BASELINE-OBLIGATION-005",
+  "parent_baseline_id": "BASELINE-OBLIGATION-004",
+  "source_commit": "79b52ed043742b8dd062ae75f6af025297fe5c39",
+  "source_tree_sha": "8414fdb23ef01edf33e2702c80153199e58200a7",
   "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
   "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
-  "l6_receipt_hash": "sha256:9cd67d7a4dd9891aa1dce3f6752d1354fdac0a746fd49d3d6caa84b1ecd31f50",
+  "l6_receipt_hash": "sha256:6c26bbdb3e3f2033b8d97b1658fee62ece03121967edce5ed5881ca9c120573a",
   "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
   "profiles": {
     "static": "PASS",
@@ -39,19 +39,19 @@
     "generation_readiness=GENERATION_LEVEL_0",
     "semantic_artifact_winner=NONE"
   ],
-  "inherits": "BASELINE-OBLIGATION-003",
+  "inherits": "BASELINE-OBLIGATION-004",
   "added_guarantees": [
-    "CSV generation uses three cohesive WorkUnitContracts bound to canonical obligations",
-    "TestPlan is compiled from obligations and test workers cannot author new requirement facts",
-    "fake Provider execution passes real compile, pytest, runtime smoke, snapshot, and hidden acceptance through the canonical DAGRunner",
-    "pytest is accepted in the test dependency domain and rejected in runtime source",
-    "hidden acceptance hygiene consumes the declared test dependency policy"
+    "direct_agent_execute@1 is a declared bounded application capability",
+    "execution strategy is deterministically recorded before execution and never used as a failure fallback",
+    "Direct Agent and composed DAG use the same obligations, dependency policy, TestPlan, and hidden acceptance in independent workspaces",
+    "both routes retain non-bypassable compile, pytest, runtime, and hidden acceptance gates",
+    "fake Direct and DAG comparison passes with zero manual edits and zero whole replans"
   ],
   "unchanged_guarantees": [
-    "all protected invariants and guarantees from BASELINE-OBLIGATION-003"
+    "all protected invariants and guarantees from BASELINE-OBLIGATION-004"
   ],
   "removed_guarantees": [],
-  "created_at": "2026-10-16T09:33:54.8188162Z",
+  "created_at": "2026-10-16T09:52:07.0315601Z",
   "evidence_status": "PASS_WITH_LIMITS",
-  "baseline_hash": "sha256:f786531695654f05fce839b147448e5ec63f5e2dd9d980dc4ee5bdce4fdcb97d"
+  "baseline_hash": "sha256:532becc3621678f0119263780b5b4cd65d10ca63b27fa243511602e7886db530"
 }

@@ -42,6 +42,8 @@
     ,"artifacts/baselines/phase2-postreceipt-fast.json"
     ,"governance/baselines/receipts/BASELINE-OBLIGATION-004.json"
     ,"artifacts/baselines/phase3-fast.json"
+    ,"governance/baselines/receipts/BASELINE-OBLIGATION-005.json"
+    ,"artifacts/baselines/phase4-fast.json"
   ],
   "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
   "retrospective": {
@@ -49,7 +51,8 @@
       "Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed.",
       "Phase 1 added source-bound obligation, dependency-policy, completeness, and traceability contracts while the ratchet caught and repaired both stale receipts.",
       "Phase 2 compiled the full CSV public contract, removed an unauthorized malformed-CSV hidden assertion, and achieved complete hidden obligation traceability.",
-      "Phase 3 bound TestPlan and three cohesive WorkUnitContracts to a real fake-Provider DAG that passed compile, pytest, runtime, snapshot, and hidden acceptance."
+      "Phase 3 bound TestPlan and three cohesive WorkUnitContracts to a real fake-Provider DAG that passed compile, pytest, runtime, snapshot, and hidden acceptance.",
+      "Phase 4 formalized pre-execution routing and a bounded Direct Agent route; fake Direct and DAG runs passed independently with the same obligation facts."
     ],
     "did_not_work": [],
     "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
