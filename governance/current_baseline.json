@@ -1,13 +1,13 @@
 {
   "kind": "CGKNBaselineReceipt",
   "schema_version": "1.0",
-  "baseline_id": "BASELINE-ORACLE-002",
-  "parent_baseline_id": "BASELINE-ORACLE-001",
-  "source_commit": "6b2a2168b446e4f54c00c739902f78684ee1cf10",
-  "source_tree_sha": "7aa1a45b29519912dd3ec7dbc1c562e76eb21ca2",
+  "baseline_id": "BASELINE-ORACLE-003",
+  "parent_baseline_id": "BASELINE-ORACLE-002",
+  "source_commit": "01a01c75fd240e33c86f67fb93877c74925d9719",
+  "source_tree_sha": "f92a4612461701fe5d151b2f62a84cd847e8b5c7",
   "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
   "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
-  "l6_receipt_hash": "sha256:72abe95c0cfdaf5dbec258100c2b3018f22d3317b481539e300f545a2bf79961",
+  "l6_receipt_hash": "sha256:eb45358c4f4f9f79eb8f269cd06e022ba1e58ba22df50ac42fb17d5e1cb34086",
   "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
   "profiles": {
     "static": "PASS",
@@ -22,7 +22,7 @@
   },
   "test_counts": {"passed": 3099, "failed": 0, "errors": 0, "skipped": 355},
   "known_blockers": [
-    "Oracle executors and evidence comparison are not yet implemented",
+    "Oracle/public-test evidence comparison and repair attribution are not yet implemented",
     "semantic artifact winner is NONE",
     "real CLI direct and DAG repeatability are not evaluated under an independent Oracle",
     "generation readiness is GENERATION_LEVEL_0"
@@ -49,18 +49,18 @@
     "generation_readiness=GENERATION_LEVEL_0",
     "semantic_artifact_winner=NONE"
   ],
-  "inherits": "BASELINE-ORACLE-001",
+  "inherits": "BASELINE-ORACLE-002",
   "added_guarantees": [
-    "all 16 canonical CSV obligations have a deterministic Oracle route with no extra obligation behavior",
-    "malformed CSV remains UNSPECIFIED and cannot silently acquire an Oracle",
-    "runtime and test dependency domains remain distinct and OraclePlan hashing is deterministic",
-    "final project PASS fails closed unless every required Oracle has matching PASS evidence"
+    "COMMAND, FILE, CSV, CLI, DEPENDENCY, STATIC_PYTHON, and DOCUMENTATION Oracles execute deterministically without shell=True",
+    "command cwd, argv, stdin, timeout, and environment are bounded and candidate paths cannot escape the workspace",
+    "dependency verification separates runtime, test, and tooling policy domains",
+    "executor negative evidence covers timeouts, missing files, row/order mismatch, invalid CLI diagnostics, dependency violations, missing README and entrypoint, placeholders, TODOs, absolute paths, and forbidden network imports"
   ],
   "unchanged_guarantees": [
-    "all protected invariants and guarantees from BASELINE-ORACLE-001"
+    "all protected invariants and guarantees from BASELINE-ORACLE-002"
   ],
   "removed_guarantees": [],
-  "created_at": "2026-10-16T13:57:29.8937322Z",
+  "created_at": "2026-10-16T14:19:59.6957578Z",
   "evidence_status": "PASS_WITH_LIMITS",
-  "baseline_hash": "sha256:49129ed9316fe6294c22b33183947edb9576ebd2732f367ee6c65f59dd351998"
+  "baseline_hash": "sha256:6a8f6b9f919b3f65255cdd302439c87d7678c68578371da8caf528a279ecbe41"
 }
