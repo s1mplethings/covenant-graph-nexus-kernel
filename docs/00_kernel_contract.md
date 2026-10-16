@@ -127,3 +127,8 @@ changes to the identity rule, layer manifest, or any L0-L5 package still
 require a new source-bound kernel receipt. L6 may be `PARTIAL` while the kernel
 foundation remains `COMPLETE`, but an individual bundle may be `COMPLETE` only
 when its own external acceptance evidence is source-bound and green.
+
+After an L6 Source Closure, its bounded status, receipt, active backlog,
+iteration closure, and summary records are evidence-only paths. They may not
+modify application source, tests, benchmark acceptance logic, scripts, or
+configuration.

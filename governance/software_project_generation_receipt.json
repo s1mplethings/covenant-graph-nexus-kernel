@@ -1,0 +1,22 @@
+{
+  "kind": "CGKNSoftwareProjectGenerationReceipt",
+  "schema_version": "1.0",
+  "source_commit": "54a0bfd827413966ec232dc9e78f4558247c2126",
+  "source_tree_sha": "7d9f152d445bf29c40c53b09b7e51b463490eca8",
+  "suite_result": "FAIL",
+  "formal_final_suite": "NOT_EVALUATED",
+  "generation_readiness": "GENERATION_LEVEL_0",
+  "bundle_status": "PARTIAL",
+  "final_run_receipt_hashes": [],
+  "exploratory_failure_receipt_hashes": [
+    "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
+    "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",
+    "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1"
+  ],
+  "exploratory_source_commit": "094d5c567bdc42eeb5d33f9f81f91cd9f8ae5628",
+  "kernel_receipt_hash": "sha256:37a408fb9f842ac3ef0593ff345d2f3e84755e2776a1c91fe5028d474ec36c1b",
+  "stop_condition": "B",
+  "no_secret_assertion": true,
+  "manual_candidate_edits": 0,
+  "receipt_hash": "sha256:0d6f15b4477446e3db342b370ec6138a2ce8c0e0858199f3412a5b671bc09c8f"
+}

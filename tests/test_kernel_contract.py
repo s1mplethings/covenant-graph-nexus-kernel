@@ -99,3 +99,10 @@ def test_l6_applications_do_not_expand_or_redefine_kernel_authority() -> None:
     contract = read("docs/00_kernel_contract.md")
     assert "L6 application bundle" in contract
     assert "does not become a kernel authority" in contract
+    gate = read("scripts/kernel_completeness_gate.py")
+    for path in (
+        "governance/software_project_generation_status.json",
+        "governance/software_project_generation_receipt.json",
+        "project_management/current/backlog.json",
+    ):
+        assert path in gate

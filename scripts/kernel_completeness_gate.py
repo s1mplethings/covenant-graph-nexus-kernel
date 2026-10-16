@@ -19,6 +19,9 @@ STRICT_P0 = {
 ALLOWED_EVIDENCE_PATHS = {
     "governance/kernel_completeness.json", "governance/kernel_coverage_report.json",
     "governance/kernel_test_receipt.json", "project_management/current/active_iteration.json",
+    "governance/software_project_generation_status.json",
+    "governance/software_project_generation_receipt.json",
+    "project_management/current/backlog.json",
 }
 
 

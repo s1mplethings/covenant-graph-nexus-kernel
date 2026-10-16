@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Build and truthfully validate the first L6 Software Project Generation bundle without changing L0-L5 authorities or fixed Provider budgets.",
   "backlog_item_ids": ["MVP-015"],
-  "workflow_state": "in_progress",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "completed",
+  "evidence_status": "NEEDS_REWORK",
   "delivery_approach": "adapter-only L6 increment with deterministic contract tests, then bounded real-Provider stages and source/evidence closure",
   "acceptance_criteria": [
     "file-scoped workers fail closed before writes and cannot reach protected paths",
@@ -21,7 +21,7 @@
     {"id": "QM-L6-SCOPE", "measure": "manual edits to generated candidates", "target": "0", "actual": "0"}
   ],
   "out_of_scope": ["PM Agent", "Research Agent", "Marketing", "publishing", "Self-Growth V1", "concurrent runtime", "LEVEL 5", "compatibility-mainline migration"],
-  "evidence_refs": ["governance/software_project_generation_status.json", "tests/application/software_project", "artifacts/project_generation/cli_csv_cleaner"],
-  "review": {"outcome": "pending source closure", "feedback": ["Stop condition B was triggered after the fixed Application Repair Round limit; do not run Stages 2-5 or claim generation completion."]},
+  "evidence_refs": ["governance/software_project_generation_status.json", "governance/software_project_generation_receipt.json", "governance/kernel_test_receipt.json", "tests/application/software_project", "project_management/summaries/l6_software_project_generation_20261016.md"],
+  "review": {"outcome": "partial; needs rework", "feedback": ["Stop condition B was triggered after the fixed Application Repair Round limit; Stages 2-5 were not run and generation completion was not claimed.", "Kernel regression remained green and source-bound after the L6 increment."]},
   "retrospective": {"worked": ["adapter-only architecture", "prevalidated scoped writes", "external acceptance and snapshot binding", "fixed Provider budgets"], "did_not_work": ["real Provider reliably preserving generated interfaces and public tests across repairs"], "experiments": ["Normalized common TreeEdit aliases and used affected-only retries without increasing budgets."]}
 }

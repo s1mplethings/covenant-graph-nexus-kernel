@@ -1,7 +1,7 @@
 {
   "kind": "CGKNSoftwareProjectGenerationStatus",
   "schema_version": "1.0",
-  "source_commit": null,
+  "source_commit": "54a0bfd827413966ec232dc9e78f4558247c2126",
   "generation_readiness": "GENERATION_LEVEL_0",
   "bundle_status": "PARTIAL",
   "single_project": "FAIL",
@@ -15,5 +15,15 @@
     "Stage 1 exhausted two Application Repair Rounds without a final project PASS",
     "real Provider workers regressed generated interfaces and public tests within the fixed budget",
     "Stages 2 through 5 were not run after the bounded stop condition"
-  ]
+  ],
+  "evidence": {
+    "kernel_receipt": "sha256:37a408fb9f842ac3ef0593ff345d2f3e84755e2776a1c91fe5028d474ec36c1b",
+    "exploratory_cli_rounds": [
+      "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
+      "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",
+      "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1"
+    ],
+    "exploratory_source_commit": "094d5c567bdc42eeb5d33f9f81f91cd9f8ae5628",
+    "final_frozen_suite": "NOT_EVALUATED"
+  }
 }
