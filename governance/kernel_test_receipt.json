@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
-  "source_tree_sha": "9081b8a0f26c32a62c5313a6c74457a04c3bdd51",
-  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
+  "source_commit": "6195b03414c69004028ef3ca90074bf78c7a3eac",
+  "source_tree_sha": "38ba3b00b6b569e324d0cfa1519cc27d21584863",
+  "core_source_hash": "sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723",
   "commands": [
     {
       "argv": [
@@ -77,7 +77,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml"
       ],
       "returncode": 0
     },
@@ -108,7 +108,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml"
       ],
       "returncode": 0
     },
@@ -139,7 +139,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml"
       ],
       "returncode": 0
     },
@@ -170,7 +170,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml"
       ],
       "returncode": 0
     },
@@ -201,7 +201,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml"
       ],
       "returncode": 0
     },
@@ -230,7 +230,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml"
       ],
       "returncode": 0
     },
@@ -240,7 +240,7 @@
         "-m",
         "pytest",
         "-q",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml"
       ],
       "returncode": 0
     },
@@ -252,17 +252,17 @@
         "-q",
         "-m",
         "live_provider",
-        "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml"
       ],
       "returncode": 0
     }
   ],
   "totals": {
-    "passed": 3037,
+    "passed": 3087,
     "failed": 0,
     "errors": 0,
-    "skipped": 357,
-    "duration_seconds": 1180.374
+    "skipped": 355,
+    "duration_seconds": 1362.141
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -301,6 +301,9 @@
     "tests/application/software_project/test_scope.py::test_scoped_transaction_rolls_back_partial_replace",
     "tests/application/software_project/test_service_fake_provider.py::test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden_acceptance",
     "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
+    "tests/architecture/test_baseline_ledger.py::test_current_baseline_ledger_is_valid",
+    "tests/architecture/test_baseline_ledger.py::test_fast_and_full_plans_preserve_required_layers",
+    "tests/architecture/test_baseline_ledger.py::test_removed_guarantee_is_a_breaking_change",
     "tests/architecture/test_consumer_governance_contract.py::test_constitutional_removal_needs_user_review",
     "tests/architecture/test_consumer_governance_contract.py::test_contract_content_is_immutable_at_same_version",
     "tests/architecture/test_consumer_governance_contract.py::test_explain_is_read_only",
@@ -327,6 +330,9 @@
     "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
     "tests/architecture/test_kernel_gates.py::test_unmapped_source_and_missing_test_are_rejected",
     "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
+    "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
+    "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
+    "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
     "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
     "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
     "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -455,6 +461,33 @@
     "tests/executors/test_local_executors.py::test_python_test_and_local_action_adapter",
     "tests/executors/test_local_executors.py::test_registry_rejects_disabled_and_unsupported_executor",
     "tests/executors/test_local_executors.py::test_registry_rejects_duplicates_disabled_and_unsupported",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[A]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[B]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[C]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_designs_expose_equal_semantic_kind_coverage_with_distinct_complexity",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[A]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[B]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[C]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[A]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[B]",
+    "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[C]",
+    "tests/experiments/semantic_artifact_design/test_evaluator.py::test_no_qualified_design_selects_none",
+    "tests/experiments/semantic_artifact_design/test_evaluator.py::test_qualification_is_hard_gated_not_best_effort",
+    "tests/experiments/semantic_artifact_design/test_failure.py::test_failure_attribution_source_runtime_and_unknown",
+    "tests/experiments/semantic_artifact_design/test_failure.py::test_failure_attribution_syntax_import_name_and_test_defect",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[A]",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[B]",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[C]",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[A]",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[B]",
+    "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[C]",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_extractor_functions_classes_imports_cli_and_stable_hash",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_extractor_rejects_syntax_error",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_accepts_private_helper_and_explicit_breaking_permission",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[\\nimport csv\\nPUBLIC = 1\\n__all__ = [\"clean_csv\"]\\ndef clean_csv(source, output, key=None, fill=\"\"):\\n    return output\\nclass Cleaner:\\n    def clean(self, source, output=None):\\n        return output\\ndef _parser():\\n    import argparse\\n    parser = argparse.ArgumentParser()\\n    parser.add_argument(\"--fill\")\\n    return parser\\nif __name__ == \"__main__\":\\n    _parser().parse_args()\\n-CLI option removed]",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[\\nimport csv\\nPUBLIC = 1\\n__all__ = [\"clean_csv\"]\\ndef clean_csv(source, output, key=None, fill=\"\"):\\n    return output\\nclass Cleaner:\\n    def clean(self, source, output=None):\\n        return output\\ndef _parser():\\n    import argparse\\n    parser = argparse.ArgumentParser()\\n    parser.add_argument(\"--key\")\\n    parser.add_argument(\"--fill\")\\n    return parser\\nif False:\\n    _parser().parse_args()\\n-entrypoint removed]",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[def clean_csv(source, key=None):\\n return source\\n-public signature changed]",
+    "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[def renamed(source, output, key=None, fill=''):\\n return output\\n-public function removed]",
     "tests/growth/test_growth_failures.py::test_existing_executor_is_not_registered_twice_and_outcome_round_trips",
     "tests/growth/test_growth_failures.py::test_no_candidate_fails_closed",
     "tests/growth/test_growth_failures.py::test_rejected_trial_persists_evidence_but_does_not_admit",
@@ -744,6 +777,7 @@
     "tests/test_canonical_media_validation.py::test_video_decoder_unavailable_is_blocked_environment",
     "tests/test_canonical_repo_publish.py::test_consumer_migrations_require_explicit_review",
     "tests/test_canonical_repo_publish.py::test_environment_key_reference_is_not_secret_content",
+    "tests/test_canonical_repo_publish.py::test_experiment_receipts_require_explicit_review",
     "tests/test_canonical_repo_publish.py::test_explicit_consumer_version_gate_runs_through_command_shell",
     "tests/test_canonical_repo_publish.py::test_fast_ci_workflow_is_bounded_and_provider_free",
     "tests/test_canonical_repo_publish.py::test_file_policy[.cgnk/governance/governance.lock.json-CURRENT_GOVERNANCE-COMMIT]",
@@ -754,6 +788,7 @@
     "tests/test_canonical_repo_publish.py::test_file_policy[config/provider_profiles/project-generation-external-api.json-CONTRACT-COMMIT]",
     "tests/test_canonical_repo_publish.py::test_file_policy[credentials.json-SECRET-BLOCK]",
     "tests/test_canonical_repo_publish.py::test_file_policy[examples/mvp-runtime/hello-pipeline/tree.json-TEST-COMMIT]",
+    "tests/test_canonical_repo_publish.py::test_file_policy[experiments/semantic_artifact_design/README.md-CURRENT_DOC-COMMIT]",
     "tests/test_canonical_repo_publish.py::test_file_policy[generated/app.py-GENERATED-EXCLUDE]",
     "tests/test_canonical_repo_publish.py::test_file_policy[legacy/pre_mvp_reset/README.md-SOURCE-COMMIT]",
     "tests/test_canonical_repo_publish.py::test_file_policy[mystery.bin-UNKNOWN-BLOCK]",
@@ -1696,6 +1731,7 @@
     "tests/test_kernel_contract.py::test_kernel_evidence_is_source_bound_and_two_phase",
     "tests/test_kernel_contract.py::test_l6_applications_do_not_expand_or_redefine_kernel_authority",
     "tests/test_kernel_contract.py::test_publication_authority_remains_guarded_and_unique",
+    "tests/test_kernel_contract.py::test_source_boundaries_and_baseline_ratchet_are_explicit",
     "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_cgkn_read_only_is_critical",
     "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_gui_url_is_ephemeral",
     "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_module_composed_agent_architecture_is_high_keep",
@@ -1816,6 +1852,8 @@
     "tests/test_pmp_agile_quality_manager.py::test_delivery_approach_is_tailored_from_uncertainty_and_criticality",
     "tests/test_pmp_agile_quality_manager.py::test_self_hosting_contract_and_skill_are_discoverable",
     "tests/test_pmp_agile_quality_manager.py::test_skill_helper_initializes_and_validates_a_project",
+    "tests/test_pmp_agile_quality_schemas.py::test_self_hosting_artifact_matches_registered_schema[project_management/current/active_iteration.json-adaptive_iteration.schema.json]",
+    "tests/test_pmp_agile_quality_schemas.py::test_workflow_state_cannot_be_used_as_evidence_status",
     "tests/test_post_build_finalize_recovery.py::test_finalize_recovers_interruption_and_reuses_completed_result",
     "tests/test_post_build_finalize_recovery.py::test_generation_cli_preserves_attempt_identity_argument",
     "tests/test_post_build_finalize_recovery.py::test_nonplanning_provider_stage_projects_repeated_context",
@@ -2290,7 +2328,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 10277,
+      "duration_ms": 10422,
       "commands": [
         {
           "argv": [
@@ -2339,7 +2377,7 @@
             "scripts/kernel_completeness_gate.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelCompletenessGate\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"kernel_foundation\": \"PARTIAL\"\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelCompletenessGate\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"kernel_foundation\": \"COMPLETE\"\n}\n",
           "stderr_tail": ""
         },
         {
@@ -2348,7 +2386,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"c607705a5f7a8b4ee97b9e200f24e0bd7589b664\",\n  \"source_tree_sha\": \"9081b8a0f26c32a62c5313a6c74457a04c3bdd51\",\n  \"core_source_hash\": \"sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987\",\n  \"test_source_hash\": \"sha256:663ac20551330a9e99aa40875fad256975edf135f11f74aa38361f8cb856054b\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 95,\n  \"test_path_count\": 208\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"6195b03414c69004028ef3ca90074bf78c7a3eac\",\n  \"source_tree_sha\": \"38ba3b00b6b569e324d0cfa1519cc27d21584863\",\n  \"core_source_hash\": \"sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723\",\n  \"test_source_hash\": \"sha256:ed1b878545f86c2a012fa12399b107d92a473b7ecbd01f527fe1df61cffcef89\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 97,\n  \"test_path_count\": 217\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2365,7 +2403,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 125853,
+      "duration_ms": 134735,
       "commands": [
         {
           "argv": [
@@ -2392,10 +2430,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml -\n327 passed, 1 skipped in 124.75s (0:02:04)\n",
+          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml -\n333 passed, 1 skipped in 133.91s (0:02:13)\n",
           "stderr_tail": ""
         }
       ],
@@ -2421,6 +2459,9 @@
         "tests/agent/test_project_loop_boundaries.py::test_decision_limit_blocks_without_false_success",
         "tests/agent/test_project_loop_boundaries.py::test_escalation_and_finish_before_run_are_fail_closed",
         "tests/agent/test_project_loop_boundaries.py::test_multiple_retry_and_empty_run_are_rejected",
+        "tests/architecture/test_baseline_ledger.py::test_current_baseline_ledger_is_valid",
+        "tests/architecture/test_baseline_ledger.py::test_fast_and_full_plans_preserve_required_layers",
+        "tests/architecture/test_baseline_ledger.py::test_removed_guarantee_is_a_breaking_change",
         "tests/architecture/test_consumer_governance_contract.py::test_constitutional_removal_needs_user_review",
         "tests/architecture/test_consumer_governance_contract.py::test_contract_content_is_immutable_at_same_version",
         "tests/architecture/test_consumer_governance_contract.py::test_explain_is_read_only",
@@ -2447,6 +2488,9 @@
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_unmapped_source_and_missing_test_are_rejected",
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
+        "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
+        "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
+        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -2733,7 +2777,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 327,
+        "passed": 333,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -2742,7 +2786,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 102765,
+      "duration_ms": 116082,
       "commands": [
         {
           "argv": [
@@ -2771,10 +2815,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 85 deselected in 101.91s (0:01:41)\n",
+          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 91 deselected in 115.29s (0:01:55)\n",
           "stderr_tail": ""
         }
       ],
@@ -3036,7 +3080,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 5009,
+      "duration_ms": 6203,
       "commands": [
         {
           "argv": [
@@ -3065,10 +3109,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 288 deselected in 4.17s\n",
+          "stdout_tail": "........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 294 deselected in 4.32s\n",
           "stderr_tail": ""
         }
       ],
@@ -3126,7 +3170,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 78214,
+      "duration_ms": 83555,
       "commands": [
         {
           "argv": [
@@ -3155,10 +3199,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 251 deselected in 76.31s (0:01:16)\n",
+          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 257 deselected in 81.17s (0:01:21)\n",
           "stderr_tail": ""
         }
       ],
@@ -3254,7 +3298,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 13173,
+      "duration_ms": 12594,
       "commands": [
         {
           "argv": [
@@ -3283,10 +3327,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 323 deselected in 11.40s\n",
+          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 329 deselected in 11.59s\n",
           "stderr_tail": ""
         }
       ],
@@ -3309,7 +3353,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 125881,
+      "duration_ms": 145280,
       "commands": [
         {
           "argv": [
@@ -3336,10 +3380,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml -\n327 passed, 1 skipped in 124.90s (0:02:04)\n",
+          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml -\n333 passed, 1 skipped in 144.45s (0:02:24)\n",
           "stderr_tail": ""
         }
       ],
@@ -3365,6 +3409,9 @@
         "tests/agent/test_project_loop_boundaries.py::test_decision_limit_blocks_without_false_success",
         "tests/agent/test_project_loop_boundaries.py::test_escalation_and_finish_before_run_are_fail_closed",
         "tests/agent/test_project_loop_boundaries.py::test_multiple_retry_and_empty_run_are_rejected",
+        "tests/architecture/test_baseline_ledger.py::test_current_baseline_ledger_is_valid",
+        "tests/architecture/test_baseline_ledger.py::test_fast_and_full_plans_preserve_required_layers",
+        "tests/architecture/test_baseline_ledger.py::test_removed_guarantee_is_a_breaking_change",
         "tests/architecture/test_consumer_governance_contract.py::test_constitutional_removal_needs_user_review",
         "tests/architecture/test_consumer_governance_contract.py::test_contract_content_is_immutable_at_same_version",
         "tests/architecture/test_consumer_governance_contract.py::test_explain_is_read_only",
@@ -3391,6 +3438,9 @@
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_unmapped_source_and_missing_test_are_rejected",
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
+        "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
+        "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
+        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -3677,7 +3727,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 327,
+        "passed": 333,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3686,7 +3736,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 715940,
+      "duration_ms": 846425,
       "commands": [
         {
           "argv": [
@@ -3694,10 +3744,10 @@
             "-m",
             "pytest",
             "-q",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 30%]\nssssssssssssssss........................................................ [ 33%]\n...................................sssss................................ [ 36%]\n..........................sss........................................... [ 39%]\n...........................s............................................ [ 42%]\n........................................................................ [ 45%]\n........................................................................ [ 48%]\n........................................................................ [ 51%]\n........................................................................ [ 54%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n.....................................................ss................. [ 63%]\n.....................................sssssss............................ [ 66%]\n................................................................s....... [ 69%]\n..................................ssss.s.ssss........................... [ 72%]\n........................................................................ [ 75%]\n....s................................................................... [ 78%]\nssssssssssssssss........................................................ [ 81%]\n...........ssssss....................................................... [ 84%]\n........ssss............................................................ [ 88%]\n...........sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 91%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 94%]\nsssssssssssssssss...........................ssssssssssssssssssss..s..... [ 97%]\n................................................................ssss     [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml -\n2020 passed, 352 skipped, 4 warnings in 713.86s (0:11:53)\n",
+          "stdout_tail": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 29%]\nsssssssssssssssssssssssssssssssssssssssssssssssssss..................... [ 32%]\n......................................................................ss [ 35%]\nsss..........................................................sss........ [ 38%]\n..............................................................s......... [ 41%]\n........................................................................ [ 44%]\n........................................................................ [ 47%]\n........................................................................ [ 50%]\n........................................................................ [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 59%]\n........................................................................ [ 62%]\n................ss...................................................... [ 65%]\nsssssss................................................................. [ 68%]\n............................s.........................................ss [ 71%]\nss.s..s.s............................................................... [ 74%]\n........................................s............................... [ 77%]\n....................................ssssssssssssssss.................... [ 80%]\n...............................................ssssss................... [ 83%]\n............................................ssss........................ [ 86%]\n...............................................sssssssssssssssssssssssss [ 89%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 92%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssss................... [ 95%]\n........ssssssssssssssssssss..s......................................... [ 98%]\n............................ssss                                         [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml -\n2058 passed, 350 skipped, 4 warnings in 844.69s (0:14:04)\n",
           "stderr_tail": ""
         }
       ],
@@ -3738,6 +3788,9 @@
         "tests/application/software_project/test_scope.py::test_scoped_transaction_rolls_back_partial_replace",
         "tests/application/software_project/test_service_fake_provider.py::test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden_acceptance",
         "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
+        "tests/architecture/test_baseline_ledger.py::test_current_baseline_ledger_is_valid",
+        "tests/architecture/test_baseline_ledger.py::test_fast_and_full_plans_preserve_required_layers",
+        "tests/architecture/test_baseline_ledger.py::test_removed_guarantee_is_a_breaking_change",
         "tests/architecture/test_consumer_governance_contract.py::test_constitutional_removal_needs_user_review",
         "tests/architecture/test_consumer_governance_contract.py::test_contract_content_is_immutable_at_same_version",
         "tests/architecture/test_consumer_governance_contract.py::test_explain_is_read_only",
@@ -3764,6 +3817,9 @@
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_unmapped_source_and_missing_test_are_rejected",
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
+        "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
+        "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
+        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -3892,6 +3948,33 @@
         "tests/executors/test_local_executors.py::test_python_test_and_local_action_adapter",
         "tests/executors/test_local_executors.py::test_registry_rejects_disabled_and_unsupported_executor",
         "tests/executors/test_local_executors.py::test_registry_rejects_duplicates_disabled_and_unsupported",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[A]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[B]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_all_designs_roundtrip_hash_immutability_and_same_facts[C]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_designs_expose_equal_semantic_kind_coverage_with_distinct_complexity",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[A]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[B]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_reference_graph_rejects_dangling_cycles_and_stale_state[C]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[A]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[B]",
+        "tests/experiments/semantic_artifact_design/test_design_contracts.py::test_unknown_kind_version_malformed_missing_and_extra_are_rejected[C]",
+        "tests/experiments/semantic_artifact_design/test_evaluator.py::test_no_qualified_design_selects_none",
+        "tests/experiments/semantic_artifact_design/test_evaluator.py::test_qualification_is_hard_gated_not_best_effort",
+        "tests/experiments/semantic_artifact_design/test_failure.py::test_failure_attribution_source_runtime_and_unknown",
+        "tests/experiments/semantic_artifact_design/test_failure.py::test_failure_attribution_syntax_import_name_and_test_defect",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[A]",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[B]",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_greenfield_uses_cohesive_units_manifests_runtime_snapshot_and_hidden_acceptance[C]",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[A]",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[B]",
+        "tests/experiments/semantic_artifact_design/test_fake_integration.py::test_fake_seeded_repair_preserves_tree_and_reruns_only_affected_unit[C]",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_extractor_functions_classes_imports_cli_and_stable_hash",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_extractor_rejects_syntax_error",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_accepts_private_helper_and_explicit_breaking_permission",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[\\nimport csv\\nPUBLIC = 1\\n__all__ = [\"clean_csv\"]\\ndef clean_csv(source, output, key=None, fill=\"\"):\\n    return output\\nclass Cleaner:\\n    def clean(self, source, output=None):\\n        return output\\ndef _parser():\\n    import argparse\\n    parser = argparse.ArgumentParser()\\n    parser.add_argument(\"--fill\")\\n    return parser\\nif __name__ == \"__main__\":\\n    _parser().parse_args()\\n-CLI option removed]",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[\\nimport csv\\nPUBLIC = 1\\n__all__ = [\"clean_csv\"]\\ndef clean_csv(source, output, key=None, fill=\"\"):\\n    return output\\nclass Cleaner:\\n    def clean(self, source, output=None):\\n        return output\\ndef _parser():\\n    import argparse\\n    parser = argparse.ArgumentParser()\\n    parser.add_argument(\"--key\")\\n    parser.add_argument(\"--fill\")\\n    return parser\\nif False:\\n    _parser().parse_args()\\n-entrypoint removed]",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[def clean_csv(source, key=None):\\n return source\\n-public signature changed]",
+        "tests/experiments/semantic_artifact_design/test_interface.py::test_guard_rejects_breaking_changes[def renamed(source, output, key=None, fill=''):\\n return output\\n-public function removed]",
         "tests/growth/test_growth_failures.py::test_existing_executor_is_not_registered_twice_and_outcome_round_trips",
         "tests/growth/test_growth_failures.py::test_no_candidate_fails_closed",
         "tests/growth/test_growth_failures.py::test_rejected_trial_persists_evidence_but_does_not_admit",
@@ -4181,6 +4264,7 @@
         "tests/test_canonical_media_validation.py::test_video_decoder_unavailable_is_blocked_environment",
         "tests/test_canonical_repo_publish.py::test_consumer_migrations_require_explicit_review",
         "tests/test_canonical_repo_publish.py::test_environment_key_reference_is_not_secret_content",
+        "tests/test_canonical_repo_publish.py::test_experiment_receipts_require_explicit_review",
         "tests/test_canonical_repo_publish.py::test_explicit_consumer_version_gate_runs_through_command_shell",
         "tests/test_canonical_repo_publish.py::test_fast_ci_workflow_is_bounded_and_provider_free",
         "tests/test_canonical_repo_publish.py::test_file_policy[.cgnk/governance/governance.lock.json-CURRENT_GOVERNANCE-COMMIT]",
@@ -4191,6 +4275,7 @@
         "tests/test_canonical_repo_publish.py::test_file_policy[config/provider_profiles/project-generation-external-api.json-CONTRACT-COMMIT]",
         "tests/test_canonical_repo_publish.py::test_file_policy[credentials.json-SECRET-BLOCK]",
         "tests/test_canonical_repo_publish.py::test_file_policy[examples/mvp-runtime/hello-pipeline/tree.json-TEST-COMMIT]",
+        "tests/test_canonical_repo_publish.py::test_file_policy[experiments/semantic_artifact_design/README.md-CURRENT_DOC-COMMIT]",
         "tests/test_canonical_repo_publish.py::test_file_policy[generated/app.py-GENERATED-EXCLUDE]",
         "tests/test_canonical_repo_publish.py::test_file_policy[legacy/pre_mvp_reset/README.md-SOURCE-COMMIT]",
         "tests/test_canonical_repo_publish.py::test_file_policy[mystery.bin-UNKNOWN-BLOCK]",
@@ -5133,6 +5218,7 @@
         "tests/test_kernel_contract.py::test_kernel_evidence_is_source_bound_and_two_phase",
         "tests/test_kernel_contract.py::test_l6_applications_do_not_expand_or_redefine_kernel_authority",
         "tests/test_kernel_contract.py::test_publication_authority_remains_guarded_and_unique",
+        "tests/test_kernel_contract.py::test_source_boundaries_and_baseline_ratchet_are_explicit",
         "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_cgkn_read_only_is_critical",
         "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_gui_url_is_ephemeral",
         "tests/test_knowledge_classify/KnowledgeClassifyTests.py::test_module_composed_agent_architecture_is_high_keep",
@@ -5253,6 +5339,8 @@
         "tests/test_pmp_agile_quality_manager.py::test_delivery_approach_is_tailored_from_uncertainty_and_criticality",
         "tests/test_pmp_agile_quality_manager.py::test_self_hosting_contract_and_skill_are_discoverable",
         "tests/test_pmp_agile_quality_manager.py::test_skill_helper_initializes_and_validates_a_project",
+        "tests/test_pmp_agile_quality_schemas.py::test_self_hosting_artifact_matches_registered_schema[project_management/current/active_iteration.json-adaptive_iteration.schema.json]",
+        "tests/test_pmp_agile_quality_schemas.py::test_workflow_state_cannot_be_used_as_evidence_status",
         "tests/test_post_build_finalize_recovery.py::test_finalize_recovers_interruption_and_reuses_completed_result",
         "tests/test_post_build_finalize_recovery.py::test_generation_cli_preserves_attempt_identity_argument",
         "tests/test_post_build_finalize_recovery.py::test_nonplanning_provider_stage_projects_repeated_context",
@@ -5875,9 +5963,7 @@
         "tests/test_pmp_agile_quality_manager.py::test_iteration_inherits_backlog_acceptance_and_quality_metrics",
         "tests/test_pmp_agile_quality_manager.py::test_skill_helper_runs_iteration_lifecycle",
         "tests/test_pmp_agile_quality_schemas.py::test_approved_experience_without_evidence_fails_semantic_validation",
-        "tests/test_pmp_agile_quality_schemas.py::test_self_hosting_artifact_matches_registered_schema[project_management/current/active_iteration.json-adaptive_iteration.schema.json]",
         "tests/test_pmp_agile_quality_schemas.py::test_self_hosting_artifact_matches_registered_schema[project_management/current/enterprise_experience.json-enterprise_experience_pack.schema.json]",
-        "tests/test_pmp_agile_quality_schemas.py::test_workflow_state_cannot_be_used_as_evidence_status",
         "tests/test_provider_api_budget.py::test_budget_ledger_reserves_finalizes_and_redacts",
         "tests/test_provider_free_partial_acceptance_replay.py::test_accounting_lineage_and_single_scheduler_are_consistent",
         "tests/test_provider_free_partial_acceptance_replay.py::test_all_eight_deterministic_scenarios_pass",
@@ -6079,16 +6165,16 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2020,
+        "passed": 2058,
         "failed": 0,
         "errors": 0,
-        "skipped": 352
+        "skipped": 350
       }
     },
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 3262,
+      "duration_ms": 6845,
       "commands": [
         {
           "argv": [
@@ -6098,10 +6184,10 @@
             "-q",
             "-m",
             "live_provider",
-            "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2371 deselected in 2.22s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2407 deselected in 4.67s\n",
           "stderr_tail": ""
         }
       ],
@@ -6119,8 +6205,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:41b50e9f855ee44f986d0a63a19917e76226a30de74e5083850a777d9432fadc",
-  "generated_at": "2026-10-16T01:52:30.542555+00:00",
+  "coverage_file_hash": "sha256:c34fe5eed9bc2ec5ed3d926ae70675000334277c8cf30700e62e3822560ed11e",
+  "generated_at": "2026-10-16T07:19:50.840631+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -6130,5 +6216,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e"
+  "receipt_hash": "sha256:5b133471f2b4eee55e983ef4c6a34c0bebe1d8b1e514b3a91bc3fbcf4ee18807"
 }

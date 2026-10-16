@@ -1,10 +1,10 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
-  "source_tree_sha": "9081b8a0f26c32a62c5313a6c74457a04c3bdd51",
-  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
-  "command": "python -m pytest tests/architecture tests/artifacts tests/compiler tests/component tests/orchestration tests/execution tests/executors tests/providers tests/state tests/runtime tests/recovery tests/capabilities tests/growth tests/agent tests/telemetry --cov=cgkn --cov-branch --cov-report=json:artifacts/kernel-coverage-final.json",
+  "source_commit": "6195b03414c69004028ef3ca90074bf78c7a3eac",
+  "source_tree_sha": "38ba3b00b6b569e324d0cfa1519cc27d21584863",
+  "core_source_hash": "sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723",
+  "command": "python -m pytest <kernel-scope> --deselect receipt-self-checks --cov=cgkn --cov-branch --cov-report=json:artifacts/baselines/phase0-kernel-coverage-raw.json",
   "pytest_result": {
     "exit_code": 0
   },
@@ -3057,5 +3057,5 @@
       "branch_percent": 0.0
     }
   },
-  "raw_coverage_hash": "sha256:fd246964ebf4897c482134cc903e388d9da9edee6f7afd1befb12860e7531f40"
+  "raw_coverage_hash": "sha256:8360f393a88371be59f228ebcc188eddc9ad8f5662dd499ebd65cd459bb53df1"
 }

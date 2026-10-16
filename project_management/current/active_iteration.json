@@ -1,13 +1,12 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-OBLIGATION-COMPILER-010",
+  "iteration_id": "ITER-010",
   "project_id": "cgkn",
   "goal": "Establish a ratcheted source-bound baseline, then compile user requirements into traceable executable obligations before comparing direct Agent and composed DAG execution.",
-  "backlog_item_ids": ["MVP-017"],
+  "backlog_item_ids": ["PB-017"],
   "workflow_state": "active",
   "evidence_status": "NOT_EVALUATED",
-  "delivery_approach": "hybrid incremental delivery with one source-bound baseline promotion per logical phase",
   "acceptance_criteria": [
     "Phase 0 separates Kernel, Application, and Experiment receipt freshness and promotes BASELINE-OBLIGATION-001 only after fast regression passes",
     "obligations, dependency policies, error semantics, and traceability are immutable, deterministic, source-bound, and complete before generation",
@@ -16,18 +15,31 @@
     "no prior protected guarantee is removed or silently weakened"
   ],
   "quality_metrics": [
-    {"id": "QM-BASELINE-RATCHET", "measure": "promoted baselines with passing targeted and fast regression", "target": "100%", "actual": "NOT_EVALUATED"},
-    {"id": "QM-TRACEABILITY", "measure": "public-test and hidden-acceptance obligation coverage", "target": "100%", "actual": "NOT_EVALUATED"},
-    {"id": "QM-DAG-CLI", "measure": "real composed-DAG CLI success", "target": ">=2/3", "actual": "NOT_EVALUATED"},
-    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "actual": "NOT_EVALUATED"}
+    {"id": "QM-BASELINE-RATCHET", "measure": "promoted baselines with passing targeted and fast regression", "target": "100%", "method": "validate every promotion receipt against the baseline ledger and fast regression receipt"},
+    {"id": "QM-TRACEABILITY", "measure": "public-test and hidden-acceptance obligation coverage", "target": "100%", "method": "compare compiled obligation ids with public and hidden acceptance mappings"},
+    {"id": "QM-DAG-CLI", "measure": "real composed-DAG CLI success", "target": ">=2/3", "method": "run three independently generated CLI cases under the fixed Provider matrix"},
+    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "method": "inspect baseline receipts, interface diffs, repair traces, and candidate workspace hashes"}
   ],
-  "current_phase": "PHASE_0_BASELINE_GOVERNANCE",
-  "baseline_before": "BASELINE-OBLIGATION-START",
-  "out_of_scope": ["Web/API before CLI threshold", "LEVEL 5", "stress", "soak", "publishing", "Provider budget expansion"],
-  "evidence_refs": ["governance/current_baseline.json", "governance/baselines/baseline_index.json"],
-  "review": {"outcome": "pending", "feedback": []},
+  "quality_activities": {
+    "prevention": ["Freeze Kernel behavior and define measurable acceptance before each bounded phase"],
+    "assurance": ["Run source-bound receipt freshness, ledger validation, and targeted contract tests"],
+    "control": ["Run the fast baseline before promoting each new baseline"],
+    "improvement": ["Record ratchet failures and feed only evidence-backed changes into the next phase"]
+  },
+  "interface_expectations": [
+    "Kernel, Application, and Experiment receipts use separate source boundaries",
+    "obligations preserve deterministic source traceability across direct and DAG routes"
+  ],
+  "evidence_refs": [
+    "governance/current_baseline.json",
+    "governance/baselines/baseline_index.json",
+    "governance/baselines/receipts/BASELINE-OBLIGATION-001.json",
+    "governance/kernel_test_receipt.json",
+    "artifacts/baselines/phase0-postreceipt-fast.json"
+  ],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
   "retrospective": {
-    "worked": [],
+    "worked": ["Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed."],
     "did_not_work": [],
     "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
   }

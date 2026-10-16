@@ -1,12 +1,12 @@
 {
   "kind": "CGKNBaselineReceipt",
   "schema_version": "1.0",
-  "baseline_id": "BASELINE-OBLIGATION-START",
-  "parent_baseline_id": null,
-  "source_commit": "aec887771167329ed0195f4312d082be4f9990cc",
-  "source_tree_sha": "84f19a84e364afcfd8a32605860cf3efcc8da033",
-  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
-  "kernel_receipt_hash": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e",
+  "baseline_id": "BASELINE-OBLIGATION-001",
+  "parent_baseline_id": "BASELINE-OBLIGATION-START",
+  "source_commit": "6195b03414c69004028ef3ca90074bf78c7a3eac",
+  "source_tree_sha": "38ba3b00b6b569e324d0cfa1519cc27d21584863",
+  "core_source_hash": "sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723",
+  "kernel_receipt_hash": "sha256:5b133471f2b4eee55e983ef4c6a34c0bebe1d8b1e514b3a91bc3fbcf4ee18807",
   "l6_receipt_hash": "sha256:519f9117c50b5ad2a915cd110a594401258e203daaebc87a12ab0e7471454a84",
   "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
   "profiles": {
@@ -20,12 +20,11 @@
     "active-repository": "PASS",
     "live-provider": "BLOCKED_ENVIRONMENT"
   },
-  "test_counts": {"passed": 3037, "failed": 0, "errors": 0, "skipped": 357},
+  "test_counts": {"passed": 3087, "failed": 0, "errors": 0, "skipped": 355},
   "known_blockers": [
     "semantic artifact winner is NONE",
     "real CLI repeatability is 0/3 for designs A, B, and C",
-    "generation readiness is GENERATION_LEVEL_0",
-    "kernel completeness change classification is not yet boundary-aware"
+    "generation readiness is GENERATION_LEVEL_0"
   ],
   "protected_invariants": [
     "kernel_foundation=COMPLETE",
@@ -40,13 +39,17 @@
     "generation_readiness=GENERATION_LEVEL_0",
     "semantic_artifact_winner=NONE"
   ],
-  "inherits": null,
+  "inherits": "BASELINE-OBLIGATION-START",
   "added_guarantees": [
-    "frozen starting facts from semantic artifact experiment evidence closure"
+    "Kernel, Application, and Experiment receipt freshness is evaluated against separate source boundaries",
+    "baseline promotion fails closed when a protected guarantee is removed",
+    "fast and full baseline regression profiles are machine executable"
   ],
-  "unchanged_guarantees": [],
+  "unchanged_guarantees": [
+    "all protected invariants from BASELINE-OBLIGATION-START"
+  ],
   "removed_guarantees": [],
-  "created_at": "2026-10-16T05:00:00+00:00",
+  "created_at": "2026-10-16T07:27:54.5514936Z",
   "evidence_status": "PASS_WITH_LIMITS",
-  "baseline_hash": "sha256:c45c8b68a803edc58de64039269cf6f856f9a0af7b951b9e30adb072cd0444b3"
+  "baseline_hash": "sha256:bc6d194a604e6c99c174aa1d1dc6c800b699e5c172bafb4fc0a08b46965e3839"
 }
