@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "ITER-OBLIGATION-ORACLE-011: compile canonical CSV obligations into deterministic executable Oracles, compare Oracle and public-test evidence, and route only the affected WorkUnit for repair without weakening any prior baseline guarantee.",
   "backlog_item_ids": ["PB-017"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "BASELINE-OBLIGATION-006 is promoted from remote fd59a83 before Oracle implementation begins",
     "all 16 canonical CSV obligations have at least one deterministic Oracle route and malformed CSV remains UNSPECIFIED",
@@ -41,6 +41,6 @@
     "governance/oracle_execution_status.json",
     "governance/execution_strategy_comparison.json"
   ],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Use independent deterministic Oracles to separate generated-test defects from source defects."]}
+  "review": {"outcome": "accepted_with_limits", "feedback": ["Oracle execution and Direct generation passed; DAG stopped after two bounded WU-TESTS repairs with TEST_IMPLEMENTATION_BLOCKER."], "accepted_backlog_item_ids": ["PB-017"]},
+  "retrospective": {"worked": ["Independent Oracles separated correct source behavior from an invalid generated public test.", "Affected-only repair reused WU-CORE and WU-DOCS."], "did_not_work": ["The flash Test Worker repeated the same preview semantic error through both allowed repair rounds.", "The first real receipt exposed a framework serialization defect, which was fixed and re-frozen before the formal rerun."], "experiments": ["Direct passed under the same OraclePlan; DAG repeat was not authorized because the single-run gate failed."]}
 }
