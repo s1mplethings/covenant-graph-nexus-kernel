@@ -35,6 +35,11 @@ class ExternalAcceptanceExecutor:
             return self._block(request, result, started, clock)
         env = os.environ.copy()
         env.update({"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "CGKN_GENERATED_PROJECT": str(self.project_root), "PYTHONPATH": str(self.project_root)})
+        dependency_policy = request.task_context.node_config.get("dependency_policy", {})
+        if isinstance(dependency_policy, Mapping):
+            test_policy = dependency_policy.get("test", {})
+            if isinstance(test_policy, Mapping):
+                env["CGKN_TEST_ALLOWED_PACKAGES"] = ",".join(str(item) for item in test_policy.get("allowed_packages", ()))
         try:
             completed = subprocess.run([sys.executable, "-m", "pytest", "-q", str(test_path)], cwd=self.project_root, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=request.timeout_seconds, env=env)
             status = ProjectResultStatus.PASS if completed.returncode == 0 else ProjectResultStatus.FAIL

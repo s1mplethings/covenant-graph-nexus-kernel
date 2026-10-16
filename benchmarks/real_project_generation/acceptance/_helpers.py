@@ -30,6 +30,7 @@ def run(*args: str, cwd: pathlib.Path | None = None, timeout: int = 20) -> subpr
 
 def assert_project_hygiene() -> None:
     root = project_root()
+    test_allowed = {item for item in os.environ.get("CGKN_TEST_ALLOWED_PACKAGES", "").split(",") if item}
     assert (root / "README.md").is_file()
     forbidden = ("benchmarks/real_project_generation", "CGKN_GENERATED_PROJECT", "hidden_acceptance")
     for path in root.rglob("*"):
@@ -45,9 +46,12 @@ def assert_project_hygiene() -> None:
                 tree = ast.parse(text)
                 for node in ast.walk(tree):
                     if isinstance(node, (ast.Import, ast.ImportFrom)):
+                        if isinstance(node, ast.ImportFrom) and node.level:
+                            continue
                         names = [alias.name.split(".")[0] for alias in node.names] if isinstance(node, ast.Import) else [str(node.module or "").split(".")[0]]
                         for name in names:
-                            assert name in sys.stdlib_module_names or (root / name).exists() or (root / f"{name}.py").exists(), f"undeclared dependency: {name}"
+                            allowed = test_allowed if path.relative_to(root).parts[0] == "tests" else set()
+                            assert name in sys.stdlib_module_names or name in allowed or (root / name).exists() or (root / f"{name}.py").exists(), f"undeclared dependency: {name}"
 
 
 @contextmanager
