@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "5c9e3e0e42262c61c87f911d33ef5343cfad9d00",
-  "source_tree_sha": "d221930140996c72080cf020c3cc77d4e6c36b59",
+  "source_commit": "0d9e12853c35d3325184935329190028d71bcc3d",
+  "source_tree_sha": "53ea57f968dcf70a8c088b4f4726260f2496bad8",
   "suite_result": "FAIL",
   "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_0",
@@ -18,5 +18,5 @@
   "stop_condition": "B",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:ae438df0f4ec215f118e79e8ed6ec9fc317dd55bf1986ddeeadb35d207d1b75f"
+  "receipt_hash": "sha256:9cd67d7a4dd9891aa1dce3f6752d1354fdac0a746fd49d3d6caa84b1ecd31f50"
 }

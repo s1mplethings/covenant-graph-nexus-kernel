@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-OBLIGATION-003",
+  "current_baseline_id": "BASELINE-OBLIGATION-004",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -26,6 +26,12 @@
       "parent_baseline_id": "BASELINE-OBLIGATION-002",
       "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-003.json",
       "baseline_hash": "sha256:741985c16cea2e4d08983028116b5162d9f7d30d70643ba774ea8db9e1453533"
+    },
+    {
+      "baseline_id": "BASELINE-OBLIGATION-004",
+      "parent_baseline_id": "BASELINE-OBLIGATION-003",
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-004.json",
+      "baseline_hash": "sha256:f786531695654f05fce839b147448e5ec63f5e2dd9d980dc4ee5bdce4fdcb97d"
     }
   ]
 }
