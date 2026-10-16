@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from cgkn.application.requirements import compare_csv_strategies, write_strategy_comparison
 from cgkn.providers import ModelRoleConfig, OpenAICompatibleClient
-
-
-ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
