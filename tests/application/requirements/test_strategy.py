@@ -37,6 +37,37 @@ class CombinedProvider:
         return target.complete(**kwargs)
 
 
+class RepairingDirectProvider(FakeDirectProvider):
+    def __init__(self, defect: str) -> None:
+        super().__init__()
+        self.defect = defect
+
+    def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: Any) -> ProviderCompletion:
+        payload = json.loads(user)
+        if not payload.get("repair_owner"):
+            result = super().complete(system=system, user=user, schema_name=schema_name, schema=schema, config=config)
+            value = json.loads(result.text)
+            for action in value["actions"]:
+                if self.defect == "tests" and action["path"] == "tests/test_csv_cleaner.py":
+                    action["content"] = "def test_generated_defect():\n    assert False\n"
+                if self.defect == "core" and action["path"] == "csv_cleaner/core.py":
+                    action["content"] = CORE.replace(
+                        'row = {name: fill if raw.get(name, "") == "" and fill else raw.get(name, "") for name in fields}',
+                        'row = {name: raw.get(name, "") for name in fields}',
+                    )
+                if self.defect == "core" and action["path"] == "tests/test_csv_cleaner.py":
+                    action["content"] = "def test_weak():\n    assert True\n"
+            return ProviderCompletion(json.dumps(value), config.model, "direct-initial", result.usage)
+        self.calls.append(payload)
+        owner = payload["repair_owner"]
+        if owner == "WU-TESTS":
+            actions = [{"action": "write_file", "path": "tests/test_csv_cleaner.py", "content": TESTS}]
+        else:
+            actions = [{"action": "write_file", "path": "csv_cleaner/core.py", "content": CORE}]
+        value = {"schema_version": "1.0", "node_id": "DIRECT-AGENT", "summary": "attributed repair", "actions": actions, "expected_outputs": ["gates decide"], "confidence": 1.0, "needs_escalation": False, "escalation_reason": ""}
+        return ProviderCompletion(json.dumps(value), config.model, "direct-repair", {"total_tokens": 20})
+
+
 def test_routing_is_decided_before_execution_and_is_not_failure_fallback() -> None:
     small = decide_execution_strategy(source_files=5, work_units=3, long_lived_state=False, parallel_opportunity=False, high_risk_effects=False)
     complex_case = decide_execution_strategy(source_files=8, work_units=5, long_lived_state=True, parallel_opportunity=True, high_risk_effects=False)
@@ -61,3 +92,20 @@ def test_direct_and_dag_comparison_uses_independent_workspaces_and_fixed_routes(
     assert result["direct"]["successes"] == result["dag"]["successes"] == 1
     assert result["direct"]["provider_calls"] == 1 and result["dag"]["provider_calls"] == 3
     assert result["runs"][0]["workspace"] != result["runs"][1]["workspace"]
+
+
+def test_direct_oracle_routes_broken_public_test_to_test_scope(tmp_path) -> None:
+    provider = RepairingDirectProvider("tests")
+    result = DirectAgentService(pathlib.Path.cwd(), provider, ModelRoleConfig("agent", "fake-high")).run_csv(tmp_path / "direct", tmp_path / "receipt")
+    assert result.status == "PASS"
+    assert result.repair_owners == ("WU-TESTS",)
+    assert result.provider_calls == 2 and result.repair_rounds == 1
+    assert provider.calls[-1]["target_paths"] == ["tests/test_csv_cleaner.py"]
+
+
+def test_direct_oracle_routes_weak_test_source_defect_to_core_scope(tmp_path) -> None:
+    provider = RepairingDirectProvider("core")
+    result = DirectAgentService(pathlib.Path.cwd(), provider, ModelRoleConfig("agent", "fake-high")).run_csv(tmp_path / "direct", tmp_path / "receipt")
+    assert result.status == "PASS"
+    assert result.repair_owners[0] == "WU-CORE"
+    assert provider.calls[-1]["target_paths"] == ["csv_cleaner/__init__.py", "csv_cleaner/__main__.py", "csv_cleaner/core.py"]

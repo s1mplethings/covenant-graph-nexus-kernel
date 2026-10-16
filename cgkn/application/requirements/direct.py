@@ -36,6 +36,7 @@ class DirectAgentResult:
     public_pytest: str = "FAIL"
     oracle_status: str = "NOT_EVALUATED"
     oracle_evidence: tuple[Mapping[str, Any], ...] = ()
+    repair_owners: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -45,6 +46,7 @@ class DirectAgentResult:
             "hidden_acceptance": self.hidden_acceptance, "manual_edits": self.manual_edits,
             "whole_replans": self.whole_replans, "public_pytest": self.public_pytest,
             "oracle_status": self.oracle_status, "oracle_evidence": [dict(item) for item in self.oracle_evidence],
+            "repair_owners": list(self.repair_owners),
         }
 
 
@@ -63,7 +65,10 @@ class DirectAgentService:
         workspace, run_root = workspace.resolve(), run_root.resolve()
         workspace.mkdir(parents=True, exist_ok=True); run_root.mkdir(parents=True, exist_ok=True)
         compilation = compile_csv_cleaner()
-        from cgkn.application.verification import OracleExecutor, OraclePlanCompiler, OracleStatus
+        from cgkn.application.verification import (
+            EvidenceComparator, OracleEvidence, OracleExecutor, OraclePlanCompiler,
+            OracleStatus, PublicTestEvidence, PublicTestStatus,
+        )
         if compilation.preflight.as_dict()["status"] != "COMPLETE":
             raise ValueError("obligation preflight must be COMPLETE before Provider execution")
         write_obligation_preflight(run_root / "obligation_preflight.json", compilation.preflight)
@@ -77,39 +82,97 @@ class DirectAgentService:
             "target_paths": list(self.TARGETS),
             "rule": "write the complete bounded project; do not add requirements or dependencies",
         }
-        completion = self.client.complete(
-            system=("You are the bounded high-capability Direct Agent. Implement the complete project from canonical obligations and WorkUnit contracts. "
-                    "Write only declared target paths. Do not inspect hidden acceptance, add behavior, change policy, or claim validation. Return JSON actions only."),
-            user=json.dumps(prompt, ensure_ascii=False, sort_keys=True), schema_name="cgkn_direct_agent_execute", schema=WORKER_SCHEMA,
-            config=self.agent,
-        )
-        proposal = validate_worker_proposal(parse_json_object(completion.text), "DIRECT-AGENT")
-        if proposal["needs_escalation"]:
-            raise ScopeViolation(proposal["escalation_reason"] or "direct agent escalation")
         policy = next(item.dependency_policy for item in compilation.obligations.obligations if item.dependency_policy)
-        validate_dependency_actions(workspace, proposal["actions"], policy)
-        scope = _ScopeAdapter(self.TARGETS, self.TARGETS, (".git", ".github", ".cgkn", "benchmarks", "artifacts", "governance", "cgkn"))
-        ScopedFileTransaction(workspace, scope).apply(proposal["actions"])
+        oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, policy)
+        units = {item.work_unit_id: item for item in compile_csv_work_units(compilation)}
+        provider_calls = 0
+        tokens = 0
+        repair_rounds = 0
+        repair_owners: list[str] = []
+
+        def apply_provider(request: Mapping[str, Any], targets: tuple[str, ...]) -> None:
+            nonlocal provider_calls, tokens
+            completion = self.client.complete(
+                system=("You are the bounded high-capability Direct Agent. Implement or repair only the declared scope from canonical obligations and WorkUnit contracts. "
+                        "Use supplied failure evidence and current sources. Do not inspect hidden acceptance, add behavior, change policy, or claim validation. Return JSON actions only."),
+                user=json.dumps(request, ensure_ascii=False, sort_keys=True), schema_name="cgkn_direct_agent_execute", schema=WORKER_SCHEMA,
+                config=self.agent,
+            )
+            provider_calls += 1
+            tokens += int(completion.usage.get("total_tokens", 0))
+            proposal = validate_worker_proposal(parse_json_object(completion.text), "DIRECT-AGENT")
+            if proposal["needs_escalation"]:
+                raise ScopeViolation(proposal["escalation_reason"] or "direct agent escalation")
+            validate_dependency_actions(workspace, proposal["actions"], policy)
+            scope = _ScopeAdapter(targets, targets, (".git", ".github", ".cgkn", "benchmarks", "artifacts", "governance", "cgkn"))
+            ScopedFileTransaction(workspace, scope).apply(proposal["actions"])
+
+        apply_provider(prompt, self.TARGETS)
+        gate_env = os.environ.copy(); gate_env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
         commands = (
             [sys.executable, "-m", "compileall", "-q", "."],
             [sys.executable, "-m", "pytest", "-q"],
             [sys.executable, "-m", "csv_cleaner", "--help"],
         )
-        gate_env = os.environ.copy(); gate_env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-        gate_results = tuple(subprocess.run(command, cwd=workspace, capture_output=True, timeout=60, env=gate_env) for command in commands)
+        all_obligations = tuple(item.obligation_id for item in compilation.obligations.obligations)
+        while True:
+            gate_results = tuple(subprocess.run(command, cwd=workspace, capture_output=True, timeout=60, env=gate_env) for command in commands)
+            public_pytest = "PASS" if gate_results[1].returncode == 0 else "FAIL"
+            oracle_rows = OracleExecutor((policy,)).execute_plan(oracle_plan, workspace)
+            oracle_status = "PASS" if all(item.status is OracleStatus.PASS for item in oracle_rows) else "FAIL"
+            if all(item.returncode == 0 for item in gate_results) and oracle_status == "PASS":
+                break
+            if repair_rounds >= 2:
+                break
+            test_asset_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"}
+            selected = next((item for item in oracle_rows if item.status is not OracleStatus.PASS and not set(item.obligation_ids) <= test_asset_obligations), None)
+            if selected is None and public_pytest == "PASS":
+                selected = next((item for item in oracle_rows if item.status is not OracleStatus.PASS), None)
+            if selected is None:
+                selected = next((item for item in oracle_rows if not set(item.obligation_ids) <= test_asset_obligations), None)
+            if selected is None:
+                break
+            pytest_stdout = gate_results[1].stdout.decode(errors="replace")
+            pytest_stderr = gate_results[1].stderr.decode(errors="replace")
+            setup_failed = "ERROR collecting" in pytest_stdout or "fixture" in (pytest_stdout + pytest_stderr).lower()
+            public = PublicTestEvidence(
+                f"EVIDENCE-DIRECT-PYTEST-{repair_rounds}",
+                PublicTestStatus.PASS if public_pytest == "PASS" else PublicTestStatus.FAIL,
+                all_obligations, ("PUBLIC-PYTEST",), return_code=gate_results[1].returncode,
+                stdout_summary=pytest_stdout[-2000:], stderr_summary=pytest_stderr[-2000:],
+                setup_status="FAIL" if setup_failed else "PASS",
+            )
+            failure = EvidenceComparator().compare(selected, public, dependency_policy=policy)
+            owner = failure.effective_owner
+            if owner is None or owner not in units:
+                break
+            repair_owners.append(owner)
+            unit = units[owner]
+            current_sources = {
+                path: (workspace / path).read_text(encoding="utf-8")
+                for path in unit.target_paths if (workspace / path).is_file()
+            }
+            repair_prompt = prompt | {
+                "repair_round": repair_rounds + 1,
+                "repair_owner": owner,
+                "target_paths": list(unit.target_paths),
+                "work_unit_contracts": [unit.as_dict()],
+                "failure_evidence": failure.as_dict(),
+                "current_sources": current_sources,
+                "rule": "repair only the attributed WorkUnit scope; preserve every other file",
+            }
+            apply_provider(repair_prompt, unit.target_paths)
+            repair_rounds += 1
         passed = all(item.returncode == 0 for item in gate_results)
-        public_pytest = "PASS" if gate_results[1].returncode == 0 else "FAIL"
-        oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, policy)
-        oracle_rows = OracleExecutor((policy,)).execute_plan(oracle_plan, workspace)
-        oracle_status = "PASS" if all(item.status is OracleStatus.PASS for item in oracle_rows) else "FAIL"
         env = os.environ.copy()
         env.update({"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "CGKN_GENERATED_PROJECT": str(workspace), "PYTHONPATH": str(workspace), "CGKN_TEST_ALLOWED_PACKAGES": "pytest"})
         hidden_run = subprocess.run([sys.executable, "-m", "pytest", "-q", str(self.root / "benchmarks" / "real_project_generation" / "acceptance" / "test_cli_csv_cleaner.py")], cwd=workspace, capture_output=True, timeout=60, env=env)
         hidden = "PASS" if hidden_run.returncode == 0 else "FAIL"
         status = "PASS" if passed and oracle_status == "PASS" and hidden == "PASS" else "FAIL"
         return DirectAgentResult(
-            status, run_id, workspace, 1, int(completion.usage.get("total_tokens", 0)),
-            int((time.perf_counter() - started) * 1000), 0, hidden,
+            status, run_id, workspace, provider_calls, tokens,
+            int((time.perf_counter() - started) * 1000), repair_rounds, hidden,
             public_pytest=public_pytest, oracle_status=oracle_status,
             oracle_evidence=tuple(item.as_dict() for item in oracle_rows),
+            repair_owners=tuple(repair_owners),
         )

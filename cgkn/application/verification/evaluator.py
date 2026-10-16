@@ -128,7 +128,17 @@ class EvidenceComparator:
     ) -> FailureEvidence:
         manifest = FrozenMapping(interface_manifest or {})
         common = set(oracle.obligation_ids) & set(public.obligation_ids)
+        oracle_obligations = set(oracle.obligation_ids)
+        docs_obligations = {"OBL-CSV-README"}
+        test_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"}
         dependency_failure = any("DEPS" in item or "RUNTIME-STDLIB" in item or "TEST-PYTEST" in item or "NETWORK" in item for item in oracle.obligation_ids)
+
+        def project_owner() -> str:
+            if oracle_obligations and oracle_obligations <= docs_obligations:
+                return "WU-DOCS"
+            if oracle_obligations and oracle_obligations <= test_obligations:
+                return "WU-TESTS"
+            return "WU-CORE"
         if oracle.status in {OracleStatus.HARNESS_FAILURE, OracleStatus.BLOCKED_ENVIRONMENT}:
             failure_class = FailureClass.HARNESS_FAILURE
             owner = None
@@ -146,7 +156,7 @@ class EvidenceComparator:
             basis = ("oracle=PASS", f"public_test={public.status.value}", "implementation satisfies independent Oracle")
         elif oracle.status is OracleStatus.FAIL and public.status is PublicTestStatus.PASS:
             failure_class = FailureClass.DEPENDENCY_POLICY_DEFECT if dependency_failure else FailureClass.SOURCE_DEFECT
-            owner = "WU-TESTS" if dependency_failure and all("TEST-" in item for item in oracle.obligation_ids) else "WU-CORE"
+            owner = project_owner()
             gap = True
             basis = ("oracle=FAIL", "public_test=PASS", "PUBLIC_TEST_COVERAGE_GAP")
         elif public.setup_status == "FAIL":
@@ -156,7 +166,7 @@ class EvidenceComparator:
             basis = ("oracle=FAIL", "public_test_setup=FAIL", "source and test setup require separate resolution")
         elif common:
             failure_class = FailureClass.DEPENDENCY_POLICY_DEFECT if dependency_failure else FailureClass.SOURCE_DEFECT
-            owner = "WU-TESTS" if dependency_failure and all("TEST-" in item for item in oracle.obligation_ids) else "WU-CORE"
+            owner = project_owner()
             gap = False
             basis = ("oracle=FAIL", "public_test=FAIL", "matching obligation failure")
         else:

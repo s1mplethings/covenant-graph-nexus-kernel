@@ -117,3 +117,13 @@ def test_owner_override_requires_reason_and_is_recorded() -> None:
     overridden = result.with_owner_override("WU-DOCS", "first project frame points to README generation")
     assert overridden.effective_owner == "WU-DOCS"
     assert overridden.as_dict()["override_reason"]
+
+
+def test_documentation_oracle_failure_routes_to_docs_work_unit() -> None:
+    result = EvidenceComparator().compare(
+        oracle(OracleStatus.FAIL, "OBL-CSV-README"),
+        public(PublicTestStatus.PASS, "OBL-CSV-README"),
+    )
+    assert result.failure_class is FailureClass.SOURCE_DEFECT
+    assert result.owner_work_unit == "WU-DOCS"
+    assert result.allowed_repair_scope == ("README.md",)

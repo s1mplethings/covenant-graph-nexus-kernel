@@ -1,10 +1,10 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-OBLIGATION-ORACLE-011",
+  "iteration_id": "ITER-011",
   "project_id": "cgkn",
-  "goal": "Compile canonical CSV obligations into deterministic executable Oracles, compare Oracle and public-test evidence, and route only the affected WorkUnit for repair without weakening any prior baseline guarantee.",
-  "backlog_item_ids": ["MVP-017"],
+  "goal": "ITER-OBLIGATION-ORACLE-011: compile canonical CSV obligations into deterministic executable Oracles, compare Oracle and public-test evidence, and route only the affected WorkUnit for repair without weakening any prior baseline guarantee.",
+  "backlog_item_ids": ["PB-017"],
   "workflow_state": "active",
   "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
