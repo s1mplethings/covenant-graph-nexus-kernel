@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "6195b03414c69004028ef3ca90074bf78c7a3eac",
-  "source_tree_sha": "38ba3b00b6b569e324d0cfa1519cc27d21584863",
-  "core_source_hash": "sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723",
+  "source_commit": "b29193bd40bd382e86ad0ad9a56f39454bcc9668",
+  "source_tree_sha": "c9c740842aea9387057f03dd89272da2ad42a7ed",
+  "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
   "commands": [
     {
       "argv": [
@@ -258,11 +258,11 @@
     }
   ],
   "totals": {
-    "passed": 3087,
+    "passed": 3099,
     "failed": 0,
     "errors": 0,
     "skipped": 355,
-    "duration_seconds": 1362.141
+    "duration_seconds": 1346.371
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -286,6 +286,18 @@
     "tests/agent/test_project_loop_boundaries.py::test_decision_limit_blocks_without_false_success",
     "tests/agent/test_project_loop_boundaries.py::test_escalation_and_finish_before_run_are_fail_closed",
     "tests/agent/test_project_loop_boundaries.py::test_multiple_retry_and_empty_run_are_rejected",
+    "tests/application/requirements/test_obligation_contracts.py::test_compiler_normalizes_and_stabilizes_generated_ids",
+    "tests/application/requirements/test_obligation_contracts.py::test_compiler_rejects_missing_internal_and_ungrounded_derived_sources",
+    "tests/application/requirements/test_obligation_contracts.py::test_completeness_rejects_unmapped_unverifiable_and_invalid_expected",
+    "tests/application/requirements/test_obligation_contracts.py::test_dependency_policy_separates_runtime_test_tooling_and_network",
+    "tests/application/requirements/test_obligation_contracts.py::test_missing_hidden_obligation_metadata_is_harness_contract_gap",
+    "tests/application/requirements/test_obligation_contracts.py::test_obligation_round_trip_is_immutable_hashable_and_deterministic",
+    "tests/application/requirements/test_obligation_contracts.py::test_obligation_set_rejects_duplicate_id_and_hash_tamper",
+    "tests/application/requirements/test_obligation_contracts.py::test_orphan_test_obligation_is_harness_contract_gap[False]",
+    "tests/application/requirements/test_obligation_contracts.py::test_orphan_test_obligation_is_harness_contract_gap[True]",
+    "tests/application/requirements/test_obligation_contracts.py::test_preflight_only_completes_with_complete_obligations_and_traceability",
+    "tests/application/requirements/test_obligation_contracts.py::test_traceability_covers_requirement_public_hidden_and_evidence_routes",
+    "tests/application/requirements/test_traceability_gate.py::test_gate_reports_harness_contract_gap_for_orphan_hidden_test",
     "tests/application/software_project/test_acceptance.py::test_failed_acceptance_withholds_harness_diagnostics",
     "tests/application/software_project/test_acceptance.py::test_missing_harness_fails_closed",
     "tests/application/software_project/test_acceptance.py::test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt",
@@ -2328,7 +2340,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 10422,
+      "duration_ms": 10926,
       "commands": [
         {
           "argv": [
@@ -2386,7 +2398,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"6195b03414c69004028ef3ca90074bf78c7a3eac\",\n  \"source_tree_sha\": \"38ba3b00b6b569e324d0cfa1519cc27d21584863\",\n  \"core_source_hash\": \"sha256:ca68e7d2e79ba0e4c6466016a335c5c0873f8436c636933f80ababe9c9113723\",\n  \"test_source_hash\": \"sha256:ed1b878545f86c2a012fa12399b107d92a473b7ecbd01f527fe1df61cffcef89\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 97,\n  \"test_path_count\": 217\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"b29193bd40bd382e86ad0ad9a56f39454bcc9668\",\n  \"source_tree_sha\": \"c9c740842aea9387057f03dd89272da2ad42a7ed\",\n  \"core_source_hash\": \"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6\",\n  \"test_source_hash\": \"sha256:c6433c3bb8aea2f651916661ef630682fc9354d4300d2415ac3bf729e5881ecf\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 97,\n  \"test_path_count\": 220\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2403,7 +2415,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 134735,
+      "duration_ms": 150940,
       "commands": [
         {
           "argv": [
@@ -2433,7 +2445,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml -\n333 passed, 1 skipped in 133.91s (0:02:13)\n",
+          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-unit-0.xml -\n333 passed, 1 skipped in 149.55s (0:02:29)\n",
           "stderr_tail": ""
         }
       ],
@@ -2786,7 +2798,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 116082,
+      "duration_ms": 107126,
       "commands": [
         {
           "argv": [
@@ -2818,7 +2830,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 91 deselected in 115.29s (0:01:55)\n",
+          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 91 deselected in 106.32s (0:01:46)\n",
           "stderr_tail": ""
         }
       ],
@@ -3080,7 +3092,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 6203,
+      "duration_ms": 6275,
       "commands": [
         {
           "argv": [
@@ -3112,7 +3124,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 294 deselected in 4.32s\n",
+          "stdout_tail": "........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 294 deselected in 4.48s\n",
           "stderr_tail": ""
         }
       ],
@@ -3170,7 +3182,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 83555,
+      "duration_ms": 83089,
       "commands": [
         {
           "argv": [
@@ -3202,7 +3214,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 257 deselected in 81.17s (0:01:21)\n",
+          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 257 deselected in 80.47s (0:01:20)\n",
           "stderr_tail": ""
         }
       ],
@@ -3298,7 +3310,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 12594,
+      "duration_ms": 12486,
       "commands": [
         {
           "argv": [
@@ -3330,7 +3342,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 329 deselected in 11.59s\n",
+          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 329 deselected in 11.51s\n",
           "stderr_tail": ""
         }
       ],
@@ -3353,7 +3365,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 145280,
+      "duration_ms": 143232,
       "commands": [
         {
           "argv": [
@@ -3383,7 +3395,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml -\n333 passed, 1 skipped in 144.45s (0:02:24)\n",
+          "stdout_tail": "........................................s............................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 64%]\n........................................................................ [ 86%]\n..............................................                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-full-core-0.xml -\n333 passed, 1 skipped in 141.37s (0:02:21)\n",
           "stderr_tail": ""
         }
       ],
@@ -3736,7 +3748,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 846425,
+      "duration_ms": 829151,
       "commands": [
         {
           "argv": [
@@ -3747,7 +3759,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 29%]\nsssssssssssssssssssssssssssssssssssssssssssssssssss..................... [ 32%]\n......................................................................ss [ 35%]\nsss..........................................................sss........ [ 38%]\n..............................................................s......... [ 41%]\n........................................................................ [ 44%]\n........................................................................ [ 47%]\n........................................................................ [ 50%]\n........................................................................ [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 59%]\n........................................................................ [ 62%]\n................ss...................................................... [ 65%]\nsssssss................................................................. [ 68%]\n............................s.........................................ss [ 71%]\nss.s..s.s............................................................... [ 74%]\n........................................s............................... [ 77%]\n....................................ssssssssssssssss.................... [ 80%]\n...............................................ssssss................... [ 83%]\n............................................ssss........................ [ 86%]\n...............................................sssssssssssssssssssssssss [ 89%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 92%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssss................... [ 95%]\n........ssssssssssssssssssss..s......................................... [ 98%]\n............................ssss                                         [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml -\n2058 passed, 350 skipped, 4 warnings in 844.69s (0:14:04)\n",
+          "stdout_tail": ".........sssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 29%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss......... [ 32%]\n........................................................................ [ 35%]\n..........sssss......................................................... [ 38%]\n.sss.................................................................... [ 41%]\n..s..................................................................... [ 44%]\n........................................................................ [ 47%]\n........................................................................ [ 50%]\n........................................................................ [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 59%]\n........................................................................ [ 62%]\n............................ss.......................................... [ 65%]\n............sssssss..................................................... [ 68%]\n........................................s............................... [ 71%]\n..........ssss.s..s.s................................................... [ 74%]\n....................................................s................... [ 77%]\n................................................ssssssssssssssss........ [ 80%]\n...........................................................ssssss....... [ 83%]\n........................................................ssss............ [ 86%]\n...........................................................sssssssssssss [ 89%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 92%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss....... [ 95%]\n....................ssssssssssssssssssss..s............................. [ 98%]\n........................................ssss                             [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\obligation-compiler\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-active-repository-0.xml -\n2070 passed, 350 skipped, 4 warnings in 827.65s (0:13:47)\n",
           "stderr_tail": ""
         }
       ],
@@ -3773,6 +3785,18 @@
         "tests/agent/test_project_loop_boundaries.py::test_decision_limit_blocks_without_false_success",
         "tests/agent/test_project_loop_boundaries.py::test_escalation_and_finish_before_run_are_fail_closed",
         "tests/agent/test_project_loop_boundaries.py::test_multiple_retry_and_empty_run_are_rejected",
+        "tests/application/requirements/test_obligation_contracts.py::test_compiler_normalizes_and_stabilizes_generated_ids",
+        "tests/application/requirements/test_obligation_contracts.py::test_compiler_rejects_missing_internal_and_ungrounded_derived_sources",
+        "tests/application/requirements/test_obligation_contracts.py::test_completeness_rejects_unmapped_unverifiable_and_invalid_expected",
+        "tests/application/requirements/test_obligation_contracts.py::test_dependency_policy_separates_runtime_test_tooling_and_network",
+        "tests/application/requirements/test_obligation_contracts.py::test_missing_hidden_obligation_metadata_is_harness_contract_gap",
+        "tests/application/requirements/test_obligation_contracts.py::test_obligation_round_trip_is_immutable_hashable_and_deterministic",
+        "tests/application/requirements/test_obligation_contracts.py::test_obligation_set_rejects_duplicate_id_and_hash_tamper",
+        "tests/application/requirements/test_obligation_contracts.py::test_orphan_test_obligation_is_harness_contract_gap[False]",
+        "tests/application/requirements/test_obligation_contracts.py::test_orphan_test_obligation_is_harness_contract_gap[True]",
+        "tests/application/requirements/test_obligation_contracts.py::test_preflight_only_completes_with_complete_obligations_and_traceability",
+        "tests/application/requirements/test_obligation_contracts.py::test_traceability_covers_requirement_public_hidden_and_evidence_routes",
+        "tests/application/requirements/test_traceability_gate.py::test_gate_reports_harness_contract_gap_for_orphan_hidden_test",
         "tests/application/software_project/test_acceptance.py::test_failed_acceptance_withholds_harness_diagnostics",
         "tests/application/software_project/test_acceptance.py::test_missing_harness_fails_closed",
         "tests/application/software_project/test_acceptance.py::test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt",
@@ -6165,7 +6189,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2058,
+        "passed": 2070,
         "failed": 0,
         "errors": 0,
         "skipped": 350
@@ -6174,7 +6198,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 6845,
+      "duration_ms": 3146,
       "commands": [
         {
           "argv": [
@@ -6187,7 +6211,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2407 deselected in 4.67s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\obligation-compiler\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2419 deselected in 2.12s\n",
           "stderr_tail": ""
         }
       ],
@@ -6205,8 +6229,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:c34fe5eed9bc2ec5ed3d926ae70675000334277c8cf30700e62e3822560ed11e",
-  "generated_at": "2026-10-16T07:19:50.840631+00:00",
+  "coverage_file_hash": "sha256:f20215b014f96c790a49b47f1ae49b6dfd711d057b2fe2471dd845448a97f3c4",
+  "generated_at": "2026-10-16T08:29:27.842571+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -6216,5 +6240,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:5b133471f2b4eee55e983ef4c6a34c0bebe1d8b1e514b3a91bc3fbcf4ee18807"
+  "receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269"
 }

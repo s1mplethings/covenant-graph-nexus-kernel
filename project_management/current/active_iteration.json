@@ -34,12 +34,17 @@
     "governance/current_baseline.json",
     "governance/baselines/baseline_index.json",
     "governance/baselines/receipts/BASELINE-OBLIGATION-001.json",
+    "governance/baselines/receipts/BASELINE-OBLIGATION-002.json",
     "governance/kernel_test_receipt.json",
-    "artifacts/baselines/phase0-postreceipt-fast.json"
+    "artifacts/baselines/phase0-postreceipt-fast.json",
+    "artifacts/baselines/phase1-postreceipt-fast.json"
   ],
   "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
   "retrospective": {
-    "worked": ["Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed."],
+    "worked": [
+      "Phase 0 separated source boundaries and promoted only after targeted, full Kernel, and fast baseline evidence passed.",
+      "Phase 1 added source-bound obligation, dependency-policy, completeness, and traceability contracts while the ratchet caught and repaired both stale receipts."
+    ],
     "did_not_work": [],
     "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
   }
