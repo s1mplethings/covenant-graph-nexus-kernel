@@ -52,6 +52,7 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
         (".gitignore", "CURRENT_DOC", "COMMIT"),
         ("legacy/pre_mvp_reset/README.md", "SOURCE", "COMMIT"),
+        ("experiments/semantic_artifact_design/README.md", "CURRENT_DOC", "COMMIT"),
         (".cgnk/governance/governance.lock.json", "CURRENT_GOVERNANCE", "COMMIT"),
     ],
 )
@@ -74,6 +75,10 @@ def test_force_push_options_are_always_blocked() -> None:
 
 def test_consumer_migrations_require_explicit_review() -> None:
     assert gate.classify_path("drizzle/0017_feature.sql")[0] == "MIGRATION"
+
+
+def test_experiment_receipts_require_explicit_review() -> None:
+    assert gate.classify_path("experiments/semantic_artifact_design/receipts/live.json")[0] == "DURABLE_EVIDENCE"
 
 
 def test_environment_key_reference_is_not_secret_content(tmp_path: pathlib.Path) -> None:

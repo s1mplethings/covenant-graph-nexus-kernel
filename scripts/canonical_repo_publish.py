@@ -186,6 +186,10 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "CURRENT_GOVERNANCE", "current governance state"
     if lower.startswith("evidence/"):
         return "DURABLE_EVIDENCE", "bounded durable evidence requires review"
+    if lower.startswith("experiments/") and "/receipts/" in lower:
+        return "DURABLE_EVIDENCE", "bounded experiment receipt requires review"
+    if lower.startswith("experiments/") and pure.suffix.lower() == ".md":
+        return "CURRENT_DOC", "current experiment documentation"
     if lower.startswith("docs/") or lower in {".gitignore", "readme.md", "agents.md", "version", "edition.md", "product_goal.md"} or lower.startswith("project_management/summaries/"):
         return "CURRENT_DOC", "current documentation or version truth"
     if lower.startswith("legacy/"):

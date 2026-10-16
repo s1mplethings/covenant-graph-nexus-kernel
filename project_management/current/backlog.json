@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-015",
+  "current_item_id": "MVP-016",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NOT_EVALUATED",
   "product_authority": [
@@ -221,6 +221,22 @@
       ],
       "blocked_successors": ["repeatability", "multitype generation", "real repair", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
       "evidence_status": "NEEDS_REWORK"
+    },
+    {
+      "id": "MVP-016",
+      "title": "Select a canonical semantic artifact interface",
+      "priority": 16,
+      "state": "in_progress",
+      "value": "Replace prompt-coupled L6 coordination with validated contract, state, evidence, interface, and repair facts chosen through a fair A/B/C experiment.",
+      "acceptance": [
+        "three complete designs pass the same deterministic and fake-provider contract suite",
+        "real Provider comparison uses identical models, budgets, cases, hidden acceptance, and independent workspaces",
+        "winner selection uses the fixed 100-point rubric and hard qualification threshold",
+        "only a qualified winner may change production L6 semantics",
+        "Kernel foundation remains COMPLETE and candidate projects receive zero manual edits"
+      ],
+      "blocked_successors": ["Web generation", "API generation", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "evidence_status": "NOT_EVALUATED"
     }
   ]
 }
