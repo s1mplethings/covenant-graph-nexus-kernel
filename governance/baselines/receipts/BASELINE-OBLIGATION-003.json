@@ -1,0 +1,44 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-OBLIGATION-003",
+  "parent_baseline_id": "BASELINE-OBLIGATION-002",
+  "source_commit": "5c9e3e0e42262c61c87f911d33ef5343cfad9d00",
+  "source_tree_sha": "d221930140996c72080cf020c3cc77d4e6c36b59",
+  "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
+  "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
+  "l6_receipt_hash": "sha256:ae438df0f4ec215f118e79e8ed6ec9fc317dd55bf1986ddeeadb35d207d1b75f",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "static": "PASS", "unit": "PASS", "boundary": "PASS", "fault": "PASS",
+    "security": "PASS", "local-functional": "PASS", "full-core": "PASS",
+    "active-repository": "PASS", "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "test_counts": {"passed": 3099, "failed": 0, "errors": 0, "skipped": 355},
+  "known_blockers": [
+    "semantic artifact winner is NONE",
+    "real CLI repeatability is 0/3 for designs A, B, and C",
+    "generation readiness is GENERATION_LEVEL_0",
+    "compiled obligations are not yet attached to production WorkUnit contracts"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE", "functional_readiness=LEVEL_4", "L0-L5=COMPLETE",
+    "L6=PARTIAL", "seeded_repair_A_B_C=PASS", "accepted_interface_breakages=0",
+    "whole_project_repair_replans=0", "manual_candidate_edits=0",
+    "hidden_source_exposed=false", "generation_readiness=GENERATION_LEVEL_0",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-OBLIGATION-002",
+  "added_guarantees": [
+    "the CLI CSV public contract deterministically compiles to sixteen source-bound obligations",
+    "malformed CSV rejection remains explicitly UNSPECIFIED unless a product policy supplies authority",
+    "the CSV hidden harness is machine-bound to existing obligation ids with 100 percent traceability",
+    "runtime stdlib-only, test pytest allowance, and outbound-network prohibition are separate executable policies",
+    "obligation_preflight exposes completeness, ambiguity, policy, error-semantics, and hidden-coverage facts"
+  ],
+  "unchanged_guarantees": ["all protected invariants and guarantees from BASELINE-OBLIGATION-002"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-16T09:11:39.7422819Z",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:741985c16cea2e4d08983028116b5162d9f7d30d70643ba774ea8db9e1453533"
+}
