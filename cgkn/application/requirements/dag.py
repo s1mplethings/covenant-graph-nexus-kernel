@@ -30,7 +30,21 @@ class ObligationDAGResult:
     workspace: pathlib.Path
     summary: Mapping[str, Any]
     provider_calls: int
+    tokens: int
     wall_time_ms: int
+    repair_rounds: int
+    hidden_acceptance: str
+    manual_edits: int = 0
+    whole_replans: int = 0
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "strategy": "COMPOSED_DAG", "status": self.status, "project_id": self.project_id,
+            "run_id": self.run_id, "workspace": str(self.workspace), "provider_calls": self.provider_calls,
+            "tokens": self.tokens, "wall_time_ms": self.wall_time_ms, "repair_rounds": self.repair_rounds,
+            "hidden_acceptance": self.hidden_acceptance, "manual_edits": self.manual_edits,
+            "whole_replans": self.whole_replans, "summary": dict(self.summary),
+        }
 
 
 class ObligationDAGService:
@@ -95,4 +109,10 @@ class ObligationDAGService:
             pass
         status = "PASS" if summary.status == "SUCCEEDED" and hidden == "PASS" else "FAIL"
         calls = len(getattr(self.client, "calls", ()))
-        return ObligationDAGResult(status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, int((time.perf_counter() - started) * 1000))
+        tokens = 0
+        for unit in units:
+            try:
+                tokens += int(store.load_result("cli_csv_cleaner", run_id, unit.work_unit_id).usage.get("total_tokens", 0))
+            except Exception:
+                pass
+        return ObligationDAGResult(status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens, int((time.perf_counter() - started) * 1000), 0, hidden)

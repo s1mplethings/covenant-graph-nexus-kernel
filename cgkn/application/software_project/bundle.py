@@ -16,6 +16,7 @@ CAPABILITY_EXECUTORS = {
     "project.command.smoke@1": "local.command@1",
     "project.acceptance.external@1": "project.acceptance@1",
     "project.snapshot@1": "project.snapshot@1",
+    "direct_agent_execute@1": "project.direct-agent@1",
 }
 
 
