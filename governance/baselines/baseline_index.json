@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-OBLIGATION-006",
+  "current_baseline_id": "BASELINE-ORACLE-001",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -34,6 +34,7 @@
       "baseline_hash": "sha256:f786531695654f05fce839b147448e5ec63f5e2dd9d980dc4ee5bdce4fdcb97d"
     },
     {"baseline_id":"BASELINE-OBLIGATION-005","parent_baseline_id":"BASELINE-OBLIGATION-004","receipt":"governance/baselines/receipts/BASELINE-OBLIGATION-005.json","baseline_hash":"sha256:532becc3621678f0119263780b5b4cd65d10ca63b27fa243511602e7886db530"},
-    {"baseline_id":"BASELINE-OBLIGATION-006","parent_baseline_id":"BASELINE-OBLIGATION-005","receipt":"governance/baselines/receipts/BASELINE-OBLIGATION-006.json","baseline_hash":"sha256:f12202fddaf12a40ab0b8f9c31005590715836d93d1a3d75483d067942e6d936"}
+    {"baseline_id":"BASELINE-OBLIGATION-006","parent_baseline_id":"BASELINE-OBLIGATION-005","receipt":"governance/baselines/receipts/BASELINE-OBLIGATION-006.json","baseline_hash":"sha256:f12202fddaf12a40ab0b8f9c31005590715836d93d1a3d75483d067942e6d936"},
+    {"baseline_id":"BASELINE-ORACLE-001","parent_baseline_id":"BASELINE-OBLIGATION-006","receipt":"governance/baselines/receipts/BASELINE-ORACLE-001.json","baseline_hash":"sha256:b44853682dbb8210741690468b7ecfaf8e62cb07521168d246e3624d0e1dd6ce"}
   ]
 }
