@@ -66,7 +66,7 @@ BOUNDARIES: Mapping[str, SourceBoundary] = {
     "application": SourceBoundary(
         "application",
         ("cgkn/application/", "tests/application/", "benchmarks/real_project_generation/"),
-        frozenset({"scripts/run_real_project_generation.py"}),
+        frozenset({"scripts/run_real_project_generation.py", "scripts/obligation_traceability_gate.py"}),
     ),
     "experiment": SourceBoundary(
         "experiment",

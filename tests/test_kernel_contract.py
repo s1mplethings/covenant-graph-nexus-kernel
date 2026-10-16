@@ -116,4 +116,5 @@ def test_source_boundaries_and_baseline_ratchet_are_explicit() -> None:
     for name in ('"kernel"', '"application"', '"experiment"'):
         assert name in boundaries
     assert "experiments/semantic_artifact_design/receipts/" in boundaries
+    assert "scripts/obligation_traceability_gate.py" in boundaries
     assert "governance/current_baseline.json" in read("scripts/baseline_ledger.py")

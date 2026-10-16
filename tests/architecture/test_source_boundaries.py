@@ -18,6 +18,7 @@ def test_boundaries_classify_only_their_owned_source() -> None:
     assert source_boundaries.BOUNDARIES["kernel"].contains("cgkn/runtime/dag_runner.py")
     assert not source_boundaries.BOUNDARIES["kernel"].contains("cgkn/application/software_project/service.py")
     assert source_boundaries.BOUNDARIES["application"].contains("tests/application/software_project/test_bundle.py")
+    assert source_boundaries.BOUNDARIES["application"].contains("scripts/obligation_traceability_gate.py")
     assert source_boundaries.BOUNDARIES["experiment"].contains("experiments/semantic_artifact_design/common/runner.py")
     assert not source_boundaries.BOUNDARIES["experiment"].contains("experiments/semantic_artifact_design/receipts/repeat.json")
 

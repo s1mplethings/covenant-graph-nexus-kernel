@@ -139,6 +139,9 @@ Source-bound evidence is partitioned into Kernel, Application, and Experiment
 boundaries. Kernel evidence covers only L0-L5 production packages, their tests,
 and Kernel authority/governance scripts. Application evidence covers
 `cgkn.application`, its production support, acceptance fixtures, and tests.
+Canonical requirement admission support such as
+`scripts/obligation_traceability_gate.py` belongs to the Application boundary,
+even though the boundary classifier itself remains Kernel governance.
 Experiment evidence covers isolated experiments, experiment tests, and their
 runner. A change in one boundary cannot stale a receipt owned exclusively by a
 different boundary.

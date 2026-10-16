@@ -95,6 +95,21 @@ rework_blocked
 final_delivered
 ```
 
+## Canonical requirement obligation contracts
+
+| Contract / artifact | Authoritative implementation | Consumer | Authority boundary |
+| --- | --- | --- | --- |
+| `RequirementSource` / `NormalizedRequirements` | `cgkn/application/requirements/obligation.py`, `compiler.py` | deterministic requirement compiler and completeness validator | preserves user, product, platform, derived, and harness provenance; `HARNESS_INTERNAL` cannot create a project obligation |
+| `Obligation` / `ObligationSet` | `cgkn/application/requirements/obligation.py` | project planning, work-unit compilation, public and hidden test planning | immutable, versioned, canonical-hashed acceptance fact; it is upstream project intent, not formal delivery evidence |
+| `DependencyPolicy` | `cgkn/application/requirements/policy.py` | source/test/tooling hygiene and bounded workers | separately governs runtime, development, test, tooling, and network dependencies; a runtime stdlib rule does not prohibit an explicitly allowed test dependency |
+| `TraceabilityGraph` | `cgkn/application/requirements/traceability.py` | `scripts/obligation_traceability_gate.py`, test and acceptance gates | binds Requirement -> Obligation -> Work Unit -> Test/Acceptance -> Evidence IDs; it grants no release authority |
+| `CGKNObligationPreflightReceipt` | `cgkn/application/requirements/receipt.py` | project-generation admission | veto-only generation preflight; `COMPLETE`, `REQUIREMENT_INCOMPLETE`, and `HARNESS_CONTRACT_GAP` are requirement-contract outcomes, not EvidenceStatus |
+
+`REQUIREMENT_INCOMPLETE` prevents generation until public acceptance and
+verification facts are complete. `HARNESS_CONTRACT_GAP` means a public or
+hidden test lacks a valid obligation binding; it is a harness defect and must
+not be reported as a customer-project failure.
+
 ## Formal Artifacts
 
 | Artifact kind | Schema | Producer | Formal consumers | Mainline | Status enum | Required fields | Legacy replacement |
