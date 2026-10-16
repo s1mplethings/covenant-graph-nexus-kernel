@@ -1,13 +1,13 @@
 {
   "kind": "CGKNBaselineReceipt",
   "schema_version": "1.0",
-  "baseline_id": "BASELINE-ORACLE-001",
-  "parent_baseline_id": "BASELINE-OBLIGATION-006",
-  "source_commit": "c829ed9bdd91bc8a19b156693badd4b85bfcb415",
-  "source_tree_sha": "46e1138185aa638355f2818c13206080d6da4423",
+  "baseline_id": "BASELINE-ORACLE-002",
+  "parent_baseline_id": "BASELINE-ORACLE-001",
+  "source_commit": "6b2a2168b446e4f54c00c739902f78684ee1cf10",
+  "source_tree_sha": "7aa1a45b29519912dd3ec7dbc1c562e76eb21ca2",
   "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
   "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
-  "l6_receipt_hash": "sha256:7807c8bd73fe8b148ba7f1e73dad314642162729611715b334d5c54424d6d1de",
+  "l6_receipt_hash": "sha256:72abe95c0cfdaf5dbec258100c2b3018f22d3317b481539e300f545a2bf79961",
   "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
   "profiles": {
     "static": "PASS",
@@ -22,7 +22,6 @@
   },
   "test_counts": {"passed": 3099, "failed": 0, "errors": 0, "skipped": 355},
   "known_blockers": [
-    "CSV obligations are not yet compiled into OraclePlan",
     "Oracle executors and evidence comparison are not yet implemented",
     "semantic artifact winner is NONE",
     "real CLI direct and DAG repeatability are not evaluated under an independent Oracle",
@@ -50,17 +49,18 @@
     "generation_readiness=GENERATION_LEVEL_0",
     "semantic_artifact_winner=NONE"
   ],
-  "inherits": "BASELINE-OBLIGATION-006",
+  "inherits": "BASELINE-ORACLE-001",
   "added_guarantees": [
-    "OracleSpec, OraclePlan, and OracleEvidence are immutable, versioned, round-trip safe, and deterministically hash-bound",
-    "the Oracle registry rejects duplicate identifiers, unknown obligations, dangling required Oracles, and mismatched evidence references",
-    "COMMAND, FILE, CSV, CLI, DEPENDENCY, STATIC_PYTHON, and DOCUMENTATION are the bounded first Oracle kinds"
+    "all 16 canonical CSV obligations have a deterministic Oracle route with no extra obligation behavior",
+    "malformed CSV remains UNSPECIFIED and cannot silently acquire an Oracle",
+    "runtime and test dependency domains remain distinct and OraclePlan hashing is deterministic",
+    "final project PASS fails closed unless every required Oracle has matching PASS evidence"
   ],
   "unchanged_guarantees": [
-    "all protected invariants and guarantees from BASELINE-OBLIGATION-006"
+    "all protected invariants and guarantees from BASELINE-ORACLE-001"
   ],
   "removed_guarantees": [],
-  "created_at": "2026-10-16T13:35:42.7923031Z",
+  "created_at": "2026-10-16T13:57:29.8937322Z",
   "evidence_status": "PASS_WITH_LIMITS",
-  "baseline_hash": "sha256:b44853682dbb8210741690468b7ecfaf8e62cb07521168d246e3624d0e1dd6ce"
+  "baseline_hash": "sha256:49129ed9316fe6294c22b33183947edb9576ebd2732f367ee6c65f59dd351998"
 }

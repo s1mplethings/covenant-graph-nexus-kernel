@@ -1,0 +1,22 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0",
+  "baseline_id":"BASELINE-ORACLE-002","parent_baseline_id":"BASELINE-ORACLE-001",
+  "source_commit":"6b2a2168b446e4f54c00c739902f78684ee1cf10","source_tree_sha":"7aa1a45b29519912dd3ec7dbc1c562e76eb21ca2",
+  "core_source_hash":"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
+  "kernel_receipt_hash":"sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
+  "l6_receipt_hash":"sha256:72abe95c0cfdaf5dbec258100c2b3018f22d3317b481539e300f545a2bf79961",
+  "semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"static":"PASS","unit":"PASS","boundary":"PASS","fault":"PASS","security":"PASS","local-functional":"PASS","full-core":"PASS","active-repository":"PASS","live-provider":"BLOCKED_ENVIRONMENT"},
+  "test_counts":{"passed":3099,"failed":0,"errors":0,"skipped":355},
+  "known_blockers":["Oracle executors and evidence comparison are not yet implemented","semantic artifact winner is NONE","real CLI direct and DAG repeatability are not evaluated under an independent Oracle","generation readiness is GENERATION_LEVEL_0"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","L6=PARTIAL","obligation_compiler=COMPLETE","traceability_public_coverage=100%","public_test_traceability=100%","hidden_acceptance_traceability=100%","orphan_tests=0","harness_contract_gaps=0","seeded_repair_A_B_C=PASS","accepted_interface_breakages=0","whole_project_repair_replans=0","manual_candidate_edits=0","hidden_source_exposed=false","direct_agent_declared_route=true","execution_strategy_decided_before_run=true","fake_direct_dag=PASS","generation_readiness=GENERATION_LEVEL_0","semantic_artifact_winner=NONE"],
+  "inherits":"BASELINE-ORACLE-001",
+  "added_guarantees":[
+    "all 16 canonical CSV obligations have a deterministic Oracle route with no extra obligation behavior",
+    "malformed CSV remains UNSPECIFIED and cannot silently acquire an Oracle",
+    "runtime and test dependency domains remain distinct and OraclePlan hashing is deterministic",
+    "final project PASS fails closed unless every required Oracle has matching PASS evidence"
+  ],
+  "unchanged_guarantees":["all protected invariants and guarantees from BASELINE-ORACLE-001"],
+  "removed_guarantees":[],"created_at":"2026-10-16T13:57:29.8937322Z","evidence_status":"PASS_WITH_LIMITS","baseline_hash":"sha256:49129ed9316fe6294c22b33183947edb9576ebd2732f367ee6c65f59dd351998"
+}
