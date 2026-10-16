@@ -88,3 +88,14 @@ def test_kernel_evidence_is_source_bound_and_two_phase() -> None:
     assert "Evidence Closure commit" in contract
     assert "core-source hash" in contract
     assert "cannot change kernel source" in contract
+
+
+def test_l6_applications_do_not_expand_or_redefine_kernel_authority() -> None:
+    layers = json.loads(read("governance/kernel_layers.json"))
+    l6 = next(layer for layer in layers["layers"] if layer["id"] == "L6")
+    assert l6["packages"] == ["cgkn.application"]
+    identity = read("scripts/kernel_source_identity.py")
+    assert '"application"' not in identity.split("CORE_PREFIXES", 1)[1].split("CORE_FILES", 1)[0]
+    contract = read("docs/00_kernel_contract.md")
+    assert "L6 application bundle" in contract
+    assert "does not become a kernel authority" in contract

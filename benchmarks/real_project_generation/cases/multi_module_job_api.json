@@ -1,0 +1,1 @@
+{"case_id":"multi_module_job_api","kind":"CGKNPublicGenerationCase","schema_version":"1.0","entrypoint":"python -m job_api","stdlib_only":true,"network":"loopback_server_only"}

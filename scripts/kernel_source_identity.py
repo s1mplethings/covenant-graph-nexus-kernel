@@ -9,7 +9,14 @@ from typing import Iterable, Mapping
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CORE_PREFIXES = ("cgkn/", "contracts/", "tests/architecture/")
+CORE_PREFIXES = tuple(
+    f"cgkn/{package}/"
+    for package in (
+        "agent", "artifacts", "capabilities", "compiler", "component", "execution",
+        "executors", "governance", "growth", "orchestration", "providers", "runtime",
+        "state", "telemetry",
+    )
+) + ("contracts/", "tests/architecture/")
 CORE_FILES = {
     "governance/kernel_layers.json",
     "governance/kernel_authorities.json",

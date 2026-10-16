@@ -9,7 +9,7 @@
     {"id": "L3", "packages": ["cgkn.capabilities", "cgkn.orchestration", "cgkn.execution", "cgkn.state", "cgkn.providers"], "description": "composition metadata, envelopes, state and provider transport"},
     {"id": "L4", "packages": ["cgkn.executors", "cgkn.runtime"], "description": "bounded execution, coordination and recovery"},
     {"id": "L5", "packages": ["cgkn.agent", "cgkn.growth", "cgkn.governance", "cgkn.telemetry"], "description": "agent, governed growth and telemetry"},
-    {"id": "L6", "packages": [], "description": "application and optional team capabilities"}
+    {"id": "L6", "packages": ["cgkn.application"], "description": "application and optional team capabilities; excluded from the frozen L0-L5 core-source identity"}
   ],
   "exceptions": [
     {"from": "cgkn.providers", "to": "scripts.check_connectivity", "reason": "reviewed compatibility Provider transport adapter"},

@@ -1,0 +1,1 @@
+{"case_id":"local_web_notes","kind":"CGKNPublicGenerationCase","schema_version":"1.0","entrypoint":"python -m notes_app","stdlib_only":true,"network":"loopback_server_only"}

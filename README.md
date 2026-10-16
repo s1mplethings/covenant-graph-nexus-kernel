@@ -51,6 +51,15 @@ The remaining compatibility entrypoints are:
 
 They remain callable only to preserve existing behavior while the new runtime is implemented. They are not the MVP planning or composition authority.
 
+The first L6 application bundle lives under `cgkn/application/software_project/`.
+It assembles the existing Agent, tree, DAG, executor, state, and test
+authorities to generate isolated stdlib-only projects with file-scoped workers,
+deterministic snapshots, and external acceptance. Its deterministic contract
+and harness tests pass, but the bounded real-Provider Stage 1 run did not reach
+a final project PASS after two application repair rounds. The bundle therefore
+remains `PARTIAL` at `GENERATION_LEVEL_0`; this does not change LEVEL 4 product
+readiness or the completed L0-L5 kernel foundation.
+
 Cleanup status and the exact migration boundary are recorded in:
 
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`

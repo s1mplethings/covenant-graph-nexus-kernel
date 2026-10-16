@@ -1,0 +1,19 @@
+{
+  "kind": "CGKNSoftwareProjectGenerationStatus",
+  "schema_version": "1.0",
+  "source_commit": null,
+  "generation_readiness": "GENERATION_LEVEL_0",
+  "bundle_status": "PARTIAL",
+  "single_project": "FAIL",
+  "repeatability": "NOT_EVALUATED",
+  "multitype": "NOT_EVALUATED",
+  "repair": "NOT_EVALUATED",
+  "hidden_acceptance": "NOT_EVALUATED",
+  "false_pass": "PASS",
+  "provider_validation": "NEEDS_REWORK",
+  "blockers": [
+    "Stage 1 exhausted two Application Repair Rounds without a final project PASS",
+    "real Provider workers regressed generated interfaces and public tests within the fixed budget",
+    "Stages 2 through 5 were not run after the bounded stop condition"
+  ]
+}

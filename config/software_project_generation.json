@@ -1,0 +1,23 @@
+{
+  "kind": "CGKNSoftwareProjectGenerationConfig",
+  "schema_version": "1.0",
+  "high_capability_agent": {
+    "provider": "openai_compatible",
+    "model": "qwen3.8-max",
+    "timeout_seconds": 90,
+    "max_output_tokens": 7000,
+    "reasoning_effort": "none"
+  },
+  "cheap_worker": {
+    "provider": "openai_compatible",
+    "model": "qwen3.7-flash",
+    "timeout_seconds": 90,
+    "max_output_tokens": 6000,
+    "temperature": 0.0,
+    "reasoning_effort": "none"
+  },
+  "max_agent_decisions": 4,
+  "max_worker_calls": 20,
+  "max_provider_calls": 24,
+  "max_application_repair_rounds": 2
+}

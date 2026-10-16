@@ -109,6 +109,15 @@
       "signal": "The one-file baseline succeeds in one high-model call while CGKN uses compose and finish checkpoints.",
       "response": "Do not degrade the baseline; evaluate larger repair tasks and reduce high-model checkpoints only when evidence shows authority and recovery remain intact.",
       "owner": "MVP evaluation"
+    },
+    {
+      "id": "R-MVP-013",
+      "title": "Bounded project workers may regress adjacent generated interfaces during repair",
+      "probability": "high",
+      "impact": "high",
+      "signal": "A scoped repair passes action validation but replaces a declared target with code or public tests that no longer match the existing generated interfaces.",
+      "response": "Keep fixed budgets and external acceptance; improve public interface context, patch intent, and proposal verification before rerunning Stage 1. Never repair candidate projects manually or widen worker scope.",
+      "owner": "L6 software project generation"
     }
   ]
 }

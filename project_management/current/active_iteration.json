@@ -1,22 +1,27 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.1",
-  "iteration_id": "ITER-KERNEL-FOUNDATION-CLOSURE-007",
+  "iteration_id": "ITER-L6-SOFTWARE-PROJECT-GENERATION-008",
   "project_id": "cgkn",
-  "goal": "Close current kernel logic, tests, repository failures, and source-bound evidence without adding upper-layer capabilities.",
-  "backlog_item_ids": ["MVP-014A"],
-  "workflow_state": "completed",
-  "evidence_status": "PASS",
-  "delivery_approach": "bottom-up source closure followed by an evidence-only closure commit",
-  "acceptance_criteria": ["all current non-init core sources have test responsibility mappings", "architecture, test architecture, and completeness gates pass", "P0 layers include negative, boundary, recovery or fault tests where applicable", "full-core static, unit, boundary, fault, security, local-functional, active-repository and raw pytest pass", "functional_readiness remains LEVEL_4 while kernel_foundation is independently evaluated"],
-  "quality_metrics": [
-    {"id": "QM-SOURCE-MAPPING", "measure": "source to exact test node to execution mapping", "target": "100%", "actual": "49/49 (100%)"},
-    {"id": "QM-CORE-PROFILES", "measure": "required deterministic profiles", "target": "8 PASS", "actual": "8 PASS; live-provider BLOCKED_ENVIRONMENT"},
-    {"id": "QM-COVERAGE", "measure": "separate statement and branch thresholds", "target": "all P0/P1 thresholds PASS", "actual": "PASS; overall statement 96.68%, branch 91.87%"},
-    {"id": "QM-ACTIVE-REPOSITORY", "measure": "active repository failures and errors", "target": "0 failed / 0 errors", "actual": "2004 passed / 352 skipped / 0 failed / 0 errors"}
+  "goal": "Build and truthfully validate the first L6 Software Project Generation bundle without changing L0-L5 authorities or fixed Provider budgets.",
+  "backlog_item_ids": ["MVP-015"],
+  "workflow_state": "in_progress",
+  "evidence_status": "NOT_EVALUATED",
+  "delivery_approach": "adapter-only L6 increment with deterministic contract tests, then bounded real-Provider stages and source/evidence closure",
+  "acceptance_criteria": [
+    "file-scoped workers fail closed before writes and cannot reach protected paths",
+    "projects use the existing AgentProjectLoop, CapabilityTree, ExecutionDAG, DAGRunner, ExecutorRegistry, and FileRunStore",
+    "internal tests do not authorize PASS without runtime, external acceptance, snapshot identity, and forbidden-content checks",
+    "CLI generation reaches 3/3 before multitype and repair evidence can authorize GENERATION_LEVEL_4",
+    "L0-L5 kernel foundation remains COMPLETE and functional_readiness remains LEVEL_4"
   ],
-  "out_of_scope": ["new team roles", "Self-Growth V1", "concurrency", "stress or soak", "public delivery", "compatibility-mainline migration"],
-  "evidence_refs": ["governance/kernel_completeness.json", "governance/kernel_coverage_report.json", "governance/kernel_test_receipt.json", "project_management/summaries/kernel_foundation_closure_20261016.md"],
-  "review": {"outcome": "accepted", "feedback": ["All deterministic foundation gates and source-bound evidence checks passed; live Provider remained environment-blocked and did not authorize higher-layer work."]},
-  "retrospective": {"worked": ["source-first evidence binding", "exact pytest node responsibility", "fail-closed coverage thresholds", "canonical two-phase publication"], "did_not_work": ["treating all-skipped live-provider selection as PASS", "mapping an environment-only live test as mandatory executed evidence"], "experiments": ["Corrected live-provider classification and mapping, then re-froze the source commit before evidence closure."]}
+  "quality_metrics": [
+    {"id": "QM-L6-DETERMINISTIC", "measure": "L6 unit/local/hidden harness profiles", "target": "all PASS", "actual": "9 unit, 5 local, 3 hidden-harness tests PASS"},
+    {"id": "QM-L6-SINGLE", "measure": "real-provider CLI project generation", "target": "PASS within 4 Agent decisions and 2 repair rounds", "actual": "FAIL after the bounded repair limit"},
+    {"id": "QM-L6-SCOPE", "measure": "manual edits to generated candidates", "target": "0", "actual": "0"}
+  ],
+  "out_of_scope": ["PM Agent", "Research Agent", "Marketing", "publishing", "Self-Growth V1", "concurrent runtime", "LEVEL 5", "compatibility-mainline migration"],
+  "evidence_refs": ["governance/software_project_generation_status.json", "tests/application/software_project", "artifacts/project_generation/cli_csv_cleaner"],
+  "review": {"outcome": "pending source closure", "feedback": ["Stop condition B was triggered after the fixed Application Repair Round limit; do not run Stages 2-5 or claim generation completion."]},
+  "retrospective": {"worked": ["adapter-only architecture", "prevalidated scoped writes", "external acceptance and snapshot binding", "fixed Provider budgets"], "did_not_work": ["real Provider reliably preserving generated interfaces and public tests across repairs"], "experiments": ["Normalized common TreeEdit aliases and used affected-only retries without increasing budgets."]}
 }

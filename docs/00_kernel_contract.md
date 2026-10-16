@@ -112,3 +112,18 @@ per project loop. `LLMExecutor` remains a replaceable `Executor` behind
 read/list/write/patch actions, while deterministic code validates paths and
 applies effects. It cannot alter the goal, tree, DAG, registry, package, or
 delivery state. Agent and worker model roles must be configured independently.
+
+## 16. L6 application boundary
+
+An L6 application bundle may assemble admitted Components and Capabilities over
+the existing `AgentProjectLoop`, `CapabilityTree`, `ExecutionDAG`,
+`ExecutorRegistry`, `DAGRunner`, and `FileRunStore`. An L6 application bundle
+does not become a kernel authority, a second planner, a second runtime, or a
+delivery exit.
+
+`cgkn.application` is outside the frozen L0-L5 core-source identity. An L6
+change therefore cannot silently invalidate or redefine L0-L5 evidence;
+changes to the identity rule, layer manifest, or any L0-L5 package still
+require a new source-bound kernel receipt. L6 may be `PARTIAL` while the kernel
+foundation remains `COMPLETE`, but an individual bundle may be `COMPLETE` only
+when its own external acceptance evidence is source-bound and green.

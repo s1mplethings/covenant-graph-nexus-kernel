@@ -1,0 +1,1 @@
+{"case_id":"cli_csv_cleaner","kind":"CGKNPublicGenerationCase","schema_version":"1.0","entrypoint":"python -m csv_cleaner","stdlib_only":true,"network":false}

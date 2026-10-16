@@ -51,7 +51,16 @@ def check() -> dict:
     coverage = coverage_check()
     if coverage["status"] != "PASS": errors.append("test_coverage_manifest_failed")
     if value.get("kernel_foundation") == "COMPLETE":
-        if layers.get("L6", {}).get("status") != "BLOCKED": errors.append("l6_must_remain_blocked")
+        l6_status = layers.get("L6", {}).get("status")
+        if l6_status not in {"BLOCKED", "PARTIAL"}: errors.append("l6_must_be_blocked_or_partial")
+        if l6_status == "PARTIAL":
+            try:
+                generation = load_json("governance/software_project_generation_status.json")
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                errors.append(f"l6_status_unreadable:{exc}")
+            else:
+                if generation.get("bundle_status") not in {"PARTIAL", "COMPLETE"}: errors.append("l6_partial_without_bundle_evidence")
+                if generation.get("generation_readiness") not in {f"GENERATION_LEVEL_{index}" for index in range(5)}: errors.append("invalid_generation_readiness")
         try:
             receipt = load_json("governance/kernel_test_receipt.json")
             coverage_report = load_json("governance/kernel_coverage_report.json")
