@@ -12,5 +12,5 @@
     "L5": {"status": "COMPLETE", "criticality": "P0", "required_capabilities": ["agent authority", "growth admission", "telemetry"], "required_test_classes": ["happy_path", "negative", "boundary", "fault_injection", "security"], "evidence": ["tests/agent", "tests/growth", "tests/architecture/test_consumer_governance_contract.py", "tests/telemetry", "governance/kernel_test_receipt.json"], "blockers": []},
     "L6": {"status": "PARTIAL", "criticality": "P1", "required_capabilities": ["software project generation application bundle"], "required_test_classes": ["happy_path", "negative", "boundary", "fault_injection", "security"], "evidence": ["tests/application/software_project", "governance/software_project_generation_status.json"], "blockers": ["real_provider_generation_reliability", "repeatability_not_evaluated", "multitype_not_evaluated", "real_repair_not_evaluated", "other_l6_bundles_not_implemented"]}
   },
-  "last_reviewed_commit": "54a0bfd827413966ec232dc9e78f4558247c2126"
+  "last_reviewed_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664"
 }

@@ -1,10 +1,10 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "54a0bfd827413966ec232dc9e78f4558247c2126",
-  "source_tree_sha": "7d9f152d445bf29c40c53b09b7e51b463490eca8",
-  "core_source_hash": "sha256:08b2c5e1f0ac84d047a745fc40d2b3fde88b3cb3f3b45b9dae5c7195cb949750",
-  "command": "python -m pytest tests/architecture tests/artifacts tests/compiler tests/component tests/orchestration tests/execution tests/executors tests/providers tests/state tests/runtime tests/recovery tests/capabilities tests/growth tests/agent tests/telemetry --cov=cgkn --cov-branch --cov-report=json:artifacts/kernel-coverage.json",
+  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
+  "source_tree_sha": "9081b8a0f26c32a62c5313a6c74457a04c3bdd51",
+  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
+  "command": "python -m pytest tests/architecture tests/artifacts tests/compiler tests/component tests/orchestration tests/execution tests/executors tests/providers tests/state tests/runtime tests/recovery tests/capabilities tests/growth tests/agent tests/telemetry --cov=cgkn --cov-branch --cov-report=json:artifacts/kernel-coverage-final.json",
   "pytest_result": {
     "exit_code": 0
   },
@@ -3057,5 +3057,5 @@
       "branch_percent": 0.0
     }
   },
-  "raw_coverage_hash": "sha256:aa03ac5d9943d00c0942d024f05960516b5fe69a9f2c329b650bb3e6088782df"
+  "raw_coverage_hash": "sha256:fd246964ebf4897c482134cc903e388d9da9edee6f7afd1befb12860e7531f40"
 }

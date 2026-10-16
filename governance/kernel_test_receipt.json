@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "54a0bfd827413966ec232dc9e78f4558247c2126",
-  "source_tree_sha": "7d9f152d445bf29c40c53b09b7e51b463490eca8",
-  "core_source_hash": "sha256:08b2c5e1f0ac84d047a745fc40d2b3fde88b3cb3f3b45b9dae5c7195cb949750",
+  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
+  "source_tree_sha": "9081b8a0f26c32a62c5313a6c74457a04c3bdd51",
+  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
   "commands": [
     {
       "argv": [
@@ -262,7 +262,7 @@
     "failed": 0,
     "errors": 0,
     "skipped": 357,
-    "duration_seconds": 1223.625
+    "duration_seconds": 1180.374
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -2290,7 +2290,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 10108,
+      "duration_ms": 10277,
       "commands": [
         {
           "argv": [
@@ -2348,7 +2348,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"54a0bfd827413966ec232dc9e78f4558247c2126\",\n  \"source_tree_sha\": \"7d9f152d445bf29c40c53b09b7e51b463490eca8\",\n  \"core_source_hash\": \"sha256:08b2c5e1f0ac84d047a745fc40d2b3fde88b3cb3f3b45b9dae5c7195cb949750\",\n  \"test_source_hash\": \"sha256:40bbe6aa63a579434b4407ab960713285ac840876e80fbb2e20a03105b8ef6a7\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 95,\n  \"test_path_count\": 208\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"c607705a5f7a8b4ee97b9e200f24e0bd7589b664\",\n  \"source_tree_sha\": \"9081b8a0f26c32a62c5313a6c74457a04c3bdd51\",\n  \"core_source_hash\": \"sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987\",\n  \"test_source_hash\": \"sha256:663ac20551330a9e99aa40875fad256975edf135f11f74aa38361f8cb856054b\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:79128d96c3e0ac9e992f8ecce0c33d18c7bcc9de574119740975b815eebd8f19\",\n  \"core_path_count\": 95,\n  \"test_path_count\": 208\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2365,7 +2365,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 125246,
+      "duration_ms": 125853,
       "commands": [
         {
           "argv": [
@@ -2395,7 +2395,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml -\n327 passed, 1 skipped in 124.38s (0:02:04)\n",
+          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-unit-0.xml -\n327 passed, 1 skipped in 124.75s (0:02:04)\n",
           "stderr_tail": ""
         }
       ],
@@ -2742,7 +2742,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 98868,
+      "duration_ms": 102765,
       "commands": [
         {
           "argv": [
@@ -2774,7 +2774,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 85 deselected in 98.04s (0:01:38)\n",
+          "stdout_tail": "...........................s............................................ [ 29%]\n........................................................................ [ 59%]\n........................................................................ [ 88%]\n...........................                                              [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-boundary-0.xml -\n242 passed, 1 skipped, 85 deselected in 101.91s (0:01:41)\n",
           "stderr_tail": ""
         }
       ],
@@ -3036,7 +3036,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 5034,
+      "duration_ms": 5009,
       "commands": [
         {
           "argv": [
@@ -3068,7 +3068,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 288 deselected in 4.18s\n",
+          "stdout_tail": "........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-fault-0.xml -\n40 passed, 288 deselected in 4.17s\n",
           "stderr_tail": ""
         }
       ],
@@ -3126,7 +3126,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 77574,
+      "duration_ms": 78214,
       "commands": [
         {
           "argv": [
@@ -3158,7 +3158,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 251 deselected in 75.50s (0:01:15)\n",
+          "stdout_tail": "....................s................................................... [ 93%]\n.....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-security-0.xml -\n76 passed, 1 skipped, 251 deselected in 76.31s (0:01:16)\n",
           "stderr_tail": ""
         }
       ],
@@ -3254,7 +3254,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 13210,
+      "duration_ms": 13173,
       "commands": [
         {
           "argv": [
@@ -3286,7 +3286,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 323 deselected in 11.47s\n",
+          "stdout_tail": ".....                                                                    [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-local-functional-0.xml -\n5 passed, 323 deselected in 11.40s\n",
           "stderr_tail": ""
         }
       ],
@@ -3309,7 +3309,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 125874,
+      "duration_ms": 125881,
       "commands": [
         {
           "argv": [
@@ -3339,7 +3339,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml -\n327 passed, 1 skipped in 124.92s (0:02:04)\n",
+          "stdout_tail": "..................................s..................................... [ 21%]\n........................................................................ [ 43%]\n........................................................................ [ 65%]\n........................................................................ [ 87%]\n........................................                                 [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-full-core-0.xml -\n327 passed, 1 skipped in 124.90s (0:02:04)\n",
           "stderr_tail": ""
         }
       ],
@@ -3686,7 +3686,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 764316,
+      "duration_ms": 715940,
       "commands": [
         {
           "argv": [
@@ -3697,7 +3697,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 30%]\nssssssssssssssss........................................................ [ 33%]\n...................................sssss................................ [ 36%]\n..........................sss........................................... [ 39%]\n...........................s............................................ [ 42%]\n........................................................................ [ 45%]\n........................................................................ [ 48%]\n........................................................................ [ 51%]\n........................................................................ [ 54%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n.....................................................ss................. [ 63%]\n.....................................sssssss............................ [ 66%]\n................................................................s....... [ 69%]\n..................................ssss.s.ssss........................... [ 72%]\n........................................................................ [ 75%]\n....s................................................................... [ 78%]\nssssssssssssssss........................................................ [ 81%]\n...........ssssss....................................................... [ 84%]\n........ssss............................................................ [ 88%]\n...........sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 91%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 94%]\nsssssssssssssssss...........................ssssssssssssssssssss..s..... [ 97%]\n................................................................ssss     [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml -\n2020 passed, 352 skipped, 4 warnings in 762.31s (0:12:42)\n",
+          "stdout_tail": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 30%]\nssssssssssssssss........................................................ [ 33%]\n...................................sssss................................ [ 36%]\n..........................sss........................................... [ 39%]\n...........................s............................................ [ 42%]\n........................................................................ [ 45%]\n........................................................................ [ 48%]\n........................................................................ [ 51%]\n........................................................................ [ 54%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n.....................................................ss................. [ 63%]\n.....................................sssssss............................ [ 66%]\n................................................................s....... [ 69%]\n..................................ssss.s.ssss........................... [ 72%]\n........................................................................ [ 75%]\n....s................................................................... [ 78%]\nssssssssssssssss........................................................ [ 81%]\n...........ssssss....................................................... [ 84%]\n........ssss............................................................ [ 88%]\n...........sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 91%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 94%]\nsssssssssssssssss...........................ssssssssssssssssssss..s..... [ 97%]\n................................................................ssss     [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-active-repository-0.xml -\n2020 passed, 352 skipped, 4 warnings in 713.86s (0:11:53)\n",
           "stderr_tail": ""
         }
       ],
@@ -6088,7 +6088,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 3395,
+      "duration_ms": 3262,
       "commands": [
         {
           "argv": [
@@ -6101,7 +6101,7 @@
             "--junitxml=C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2371 deselected in 2.29s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: C:\\Users\\sunom\\.codex\\worktrees\\l6-real-project-generation-20261016\\CGKN\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2371 deselected in 2.22s\n",
           "stderr_tail": ""
         }
       ],
@@ -6119,8 +6119,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:fc37b03ed1d92f2acdb3ba3be5f82235f8680c8787090d96842a5983b08d29fa",
-  "generated_at": "2026-10-16T01:27:18.489516+00:00",
+  "coverage_file_hash": "sha256:41b50e9f855ee44f986d0a63a19917e76226a30de74e5083850a777d9432fadc",
+  "generated_at": "2026-10-16T01:52:30.542555+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -6130,5 +6130,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:37a408fb9f842ac3ef0593ff345d2f3e84755e2776a1c91fe5028d474ec36c1b"
+  "receipt_hash": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e"
 }

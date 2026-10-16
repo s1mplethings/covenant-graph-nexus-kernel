@@ -1,7 +1,7 @@
 {
   "kind": "CGKNSoftwareProjectGenerationStatus",
   "schema_version": "1.0",
-  "source_commit": "54a0bfd827413966ec232dc9e78f4558247c2126",
+  "source_commit": "c607705a5f7a8b4ee97b9e200f24e0bd7589b664",
   "generation_readiness": "GENERATION_LEVEL_0",
   "bundle_status": "PARTIAL",
   "single_project": "FAIL",
@@ -17,7 +17,7 @@
     "Stages 2 through 5 were not run after the bounded stop condition"
   ],
   "evidence": {
-    "kernel_receipt": "sha256:37a408fb9f842ac3ef0593ff345d2f3e84755e2776a1c91fe5028d474ec36c1b",
+    "kernel_receipt": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e",
     "exploratory_cli_rounds": [
       "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
       "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",

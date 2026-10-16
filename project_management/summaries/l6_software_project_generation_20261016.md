@@ -43,7 +43,9 @@ Agent's explicit final `FINISH` was promoted to PASS.
 - Core coverage run: 263 passed, 1 skipped; every manifest-bound L0–L5 file
   remains above its required threshold.
 - Kernel receipt binds source commit
-  `54a0bfd827413966ec232dc9e78f4558247c2126` and has verdict PASS.
+  `c607705a5f7a8b4ee97b9e200f24e0bd7589b664` and has receipt hash
+  `sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e`
+  with verdict PASS.
 
 ## Next increment
 
