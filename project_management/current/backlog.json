@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-016",
+  "current_item_id": "MVP-017",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NEEDS_REWORK",
   "product_authority": [
@@ -237,6 +237,22 @@
       ],
       "blocked_successors": ["Web generation", "API generation", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
       "evidence_status": "NEEDS_REWORK"
+    },
+    {
+      "id": "MVP-017",
+      "title": "Compile requirements into traceable executable obligations",
+      "priority": 17,
+      "state": "in_progress",
+      "value": "Prevent Agent, Worker, public tests, and hidden acceptance from applying different interpretations of the same user requirement, while preserving a direct high-capability route for small tasks.",
+      "acceptance": [
+        "ratcheted Kernel/Application/Experiment baselines prevent silent regression",
+        "dependency and error semantics are typed and source-traceable",
+        "public and hidden tests have 100% obligation traceability",
+        "direct Agent and composed DAG routes are compared under equal facts and budgets",
+        "semantic A/B/C comparison resumes only after the obligation layer meets the CLI threshold"
+      ],
+      "blocked_successors": ["semantic artifact production winner", "Web generation", "API generation", "LEVEL 5"],
+      "evidence_status": "NOT_EVALUATED"
     }
   ]
 }

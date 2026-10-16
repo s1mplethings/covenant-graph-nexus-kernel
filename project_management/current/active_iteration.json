@@ -1,48 +1,34 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-SEMANTIC-ARTIFACT-DESIGN-009",
+  "iteration_id": "ITER-OBLIGATION-COMPILER-010",
   "project_id": "cgkn",
-  "goal": "Compare three canonical semantic artifact designs under identical deterministic and real-Provider conditions, select only a qualified winner, and integrate only that winner into L6 project generation.",
-  "backlog_item_ids": ["MVP-016"],
-  "workflow_state": "completed",
-  "evidence_status": "NEEDS_REWORK",
-  "delivery_approach": "hybrid governed experiment: freeze L0-L5 and production L6 semantics during A/B/C comparison, then conditionally integrate a data-qualified winner",
+  "goal": "Establish a ratcheted source-bound baseline, then compile user requirements into traceable executable obligations before comparing direct Agent and composed DAG execution.",
+  "backlog_item_ids": ["MVP-017"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
+  "delivery_approach": "hybrid incremental delivery with one source-bound baseline promotion per logical phase",
   "acceptance_criteria": [
-    "A, B, and C express the same ten semantic facts and use the same Provider models, budgets, public cases, hidden acceptance, timeouts, and evaluator",
-    "all designs deterministically reject malformed, stale, dangling, cyclic, contract-incompatible, or hash-unstable artifacts",
-    "workers receive current source, interface manifests, direct semantic dependencies, public acceptance subset, and structured failure evidence",
-    "repair preserves the original tree, DAG identity, semantic state, successful-node state, and performs affected-only rerun",
-    "a production winner is selected only if CLI succeeds at least two of three times, seeded repair passes, no breaking interface is accepted, no whole-project repair replan occurs, and manual edits remain zero"
+    "Phase 0 separates Kernel, Application, and Experiment receipt freshness and promotes BASELINE-OBLIGATION-001 only after fast regression passes",
+    "obligations, dependency policies, error semantics, and traceability are immutable, deterministic, source-bound, and complete before generation",
+    "hidden acceptance cannot introduce an untraceable project requirement",
+    "direct Agent and composed DAG routes use independent workspaces and the same obligation and acceptance facts",
+    "no prior protected guarantee is removed or silently weakened"
   ],
   "quality_metrics": [
-    {"id": "QM-SEM-FAIRNESS", "measure": "configuration and fact-set parity across A/B/C", "target": "exact parity", "actual": "PASS: same models, budgets, cases, evaluator, hidden acceptance, and independent workspaces"},
-    {"id": "QM-SEM-SCHEMA", "measure": "schema, round-trip, reference, stale-state, interface, and attribution tests", "target": "all PASS", "actual": "PASS: 19 schema tests and 6 fake-provider integration tests"},
-    {"id": "QM-SEM-REAL", "measure": "real CLI repeatability and seeded repair", "target": "CLI >= 2/3 and repair PASS", "actual": "NEEDS_REWORK: A/B/C repair PASS; A/B/C CLI 0/3"},
-    {"id": "QM-SEM-SAFETY", "measure": "accepted breaking changes, whole replans, manual candidate edits, hidden leakage", "target": "all zero", "actual": "PASS: all zero and hidden source was not exposed"}
+    {"id": "QM-BASELINE-RATCHET", "measure": "promoted baselines with passing targeted and fast regression", "target": "100%", "actual": "NOT_EVALUATED"},
+    {"id": "QM-TRACEABILITY", "measure": "public-test and hidden-acceptance obligation coverage", "target": "100%", "actual": "NOT_EVALUATED"},
+    {"id": "QM-DAG-CLI", "measure": "real composed-DAG CLI success", "target": ">=2/3", "actual": "NOT_EVALUATED"},
+    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "actual": "NOT_EVALUATED"}
   ],
-  "out_of_scope": ["PM Agent", "Research Agent", "Marketing", "publishing", "Self-Growth V1", "concurrency", "stress", "soak", "Web/API before winner qualification", "LEVEL 5"],
-  "evidence_refs": ["experiments/semantic_artifact_design", "tests/experiments/semantic_artifact_design", "governance/semantic_artifact_design_decision.json", "governance/semantic_artifact_validation_receipt.json"],
-  "review": {
-    "outcome": "winner_none_stop_condition_b",
-    "feedback": [
-      "Do not integrate the highest-scoring unqualified design.",
-      "Close acceptance-obligation completeness before another envelope experiment."
-    ]
-  },
+  "current_phase": "PHASE_0_BASELINE_GOVERNANCE",
+  "baseline_before": "BASELINE-OBLIGATION-START",
+  "out_of_scope": ["Web/API before CLI threshold", "LEVEL 5", "stress", "soak", "publishing", "Provider budget expansion"],
+  "evidence_refs": ["governance/current_baseline.json", "governance/baselines/baseline_index.json"],
+  "review": {"outcome": "pending", "feedback": []},
   "retrospective": {
-    "worked": [
-      "fixed A/B/C protocol and rubric prevented preference-driven selection",
-      "deterministic manifests and guards prevented accepted interface regression",
-      "seeded repair preserved tree continuity and affected-only rerun"
-    ],
-    "did_not_work": [
-      "all real CLI generations missed the same acceptance boundaries",
-      "Design A did not implement three separately named fine-grained refinements from its original sketch"
-    ],
-    "experiments": [
-      "Compare artifact representation rather than Provider strength while holding all business facts and budgets constant.",
-      "Next test should validate executable acceptance-obligation completeness before Provider generation."
-    ]
+    "worked": [],
+    "did_not_work": [],
+    "experiments": ["Promote one bounded baseline after every logical layer instead of deferring regression to the end."]
   }
 }

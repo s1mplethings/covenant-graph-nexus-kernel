@@ -106,3 +106,14 @@ def test_l6_applications_do_not_expand_or_redefine_kernel_authority() -> None:
         "project_management/current/backlog.json",
     ):
         assert path in gate
+
+
+def test_source_boundaries_and_baseline_ratchet_are_explicit() -> None:
+    contract = read("docs/00_kernel_contract.md")
+    boundaries = read("scripts/source_boundaries.py")
+    assert "Kernel, Application, and Experiment" in contract
+    assert "BREAKING_BASELINE_CHANGE" in contract
+    for name in ('"kernel"', '"application"', '"experiment"'):
+        assert name in boundaries
+    assert "experiments/semantic_artifact_design/receipts/" in boundaries
+    assert "governance/current_baseline.json" in read("scripts/baseline_ledger.py")

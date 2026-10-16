@@ -1,0 +1,13 @@
+{
+  "kind": "CGKNBaselineIndex",
+  "schema_version": "1.0",
+  "current_baseline_id": "BASELINE-OBLIGATION-START",
+  "baselines": [
+    {
+      "baseline_id": "BASELINE-OBLIGATION-START",
+      "parent_baseline_id": null,
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-START.json",
+      "baseline_hash": "sha256:c45c8b68a803edc58de64039269cf6f856f9a0af7b951b9e30adb072cd0444b3"
+    }
+  ]
+}

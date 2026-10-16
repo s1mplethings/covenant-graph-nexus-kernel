@@ -1,0 +1,52 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-OBLIGATION-START",
+  "parent_baseline_id": null,
+  "source_commit": "aec887771167329ed0195f4312d082be4f9990cc",
+  "source_tree_sha": "84f19a84e364afcfd8a32605860cf3efcc8da033",
+  "core_source_hash": "sha256:d334e2e0abfd2eecdb83fb78b8c0ec44ac905eca7c0299addcb20391f6624987",
+  "kernel_receipt_hash": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e",
+  "l6_receipt_hash": "sha256:519f9117c50b5ad2a915cd110a594401258e203daaebc87a12ab0e7471454a84",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "static": "PASS",
+    "unit": "PASS",
+    "boundary": "PASS",
+    "fault": "PASS",
+    "security": "PASS",
+    "local-functional": "PASS",
+    "full-core": "PASS",
+    "active-repository": "PASS",
+    "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "test_counts": {"passed": 3037, "failed": 0, "errors": 0, "skipped": 357},
+  "known_blockers": [
+    "semantic artifact winner is NONE",
+    "real CLI repeatability is 0/3 for designs A, B, and C",
+    "generation readiness is GENERATION_LEVEL_0",
+    "kernel completeness change classification is not yet boundary-aware"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE",
+    "functional_readiness=LEVEL_4",
+    "L0-L5=COMPLETE",
+    "L6=PARTIAL",
+    "seeded_repair_A_B_C=PASS",
+    "accepted_interface_breakages=0",
+    "whole_project_repair_replans=0",
+    "manual_candidate_edits=0",
+    "hidden_source_exposed=false",
+    "generation_readiness=GENERATION_LEVEL_0",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": null,
+  "added_guarantees": [
+    "frozen starting facts from semantic artifact experiment evidence closure"
+  ],
+  "unchanged_guarantees": [],
+  "removed_guarantees": [],
+  "created_at": "2026-10-16T05:00:00+00:00",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:c45c8b68a803edc58de64039269cf6f856f9a0af7b951b9e30adb072cd0444b3"
+}

@@ -132,3 +132,19 @@ After an L6 Source Closure, its bounded status, receipt, active backlog,
 iteration closure, and summary records are evidence-only paths. They may not
 modify application source, tests, benchmark acceptance logic, scripts, or
 configuration.
+
+## 17. Ratcheted source boundaries
+
+Source-bound evidence is partitioned into Kernel, Application, and Experiment
+boundaries. Kernel evidence covers only L0-L5 production packages, their tests,
+and Kernel authority/governance scripts. Application evidence covers
+`cgkn.application`, its production support, acceptance fixtures, and tests.
+Experiment evidence covers isolated experiments, experiment tests, and their
+runner. A change in one boundary cannot stale a receipt owned exclusively by a
+different boundary.
+
+Every promoted baseline names its parent, binds a committed source identity,
+records the applicable receipts and regression profiles, and carries forward
+all protected guarantees. `removed_guarantees` must remain empty; a non-empty
+value is a `BREAKING_BASELINE_CHANGE` and requires human approval rather than
+automatic promotion.

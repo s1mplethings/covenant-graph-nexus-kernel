@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-import subprocess
 
 from kernel_gate_common import VALID_COMPLETENESS, ROOT, load_json, result
 from kernel_source_identity import identity
+from source_boundaries import changed_boundary_paths
 from test_architecture_gate import check as coverage_check
 from verify_kernel_test_receipt import verify as verify_receipt
 
@@ -23,13 +23,6 @@ ALLOWED_EVIDENCE_PATHS = {
     "governance/software_project_generation_receipt.json",
     "project_management/current/backlog.json",
 }
-
-
-def _changed_since(commit: str) -> set[str]:
-    completed = subprocess.run(["git", "diff", "--name-only", f"{commit}..HEAD"], cwd=ROOT, text=True, encoding="utf-8", errors="replace", capture_output=True, check=False)
-    if completed.returncode:
-        raise RuntimeError(completed.stderr)
-    return {line.strip().replace("\\", "/") for line in completed.stdout.splitlines() if line.strip()}
 
 
 def check() -> dict:
@@ -96,7 +89,7 @@ def check() -> dict:
             for profile, status in profiles.items():
                 if status not in ({"PASS", "BLOCKED_ENVIRONMENT"} if profile == "live-provider" else {"PASS"}): errors.append(f"profile_not_pass:{profile}:{status}")
             try:
-                changed = _changed_since(str(receipt["source_commit"]))
+                changed = changed_boundary_paths(str(receipt["source_commit"]), "kernel")
                 disallowed = {path for path in changed if path not in ALLOWED_EVIDENCE_PATHS and not path.startswith("project_management/summaries/")}
                 for path in sorted(disallowed): errors.append(f"evidence_commit_modified_source:{path}")
             except RuntimeError as exc:
