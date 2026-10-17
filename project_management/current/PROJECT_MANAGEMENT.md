@@ -22,20 +22,18 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-015` integrated the independent API Lab gateway behind the existing
-`CompletionClient`. The increment keeps the current composition, execution,
-acceptance, packaging, and delivery authorities unchanged. It adds explicit
-Qwen/DeepSeek/Grok role routing, immutable run snapshots, loopback-only
-transport, and the existing Provider budget ledger at the transport boundary.
+`ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016` first ratcheted the independent API
+Lab gateway into `BASELINE-PROVIDER-GATEWAY-001`, then added the bounded
+application-layer Provider evaluation substrate. Evaluation is task-specific,
+reliability-first, credential-free, and separate from transport. Selection is
+pre-run only and every routing snapshot continues to deny fallback.
 
-The offline acceptance target passed: one seeded repair used a Qwen-routed
-Agent and DeepSeek-routed Worker before real pytest, snapshot, and external
-acceptance. The increment is `PASS_WITH_LIMITS`: all paid Provider calls remain
-`NOT_EVALUATED` until the user starts the API Lab launcher and explicitly
-initiates a real test. The current desktop checkout also contains ignored
-service worktrees and legacy benchmark directories that make the root-level
-direction gate fail; committed-source verification is therefore run from a
-clean snapshot.
+The offline Micro, Fast, and Promotion scopes pass. Live preflight is
+`PROVIDER_SELECTION_BLOCKED_ENVIRONMENT`: Qwen and Grok credentials were
+rejected by their vendors, while both accessible DeepSeek models rejected the
+fixed JSON Schema response mode. No eligible profile or winner was inferred.
+Repository Codegen, Capability Builder, and Self-Growth V1 remain blocked by
+the explicit iteration stop condition.
 
 ## Roadmap after the active increment
 

@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-021",
+  "current_item_id": "PB-022",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NEEDS_REWORK",
   "product_authority": [
@@ -268,6 +268,25 @@
         "Grok can replace either role by configuration without CapabilityTree or DAG changes"
       ],
       "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-022",
+      "title": "Evaluate and select Providers by task-specific evidence",
+      "priority": 19,
+      "state": "blocked_environment",
+      "value": "Benchmark allowed Providers fairly, aggregate task-specific capability profiles, select deterministically, and freeze routing before each run.",
+      "acceptance": [
+        "at least two Providers produce eligible real evidence",
+        "agent.composition, worker.codegen, and worker.repair have evidence-based winners",
+        "unknown cost is never treated as zero",
+        "run routing is immutable and fallback remains deny"
+      ],
+      "blocked_successors": [
+        "Repository Codegen",
+        "Capability Builder",
+        "Self-Growth V1"
+      ],
+      "evidence_status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT"
     }
   ]
 }
