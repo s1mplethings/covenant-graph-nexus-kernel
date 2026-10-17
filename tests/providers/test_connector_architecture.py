@@ -32,6 +32,8 @@ def test_common_connection_contract_and_structured_helpers_cover_fail_closed_bra
         ProviderConnectionHealth("p", "PUBLIC", "PASS", "PASS", "m", "m", StructuredOutputMode.NATIVE_JSON_SCHEMA, "PASS", -1, "", True)
     with pytest.raises(ValueError, match="Provider"):
         ProviderConnectionHealth("", "PUBLIC", "PASS", "PASS", "m", "m", StructuredOutputMode.NATIVE_JSON_SCHEMA, "PASS", 0, "", True)
+    health = ProviderConnectionHealth("p", "PUBLIC", "PASS", "PASS", "m", "m", StructuredOutputMode.NATIVE_JSON_SCHEMA, "PASS", 0, "", True)
+    assert health.as_dict()["eligible"] is True
     snapshot = ProviderConnectionSnapshot("p", "PUBLIC", "m", StructuredOutputMode.NATIVE_JSON_SCHEMA, "sha256:x", True, {"region":"global"})
     assert snapshot.as_dict()["attributes"] == {"region":"global"}
     with pytest.raises(ProviderConnectionError, match="SCHEMA_FAILURE"):
