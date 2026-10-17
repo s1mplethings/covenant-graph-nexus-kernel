@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import re
 from types import MappingProxyType
 from typing import Any, Mapping
 
@@ -9,6 +10,7 @@ from typing import Any, Mapping
 class CapabilityRisk(str, Enum):
     PURE = "PURE"
     READ_ONLY_LOCAL = "READ_ONLY_LOCAL"
+    READ_ONLY_PUBLIC_NETWORK = "READ_ONLY_PUBLIC_NETWORK"
 
 
 @dataclass(frozen=True)
@@ -29,9 +31,11 @@ class CapabilitySpec:
         if not self.examples or not self.acceptance:
             raise ValueError("capability examples and acceptance are required")
         if not isinstance(self.risk, CapabilityRisk):
-            raise ValueError("only PURE and READ_ONLY_LOCAL capability risks are supported")
-        if self.allowed_dependencies:
-            raise ValueError("generated MVP capabilities cannot add external dependencies")
+            raise ValueError("only canonical capability risks are supported")
+        if any(not re.fullmatch(r"[a-z][a-z0-9_.-]*@[1-9][0-9]*", item) for item in self.allowed_dependencies):
+            raise ValueError("dependencies must be canonical capability refs")
+        if self.ref in self.allowed_dependencies:
+            raise ValueError("a capability cannot depend on itself")
         object.__setattr__(self, "input_schema", MappingProxyType(dict(self.input_schema)))
         object.__setattr__(self, "output_schema", MappingProxyType(dict(self.output_schema)))
         object.__setattr__(self, "examples", tuple(MappingProxyType(dict(item)) for item in self.examples))
@@ -48,6 +52,16 @@ class CapabilitySpec:
             "examples": [dict(item) for item in self.examples], "acceptance": list(self.acceptance),
             "risk": self.risk.value, "allowed_dependencies": list(self.allowed_dependencies),
         }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "CapabilitySpec":
+        return cls(
+            str(value["capability_id"]), str(value["version"]), str(value["goal"]),
+            value.get("input_schema", {}), value.get("output_schema", {}),
+            tuple(value.get("examples", ())), tuple(str(item) for item in value.get("acceptance", ())),
+            CapabilityRisk(str(value.get("risk", CapabilityRisk.PURE.value))),
+            tuple(str(item) for item in value.get("allowed_dependencies", ())),
+        )
 
 
 @dataclass(frozen=True)

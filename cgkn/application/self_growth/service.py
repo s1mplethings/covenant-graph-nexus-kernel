@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from cgkn.application.capability_builder import CapabilityBuilderService, CapabilityPackage, CapabilityRisk, CapabilitySpec, CapabilityStore, GeneratedCapabilityExecutor
+from cgkn.application.capability_builder import CapabilityBuilderService, CapabilityPackage, CapabilityRisk, CapabilitySpec, CapabilityStore, GeneratedCapabilityExecutor, StoredCapabilityRuntime
 from cgkn.application.materialization import materialize_json
 from cgkn.capabilities import CapabilityDescriptor, CapabilityRegistry
 from cgkn.component import ComponentSpec, PortSpec
@@ -18,6 +18,7 @@ from cgkn.execution import BlockExecutionRequest, TaskContext
 
 class GrowthFailureClass(str, Enum):
     UNSAFE_RISK = "UNSAFE_RISK"
+    DEPENDENCY_UNAVAILABLE = "DEPENDENCY_UNAVAILABLE"
     BUILD_FAILED = "BUILD_FAILED"
     CANDIDATE_NOT_STORED = "CANDIDATE_NOT_STORED"
     RESUME_FAILED = "RESUME_FAILED"
@@ -45,15 +46,18 @@ class SelfGrowthOutcome:
 class SelfGrowthService:
     """BUILD-only application orchestration; the Agent remains project authority."""
 
-    def __init__(self, builder: CapabilityBuilderService, store: CapabilityStore, *, provider_id: str, mode: str, history_path: pathlib.Path | str):
+    def __init__(self, builder: CapabilityBuilderService, store: CapabilityStore, *, provider_id: str, mode: str, history_path: pathlib.Path | str, network_public: Any | None = None):
         if mode not in {"SELECTED", "SINGLE_PROVIDER_MODE"}:
             raise ValueError("growth requires a frozen Provider route")
         self.builder, self.store, self.provider_id, self.mode = builder, store, provider_id, mode
         self.history_path = pathlib.Path(history_path)
+        self.runtime = StoredCapabilityRuntime(store, provider_id=provider_id, network_public=network_public)
 
     def ensure_and_resume(self, candidate_root: pathlib.Path | str, spec: CapabilitySpec, value: Any) -> SelfGrowthOutcome:
-        if spec.risk not in {CapabilityRisk.PURE, CapabilityRisk.READ_ONLY_LOCAL}:
+        if spec.risk not in {CapabilityRisk.PURE, CapabilityRisk.READ_ONLY_LOCAL, CapabilityRisk.READ_ONLY_PUBLIC_NETWORK}:
             return self._failure(spec, GrowthFailureClass.UNSAFE_RISK, False, 0)
+        if any(not self.store.contains(ref) for ref in spec.allowed_dependencies):
+            return self._failure(spec, GrowthFailureClass.DEPENDENCY_UNAVAILABLE, False, 0)
         reused = self.store.contains(spec.ref)
         calls = 0
         if not reused:
@@ -65,7 +69,7 @@ class SelfGrowthService:
         if not self.store.contains(spec.ref):
             return self._failure(spec, GrowthFailureClass.CANDIDATE_NOT_STORED, not reused, calls)
         package, registry = self._load_registered(spec)
-        executor = GeneratedCapabilityExecutor(package)
+        executor = GeneratedCapabilityExecutor(package, runtime_context=self.runtime.context_for(spec))
         descriptor = registry.resolve(spec.capability_id, spec.version)
         request = BlockExecutionRequest("self-growth", "growth-run", "resume-1", spec.ref, descriptor.component_ref, descriptor.executor_ref, TaskContext(f"Resume DAG node with {spec.ref}", acceptance=spec.acceptance), {"value": value}, timeout_seconds=5)
         result = executor.execute(request)
