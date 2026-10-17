@@ -65,6 +65,7 @@ class GatewayCompletionClient:
     run_id: str = ""
     case_id: str = ""
     enforce_budget: bool = True
+    budget_purpose: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "base_url", _loopback_base_url(self.base_url))
@@ -80,8 +81,11 @@ class GatewayCompletionClient:
         method = str(os.environ.get("CGKN_PROVIDER_GATEWAY_API_METHOD", "responses")).strip().lower()
         return cls(base_url, token, method)
 
-    def bind_run(self, run_id: str, case_id: str) -> "GatewayCompletionClient":
-        return replace(self, run_id=str(run_id), case_id=str(case_id))
+    def bind_run(self, run_id: str, case_id: str, *, budget_purpose: str = "") -> "GatewayCompletionClient":
+        purpose = str(budget_purpose).strip().upper()
+        if purpose and purpose not in {"PLANNING", "GENERATION", "REPAIR", "BENCHMARK"}:
+            raise ValueError("unsupported Provider budget purpose")
+        return replace(self, run_id=str(run_id), case_id=str(case_id), budget_purpose=purpose)
 
     def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
         if config.model not in {"qwen", "deepseek", "grok"}:
@@ -124,7 +128,7 @@ class GatewayCompletionClient:
             )
         reservation = provider_api_budget.reserve_call(
             case_id=self.case_id or str(os.environ.get("CGKN_BENCHMARK_CASE_ID", "gateway-runtime")),
-            purpose="PLANNING" if config.role == "agent" else "GENERATION",
+            purpose=self.budget_purpose or ("PLANNING" if config.role == "agent" else "GENERATION"),
             model=config.model,
             request_identity=identity,
             estimated_input_tokens=max(1, (len(system) + len(user) + 3) // 4),

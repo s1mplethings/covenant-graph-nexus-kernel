@@ -139,6 +139,7 @@ def test_purpose_specific_call_budgets_are_enforced(
     monkeypatch.setenv("CGKN_PROVIDER_MAX_PLANNING_CALLS", "1")
     monkeypatch.setenv("CGKN_PROVIDER_MAX_GENERATION_CALLS", "1")
     monkeypatch.setenv("CGKN_PROVIDER_MAX_REPAIR_CALLS", "2")
+    monkeypatch.setenv("CGKN_PROVIDER_MAX_BENCHMARK_CALLS", "1")
     provider_api_budget.reserve_call(
         case_id="CASE_01", purpose="PLANNING", model="qwen3.6-plus",
         request_identity="planning-one", estimated_input_tokens=1,
@@ -148,6 +149,17 @@ def test_purpose_specific_call_budgets_are_enforced(
         provider_api_budget.reserve_call(
             case_id="CASE_01", purpose="PLANNING", model="qwen3.6-plus",
             request_identity="planning-two", estimated_input_tokens=1,
+            requested_output_tokens=1, retry_count=0,
+        )
+    provider_api_budget.reserve_call(
+        case_id="BENCH_01", purpose="BENCHMARK", model="qwen",
+        request_identity="benchmark-one", estimated_input_tokens=1,
+        requested_output_tokens=1, retry_count=0,
+    )
+    with pytest.raises(provider_api_budget.ProviderBudgetExhausted, match="max_benchmark_calls"):
+        provider_api_budget.reserve_call(
+            case_id="BENCH_02", purpose="BENCHMARK", model="qwen",
+            request_identity="benchmark-two", estimated_input_tokens=1,
             requested_output_tokens=1, retry_count=0,
         )
 

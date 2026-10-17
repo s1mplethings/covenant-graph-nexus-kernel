@@ -329,6 +329,17 @@ def test_fallback_configuration_is_rejected(tmp_path: pathlib.Path) -> None:
         CGKNModelRouting.load(path)
 
 
+def test_benchmark_budget_purpose_is_explicit_and_bounded() -> None:
+    bound = GatewayCompletionClient(
+        "http://127.0.0.1:8123/v1", "temporary-local-token", enforce_budget=False
+    ).bind_run("benchmark-run", "case-a", budget_purpose="BENCHMARK")
+    assert bound.run_id == "benchmark-run"
+    assert bound.case_id == "case-a"
+    assert bound.budget_purpose == "BENCHMARK"
+    with pytest.raises(ValueError, match="budget purpose"):
+        bound.bind_run("benchmark-run", "case-b", budget_purpose="FALLBACK")
+
+
 @pytest.mark.negative
 @pytest.mark.parametrize(
     "mutation, message",
