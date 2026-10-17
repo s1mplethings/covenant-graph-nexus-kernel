@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cgkn-provider-api-lab"
+version = "0.1.0"
+description = "Local GUI for securely configuring and comparing API providers without persisting plaintext credentials."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "CGKN"}]
+dependencies = []
+
+[project.optional-dependencies]
+keyring = ["keyring>=25,<26"]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+cgkn-provider-lab = "cgkn_provider_lab.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
