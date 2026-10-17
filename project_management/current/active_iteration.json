@@ -5,7 +5,7 @@
   "project_id": "cgkn",
   "goal": "ITER-PROVIDER-CONNECTION-NORMALIZATION-017: normalize independent Provider connectors and validate single-provider repository codegen, capability building, and BUILD-only self-growth.",
   "backlog_item_ids": ["PB-023"],
-  "workflow_state": "reviewing",
+  "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "each vendor has an isolated connector and one canonical structured completion boundary",

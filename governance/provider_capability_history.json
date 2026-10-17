@@ -1,0 +1,42 @@
+{
+  "kind": "ProviderCapabilityHistory",
+  "schema_version": "1.0",
+  "source_commit": "665b901bf1e5888e9ff5dc4f55a18256a2e4e6a4",
+  "selection_policy": "highest qualified score; no online bandit; routing frozen per run",
+  "events": [
+    {
+      "task_kind": "repository.codegen",
+      "provider_id": "grok",
+      "status": "PASS",
+      "passed": 3,
+      "total": 3,
+      "manual_edits": 0,
+      "interface_breaks": 0
+    },
+    {
+      "task_kind": "capability.build",
+      "provider_id": "grok",
+      "status": "PASS_WITH_LIMITS",
+      "passed": 2,
+      "total": 3,
+      "manual_edits": 0
+    },
+    {
+      "task_kind": "CAPABILITY_BUILD",
+      "capability_ref": "text.slugify@1",
+      "provider_id": "grok",
+      "status": "PASS",
+      "calls": 1,
+      "tokens": 2498
+    },
+    {
+      "task_kind": "CAPABILITY_BUILD",
+      "capability_ref": "markdown.links.extract@1",
+      "provider_id": "grok",
+      "status": "PASS",
+      "calls": 2,
+      "tokens": 8593
+    }
+  ],
+  "contains_credentials": false
+}

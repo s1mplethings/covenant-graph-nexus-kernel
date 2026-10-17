@@ -1,35 +1,30 @@
 {
   "kind": "CGKNSoftwareProjectGenerationStatus",
   "schema_version": "1.0",
-  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
+  "source_commit": "b078927711070cf12f7e58c7fc31bb624046efcc",
   "semantic_artifact_interface": "PARTIAL",
-  "generation_readiness": "GENERATION_LEVEL_0",
-  "bundle_status": "PARTIAL",
-  "single_project": "FAIL",
-  "repeatability": "FAIL",
-  "multitype": "NOT_EVALUATED",
+  "generation_readiness": "GENERATION_LEVEL_2",
+  "bundle_status": "COMPLETE",
+  "single_project": "PASS",
+  "repeatability": "PASS",
+  "multitype": "PASS",
   "repair": "PASS_WITH_LIMITS",
-  "hidden_acceptance": "FAIL",
+  "hidden_acceptance": "PASS",
   "false_pass": "PASS",
-  "provider_validation": "NEEDS_REWORK",
+  "provider_validation": "PASS_WITH_LIMITS",
+  "repository_codegen": "COMPLETE",
+  "capability_builder": "COMPLETE",
+  "self_growth_v1": "COMPLETE",
   "blockers": [
-    "Designs A, B, and C each achieved 0/3 real CLI repeatability and failed their single CLI run",
-    "generated projects did not encode strict malformed-CSV rejection as an executable semantic obligation",
-    "generated public tests imported pytest despite the generated-project stdlib-only hygiene boundary",
-    "no semantic artifact design met the minimum production qualification threshold"
+    "adaptive Provider selection remains blocked because only Grok is eligible",
+    "Qwen workspace/credential and DeepSeek credential remain unavailable"
   ],
   "evidence": {
-    "kernel_receipt": "sha256:db71f4c00a2afa6a0b1541835568f5198d36cb3adb560475cdcb1a442d27397e",
-    "exploratory_cli_rounds": [
-      "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
-      "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",
-      "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1"
-    ],
-    "exploratory_source_commit": "094d5c567bdc42eeb5d33f9f81f91cd9f8ae5628",
-    "final_frozen_suite": "NOT_EVALUATED",
-    "semantic_artifact_decision": "governance/semantic_artifact_design_decision.json",
-    "semantic_artifact_validation": "governance/semantic_artifact_validation_receipt.json",
-    "experiment_source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
-    "experiment_result": "NEEDS_REWORK"
+    "kernel_receipt": "sha256:4ed5734ae753d4b613a01e822f5fbd78cd69f2259779bc0530c27cfb2432b7b9",
+    "application_receipt": "sha256:23ca0b3c1e9b48b3a50147571f48bb635ef84919a985b24ff651645200772071",
+    "provider_selection": "governance/provider_connections/selection_status.json",
+    "repository_codegen": "governance/repository_codegen_status.json",
+    "capability_builder": "governance/capability_builder_status.json",
+    "self_growth": "governance/self_growth_status.json"
   }
 }

@@ -1,15 +1,15 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "60d0ac54302b97b23c80bff67a0b66b6a640c092",
-  "source_tree_sha": "7c554fe893f96b5c1b97dd0154e909e1f36792f4",
+  "source_commit": "b078927711070cf12f7e58c7fc31bb624046efcc",
+  "source_tree_sha": "82d9b272c5513b2470e1eeca96415eaa3e94905d",
   "suite_result": "PASS",
   "formal_final_suite": "PASS",
   "generation_readiness": "GENERATION_LEVEL_2",
   "bundle_status": "COMPLETE",
   "application_validation": {
     "command": "python -m pytest -q tests/application",
-    "passed": 110,
+    "passed": 138,
     "failed": 0,
     "errors": 0,
     "source_bound_mock_gateway_e2e": true,
@@ -27,9 +27,9 @@
     "sha256:1171c8079044230f0e4bb65d39bb222ab94ef26f060fcb5af84f1ce53946bee0"
   ],
   "exploratory_source_commit": "24ece2808ea904888944acae40c4ed872bc5b725",
-  "kernel_receipt_hash": "sha256:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
+  "kernel_receipt_hash": "sha256:4ed5734ae753d4b613a01e822f5fbd78cd69f2259779bc0530c27cfb2432b7b9",
   "stop_condition": "A",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:f60050f62fa20e22cc055faa3144b43b990f17ad80b840708a6476401b1c8945"
+  "receipt_hash": "sha256:23ca0b3c1e9b48b3a50147571f48bb635ef84919a985b24ff651645200772071"
 }

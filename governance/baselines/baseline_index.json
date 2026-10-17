@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001",
+  "current_baseline_id": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -54,6 +54,7 @@
     {"baseline_id":"BASELINE-PROVIDER-EVAL-001","parent_baseline_id":"BASELINE-PROVIDER-GATEWAY-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-EVAL-001.json","baseline_hash":"sha256:89023d369df6bba4867e234ee3351ca841b99c46167faae7de260e430f2111bd"},
     {"baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","parent_baseline_id":"BASELINE-PROVIDER-EVAL-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-CONNECTORS-001.json","baseline_hash":"sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"},
     {"baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","receipt":"governance/baselines/receipts/BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:bb730dbfd9e311629bd882a50c9ebcdfb15a443df80a0eb0b2ec80acc03d26a0"},
-    {"baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:0bec58cae0f17bd042c026a066ecb7b98ad2c99d3e33b103e1aee58cebfdeb65"}
+    {"baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:0bec58cae0f17bd042c026a066ecb7b98ad2c99d3e33b103e1aee58cebfdeb65"},
+    {"baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:58b60c2d99138884990253b3c048d7b1715636122b9bab2721161dbd7011335d"}
   ]
 }

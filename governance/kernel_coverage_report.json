@@ -1,8 +1,8 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "258b8ef0e3d39e60b64aa0d6131e80f4ddb2d745",
-  "source_tree_sha": "9868736d09a88f6acb6e4b58df48176cc55a86f3",
+  "source_commit": "b078927711070cf12f7e58c7fc31bb624046efcc",
+  "source_tree_sha": "82d9b272c5513b2470e1eeca96415eaa3e94905d",
   "core_source_hash": "sha256:e9cbb2c8a88d002a0ad899f21880352f620c187d5b9e2f786278eb9604158c2e",
   "command": "coverage run --branch --source=cgkn -m pytest kernel-core plus provider connector branch closure",
   "pytest_result": {
@@ -10,11 +10,11 @@
   },
   "overall": {
     "statements": 8576,
-    "covered_statements": 4084,
+    "covered_statements": 4085,
     "branches": 2344,
-    "covered_branches": 1127,
-    "statement_percent": 47.62,
-    "branch_percent": 48.08
+    "covered_branches": 1128,
+    "statement_percent": 47.63,
+    "branch_percent": 48.12
   },
   "files": {
     "cgkn/__init__.py": {
@@ -10155,20 +10155,13 @@
     },
     "cgkn/providers/connection_contracts.py": {
       "statements": 55,
-      "covered_statements": 54,
-      "statement_percent": 98.18,
+      "covered_statements": 55,
+      "statement_percent": 100.0,
       "branches": 2,
-      "covered_branches": 1,
-      "branch_percent": 50.0,
-      "missing_lines": [
-        48
-      ],
-      "missing_branches": [
-        [
-          44,
-          -43
-        ]
-      ]
+      "covered_branches": 2,
+      "branch_percent": 100.0,
+      "missing_lines": [],
+      "missing_branches": []
     },
     "cgkn/providers/connector_client.py": {
       "statements": 35,
@@ -10988,11 +10981,11 @@
     },
     "providers": {
       "statements": 772,
-      "covered_statements": 669,
+      "covered_statements": 670,
       "branches": 200,
-      "covered_branches": 150,
-      "statement_percent": 86.66,
-      "branch_percent": 75.0
+      "covered_branches": 151,
+      "statement_percent": 86.79,
+      "branch_percent": 75.5
     },
     "runtime": {
       "statements": 634,
@@ -11054,11 +11047,11 @@
     },
     "L3": {
       "statements": 1561,
-      "covered_statements": 1452,
+      "covered_statements": 1453,
       "branches": 442,
-      "covered_branches": 383,
-      "statement_percent": 93.02,
-      "branch_percent": 86.65
+      "covered_branches": 384,
+      "statement_percent": 93.08,
+      "branch_percent": 86.88
     },
     "L4": {
       "statements": 895,
@@ -11085,5 +11078,5 @@
       "branch_percent": 0.0
     }
   },
-  "raw_coverage_hash": "sha256:46055e5694e8ca486966541166a3f9f3cf5c55b70b05c52a8054a4c5e51e71de"
+  "raw_coverage_hash": "sha256:6cd0685a3b10968376141d3256e61c971c7fe8d93e2f98fd8d17a9b76230cc64"
 }
