@@ -100,6 +100,12 @@ def test_work_units_and_test_plan_are_complete_and_bounded() -> None:
     units = compile_csv_work_units(compilation)
     assert [item.work_unit_id for item in units] == ["WU-CORE", "WU-TESTS", "WU-DOCS"]
     assert units[0].target_paths == ("csv_cleaner/__init__.py", "csv_cleaner/__main__.py", "csv_cleaner/core.py")
+    assert units[0].interface_contract_refs == (
+        "INTERFACE-CSV-MODULE-001", "INTERFACE-CSV-CLEAN-FUNCTION-001", "INTERFACE-CSV-CLI-001"
+    )
+    assert units[2].depends_on == ()
+    assert units[2].allowed_read_paths == ()
+    assert units[2].interface_contract_refs == ("INTERFACE-CSV-CLI-001",)
     assert set().union(*(set(item.obligation_ids) for item in units)) == {item.obligation_id for item in compilation.obligations.obligations}
     plan = TestPlanCompiler().compile(compilation.obligations)
     assert len(plan.cases) == len(compilation.obligations.obligations)
@@ -116,6 +122,47 @@ def test_fake_provider_dag_passes_compile_public_runtime_and_hidden(tmp_path) ->
     assert "import pytest" in (tmp_path / "workspace" / "tests/test_contract_csv_cleaner.py").read_text(encoding="utf-8")
     assert (tmp_path / "workspace" / "tests" / "contract_test_manifest.json").is_file()
     assert {call["node_id"] for call in provider.calls} == {"WU-CORE", "WU-DOCS"}
+    core_prompt = next(call for call in provider.calls if call["node_id"] == "WU-CORE")
+    assert {item["contract_id"] for item in core_prompt["executable_interface_contracts"]} == {
+        "INTERFACE-CSV-MODULE-001", "INTERFACE-CSV-CLEAN-FUNCTION-001", "INTERFACE-CSV-CLI-001"
+    }
+
+
+class CorrectingInterfaceProvider(FakeObligationProvider):
+    def __init__(self, workspace: pathlib.Path) -> None:
+        super().__init__()
+        self.workspace = workspace
+        self.core_attempts = 0
+
+    def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: Any) -> ProviderCompletion:
+        payload = json.loads(user)
+        if payload["node_id"] != "WU-CORE":
+            return super().complete(system=system, user=user, schema_name=schema_name, schema=schema, config=config)
+        self.calls.append(payload)
+        self.core_attempts += 1
+        if self.core_attempts == 2:
+            assert not (self.workspace / "csv_cleaner/__main__.py").exists(), "rejected proposal polluted workspace"
+            evidence = payload["interface_contract_evidence"]
+            assert any(item["failure_class"] == "POSITIONAL_TO_OPTIONAL" for item in evidence)
+        main = MAIN if self.core_attempts == 2 else MAIN.replace('parser.add_argument("input"); parser.add_argument("output")', 'parser.add_argument("input"); parser.add_argument("-o", "--output")')
+        actions = [
+            {"action": "write_file", "path": "csv_cleaner/__init__.py", "content": "from .core import clean_csv\n__all__ = ['clean_csv']\n"},
+            {"action": "write_file", "path": "csv_cleaner/__main__.py", "content": main},
+            {"action": "write_file", "path": "csv_cleaner/core.py", "content": CORE},
+        ]
+        value = {"schema_version": "1.0", "node_id": "WU-CORE", "summary": "corrected interface", "actions": actions, "expected_outputs": ["contract satisfied"], "confidence": 1.0, "needs_escalation": False, "escalation_reason": ""}
+        return ProviderCompletion(json.dumps(value), config.model, f"fake-{len(self.calls)}", {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20})
+
+
+def test_local_interface_correction_is_staged_and_bounded(tmp_path) -> None:
+    workspace = tmp_path / "workspace"
+    provider = CorrectingInterfaceProvider(workspace)
+    result = ObligationDAGService(pathlib.Path.cwd(), provider, ModelRoleConfig("worker", "fake-worker")).run_csv(workspace, tmp_path / "runs")
+    assert result.status == "PASS"
+    assert provider.core_attempts == 2
+    assert result.provider_calls == 3
+    assert 'parser.add_argument("output")' in (workspace / "csv_cleaner/__main__.py").read_text(encoding="utf-8")
+    assert 'parser.add_argument("-o", "--output")' not in (workspace / "csv_cleaner/__main__.py").read_text(encoding="utf-8")
 
 
 def test_dependency_policy_allows_pytest_for_tests_but_rejects_runtime(tmp_path) -> None:

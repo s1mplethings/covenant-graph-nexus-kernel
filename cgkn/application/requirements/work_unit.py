@@ -19,6 +19,7 @@ class WorkUnitContract:
     allowed_effects: tuple[str, ...]
     acceptance_refs: tuple[str, ...]
     depends_on: tuple[str, ...] = ()
+    interface_contract_refs: tuple[str, ...] = ()
     schema_version: str = "1.0"
 
     def __post_init__(self) -> None:
@@ -38,6 +39,7 @@ class WorkUnitContract:
             "preserved_interfaces": list(self.preserved_interfaces), "dependency_policy_refs": list(self.dependency_policy_refs),
             "allowed_effects": list(self.allowed_effects), "acceptance_refs": list(self.acceptance_refs),
             "depends_on": list(self.depends_on),
+            "interface_contract_refs": list(self.interface_contract_refs),
         }
 
 
@@ -55,6 +57,7 @@ def compile_csv_work_units(compilation: CSVRequirementCompilation) -> tuple[Work
             ("implement the compiled CSV runtime obligations", "provide the module CLI entrypoint"),
             ("csv_cleaner.core.clean_csv", "python -m csv_cleaner"), (), policy,
             ("filesystem.write",), hidden_refs,
+            interface_contract_refs=("INTERFACE-CSV-MODULE-001", "INTERFACE-CSV-CLEAN-FUNCTION-001", "INTERFACE-CSV-CLI-001"),
         ),
         WorkUnitContract(
             "WU-TESTS", tuple(sorted(identifier for identifier in known if identifier not in {"OBL-CSV-README"})),
@@ -64,8 +67,9 @@ def compile_csv_work_units(compilation: CSVRequirementCompilation) -> tuple[Work
         ),
         WorkUnitContract(
             "WU-DOCS", ("OBL-CSV-README", "OBL-CSV-CLI-HELP"), ("README.md",),
-            ("csv_cleaner/__main__.py",), ("document the declared CLI and examples",),
-            ("python -m csv_cleaner",), (), policy, ("filesystem.read", "filesystem.write"), hidden_refs,
-            ("WU-CORE",),
+            (), ("document the canonical CLI interface contract and examples",),
+            ("python -m csv_cleaner",), (), policy, ("filesystem.write",), hidden_refs,
+            (),
+            interface_contract_refs=("INTERFACE-CSV-CLI-001",),
         ),
     )

@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from cgkn.application.software_project.acceptance import ExternalAcceptanceExecutor
 from cgkn.application.software_project.snapshot import ProjectSnapshotExecutor
+from cgkn.application.materialization import materialize_json
 from cgkn.executors import CommandExecutor, ExecutorRegistry, PythonTestExecutor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
 from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edits
@@ -51,10 +52,10 @@ class ObligationDAGResult:
             "tokens": self.tokens, "wall_time_ms": self.wall_time_ms, "repair_rounds": self.repair_rounds,
             "hidden_acceptance": self.hidden_acceptance, "manual_edits": self.manual_edits,
             "whole_replans": self.whole_replans, "public_pytest": self.public_pytest,
-            "oracle_status": self.oracle_status, "oracle_evidence": [dict(item) for item in self.oracle_evidence],
+            "oracle_status": self.oracle_status, "oracle_evidence": materialize_json(self.oracle_evidence),
             "repair_owners": list(self.repair_owners), "reused_work_units": list(self.reused_work_units),
             "contract_test_status": self.contract_test_status, "contract_test_reused": self.contract_test_reused,
-            "summary": dict(self.summary),
+            "summary": materialize_json(self.summary),
         }
 
 
@@ -72,6 +73,7 @@ class ObligationDAGService:
         workspace.mkdir(parents=True, exist_ok=True)
         run_root.mkdir(parents=True, exist_ok=True)
         compilation = compile_csv_cleaner()
+        from cgkn.application.interfaces import InterfaceContractCompiler
         from cgkn.application.verification import (
             ContractTestCompilerExecutor, EvidenceComparator, ObligationOracleExecutorAdapter, OracleEvidence,
             OraclePlanCompiler, OracleStatus, PublicTestEvidence, PublicTestStatus,
@@ -81,6 +83,7 @@ class ObligationDAGService:
         write_obligation_preflight(run_root / "obligation_preflight.json", compilation.preflight)
         dependency_policy = next(item.dependency_policy for item in compilation.obligations.obligations if item.dependency_policy)
         oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, dependency_policy)
+        interface_contracts = InterfaceContractCompiler().compile_csv(compilation.obligations)
         units = tuple(item for item in compile_csv_work_units(compilation) if item.work_unit_id != "WU-TESTS")
         obligation_by_id = {item.obligation_id: item for item in compilation.obligations.obligations}
         nodes: list[CapabilityNode] = []
@@ -96,6 +99,8 @@ class ObligationDAGService:
                     "obligations": [obligation_by_id[identifier].as_dict() for identifier in unit.obligation_ids],
                     "dependency_policy": compilation.obligations.obligations[0].dependency_policy.as_dict() if compilation.obligations.obligations[0].dependency_policy else next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy),
                     "interface_manifest": {"required": list(unit.required_interfaces), "preserved": list(unit.preserved_interfaces)},
+                    "executable_interface_contracts": [interface_contracts.by_id(identifier).as_dict() for identifier in unit.interface_contract_refs],
+                    "interface_contract_set_hash": interface_contracts.interface_contract_set_hash,
                 },
             ))
         worker_ids = tuple(item.work_unit_id for item in units)
@@ -193,6 +198,7 @@ class ObligationDAGService:
         oracle_status = "NOT_EVALUATED"
         oracle_evidence: tuple[Mapping[str, Any], ...] = ()
         contract_test_status = "NOT_EVALUATED"
+        contract_test_reused = False
         try:
             hidden = str(store.load_result("cli_csv_cleaner", run_id, "accept").outputs.get("status", "FAIL"))
         except Exception:
@@ -208,7 +214,9 @@ class ObligationDAGService:
         except Exception:
             pass
         try:
-            contract_test_status = str(store.load_result("cli_csv_cleaner", run_id, "contract-tests").outputs.get("status", "FAIL"))
+            contract_test_result = store.load_result("cli_csv_cleaner", run_id, "contract-tests")
+            contract_test_status = str(contract_test_result.outputs.get("status", "FAIL"))
+            contract_test_reused = bool(contract_test_result.outputs.get("reused", False))
         except Exception:
             pass
         status = "PASS" if summary.status == "SUCCEEDED" and hidden == "PASS" and public_pytest == "PASS" and oracle_status == "PASS" else "FAIL"
@@ -225,5 +233,5 @@ class ObligationDAGService:
             public_pytest=public_pytest, oracle_status=oracle_status, oracle_evidence=oracle_evidence,
             repair_owners=tuple(repair_owners), reused_work_units=tuple(sorted(reused_work_units)),
             contract_test_status=contract_test_status,
-            contract_test_reused="CONTRACT-TESTS" in reused_work_units,
+            contract_test_reused=contract_test_reused,
         )

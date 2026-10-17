@@ -6,19 +6,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from cgkn.application.materialization import materialize_json
+
 from cgkn.providers import CompletionClient, ModelRoleConfig
 
 from .dag import ObligationDAGService
 from .direct import DirectAgentService
 
 
-def _plain(value: Any) -> Any:
-    """Recursively materialize immutable semantic values for durable JSON receipts."""
-    if isinstance(value, Mapping):
-        return {str(key): _plain(item) for key, item in value.items()}
-    if isinstance(value, (tuple, list)):
-        return [_plain(item) for item in value]
-    return value
+_plain = materialize_json
 
 
 class RecordingClient:

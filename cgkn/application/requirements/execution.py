@@ -68,6 +68,7 @@ class ObligationWorkUnitExecutor:
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
+        usage: dict[str, Any] = {}
         try:
             config = request.task_context.node_config
             unit = _plain(config["work_unit_contract"])
@@ -86,27 +87,81 @@ class ObligationWorkUnitExecutor:
                 "dependency_policy": _plain(config["dependency_policy"]),
                 "test_plan": _plain(config.get("test_plan", {})),
                 "interface_manifest": _plain(config.get("interface_manifest", {})),
+                "executable_interface_contracts": _plain(config.get("executable_interface_contracts", ())),
                 "current_sources": current,
                 "failure_evidence": _plain(config.get("failure_evidence")),
                 "target_paths": list(targets),
                 "allowed_actions": ["write_file", "patch_file", "read_file"],
             }
-            completion = self.client.complete(
-                system=("Implement only the supplied WorkUnitContract. Obligation objects, DependencyPolicy, TestPlan, interfaces, and FailureEvidence are authoritative. "
-                        "Do not add requirements, flags, dependencies, paths, or tests. Return bounded JSON file actions only."),
-                user=json.dumps(prompt, ensure_ascii=False, sort_keys=True), schema_name="cgkn_obligation_worker", schema=WORKER_SCHEMA,
-                config=self.config,
-            )
-            proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)
-            if proposal["needs_escalation"]:
-                raise ScopeViolation(proposal["escalation_reason"] or "worker escalation")
             policy = DependencyPolicy.from_dict(config["dependency_policy"])
-            validate_dependency_actions(self.root, proposal["actions"], policy)
-            results = ScopedFileTransaction(self.root, scope).apply(proposal["actions"])
-            usage = dict(completion.usage) | {"proposal_attempts": 1, "context_chars": len(json.dumps(prompt, sort_keys=True))}
-            return self._result(request, BlockStatus.SUCCEEDED, started, clock, {"action_results": results, "modified_files": [item["path"] for item in results if item["action"] == "write_file"]}, None, usage)
+            serialized = json.dumps(prompt, ensure_ascii=False, sort_keys=True)
+            attempts: list[dict[str, Any]] = []
+            rejection: list[dict[str, Any]] = []
+            proposal: dict[str, Any] = {}
+            results: list[dict[str, Any]] = []
+            for attempt_number in range(1, 3):
+                attempt_prompt = serialized
+                if rejection:
+                    attempt_prompt = json.dumps(prompt | {"interface_contract_evidence": rejection}, ensure_ascii=False, sort_keys=True)
+                completion = self.client.complete(
+                    system=("Implement only the supplied WorkUnitContract. Obligation objects, DependencyPolicy, TestPlan, FailureEvidence, and ExecutableInterfaceContracts are authoritative public requirements. "
+                            "You MUST preserve exact positional and optional argument shapes. Do not introduce aliases or alternate invocation styles unless explicitly allowed. Forbidden interfaces must not appear. Do not reinterpret positional arguments as options. "
+                            "You may change only declared target source files; never modify obligations, contracts, Oracles, or canonical tests. Return bounded JSON file actions only."),
+                    user=attempt_prompt, schema_name="cgkn_obligation_worker", schema=WORKER_SCHEMA, config=self.config,
+                )
+                attempts.append({"request_id": completion.request_id, "usage": dict(completion.usage), "transport_attempts": completion.attempts})
+                usage = self._usage(attempts, len(serialized), len(rejection))
+                proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)
+                if proposal["needs_escalation"]:
+                    raise ScopeViolation(proposal["escalation_reason"] or "worker escalation")
+                validate_dependency_actions(self.root, proposal["actions"], policy)
+                transaction = ScopedFileTransaction(self.root, scope)
+                _, planned = transaction.validate(proposal["actions"])
+                rejection = self._interface_rejections(config, current, planned)
+                if rejection:
+                    if attempt_number == 2:
+                        raise ScopeViolation("executable interface guard rejected staged candidate: " + json.dumps(rejection, sort_keys=True))
+                    continue
+                results = transaction.apply(proposal["actions"])
+                break
+            return self._result(
+                request, BlockStatus.SUCCEEDED, started, clock,
+                {"action_results": results, "modified_files": [item["path"] for item in results if item["action"] == "write_file"], "interface_contract_evidence": rejection, "interface_guard_rejects": attempt_number - 1},
+                None, usage,
+            )
         except (ValueError, OSError, PermissionError) as exc:
-            return self._result(request, BlockStatus.FAILED, started, clock, {}, ExecutionError(ExecutionErrorCode.POLICY_BLOCKED, str(exc)), {})
+            return self._result(request, BlockStatus.FAILED, started, clock, {}, ExecutionError(ExecutionErrorCode.POLICY_BLOCKED, str(exc)), usage)
+
+    @staticmethod
+    def _interface_rejections(config: Mapping[str, Any], current: Mapping[str, str], planned: list[Any]) -> list[dict[str, Any]]:
+        from cgkn.application.interfaces import (
+            ExecutableInterfaceContract, ExecutableInterfaceContractSet, InterfaceContractStatus,
+            extract_interfaces, guard_interfaces,
+        )
+
+        rows = config.get("executable_interface_contracts", ())
+        if not rows or not any(item.relative.endswith(".py") for item in planned):
+            return []
+        contracts = tuple(ExecutableInterfaceContract.from_dict(_plain(item)) for item in rows)
+        contract_set = ExecutableInterfaceContractSet(contracts, str(config.get("interface_contract_set_hash", "sha256:unknown")))
+        candidate = dict(current)
+        candidate.update({item.relative: item.content.decode("utf-8") for item in planned})
+        evidence = guard_interfaces(contract_set, extract_interfaces(candidate))
+        return [item.as_dict() for item in evidence if item.status is not InterfaceContractStatus.PASS]
+
+    def _usage(self, attempts: list[dict[str, Any]], context_chars: int, interface_guard_rejects: int) -> dict[str, Any]:
+        return {
+            "model": self.config.model,
+            "request_id": attempts[-1]["request_id"],
+            "request_ids": [item["request_id"] for item in attempts],
+            "provider_attempts": sum(int(item["transport_attempts"]) for item in attempts),
+            "proposal_attempts": len(attempts),
+            "interface_guard_rejects": interface_guard_rejects,
+            "context_chars": context_chars,
+            "prompt_tokens": sum(int(item["usage"].get("prompt_tokens", 0)) for item in attempts),
+            "completion_tokens": sum(int(item["usage"].get("completion_tokens", 0)) for item in attempts),
+            "total_tokens": sum(int(item["usage"].get("total_tokens", 0)) for item in attempts),
+        }
 
     @staticmethod
     def _result(request: BlockExecutionRequest, status: BlockStatus, started: str, clock: float, outputs: Mapping[str, Any], error: ExecutionError | None, usage: Mapping[str, Any]) -> BlockExecutionResult:

@@ -69,6 +69,7 @@ def test_oracle_fail_weak_public_test_repairs_core(tmp_path: Path) -> None:
     assert result.public_pytest == result.oracle_status == result.hidden_acceptance == "PASS"
     assert result.repair_owners[0] == "WU-CORE"
     assert count(provider, "WU-CORE") == 2
+    assert count(provider, "WU-DOCS") == 1
     assert count(provider, "WU-TESTS") == 0
     assert result.contract_test_reused is True
     assert "CONTRACT-TESTS" in result.reused_work_units

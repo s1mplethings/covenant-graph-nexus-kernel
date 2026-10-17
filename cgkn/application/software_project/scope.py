@@ -7,6 +7,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from cgkn.application.materialization import materialize_json
+
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
@@ -20,12 +22,7 @@ class ScopeViolation(ValueError):
     pass
 
 
-def _plain(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return {str(key): _plain(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_plain(item) for item in value]
-    return value
+_plain = materialize_json
 
 
 @dataclass(frozen=True)
