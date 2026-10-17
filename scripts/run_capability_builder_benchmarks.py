@@ -29,7 +29,7 @@ def run(output_root: pathlib.Path) -> dict:
     if not connector.probe_connection().eligible:
         raise RuntimeError("SINGLE_PROVIDER_MODE requires the frozen Grok connection to remain eligible")
     output_root.mkdir(parents=True, exist_ok=False)
-    service = CapabilityBuilderService(ConnectorCompletionClient(ProviderConnectorRegistry((connector,))), ModelRoleConfig("worker", "grok", 120, 3000, 0.0, "low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=CapabilityStore(output_root / "store"))
+    service = CapabilityBuilderService(ConnectorCompletionClient(ProviderConnectorRegistry((connector,)), enforce_budget=True, budget_purpose="CAPABILITY_BUILD", run_id="capability-builder", case_id="capability-build"), ModelRoleConfig("worker", "grok", 120, 3000, 0.0, "low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=CapabilityStore(output_root / "store"))
     receipts = []
     for spec in CASES:
         receipt = service.build(output_root / "candidates", spec).as_dict()

@@ -26,7 +26,7 @@ def run(output_root: pathlib.Path) -> dict:
     connector = GrokConnector(profile)
     health = connector.probe_connection()
     if not health.eligible: raise RuntimeError("SINGLE_PROVIDER_MODE requires the frozen Grok connection to remain eligible")
-    client = ConnectorCompletionClient(ProviderConnectorRegistry((connector,)))
+    client = ConnectorCompletionClient(ProviderConnectorRegistry((connector,)), enforce_budget=True, budget_purpose="GENERATION", run_id="repository-codegen", case_id="repo-codegen")
     service = RepositoryCodegenService(client, ModelRoleConfig("worker", "grok", 120, 3000, 0.0, "low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE")
     output_root.mkdir(parents=True, exist_ok=False); receipts = []
     for name, source, test, change in CASES:
