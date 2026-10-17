@@ -1,0 +1,19 @@
+{
+  "kind": "ProviderConnectionStatus",
+  "schema_version": "1.0",
+  "provider_id": "qwen",
+  "source_commit": "5602fe8117c32ab05c2aad8405edd5a4a42fd5f1",
+  "status": "QWEN_CONNECTION_BLOCKED_ENVIRONMENT",
+  "endpoint_class": "CONFIGURATION",
+  "region": "cn-beijing",
+  "workspace_configured": false,
+  "credential_present": false,
+  "requested_model": "qwen3.8-max",
+  "actual_model": "",
+  "catalog_status": "NOT_EVALUATED",
+  "structured_output_mode": "NATIVE_JSON_SCHEMA",
+  "structured_output_status": "NOT_EVALUATED",
+  "error_class": "QWEN_WORKSPACE_NOT_FOUND",
+  "recommended_operator_action": "Configure a valid workspace-specific endpoint and set CGKN_QWEN_API_KEY or DASHSCOPE_API_KEY in the gateway process.",
+  "contains_credentials": false
+}
