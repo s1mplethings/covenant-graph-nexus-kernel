@@ -28,6 +28,8 @@ class CapabilitySpec:
             raise ValueError("capability identity, version, and goal are required")
         if not self.examples or not self.acceptance:
             raise ValueError("capability examples and acceptance are required")
+        if not isinstance(self.risk, CapabilityRisk):
+            raise ValueError("only PURE and READ_ONLY_LOCAL capability risks are supported")
         if self.allowed_dependencies:
             raise ValueError("generated MVP capabilities cannot add external dependencies")
         object.__setattr__(self, "input_schema", MappingProxyType(dict(self.input_schema)))

@@ -45,6 +45,16 @@ class CapabilityStore:
         shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"))
         return target
 
+    def path_for(self, capability_ref: str) -> pathlib.Path:
+        return self.root / _slug(capability_ref)
+
+    def contains(self, capability_ref: str) -> bool:
+        path = self.path_for(capability_ref)
+        if not (path / "admission.json").is_file() or not (path / "capability.json").is_file():
+            return False
+        admission = json.loads((path / "admission.json").read_text(encoding="utf-8"))
+        return admission.get("status") == "ADMITTED" and admission.get("capability_ref") == capability_ref
+
 
 class GeneratedCapabilityExecutor:
     def __init__(self, package: CapabilityPackage):
