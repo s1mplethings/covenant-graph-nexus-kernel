@@ -64,8 +64,10 @@
   ],
   "evidence_refs": [
     "api-lab:46 passed and package build",
-    "pytest:194 passed,1 skipped affected regression",
-    "pytest:2169 passed,345 skipped,4 failed full regression"
+    "pytest:362 passed,1 skipped source-bound unit and full-core profiles",
+    "pytest:2183 passed,350 skipped source-bound active-repository profile",
+    "kernel receipt:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
+    "gates:receipt freshness,architecture,test mapping,completeness,product direction PASS"
   ],
   "review": {
     "outcome": "accepted_with_limits",
@@ -82,7 +84,8 @@
       "Reusing CompletionClient, Provider budget, CapabilityTree, DAG, and acceptance boundaries kept the increment small and auditable."
     ],
     "did_not_work": [
-      "The repository-root direction gate traversed ignored service worktrees and obsolete benchmark directories outside this branch identity."
+      "The repository-root direction gate traversed ignored service worktrees and obsolete benchmark directories outside this branch identity.",
+      "One evidence run exhausted the C-drive pytest temporary area and produced cascading environment failures."
     ],
     "experiments": [
       "Run direction and source-bound evidence gates from a clean committed-source snapshot to exclude ignored desktop state."
