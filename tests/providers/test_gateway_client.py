@@ -8,7 +8,8 @@ from typing import Any
 
 import pytest
 
-from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, GatewayCompletionError, ModelRoleConfig
+from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, GatewayCompletionError, ModelRoleConfig, OpenAICompatibleClient
+from cgkn.providers.gateway_client import _safe_gateway_error, completion_client_from_environment
 from scripts import provider_api_budget
 
 
@@ -188,6 +189,80 @@ def test_invalid_model_remote_address_and_stopped_gateway_fail_closed(gateway) -
 
 
 @pytest.mark.negative
+@pytest.mark.parametrize(
+    "base_url, token, method, message",
+    [
+        ("http://127.0.0.1:8123/admin", "token", "responses", "path"),
+        ("http://127.0.0.1:8123/v1", "", "responses", "token"),
+        ("http://127.0.0.1:8123/v1", "token", "other", "method"),
+    ],
+)
+def test_gateway_constructor_rejects_unsafe_settings(base_url, token, method, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        GatewayCompletionClient(base_url, token, method, enforce_budget=False)
+
+
+@pytest.mark.negative
+@pytest.mark.security
+def test_safe_error_and_environment_factory_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _safe_gateway_error({"error": "not-an-object"}, "secret", "fallback") == ("gateway_error", "fallback")
+    monkeypatch.delenv("CGKN_PROVIDER_GATEWAY_ENABLED", raising=False)
+    assert isinstance(completion_client_from_environment(), OpenAICompatibleClient)
+    monkeypatch.setenv("CGKN_PROVIDER_GATEWAY_ENABLED", "yes")
+    monkeypatch.setenv("CGKN_PROVIDER_GATEWAY_BASE_URL", "http://127.0.0.1:8123/v1")
+    monkeypatch.setenv("CGKN_PROVIDER_GATEWAY_TOKEN", "temporary-token")
+    assert isinstance(completion_client_from_environment(), GatewayCompletionClient)
+
+
+@pytest.mark.negative
+def test_reasoning_request_size_and_response_shapes_are_bounded(gateway, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("cgkn.providers.gateway_client.MAX_REQUEST_BYTES", 1)
+    with pytest.raises(GatewayCompletionError) as oversized:
+        client(gateway).complete(
+            system="s", user="u", schema_name="x", schema=SCHEMA,
+            config=ModelRoleConfig("agent", "qwen", reasoning_effort="high"),
+        )
+    assert oversized.value.category == "request_too_large"
+
+    class Response:
+        status = 200
+
+        def __init__(self, body: bytes):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, _limit: int) -> bytes:
+            return self.body
+
+    monkeypatch.setattr("cgkn.providers.gateway_client.MAX_REQUEST_BYTES", 1_048_576)
+    monkeypatch.setattr("cgkn.providers.gateway_client.request.urlopen", lambda *_args, **_kwargs: Response(b"[]"))
+    with pytest.raises(GatewayCompletionError) as invalid_root:
+        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
+    assert invalid_root.value.category == "invalid_response"
+    monkeypatch.setattr(
+        "cgkn.providers.gateway_client.request.urlopen",
+        lambda *_args, **_kwargs: Response(json.dumps({"status": "completed", "output_text": ""}).encode()),
+    )
+    with pytest.raises(GatewayCompletionError) as empty:
+        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
+    assert empty.value.category == "empty_response"
+
+
+@pytest.mark.negative
+def test_chat_extraction_rejects_invalid_and_truncated_choices(gateway) -> None:
+    gateway_client = GatewayCompletionClient(f"http://127.0.0.1:{gateway.server_port}/v1", "token", "chat_completions", enforce_budget=False)
+    assert gateway_client._extract_text({"choices": []}) == ""
+    assert gateway_client._extract_text({"choices": [{"message": "invalid"}]}) == ""
+    with pytest.raises(GatewayCompletionError, match="truncated_response"):
+        gateway_client._extract_text({"choices": [{"finish_reason": "length", "message": {"content": "x"}}]})
+
+
+@pytest.mark.negative
 def test_budget_reservation_blocks_before_second_send(gateway, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ledger = tmp_path / "budget.json"
     values = {
@@ -251,4 +326,29 @@ def test_fallback_configuration_is_rejected(tmp_path: pathlib.Path) -> None:
         "allowed_providers": ["qwen", "deepseek", "grok"], "fallback": "allow",
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="fallback"):
+        CGKNModelRouting.load(path)
+
+
+@pytest.mark.negative
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        (lambda doc: doc.update(kind="wrong"), "unsupported"),
+        (lambda doc: doc.update(extra=True), "unknown or missing"),
+        (lambda doc: doc.update(roles={"agent": {"provider_id": "qwen"}}), "exactly"),
+        (lambda doc: doc.update(allowed_providers=[]), "unsupported Provider"),
+        (lambda doc: doc["roles"]["agent"].update(extra=True), "routing fields"),
+        (lambda doc: doc["roles"]["agent"].update(provider_id="grok"), "not allowed"),
+    ],
+)
+def test_routing_rejects_malformed_documents(tmp_path: pathlib.Path, mutation, message) -> None:
+    doc = {
+        "kind": "CGKNModelRouting", "schema_version": "1.0",
+        "roles": {"agent": {"provider_id": "qwen"}, "worker": {"provider_id": "deepseek"}},
+        "allowed_providers": ["qwen", "deepseek"], "fallback": "deny",
+    }
+    mutation(doc)
+    path = tmp_path / "routing-invalid.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
         CGKNModelRouting.load(path)

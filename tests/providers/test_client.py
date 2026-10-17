@@ -17,6 +17,20 @@ def test_model_role_config_rejects_invalid_identity(role, model) -> None:
     with pytest.raises(ValueError): ModelRoleConfig(role, model)
 
 
+@pytest.mark.negative
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        ({"timeout_seconds": 0}, "timeout"),
+        ({"max_output_tokens": 0}, "output limit"),
+        ({"temperature": 3.0}, "temperature"),
+    ],
+)
+def test_model_role_config_rejects_invalid_limits(changes, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        ModelRoleConfig("agent", "model", **changes)
+
+
 @pytest.mark.roundtrip
 def test_parse_json_object_plain_and_fenced() -> None:
     assert parse_json_object('{"a": 1}') == {"a": 1}
