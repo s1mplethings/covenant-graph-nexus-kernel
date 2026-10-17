@@ -1,24 +1,27 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "63b4f6272ca7215dce6c125f3e6719b1af7eede8",
-  "source_tree_sha": "7fc1780111a95b3acd4b4e0c5bd51e884b940696",
-  "suite_result": "PASS_WITH_LIMITS",
-  "formal_final_suite": "PASS_WITH_LIMITS",
-  "generation_readiness": "GENERATION_LEVEL_1",
-  "bundle_status": "PARTIAL",
+  "source_commit": "24ece2808ea904888944acae40c4ed872bc5b725",
+  "source_tree_sha": "c86e8e423ed6564a37972530b66c9f7c75771800",
+  "suite_result": "PASS",
+  "formal_final_suite": "PASS",
+  "generation_readiness": "GENERATION_LEVEL_2",
+  "bundle_status": "COMPLETE",
   "final_run_receipt_hashes": [
-    "sha256:727bbbd5fd28d65398e24e62ebfcca140ea43c3bb6da9fb7a41a886416421181"
+    "sha256:9d1a548fa95aafbea54425e25307da090e945627f64f6d4ea7c6bd0098eefb08",
+    "sha256:1ff34f6bd24b6a21dc1f820ecaf474bc7e1cc12f805f4dc959c490aaad9713af",
+    "sha256:84ac65b2e6a9eb514d3d53760f55318f999493d76a0e383b744fc30884ecb967"
   ],
   "exploratory_failure_receipt_hashes": [
     "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
     "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",
-    "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1"
+    "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1",
+    "sha256:1171c8079044230f0e4bb65d39bb222ab94ef26f060fcb5af84f1ce53946bee0"
   ],
-  "exploratory_source_commit": "094d5c567bdc42eeb5d33f9f81f91cd9f8ae5628",
+  "exploratory_source_commit": "24ece2808ea904888944acae40c4ed872bc5b725",
   "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
   "stop_condition": "A",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:a01f93dc519468d2a19c45b84973e2f5d0a47f663cd758c218b815ed88225727"
+  "receipt_hash": "sha256:ae320da037c5666970c200a8a8fd997407ddb3b83ee3c5b4c7164a126ec33893"
 }

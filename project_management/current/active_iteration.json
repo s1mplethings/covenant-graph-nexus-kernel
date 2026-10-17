@@ -1,7 +1,7 @@
 {
   "kind": "CGKNAdaptiveIteration", "schema_version": "1.0", "iteration_id": "ITER-014", "project_id": "cgkn",
   "goal": "ITER-SECOND-PROJECT-MVP-CLOSURE-014: prove reusable L6 generation on a distinct persistent local JSON Notes CLI and close MVP readiness only from repeated real DAG evidence.",
-  "backlog_item_ids": ["PB-020"], "workflow_state": "active", "evidence_status": "NOT_EVALUATED",
+  "backlog_item_ids": ["PB-020"], "workflow_state": "closed", "evidence_status": "PASS",
   "acceptance_criteria": [
     "local_json_notes compiles seventeen explicit obligations with complete public and hidden traceability",
     "argparse subcommand contracts reject renamed commands, optionalized IDs, missing options, forbidden aliases, and function signature drift before workspace commit",
@@ -30,6 +30,24 @@
     "local_packager remains the only delivery exit and no alternate generation mainline is added"
   ],
   "evidence_refs": ["governance/current_baseline.json", "governance/second_project_status.json", "governance/mvp_readiness.json", "governance/testing_efficiency.json"],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "Three independent qwen3.7-flash Notes DAG runs passed without repair, manual edits, or whole-project replans.",
+      "The final Full Closure passed 2151 active tests with 350 skips and no failures or errors."
+    ],
+    "accepted_backlog_item_ids": ["PB-020"]
+  },
+  "retrospective": {
+    "worked": [
+      "Frozen obligations, executable interfaces, stateful Oracles, and hidden acceptance prevented semantic drift.",
+      "Affected-only ownership preserved unrelated Provider outputs and kept repair bounded."
+    ],
+    "did_not_work": [
+      "The first real run exposed missing CLI ownership for exact observable output and selected CORE for repair."
+    ],
+    "experiments": [
+      "Routing step-zero add-output mismatch to WU-CLI and removing an internal next_id state assumption produced 3/3 clean independent passes."
+    ]
+  }
 }

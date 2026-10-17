@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-INTERFACE-004",
+  "current_baseline_id": "BASELINE-MVP-001",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -46,6 +46,9 @@
     {"baseline_id":"BASELINE-INTERFACE-001","parent_baseline_id":"BASELINE-CONTRACT-TEST-002","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-001.json","baseline_hash":"sha256:c2a11b0546c393fbb873680ee2abdc16143fb2d6234f8ae9c59fc1ffab80affd"},
     {"baseline_id":"BASELINE-INTERFACE-002","parent_baseline_id":"BASELINE-INTERFACE-001","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-002.json","baseline_hash":"sha256:0903ef97af5b847ee575aa3e501ce3c4e34b36b1e440154a01dc4ed9bb46c3c9"},
     {"baseline_id":"BASELINE-INTERFACE-003","parent_baseline_id":"BASELINE-INTERFACE-002","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-003.json","baseline_hash":"sha256:abedfc9bfdb54d53372988be42e0521d89ae09d4cdd2e7d4e7c626def5bf031d"},
-    {"baseline_id":"BASELINE-INTERFACE-004","parent_baseline_id":"BASELINE-INTERFACE-003","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-004.json","baseline_hash":"sha256:74f68593b515cab12ecf45c0ba3dd3704dd7eb0aa5454156f687ba05346b42c2"}
+    {"baseline_id":"BASELINE-INTERFACE-004","parent_baseline_id":"BASELINE-INTERFACE-003","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-004.json","baseline_hash":"sha256:74f68593b515cab12ecf45c0ba3dd3704dd7eb0aa5454156f687ba05346b42c2"},
+    {"baseline_id":"BASELINE-MVP-PROJECT2-001","parent_baseline_id":"BASELINE-INTERFACE-004","receipt":"governance/baselines/receipts/BASELINE-MVP-PROJECT2-001.json","baseline_hash":"sha256:232864abb9e671800162b6e09a2f09813bf50743fc870eb58e779053e784079e"},
+    {"baseline_id":"BASELINE-MVP-PROJECT2-002","parent_baseline_id":"BASELINE-MVP-PROJECT2-001","receipt":"governance/baselines/receipts/BASELINE-MVP-PROJECT2-002.json","baseline_hash":"sha256:6d9ba26fdb273b27405af67a3622f4ea43cada3c1cc620592e89d6a49de69418"},
+    {"baseline_id":"BASELINE-MVP-001","parent_baseline_id":"BASELINE-MVP-PROJECT2-002","receipt":"governance/baselines/receipts/BASELINE-MVP-001.json","baseline_hash":"sha256:c94f42358560050af6c95ce196dc46fd50245b68f67db0f426ff39d2d0fe63f5"}
   ]
 }
