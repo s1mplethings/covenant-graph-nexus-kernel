@@ -1,61 +1,47 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-012",
+  "iteration_id": "ITER-013",
   "project_id": "cgkn",
-  "goal": "ITER-DETERMINISTIC-CONTRACT-TESTS-012: replace the mandatory LLM Test Worker with deterministic canonical contract tests compiled from the existing ObligationSet and OraclePlan.",
-  "backlog_item_ids": ["PB-018"],
-  "workflow_state": "closed",
-  "evidence_status": "NEEDS_REWORK",
+  "goal": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013: compile exact public interface shapes from obligations and reject incompatible Provider proposals before workspace commit.",
+  "backlog_item_ids": ["PB-019"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "BASELINE-ORACLE-006 remains reproducible before implementation",
-    "the CSV ObligationSet and OraclePlan deterministically compile to self-contained public contract tests and a tamper-evident manifest",
-    "preview asserts only the requested stdout subset while the output file contains the complete cleaned data",
-    "the DAG contains no mandatory Provider-authored test WorkUnit and canonical-test framework disagreement cannot mutate a project",
-    "real DAG single passes compile, canonical pytest, all required Oracles, runtime, and hidden acceptance within two source repair rounds before repeat"
+    "the CSV ObligationSet deterministically compiles canonical module, Python function, and CLI executable interface contracts",
+    "the CLI contract requires python -m csv_cleaner INPUT OUTPUT and forbids -o and --output",
+    "a positional-to-optional proposal is rejected before workspace mutation and a bounded second proposal can correct it",
+    "nested immutable application evidence materializes recursively to JSON-compatible primitives",
+    "WU-DOCS consumes the canonical CLI contract and is reused across a WU-CORE-only repair",
+    "a fixed qwen3.7-flash real DAG single passes interface guard, canonical tests, Oracles, and hidden acceptance within bounded attempts"
   ],
   "quality_metrics": [
-    {"id": "QM-CONTRACT-TRACE", "measure": "required obligations traced through Oracle to canonical contract tests", "target": "16/16", "method": "ContractTestValidator and targeted traceability tests"},
-    {"id": "QM-CONTRACT-DETERMINISM", "measure": "identical semantic inputs produce identical plan, source, manifest, and fingerprint hashes", "target": "100%", "method": "fresh repeated compiler and renderer tests"},
-    {"id": "QM-DAG-NONREGRESSION", "measure": "removed guarantees, manual edits, whole replans, accepted interface breaks", "target": "all zero", "method": "baseline ledger, fake DAG, Fast Baseline, and real receipts"},
-    {"id": "QM-REAL-DAG", "measure": "real CSV DAG correctness", "target": "single PASS within two repairs", "method": "fixed qwen3.7-flash worker with canonical tests and independent Oracles"}
+    {"id": "QM-INTERFACE-TRACE", "measure": "canonical interface contracts traced to source obligations", "target": "3/3 contracts with no dangling obligation references", "method": "compiler and registry tests"},
+    {"id": "QM-STAGING-ISOLATION", "measure": "rejected Provider proposals committed to the workspace", "target": "zero", "method": "two-attempt fake Provider integration"},
+    {"id": "QM-AFFECTED-ONLY", "measure": "WU-DOCS Provider calls after WU-CORE repair", "target": "one", "method": "fake DAG recovery regression"},
+    {"id": "QM-TEST-EFFICIENCY", "measure": "test scope and duration by profile", "target": "Micro per edit, Fast per phase, one Full before Source Closure", "method": "governance/testing_efficiency.json"},
+    {"id": "QM-REAL-DAG", "measure": "real CSV DAG correctness", "target": "single PASS within two local proposals and two DAG repairs", "method": "fixed qwen3.7-flash with canonical tests and independent Oracles"}
   ],
   "quality_activities": {
-    "prevention": ["Render assertions only from canonical OracleSpec fields and reject untraceable tests"],
-    "assurance": ["Run immutable-contract, compiler, renderer, validator, fake integration, scope, and source-boundary tests"],
-    "control": ["Run targeted tests then Fast Baseline before every promotion"],
-    "improvement": ["Remove the stochastic mandatory test-authoring boundary that caused the prior TEST_IMPLEMENTATION_BLOCKER"]
+    "prevention": ["Compile interface facts from the existing ObligationSet instead of restating them in prompts"],
+    "assurance": ["Run contract round-trip, compiler, AST extraction, guard, staging, fake DAG, and affected-only tests"],
+    "control": ["Use Micro, Fast, Promotion, then one Full Closure according to the baseline ratchet"],
+    "improvement": ["Move exact interface failure detection ahead of workspace commit and downstream execution"]
   },
   "interface_expectations": [
-    "ObligationSet plus OraclePlan plus DependencyPolicy produces a deterministic ContractTestArtifact and manifest",
-    "canonical tests are application-owned evidence assets and never gain Kernel or hidden-acceptance authority",
-    "Provider workers author only business source and documentation on the mandatory DAG path"
+    "ExecutableInterfaceContracts are application-layer authority derived deterministically from ObligationSet",
+    "Provider proposals can change only declared target source files and cannot modify contracts, obligations, Oracles, or canonical tests",
+    "only a staged candidate that passes syntax, dependency, and interface guards may reach the workspace"
   ],
   "evidence_refs": [
     "governance/current_baseline.json",
-    "governance/contract_test_compiler_status.json",
-    "governance/execution_strategy_comparison.json"
+    "governance/interface_contract_status.json",
+    "governance/testing_efficiency.json"
   ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Contract Test Compilation is COMPLETE and removed the mandatory Provider-authored test path.",
-      "Real DAG single failed after two bounded WU-CORE repairs because the generated CLI retained optional -o/--output instead of the required positional output.",
-      "Repeat and Direct comparison are not authorized."
-    ],
-    "accepted_backlog_item_ids": ["PB-018"]
-  },
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
   "retrospective": {
-    "worked": [
-      "Canonical pytest and independent Oracle agreed on the same source defect.",
-      "The preview assertion now distinguishes subset stdout from complete output-file content.",
-      "No Provider authored or repaired mandatory tests."
-    ],
-    "did_not_work": [
-      "qwen3.7-flash did not restore the positional output CLI contract within two WU-CORE repairs.",
-      "Resume re-executed WU-DOCS on the second successful source repair instead of retaining strict affected-only Provider reuse.",
-      "DAG result JSON materialization remained shallow for nested immutable evidence."
-    ],
-    "experiments": ["Compile public contract tests from the same immutable OraclePlan used by independent execution."]
+    "worked": [],
+    "did_not_work": [],
+    "experiments": ["Use deterministic executable interface extraction and pre-commit guard feedback for one bounded local correction."]
   }
 }
