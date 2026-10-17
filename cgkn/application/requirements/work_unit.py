@@ -91,7 +91,8 @@ def compile_notes_work_units(compilation: NotesRequirementCompilation) -> tuple[
             interface_contract_refs=("INTERFACE-NOTES-ADD-001", "INTERFACE-NOTES-LIST-001", "INTERFACE-NOTES-SHOW-001", "INTERFACE-NOTES-DELETE-001"),
         ),
         WorkUnitContract(
-            "WU-CLI", ("OBL-NOTES-CLI-HELP", "OBL-NOTES-ERR-INVALID-ID", "OBL-NOTES-ERR-MISSING-ID"),
+            "WU-CLI", ("OBL-NOTES-ADD", "OBL-NOTES-ADD-TAG", "OBL-NOTES-LIST", "OBL-NOTES-LIST-STABLE", "OBL-NOTES-LIST-TAG",
+                       "OBL-NOTES-SHOW", "OBL-NOTES-DELETE", "OBL-NOTES-CLI-HELP", "OBL-NOTES-ERR-INVALID-ID", "OBL-NOTES-ERR-MISSING-ID"),
             ("notes/__main__.py",), (), ("implement the exact canonical argparse subcommands",),
             ("python -m notes",), (), policy, ("filesystem.write",), hidden_refs, (),
             interface_contract_refs=("INTERFACE-NOTES-CLI-001",),

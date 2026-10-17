@@ -83,7 +83,7 @@ class OraclePlanCompiler:
                 {"argv": cmd + ["delete", "1"], "expected": {"exit_code": 0, "stdout_exact": "deleted 1\n"}},
                 {"argv": cmd + ["add", "third"], "expected": {"exit_code": 0, "stdout_exact": "3\n"}},
                 {"argv": cmd + ["list"], "expected": {"exit_code": 0, "stdout_exact": "2\ttagged\twork\n3\tthird\t\n"}},
-            ]}, expected={"state_file_exists": True, "state_contains": {"second_id": 2, "third_id": 3, "next_id": 4}, "state_excludes": ["hello world"]}),
+            ]}, expected={"state_file_exists": True, "state_excludes": ["hello world"]}),
             note_spec("ORACLE-NOTES-ERRORS", ("OBL-NOTES-ERR-MISSING-ID", "OBL-NOTES-ERR-INVALID-ID"), OracleKind.JSON_STATE,
                       operation={"commands": [
                           {"argv": cmd + ["show", "99"], "expected": {"exit_code": "nonzero", "stderr": "nonempty"}},

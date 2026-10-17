@@ -17,6 +17,7 @@ def test_notes_work_units_separate_core_cli_and_docs_without_implementation_depe
     core, cli, docs = units
     assert set(core.target_paths) == {"notes/__init__.py", "notes/model.py", "notes/store.py", "notes/service.py"}
     assert cli.target_paths == ("notes/__main__.py",) and not cli.depends_on and not cli.allowed_read_paths
+    assert {"OBL-NOTES-ADD", "OBL-NOTES-LIST", "OBL-NOTES-SHOW", "OBL-NOTES-DELETE"} <= set(cli.obligation_ids)
     assert docs.target_paths == ("README.md",) and not docs.depends_on and not docs.allowed_read_paths
     assert "INTERFACE-NOTES-CLI-001" in cli.interface_contract_refs
 

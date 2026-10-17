@@ -67,9 +67,10 @@ README = """# Notes\n\nUse `python -m notes add TEXT [--tag TAG]`, `python -m no
 
 
 class NotesProvider:
-    def __init__(self, *, cli_defect: bool = False, core_defect: str = "") -> None:
+    def __init__(self, *, cli_defect: bool = False, pretty_output: bool = False, core_defect: str = "") -> None:
         self.calls: list[dict[str, Any]] = []
         self.cli_defect = cli_defect
+        self.pretty_output = pretty_output
         self.core_defect = core_defect
         self.counts: dict[str, int] = {}
 
@@ -86,6 +87,8 @@ class NotesProvider:
             cli=CLI
             if self.cli_defect and self.counts[node] == 1:
                 cli=cli.replace('show.add_argument("id",type=int)', 'show.add_argument("--id",type=int,required=True)')
+            if self.pretty_output and self.counts[node] == 1:
+                cli=cli.replace('print(add_note(path,args.text,args.tag)["id"])', 'print(f"Note added with ID: {add_note(path,args.text,args.tag)[\'id\']}")')
             actions=[{"action":"write_file","path":"notes/__main__.py","content":cli}]
         else:
             actions=[{"action":"write_file","path":"README.md","content":README}]
@@ -119,3 +122,10 @@ def test_notes_id_reuse_and_tag_filter_defects_repair_core_only(tmp_path: Path) 
         assert result.status == "PASS" and result.repair_owners == ("WU-CORE",), result.as_dict()
         assert provider.counts == {"WU-CORE":2,"WU-CLI":1,"WU-DOCS":1}
         assert {"WU-CLI","WU-DOCS","CONTRACT-TESTS"} <= set(result.reused_work_units)
+
+
+def test_notes_pretty_output_is_owned_and_repaired_by_cli_only(tmp_path: Path) -> None:
+    provider=NotesProvider(pretty_output=True); result=run(tmp_path,provider)
+    assert result.status == "PASS" and result.repair_owners == ("WU-CLI",), result.as_dict()
+    assert provider.counts == {"WU-CORE":1,"WU-CLI":2,"WU-DOCS":1}
+    assert {"WU-CORE","WU-DOCS","CONTRACT-TESTS"} <= set(result.reused_work_units)

@@ -182,6 +182,10 @@ class ObligationDAGService:
                         evidence_authority="CANONICAL_CONTRACT",
                     )
                     attributed = EvidenceComparator().compare(selected, public, dependency_policy=dependency_policy)
+                    if notes and selected.oracle_id == "ORACLE-NOTES-STATEFUL":
+                        assertion_errors = tuple(str(item) for item in selected.observed.get("assertion_errors", ()))
+                        if "step 0: stdout exact mismatch" in assertion_errors:
+                            attributed = attributed.with_owner_override("WU-CLI", "the first add command succeeded but violated the frozen CLI stdout contract")
                     owner = attributed.effective_owner or ""
                     failure = attributed.as_dict() | {"failed_node": failed}
                 else:
