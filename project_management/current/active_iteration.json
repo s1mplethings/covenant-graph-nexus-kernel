@@ -1,64 +1,34 @@
 {
-  "kind": "CGKNAdaptiveIteration",
-  "schema_version": "1.0",
-  "iteration_id": "ITER-013",
-  "project_id": "cgkn",
-  "goal": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013: compile exact public interface shapes from obligations and reject incompatible Provider proposals before workspace commit.",
-  "backlog_item_ids": ["PB-019"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "kind": "CGKNAdaptiveIteration", "schema_version": "1.0", "iteration_id": "ITER-014", "project_id": "cgkn",
+  "goal": "ITER-SECOND-PROJECT-MVP-CLOSURE-014: prove reusable L6 generation on a distinct persistent local JSON Notes CLI and close MVP readiness only from repeated real DAG evidence.",
+  "backlog_item_ids": ["PB-020"], "workflow_state": "active", "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "the CSV ObligationSet deterministically compiles canonical module, Python function, and CLI executable interface contracts",
-    "the CLI contract requires python -m csv_cleaner INPUT OUTPUT and forbids -o and --output",
-    "a positional-to-optional proposal is rejected before workspace mutation and a bounded second proposal can correct it",
-    "nested immutable application evidence materializes recursively to JSON-compatible primitives",
-    "WU-DOCS consumes the canonical CLI contract and is reused across a WU-CORE-only repair",
-    "a fixed qwen3.7-flash real DAG single passes interface guard, canonical tests, Oracles, and hidden acceptance within bounded attempts"
+    "local_json_notes compiles seventeen explicit obligations with complete public and hidden traceability",
+    "argparse subcommand contracts reject renamed commands, optionalized IDs, missing options, forbidden aliases, and function signature drift before workspace commit",
+    "stateful Oracles independently verify monotonic IDs, persistence, stable listing, exact tag filtering, show, delete, and error semantics",
+    "canonical contract tests are deterministically rendered from the ObligationSet and OraclePlan",
+    "fake Provider defects prove precommit correction, CORE ownership, affected-only repair, and CLI/DOCS reuse",
+    "one fixed qwen3.7-flash real DAG passes before two independent repeats establish at least two passes out of three"
   ],
   "quality_metrics": [
-    {"id": "QM-INTERFACE-TRACE", "measure": "canonical interface contracts traced to source obligations", "target": "3/3 contracts with no dangling obligation references", "method": "compiler and registry tests"},
-    {"id": "QM-STAGING-ISOLATION", "measure": "rejected Provider proposals committed to the workspace", "target": "zero", "method": "two-attempt fake Provider integration"},
-    {"id": "QM-AFFECTED-ONLY", "measure": "WU-DOCS Provider calls after WU-CORE repair", "target": "one", "method": "fake DAG recovery regression"},
-    {"id": "QM-TEST-EFFICIENCY", "measure": "test scope and duration by profile", "target": "Micro per edit, Fast per phase, one Full before Source Closure", "method": "governance/testing_efficiency.json"},
-    {"id": "QM-REAL-DAG", "measure": "real CSV DAG correctness", "target": "single PASS within two local proposals and two DAG repairs", "method": "fixed qwen3.7-flash with canonical tests and independent Oracles"}
+    {"id": "QM-NOTES-TRACE", "measure": "obligation coverage", "target": "17/17 public and hidden bindings", "method": "preflight and traceability tests"},
+    {"id": "QM-NOTES-INTERFACE", "measure": "frozen public interface enforcement", "target": "all four functions and five CLI subcommands guarded", "method": "AST extraction and precommit guard tests"},
+    {"id": "QM-NOTES-STATE", "measure": "state transition coverage", "target": "ID sequence 1,2,delete 1,then 3 plus independent error scenario", "method": "JSON_STATE Oracle"},
+    {"id": "QM-NOTES-REPAIR", "measure": "affected-only reuse", "target": "CORE repair does not recall CLI or DOCS Provider jobs", "method": "fake Provider DAG integration"},
+    {"id": "QM-TEST-EFFICIENCY", "measure": "test scope and duration", "target": "Micro per edit, Fast per phase, one Full before Source Closure", "method": "governance/testing_efficiency.json"},
+    {"id": "QM-NOTES-REAL", "measure": "real Notes DAG reliability", "target": "at least 2/3 PASS within bounded proposals and repairs", "method": "fixed qwen3.7-flash receipts"}
   ],
   "quality_activities": {
-    "prevention": ["Compile interface facts from the existing ObligationSet instead of restating them in prompts"],
-    "assurance": ["Run contract round-trip, compiler, AST extraction, guard, staging, fake DAG, and affected-only tests"],
-    "control": ["Use Micro, Fast, Promotion, then one Full Closure according to the baseline ratchet"],
-    "improvement": ["Move exact interface failure detection ahead of workspace commit and downstream execution"]
+    "prevention": ["Freeze output, signatures, CLI shapes, ownership, and dependency policy before Provider generation"],
+    "assurance": ["Run compiler, extractor, guard, Oracle, contract-renderer, hidden-acceptance, and fake-DAG tests"],
+    "control": ["Use Micro, Fast, Promotion, one Full Closure, then freeze source before real Provider"],
+    "improvement": ["Demonstrate generalization from stateless CSV processing to persistent JSON state"]
   },
   "interface_expectations": [
-    "ExecutableInterfaceContracts are application-layer authority derived deterministically from ObligationSet",
-    "Provider proposals can change only declared target source files and cannot modify contracts, obligations, Oracles, or canonical tests",
-    "only a staged candidate that passes syntax, dependency, and interface guards may reach the workspace"
+    "Contract plus current state enters each capability and produces new state plus evidence",
+    "CLI and DOCS consume canonical contracts instead of guessing CORE implementation",
+    "local_packager remains the only delivery exit and no alternate generation mainline is added"
   ],
-  "evidence_refs": [
-    "governance/current_baseline.json",
-    "governance/interface_contract_status.json",
-    "governance/testing_efficiency.json"
-  ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Executable Interface Contract, pre-commit staging, deep materialization, and affected-only Docs reuse are complete.",
-      "Real DAG single passed and DAG repeat reached the 2/3 promotion threshold.",
-      "Direct repeat passed 3/3, but Direct does not execute the DAG pre-commit Interface Guard and remains a comparison limitation."
-    ],
-    "accepted_backlog_item_ids": ["PB-019"]
-  },
-  "retrospective": {
-    "worked": [
-      "Machine contracts made the required positional and forbidden optional CLI shapes explicit before source commit.",
-      "Staging kept the fake rejected proposal out of the workspace and allowed one precise local correction.",
-      "Contract-based Docs dependency kept Docs Provider calls at one during Core repair.",
-      "One Full Closure plus scoped receipt recheck avoided repeating heavy profiles."
-    ],
-    "did_not_work": [
-      "One of three DAG repeats exhausted two source repair rounds and failed canonical pytest, Oracle, and hidden acceptance.",
-      "ObligationDAGResult provider_calls remains zero with a non-recording client, so durable request_ids were used for evidence totals.",
-      "Direct has contract references but not the same pre-commit Interface Guard enforcement."
-    ],
-    "experiments": ["Use deterministic executable interface extraction and pre-commit guard feedback for one bounded local correction."]
-  }
+  "evidence_refs": ["governance/current_baseline.json", "governance/second_project_status.json", "governance/mvp_readiness.json", "governance/testing_efficiency.json"],
+  "review": null, "retrospective": null
 }

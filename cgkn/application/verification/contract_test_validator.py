@@ -44,7 +44,7 @@ class ContractTestValidator:
             tree = ast.parse(source)
             imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)}
             imports |= {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
-            if any(name not in {"__future__", "ast", "csv", "io", "pathlib", "subprocess", "sys", "pytest"} for name in imports):
+            if any(name not in {"__future__", "ast", "csv", "io", "json", "os", "pathlib", "subprocess", "sys", "pytest"} for name in imports):
                 errors.append("dependency_policy_violation")
         except SyntaxError:
             errors.append("invalid_python")

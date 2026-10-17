@@ -14,6 +14,13 @@ class ProjectCase:
 
 
 CASES: dict[str, ProjectCase] = {
+    "local_json_notes": ProjectCase(
+        "local_json_notes",
+        "Build a local Python Notes CLI backed by notes.json in the current directory. The exact commands are python -m notes add TEXT [--tag TAG], list [--tag TAG], show ID, and delete ID. IDs are positive, monotonic, and never reused; list order is ascending ID and tag filtering is exact. Output is machine-stable: add prints <id>, list/show print <id>\\t<text>\\t<tag-or-empty>, delete prints deleted <id>, and invalid or missing IDs fail non-zero on stderr. Include --help, README, and pytest tests; runtime is standard-library-only and offline.",
+        ("persistent JSON state and monotonic IDs", "stable list and exact tag filtering", "show and delete by positional ID", "exact stdout and non-zero stderr errors", "README, pytest, stdlib-only and offline"),
+        "notes/__main__.py",
+        ("python", "-m", "notes", "--help"),
+    ),
     "cli_csv_cleaner": ProjectCase(
         "cli_csv_cleaner",
         "Build a local Python CSV-cleaning CLI. The public command contract is: python -m csv_cleaner INPUT OUTPUT [--dedupe-column COLUMN] [--fill VALUE] [--preview N]. It must read and write CSV, preserve headers and row order, deduplicate by the selected column or whole row, fill every empty field when --fill is supplied, print the first N cleaned data rows as CSV preview without suppressing output-file creation, provide --help and clear non-zero errors, include README and pytest tests, use only the standard library, and never use the network.",

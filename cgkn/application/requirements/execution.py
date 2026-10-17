@@ -88,6 +88,7 @@ class ObligationWorkUnitExecutor:
                 "test_plan": _plain(config.get("test_plan", {})),
                 "interface_manifest": _plain(config.get("interface_manifest", {})),
                 "executable_interface_contracts": _plain(config.get("executable_interface_contracts", ())),
+                "dependency_interface_contracts": _plain(config.get("dependency_interface_contracts", ())),
                 "current_sources": current,
                 "failure_evidence": _plain(config.get("failure_evidence")),
                 "target_paths": list(targets),

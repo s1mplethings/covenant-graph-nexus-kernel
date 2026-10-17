@@ -5,12 +5,14 @@ import csv
 import hashlib
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import time
+import tempfile
 from typing import Any, Iterable, Mapping
 
 from cgkn.application.requirements.obligation import thaw
@@ -77,6 +79,7 @@ class OracleExecutor:
                 OracleKind.DEPENDENCY: self._dependency,
                 OracleKind.STATIC_PYTHON: self._static_python,
                 OracleKind.DOCUMENTATION: self._documentation,
+                OracleKind.JSON_STATE: self._json_state,
             }[spec.oracle_kind]
             result = handler(spec, root)
             observed = result[0]
@@ -310,6 +313,62 @@ class OracleExecutor:
             errors.append("forbidden output side effect observed")
         artifacts = ({"path": output_path.relative_to(root).as_posix(), "sha256": _sha(output_path)},) if output_path is not None and output_path.is_file() else ()
         return ({"_passed": not errors, "return_code": last.returncode, "output_created": bool(output_path and output_path.is_file()), "assertion_errors": errors}, last.returncode, last.stdout, last.stderr, artifacts)
+
+    def _json_state(self, spec: OracleSpec, root: Path):
+        commands = spec.operation.get("commands")
+        if not isinstance(commands, (list, tuple)) or not commands:
+            raise HarnessError("JSON_STATE Oracle requires commands")
+        errors: list[str] = []
+        observations: list[dict[str, Any]] = []
+        last: subprocess.CompletedProcess[str] | None = None
+        storage_name = str(spec.operation.get("storage_path", "notes.json"))
+        if Path(storage_name).is_absolute() or ".." in Path(storage_name).parts:
+            raise HarnessError("JSON state path must be relative")
+        with tempfile.TemporaryDirectory(prefix="cgkn-oracle-") as directory:
+            cwd = Path(directory)
+            env = self._environment({})
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = str(root) + (os.pathsep + existing if existing else "")
+            for index, command_spec in enumerate(commands):
+                if not isinstance(command_spec, Mapping):
+                    raise HarnessError("JSON_STATE command must be a mapping")
+                argv = command_spec.get("argv")
+                if not isinstance(argv, (list, tuple)) or not argv:
+                    raise HarnessError("JSON_STATE command argv is required")
+                command = list(argv)
+                if str(command[0]).lower() in {"python", "python.exe", "python3"}:
+                    command[0] = sys.executable
+                last = subprocess.run(command, cwd=cwd, env=env, text=True, encoding="utf-8", errors="replace",
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=spec.timeout_seconds, check=False)
+                wanted = command_spec.get("expected", {})
+                step_errors: list[str] = []
+                exit_code = wanted.get("exit_code")
+                if exit_code == "nonzero" and last.returncode == 0:
+                    step_errors.append("expected nonzero exit code")
+                elif isinstance(exit_code, int) and last.returncode != exit_code:
+                    step_errors.append(f"expected exit {exit_code}, observed {last.returncode}")
+                if "stdout_exact" in wanted and last.stdout != str(wanted["stdout_exact"]):
+                    step_errors.append("stdout exact mismatch")
+                if wanted.get("stderr") == "nonempty" and not last.stderr.strip():
+                    step_errors.append("stderr is empty")
+                errors.extend(f"step {index}: {message}" for message in step_errors)
+                observations.append({"argv": command[1:], "return_code": last.returncode, "stdout": _summary(last.stdout), "stderr": _summary(last.stderr)})
+            state_path = cwd / storage_name
+            state: Any = None
+            if spec.expected.get("state_file_exists") and not state_path.is_file():
+                errors.append("state file missing")
+            if state_path.is_file():
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+            serialized = json.dumps(state, ensure_ascii=False, sort_keys=True)
+            for key, value in dict(spec.expected.get("state_contains", {})).items():
+                if json.dumps(value, ensure_ascii=False) not in serialized:
+                    errors.append(f"state missing {key}")
+            for value in spec.expected.get("state_excludes", ()):
+                if str(value) in serialized:
+                    errors.append(f"state contains excluded value {value}")
+            artifact = ({"path": storage_name, "sha256": _sha(state_path)},) if state_path.is_file() else ()
+        assert last is not None
+        return ({"_passed": not errors, "commands": observations, "state": state, "assertion_errors": errors}, last.returncode, last.stdout, last.stderr, artifact)
 
     def _policy(self, spec: OracleSpec) -> DependencyPolicy:
         if len(spec.dependency_policy_refs) != 1:

@@ -20,6 +20,7 @@ class OracleKind(str, Enum):
     DEPENDENCY = "DEPENDENCY"
     STATIC_PYTHON = "STATIC_PYTHON"
     DOCUMENTATION = "DOCUMENTATION"
+    JSON_STATE = "JSON_STATE"
 
 
 class OracleStatus(str, Enum):

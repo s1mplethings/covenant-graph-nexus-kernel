@@ -18,9 +18,10 @@ from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
 from .csv import compile_csv_cleaner
+from .notes import compile_local_json_notes
 from .execution import ObligationWorkUnitExecutor
 from .receipt import write_obligation_preflight
-from .work_unit import compile_csv_work_units
+from .work_unit import compile_csv_work_units, compile_notes_work_units
 
 
 @dataclass(frozen=True)
@@ -68,11 +69,21 @@ class ObligationDAGService:
         self.root, self.client, self.worker = repository_root.resolve(), client, worker
 
     def run_csv(self, workspace: pathlib.Path, run_root: pathlib.Path) -> ObligationDAGResult:
+        return self._run(workspace, run_root, "csv")
+
+    def run_notes(self, workspace: pathlib.Path, run_root: pathlib.Path) -> ObligationDAGResult:
+        return self._run(workspace, run_root, "notes")
+
+    def _run(self, workspace: pathlib.Path, run_root: pathlib.Path, variant: str) -> ObligationDAGResult:
         started = time.perf_counter()
         workspace, run_root = workspace.resolve(), run_root.resolve()
         workspace.mkdir(parents=True, exist_ok=True)
         run_root.mkdir(parents=True, exist_ok=True)
-        compilation = compile_csv_cleaner()
+        notes = variant == "notes"
+        compilation = compile_local_json_notes() if notes else compile_csv_cleaner()
+        project_id = "local_json_notes" if notes else "cli_csv_cleaner"
+        entrypoint = "notes" if notes else "csv_cleaner"
+        entrypoint_path = f"{entrypoint}/__main__.py"
         from cgkn.application.interfaces import InterfaceContractCompiler
         from cgkn.application.verification import (
             ContractTestCompilerExecutor, EvidenceComparator, ObligationOracleExecutorAdapter, OracleEvidence,
@@ -82,9 +93,12 @@ class ObligationDAGService:
             raise ValueError("obligation preflight must be COMPLETE before Provider execution")
         write_obligation_preflight(run_root / "obligation_preflight.json", compilation.preflight)
         dependency_policy = next(item.dependency_policy for item in compilation.obligations.obligations if item.dependency_policy)
-        oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, dependency_policy)
-        interface_contracts = InterfaceContractCompiler().compile_csv(compilation.obligations)
-        units = tuple(item for item in compile_csv_work_units(compilation) if item.work_unit_id != "WU-TESTS")
+        oracle_plan = (OraclePlanCompiler().compile_notes(compilation.obligations, dependency_policy) if notes
+                       else OraclePlanCompiler().compile_csv(compilation.obligations, dependency_policy))
+        interface_contracts = (InterfaceContractCompiler().compile_notes(compilation.obligations) if notes
+                               else InterfaceContractCompiler().compile_csv(compilation.obligations))
+        units = (compile_notes_work_units(compilation) if notes
+                 else tuple(item for item in compile_csv_work_units(compilation) if item.work_unit_id != "WU-TESTS"))
         obligation_by_id = {item.obligation_id: item for item in compilation.obligations.obligations}
         nodes: list[CapabilityNode] = []
         for unit in units:
@@ -100,6 +114,9 @@ class ObligationDAGService:
                     "dependency_policy": compilation.obligations.obligations[0].dependency_policy.as_dict() if compilation.obligations.obligations[0].dependency_policy else next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy),
                     "interface_manifest": {"required": list(unit.required_interfaces), "preserved": list(unit.preserved_interfaces)},
                     "executable_interface_contracts": [interface_contracts.by_id(identifier).as_dict() for identifier in unit.interface_contract_refs],
+                    "dependency_interface_contracts": ([interface_contracts.by_id(identifier).as_dict() for identifier in (
+                        "INTERFACE-NOTES-ADD-001", "INTERFACE-NOTES-LIST-001", "INTERFACE-NOTES-SHOW-001", "INTERFACE-NOTES-DELETE-001"
+                    )] if notes and unit.work_unit_id == "WU-CLI" else []),
                     "interface_contract_set_hash": interface_contracts.interface_contract_set_hash,
                 },
             ))
@@ -108,22 +125,22 @@ class ObligationDAGService:
             CapabilityNode("contract-tests", capability_ref="project.contract-test-plan@1", depends_on=worker_ids, config={"executor_ref": "project.contract-test-compiler@1", "goal": "compile canonical contract tests", "obligation_set": compilation.obligations.as_dict(), "oracle_plan": oracle_plan.as_dict(), "dependency_policies": [dependency_policy.as_dict()]}),
             CapabilityNode("compile", capability_ref="project.python.compile@1", depends_on=("contract-tests",), config={"executor_ref": "local.command@1", "goal": "compile", "command": [sys.executable, "-m", "compileall", "-q", "."], "timeout_seconds": 60}),
             CapabilityNode("pytest", capability_ref="project.python.pytest@1", depends_on=("compile",), config={"executor_ref": "local.python-test@1", "goal": "public pytest", "pytest_args": ["-q"], "timeout_seconds": 60}),
-            CapabilityNode("runtime", capability_ref="project.command.smoke@1", depends_on=("compile",), config={"executor_ref": "local.command@1", "goal": "runtime", "command": [sys.executable, "-m", "csv_cleaner", "--help"], "timeout_seconds": 60}),
+            CapabilityNode("runtime", capability_ref="project.command.smoke@1", depends_on=("compile",), config={"executor_ref": "local.command@1", "goal": "runtime", "command": [sys.executable, "-m", entrypoint, "--help"], "timeout_seconds": 60}),
             CapabilityNode("oracle", capability_ref="project.obligation-oracle-plan@1", depends_on=("compile",), config={"executor_ref": "project.obligation-oracle@1", "goal": "deterministic obligation verification", "oracle_plan": oracle_plan.as_dict(), "dependency_policies": [dependency_policy.as_dict()]}),
-            CapabilityNode("snapshot", capability_ref="project.snapshot@1", depends_on=("pytest", "runtime", "oracle"), config={"executor_ref": "project.snapshot@1", "goal": "snapshot", "entrypoints": ["csv_cleaner/__main__.py"], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [f"{sys.executable} -m csv_cleaner --help"]}),
-            CapabilityNode("accept", capability_ref="project.acceptance.external@1", depends_on=("snapshot",), config={"executor_ref": "project.acceptance@1", "goal": "hidden acceptance", "case_id": "cli_csv_cleaner", "dependency_policy": next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy), "timeout_seconds": 60}),
+            CapabilityNode("snapshot", capability_ref="project.snapshot@1", depends_on=("pytest", "runtime", "oracle"), config={"executor_ref": "project.snapshot@1", "goal": "snapshot", "entrypoints": [entrypoint_path], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [f"{sys.executable} -m {entrypoint} --help"]}),
+            CapabilityNode("accept", capability_ref="project.acceptance.external@1", depends_on=("snapshot",), config={"executor_ref": "project.acceptance@1", "goal": "hidden acceptance", "case_id": project_id, "dependency_policy": next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy), "timeout_seconds": 60}),
         ))
-        tree = CapabilityTree("execute compiled CSV obligations", tuple(nodes))
+        tree = CapabilityTree(f"execute compiled {variant} obligations", tuple(nodes))
         registry = ExecutorRegistry()
         registry.register(ObligationWorkUnitExecutor(workspace, self.client, self.worker))
         registry.register(ContractTestCompilerExecutor(workspace))
         registry.register(CommandExecutor(workspace)); registry.register(PythonTestExecutor(workspace))
         registry.register(ObligationOracleExecutorAdapter(workspace))
         registry.register(ProjectSnapshotExecutor(workspace)); registry.register(ExternalAcceptanceExecutor(workspace, self.root / "benchmarks" / "real_project_generation" / "acceptance"))
-        run_id = f"csv-obligation-{uuid.uuid4().hex[:10]}"
+        run_id = f"{variant}-obligation-{uuid.uuid4().hex[:10]}"
         store = FileRunStore(run_root)
         summary = DAGRunner(registry, store).run(
-            project_id="cli_csv_cleaner", run_id=run_id, tree=tree, dag=compile_tree(tree),
+            project_id=project_id, run_id=run_id, tree=tree, dag=compile_tree(tree),
             constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
         )
         repair_rounds = 0
@@ -135,18 +152,18 @@ class ObligationDAGService:
             failure: Mapping[str, Any]
             if failed in {"pytest", "oracle"} or ({"pytest", "oracle"} & set(summary.failed_nodes)):
                 try:
-                    oracle_result = store.load_result("cli_csv_cleaner", run_id, "oracle")
+                    oracle_result = store.load_result(project_id, run_id, "oracle")
                     oracle_rows = tuple(OracleEvidence.from_dict(item) for item in oracle_result.outputs.get("evidence", ()))
                 except Exception:
                     oracle_rows = ()
                 try:
-                    pytest_result = store.load_result("cli_csv_cleaner", run_id, "pytest")
+                    pytest_result = store.load_result(project_id, run_id, "pytest")
                     pytest_pass = pytest_result.status.value == "SUCCEEDED"
                     pytest_stdout = str(pytest_result.outputs.get("stdout", ""))
                     pytest_stderr = str(pytest_result.outputs.get("stderr", ""))
                 except Exception:
                     pytest_pass, pytest_stdout, pytest_stderr = False, "", "pytest evidence unavailable"
-                test_asset_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"}
+                test_asset_obligations = ({"OBL-NOTES-TEST-PYTEST"} if notes else {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"})
                 selected = next((
                     item for item in oracle_rows
                     if item.status is not OracleStatus.PASS and not set(item.obligation_ids) <= test_asset_obligations
@@ -170,7 +187,7 @@ class ObligationDAGService:
                 else:
                     failure = {"failed_node": failed, "failure_class": "HARNESS_FAILURE", "allowed_repair_scope": []}
             else:
-                result = store.load_result("cli_csv_cleaner", run_id, failed)
+                result = store.load_result(project_id, run_id, failed)
                 failure = {
                     "failed_node": failed,
                     "owner_work_unit": owner,
@@ -189,7 +206,7 @@ class ObligationDAGService:
                 TreeEdit(f"repair-retry-{repair_rounds}", "retry_node", owner, {}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
             ), known_capabilities={node.capability_ref for node in tree.nodes if node.capability_ref})
             summary = DAGRunner(registry, store).run(
-                project_id="cli_csv_cleaner", run_id=run_id, tree=tree, dag=compile_tree(tree), resume=True,
+                project_id=project_id, run_id=run_id, tree=tree, dag=compile_tree(tree), resume=True,
                 retry_node=owner, constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
             )
             repair_rounds += 1
@@ -200,21 +217,21 @@ class ObligationDAGService:
         contract_test_status = "NOT_EVALUATED"
         contract_test_reused = False
         try:
-            hidden = str(store.load_result("cli_csv_cleaner", run_id, "accept").outputs.get("status", "FAIL"))
+            hidden = str(store.load_result(project_id, run_id, "accept").outputs.get("status", "FAIL"))
         except Exception:
             pass
         try:
-            public_pytest = "PASS" if store.load_result("cli_csv_cleaner", run_id, "pytest").status.value == "SUCCEEDED" else "FAIL"
+            public_pytest = "PASS" if store.load_result(project_id, run_id, "pytest").status.value == "SUCCEEDED" else "FAIL"
         except Exception:
             pass
         try:
-            oracle_result = store.load_result("cli_csv_cleaner", run_id, "oracle")
+            oracle_result = store.load_result(project_id, run_id, "oracle")
             oracle_status = str(oracle_result.outputs.get("status", "FAIL"))
             oracle_evidence = tuple(dict(item) for item in oracle_result.outputs.get("evidence", ()))
         except Exception:
             pass
         try:
-            contract_test_result = store.load_result("cli_csv_cleaner", run_id, "contract-tests")
+            contract_test_result = store.load_result(project_id, run_id, "contract-tests")
             contract_test_status = str(contract_test_result.outputs.get("status", "FAIL"))
             contract_test_reused = bool(contract_test_result.outputs.get("reused", False))
         except Exception:
@@ -224,11 +241,11 @@ class ObligationDAGService:
         tokens = 0
         for unit in units:
             try:
-                tokens += int(store.load_result("cli_csv_cleaner", run_id, unit.work_unit_id).usage.get("total_tokens", 0))
+                tokens += int(store.load_result(project_id, run_id, unit.work_unit_id).usage.get("total_tokens", 0))
             except Exception:
                 pass
         return ObligationDAGResult(
-            status, "cli_csv_cleaner", run_id, workspace, summary.as_dict(), calls, tokens,
+            status, project_id, run_id, workspace, summary.as_dict(), calls, tokens,
             int((time.perf_counter() - started) * 1000), repair_rounds, hidden,
             public_pytest=public_pytest, oracle_status=oracle_status, oracle_evidence=oracle_evidence,
             repair_owners=tuple(repair_owners), reused_work_units=tuple(sorted(reused_work_units)),

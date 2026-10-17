@@ -122,7 +122,7 @@ class FailureEvidence:
 @dataclass(frozen=True)
 class EvidenceComparator:
     work_unit_scopes: FrozenMapping = field(default_factory=lambda: FrozenMapping({
-        "WU-CORE": ["csv_cleaner/**"],
+        "WU-CORE": ["csv_cleaner/**", "notes/**"],
         "WU-TESTS": ["tests/**"],
         "WU-DOCS": ["README.md"],
     }))
@@ -138,8 +138,8 @@ class EvidenceComparator:
         manifest = FrozenMapping(interface_manifest or {})
         common = set(oracle.obligation_ids) & set(public.obligation_ids)
         oracle_obligations = set(oracle.obligation_ids)
-        docs_obligations = {"OBL-CSV-README"}
-        test_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST"}
+        docs_obligations = {"OBL-CSV-README", "OBL-NOTES-README"}
+        test_obligations = {"OBL-CSV-PUBLIC-TESTS", "OBL-CSV-TEST-PYTEST", "OBL-NOTES-TEST-PYTEST"}
         dependency_failure = any("DEPS" in item or "RUNTIME-STDLIB" in item or "TEST-PYTEST" in item or "NETWORK" in item for item in oracle.obligation_ids)
 
         def project_owner() -> str:

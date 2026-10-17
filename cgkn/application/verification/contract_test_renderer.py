@@ -22,7 +22,84 @@ class ContractTestArtifact:
 class ContractTestRenderer:
     TARGET = "tests/test_contract_csv_cleaner.py"
 
+    def _render_notes(self, plan: ContractTestPlan, policy: DependencyPolicy) -> ContractTestArtifact:
+        required = {"ORACLE-NOTES-STATEFUL", "ORACLE-NOTES-ERRORS", "ORACLE-NOTES-HELP", "ORACLE-NOTES-README",
+                    "ORACLE-NOTES-PUBLIC-TESTS", "ORACLE-NOTES-RUNTIME", "ORACLE-NOTES-NETWORK"}
+        by_oracle = {item.oracle_ids[0]: item for item in plan.tests}
+        if set(by_oracle) != required:
+            raise ValueError("unsupported or incomplete Notes OraclePlan")
+        source = '''from __future__ import annotations
+import ast
+import json
+import os
+import pathlib
+import subprocess
+import sys
+
+import pytest
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+def _run(cwd, *args):
+    env = dict(os.environ); env["PYTHONPATH"] = str(ROOT)
+    return subprocess.run([sys.executable, "-m", "notes", *args], cwd=cwd, env=env, text=True, capture_output=True)
+
+'''
+        cases = [
+            ("ORACLE-NOTES-STATEFUL", '''def test_contract_notes_stateful(tmp_path):
+    assert _run(tmp_path, "add", "hello world").stdout == "1\\n"
+    assert _run(tmp_path, "add", "tagged", "--tag", "work").stdout == "2\\n"
+    assert _run(tmp_path, "list").stdout == "1\\thello world\\t\\n2\\ttagged\\twork\\n"
+    assert _run(tmp_path, "list", "--tag", "work").stdout == "2\\ttagged\\twork\\n"
+    assert _run(tmp_path, "show", "2").stdout == "2\\ttagged\\twork\\n"
+    assert _run(tmp_path, "delete", "1").stdout == "deleted 1\\n"
+    assert _run(tmp_path, "add", "third").stdout == "3\\n"
+    assert _run(tmp_path, "list").stdout == "2\\ttagged\\twork\\n3\\tthird\\t\\n"
+    state = json.loads((tmp_path / "notes.json").read_text(encoding="utf-8"))
+    text = json.dumps(state, sort_keys=True); assert "hello world" not in text and "3" in text
+'''),
+            ("ORACLE-NOTES-ERRORS", '''def test_contract_notes_errors(tmp_path):
+    for args in (("show", "99"), ("delete", "99"), ("show", "bad")):
+        result = _run(tmp_path, *args); assert result.returncode != 0 and result.stderr.strip()
+'''),
+            ("ORACLE-NOTES-HELP", '''def test_contract_notes_help(tmp_path):
+    result = _run(tmp_path, "--help"); assert result.returncode == 0
+    for command in ("add", "list", "show", "delete"): assert command in result.stdout
+'''),
+            ("ORACLE-NOTES-README", '''def test_contract_notes_readme():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    for item in ("python -m notes", "add", "list", "show", "delete", "--tag"): assert item in text
+'''),
+            ("ORACLE-NOTES-PUBLIC-TESTS", '''def test_contract_notes_public_tests():
+    assert any((ROOT / "tests").glob("test_*.py"))
+    assert pytest.__name__ == "pytest"
+'''),
+            ("ORACLE-NOTES-RUNTIME", '''def test_contract_notes_runtime_stdlib():
+    forbidden = {"pytest", "requests", "httpx", "aiohttp"}
+    for path in (ROOT / "notes").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)}
+        imports |= {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
+        assert not imports & forbidden
+'''),
+            ("ORACLE-NOTES-NETWORK", '''def test_contract_notes_network_offline():
+    forbidden = {"requests", "httpx", "aiohttp", "socket", "urllib"}
+    for path in (ROOT / "notes").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)}
+        imports |= {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
+        assert not imports & forbidden
+'''),
+        ]
+        for oracle_id, body in cases:
+            source += f"# provenance: {by_oracle[oracle_id].test_id} <- {oracle_id}\n" + body + "\n"
+        source_hash = "sha256:" + hashlib.sha256(source.encode("utf-8")).hexdigest()
+        return ContractTestArtifact("tests/test_contract_notes.py", source, source_hash,
+                                    ContractTestManifest.build(plan, source_hash, canonical_hash(policy.as_dict())))
+
     def render(self, plan: ContractTestPlan, policy: DependencyPolicy) -> ContractTestArtifact:
+        if plan.plan_id == "PLAN-NOTES-CONTRACT-TEST-001":
+            return self._render_notes(plan, policy)
         by_oracle = {item.oracle_ids[0]: item for item in plan.tests}
         required = {
             "ORACLE-CSV-WHOLE-ROW", "ORACLE-CSV-COLUMN-FILL", "ORACLE-CLI-PREVIEW", "ORACLE-CLI-HELP",

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .csv import CSVRequirementCompilation
+from .notes import NotesRequirementCompilation
 
 
 @dataclass(frozen=True)
@@ -71,5 +72,33 @@ def compile_csv_work_units(compilation: CSVRequirementCompilation) -> tuple[Work
             ("python -m csv_cleaner",), (), policy, ("filesystem.write",), hidden_refs,
             (),
             interface_contract_refs=("INTERFACE-CSV-CLI-001",),
+        ),
+    )
+
+
+def compile_notes_work_units(compilation: NotesRequirementCompilation) -> tuple[WorkUnitContract, ...]:
+    known = {item.obligation_id for item in compilation.obligations.obligations}
+    hidden_refs = tuple(sorted(compilation.traceability.acceptance_to_obligation))
+    policy = ("POLICY-NOTES-DEPS-001",)
+    core_excluded = {"OBL-NOTES-CLI-HELP", "OBL-NOTES-README", "OBL-NOTES-TEST-PYTEST"}
+    return (
+        WorkUnitContract(
+            "WU-CORE", tuple(sorted(known - core_excluded)),
+            ("notes/__init__.py", "notes/model.py", "notes/store.py", "notes/service.py"), (),
+            ("implement persistent JSON note state", "preserve monotonic IDs and exact tag semantics"),
+            ("notes.service.add_note", "notes.service.list_notes", "notes.service.show_note", "notes.service.delete_note"),
+            (), policy, ("filesystem.write",), hidden_refs,
+            interface_contract_refs=("INTERFACE-NOTES-ADD-001", "INTERFACE-NOTES-LIST-001", "INTERFACE-NOTES-SHOW-001", "INTERFACE-NOTES-DELETE-001"),
+        ),
+        WorkUnitContract(
+            "WU-CLI", ("OBL-NOTES-CLI-HELP", "OBL-NOTES-ERR-INVALID-ID", "OBL-NOTES-ERR-MISSING-ID"),
+            ("notes/__main__.py",), (), ("implement the exact canonical argparse subcommands",),
+            ("python -m notes",), (), policy, ("filesystem.write",), hidden_refs, (),
+            interface_contract_refs=("INTERFACE-NOTES-CLI-001",),
+        ),
+        WorkUnitContract(
+            "WU-DOCS", ("OBL-NOTES-README", "OBL-NOTES-CLI-HELP"), ("README.md",), (),
+            ("document the canonical Notes CLI and output contract",), ("python -m notes",), (), policy,
+            ("filesystem.write",), hidden_refs, (), interface_contract_refs=("INTERFACE-NOTES-CLI-001",),
         ),
     )

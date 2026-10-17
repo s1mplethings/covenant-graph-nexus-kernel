@@ -16,6 +16,14 @@ CSV_OBLIGATION_IDS = frozenset({
     "OBL-CSV-TEST-PYTEST", "OBL-CSV-NETWORK-OFFLINE",
 })
 
+NOTES_OBLIGATION_IDS = frozenset({
+    "OBL-NOTES-ADD", "OBL-NOTES-ADD-TAG", "OBL-NOTES-ID-MONOTONIC", "OBL-NOTES-PERSISTENCE",
+    "OBL-NOTES-LIST", "OBL-NOTES-LIST-STABLE", "OBL-NOTES-LIST-TAG", "OBL-NOTES-SHOW",
+    "OBL-NOTES-DELETE", "OBL-NOTES-DELETE-PERSISTS", "OBL-NOTES-ERR-MISSING-ID",
+    "OBL-NOTES-ERR-INVALID-ID", "OBL-NOTES-CLI-HELP", "OBL-NOTES-README",
+    "OBL-NOTES-RUNTIME-STDLIB", "OBL-NOTES-TEST-PYTEST", "OBL-NOTES-NETWORK-OFFLINE",
+})
+
 
 def _spec(
     oracle_id: str,
@@ -48,6 +56,56 @@ def _spec(
 
 class OraclePlanCompiler:
     """Compile the canonical CSV ObligationSet into bounded deterministic scenarios."""
+
+    def compile_notes(self, obligations: ObligationSet, dependency_policy: DependencyPolicy) -> OraclePlan:
+        ids = {item.obligation_id for item in obligations.obligations}
+        if ids != NOTES_OBLIGATION_IDS:
+            raise ValueError(f"canonical Notes obligation set mismatch; missing={sorted(NOTES_OBLIGATION_IDS - ids)}; extra={sorted(ids - NOTES_OBLIGATION_IDS)}")
+        policy_ids = {item.dependency_policy.policy_id for item in obligations.obligations if item.dependency_policy is not None}
+        if policy_ids != {dependency_policy.policy_id}:
+            raise ValueError("DependencyPolicy does not match canonical Notes obligations")
+        provenance = {"compiler": "notes_oracle_plan_compiler@1", "authority": "canonical_obligation"}
+        def note_spec(oracle_id: str, obligation_ids: tuple[str, ...], kind: OracleKind, *, operation: dict[str, Any], expected: dict[str, Any], forbidden: dict[str, Any] | None = None, policy: bool = False):
+            return OracleSpec(oracle_id, obligation_ids, kind, "local_json_notes", operation=operation, expected=expected,
+                              forbidden=forbidden or {}, dependency_policy_refs=(dependency_policy.policy_id,) if policy else (),
+                              timeout_seconds=10, scope=("local_json_notes",), provenance=provenance)
+        cmd = ["python", "-m", "notes"]
+        stateful_ids = ("OBL-NOTES-ADD", "OBL-NOTES-ADD-TAG", "OBL-NOTES-ID-MONOTONIC", "OBL-NOTES-PERSISTENCE",
+                        "OBL-NOTES-LIST", "OBL-NOTES-LIST-STABLE", "OBL-NOTES-LIST-TAG", "OBL-NOTES-SHOW",
+                        "OBL-NOTES-DELETE", "OBL-NOTES-DELETE-PERSISTS")
+        specs = (
+            note_spec("ORACLE-NOTES-STATEFUL", stateful_ids, OracleKind.JSON_STATE, operation={"storage_path": "notes.json", "commands": [
+                {"argv": cmd + ["add", "hello world"], "expected": {"exit_code": 0, "stdout_exact": "1\n"}},
+                {"argv": cmd + ["add", "tagged", "--tag", "work"], "expected": {"exit_code": 0, "stdout_exact": "2\n"}},
+                {"argv": cmd + ["list"], "expected": {"exit_code": 0, "stdout_exact": "1\thello world\t\n2\ttagged\twork\n"}},
+                {"argv": cmd + ["list", "--tag", "work"], "expected": {"exit_code": 0, "stdout_exact": "2\ttagged\twork\n"}},
+                {"argv": cmd + ["show", "2"], "expected": {"exit_code": 0, "stdout_exact": "2\ttagged\twork\n"}},
+                {"argv": cmd + ["delete", "1"], "expected": {"exit_code": 0, "stdout_exact": "deleted 1\n"}},
+                {"argv": cmd + ["add", "third"], "expected": {"exit_code": 0, "stdout_exact": "3\n"}},
+                {"argv": cmd + ["list"], "expected": {"exit_code": 0, "stdout_exact": "2\ttagged\twork\n3\tthird\t\n"}},
+            ]}, expected={"state_file_exists": True, "state_contains": {"second_id": 2, "third_id": 3, "next_id": 4}, "state_excludes": ["hello world"]}),
+            note_spec("ORACLE-NOTES-ERRORS", ("OBL-NOTES-ERR-MISSING-ID", "OBL-NOTES-ERR-INVALID-ID"), OracleKind.JSON_STATE,
+                      operation={"commands": [
+                          {"argv": cmd + ["show", "99"], "expected": {"exit_code": "nonzero", "stderr": "nonempty"}},
+                          {"argv": cmd + ["delete", "99"], "expected": {"exit_code": "nonzero", "stderr": "nonempty"}},
+                          {"argv": cmd + ["show", "bad"], "expected": {"exit_code": "nonzero", "stderr": "nonempty"}},
+                      ]}, expected={"state_file_exists": False}),
+            note_spec("ORACLE-NOTES-HELP", ("OBL-NOTES-CLI-HELP",), OracleKind.CLI,
+                      operation={"commands": [{"argv": cmd + ["--help"]}]}, expected={"exit_code": 0, "stdout_contains": ["add", "list", "show", "delete"]}),
+            note_spec("ORACLE-NOTES-README", ("OBL-NOTES-README",), OracleKind.DOCUMENTATION, operation={"path": "README.md"},
+                      expected={"exists": True, "contains": ["python -m notes", "add", "list", "show", "delete", "--tag"]}),
+            note_spec("ORACLE-NOTES-PUBLIC-TESTS", ("OBL-NOTES-TEST-PYTEST",), OracleKind.FILE, operation={"glob": "tests/test_*.py"},
+                      expected={"minimum_files": 1, "pytest_exit_code": 0}, policy=True),
+            note_spec("ORACLE-NOTES-RUNTIME", ("OBL-NOTES-RUNTIME-STDLIB",), OracleKind.DEPENDENCY,
+                      operation={"domain": "runtime", "paths": ["notes/**/*.py"]}, expected={"stdlib_only": True}, policy=True),
+            note_spec("ORACLE-NOTES-NETWORK", ("OBL-NOTES-NETWORK-OFFLINE",), OracleKind.STATIC_PYTHON,
+                      operation={"paths": ["notes/**/*.py"], "checks": ["imports", "network_calls"]}, expected={"network_outbound": "FORBIDDEN"},
+                      forbidden={"imports": ["requests", "httpx", "urllib.request", "socket"]}, policy=True),
+        )
+        covered = {identifier for item in specs for identifier in item.obligation_ids}
+        if covered != ids:
+            raise AssertionError("Notes Oracle compiler coverage drift")
+        return OraclePlan("PLAN-NOTES-ORACLE-001", tuple(ids), obligations.as_dict()["obligation_set_hash"], specs)
 
     def compile_csv(
         self,

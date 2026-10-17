@@ -54,6 +54,9 @@ def _guard_function(contract: ExecutableInterfaceContract, manifest: ObservedInt
         found = actual_by_name.get(name)
         if found is None or (expected.get("default_present") and not found.get("default_present")):
             return _evidence(contract, InterfaceContractStatus.FAIL, observed, "SIGNATURE_MISMATCH", f"optional parameter {name} must have a default")
+    allowed_names = {item["name"] for item in required.get("parameters", [])} | set(optional_by_name)
+    if not thaw(contract.compatibility_policy).get("allow_additional_optional_parameters", False) and any(item["name"] not in allowed_names for item in actual):
+        return _evidence(contract, InterfaceContractStatus.FAIL, observed, "SIGNATURE_MISMATCH", "remove parameters not declared by the canonical function contract")
     return _evidence(contract, InterfaceContractStatus.PASS, observed)
 
 
@@ -63,7 +66,38 @@ def _guard_cli(contract: ExecutableInterfaceContract, manifest: ObservedInterfac
     if manifest.unresolved:
         return _evidence(contract, InterfaceContractStatus.UNRESOLVED, observed | {"unresolved": list(manifest.unresolved)}, "UNRESOLVED_INTERFACE", "replace dynamic argparse declarations with statically declared public arguments")
     if observed.get("entrypoint") != expected.get("entrypoint"):
-        return _evidence(contract, InterfaceContractStatus.FAIL, observed, "ENTRYPOINT_MISSING", "provide python -m csv_cleaner through csv_cleaner/__main__.py")
+        command = " ".join(expected.get("entrypoint", []))
+        return _evidence(contract, InterfaceContractStatus.FAIL, observed, "ENTRYPOINT_MISSING", f"provide {command} through the declared module entrypoint")
+    if "subcommands" in expected:
+        actual_commands = observed.get("subcommands", {})
+        expected_commands = expected["subcommands"]
+        forbidden_contract = thaw(contract.forbidden)
+        forbidden_commands = set(forbidden_contract.get("subcommands", []))
+        if present := sorted(forbidden_commands & set(actual_commands)):
+            return _evidence(contract, InterfaceContractStatus.FAIL, {"subcommands": present}, "EXTRA_FORBIDDEN_SUBCOMMAND", "remove forbidden command aliases: " + ", ".join(present))
+        missing_commands = sorted(set(expected_commands) - set(actual_commands))
+        if missing_commands:
+            return _evidence(contract, InterfaceContractStatus.FAIL, {"subcommands": sorted(actual_commands)}, "MISSING_SUBCOMMAND", "add required subcommands: " + ", ".join(missing_commands))
+        if not thaw(contract.compatibility_policy).get("allow_additional_subcommands", False):
+            extra = sorted(set(actual_commands) - set(expected_commands))
+            if extra:
+                return _evidence(contract, InterfaceContractStatus.FAIL, {"subcommands": extra}, "EXTRA_SUBCOMMAND", "remove undeclared subcommands: " + ", ".join(extra))
+        forbidden_options = set(forbidden_contract.get("options", []))
+        for command, command_expected in expected_commands.items():
+            actual_command = actual_commands[command]
+            positionals = actual_command.get("positionals", [])
+            options = actual_command.get("options", {})
+            if present := sorted(forbidden_options & set(options)):
+                return _evidence(contract, InterfaceContractStatus.FAIL, {"command": command, "options": present}, "POSITIONAL_TO_OPTIONAL", f"use the declared positional for {command}; remove " + ", ".join(present))
+            for positional in command_expected.get("positionals", []):
+                index = int(positional["index"])
+                if index >= len(positionals) or positionals[index].get("name") != positional["name"] or not positionals[index].get("required"):
+                    return _evidence(contract, InterfaceContractStatus.FAIL, {"command": command, "positionals": positionals}, "MISSING_POSITIONAL", f"declare required positional {positional['name']} at index {index} for {command}")
+            for flag, option_expected in command_expected.get("options", {}).items():
+                actual_option = options.get(flag)
+                if actual_option is None or actual_option.get("takes_value") != option_expected.get("takes_value"):
+                    return _evidence(contract, InterfaceContractStatus.FAIL, {"command": command, "options": options}, "MISSING_OPTION", f"declare {flag} for {command}")
+        return _evidence(contract, InterfaceContractStatus.PASS, observed)
     actual_positionals = observed.get("positionals", [])
     actual_options = observed.get("options", {})
     for positional in expected.get("positionals", []):
