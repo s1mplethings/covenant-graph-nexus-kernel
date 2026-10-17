@@ -26,8 +26,9 @@ CASES = (
 def run(output_root: pathlib.Path) -> dict:
     profile = json.loads((ROOT / "config/provider_connections/grok.json").read_text(encoding="utf-8"))
     connector = GrokConnector(profile)
-    if not connector.probe_connection().eligible:
-        raise RuntimeError("SINGLE_PROVIDER_MODE requires the frozen Grok connection to remain eligible")
+    selection = json.loads((ROOT / "governance/provider_connections/selection_status.json").read_text(encoding="utf-8"))
+    if selection.get("routing_provider") != "grok" or selection.get("repository_codegen_mode") != "SINGLE_PROVIDER_MODE":
+        raise RuntimeError("frozen SINGLE_PROVIDER_MODE selection is unavailable")
     output_root.mkdir(parents=True, exist_ok=False)
     service = CapabilityBuilderService(ConnectorCompletionClient(ProviderConnectorRegistry((connector,)), enforce_budget=True, budget_purpose="CAPABILITY_BUILD", run_id="capability-builder", case_id="capability-build"), ModelRoleConfig("worker", "grok", 120, 3000, 0.0, "low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=CapabilityStore(output_root / "store"))
     receipts = []
