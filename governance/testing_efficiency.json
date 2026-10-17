@@ -1,0 +1,26 @@
+{
+  "kind": "CGKNTestingEfficiency",
+  "schema_version": "1.0",
+  "iteration": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013",
+  "source_commit": "d981ddcae9fefb020c594283440e919030ea4a90",
+  "profiles": [
+    {"profile": "MICRO-PHASE-1", "duration_ms": 510, "tests_collected": 10, "passed": 10, "failed": 0, "skipped": 0},
+    {"profile": "FAST-PHASE-1", "duration_ms": 57065, "tests_collected": 85, "passed": 83, "failed": 0, "skipped": 2},
+    {"profile": "MICRO-PHASE-2", "duration_ms": 12030, "tests_collected": 14, "passed": 14, "failed": 0, "skipped": 0},
+    {"profile": "PROMOTION-PHASE-2", "duration_ms": 73840, "tests_collected": 91, "passed": 89, "failed": 0, "skipped": 2, "receipt_freshness": "DEFERRED_UNTIL_SOURCE_CLOSURE"},
+    {"profile": "MICRO-PHASE-3", "duration_ms": 36670, "tests_collected": 7, "passed": 7, "failed": 0, "skipped": 0},
+    {"profile": "FAST-PHASE-3", "duration_ms": 74510, "tests_collected": 91, "passed": 89, "failed": 0, "skipped": 2},
+    {"profile": "FULL-CORE", "duration_ms": 162492, "tests_collected": 334, "passed": 332, "failed": 0, "skipped": 1, "receipt_freshness_rechecked_passed": 1},
+    {"profile": "ACTIVE-REPOSITORY", "duration_ms": 992250, "tests_collected": 2491, "passed": 2141, "failed": 0, "skipped": 350},
+    {"profile": "APPLICATION-FULL", "duration_ms": 89490, "tests_collected": 98, "passed": 98, "failed": 0, "skipped": 0},
+    {"profile": "LIVE-REPAIR", "duration_ms": 38234, "tests_collected": 3, "passed": 3, "failed": 0, "skipped": 0}
+  ],
+  "micro_average_ms": 16403,
+  "fast_average_ms": 65788,
+  "promotion_average_ms": 73840,
+  "full_closure_duration_ms": 1283456,
+  "full_runs_for_source_hash": 1,
+  "evidence_only_full_reruns": 0,
+  "evidence_status": "PASS",
+  "receipt_hash": "sha256:22a3aebdded2bf60d860b5c028aab83af6b2df18352d819cad1df6917ac42947"
+}

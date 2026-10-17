@@ -1,0 +1,10 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0","baseline_id":"BASELINE-INTERFACE-001","parent_baseline_id":"BASELINE-CONTRACT-TEST-002",
+  "source_commit":"bddd4c5f5f30a138f7962d0420f06979e0a18fe6","source_tree_sha":"d152d2d75c654fbffedb6c30cac17cf06c2c9b10",
+  "core_source_hash":"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6","kernel_receipt_hash":"sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269","l6_receipt_hash":"sha256:afea892bb82fae7b2160b76773c16ebf1c6b893d816dc941e74e09bbcc645583","semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"micro":"PASS","fast":"PASS","promotion":"PASS","full":"NOT_EVALUATED","live-provider":"NOT_EVALUATED"},"test_counts":{"passed":83,"failed":0,"errors":0,"skipped":2},
+  "known_blockers":["pre-commit staging integration is not yet promoted","real DAG single is not yet evaluated","semantic artifact winner is NONE"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","requirement_semantics=COMPLETE","obligation_compiler=COMPLETE","obligation_execution=COMPLETE","contract_test_compiler=COMPLETE","manual_candidate_edits=0","whole_project_repair_replans=0","accepted_interface_breakages=0","generation_readiness=GENERATION_LEVEL_0","semantic_artifact_winner=NONE"],
+  "inherits":"BASELINE-CONTRACT-TEST-002","added_guarantees":["ExecutableInterfaceContract is immutable, versioned, hashable, serializable, and deterministic","CSV module, function, and exact CLI shapes compile from the canonical ObligationSet","CLI positional, optional, and forbidden interface shapes are machine represented","argparse extraction fails closed on unresolved dynamic interfaces"],
+  "unchanged_guarantees":["all protected invariants and guarantees from BASELINE-CONTRACT-TEST-002"],"removed_guarantees":[],"created_at":"2026-10-17T03:01:12Z","evidence_status":"PASS","baseline_hash":"sha256:c2a11b0546c393fbb873680ee2abdc16143fb2d6234f8ae9c59fc1ffab80affd"
+}

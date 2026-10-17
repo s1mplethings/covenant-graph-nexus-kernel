@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013: compile exact public interface shapes from obligations and reject incompatible Provider proposals before workspace commit.",
   "backlog_item_ids": ["PB-019"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "the CSV ObligationSet deterministically compiles canonical module, Python function, and CLI executable interface contracts",
     "the CLI contract requires python -m csv_cleaner INPUT OUTPUT and forbids -o and --output",
@@ -38,10 +38,27 @@
     "governance/interface_contract_status.json",
     "governance/testing_efficiency.json"
   ],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Executable Interface Contract, pre-commit staging, deep materialization, and affected-only Docs reuse are complete.",
+      "Real DAG single passed and DAG repeat reached the 2/3 promotion threshold.",
+      "Direct repeat passed 3/3, but Direct does not execute the DAG pre-commit Interface Guard and remains a comparison limitation."
+    ],
+    "accepted_backlog_item_ids": ["PB-019"]
+  },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
+    "worked": [
+      "Machine contracts made the required positional and forbidden optional CLI shapes explicit before source commit.",
+      "Staging kept the fake rejected proposal out of the workspace and allowed one precise local correction.",
+      "Contract-based Docs dependency kept Docs Provider calls at one during Core repair.",
+      "One Full Closure plus scoped receipt recheck avoided repeating heavy profiles."
+    ],
+    "did_not_work": [
+      "One of three DAG repeats exhausted two source repair rounds and failed canonical pytest, Oracle, and hidden acceptance.",
+      "ObligationDAGResult provider_calls remains zero with a non-recording client, so durable request_ids were used for evidence totals.",
+      "Direct has contract references but not the same pre-commit Interface Guard enforcement."
+    ],
     "experiments": ["Use deterministic executable interface extraction and pre-commit guard feedback for one bounded local correction."]
   }
 }
