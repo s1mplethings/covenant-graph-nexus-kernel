@@ -1,31 +1,61 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016",
+  "iteration_id": "ITER-PROVIDER-CONNECTION-NORMALIZATION-017",
   "project_id": "cgkn",
-  "goal": "Select task-specific Providers from fair real evidence before Repository Codegen, Capability Builder, and Self-Growth V1.",
-  "backlog_item_ids": ["PB-022"],
-  "workflow_state": "blocked_environment",
-  "evidence_status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "goal": "Normalize Qwen, Grok, and DeepSeek behind independent credential-safe connectors, then decouple connection readiness from Provider selection and downstream code growth.",
+  "backlog_item_ids": ["PB-023"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "completed_phases": [
     "Phase 0 Provider Baseline Closure",
-    "Phase 1 bounded offline evaluation substrate"
+    "Phase 1 bounded offline evaluation substrate",
+    "Phase 0 Provider Evaluation Baseline"
   ],
-  "blocked_phase": "Phase 1 Live Provider Test",
+  "current_phase": "Phase 1 Provider Connector Normalization",
   "acceptance_criteria": [
     "all candidates run the same prompt facts, schema, limits, retry policy, workspace, and acceptance",
     "profiles are task-specific and require two independent cases",
     "schema, scope, interface, and secret-safety failures make a profile ineligible",
     "selection is reliability-first and deterministic, with unknown cost excluded rather than treated as zero",
     "routing is frozen before a run and fallback remains deny",
-    "at least two Providers produce eligible real benchmark evidence"
+    "each vendor has an independent connector, connection profile, request translation, probe sequence, and error classifier",
+    "all connectors satisfy one canonical structured completion contract with local Draft 2020-12 validation",
+    "connection readiness is recorded independently from quality selection and downstream builder readiness"
+  ],
+  "quality_metrics": [
+    {
+      "id": "QM-CONNECTOR-ISOLATION",
+      "measure": "vendor-specific request implementation",
+      "target": "one isolated connector per registered Provider and zero vendor branching in the registry or GatewayCompletionClient",
+      "method": "architecture tests and source inspection"
+    },
+    {
+      "id": "QM-CONNECTION-SAFETY",
+      "measure": "credential and error-data persistence",
+      "target": "zero credential material in receipts, logs, snapshots, exceptions, or Git",
+      "method": "negative tests and repository scan"
+    },
+    {
+      "id": "QM-CANONICAL-OUTPUT",
+      "measure": "canonical structured completion conformance",
+      "target": "all connector success paths pass the same Draft 2020-12 validator",
+      "method": "per-vendor mock HTTP contract tests"
+    },
+    {
+      "id": "QM-READINESS-DECOUPLING",
+      "measure": "independent readiness states",
+      "target": "connection, selection, codegen, builder, and growth states cannot imply each other",
+      "method": "status contract tests"
+    }
   ],
   "review": {
-    "outcome": "blocked_environment",
+    "outcome": "in_progress",
     "accepted": [
       "BASELINE-PROVIDER-GATEWAY-001",
       "bounded Provider evaluation contracts, suite, receipts, profiles, cache, selector, and routing snapshot",
-      "Micro, Fast, and Promotion regression evidence"
+      "Micro, Fast, and Promotion regression evidence",
+      "BASELINE-PROVIDER-EVAL-001 focused regression evidence"
     ],
     "blocked": [
       "Qwen credential rejected by vendor",
@@ -34,13 +64,7 @@
       "zero eligible Providers; minimum is two"
     ]
   },
-  "stop_condition": "A",
-  "blocked_successors": [
-    "BASELINE-PROVIDER-SELECTION-001",
-    "Repository Codegen",
-    "Capability Builder",
-    "Self-Growth V1"
-  ],
+  "routing_policy": "fallback deny; no provider change within a run",
   "evidence_refs": [
     "governance/provider_evaluation_status.json",
     "governance/provider_capability_profiles.json",

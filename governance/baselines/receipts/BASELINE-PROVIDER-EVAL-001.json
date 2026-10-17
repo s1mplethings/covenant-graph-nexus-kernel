@@ -1,0 +1,50 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-PROVIDER-EVAL-001",
+  "parent_baseline_id": "BASELINE-PROVIDER-GATEWAY-001",
+  "source_commit": "9d09e4d82a9dd668445747a470f01eaec08ace83",
+  "source_tree_sha": "fecb4f53901987219462e6a983e2a2fa6714cf0e",
+  "core_source_hash": "sha256:acfd728d605a1fc79204fdf46ddd7cea6eb6ad1d6e9cfee929f9f015e0360138",
+  "kernel_receipt_hash": "sha256:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
+  "l6_receipt_hash": "sha256:f60050f62fa20e22cc055faa3144b43b990f17ad80b840708a6476401b1c8945",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "micro": "PASS",
+    "fast": "PASS",
+    "promotion": "NOT_EVALUATED",
+    "full": "NOT_EVALUATED",
+    "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "test_counts": {"passed": 72, "failed": 0, "errors": 0, "skipped": 2},
+  "known_blockers": [
+    "provider selection remains blocked because no Provider has accepted live benchmark evidence",
+    "Qwen and Grok credentials were rejected before connection normalization",
+    "DeepSeek native JSON Schema was unavailable on the pre-normalization path",
+    "semantic artifact winner remains NONE"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE",
+    "functional_readiness=LEVEL_4",
+    "L0-L5=COMPLETE",
+    "generation_readiness=GENERATION_LEVEL_2",
+    "mvp_readiness=READY",
+    "fallback=deny",
+    "manual_candidate_edits=0",
+    "whole_project_repair_replans=0",
+    "accepted_interface_breakages=0",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-PROVIDER-GATEWAY-001",
+  "added_guarantees": [
+    "task-specific Provider evaluation contracts, receipts, profiles, cache, selector, and immutable routing snapshots exist",
+    "selection remains reliability-first, deterministic, and separated from gateway transport",
+    "pre-normalization live failures remain preserved as blocked environment evidence",
+    "Provider evaluation and MVP critical focused regressions pass"
+  ],
+  "unchanged_guarantees": ["all protected guarantees from BASELINE-PROVIDER-GATEWAY-001"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-17T16:30:00+08:00",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:89023d369df6bba4867e234ee3351ca841b99c46167faae7de260e430f2111bd"
+}

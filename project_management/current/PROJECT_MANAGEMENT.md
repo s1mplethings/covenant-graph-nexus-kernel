@@ -22,18 +22,17 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016` first ratcheted the independent API
-Lab gateway into `BASELINE-PROVIDER-GATEWAY-001`, then added the bounded
-application-layer Provider evaluation substrate. Evaluation is task-specific,
-reliability-first, credential-free, and separate from transport. Selection is
-pre-run only and every routing snapshot continues to deny fallback.
+`ITER-PROVIDER-CONNECTION-NORMALIZATION-017` preserves the pre-normalization
+Provider failures, ratchets the existing evaluation source into
+`BASELINE-PROVIDER-EVAL-001`, and separates vendor connectivity from Provider
+quality. Qwen, Grok, and DeepSeek receive independent bounded connectors behind
+one canonical completion contract; connection, selection, repository codegen,
+capability building, and self-growth retain independent readiness states.
 
-The offline Micro, Fast, and Promotion scopes pass. Live preflight is
-`PROVIDER_SELECTION_BLOCKED_ENVIRONMENT`: Qwen and Grok credentials were
-rejected by their vendors, while both accessible DeepSeek models rejected the
-fixed JSON Schema response mode. No eligible profile or winner was inferred.
-Repository Codegen, Capability Builder, and Self-Growth V1 remain blocked by
-the explicit iteration stop condition.
+The iteration uses a hybrid approach: stable product, budget, credential,
+fallback, DAG, and admission governance surrounds incremental connector and
+builder slices. A single eligible Provider may support explicitly labelled
+single-provider validation, but cannot authorize adaptive selection.
 
 ## Roadmap after the active increment
 

@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-022",
+  "current_item_id": "PB-023",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NEEDS_REWORK",
   "product_authority": [
@@ -12,6 +12,20 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-023",
+      "title": "Normalize Provider connections and decouple code growth readiness",
+      "priority": 20,
+      "state": "in_progress",
+      "value": "Give Qwen, Grok, and DeepSeek independent bounded connection strategies while preserving one canonical completion contract and allowing honest single-provider code growth.",
+      "acceptance": [
+        "vendor HTTP, credentials, probes, structured-output strategies, and error classification remain inside independent connectors",
+        "connection receipts contain no credentials and old blocked evidence remains immutable",
+        "Provider selection requires fair evidence but does not globally block builders when one eligible Provider exists",
+        "repository codegen, capability building, and self-growth preserve CapabilityTree, ExecutionDAG, admission, and fallback-deny authorities"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
     {
       "id": "MVP-001",
       "title": "Complete repository MVP reset",
