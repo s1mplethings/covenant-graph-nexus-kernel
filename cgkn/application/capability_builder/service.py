@@ -20,6 +20,7 @@ from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
+from cgkn.application.materialization import materialize_json
 
 from .contracts import CapabilityBuildReceipt, CapabilityPackage, CapabilitySpec
 
@@ -97,10 +98,12 @@ class CapabilityBuilderService:
                 repairs += 1
             if failure:
                 return self._receipt(spec, root, calls, repairs, False, False, False, False, usage, failure)
-            package, registry = self._admit(root, spec)
-            execution_passed = self._execute(package, registry, spec)
+            package, registry = self._candidate(root, spec)
+            execution_passed = self._execute(package, spec)
             if not execution_passed:
-                return self._receipt(spec, root, calls, repairs, True, True, False, False, usage, "runtime execution failed")
+                registry.reject(spec.ref)
+                return self._receipt(spec, root, calls, repairs, True, False, False, False, usage, "runtime execution failed")
+            registry.admit(spec.ref)
             admission = {"kind": "CapabilityAdmission", "schema_version": "1.0", "capability_ref": spec.ref, "status": "ADMITTED", "source_hash": package.source_hash, "provider_id": self.provider_id, "mode": self.mode, "manual_edits": 0}
             (root / "admission.json").write_text(json.dumps(admission, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             self.store.put(package)
@@ -108,7 +111,7 @@ class CapabilityBuilderService:
         except Exception as exc:
             return self._receipt(spec, root, calls, repairs, False, False, False, False, usage, f"{type(exc).__name__}: {exc}")
 
-    def _admit(self, root: pathlib.Path, spec: CapabilitySpec) -> tuple[CapabilityPackage, CapabilityRegistry]:
+    def _candidate(self, root: pathlib.Path, spec: CapabilitySpec) -> tuple[CapabilityPackage, CapabilityRegistry]:
         tree = ast.parse((root / "executor.py").read_text(encoding="utf-8"))
         forbidden = {"subprocess", "socket", "requests", "urllib", "httpx"}
         imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)} | {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
@@ -119,19 +122,19 @@ class CapabilityBuilderService:
         executor_ref = f"generated.{spec.capability_id}@{spec.version}"
         package = CapabilityPackage(spec, str(root), component.ref, executor_ref, source_hash, ("tests/test_capability.py",))
         descriptor = CapabilityDescriptor(spec.capability_id, spec.version, component.ref, executor_ref, ("generated_python",), ("value",), ("result",), (), 5.0, "local", "LOW", "generated", {"provider_id": self.provider_id, "source_hash": source_hash}, package.test_refs)
-        registry = CapabilityRegistry({component.ref: component}); registry.register_candidate(descriptor); registry.admit(descriptor.ref)
+        registry = CapabilityRegistry({component.ref: component}); registry.register_candidate(descriptor)
         return package, registry
 
     @staticmethod
-    def _execute(package: CapabilityPackage, registry: CapabilityRegistry, spec: CapabilitySpec) -> bool:
-        resolved = registry.resolve(spec.capability_id, spec.version)
+    def _execute(package: CapabilityPackage, spec: CapabilitySpec) -> bool:
         executor = GeneratedCapabilityExecutor(package)
-        example = dict(spec.examples[0])
-        request = BlockExecutionRequest("capability-builder", "admission", "attempt-1", spec.ref, resolved.component_ref, resolved.executor_ref, TaskContext(spec.goal, acceptance=spec.acceptance), {"value": example["input"]}, timeout_seconds=5)
-        result = executor.execute(request)
-        passed = result.succeeded and result.outputs.get("result") == example["output"]
-        registry.record_execution_evidence(resolved.ref, passed)
-        return passed
+        for index, frozen in enumerate(spec.examples):
+            example = dict(frozen)
+            request = BlockExecutionRequest("capability-builder", "admission", f"attempt-{index + 1}", spec.ref, package.component_ref, package.executor_ref, TaskContext(spec.goal, acceptance=spec.acceptance), {"value": example["input"]}, timeout_seconds=5)
+            result = executor.execute(request)
+            if not result.succeeded or materialize_json(result.outputs.get("result")) != example["output"]:
+                return False
+        return True
 
     @staticmethod
     def _verify(root: pathlib.Path) -> tuple[bool, str]:
