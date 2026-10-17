@@ -13,9 +13,10 @@
     "Phase 0 Provider Evaluation Baseline",
     "Phase 1 Provider Connector Normalization",
     "Phase 2 independent live connection diagnostics",
-    "Phase 4 Repository Codegen in SINGLE_PROVIDER_MODE"
+    "Phase 4 Repository Codegen in SINGLE_PROVIDER_MODE",
+    "Phase 5 Capability Builder in SINGLE_PROVIDER_MODE"
   ],
-  "current_phase": "Phase 5 Capability Builder in SINGLE_PROVIDER_MODE",
+  "current_phase": "Phase 6 Self-Growth V1 in SINGLE_PROVIDER_MODE",
   "acceptance_criteria": [
     "all candidates run the same prompt facts, schema, limits, retry policy, workspace, and acceptance",
     "profiles are task-specific and require two independent cases",
@@ -60,7 +61,8 @@
       "Micro, Fast, and Promotion regression evidence",
       "BASELINE-PROVIDER-EVAL-001 focused regression evidence",
       "Grok live canonical completion eligibility",
-      "real Repository Codegen 3/3 PASS with zero repair or unrelated edits"
+      "real Repository Codegen 3/3 PASS with zero repair or unrelated edits",
+      "real Capability Builder 2/3 PASS with zero manual candidate edits"
     ],
     "blocked": [
       "Qwen workspace and recognized connector credential are not configured",
@@ -75,6 +77,7 @@
     "governance/provider_selection_status.json",
     "project_management/summaries/ITER-016-adaptive-provider-evaluation.md",
     "governance/provider_connections/selection_status.json",
-    "governance/repository_codegen_status.json"
+    "governance/repository_codegen_status.json",
+    "governance/capability_builder_status.json"
   ]
 }
