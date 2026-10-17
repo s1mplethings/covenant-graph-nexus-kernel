@@ -1,46 +1,41 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-011",
+  "iteration_id": "ITER-012",
   "project_id": "cgkn",
-  "goal": "ITER-OBLIGATION-ORACLE-011: compile canonical CSV obligations into deterministic executable Oracles, compare Oracle and public-test evidence, and route only the affected WorkUnit for repair without weakening any prior baseline guarantee.",
-  "backlog_item_ids": ["PB-017"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "ITER-DETERMINISTIC-CONTRACT-TESTS-012: replace the mandatory LLM Test Worker with deterministic canonical contract tests compiled from the existing ObligationSet and OraclePlan.",
+  "backlog_item_ids": ["PB-018"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "BASELINE-OBLIGATION-006 is promoted from remote fd59a83 before Oracle implementation begins",
-    "all 16 canonical CSV obligations have at least one deterministic Oracle route and malformed CSV remains UNSPECIFIED",
-    "Oracle contracts and evidence are immutable, versioned, round-trip safe, source-traceable, and deterministically hashed",
-    "Oracle execution covers COMMAND, FILE, CSV, CLI, DEPENDENCY, STATIC_PYTHON, and DOCUMENTATION without shell=True",
-    "Oracle/public-test disagreement deterministically distinguishes TEST_DEFECT, SOURCE_DEFECT, HARNESS_FAILURE, and CONTRACT_GAP",
-    "fake DAG disagreement repairs only WU-TESTS or WU-CORE as attributed and reuses unaffected results",
-    "Direct and DAG real CSV generation both pass required Oracles, public pytest, runtime, and hidden acceptance before repeat is authorized",
-    "no prior protected guarantee is removed or silently weakened"
+    "BASELINE-ORACLE-006 remains reproducible before implementation",
+    "the CSV ObligationSet and OraclePlan deterministically compile to self-contained public contract tests and a tamper-evident manifest",
+    "preview asserts only the requested stdout subset while the output file contains the complete cleaned data",
+    "the DAG contains no mandatory Provider-authored test WorkUnit and canonical-test framework disagreement cannot mutate a project",
+    "real DAG single passes compile, canonical pytest, all required Oracles, runtime, and hidden acceptance within two source repair rounds before repeat"
   ],
   "quality_metrics": [
-    {"id": "QM-ORACLE-TRACEABILITY", "measure": "required CSV obligations with a deterministic Oracle", "target": "16/16 and 100%", "method": "compile the canonical ObligationSet and run the Oracle traceability gate"},
-    {"id": "QM-ORACLE-DETERMINISM", "measure": "identical inputs producing identical plan and evidence identities", "target": "100% in repeated contract tests", "method": "round-trip, stable-hash, ordering, and duplicate/dangling-reference tests"},
-    {"id": "QM-ATTRIBUTION", "measure": "four Oracle/public-test evidence combinations routed to the declared owner", "target": "4/4", "method": "seeded source-correct/test-broken and source-broken/test-weak scenarios"},
-    {"id": "QM-NONREGRESSION", "measure": "removed guarantees, accepted interface breaks, whole replans, manual edits", "target": "all zero", "method": "validate each phase baseline and run targeted plus Fast regression"},
-    {"id": "QM-REAL-DAG", "measure": "real DAG CSV single-run correctness", "target": "all required Oracles, public pytest, runtime, and hidden acceptance PASS within two repair rounds", "method": "fixed qwen3.8-max Agent and qwen3.7-flash Worker profile with bounded call ledger"}
+    {"id": "QM-CONTRACT-TRACE", "measure": "required obligations traced through Oracle to canonical contract tests", "target": "16/16", "method": "ContractTestValidator and targeted traceability tests"},
+    {"id": "QM-CONTRACT-DETERMINISM", "measure": "identical semantic inputs produce identical plan, source, manifest, and fingerprint hashes", "target": "100%", "method": "fresh repeated compiler and renderer tests"},
+    {"id": "QM-DAG-NONREGRESSION", "measure": "removed guarantees, manual edits, whole replans, accepted interface breaks", "target": "all zero", "method": "baseline ledger, fake DAG, Fast Baseline, and real receipts"},
+    {"id": "QM-REAL-DAG", "measure": "real CSV DAG correctness", "target": "single PASS within two repairs", "method": "fixed qwen3.7-flash worker with canonical tests and independent Oracles"}
   ],
   "quality_activities": {
-    "prevention": ["Use the canonical Obligation and DependencyPolicy as Oracle compiler inputs; forbid a parallel requirement authority"],
-    "assurance": ["Run contract, compiler, executor, comparator, fake-integration, source-boundary, and receipt-freshness checks"],
-    "control": ["Run targeted tests then the Fast Baseline before every baseline promotion"],
-    "improvement": ["Classify each disagreement from recorded OracleEvidence rather than broad Provider-failure labels"]
+    "prevention": ["Render assertions only from canonical OracleSpec fields and reject untraceable tests"],
+    "assurance": ["Run immutable-contract, compiler, renderer, validator, fake integration, scope, and source-boundary tests"],
+    "control": ["Run targeted tests then Fast Baseline before every promotion"],
+    "improvement": ["Remove the stochastic mandatory test-authoring boundary that caused the prior TEST_IMPLEMENTATION_BLOCKER"]
   },
   "interface_expectations": [
-    "Contract plus current state enters a bounded verification capability and returns evidence without granting release authority",
-    "Direct and DAG routes share the same immutable OraclePlan but execute in independent workspaces",
-    "public generated tests remain required development evidence but cannot independently authorize final correctness"
+    "ObligationSet plus OraclePlan plus DependencyPolicy produces a deterministic ContractTestArtifact and manifest",
+    "canonical tests are application-owned evidence assets and never gain Kernel or hidden-acceptance authority",
+    "Provider workers author only business source and documentation on the mandatory DAG path"
   ],
   "evidence_refs": [
     "governance/current_baseline.json",
-    "governance/baselines/receipts/BASELINE-OBLIGATION-006.json",
-    "governance/oracle_execution_status.json",
+    "governance/contract_test_compiler_status.json",
     "governance/execution_strategy_comparison.json"
   ],
-  "review": {"outcome": "accepted_with_limits", "feedback": ["Oracle execution and Direct generation passed; DAG stopped after two bounded WU-TESTS repairs with TEST_IMPLEMENTATION_BLOCKER."], "accepted_backlog_item_ids": ["PB-017"]},
-  "retrospective": {"worked": ["Independent Oracles separated correct source behavior from an invalid generated public test.", "Affected-only repair reused WU-CORE and WU-DOCS."], "did_not_work": ["The flash Test Worker repeated the same preview semantic error through both allowed repair rounds.", "The first real receipt exposed a framework serialization defect, which was fixed and re-frozen before the formal rerun."], "experiments": ["Direct passed under the same OraclePlan; DAG repeat was not authorized because the single-run gate failed."]}
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Compile public contract tests from the same immutable OraclePlan used by independent execution."]}
 }
