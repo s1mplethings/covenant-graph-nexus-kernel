@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-023",
+  "current_item_id": "PB-024",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NEEDS_REWORK",
   "product_authority": [
@@ -16,7 +16,7 @@
       "id": "PB-023",
       "title": "Normalize Provider connections and decouple code growth readiness",
       "priority": 20,
-      "state": "in_progress",
+      "state": "done_with_limits",
       "value": "Give Qwen, Grok, and DeepSeek independent bounded connection strategies while preserving one canonical completion contract and allowing honest single-provider code growth.",
       "acceptance": [
         "vendor HTTP, credentials, probes, structured-output strategies, and error classification remain inside independent connectors",
@@ -24,7 +24,22 @@
         "Provider selection requires fair evidence but does not globally block builders when one eligible Provider exists",
         "repository codegen, capability building, and self-growth preserve CapabilityTree, ExecutionDAG, admission, and fallback-deny authorities"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-024",
+      "title": "Grow the first real Research and Release capability leaves",
+      "priority": 21,
+      "state": "done_with_limits",
+      "value": "Use the admitted Self-Growth path to generate bounded public-network and deterministic release capabilities without manually implementing business executors.",
+      "acceptance": [
+        "READ_ONLY_PUBLIC_NETWORK is credential-free, SSRF-protected, redirect-revalidated, and bounded",
+        "web.fetch.public@1 is generated and admitted only through the bounded network runtime",
+        "github.repo.inspect.public@1 depends on an executable web.fetch.public@1",
+        "release.notes.from_diff@1 is generated, admitted, executed, and reused",
+        "all Provider work stays within eight calls and Full regression remains out of policy"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
     },
     {
       "id": "MVP-001",

@@ -1,0 +1,62 @@
+{
+  "kind": "CGKNSelfGrownCapabilityExpansion",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-SELF-GROWN-REAL-CAPABILITIES-018",
+  "source_commit": "168f308f0e80aca9283af29cd6c7c0cfdc834ffe",
+  "source_tree_sha": "b0b86f25f35c314e1ad630ff496cdeb05df287cf",
+  "baseline_parent": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "status": "PASS_WITH_LIMITS",
+  "completion": "PARTIAL",
+  "provider_mode": "SINGLE_PROVIDER_MODE",
+  "provider_id": "grok",
+  "capabilities_attempted": [
+    "web.fetch.public@1",
+    "release.notes.from_diff@1"
+  ],
+  "capabilities_admitted": [
+    "web.fetch.public@1",
+    "release.notes.from_diff@1"
+  ],
+  "capabilities_failed": [
+    "web.fetch.public@1:PUBLIC_NETWORK_BLOCKED"
+  ],
+  "capabilities_not_attempted": [
+    "github.repo.inspect.public@1:DEPENDENCY_EXECUTION_BLOCKED"
+  ],
+  "first_run_calls": 3,
+  "reuse_calls": 0,
+  "security_result": "PASS",
+  "composition_result": "BLOCKED_DEPENDENCY",
+  "manual_edits": 0,
+  "unsafe_admissions": 0,
+  "research_foundation": "NOT_AVAILABLE",
+  "release_foundation": "AVAILABLE",
+  "testing_efficiency": {
+    "micro_tests": 35,
+    "small_regression_tests": 36,
+    "small_regression_result": "PASS",
+    "real_provider_calls": 3,
+    "full_regression": "NOT_RUN_BY_POLICY"
+  },
+  "provider_budget": {
+    "actual_input_tokens": 6087,
+    "actual_output_tokens": 13766,
+    "actual_token_usage_complete": true,
+    "estimated_cost_usd": 0.09477,
+    "limit_calls": 8
+  },
+  "receipts": [
+    "governance/self_grown_capabilities/web-fetch-public-1.json",
+    "governance/self_grown_capabilities/github-repo-inspect-public-1.json",
+    "governance/self_grown_capabilities/release-notes-from-diff-1.json"
+  ],
+  "known_limits": [
+    "the execution environment resolves public hosts into the reserved 198.18.0.0/15 benchmark range, which the SSRF policy correctly blocks",
+    "github.repo.inspect.public@1 was not built because its required web.fetch.public@1 real execution did not pass",
+    "cross-capability composition was not run because the Research dependency branch was blocked",
+    "the application-wide receipt is stale by boundary hash and was not re-signed because full application regression is outside this iteration's explicit test policy",
+    "adaptive Provider selection remains BLOCKED_ENVIRONMENT"
+  ],
+  "kernel_receipt": "UNCHANGED_FROM_BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "contains_credentials": false
+}

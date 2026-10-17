@@ -1,0 +1,22 @@
+{
+  "kind": "SelfGrownCapabilityReceipt",
+  "schema_version": "1.0",
+  "source_commit": "168f308f0e80aca9283af29cd6c7c0cfdc834ffe",
+  "capability_ref": "release.notes.from_diff@1",
+  "spec_hash": "sha256:931081ad23bf0262912c16e33b54547697ffd0606c1e8d38bc40f94d23abc8ab",
+  "package_hash": "sha256:fae2407b88220487c6b3d3bc292c1215388d26d134907406efab365b972a1382",
+  "risk_class": "PURE",
+  "provider_id": "grok",
+  "provider_calls": 2,
+  "repair_rounds": 1,
+  "repair_reason": "framework JSON object materialization was corrected; generated candidates were not manually edited",
+  "tests": "PASS_4_OF_4",
+  "oracle": "PASS",
+  "admission": "ADMITTED",
+  "registry": "REGISTERED",
+  "first_execution": "PASS",
+  "reuse_execution": "PASS_WITH_ZERO_GROWTH",
+  "dependencies": [],
+  "manual_edits": 0,
+  "contains_credentials": false
+}
