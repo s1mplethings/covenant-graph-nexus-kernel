@@ -6,6 +6,8 @@ import pytest
 
 from cgkn.providers import ModelRoleConfig, ProviderConnectionError, QwenConnector
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
+
 
 PROFILE = {
     "provider_id": "qwen", "region": "ap-northeast-1", "workspace_id": "ws1",

@@ -9,6 +9,8 @@ from cgkn.providers import ProviderConnectorRegistry, supported_provider_ids
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
+
 
 def test_registered_connectors_are_provider_authority() -> None:
     assert supported_provider_ids() == frozenset({"qwen", "grok", "deepseek"})

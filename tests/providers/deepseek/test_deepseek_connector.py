@@ -6,6 +6,8 @@ import pytest
 
 from cgkn.providers import DeepSeekConnector, ModelRoleConfig, ProviderConnectionError, StructuredOutputMode
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
+
 
 PROFILE = {"provider_id": "deepseek", "base_url": "https://api.deepseek.com/v1", "preferred_models": ["deepseek-flash"], "timeout": 10, "max_output_tokens": 100}
 

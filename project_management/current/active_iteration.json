@@ -1,83 +1,51 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-PROVIDER-CONNECTION-NORMALIZATION-017",
+  "iteration_id": "ITER-017",
   "project_id": "cgkn",
-  "goal": "Normalize Qwen, Grok, and DeepSeek behind independent credential-safe connectors, then decouple connection readiness from Provider selection and downstream code growth.",
+  "goal": "ITER-PROVIDER-CONNECTION-NORMALIZATION-017: normalize independent Provider connectors and validate single-provider repository codegen, capability building, and BUILD-only self-growth.",
   "backlog_item_ids": ["PB-023"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
-  "completed_phases": [
-    "Phase 0 Provider Baseline Closure",
-    "Phase 1 bounded offline evaluation substrate",
-    "Phase 0 Provider Evaluation Baseline",
-    "Phase 1 Provider Connector Normalization",
-    "Phase 2 independent live connection diagnostics",
-    "Phase 4 Repository Codegen in SINGLE_PROVIDER_MODE",
-    "Phase 5 Capability Builder in SINGLE_PROVIDER_MODE"
-  ],
-  "current_phase": "Phase 6 Self-Growth V1 in SINGLE_PROVIDER_MODE",
+  "workflow_state": "reviewing",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "all candidates run the same prompt facts, schema, limits, retry policy, workspace, and acceptance",
-    "profiles are task-specific and require two independent cases",
-    "schema, scope, interface, and secret-safety failures make a profile ineligible",
-    "selection is reliability-first and deterministic, with unknown cost excluded rather than treated as zero",
-    "routing is frozen before a run and fallback remains deny",
-    "each vendor has an independent connector, connection profile, request translation, probe sequence, and error classifier",
-    "all connectors satisfy one canonical structured completion contract with local Draft 2020-12 validation",
-    "connection readiness is recorded independently from quality selection and downstream builder readiness"
+    "each vendor has an isolated connector and one canonical structured completion boundary",
+    "routing is frozen per run and fallback remains deny",
+    "repository codegen and capability builder pass real single-provider thresholds",
+    "two capabilities complete gap, build, sandbox, admission, store, registry, resume, and zero-call reuse"
   ],
   "quality_metrics": [
-    {
-      "id": "QM-CONNECTOR-ISOLATION",
-      "measure": "vendor-specific request implementation",
-      "target": "one isolated connector per registered Provider and zero vendor branching in the registry or GatewayCompletionClient",
-      "method": "architecture tests and source inspection"
-    },
-    {
-      "id": "QM-CONNECTION-SAFETY",
-      "measure": "credential and error-data persistence",
-      "target": "zero credential material in receipts, logs, snapshots, exceptions, or Git",
-      "method": "negative tests and repository scan"
-    },
-    {
-      "id": "QM-CANONICAL-OUTPUT",
-      "measure": "canonical structured completion conformance",
-      "target": "all connector success paths pass the same Draft 2020-12 validator",
-      "method": "per-vendor mock HTTP contract tests"
-    },
-    {
-      "id": "QM-READINESS-DECOUPLING",
-      "measure": "independent readiness states",
-      "target": "connection, selection, codegen, builder, and growth states cannot imply each other",
-      "method": "status contract tests"
-    }
+    {"id":"QM-CONNECTOR-ISOLATION","measure":"vendor-specific request implementation","target":"one isolated connector per Provider and no vendor branching monolith","method":"architecture tests and source inspection"},
+    {"id":"QM-GROWTH-REUSE","measure":"second-run Provider work","target":"zero growth and zero builder calls for admitted capabilities","method":"real Growth benchmark receipts"},
+    {"id":"QM-BUDGET","measure":"live build calls represented in the canonical ledger","target":"all final Growth build calls reconciled with actual token counts","method":"Provider budget ledger inspection"}
   ],
-  "review": {
-    "outcome": "in_progress",
-    "accepted": [
-      "BASELINE-PROVIDER-GATEWAY-001",
-      "bounded Provider evaluation contracts, suite, receipts, profiles, cache, selector, and routing snapshot",
-      "Micro, Fast, and Promotion regression evidence",
-      "BASELINE-PROVIDER-EVAL-001 focused regression evidence",
-      "Grok live canonical completion eligibility",
-      "real Repository Codegen 3/3 PASS with zero repair or unrelated edits",
-      "real Capability Builder 2/3 PASS with zero manual candidate edits"
-    ],
-    "blocked": [
-      "Qwen workspace and recognized connector credential are not configured",
-      "DeepSeek connector credential is not configured",
-      "only one eligible Provider; adaptive selection still requires at least two"
-    ]
+  "quality_activities": {
+    "prevention": ["credential-specific configuration", "frozen routing", "sandbox-only candidate generation"],
+    "assurance": ["connector contract tests", "real codegen and Growth benchmarks", "source-bound Kernel profiles"],
+    "control": ["fallback deny", "protected path scopes", "automatic admission limited to PURE and READ_ONLY_LOCAL"],
+    "improvement": ["runtime verification moved before admission", "direct connector calls added to the Provider budget ledger"]
   },
-  "routing_policy": "fallback deny; no provider change within a run",
+  "interface_expectations": [
+    "ProviderCompletion is the only shared Provider completion result",
+    "generated capabilities execute through BlockExecutionRequest and BlockExecutionResult",
+    "CapabilityTree and ExecutionDAG remain the only project execution authorities"
+  ],
   "evidence_refs": [
-    "governance/provider_evaluation_status.json",
-    "governance/provider_capability_profiles.json",
-    "governance/provider_selection_status.json",
-    "project_management/summaries/ITER-016-adaptive-provider-evaluation.md",
     "governance/provider_connections/selection_status.json",
     "governance/repository_codegen_status.json",
-    "governance/capability_builder_status.json"
-  ]
+    "governance/capability_builder_status.json",
+    "governance/self_growth_status.json"
+  ],
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Grok is the only eligible Provider, so adaptive multi-provider selection remains blocked.",
+      "Qwen workspace/recognized credential and DeepSeek credential remain unavailable."
+    ],
+    "accepted_backlog_item_ids": ["PB-023"]
+  },
+  "retrospective": {
+    "worked": ["independent connectors", "patch-first scoped generation", "candidate runtime verification", "persistent capability reuse"],
+    "did_not_work": ["the first Capability Builder run admitted in memory before runtime comparison", "the first full-profile evidence path was not pre-created"],
+    "experiments": ["single-provider repository codegen 3/3", "single-provider capability builder 2/3", "self-growth and reuse 2/2"]
+  }
 }

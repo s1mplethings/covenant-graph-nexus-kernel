@@ -7,6 +7,8 @@ import pytest
 from cgkn.providers import ConnectorCompletionClient, ModelRoleConfig, ProviderCompletion, ProviderConnectorRegistry
 from scripts import provider_api_budget
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
+
 
 class FakeConnector:
     provider_id = "fake"

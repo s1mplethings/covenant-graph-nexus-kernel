@@ -6,6 +6,8 @@ import pytest
 
 from cgkn.providers import GrokConnector, ModelRoleConfig, ProviderConnectionError
 
+pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
+
 
 PROFILE = {"provider_id": "grok", "base_url": "https://api.x.ai/v1", "api_backend": "RESPONSES", "preferred_models": ["grok-4.7"], "reasoning_effort": "medium", "timeout": 10, "max_output_tokens": 100, "prompt_cache_policy": "disabled_for_benchmark"}
 
