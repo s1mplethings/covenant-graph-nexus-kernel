@@ -1,71 +1,97 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-112",
+  "iteration_id": "ITER-113",
   "project_id": "cgkn",
-  "goal": "Canonicalize only the reviewed Qwen planning_proposal envelope, then revalidate the same CASE_01 once.",
-  "backlog_item_ids": ["PB-089"],
+  "goal": "Add an isolated local GUI extension for secure multi-provider API configuration and same-prompt comparison without persisting plaintext credentials.",
+  "backlog_item_ids": ["PB-084"],
   "workflow_state": "closed",
-  "evidence_status": "NEEDS_REWORK",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Pass canonical flat planning through unchanged and unwrap only the exact planning_proposal envelope once.",
-    "Reject unknown, nested, ambiguous, and malformed responses without synthesizing fields or weakening schema.",
-    "Persist raw response identity, canonicalization decision, canonical object identity, and schema result.",
-    "Pass related compiler, Provider, benchmark framework, and kernel rule-guard tests before a paid call.",
-    "Run only the unchanged CASE_01 with qwen3.6-plus and the existing four-call budget.",
-    "Start Fixed10 only if this L1 reaches PROJECT_PASS with false pass zero."
+    "Keep the extension outside the canonical ProviderJob, evidence, packaging, and delivery authorities.",
+    "Persist provider metadata and credential references only; never persist or export a plaintext API key.",
+    "Support session memory, environment variables, optional OS keyring, and no-auth local providers.",
+    "Run the same prompt against multiple OpenAI-compatible providers and retain deterministic comparable results.",
+    "Redact credentials from transport failures and result exports, including reflected values.",
+    "Provide tests, security documentation, Windows launch instructions, and a GUI smoke check."
   ],
   "quality_metrics": [
-    {"id": "QM-PLANNING-CANONICALIZATION", "measure": "focused envelope tests", "target": "PASS", "actual": "8 passed"},
-    {"id": "QM-FRAMEWORK-REGRESSION", "measure": "requirement compiler and benchmark framework", "target": "PASS", "actual": "110 + 46 passed"},
-    {"id": "QM-QWEN-CODEX", "measure": "Codex generation and repair calls", "target": "0", "actual": "0"},
-    {"id": "QM-QWEN-PROGRESSION", "measure": "ProviderJob and generation reached", "target": ">0", "actual": "0"},
-    {"id": "QM-QWEN-FIXED10", "measure": "full Fixed10 started", "target": "false", "actual": "false"}
+    {
+      "id": "QM-PROVIDER-LAB-TESTS",
+      "measure": "focused extension tests",
+      "target": "PASS",
+      "actual": "20 passed"
+    },
+    {
+      "id": "QM-PROVIDER-LAB-SECRETS",
+      "measure": "plaintext credential persistence/export checks",
+      "target": "zero credential values",
+      "actual": "PASS"
+    },
+    {
+      "id": "QM-PROVIDER-LAB-GUI",
+      "measure": "headless GUI startup and tab render",
+      "target": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "id": "QM-PROVIDER-LAB-LIVE",
+      "measure": "real provider calls",
+      "target": "not required for implementation",
+      "actual": "NOT_EVALUATED"
+    }
   ],
   "quality_activities": {
-    "prevention": ["Allow only flat canonical planning or the exact one-level planning_proposal envelope."],
-    "assurance": ["Verify semantic preservation, fail-closed wrapper cases, audit persistence, compiler behavior, and framework regression."],
-    "control": ["Keep qwen3.6-plus, the case, prompt, evaluator, repair scope, and call budget unchanged; stop after L1."],
-    "improvement": ["Separate envelope compatibility from canonical planning schema correctness in durable evidence."]
+    "prevention": [
+      "Keep credentials behind a SecretManager boundary and restrict persisted authentication metadata to allowlisted values.",
+      "Force keyring and session references to equal provider_id so the reference cannot become a hidden key field.",
+      "Require HTTPS for all non-local endpoints."
+    ],
+    "assurance": [
+      "Exercise configuration, secret resolution, redaction, adapter transport, comparison ordering, export, packaging, and GUI startup."
+    ],
+    "control": [
+      "Make no paid provider call and do not modify the production Provider route."
+    ],
+    "improvement": [
+      "Add protocol-specific adapters only through the registry while preserving the same credential and redaction boundaries."
+    ]
   },
   "interface_expectations": [
-    "The external API is the Provider transport, not a second generation route.",
-    "ProviderJob remains the only project-work concurrency unit.",
+    "The extension is a local experiment surface, not a second production generation route.",
+    "ProviderJob remains the only canonical project-work Provider boundary.",
     "local_packager remains the only delivery exit.",
-    "Smoke artifacts cannot authorize formal evidence PASS.",
-    "The independent launcher owns the paid process; the status script is read-only.",
-    "Planning canonicalization cannot grant ProviderJob, acceptance, packaging, or release authority."
+    "The GUI may compare model responses but cannot grant formal project or release PASS.",
+    "Provider configuration exports metadata only and comparison exports omit credential location fields."
   ],
   "evidence_refs": [
-    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/PLANNING_CANONICALIZATION_AUDIT.json",
-    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/FRAMEWORK_REGRESSION.json",
-    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_CLASSIFIED_RESULT.json",
-    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_CALL_LEDGER.json",
-    "artifacts/project_generation_benchmark/PGBV1_QWEN_L1_CANONICALIZATION_REVALIDATION_20261015_01_RESULT_PACKAGE/QWEN_L1_REPORT.md"
+    "extensions/provider_api_lab/EVIDENCE.md",
+    "extensions/provider_api_lab/tests",
+    "extensions/provider_api_lab/SECURITY.md",
+    "extensions/provider_api_lab/README.md"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "The exact planning_proposal envelope was unwrapped once with complete identity and schema audit evidence.",
-      "The enclosed Provider object remained non-canonical and failed the unchanged planning schema.",
-      "ProviderJob and generation were not reached; evaluator rejection and empty repair scope remained correct downstream effects.",
-      "Fixed10 remained stopped."
+      "The extension is isolated from the production route and uses only standard-library runtime dependencies.",
+      "Plaintext credential persistence and export are rejected or redacted by tested boundaries.",
+      "Live provider behavior and Windows keyring integration remain NOT_EVALUATED until the user supplies local credentials."
     ],
-    "accepted_backlog_item_ids": ["PB-089"]
+    "accepted_backlog_item_ids": ["PB-084"]
   },
   "retrospective": {
     "worked": [
-      "The known envelope was recognized without recursive search or semantic mutation.",
-      "Focused and framework regressions passed before the paid L1.",
-      "The audit chain clearly separated canonicalization PASS from schema FAIL."
+      "OpenAI-compatible providers share one adapter while presets remain editable.",
+      "Session, environment, keyring, and no-auth modes cover local testing without a plaintext fallback file.",
+      "The GUI and headless service share the same validated configuration and result contracts."
     ],
     "did_not_work": [
-      "The Qwen object inside the known envelope was not a canonical planning proposal.",
-      "The single-planning-call budget prevented schema repair, so generation was not reached."
+      "An initial generic string trim removed the space from the Bearer prefix; a focused transport test exposed and closed it.",
+      "An initial result export relied only on adapter redaction; export-time credential scrubbing was added as defense in depth."
     ],
     "experiments": [
-      "Treat any next work as planning-contract quality, not repair-scope or evaluator work.",
-      "Do not start Fixed10 until one L1 reaches PROJECT_PASS with false pass zero."
+      "Use this lab to compare providers on a frozen prompt set before changing the canonical Provider profile.",
+      "Add native non-OpenAI protocols only after a concrete provider requires them."
     ]
   }
 }
