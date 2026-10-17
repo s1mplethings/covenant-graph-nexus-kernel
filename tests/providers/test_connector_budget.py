@@ -16,6 +16,12 @@ class FakeConnector:
         return ProviderCompletion('{"ok":true}', "fake-model", "request-1", {"input_tokens": 7, "output_tokens": 3})
 
 
+class FailingConnector:
+    provider_id = "fake"
+    def complete_structured(self, **kwargs):
+        raise RuntimeError("HTTP 503 sanitized failure")
+
+
 def _budget(monkeypatch, ledger):
     values = {"CGKN_PROVIDER_BUDGET_LEDGER":str(ledger),"CGKN_PROVIDER_MAX_API_CALLS":"2","CGKN_PROVIDER_MAX_INPUT_TOKENS":"100","CGKN_PROVIDER_MAX_OUTPUT_TOKENS":"100","CGKN_PROVIDER_MAX_ESTIMATED_COST":"1","CGKN_PROVIDER_INPUT_COST_PER_MILLION":"2","CGKN_PROVIDER_OUTPUT_COST_PER_MILLION":"6","CGKN_PROVIDER_MAX_CAPABILITY_BUILD_CALLS":"2"}
     for key, value in values.items(): monkeypatch.setenv(key, value)
@@ -35,3 +41,15 @@ def test_budget_enforcement_fails_closed_without_rates(tmp_path, monkeypatch):
     client = ConnectorCompletionClient(ProviderConnectorRegistry((FakeConnector(),)), enforce_budget=True)
     with pytest.raises(provider_api_budget.ProviderBudgetExhausted, match="price estimates"):
         client.complete(system="s", user="u", schema_name="x", schema={"type":"object"}, config=ModelRoleConfig("worker","fake",30,10,0,"none"))
+
+
+def test_connector_client_no_budget_and_failed_transport_paths(tmp_path, monkeypatch):
+    config = ModelRoleConfig("worker","fake",30,10,0,"none")
+    unbudgeted = ConnectorCompletionClient(ProviderConnectorRegistry((FakeConnector(),)))
+    assert unbudgeted.complete(system="s", user="u", schema_name="x", schema={"type":"object"}, config=config).request_id == "request-1"
+    ledger = tmp_path / "ledger.json"; _budget(monkeypatch, ledger)
+    failing = ConnectorCompletionClient(ProviderConnectorRegistry((FailingConnector(),)), enforce_budget=True)
+    with pytest.raises(RuntimeError, match="sanitized"):
+        failing.complete(system="s", user="u", schema_name="x", schema={"type":"object"}, config=config)
+    call = json.loads(ledger.read_text(encoding="utf-8"))["calls"][0]
+    assert call["status"] == "FAILED" and call["http_status"] == 503
