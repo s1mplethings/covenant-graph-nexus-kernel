@@ -1,0 +1,10 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0","baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-PROVIDER-CONNECTORS-001",
+  "source_commit":"e7e77806bedfd108a29d43a903f91937d76be507","source_tree_sha":"63f9723aaff802b377b71df4194204067998f488","core_source_hash":"sha256:2c5d8ecdc16ccbeecaeb52762ec6fbad5936cc8a99ccc98fd00358fe97a583d8",
+  "kernel_receipt_hash":"sha256:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba","l6_receipt_hash":"sha256:f60050f62fa20e22cc055faa3144b43b990f17ad80b840708a6476401b1c8945","semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"micro":"PASS","fast":"PASS","promotion":"NOT_EVALUATED","full":"NOT_EVALUATED","live-provider":"PASS_WITH_LIMITS"},"test_counts":{"passed":88,"failed":0,"errors":0,"skipped":1},
+  "known_blockers":["adaptive Provider selection remains blocked with one eligible Provider","Capability Builder and Self-Growth V1 remain NOT_EVALUATED","live calls are not yet represented in a durable budget ledger"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","generation_readiness=GENERATION_LEVEL_2","mvp_readiness=READY","fallback=deny","manual_candidate_edits=0","whole_project_repair_replans=0","accepted_interface_breakages=0","semantic_artifact_winner=NONE"],
+  "inherits":"BASELINE-PROVIDER-CONNECTORS-001","added_guarantees":["deterministic repository snapshots and change contracts bound Provider authority","patch-first staged mutation rejects unrelated and protected paths","real Grok single-provider Bug Fix, Multi-file Feature, and Refactor pass 3/3","all real cases use frozen routing with zero repair, manual edits, interface breaks, or whole replans"],
+  "unchanged_guarantees":["all protected guarantees from BASELINE-PROVIDER-CONNECTORS-001"],"removed_guarantees":[],"created_at":"2026-10-17T22:48:00+08:00","evidence_status":"PASS_WITH_LIMITS","baseline_hash":"sha256:bb730dbfd9e311629bd882a50c9ebcdfb15a443df80a0eb0b2ec80acc03d26a0"
+}

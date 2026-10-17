@@ -12,9 +12,10 @@
     "Phase 1 bounded offline evaluation substrate",
     "Phase 0 Provider Evaluation Baseline",
     "Phase 1 Provider Connector Normalization",
-    "Phase 2 independent live connection diagnostics"
+    "Phase 2 independent live connection diagnostics",
+    "Phase 4 Repository Codegen in SINGLE_PROVIDER_MODE"
   ],
-  "current_phase": "Phase 4 Repository Codegen in SINGLE_PROVIDER_MODE",
+  "current_phase": "Phase 5 Capability Builder in SINGLE_PROVIDER_MODE",
   "acceptance_criteria": [
     "all candidates run the same prompt facts, schema, limits, retry policy, workspace, and acceptance",
     "profiles are task-specific and require two independent cases",
@@ -57,13 +58,13 @@
       "BASELINE-PROVIDER-GATEWAY-001",
       "bounded Provider evaluation contracts, suite, receipts, profiles, cache, selector, and routing snapshot",
       "Micro, Fast, and Promotion regression evidence",
-      "BASELINE-PROVIDER-EVAL-001 focused regression evidence"
-      ,"Grok live canonical completion eligibility"
+      "BASELINE-PROVIDER-EVAL-001 focused regression evidence",
+      "Grok live canonical completion eligibility",
+      "real Repository Codegen 3/3 PASS with zero repair or unrelated edits"
     ],
     "blocked": [
-      "Qwen credential rejected by vendor",
-      "Grok credential rejected by vendor",
-      "DeepSeek chat models reject json_schema response_format",
+      "Qwen workspace and recognized connector credential are not configured",
+      "DeepSeek connector credential is not configured",
       "only one eligible Provider; adaptive selection still requires at least two"
     ]
   },
@@ -72,7 +73,8 @@
     "governance/provider_evaluation_status.json",
     "governance/provider_capability_profiles.json",
     "governance/provider_selection_status.json",
-    "project_management/summaries/ITER-016-adaptive-provider-evaluation.md"
-    ,"governance/provider_connections/selection_status.json"
+    "project_management/summaries/ITER-016-adaptive-provider-evaluation.md",
+    "governance/provider_connections/selection_status.json",
+    "governance/repository_codegen_status.json"
   ]
 }

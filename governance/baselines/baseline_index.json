@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-PROVIDER-CONNECTORS-001",
+  "current_baseline_id": "BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -52,6 +52,7 @@
     {"baseline_id":"BASELINE-MVP-001","parent_baseline_id":"BASELINE-MVP-PROJECT2-002","receipt":"governance/baselines/receipts/BASELINE-MVP-001.json","baseline_hash":"sha256:c94f42358560050af6c95ce196dc46fd50245b68f67db0f426ff39d2d0fe63f5"},
     {"baseline_id":"BASELINE-PROVIDER-GATEWAY-001","parent_baseline_id":"BASELINE-MVP-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-GATEWAY-001.json","baseline_hash":"sha256:51cedf1606f5a789aae938876d81cca04c423dbab58580cd485216cd3031c9d0"},
     {"baseline_id":"BASELINE-PROVIDER-EVAL-001","parent_baseline_id":"BASELINE-PROVIDER-GATEWAY-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-EVAL-001.json","baseline_hash":"sha256:89023d369df6bba4867e234ee3351ca841b99c46167faae7de260e430f2111bd"},
-    {"baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","parent_baseline_id":"BASELINE-PROVIDER-EVAL-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-CONNECTORS-001.json","baseline_hash":"sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"}
+    {"baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","parent_baseline_id":"BASELINE-PROVIDER-EVAL-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-CONNECTORS-001.json","baseline_hash":"sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"},
+    {"baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","receipt":"governance/baselines/receipts/BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:bb730dbfd9e311629bd882a50c9ebcdfb15a443df80a0eb0b2ec80acc03d26a0"}
   ]
 }

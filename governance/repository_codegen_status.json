@@ -1,0 +1,9 @@
+{
+  "kind":"RepositoryCodegenBenchmarkStatus","schema_version":"1.0","source_commit":"e7e77806bedfd108a29d43a903f91937d76be507","status":"COMPLETE","mode":"SINGLE_PROVIDER_MODE","provider_id":"grok","adaptive_provider_selection":"BLOCKED_ENVIRONMENT","routing_frozen":true,"fallback":"deny",
+  "cases":[
+    {"case":"BUG_FIX","status":"PASS","calls":1,"repairs":0,"tokens":1990,"wall_time_ms":5327,"modified_files":["app.py"]},
+    {"case":"MULTI_FILE_FEATURE","status":"PASS","calls":1,"repairs":0,"tokens":2072,"wall_time_ms":7125,"modified_files":["feature.py"]},
+    {"case":"REFACTOR","status":"PASS","calls":1,"repairs":0,"tokens":2097,"wall_time_ms":4547,"modified_files":["app.py"]}
+  ],
+  "passed":3,"required":2,"manual_edits":0,"unrelated_edits":0,"interface_breaks":0,"whole_replans":0,"cost_estimate":"UNAVAILABLE","contains_credentials":false
+}
