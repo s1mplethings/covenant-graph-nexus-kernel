@@ -1,0 +1,193 @@
+{
+  "kind": "CGKNBaselineRegressionReceipt",
+  "schema_version": "1.0",
+  "baseline": "BASELINE-MVP-001",
+  "profile": "fast",
+  "status": "PASS",
+  "commands": [
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "compileall",
+        "-q",
+        "cgkn",
+        "contracts",
+        "scripts"
+      ],
+      "returncode": 0,
+      "duration_ms": 9083,
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 8442,
+      "stdout_tail": "{\n  \"kind\": \"CGKNProductDirectionGate\",\n  \"status\": \"PASS\",\n  \"errors\": []\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/kernel_architecture_gate.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 503,
+      "stdout_tail": "{\n  \"kind\": \"CGKNKernelArchitectureGate\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"source_count\": 51,\n  \"authority_count\": 18\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/test_architecture_gate.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 16144,
+      "stdout_tail": "{\n  \"kind\": \"CGKNTestArchitectureGate\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"source_count\": 51,\n  \"mapped_count\": 51\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/kernel_completeness_gate.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 8852,
+      "stdout_tail": "{\n  \"kind\": \"CGKNKernelCompletenessGate\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"kernel_foundation\": \"COMPLETE\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/verify_kernel_test_receipt.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 503,
+      "stdout_tail": "{\n  \"kind\": \"CGKNKernelTestReceiptVerification\",\n  \"status\": \"PASS\",\n  \"errors\": [],\n  \"source_commit\": \"6b0dcf3ed927ed236b8045ccfc131b46f4792118\"\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/receipt_freshness.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 2000,
+      "stdout_tail": "{\n  \"kind\": \"CGKNReceiptFreshness\",\n  \"schema_version\": \"1.0\",\n  \"status\": \"PASS\",\n  \"results\": [\n    {\n      \"boundary\": \"kernel\",\n      \"receipt\": \"governance/kernel_test_receipt.json\",\n      \"status\": \"PASS\",\n      \"receipt_source_commit\": \"6b0dcf3ed927ed236b8045ccfc131b46f4792118\",\n      \"receipt_boundary_hash\": \"sha256:3fbea584ab149bab2b82d34d9b1435543699671b339829b91fa083dcd053a1e2\",\n      \"current_boundary_hash\": \"sha256:3fbea584ab149bab2b82d34d9b1435543699671b339829b91fa083dcd053a1e2\"\n    },\n    {\n      \"boundary\": \"application\",\n      \"receipt\": \"governance/software_project_generation_receipt.json\",\n      \"status\": \"PASS\",\n      \"receipt_source_commit\": \"60d0ac54302b97b23c80bff67a0b66b6a640c092\",\n      \"receipt_boundary_hash\": \"sha256:1abe91c25c431dd7549188f9bcc5a711f9f26b2b0e364a0d885972d28af21aaf\",\n      \"current_boundary_hash\": \"sha256:1abe91c25c431dd7549188f9bcc5a711f9f26b2b0e364a0d885972d28af21aaf\"\n    },\n    {\n      \"boundary\": \"experiment\",\n      \"receipt\": \"governance/semantic_artifact_validation_receipt.json\",\n      \"status\": \"PASS\",\n      \"receipt_source_commit\": \"136dd97004be10c06a975d8564bacd4998bde4c6\",\n      \"receipt_boundary_hash\": \"sha256:8e724ba7cae413b02d4086fdb06c1ddf63c4d14f61c93c62d78efac78237f0d5\",\n      \"current_boundary_hash\": \"sha256:8e724ba7cae413b02d4086fdb06c1ddf63c4d14f61c93c62d78efac78237f0d5\"\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/baseline_ledger.py"
+      ],
+      "returncode": 0,
+      "duration_ms": 150,
+      "stdout_tail": "{\n  \"kind\": \"CGKNBaselineLedgerValidation\",\n  \"status\": \"PASS\",\n  \"errors\": []\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_kernel_profiles.py",
+        "--profile",
+        "unit"
+      ],
+      "returncode": 0,
+      "duration_ms": 306804,
+      "stdout_tail": "artifact_driven_kernel.py::test_wrong_port_type_is_blocked\",\n        \"tests/test_capability_tree_mvp.py::test_dag_rejects_execution_cycle\",\n        \"tests/test_capability_tree_mvp.py::test_dependency_must_target_executable_node\",\n        \"tests/test_capability_tree_mvp.py::test_tree_rejects_structural_cycles\",\n        \"tests/test_capability_tree_mvp.py::test_tree_structure_is_separate_from_execution_dependencies\",\n        \"tests/test_component_runtime_integration.py::test_component_exception_creates_failed_execution\",\n        \"tests/test_component_runtime_integration.py::test_effect_violation_records_failed_execution\",\n        \"tests/test_component_runtime_integration.py::test_invalid_output_schema_records_failed_execution\",\n        \"tests/test_component_runtime_integration.py::test_runtime_missing_required_input_creates_failed_execution\",\n        \"tests/test_component_runtime_integration.py::test_runtime_records_component_execution_and_cache_hit\",\n        \"tests/test_component_runtime_integration.py::test_runtime_rejects_invalid_input_and_records_failure[bad_hash]\",\n        \"tests/test_component_runtime_integration.py::test_runtime_rejects_invalid_input_and_records_failure[stale]\",\n        \"tests/test_component_runtime_integration.py::test_runtime_rejects_invalid_input_and_records_failure[wrong_type]\",\n        \"tests/test_component_runtime_integration.py::test_unbound_flow_input_creates_failed_execution\",\n        \"tests/test_provider_transport.py::test_429_retries\",\n        \"tests/test_provider_transport.py::test_api_key_is_redacted_from_result_repr\",\n        \"tests/test_provider_transport.py::test_key_usage_limit_is_non_retryable\",\n        \"tests/test_provider_transport.py::test_non_json_response_is_not_success\",\n        \"tests/test_provider_transport.py::test_provider_text_caps_same_request_pre_header_retries\",\n        \"tests/test_provider_transport.py::test_remote_disconnected_exception_is_retryable\",\n        \"tests/test_provider_transport.py::test_requirements_planning_budget_is_deterministic_and_bounded\",\n        \"tests/test_provider_transport.py::test_requirements_preflight_structured_failure_short_circuits\",\n        \"tests/test_provider_transport.py::test_requirements_preflight_tiny_failure_short_circuits\",\n        \"tests/test_provider_transport.py::test_requirements_preflight_writes_secret_free_metrics\",\n        \"tests/test_provider_transport.py::test_requirements_real_512_pre_header_timeout_is_classified\",\n        \"tests/test_provider_transport.py::test_requirements_schema_probe_failure_short_circuits_real_request\",\n        \"tests/test_provider_transport.py::test_retry_policy_allows_three_response_header_http_attempts\",\n        \"tests/test_provider_transport.py::test_retry_policy_stops_two_same_class_pre_header_timeouts\",\n        \"tests/test_provider_transport.py::test_third_attempt_success_sets_recovered\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[ConnectionResetError: connection reset]\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[HTTP 520: upstream unavailable [retryable=true]]\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[SSLError: SSLV3_ALERT_BAD_RECORD_MAC]\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[TimeoutError: timed out]\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[URLError: connection aborted]\",\n        \"tests/test_provider_transport.py::test_transport_failures_are_classified_unstable[[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol]\"\n      ],\n      \"skipped_test_node_ids\": [\n        \"tests/artifacts/test_artifact_foundation.py::test_store_rejects_artifact_directory_symlink_escape\"\n      ],\n      \"failed_test_node_ids\": [],\n      \"totals\": {\n        \"passed\": 362,\n        \"failed\": 0,\n        \"errors\": 0,\n        \"skipped\": 1\n      }\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_kernel_profiles.py",
+        "--profile",
+        "boundary"
+      ],
+      "returncode": 0,
+      "duration_ms": 265250,
+      "stdout_tail": "ts/runtime/test_artifact_runtime_contract.py::test_reference_adapter_conditional_branches\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_run_failure_marks_manifest_failed\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_run_manifest_and_feed_forward_report_exist\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_runtime_materializes_outputs_and_index_consumers\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_same_fingerprint_hits_cache_and_changes_miss\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_stale_artifact_blocks_delivery_readiness\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_upstream_change_invalidates_only_descendants_and_explains\",\n        \"tests/runtime/test_dag_runner.py::test_affected_subgraph_rerun_reuses_unaffected_successes\",\n        \"tests/runtime/test_dag_runner.py::test_executor_resolution_and_unhandled_exception_fail_closed\",\n        \"tests/runtime/test_dag_runner.py::test_failure_propagation_and_retry_history\",\n        \"tests/runtime/test_dag_runner.py::test_missing_resume_state_fails_but_new_run_recovers_from_initial_load_race\",\n        \"tests/runtime/test_dag_runner.py::test_real_vertical_slice_and_resume\",\n        \"tests/runtime/test_dag_runner.py::test_runner_rejects_tree_dag_and_persisted_state_mismatch\",\n        \"tests/runtime/test_dag_runner.py::test_summary_and_event_order_are_deterministic\",\n        \"tests/state/test_file_run_store.py::test_all_invalid_state_path_segments_are_rejected[..]\",\n        \"tests/state/test_file_run_store.py::test_all_invalid_state_path_segments_are_rejected[.]\",\n        \"tests/state/test_file_run_store.py::test_all_invalid_state_path_segments_are_rejected[]\",\n        \"tests/state/test_file_run_store.py::test_all_invalid_state_path_segments_are_rejected[a/b]\",\n        \"tests/state/test_file_run_store.py::test_all_invalid_state_path_segments_are_rejected[a\\\\\\\\b]\",\n        \"tests/state/test_file_run_store.py::test_attempt_history_never_overwrites\",\n        \"tests/state/test_file_run_store.py::test_corrupt_state_and_path_traversal_fail_closed\",\n        \"tests/state/test_file_run_store.py::test_definition_and_agent_decision_constraints\",\n        \"tests/state/test_file_run_store.py::test_event_log_round_trip_and_corruption_fail_closed\",\n        \"tests/state/test_file_run_store.py::test_persisted_state_models_reject_unsupported_schemas\",\n        \"tests/state/test_file_run_store.py::test_project_definitions_summary_and_corrupt_result\",\n        \"tests/state/test_file_run_store.py::test_resolved_escape_guard_is_independently_enforced\",\n        \"tests/state/test_file_run_store.py::test_state_round_trip_atomic_and_resume_success\",\n        \"tests/state/test_file_run_store.py::test_symlink_and_atomic_replace_failure_fail_closed\",\n        \"tests/telemetry/test_summary.py::test_duplicate_and_negative_node_telemetry_is_rejected\",\n        \"tests/telemetry/test_summary.py::test_invalid_provider_telemetry_is_rejected[provider-1]\",\n        \"tests/telemetry/test_summary.py::test_invalid_provider_telemetry_is_rejected[worker-0]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value0]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value1]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value2]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value3]\",\n        \"tests/telemetry/test_summary.py::test_round_trip_missing_usage_and_secret_redaction\",\n        \"tests/telemetry/test_summary.py::test_telemetry_is_deterministic_and_separates_agent_worker_and_reuse\"\n      ],\n      \"skipped_test_node_ids\": [\n        \"tests/artifacts/test_artifact_foundation.py::test_store_rejects_artifact_directory_symlink_escape\"\n      ],\n      \"failed_test_node_ids\": [],\n      \"totals\": {\n        \"passed\": 270,\n        \"failed\": 0,\n        \"errors\": 0,\n        \"skipped\": 1\n      }\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_kernel_profiles.py",
+        "--profile",
+        "fault"
+      ],
+      "returncode": 0,
+      "duration_ms": 12072,
+      "stdout_tail": "mposer_schema.py::test_invalid_decision_matrix[value5-not canonical]\",\n        \"tests/agent/test_composer_schema.py::test_invalid_decision_matrix[value6-invalid tree edit payload]\",\n        \"tests/agent/test_composer_schema.py::test_invalid_decision_matrix[value7-exactly one]\",\n        \"tests/agent/test_composer_schema.py::test_invalid_decision_matrix[value8-exactly one]\",\n        \"tests/architecture/test_consumer_governance_contract.py::test_governance_io_and_declaration_failures\",\n        \"tests/architecture/test_consumer_governance_contract.py::test_target_execution_failure_matrix\",\n        \"tests/artifacts/test_artifact_foundation.py::test_fsync_failure_cleans_temp_and_reports_no_success\",\n        \"tests/artifacts/test_artifact_foundation.py::test_index_replace_failure_rolls_back_blob_and_preserves_index\",\n        \"tests/artifacts/test_artifact_foundation.py::test_validation_dependency_hash_and_internal_hash_mismatch_fail_closed\",\n        \"tests/capabilities/test_registry.py::test_registry_atomic_save_failure_preserves_previous_file\",\n        \"tests/capabilities/test_registry.py::test_registry_corruption_duplicate_unknown_component_and_transition_fail_closed\",\n        \"tests/capabilities/test_registry.py::test_registry_load_rejects_invalid_persisted_shapes[<lambda>-invalid persisted]\",\n        \"tests/capabilities/test_registry.py::test_registry_load_rejects_invalid_persisted_shapes[<lambda>-ports]\",\n        \"tests/capabilities/test_registry.py::test_registry_load_rejects_invalid_persisted_shapes[<lambda>-unsupported]\",\n        \"tests/executors/test_llm_executor.py::test_worker_provider_failures_are_results[error0-TIMED_OUT]\",\n        \"tests/executors/test_llm_executor.py::test_worker_provider_failures_are_results[error1-FAILED]\",\n        \"tests/executors/test_local_executors.py::test_command_failure_timeout_contract_and_dependency_check\",\n        \"tests/growth/test_growth_failures.py::test_existing_executor_is_not_registered_twice_and_outcome_round_trips\",\n        \"tests/growth/test_growth_failures.py::test_no_candidate_fails_closed\",\n        \"tests/growth/test_growth_failures.py::test_rejected_trial_persists_evidence_but_does_not_admit\",\n        \"tests/growth/test_growth_failures.py::test_sandbox_rejects_non_allowlisted_candidate\",\n        \"tests/growth/test_growth_failures.py::test_stdlib_executor_rejects_non_string_input\",\n        \"tests/orchestration/test_tree_edits.py::test_batch_duplicate_cycle_and_late_failure_roll_back_atomically\",\n        \"tests/providers/test_client.py::test_transport_failure_is_redacted\",\n        \"tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback\",\n        \"tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_cache_rejects_empty_missing_stale_and_tampered_entries\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_effect_cardinality_violation_blocks_execution\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_provider_invalid_output_creates_diagnostic_and_no_artifact\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_run_failure_marks_manifest_failed\",\n        \"tests/runtime/test_dag_runner.py::test_executor_resolution_and_unhandled_exception_fail_closed\",\n        \"tests/state/test_file_run_store.py::test_symlink_and_atomic_replace_failure_fail_closed\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value0]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value1]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value2]\",\n        \"tests/telemetry/test_summary.py::test_malformed_telemetry_is_rejected[value3]\"\n      ],\n      \"skipped_test_node_ids\": [],\n      \"failed_test_node_ids\": [],\n      \"totals\": {\n        \"passed\": 42,\n        \"failed\": 0,\n        \"errors\": 0,\n        \"skipped\": 0\n      }\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_kernel_profiles.py",
+        "--profile",
+        "security"
+      ],
+      "returncode": 0,
+      "duration_ms": 192389,
+      "stdout_tail": "ontracts.py::test_request_rejects_each_empty_identity_field[run_id]\",\n        \"tests/executors/test_llm_executor.py::test_action_confinement_protected_paths_and_patch_ambiguity\",\n        \"tests/executors/test_llm_executor.py::test_action_envelope_is_exact[action0]\",\n        \"tests/executors/test_llm_executor.py::test_action_envelope_is_exact[action1]\",\n        \"tests/executors/test_llm_executor.py::test_worker_actions_read_list_write_patch_and_usage\",\n        \"tests/executors/test_llm_executor.py::test_worker_invalid_output_permission_and_escalation\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>0]\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>1]\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>2]\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>3]\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>4]\",\n        \"tests/executors/test_llm_executor.py::test_worker_proposal_rejects_malformed_values[<lambda>5]\",\n        \"tests/executors/test_llm_executor.py::test_worker_provider_failures_are_results[error0-TIMED_OUT]\",\n        \"tests/executors/test_llm_executor.py::test_worker_provider_failures_are_results[error1-FAILED]\",\n        \"tests/growth/test_growth_failures.py::test_existing_executor_is_not_registered_twice_and_outcome_round_trips\",\n        \"tests/growth/test_growth_failures.py::test_no_candidate_fails_closed\",\n        \"tests/growth/test_growth_failures.py::test_rejected_trial_persists_evidence_but_does_not_admit\",\n        \"tests/growth/test_growth_failures.py::test_sandbox_rejects_non_allowlisted_candidate\",\n        \"tests/growth/test_growth_failures.py::test_stdlib_executor_rejects_non_string_input\",\n        \"tests/orchestration/test_tree_edits.py::test_all_mutating_operations_and_control_edits\",\n        \"tests/orchestration/test_tree_edits.py::test_batch_duplicate_cycle_and_late_failure_roll_back_atomically\",\n        \"tests/orchestration/test_tree_edits.py::test_invalid_edit_contract_is_rejected[<lambda>-invalid0]\",\n        \"tests/orchestration/test_tree_edits.py::test_invalid_edit_contract_is_rejected[<lambda>-invalid1]\",\n        \"tests/orchestration/test_tree_edits.py::test_invalid_edit_contract_is_rejected[<lambda>-payload]\",\n        \"tests/orchestration/test_tree_edits.py::test_invalid_edit_contract_is_rejected[<lambda>-provenance]\",\n        \"tests/orchestration/test_tree_edits.py::test_unknown_nodes_capabilities_dependencies_and_invalid_payloads_fail_closed\",\n        \"tests/providers/test_client.py::test_transport_failure_is_redacted\",\n        \"tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected\",\n        \"tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed\",\n        \"tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak\",\n        \"tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable\",\n        \"tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_delivery_detects_hash_tamper\",\n        \"tests/runtime/test_artifact_runtime_contract.py::test_effect_cardinality_violation_blocks_execution\",\n        \"tests/state/test_file_run_store.py::test_symlink_and_atomic_replace_failure_fail_closed\",\n        \"tests/telemetry/test_summary.py::test_round_trip_missing_usage_and_secret_redaction\"\n      ],\n      \"skipped_test_node_ids\": [\n        \"tests/artifacts/test_artifact_foundation.py::test_store_rejects_artifact_directory_symlink_escape\"\n      ],\n      \"failed_test_node_ids\": [],\n      \"totals\": {\n        \"passed\": 81,\n        \"failed\": 0,\n        \"errors\": 0,\n        \"skipped\": 1\n      }\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_kernel_profiles.py",
+        "--profile",
+        "local-functional"
+      ],
+      "returncode": 0,
+      "duration_ms": 35615,
+      "stdout_tail": "{\n  \"kind\": \"CGKNKernelProfileResults\",\n  \"schema_version\": \"2.0\",\n  \"results\": [\n    {\n      \"profile\": \"local-functional\",\n      \"status\": \"PASS\",\n      \"duration_ms\": 35395,\n      \"commands\": [\n        {\n          \"argv\": [\n            \"D:\\\\anaconda\\\\python.exe\",\n            \"-m\",\n            \"pytest\",\n            \"-q\",\n            \"-m\",\n            \"local_functional\",\n            \"tests/architecture\",\n            \"tests/artifacts\",\n            \"tests/compiler\",\n            \"tests/component\",\n            \"tests/orchestration\",\n            \"tests/execution\",\n            \"tests/executors\",\n            \"tests/providers\",\n            \"tests/state\",\n            \"tests/runtime\",\n            \"tests/recovery\",\n            \"tests/capabilities\",\n            \"tests/growth\",\n            \"tests/agent\",\n            \"tests/telemetry\",\n            \"tests/test_artifact_driven_kernel.py\",\n            \"tests/test_capability_tree_mvp.py\",\n            \"tests/test_component_runtime_integration.py\",\n            \"tests/test_provider_transport.py\",\n            \"--junitxml=E:\\\\CGKN-Worktrees\\\\adaptive-provider-code-builder-growth-20261017\\\\artifacts\\\\kernel-profile-local-functional-0.xml\"\n          ],\n          \"returncode\": 0,\n          \"stdout_tail\": \"......                                                                   [100%]\\n- generated xml file: E:\\\\CGKN-Worktrees\\\\adaptive-provider-code-builder-growth-20261017\\\\artifacts\\\\kernel-profile-local-functional-0.xml -\\n6 passed, 357 deselected in 30.07s\\n\",\n          \"stderr_tail\": \"\"\n        }\n      ],\n      \"test_node_ids\": [\n        \"tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry\",\n        \"tests/agent/test_agent_mvp.py::test_fake_provider_vertical_slice_edits_file_and_passes_real_pytest\",\n        \"tests/agent/test_agent_mvp.py::test_worker_escalation_returns_to_agent_then_recovers\",\n        \"tests/agent/test_agent_mvp.py::test_worker_rejects_shell_and_path_escape\",\n        \"tests/agent/test_agent_mvp_gateway_cli.py::test_agent_mvp_cli_uses_gateway_routing_snapshot_and_budget\",\n        \"tests/executors/test_local_executors.py::test_python_test_and_local_action_adapter\"\n      ],\n      \"skipped_test_node_ids\": [],\n      \"failed_test_node_ids\": [],\n      \"totals\": {\n        \"passed\": 6,\n        \"failed\": 0,\n        \"errors\": 0,\n        \"skipped\": 0\n      }\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/application/software_project"
+      ],
+      "returncode": 0,
+      "duration_ms": 29065,
+      "stdout_tail": ".................                                                        [100%]\n17 passed in 27.00s\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_semantic_artifact_experiment.py",
+        "--profile",
+        "schema"
+      ],
+      "returncode": 0,
+      "duration_ms": 3522,
+      "stdout_tail": "...................                                                      [100%]\n19 passed in 1.37s\n",
+      "stderr_tail": ""
+    },
+    {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/run_semantic_artifact_experiment.py",
+        "--profile",
+        "fake"
+      ],
+      "returncode": 0,
+      "duration_ms": 54568,
+      "stdout_tail": "......                                                                   [100%]\n6 passed in 52.55s\n",
+      "stderr_tail": ""
+    }
+  ],
+  "duration_ms": 944969,
+  "created_at": "2026-10-17T12:31:42.112363+00:00"
+}

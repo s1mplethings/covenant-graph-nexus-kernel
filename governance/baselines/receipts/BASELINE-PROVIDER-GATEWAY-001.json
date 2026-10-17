@@ -1,0 +1,61 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-PROVIDER-GATEWAY-001",
+  "parent_baseline_id": "BASELINE-MVP-001",
+  "source_commit": "6b0dcf3ed927ed236b8045ccfc131b46f4792118",
+  "source_tree_sha": "259427e176efc69fc2c9cd0746d37d66b759bb42",
+  "core_source_hash": "sha256:7842491dec66755c663414a787f41be7a92031a438d4f2d98f3cf2b321e955a8",
+  "kernel_receipt_hash": "sha256:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
+  "l6_receipt_hash": "sha256:ae320da037c5666970c200a8a8fd997407ddb3b83ee3c5b4c7164a126ec33893",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "micro": "PASS",
+    "fast": "PASS",
+    "promotion": "PASS",
+    "full": "PASS",
+    "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "test_counts": {
+    "passed": 3306,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 355
+  },
+  "known_blockers": [
+    "real multi-provider quality and interoperability remain NOT_EVALUATED",
+    "task-specific provider selection remains NOT_EVALUATED",
+    "semantic artifact winner remains NONE"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE",
+    "functional_readiness=LEVEL_4",
+    "L0-L5=COMPLETE",
+    "requirement_semantics=COMPLETE",
+    "obligation_execution=COMPLETE",
+    "contract_test_compiler=COMPLETE",
+    "executable_interface_contract=COMPLETE",
+    "manual_candidate_edits=0",
+    "whole_project_repair_replans=0",
+    "generation_readiness=GENERATION_LEVEL_2",
+    "mvp_readiness=READY",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-MVP-001",
+  "added_guarantees": [
+    "multi-provider gateway boundary is validated",
+    "qwen/deepseek/grok are bounded provider identities",
+    "structured output is schema validated",
+    "routing snapshots contain no credentials",
+    "provider budget is reserved before transport",
+    "runtime fallback remains deny",
+    "MVP readiness remains READY"
+  ],
+  "unchanged_guarantees": [
+    "all protected guarantees from BASELINE-MVP-001"
+  ],
+  "removed_guarantees": [],
+  "created_at": "2026-10-17T12:34:00Z",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:51cedf1606f5a789aae938876d81cca04c423dbab58580cd485216cd3031c9d0"
+}
