@@ -34,6 +34,7 @@ class QwenConnector:
         self.timeout = int(self.profile.get("timeout", 120))
         self.max_output_tokens = int(self.profile.get("max_output_tokens", 4096))
         self._auth_failures = 0
+        self._models_cache: tuple[str, ...] | None = None
         self._validate_static()
 
     def _validate_static(self) -> None:
@@ -99,9 +100,12 @@ class QwenConnector:
             raise ProviderConnectionError("TIMEOUT" if isinstance(exc, TimeoutError) else "TRANSPORT_FAILURE", sanitize_vendor_text(getattr(exc, "reason", exc), (self.credential,))) from None
 
     def list_models(self) -> Sequence[str]:
+        if self._models_cache is not None:
+            return self._models_cache
         doc = self._request_json("GET", self.catalog_base_url.rstrip("/") + "/models")
         rows = doc.get("data", [])
-        return tuple(str(row.get("id")) for row in rows if isinstance(row, Mapping) and row.get("id"))
+        self._models_cache = tuple(str(row.get("id")) for row in rows if isinstance(row, Mapping) and row.get("id"))
+        return self._models_cache
 
     def resolve_model(self, requested_model: str | None = None) -> str:
         model = str(requested_model or (self.preferred_models[0] if self.preferred_models else "")).strip()
