@@ -83,7 +83,7 @@ class GatewayCompletionClient:
 
     def bind_run(self, run_id: str, case_id: str, *, budget_purpose: str = "") -> "GatewayCompletionClient":
         purpose = str(budget_purpose).strip().upper()
-        if purpose and purpose not in {"PLANNING", "GENERATION", "REPAIR", "BENCHMARK"}:
+        if purpose and purpose not in {"PLANNING", "GENERATION", "REPAIR", "BENCHMARK", "AUTH_PROBE", "CAPABILITY_BUILD"}:
             raise ValueError("unsupported Provider budget purpose")
         return replace(self, run_id=str(run_id), case_id=str(case_id), budget_purpose=purpose)
 

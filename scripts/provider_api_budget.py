@@ -65,6 +65,8 @@ def configured_limits() -> dict[str, int | float | None]:
         "max_generation_calls": _int_env("CGKN_PROVIDER_MAX_GENERATION_CALLS"),
         "max_repair_calls": _int_env("CGKN_PROVIDER_MAX_REPAIR_CALLS"),
         "max_benchmark_calls": _int_env("CGKN_PROVIDER_MAX_BENCHMARK_CALLS"),
+        "max_auth_probe_calls": _int_env("CGKN_PROVIDER_MAX_AUTH_PROBE_CALLS"),
+        "max_capability_build_calls": _int_env("CGKN_PROVIDER_MAX_CAPABILITY_BUILD_CALLS"),
         "max_total_input_tokens": _int_env("CGKN_PROVIDER_MAX_INPUT_TOKENS"),
         "max_total_output_tokens": _int_env("CGKN_PROVIDER_MAX_OUTPUT_TOKENS"),
         "max_estimated_cost": _float_env("CGKN_PROVIDER_MAX_ESTIMATED_COST"),
@@ -242,6 +244,10 @@ def _purpose_family(purpose: str) -> str:
     value = str(purpose or "").strip().upper()
     if value.startswith("BENCHMARK"):
         return "BENCHMARK"
+    if value.startswith("AUTH_PROBE"):
+        return "AUTH_PROBE"
+    if value.startswith("CAPABILITY_BUILD"):
+        return "CAPABILITY_BUILD"
     if value.startswith("PLANNING"):
         return "PLANNING"
     if value.startswith("REPAIR"):
@@ -355,6 +361,8 @@ def reserve_call(
             "GENERATION": "max_generation_calls",
             "REPAIR": "max_repair_calls",
             "BENCHMARK": "max_benchmark_calls",
+            "AUTH_PROBE": "max_auth_probe_calls",
+            "CAPABILITY_BUILD": "max_capability_build_calls",
         }[purpose_family]
         family_calls = sum(
             _purpose_family(str(item.get("purpose", ""))) == purpose_family

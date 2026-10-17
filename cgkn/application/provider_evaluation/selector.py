@@ -80,6 +80,7 @@ def aggregate_profiles(
             selection_policy_version=selection_policy_version,
             eligible=not reasons,
             ineligible_reasons=tuple(reasons),
+            structured_output_mode=(rows[0].structured_output_mode if len({row.structured_output_mode for row in rows}) == 1 else "MIXED"),
         )
         profiles.append(replace(provisional, profile_hash=canonical_hash(provisional.as_dict(include_hash=False))))
     return tuple(profiles)

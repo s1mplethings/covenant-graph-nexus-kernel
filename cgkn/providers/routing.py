@@ -9,9 +9,10 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from .client import ModelRoleConfig
+from .connector_registry import supported_provider_ids
 
 
-ALLOWED_PROVIDER_IDS = frozenset({"qwen", "deepseek", "grok"})
+ALLOWED_PROVIDER_IDS = supported_provider_ids()
 
 
 def _canonical(value: Mapping[str, Any]) -> str:

@@ -1,0 +1,14 @@
+{
+  "kind": "ProviderConnectionProfile",
+  "schema_version": "1.0",
+  "provider_id": "qwen",
+  "region": "cn-beijing",
+  "workspace_id": "",
+  "base_url": "https://{workspace_id}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+  "catalog_base_url": "https://{workspace_id}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+  "protocol": "OPENAI_CHAT_COMPLETIONS",
+  "preferred_models": ["qwen3.8-max"],
+  "structured_output_mode": "NATIVE_JSON_SCHEMA",
+  "timeout": 120,
+  "max_output_tokens": 7000
+}

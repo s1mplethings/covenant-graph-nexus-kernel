@@ -1,0 +1,13 @@
+{
+  "kind": "ProviderConnectionProfile",
+  "schema_version": "1.0",
+  "provider_id": "grok",
+  "base_url": "https://api.x.ai/v1",
+  "api_backend": "RESPONSES",
+  "preferred_models": ["grok-4.7"],
+  "structured_output_mode": "NATIVE_JSON_SCHEMA",
+  "reasoning_effort": "medium",
+  "timeout": 120,
+  "max_output_tokens": 7000,
+  "prompt_cache_policy": "disabled_for_benchmark"
+}

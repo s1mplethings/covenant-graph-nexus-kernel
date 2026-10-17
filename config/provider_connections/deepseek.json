@@ -1,0 +1,12 @@
+{
+  "kind": "ProviderConnectionProfile",
+  "schema_version": "1.0",
+  "provider_id": "deepseek",
+  "base_url": "https://api.deepseek.com/v1",
+  "protocol": "OPENAI_CHAT_COMPLETIONS",
+  "preferred_models": ["deepseek-flash", "deepseek-v4-pro"],
+  "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE",
+  "format_repairs_max": 1,
+  "timeout": 120,
+  "max_output_tokens": 6000
+}
