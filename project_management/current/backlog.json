@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-017",
+  "current_item_id": "PB-021",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "NEEDS_REWORK",
   "product_authority": [
@@ -253,6 +253,21 @@
       ],
       "blocked_successors": ["semantic artifact production winner", "Web generation", "API generation", "LEVEL 5"],
       "evidence_status": "NOT_EVALUATED"
+    },
+    {
+      "id": "PB-021",
+      "title": "Integrate the independent local multi-model Provider gateway",
+      "priority": 18,
+      "state": "done_with_limits",
+      "value": "Route high-capability Agent and bounded Worker calls through independently managed Qwen, DeepSeek, or Grok providers without moving credentials or authority into CGKN.",
+      "acceptance": [
+        "GatewayCompletionClient preserves the CompletionClient contract and the old client remains the default",
+        "one immutable run snapshot routes Agent to qwen and Worker to deepseek with fallback denied",
+        "the existing budget ledger rejects excess work before transport and records unavailable usage honestly",
+        "a real seeded project traverses Agent, CapabilityTree, DAG, bounded Worker, pytest, snapshot, and external acceptance through HTTP mock gateway",
+        "Grok can replace either role by configuration without CapabilityTree or DAG changes"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
     }
   ]
 }

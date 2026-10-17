@@ -19,6 +19,12 @@ class ModelRoleConfig:
     def __post_init__(self) -> None:
         if self.role not in {"agent", "worker"} or not self.model.strip():
             raise ValueError("model role and model are required")
+        if not 1 <= int(self.timeout_seconds) <= 600:
+            raise ValueError("model timeout must be between 1 and 600 seconds")
+        if not 1 <= int(self.max_output_tokens) <= 131_072:
+            raise ValueError("model output limit must be between 1 and 131072 tokens")
+        if not 0.0 <= float(self.temperature) <= 2.0:
+            raise ValueError("model temperature must be between 0 and 2")
 
 
 @dataclass(frozen=True)

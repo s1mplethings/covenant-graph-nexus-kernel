@@ -20,27 +20,22 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Current maintenance increment
+## Current feature increment
 
-`ITER-MVP-REPOSITORY-PRUNE-003` removed obsolete source, tests, documents, and
-generated outputs while preserving the compatibility runtime. The product
-direction gate, focused MVP tests, compatibility imports, and pytest collection
-passed. It added no product functionality.
+`ITER-015` integrated the independent API Lab gateway behind the existing
+`CompletionClient`. The increment keeps the current composition, execution,
+acceptance, packaging, and delivery authorities unchanged. It adds explicit
+Qwen/DeepSeek/Grok role routing, immutable run snapshots, loopback-only
+transport, and the existing Provider budget ledger at the transport boundary.
 
-## Next feature increment
-
-The next feature increment remains `MVP-002: Wire the common Block execution boundary`.
-
-Execution order:
-
-1. define canonical Block execution request and result contracts;
-2. define one replaceable Executor protocol;
-3. adapt deterministic local actions to the protocol;
-4. execute ready `ExecutionDAG` nodes through a coordinator;
-5. persist node results, failures, and provenance;
-6. prove real node execution with focused tests.
-
-After this works, the project can migrate one real vertical slice out of the compatibility runtime. Only then should deletion continue inside `codex_conversation.py` or `run_local_pipeline_impl.py`.
+The offline acceptance target passed: one seeded repair used a Qwen-routed
+Agent and DeepSeek-routed Worker before real pytest, snapshot, and external
+acceptance. The increment is `PASS_WITH_LIMITS`: all paid Provider calls remain
+`NOT_EVALUATED` until the user starts the API Lab launcher and explicitly
+initiates a real test. The current desktop checkout also contains ignored
+service worktrees and legacy benchmark directories that make the root-level
+direction gate fail; committed-source verification is therefore run from a
+clean snapshot.
 
 ## Roadmap after the active increment
 

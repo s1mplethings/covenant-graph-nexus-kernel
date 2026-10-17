@@ -311,6 +311,8 @@ def reserve_call(
     estimated_input_tokens: int,
     requested_output_tokens: int,
     retry_count: int,
+    run_id: str | None = None,
+    provider: str | None = None,
 ) -> dict[str, Any] | None:
     """Reserve one live transport call before it is sent."""
     path = configured_ledger_path()
@@ -364,10 +366,10 @@ def reserve_call(
             raise ProviderBudgetExhausted("PROVIDER_BUDGET_EXHAUSTED: " + ",".join(exceeded))
         call = {
             "call_id": uuid.uuid4().hex,
-            "run_id": str(os.environ.get("CGKN_BENCHMARK_RUN_ID", "")),
+            "run_id": str(run_id if run_id is not None else os.environ.get("CGKN_BENCHMARK_RUN_ID", "")),
             "case_id": str(case_id or ""),
             "purpose": str(purpose or "provider_call"),
-            "provider": str(os.environ.get("CGKN_PROVIDER_NAME", "qwen") or "qwen"),
+            "provider": str(provider if provider is not None else (os.environ.get("CGKN_PROVIDER_NAME", "qwen") or "qwen")),
             "model": str(model or ""),
             "reserved_at": _now(),
             "request_started_at": None,

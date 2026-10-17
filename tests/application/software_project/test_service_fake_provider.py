@@ -53,3 +53,18 @@ def test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden
     assert (result.run_dir / "provider_usage.json").is_file()
     assert result.receipt["manual_intervention"] == 0
     assert client.agent_calls == 2 and client.worker_calls == 1
+
+
+def test_missing_provider_usage_is_not_reported_as_zero(tmp_path):
+    client = FakeClient()
+    original = client.complete
+
+    def without_usage(**kwargs):
+        completion = original(**kwargs)
+        return ProviderCompletion(completion.text, completion.model, completion.request_id, {})
+
+    client.complete = without_usage
+    result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client).run_case("seeded_repair", max_repair_rounds=0)
+    assert result.status is ProjectResultStatus.PASS
+    assert result.receipt["agent_input_tokens"] == "TOKEN_USAGE_UNAVAILABLE"
+    assert result.receipt["worker_output_tokens"] == "TOKEN_USAGE_UNAVAILABLE"

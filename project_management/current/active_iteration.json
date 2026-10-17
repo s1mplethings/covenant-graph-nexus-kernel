@@ -1,53 +1,91 @@
 {
-  "kind": "CGKNAdaptiveIteration", "schema_version": "1.0", "iteration_id": "ITER-014", "project_id": "cgkn",
-  "goal": "ITER-SECOND-PROJECT-MVP-CLOSURE-014: prove reusable L6 generation on a distinct persistent local JSON Notes CLI and close MVP readiness only from repeated real DAG evidence.",
-  "backlog_item_ids": ["PB-020"], "workflow_state": "closed", "evidence_status": "PASS",
+  "kind": "CGKNAdaptiveIteration",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-015",
+  "project_id": "cgkn",
+  "goal": "Integrate the independent loopback Provider gateway as a bounded CompletionClient and prove Qwen Agent plus DeepSeek Worker through real CGKN runtime and acceptance without exposing credentials or adding a second pipeline.",
+  "backlog_item_ids": [
+    "PB-021"
+  ],
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "local_json_notes compiles seventeen explicit obligations with complete public and hidden traceability",
-    "argparse subcommand contracts reject renamed commands, optionalized IDs, missing options, forbidden aliases, and function signature drift before workspace commit",
-    "stateful Oracles independently verify monotonic IDs, persistence, stable listing, exact tag filtering, show, delete, and error semantics",
-    "canonical contract tests are deterministically rendered from the ObligationSet and OraclePlan",
-    "fake Provider defects prove precommit correction, CORE ownership, affected-only repair, and CLI/DOCS reuse",
-    "one fixed qwen3.7-flash real DAG passes before two independent repeats establish at least two passes out of three"
+    "GatewayCompletionClient preserves system/user role boundaries, JSON Schema, limits, usage, request identity, and error categories",
+    "routing admits only qwen, deepseek, and grok, writes an immutable credential-free snapshot, and denies fallback",
+    "existing process-safe budget reservations block excess calls before transport and settle actual or unavailable usage",
+    "Agent MVP and SoftwareProjectGenerationService select the gateway only when explicitly enabled",
+    "one HTTP Mock Gateway run completes seeded repair through real DAG, pytest, snapshot, and external acceptance",
+    "affected regressions and the product direction gate pass"
   ],
   "quality_metrics": [
-    {"id": "QM-NOTES-TRACE", "measure": "obligation coverage", "target": "17/17 public and hidden bindings", "method": "preflight and traceability tests"},
-    {"id": "QM-NOTES-INTERFACE", "measure": "frozen public interface enforcement", "target": "all four functions and five CLI subcommands guarded", "method": "AST extraction and precommit guard tests"},
-    {"id": "QM-NOTES-STATE", "measure": "state transition coverage", "target": "ID sequence 1,2,delete 1,then 3 plus independent error scenario", "method": "JSON_STATE Oracle"},
-    {"id": "QM-NOTES-REPAIR", "measure": "affected-only reuse", "target": "CORE repair does not recall CLI or DOCS Provider jobs", "method": "fake Provider DAG integration"},
-    {"id": "QM-TEST-EFFICIENCY", "measure": "test scope and duration", "target": "Micro per edit, Fast per phase, one Full before Source Closure", "method": "governance/testing_efficiency.json"},
-    {"id": "QM-NOTES-REAL", "measure": "real Notes DAG reliability", "target": "at least 2/3 PASS within bounded proposals and repairs", "method": "fixed qwen3.7-flash receipts"}
+    {
+      "id": "QM-GATEWAY-ROUTING",
+      "measure": "role route accuracy",
+      "target": "observed qwen,deepseek,qwen sequence in the accepted seeded repair",
+      "method": "gateway E2E test"
+    },
+    {
+      "id": "QM-GATEWAY-FAIL-CLOSED",
+      "measure": "negative-path coverage",
+      "target": "auth, invalid model, stopped gateway, truncation, schema, 429, timeout, budget, fallback, and immutability covered",
+      "method": "provider gateway focused tests"
+    },
+    {
+      "id": "QM-GATEWAY-SECURITY",
+      "measure": "credential boundary",
+      "target": "no vendor key access and no gateway token in configuration, snapshots, exceptions, or repr",
+      "method": "security tests and repository scan"
+    },
+    {
+      "id": "QM-GATEWAY-REGRESSION",
+      "measure": "affected regression",
+      "target": "all applicable provider, Agent, Executor, runtime, state, application, acceptance, and contract tests pass",
+      "method": "pytest and direction gate"
+    }
   ],
   "quality_activities": {
-    "prevention": ["Freeze output, signatures, CLI shapes, ownership, and dependency policy before Provider generation"],
-    "assurance": ["Run compiler, extractor, guard, Oracle, contract-renderer, hidden-acceptance, and fake-DAG tests"],
-    "control": ["Use Micro, Fast, Promotion, one Full Closure, then freeze source before real Provider"],
-    "improvement": ["Demonstrate generalization from stateless CSV processing to persistent JSON state"]
+    "prevention": [
+      "Reuse CompletionClient, Provider budget, CapabilityTree, DAG, and acceptance authorities; add no alternate pipeline"
+    ],
+    "assurance": [
+      "Exercise protocol and failure behavior offline before any user-authorized paid call"
+    ],
+    "control": [
+      "Run focused gateway/E2E tests, affected regressions, direction gate, and secret-like scan"
+    ],
+    "improvement": [
+      "Record the smallest reusable lesson only after accepted runtime evidence"
+    ]
   },
   "interface_expectations": [
-    "Contract plus current state enters each capability and produces new state plus evidence",
-    "CLI and DOCS consume canonical contracts instead of guessing CORE implementation",
-    "local_packager remains the only delivery exit and no alternate generation mainline is added"
+    "API Lab owns vendor credentials and protocol conversion; CGKN sees only loopback URL, ephemeral token, and Provider IDs",
+    "Agent and Worker retain one CompletionClient contract while using independent role configurations",
+    "CapabilityTree, ExecutionDAG, bounded actions, acceptance, local_packager, and public delivery authorities are unchanged"
   ],
-  "evidence_refs": ["governance/current_baseline.json", "governance/second_project_status.json", "governance/mvp_readiness.json", "governance/testing_efficiency.json"],
+  "evidence_refs": [
+    "api-lab:46 passed and package build",
+    "pytest:194 passed,1 skipped affected regression",
+    "pytest:2169 passed,345 skipped,4 failed full regression"
+  ],
   "review": {
-    "outcome": "accepted",
+    "outcome": "accepted_with_limits",
     "feedback": [
-      "Three independent qwen3.7-flash Notes DAG runs passed without repair, manual edits, or whole-project replans.",
-      "The final Full Closure passed 2151 active tests with 350 skips and no failures or errors."
+      "HTTP mock gateway proved qwen Agent and deepseek Worker through Agent MVP and software-project acceptance.",
+      "Live Qwen, DeepSeek, and Grok credentials and paid interoperability remain NOT_EVALUATED."
     ],
-    "accepted_backlog_item_ids": ["PB-020"]
+    "accepted_backlog_item_ids": [
+      "PB-021"
+    ]
   },
   "retrospective": {
     "worked": [
-      "Frozen obligations, executable interfaces, stateful Oracles, and hidden acceptance prevented semantic drift.",
-      "Affected-only ownership preserved unrelated Provider outputs and kept repair bounded."
+      "Reusing CompletionClient, Provider budget, CapabilityTree, DAG, and acceptance boundaries kept the increment small and auditable."
     ],
     "did_not_work": [
-      "The first real run exposed missing CLI ownership for exact observable output and selected CORE for repair."
+      "The repository-root direction gate traversed ignored service worktrees and obsolete benchmark directories outside this branch identity."
     ],
     "experiments": [
-      "Routing step-zero add-output mismatch to WU-CLI and removing an internal next_id state assumption produced 3/3 clean independent passes."
+      "Run direction and source-bound evidence gates from a clean committed-source snapshot to exclude ignored desktop state."
     ]
   }
 }

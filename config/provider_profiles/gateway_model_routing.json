@@ -1,0 +1,22 @@
+{
+  "kind": "CGKNModelRouting",
+  "schema_version": "1.0",
+  "roles": {
+    "agent": {
+      "provider_id": "qwen",
+      "timeout_seconds": 90,
+      "max_output_tokens": 7000,
+      "temperature": 0.0,
+      "reasoning_effort": "none"
+    },
+    "worker": {
+      "provider_id": "deepseek",
+      "timeout_seconds": 90,
+      "max_output_tokens": 6000,
+      "temperature": 0.0,
+      "reasoning_effort": "none"
+    }
+  },
+  "allowed_providers": ["qwen", "deepseek", "grok"],
+  "fallback": "deny"
+}

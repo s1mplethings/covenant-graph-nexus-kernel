@@ -1187,6 +1187,58 @@
       "provider": true,
       "network": true
     },
+    "cgkn/providers/gateway_client.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary",
+        "fault_injection",
+        "security"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
+          "classes": ["boundary", "happy_path"]
+        },
+        {
+          "nodeid": "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
+          "classes": ["negative", "security"]
+        },
+        {
+          "nodeid": "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+          "classes": ["fault_injection"]
+        }
+      ],
+      "state": false,
+      "security": true,
+      "provider": true,
+      "network": true
+    },
+    "cgkn/providers/routing.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary",
+        "roundtrip",
+        "security"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
+          "classes": ["boundary", "happy_path", "roundtrip", "security"]
+        },
+        {
+          "nodeid": "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+          "classes": ["negative"]
+        }
+      ],
+      "state": true,
+      "security": true,
+      "provider": false,
+      "network": false
+    },
     "cgkn/runtime/cache.py": {
       "criticality": "P0",
       "required_classes": [

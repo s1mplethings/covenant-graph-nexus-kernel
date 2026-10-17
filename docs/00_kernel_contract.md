@@ -151,3 +151,27 @@ records the applicable receipts and regression profiles, and carries forward
 all protected guarantees. `removed_guarantees` must remain empty; a non-empty
 value is a `BREAKING_BASELINE_CHANGE` and requires human approval rather than
 automatic promotion.
+
+## 18. Local Provider gateway boundary
+
+`GatewayCompletionClient` is a transport adapter for the existing
+`CompletionClient` contract. It may connect only to an explicitly configured
+`http://127.0.0.1` API Lab gateway. The gateway's ephemeral bearer token is a
+process credential and must not enter routing configuration, run snapshots,
+project artifacts, logs, or repository state. Vendor API credentials remain
+owned exclusively by the independent API Lab.
+
+Agent and worker routes are Provider IDs (`qwen`, `deepseek`, or `grok`) in one
+validated `CGKNModelRouting`. A run writes one immutable
+`ModelRoutingSnapshot`; model output cannot modify that snapshot, select a URL,
+increase a budget, or request another Provider. Automatic cross-Provider
+fallback is denied. Gateway calls reserve from the existing process-safe
+Provider budget ledger before transport and settle actual usage when the
+gateway reports it; missing usage remains unavailable rather than becoming
+zero.
+
+The gateway gains no composition, execution, evidence, acceptance, packaging,
+or delivery authority. `CapabilityTree`, `ExecutionDAG`, bounded Executor
+validation, real tests, external acceptance, and the canonical delivery route
+remain unchanged. When gateway mode is not explicitly enabled, the reviewed
+`OpenAICompatibleClient` path remains the default.

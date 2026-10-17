@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 from cgkn.agent import AgentComposer, AgentProjectLoop
 from cgkn.execution import BlockExecutionRequest, TaskContext
 from cgkn.executors import ExecutorRegistry, FileExecutor, LLMExecutor, PythonTestExecutor
-from cgkn.providers import ModelRoleConfig, OpenAICompatibleClient
+from cgkn.providers import CGKNModelRouting, CompletionClient, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -41,7 +41,7 @@ def run_initial_test(project: pathlib.Path) -> dict:
     return {"returncode": completed.returncode, "stdout": completed.stdout[-4000:], "stderr": completed.stderr[-4000:]}
 
 
-def run_direct_baseline(root: pathlib.Path, client: OpenAICompatibleClient, high_model: ModelRoleConfig) -> dict:
+def run_direct_baseline(root: pathlib.Path, client: CompletionClient, high_model: ModelRoleConfig) -> dict:
     project = root / "baseline-project"
     shutil.copytree(ROOT / "examples" / "agent_mvp_bugfix", project)
     before = run_initial_test(project)
@@ -63,6 +63,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--benchmark", action="store_true", help="Also run a direct high-model baseline on a separate fixture copy")
+    parser.add_argument("--routing-config", type=pathlib.Path, default=ROOT / "config" / "provider_profiles" / "gateway_model_routing.json")
     args = parser.parse_args(argv)
     config = load_config(args.config)
     project = args.project_root.resolve() if args.project_root else (args.run_root / "project").resolve()
@@ -74,8 +75,15 @@ def main(argv: list[str] | None = None) -> int:
     initial_test = run_initial_test(project)
     run_id = f"agent-mvp-{uuid.uuid4().hex[:10]}"
     store = FileRunStore(args.run_root / "runs")
-    client = OpenAICompatibleClient()
-    agent_config, worker_config = role_config("agent", config["agent"]), role_config("worker", config["worker"])
+    client = completion_client_from_environment()
+    routing = CGKNModelRouting.load(args.routing_config) if isinstance(client, GatewayCompletionClient) else None
+    agent_config, worker_config = (
+        (routing.agent, routing.worker) if routing else (role_config("agent", config["agent"]), role_config("worker", config["worker"]))
+    )
+    if isinstance(client, GatewayCompletionClient):
+        client = client.bind_run(run_id, "agent-mvp")
+    if routing:
+        routing.snapshot(run_id).write_once(args.run_root / "model_routing_snapshot.json")
     registry = ExecutorRegistry()
     registry.register(FileExecutor(project))
     registry.register(LLMExecutor(project, client, worker_config))

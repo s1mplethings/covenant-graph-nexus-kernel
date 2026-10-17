@@ -118,3 +118,19 @@ def test_source_boundaries_and_baseline_ratchet_are_explicit() -> None:
     assert "experiments/semantic_artifact_design/receipts/" in boundaries
     assert "scripts/obligation_traceability_gate.py" in boundaries
     assert "governance/current_baseline.json" in read("scripts/baseline_ledger.py")
+
+
+def test_local_provider_gateway_is_only_a_bounded_completion_transport() -> None:
+    contract = read("docs/00_kernel_contract.md")
+    gateway = read("cgkn/providers/gateway_client.py")
+    routing = read("cgkn/providers/routing.py")
+    providers = read("cgkn/providers/__init__.py")
+    assert "transport adapter for the existing" in contract
+    assert "`CompletionClient` contract" in contract
+    assert "Automatic cross-Provider" in contract and "fallback is denied" in contract
+    assert "http://127.0.0.1" in contract
+    assert "OpenAICompatibleClient" in contract
+    assert 'parsed.hostname != "127.0.0.1"' in gateway
+    assert 'fallback != "deny"' in routing
+    assert "completion_client_from_environment" in providers
+    assert "CGKN_PROVIDER_GATEWAY_TOKEN" not in read("config/provider_profiles/gateway_model_routing.json")

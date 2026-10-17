@@ -216,12 +216,18 @@ class ScopedProjectLLMExecutor:
             return self._result(request, BlockStatus.FAILED, started, clock, {}, ExecutionError(code, str(exc)), usage, {"scope_failure": policy})
 
     def _usage(self, attempts: list[dict[str, Any]], context_chars: int) -> dict[str, Any]:
+        def total(name: str) -> int | str:
+            values = [item["usage"].get(name) for item in attempts]
+            if any(not isinstance(value, int) for value in values):
+                return "TOKEN_USAGE_UNAVAILABLE"
+            return sum(values)
+
         return {
             "model": self.config.model, "request_id": attempts[-1]["request_id"], "request_ids": [item["request_id"] for item in attempts],
             "provider_attempts": sum(int(item["transport_attempts"]) for item in attempts), "proposal_attempts": len(attempts), "context_chars": context_chars,
-            "prompt_tokens": sum(int(item["usage"].get("prompt_tokens", 0)) for item in attempts),
-            "completion_tokens": sum(int(item["usage"].get("completion_tokens", 0)) for item in attempts),
-            "total_tokens": sum(int(item["usage"].get("total_tokens", 0)) for item in attempts),
+            "prompt_tokens": total("prompt_tokens"),
+            "completion_tokens": total("completion_tokens"),
+            "total_tokens": total("total_tokens"),
         }
 
     @staticmethod

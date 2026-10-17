@@ -17,7 +17,14 @@ from typing import Any, Mapping
 from cgkn.agent import AgentProjectLoop
 from cgkn.agent.composer import AGENT_SCHEMA, AgentDecision, AgentDecisionContext, parse_agent_decision
 from cgkn.executors import CommandExecutor, ExecutorRegistry, FileExecutor, PythonTestExecutor
-from cgkn.providers import CompletionClient, ModelRoleConfig, OpenAICompatibleClient, parse_json_object
+from cgkn.providers import (
+    CGKNModelRouting,
+    CompletionClient,
+    GatewayCompletionClient,
+    ModelRoleConfig,
+    completion_client_from_environment,
+    parse_json_object,
+)
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -140,11 +147,21 @@ class GenerationRunResult:
 
 
 class SoftwareProjectGenerationService:
-    def __init__(self, repository_root: pathlib.Path | str, artifact_root: pathlib.Path | str, *, client: CompletionClient | None = None, config: Mapping[str, Any] | None = None):
+    def __init__(
+        self,
+        repository_root: pathlib.Path | str,
+        artifact_root: pathlib.Path | str,
+        *,
+        client: CompletionClient | None = None,
+        config: Mapping[str, Any] | None = None,
+        routing: CGKNModelRouting | None = None,
+    ):
         self.repository_root = pathlib.Path(repository_root).resolve()
         self.artifact_root = pathlib.Path(artifact_root).resolve()
-        self.client = client or OpenAICompatibleClient()
+        self.client = client or completion_client_from_environment()
         self.config = dict(config or {})
+        default_routing = self.repository_root / "config" / "provider_profiles" / "gateway_model_routing.json"
+        self.routing = routing or (CGKNModelRouting.load(default_routing) if isinstance(self.client, GatewayCompletionClient) else None)
         self.bundle = SoftwareProjectBundle.build()
         self.acceptance_root = self.repository_root / "benchmarks" / "real_project_generation" / "acceptance"
 
@@ -181,11 +198,14 @@ class SoftwareProjectGenerationService:
         worker = self._role("worker", config["cheap_worker"])
         if high.model == worker.model:
             raise ValueError("Agent and worker models must differ")
+        run_client: CompletionClient = self.client.bind_run(run_id, case.case_id) if isinstance(self.client, GatewayCompletionClient) else self.client
+        if self.routing:
+            self.routing.snapshot(run_id).write_once(run_dir / "model_routing_snapshot.json")
         registry = ExecutorRegistry()
         registry.register(FileExecutor(workspace))
         registry.register(CommandExecutor(workspace))
         registry.register(PythonTestExecutor(workspace))
-        registry.register(ScopedProjectLLMExecutor(workspace, self.client, worker))
+        registry.register(ScopedProjectLLMExecutor(workspace, run_client, worker))
         registry.register(ProjectSnapshotExecutor(workspace))
         registry.register(ExternalAcceptanceExecutor(workspace, self.acceptance_root))
         store = FileRunStore(self.artifact_root)
@@ -194,7 +214,7 @@ class SoftwareProjectGenerationService:
         initial_test = self._initial_test(workspace) if case.seeded_fixture else None
         goal = self._goal(case, round_number, failure_summary, workspace)
         catalog = self._catalog(case)
-        composer = SoftwareProjectAgentComposer(self.client, high)
+        composer = SoftwareProjectAgentComposer(run_client, high)
         loop = AgentProjectLoop(
             composer, DAGRunner(registry, store), store,
             known_capabilities=self.bundle.known_capabilities, worker_model=worker.model,
@@ -296,6 +316,12 @@ class SoftwareProjectGenerationService:
             "final_status": status.value, "sanitized_failure_summary": str(validation.get("sanitized_failure_summary", "")),
             "secrets_persisted": False,
         }
+        routing_path = run_dir / "model_routing_snapshot.json"
+        if routing_path.is_file():
+            routing_doc = json.loads(routing_path.read_text(encoding="utf-8"))
+            values["model_routing_snapshot_hash"] = canonical_hash(routing_doc)
+            values["model_routing_roles"] = dict(routing_doc.get("roles", {}))
+            values["model_routing_fallback"] = routing_doc.get("fallback", "deny")
         return ProjectGenerationReceipt(values).as_dict()
 
     @staticmethod
@@ -327,20 +353,32 @@ class SoftwareProjectGenerationService:
         }
 
     @staticmethod
-    def _token_totals(rows: list[dict[str, Any]]) -> dict[str, int]:
-        totals = {"agent_input_tokens": 0, "agent_output_tokens": 0, "worker_input_tokens": 0, "worker_output_tokens": 0, "context_chars": 0}
+    def _token_totals(rows: list[dict[str, Any]]) -> dict[str, int | str]:
+        totals: dict[str, int | str] = {"agent_input_tokens": 0, "agent_output_tokens": 0, "worker_input_tokens": 0, "worker_output_tokens": 0, "context_chars": 0}
+        availability = {"agent_input_tokens": True, "agent_output_tokens": True, "worker_input_tokens": True, "worker_output_tokens": True}
         for row in rows:
             role = str(row.get("role", ""))
             usage = row.get("usage", row)
             if not isinstance(usage, Mapping):
                 continue
             if role == "agent":
-                totals["agent_input_tokens"] += int(usage.get("prompt_tokens", 0))
-                totals["agent_output_tokens"] += int(usage.get("completion_tokens", 0))
+                for target, source in (("agent_input_tokens", "prompt_tokens"), ("agent_output_tokens", "completion_tokens")):
+                    value = usage.get(source)
+                    if isinstance(value, int):
+                        totals[target] = int(totals[target]) + value
+                    else:
+                        availability[target] = False
             elif role == "worker":
-                totals["worker_input_tokens"] += int(usage.get("prompt_tokens", 0))
-                totals["worker_output_tokens"] += int(usage.get("completion_tokens", 0))
-                totals["context_chars"] += int(usage.get("context_chars", 0))
+                for target, source in (("worker_input_tokens", "prompt_tokens"), ("worker_output_tokens", "completion_tokens")):
+                    value = usage.get(source)
+                    if isinstance(value, int):
+                        totals[target] = int(totals[target]) + value
+                    else:
+                        availability[target] = False
+                totals["context_chars"] = int(totals["context_chars"]) + int(usage.get("context_chars", 0))
+        for key, complete in availability.items():
+            if not complete:
+                totals[key] = "TOKEN_USAGE_UNAVAILABLE"
         return totals
 
     @staticmethod
@@ -366,11 +404,23 @@ class SoftwareProjectGenerationService:
         return catalog
 
     def _resolved_config(self) -> dict[str, Any]:
-        return {
+        resolved = {
             "high_capability_agent": {"model": "qwen3.8-max", "timeout_seconds": 90, "max_output_tokens": 7000, "reasoning_effort": "none"},
             "cheap_worker": {"model": "qwen3.7-flash", "timeout_seconds": 90, "max_output_tokens": 6000, "temperature": 0.0, "reasoning_effort": "none"},
             "max_agent_decisions": 4,
         } | self.config
+        if self.routing:
+            def role(value: ModelRoleConfig) -> dict[str, Any]:
+                return {
+                    "model": value.model,
+                    "timeout_seconds": value.timeout_seconds,
+                    "max_output_tokens": value.max_output_tokens,
+                    "temperature": value.temperature,
+                    "reasoning_effort": value.reasoning_effort,
+                }
+            resolved["high_capability_agent"] = role(self.routing.agent)
+            resolved["cheap_worker"] = role(self.routing.worker)
+        return resolved
 
     @staticmethod
     def _role(role: str, value: Mapping[str, Any]) -> ModelRoleConfig:
