@@ -66,3 +66,11 @@ def test_declared_dependency_must_be_invoked(tmp_path: Path):
     dependent = CapabilitySpec("dependent", "1", "dependent", {}, {}, ({"input":"x","output":"x","runtime":{"dependency_results":{"text.slugify@1":"x"}}},), ("uses dependency",), allowed_dependencies=("text.slugify@1",))
     receipt = service.build(tmp_path / "candidates", dependent)
     assert receipt.status == "FAIL" and not receipt.admitted
+
+
+def test_runtime_materializes_frozen_json_object_before_candidate_call(tmp_path: Path):
+    code = 'def execute(value):\n    return {"is_dict": isinstance(value, dict), "value": value["name"]}\n'
+    object_spec = CapabilitySpec("object.echo", "1", "echo object", {}, {}, ({"input":{"name":"ok"},"output":{"is_dict":True,"value":"ok"}},), ("receives JSON object",))
+    service = CapabilityBuilderService(FakeClient(code), ModelRoleConfig("worker", "grok", 30, 1000, 0, "low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=CapabilityStore(tmp_path / "store"))
+    receipt = service.build(tmp_path / "candidates", object_spec)
+    assert receipt.status == "PASS" and receipt.execution_passed and receipt.admitted

@@ -121,11 +121,12 @@ class GeneratedCapabilityExecutor:
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
         try:
+            value = materialize_json(request.input_values.get("value"))
             parameter_count = len(inspect.signature(self.module.execute).parameters)
             if parameter_count == 1:
-                output = self.module.execute(request.input_values.get("value"))
+                output = self.module.execute(value)
             elif parameter_count == 2 and self.runtime_context is not None:
-                output = self.module.execute(request.input_values.get("value"), self.runtime_context)
+                output = self.module.execute(value, self.runtime_context)
             else:
                 raise TypeError("candidate execute must accept value or value plus bounded runtime context")
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs={"result": output}, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter()-clock)*1000))
