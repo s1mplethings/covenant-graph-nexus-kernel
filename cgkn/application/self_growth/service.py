@@ -22,6 +22,7 @@ class GrowthFailureClass(str, Enum):
     BUILD_FAILED = "BUILD_FAILED"
     CANDIDATE_NOT_STORED = "CANDIDATE_NOT_STORED"
     RESUME_FAILED = "RESUME_FAILED"
+    PUBLIC_NETWORK_BLOCKED = "PUBLIC_NETWORK_BLOCKED"
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,9 @@ class SelfGrowthService:
         result = executor.execute(request)
         registry.record_execution_evidence(descriptor.ref, result.succeeded)
         if not result.succeeded:
-            return self._failure(spec, GrowthFailureClass.RESUME_FAILED, not reused, calls)
+            message = result.error.message if result.error else ""
+            failure = GrowthFailureClass.PUBLIC_NETWORK_BLOCKED if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK and any(marker in message.lower() for marker in ("public address", "public addresses", "https", "redirect")) else GrowthFailureClass.RESUME_FAILED
+            return SelfGrowthOutcome(spec.ref, self.provider_id, True, not reused, not reused, reused, calls, True, False, None, "FAIL", failure.value)
         return SelfGrowthOutcome(spec.ref, self.provider_id, True, not reused, not reused, reused, calls, True, True, materialize_json(result.outputs.get("result")), "PASS")
 
     def _load_registered(self, spec: CapabilitySpec) -> tuple[CapabilityPackage, CapabilityRegistry]:

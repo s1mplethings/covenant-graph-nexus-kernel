@@ -104,7 +104,7 @@ def _receipt(spec: CapabilitySpec, first: Any, reuse: Any, store: CapabilityStor
         "package_hash": admission.get("source_hash", ""), "risk_class": spec.risk.value,
         "provider_id": "grok", "provider_calls": first.provider_calls,
         "repair_rounds": max(0, first.provider_calls - 1), "tests": "PASS" if first.status == "PASS" else "FAIL",
-        "oracle": "PASS" if first.status == "PASS" else "FAIL", "admission": "ADMITTED" if first.admitted else "REJECTED",
+        "oracle": "PASS" if first.status == "PASS" else first.failure_class, "admission": "ADMITTED" if store.contains(spec.ref) else "REJECTED",
         "registry": "REGISTERED" if store.contains(spec.ref) else "ABSENT",
         "first_execution": first.status, "reuse_execution": reuse.status,
         "reuse_growth_calls": int(reuse.growth_invoked), "reuse_builder_calls": int(reuse.builder_invoked),
@@ -135,14 +135,17 @@ def run(output_root: pathlib.Path, seed_store: pathlib.Path) -> dict[str, Any]:
         ({"owner":"octocat","repo":"Hello-World"}, {"owner":"octocat","repo":"Hello-World"}),
         ({"diff_text":"diff --git a/app.py b/app.py\n--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-old\n+new\n"}, {"diff_text":"diff --git a/old.txt b/old.txt\ndeleted file mode 100644\n"}),
     )
-    for spec, (first_input, reuse_input) in zip(specs, inputs):
+    web_execution_passed = False
+    for index, (spec, (first_input, reuse_input)) in enumerate(zip(specs, inputs)):
+        if index == 1 and not web_execution_passed:
+            continue
         first = growth.ensure_and_resume(output_root / "candidates", spec, first_input)
         reuse = growth.ensure_and_resume(output_root / "unused", spec, reuse_input) if first.status == "PASS" else first
         row = _receipt(spec, first, reuse, store)
         (output_root / f"{spec.capability_id.replace('.', '-')}-1-receipt.json").write_text(json.dumps(row, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         rows.append(row)
-        if spec.capability_id == "web.fetch.public" and first.status != "PASS":
-            break
+        if spec.capability_id == "web.fetch.public":
+            web_execution_passed = first.status == "PASS"
 
     admitted = [row["capability_ref"] for row in rows if row["admission"] == "ADMITTED"]
     runtime = StoredCapabilityRuntime(store, provider_id="grok", network_public=PublicNetworkClient())
