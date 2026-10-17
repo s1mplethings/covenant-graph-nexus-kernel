@@ -30,5 +30,6 @@
     "local_packager remains the only delivery exit and no alternate generation mainline is added"
   ],
   "evidence_refs": ["governance/current_baseline.json", "governance/second_project_status.json", "governance/mvp_readiness.json", "governance/testing_efficiency.json"],
-  "review": null, "retrospective": null
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }
