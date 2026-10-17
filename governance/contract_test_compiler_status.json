@@ -1,0 +1,46 @@
+{
+  "kind": "CGKNContractTestCompilerStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-DETERMINISTIC-CONTRACT-TESTS-012",
+  "source_commit": "754c62052135f48a97c24b4ad7b64051caf977d9",
+  "source_tree_sha": "9c80265dec0e460a3ac41a905430fd2ccf2eab76",
+  "status": "COMPLETE",
+  "evidence_status": "PASS",
+  "authority": {
+    "inputs": ["ObligationSet", "OraclePlan", "DependencyPolicy"],
+    "output": ["ContractTestPlan", "tests/test_contract_csv_cleaner.py", "tests/contract_test_manifest.json"],
+    "provider_calls": 0,
+    "network_calls": 0,
+    "hidden_acceptance_access": false
+  },
+  "hashes": {
+    "obligation_set_hash": "sha256:a174d7698a7759aa737b024fdd0c8d821af56cb76b46c6d7a826764588d1638c",
+    "oracle_plan_hash": "sha256:2c2aa0556c14e469b180d25cccff2c5928b861b881000464d0c00a657c093d0e",
+    "contract_test_plan_hash": "sha256:af0968504bed5615061c107f9d995173a28c7a20f40f2586e2cbb9a0f4f0a605",
+    "source_hash": "sha256:2d21dbf154ec65d644e3adb19b1c1c4be7c46869ce902fe29308add487fbd3b1",
+    "manifest_hash": "sha256:a369dc9be6258a6a5ab1a6fad5b85edac7d23340ddc49b62911dbb0e93d6ea07",
+    "fingerprint": "sha256:117c1cdbd84950a5bc3a67ec43a7243ad4f8294dff4056c9fb57af2d7e4995ac"
+  },
+  "coverage": {"contract_tests": 10, "required_oracles": 10, "traceability": "COMPLETE"},
+  "preview_contract": {
+    "stdout": "header plus exactly the first cleaned row",
+    "output_file": "complete cleaned output",
+    "regression_status": "PASS"
+  },
+  "validation": {
+    "targeted": "86 passed",
+    "fast_baseline": "PASS",
+    "full_baseline": "PASS: 2129 passed, 350 skipped, 0 failed, 0 errors",
+    "fake_correct_source": "PASS",
+    "fake_source_defect_repair": "PASS"
+  },
+  "real_dag": {
+    "compiler_status": "PASS",
+    "manifest_status": "PASS",
+    "canonical_pytest": "FAIL",
+    "oracle_status": "FAIL",
+    "agreement": "SOURCE_DEFECT",
+    "project_mutation_from_framework_disagreement": false
+  },
+  "receipt_hash": "sha256:7430717eb3185d6632f6ceaadcb3f9064597f49f7fe176820c7053426535c6f4"
+}

@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "ITER-DETERMINISTIC-CONTRACT-TESTS-012: replace the mandatory LLM Test Worker with deterministic canonical contract tests compiled from the existing ObligationSet and OraclePlan.",
   "backlog_item_ids": ["PB-018"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
     "BASELINE-ORACLE-006 remains reproducible before implementation",
     "the CSV ObligationSet and OraclePlan deterministically compile to self-contained public contract tests and a tamper-evident manifest",
@@ -36,6 +36,26 @@
     "governance/contract_test_compiler_status.json",
     "governance/execution_strategy_comparison.json"
   ],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["Compile public contract tests from the same immutable OraclePlan used by independent execution."]}
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Contract Test Compilation is COMPLETE and removed the mandatory Provider-authored test path.",
+      "Real DAG single failed after two bounded WU-CORE repairs because the generated CLI retained optional -o/--output instead of the required positional output.",
+      "Repeat and Direct comparison are not authorized."
+    ],
+    "accepted_backlog_item_ids": ["PB-018"]
+  },
+  "retrospective": {
+    "worked": [
+      "Canonical pytest and independent Oracle agreed on the same source defect.",
+      "The preview assertion now distinguishes subset stdout from complete output-file content.",
+      "No Provider authored or repaired mandatory tests."
+    ],
+    "did_not_work": [
+      "qwen3.7-flash did not restore the positional output CLI contract within two WU-CORE repairs.",
+      "Resume re-executed WU-DOCS on the second successful source repair instead of retaining strict affected-only Provider reuse.",
+      "DAG result JSON materialization remained shallow for nested immutable evidence."
+    ],
+    "experiments": ["Compile public contract tests from the same immutable OraclePlan used by independent execution."]
+  }
 }
