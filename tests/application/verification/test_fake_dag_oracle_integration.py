@@ -6,12 +6,10 @@ from typing import Any, Mapping
 
 from cgkn.application.requirements import ObligationDAGService
 from cgkn.providers import ModelRoleConfig, ProviderCompletion
-from tests.application.requirements.test_work_unit_dag import CORE, MAIN, TESTS
+from tests.application.requirements.test_work_unit_dag import CORE, MAIN
 
 
 README = "# CSV Cleaner\n\nUse `python -m csv_cleaner INPUT OUTPUT [--dedupe-column COLUMN] [--fill VALUE] [--preview N]`.\n"
-BROKEN_TESTS = "def test_generated_but_incorrect():\n    assert False, 'generated test defect'\n"
-WEAK_TESTS = "def test_smoke_only():\n    assert True\n"
 BROKEN_FILL_CORE = CORE.replace(
     'row = {name: fill if raw.get(name, "") == "" and fill else raw.get(name, "") for name in fields}',
     'row = {name: raw.get(name, "") for name in fields}',
@@ -35,12 +33,6 @@ class SeededOracleProvider:
                 {"action": "write_file", "path": "csv_cleaner/__main__.py", "content": MAIN},
                 {"action": "write_file", "path": "csv_cleaner/core.py", "content": core},
             ]
-        elif node == "WU-TESTS":
-            if self.defect == "tests":
-                content = TESTS if repairing else BROKEN_TESTS
-            else:
-                content = WEAK_TESTS
-            actions = [{"action": "write_file", "path": "tests/test_csv_cleaner.py", "content": content}]
         else:
             actions = [{"action": "write_file", "path": "README.md", "content": README}]
         value = {
@@ -55,17 +47,17 @@ def count(provider: SeededOracleProvider, node: str) -> int:
     return sum(item["node_id"] == node for item in provider.calls)
 
 
-def test_oracle_pass_public_test_fail_repairs_only_tests_and_reuses_core(tmp_path: Path) -> None:
-    provider = SeededOracleProvider("tests")
+def test_canonical_contract_tests_replace_provider_test_worker(tmp_path: Path) -> None:
+    provider = SeededOracleProvider("none")
     result = ObligationDAGService(Path.cwd(), provider, ModelRoleConfig("worker", "fake-worker")).run_csv(
         tmp_path / "workspace", tmp_path / "run"
     )
     assert result.status == "PASS"
     assert result.public_pytest == result.oracle_status == result.hidden_acceptance == "PASS"
-    assert result.repair_owners == ("WU-TESTS",)
+    assert result.repair_owners == ()
     assert count(provider, "WU-CORE") == 1
-    assert count(provider, "WU-TESTS") == 2
-    assert "WU-CORE" in result.reused_work_units
+    assert count(provider, "WU-TESTS") == 0
+    assert result.contract_test_status == "PASS"
 
 
 def test_oracle_fail_weak_public_test_repairs_core(tmp_path: Path) -> None:
@@ -77,4 +69,7 @@ def test_oracle_fail_weak_public_test_repairs_core(tmp_path: Path) -> None:
     assert result.public_pytest == result.oracle_status == result.hidden_acceptance == "PASS"
     assert result.repair_owners[0] == "WU-CORE"
     assert count(provider, "WU-CORE") == 2
+    assert count(provider, "WU-TESTS") == 0
+    assert result.contract_test_reused is True
+    assert "CONTRACT-TESTS" in result.reused_work_units
     assert any(item["status"] == "PASS" for item in result.oracle_evidence)

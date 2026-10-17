@@ -20,6 +20,6 @@ def test_renderer_is_self_contained_and_deterministic() -> None:
 
 def test_preview_regression_requires_subset_stdout_and_full_output() -> None:
     source = artifact().source
-    assert 'result.stdout))) == [[\'id\', \'name\', \'city\'], [\'1\', \'Ada\', \'\']]' in source
+    assert 'row for row in csv.reader(io.StringIO(result.stdout)) if row] == [[\'id\', \'name\', \'city\'], [\'1\', \'Ada\', \'\']]' in source
     assert "output_rows == [['id', 'name', 'city'], ['1', 'Ada', ''], ['2', 'Lin', 'Paris']]" in source
     assert "stdout must contain full" not in source.lower()

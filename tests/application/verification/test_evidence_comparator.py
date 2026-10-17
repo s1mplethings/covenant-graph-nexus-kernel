@@ -127,3 +127,26 @@ def test_documentation_oracle_failure_routes_to_docs_work_unit() -> None:
     assert result.failure_class is FailureClass.SOURCE_DEFECT
     assert result.owner_work_unit == "WU-DOCS"
     assert result.allowed_repair_scope == ("README.md",)
+
+
+def test_canonical_test_disagreement_is_framework_owned_and_cannot_mutate_project() -> None:
+    compiler_defect = EvidenceComparator().compare(
+        oracle(OracleStatus.PASS),
+        PublicTestEvidence(
+            "EVIDENCE-CANONICAL-FAIL", PublicTestStatus.FAIL,
+            ("OBL-CSV-FILL-EMPTY",), ("TEST-CONTRACT-FILL",),
+            evidence_authority="CANONICAL_CONTRACT",
+        ),
+    )
+    assert compiler_defect.failure_class is FailureClass.FRAMEWORK_TEST_COMPILER_DEFECT
+    assert compiler_defect.owner_work_unit is None
+    coverage_defect = EvidenceComparator().compare(
+        oracle(OracleStatus.FAIL),
+        PublicTestEvidence(
+            "EVIDENCE-CANONICAL-PASS", PublicTestStatus.PASS,
+            ("OBL-CSV-FILL-EMPTY",), ("TEST-CONTRACT-FILL",),
+            evidence_authority="CANONICAL_CONTRACT",
+        ),
+    )
+    assert coverage_defect.failure_class is FailureClass.FRAMEWORK_TEST_COVERAGE_DEFECT
+    assert coverage_defect.owner_work_unit is None

@@ -89,8 +89,6 @@ class FakeObligationProvider:
                 {"action": "write_file", "path": "csv_cleaner/__main__.py", "content": MAIN},
                 {"action": "write_file", "path": "csv_cleaner/core.py", "content": CORE},
             ]
-        elif node == "WU-TESTS":
-            actions = [{"action": "write_file", "path": "tests/test_csv_cleaner.py", "content": TESTS}]
         else:
             actions = [{"action": "write_file", "path": "README.md", "content": "# CSV Cleaner\n\nUse `python -m csv_cleaner INPUT OUTPUT [--dedupe-column COLUMN] [--fill VALUE] [--preview N]`.\n"}]
         value = {"schema_version": "1.0", "node_id": node, "summary": "implemented declared obligations", "actions": actions, "expected_outputs": ["contract satisfied"], "confidence": 1.0, "needs_escalation": False, "escalation_reason": ""}
@@ -112,10 +110,12 @@ def test_fake_provider_dag_passes_compile_public_runtime_and_hidden(tmp_path) ->
     provider = FakeObligationProvider()
     result = ObligationDAGService(pathlib.Path.cwd(), provider, ModelRoleConfig("worker", "fake-worker")).run_csv(tmp_path / "workspace", tmp_path / "runs")
     assert result.status == "PASS"
-    assert result.provider_calls == 3
+    assert result.provider_calls == 2
     assert (tmp_path / "runs" / "obligation_preflight.json").is_file()
     assert all(call["obligations"] and call["work_unit_contract"] for call in provider.calls)
-    assert "import pytest" in (tmp_path / "workspace" / "tests/test_csv_cleaner.py").read_text(encoding="utf-8")
+    assert "import pytest" in (tmp_path / "workspace" / "tests/test_contract_csv_cleaner.py").read_text(encoding="utf-8")
+    assert (tmp_path / "workspace" / "tests" / "contract_test_manifest.json").is_file()
+    assert {call["node_id"] for call in provider.calls} == {"WU-CORE", "WU-DOCS"}
 
 
 def test_dependency_policy_allows_pytest_for_tests_but_rejects_runtime(tmp_path) -> None:

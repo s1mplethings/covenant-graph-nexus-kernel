@@ -17,7 +17,6 @@ from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
 from .csv import compile_csv_cleaner
 from .execution import _ScopeAdapter, validate_dependency_actions
 from .receipt import write_obligation_preflight
-from .test_plan import TestPlanCompiler
 from .work_unit import compile_csv_work_units
 
 
@@ -53,7 +52,7 @@ class DirectAgentResult:
 class DirectAgentService:
     """One bounded high-capability project edit followed by non-bypassable gates."""
 
-    TARGETS = ("csv_cleaner/__init__.py", "csv_cleaner/__main__.py", "csv_cleaner/core.py", "tests/test_csv_cleaner.py", "README.md")
+    TARGETS = ("csv_cleaner/__init__.py", "csv_cleaner/__main__.py", "csv_cleaner/core.py", "README.md")
 
     def __init__(self, repository_root: pathlib.Path, client: CompletionClient, agent: ModelRoleConfig):
         if agent.role != "agent":
@@ -66,6 +65,7 @@ class DirectAgentService:
         workspace.mkdir(parents=True, exist_ok=True); run_root.mkdir(parents=True, exist_ok=True)
         compilation = compile_csv_cleaner()
         from cgkn.application.verification import (
+            ContractTestCompiler, ContractTestRenderer, ContractTestValidator,
             EvidenceComparator, OracleEvidence, OracleExecutor, OraclePlanCompiler,
             OracleStatus, PublicTestEvidence, PublicTestStatus,
         )
@@ -77,14 +77,13 @@ class DirectAgentService:
             "strategy": "DIRECT_AGENT",
             "obligations": compilation.obligations.as_dict(),
             "dependency_policy": next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy),
-            "test_plan": TestPlanCompiler().compile(compilation.obligations).as_dict(),
-            "work_unit_contracts": [item.as_dict() for item in compile_csv_work_units(compilation)],
+            "work_unit_contracts": [item.as_dict() for item in compile_csv_work_units(compilation) if item.work_unit_id != "WU-TESTS"],
             "target_paths": list(self.TARGETS),
             "rule": "write the complete bounded project; do not add requirements or dependencies",
         }
         policy = next(item.dependency_policy for item in compilation.obligations.obligations if item.dependency_policy)
         oracle_plan = OraclePlanCompiler().compile_csv(compilation.obligations, policy)
-        units = {item.work_unit_id: item for item in compile_csv_work_units(compilation)}
+        units = {item.work_unit_id: item for item in compile_csv_work_units(compilation) if item.work_unit_id != "WU-TESTS"}
         provider_calls = 0
         tokens = 0
         repair_rounds = 0
@@ -108,6 +107,21 @@ class DirectAgentService:
             ScopedFileTransaction(workspace, scope).apply(proposal["actions"])
 
         apply_provider(prompt, self.TARGETS)
+        contract_plan = ContractTestCompiler().compile(compilation.obligations, oracle_plan, policy)
+        contract_artifact = ContractTestRenderer().render(contract_plan, policy)
+        contract_validation = ContractTestValidator().validate(
+            contract_plan, contract_artifact.manifest, contract_artifact.source,
+            compilation.obligations, oracle_plan, policy,
+        )
+        if contract_validation.status != "PASS":
+            raise ValueError("contract test validation failed: " + ",".join(contract_validation.errors))
+        contract_target = workspace / contract_artifact.path
+        contract_target.parent.mkdir(parents=True, exist_ok=True)
+        contract_target.write_text(contract_artifact.source, encoding="utf-8")
+        (workspace / "tests" / "contract_test_manifest.json").write_text(
+            json.dumps(contract_artifact.manifest.as_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         gate_env = os.environ.copy(); gate_env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
         commands = (
             [sys.executable, "-m", "compileall", "-q", "."],
@@ -141,6 +155,7 @@ class DirectAgentService:
                 all_obligations, ("PUBLIC-PYTEST",), return_code=gate_results[1].returncode,
                 stdout_summary=pytest_stdout[-2000:], stderr_summary=pytest_stderr[-2000:],
                 setup_status="FAIL" if setup_failed else "PASS",
+                evidence_authority="CANONICAL_CONTRACT",
             )
             failure = EvidenceComparator().compare(selected, public, dependency_policy=policy)
             owner = failure.effective_owner

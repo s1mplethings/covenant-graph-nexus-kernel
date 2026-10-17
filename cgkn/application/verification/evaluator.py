@@ -24,6 +24,8 @@ class FailureClass(str, Enum):
     DEPENDENCY_POLICY_DEFECT = "DEPENDENCY_POLICY_DEFECT"
     HARNESS_FAILURE = "HARNESS_FAILURE"
     CONTRACT_GAP = "CONTRACT_GAP"
+    FRAMEWORK_TEST_COMPILER_DEFECT = "FRAMEWORK_TEST_COMPILER_DEFECT"
+    FRAMEWORK_TEST_COVERAGE_DEFECT = "FRAMEWORK_TEST_COVERAGE_DEFECT"
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,7 @@ class PublicTestEvidence:
     stderr_summary: str = ""
     setup_status: str = "PASS"
     first_project_frame: str | None = None
+    evidence_authority: str = "PROVIDER_PUBLIC"
     schema_version: str = "1.0"
 
     def __post_init__(self) -> None:
@@ -46,6 +49,8 @@ class PublicTestEvidence:
             raise ValueError("PublicTestEvidence requires stable identity, tests, and obligations")
         if self.setup_status not in {"PASS", "FAIL"}:
             raise ValueError("public test setup_status must be PASS or FAIL")
+        if self.evidence_authority not in {"PROVIDER_PUBLIC", "CANONICAL_CONTRACT"}:
+            raise ValueError("unsupported public test evidence authority")
 
     def as_dict(self) -> dict[str, Any]:
         value = {
@@ -53,7 +58,8 @@ class PublicTestEvidence:
             "obligation_ids": list(self.obligation_ids), "test_ids": list(self.test_ids),
             "return_code": self.return_code, "stdout_summary": self.stdout_summary,
             "stderr_summary": self.stderr_summary, "setup_status": self.setup_status,
-            "first_project_frame": self.first_project_frame, "schema_version": self.schema_version,
+            "first_project_frame": self.first_project_frame, "evidence_authority": self.evidence_authority,
+            "schema_version": self.schema_version,
         }
         return value | {"evidence_hash": canonical_hash(value)}
 
@@ -84,7 +90,10 @@ class FailureEvidence:
         object.__setattr__(self, "observed", self.observed if isinstance(self.observed, FrozenMapping) else FrozenMapping(self.observed))
         if self.owner_override and not self.override_reason:
             raise ValueError("owner override requires a recorded reason")
-        if self.failure_class in {FailureClass.HARNESS_FAILURE, FailureClass.CONTRACT_GAP, FailureClass.CONSISTENT_PASS} and self.owner_work_unit is not None:
+        if self.failure_class in {
+            FailureClass.HARNESS_FAILURE, FailureClass.CONTRACT_GAP, FailureClass.CONSISTENT_PASS,
+            FailureClass.FRAMEWORK_TEST_COMPILER_DEFECT, FailureClass.FRAMEWORK_TEST_COVERAGE_DEFECT,
+        } and self.owner_work_unit is not None:
             raise ValueError("non-project failure cannot own a project WorkUnit")
 
     @property
@@ -150,18 +159,24 @@ class EvidenceComparator:
             gap = False
             basis = ("oracle=PASS", "public_test=PASS")
         elif oracle.status is OracleStatus.PASS and public.status is not PublicTestStatus.PASS:
-            failure_class = FailureClass.TEST_DEFECT
-            owner = "WU-TESTS"
+            canonical = public.evidence_authority == "CANONICAL_CONTRACT"
+            failure_class = FailureClass.FRAMEWORK_TEST_COMPILER_DEFECT if canonical else FailureClass.TEST_DEFECT
+            owner = None if canonical else "WU-TESTS"
             gap = False
-            basis = ("oracle=PASS", f"public_test={public.status.value}", "implementation satisfies independent Oracle")
+            basis = ("oracle=PASS", f"public_test={public.status.value}",
+                     "canonical contract compiler defect" if canonical else "implementation satisfies independent Oracle")
         elif oracle.status is OracleStatus.FAIL and public.status is PublicTestStatus.PASS:
-            failure_class = FailureClass.DEPENDENCY_POLICY_DEFECT if dependency_failure else FailureClass.SOURCE_DEFECT
-            owner = project_owner()
+            canonical = public.evidence_authority == "CANONICAL_CONTRACT"
+            failure_class = FailureClass.FRAMEWORK_TEST_COVERAGE_DEFECT if canonical else (
+                FailureClass.DEPENDENCY_POLICY_DEFECT if dependency_failure else FailureClass.SOURCE_DEFECT
+            )
+            owner = None if canonical else project_owner()
             gap = True
-            basis = ("oracle=FAIL", "public_test=PASS", "PUBLIC_TEST_COVERAGE_GAP")
+            basis = ("oracle=FAIL", "public_test=PASS", "CANONICAL_TEST_COVERAGE_GAP" if canonical else "PUBLIC_TEST_COVERAGE_GAP")
         elif public.setup_status == "FAIL":
-            failure_class = FailureClass.MIXED
-            owner = "WU-TESTS"
+            canonical = public.evidence_authority == "CANONICAL_CONTRACT"
+            failure_class = FailureClass.FRAMEWORK_TEST_COMPILER_DEFECT if canonical else FailureClass.MIXED
+            owner = None if canonical else "WU-TESTS"
             gap = True
             basis = ("oracle=FAIL", "public_test_setup=FAIL", "source and test setup require separate resolution")
         elif common:
