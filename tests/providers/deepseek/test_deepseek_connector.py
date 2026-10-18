@@ -5,6 +5,7 @@ import json
 import pytest
 
 from cgkn.providers import DeepSeekConnector, ModelRoleConfig, ProviderConnectionError, StructuredOutputMode
+from cgkn.providers.structured_output import parse_and_validate, resolve_credential, sanitize_vendor_text
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
 
@@ -65,4 +66,26 @@ def test_deepseek_probe_leaves_room_for_reasoning_before_json(monkeypatch) -> No
     health = connector.probe_connection()
     assert health.eligible is True
     assert calls[-1]["max_tokens"] == 256
+
+
+def test_local_schema_validation_rejects_malformed_and_nonconforming_json() -> None:
+    schema = {
+        "type": "object",
+        "properties": {"ok": {"type": "boolean"}},
+        "required": ["ok"],
+        "additionalProperties": False,
+    }
+    with pytest.raises(ProviderConnectionError, match="SCHEMA_FAILURE"):
+        parse_and_validate("not-json", schema)
+    with pytest.raises(ProviderConnectionError, match="SCHEMA_FAILURE"):
+        parse_and_validate('{"ok":"yes"}', schema)
+
+
+def test_vendor_text_and_credential_resolution_are_fail_closed() -> None:
+    assert sanitize_vendor_text("token=secret", ["secret"]) == "token=[REDACTED]"
+    assert len(sanitize_vendor_text("x" * 1200)) == 1000
+    assert resolve_credential({"PRIMARY": " value "}, "PRIMARY", "LEGACY") == ("value", True)
+    assert resolve_credential({}, "PRIMARY", "LEGACY") == ("", False)
+    with pytest.raises(ProviderConnectionError, match="CONFIG_CONFLICT"):
+        resolve_credential({"PRIMARY": "one", "LEGACY": "two"}, "PRIMARY", "LEGACY")
 
