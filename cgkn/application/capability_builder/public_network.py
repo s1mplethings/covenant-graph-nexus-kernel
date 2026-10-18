@@ -206,7 +206,7 @@ def _default_proxy_transport(
     raw = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
     try:
         authority = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
-        raw.sendall((f"CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\nProxy-Connection: close\r\n\r\n").encode("ascii"))
+        raw.sendall((f"CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\nProxy-Connection: Keep-Alive\r\n\r\n").encode("ascii"))
         received = bytearray()
         while b"\r\n\r\n" not in received and len(received) <= 8192:
             chunk = raw.recv(1024)
