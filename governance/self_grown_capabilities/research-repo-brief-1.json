@@ -1,0 +1,23 @@
+{
+  "kind": "SelfGrownCapabilityReceipt",
+  "schema_version": "1.0",
+  "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+  "capability_ref": "research.repo.brief@1",
+  "risk": "READ_ONLY_PUBLIC_NETWORK_COMPOSITE",
+  "dependencies": [
+    "github.repo.inspect.public@1",
+    "web.fetch.public@1",
+    "markdown.links.extract@1"
+  ],
+  "provider": "grok",
+  "routing_mode": "SINGLE_PROVIDER_MODE",
+  "fallback": "deny",
+  "provider_calls": 2,
+  "initial_call": "FAILED_NO_RESPONSE",
+  "bounded_repair": "FAILED_NO_RESPONSE",
+  "candidate_returned": false,
+  "manual_candidate_edits": 0,
+  "admission": "NOT_ATTEMPTED_NO_CANDIDATE",
+  "status": "BUILD_FAILED_PROVIDER_CONNECTION",
+  "contains_credentials": false
+}

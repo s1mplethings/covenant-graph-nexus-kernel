@@ -1,52 +1,47 @@
 {
-  "kind": "CGKNHigherOrderGrowthStatus",
+  "kind": "HigherOrderGrowthStatus",
   "schema_version": "1.0",
-  "iteration_id": "ITER-HIGHER-ORDER-SELF-GROWTH-020",
-  "base_commit": "efb6d504665ee2c6bbcf8cb8d0c60a70adb8bbd9",
-  "protected_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
-  "status": "SELF_GROWN_REGISTRY_REGRESSION",
-  "completion": "STOPPED_AT_EXISTING_REGISTRY_HEALTH",
-  "existing_registry_health": [
-    {
-      "capability_ref": "web.fetch.public@1",
-      "registry": "HIT",
-      "execution": "PASS",
-      "growth_calls": 0,
-      "builder_calls": 0,
-      "admission_calls": 0
-    },
-    {
-      "capability_ref": "github.repo.inspect.public@1",
-      "registry": "HIT",
-      "execution": "FAIL",
-      "failure_detail": "public GitHub repository fetch failed"
-    },
-    {
-      "capability_ref": "markdown.links.extract@1",
-      "registry": "HIT",
-      "execution": "PASS",
-      "growth_calls": 0,
-      "builder_calls": 0,
-      "admission_calls": 0
-    },
-    {
-      "capability_ref": "release.notes.from_diff@1",
-      "registry": "HIT",
-      "execution": "PASS",
-      "growth_calls": 0,
-      "builder_calls": 0,
-      "admission_calls": 0
-    }
-  ],
-  "stop_condition": "A",
-  "higher_order_builds_attempted": [],
-  "provider_calls": 0,
-  "manual_candidate_edits": 0,
-  "unsafe_admissions": 0,
+  "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+  "parent_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "source_commit": "8bfc4725f967c3d9a7d0aa842447110b3f0d5b2b",
+  "status": "HIGHER_ORDER_GROWTH_PARTIAL",
+  "health_classification": {
+    "registry": "PASS",
+    "package": "PASS",
+    "dependency": "PASS",
+    "external": "BLOCKED_EXTERNAL_GITHUB_RATE_LIMITED"
+  },
+  "dependency_framework": "PASS",
+  "research_repo_brief": "BUILD_FAILED_PROVIDER_CONNECTION",
+  "research_compare_repos": "NOT_ATTEMPTED_STOP_CONDITION_C",
+  "composition": "NOT_RUN_UPSTREAM_CAPABILITY_UNAVAILABLE",
+  "provider_usage": {
+    "grok_calls": 2,
+    "successful_responses": 0,
+    "reserved_input_tokens": 3002,
+    "reserved_output_tokens": 6000,
+    "actual_tokens": "UNAVAILABLE",
+    "estimated_cost_upper_bound": 0.042004,
+    "qwen": "DISABLED_BLOCKED_ENVIRONMENT",
+    "deepseek": "DISABLED_BLOCKED_CREDENTIAL"
+  },
+  "tests": {
+    "micro_and_small_regression": {"passed": 34, "failed": 0},
+    "product_direction_gate": "PASS",
+    "full": "NOT_RUN_BY_POLICY"
+  },
+  "security": {
+    "raw_network_guard": "PASS",
+    "undeclared_dependency_guard": "PASS",
+    "cycle_guard": "PASS",
+    "risk_propagation_guard": "PASS",
+    "hash_drift_guard": "PASS",
+    "unsafe_admissions": 0,
+    "manual_candidate_edits": 0
+  },
   "baseline_promotion": "NOT_PROMOTED",
-  "current_baseline_unchanged": true,
-  "kernel_receipt": "UNCHANGED",
-  "application_receipt": "STALE_UNCHANGED_BY_POLICY",
-  "full_regression": "NOT_RUN_BY_POLICY",
+  "current_baseline_unchanged": "BASELINE-SELF-GROWN-LEAVES-001",
+  "stop_condition": "C",
+  "full": "NOT_RUN_BY_POLICY",
   "contains_credentials": false
 }

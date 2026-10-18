@@ -1,0 +1,25 @@
+{
+  "kind": "ExternalDependencyHealthStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+  "source_commit": "8bfc4725f967c3d9a7d0aa842447110b3f0d5b2b",
+  "local_health": {
+    "web.fetch.public@1": {"registry": "PASS", "package": "PASS", "dependency": "PASS"},
+    "github.repo.inspect.public@1": {"registry": "PASS", "package": "PASS", "dependency": "PASS"},
+    "markdown.links.extract@1": {"registry": "PASS", "package": "PASS", "dependency": "PASS"},
+    "release.notes.from_diff@1": {"registry": "PASS", "package": "PASS", "dependency": "PASS"}
+  },
+  "github_probe": {
+    "target": "octocat/Hello-World",
+    "initial": {"status_code": 403, "classification": "GITHUB_RATE_LIMITED"},
+    "bounded_retry": {"status_code": 403, "classification": "GITHUB_RATE_LIMITED"},
+    "rate_limit_evidence_present": true,
+    "proxy_mode": "TRUSTED_LOCAL_PROXY",
+    "response_body_saved": false,
+    "final": "BLOCKED_EXTERNAL"
+  },
+  "local_capability_health": "HEALTHY",
+  "registry_regression": false,
+  "classification_correction": "The ITER-020 failure was external availability degradation, not a registry, package, or dependency regression.",
+  "contains_credentials": false
+}
