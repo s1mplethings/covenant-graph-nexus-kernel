@@ -2,61 +2,52 @@
   "kind": "CGKNProviderEvaluationStatus",
   "schema_version": "1.0",
   "iteration_id": "ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016",
-  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
+  "source_commit": "0b95bfcef15f86c3c21b093709ab635df670d77a",
   "protected_baseline": "BASELINE-PROVIDER-GATEWAY-001",
-  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "status": "PROVIDER_SELECTION_NEEDS_REWORK",
   "benchmark_version": "provider-micro-suite-v1",
   "benchmark_suite_hash": "sha256:8ed356d285a3b02b6e97f1533a761110a3c6f4f56664044190768954360dc197",
   "selection_policy_version": "provider-selection-v1",
+  "routing_config_hash": "sha256:6f1b84990882181414915619c705016a75a6e8771a4da838c95103933764b2a1",
+  "run_id": "provider-benchmark-cf100d7dd0f3",
   "providers": [
     {
-      "provider_id": "qwen",
-      "actual_model": "qwen3.8-max",
-      "catalog_probe": "HTTP_ERROR",
-      "structured_output_probe": "TRANSPORT_FAILURE",
-      "sanitized_failure": "provider_authentication_failed: HTTP 401 invalid_api_key",
-      "eligible": false
-    },
-    {
       "provider_id": "deepseek",
-      "actual_models_tested": ["deepseek-v4-pro", "deepseek-flash"],
-      "catalog_probe": "PASS",
-      "catalog_models": ["deepseek-flash", "deepseek-v4-pro"],
-      "structured_output_probe": "TRANSPORT_FAILURE",
-      "sanitized_failure": "HTTP 400: json_schema response_format unavailable",
-      "eligible": false
+      "actual_model": "deepseek-flash",
+      "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE",
+      "eligible_task_classes": ["agent.composition", "structured.output", "worker.codegen"],
+      "ineligible_task_classes": ["worker.repair"],
+      "repair_failure_classes": {"SCOPE_FAILURE": 1}
     },
     {
       "provider_id": "grok",
       "actual_model": "grok-4.7",
-      "catalog_probe": "HTTP_ERROR",
-      "structured_output_probe": "TRANSPORT_FAILURE",
-      "sanitized_failure": "HTTP 401 incorrect API key",
-      "eligible": false
+      "structured_output_mode": "NATIVE_JSON_SCHEMA",
+      "eligible_task_classes": ["agent.composition", "structured.output", "worker.codegen", "worker.repair"],
+      "repair_failure_classes": {"TRANSPORT_FAILURE": 1}
     }
   ],
   "live_evidence": {
-    "catalog_probe_calls": 3,
-    "benchmark_and_diagnostic_transport_calls": 7,
-    "successful_benchmark_receipts": 0,
-    "eligible_provider_count": 0,
-    "cost_estimate": "UNAVAILABLE",
+    "logical_benchmark_calls": 16,
+    "completed_calls": 16,
+    "successful_calls": 15,
+    "transport_failed_calls": 1,
+    "estimated_cost_usd": 0.061476,
+    "unknown_cost_calls": 0,
     "credentials_persisted": false,
     "gateway_tokens_persisted": false,
     "silent_fallback": false
   },
   "tests": {
-    "micro": "48 passed, 2 skipped",
-    "fast": "81 passed, 2 skipped",
-    "promotion": "127 passed, 2 skipped",
+    "focused": "68 passed, 2 skipped",
+    "promotion_like": "129 passed, 2 skipped",
     "compileall": "PASS",
     "product_direction_gate": "PASS",
     "kernel_architecture_gate": "PASS",
     "test_architecture_gate": "PASS",
-    "baseline_ledger": "PASS",
-    "full": "NOT_RUN_STOP_CONDITION_A"
+    "full": "PASS: 3484 passed, 356 skipped, 0 failed; live-provider BLOCKED_ENVIRONMENT"
   },
   "stop_condition": "A",
-  "next_required_action": "Replace or repair at least two vendor credentials and ensure their configured chat-completions models accept the fixed json_schema contract, then rerun the unchanged suite.",
+  "next_required_action": "Repair worker.repair reliability until at least two Providers produce eligible evidence under the unchanged suite, then rerun the complete fixed benchmark without cherry-picking results.",
   "contains_credentials": false
 }

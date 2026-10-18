@@ -1,11 +1,80 @@
 {
   "kind": "CGKNProviderCapabilityProfiles",
   "schema_version": "1.0",
-  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
+  "source_commit": "0b95bfcef15f86c3c21b093709ab635df670d77a",
   "benchmark_suite_hash": "sha256:8ed356d285a3b02b6e97f1533a761110a3c6f4f56664044190768954360dc197",
+  "routing_config_hash": "sha256:6f1b84990882181414915619c705016a75a6e8771a4da838c95103933764b2a1",
   "selection_policy_version": "provider-selection-v1",
-  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
-  "profiles": [],
-  "reason": "No Provider completed the fixed structured-output preflight, so no capability profile may be inferred.",
+  "status": "PROVIDER_SELECTION_NEEDS_REWORK",
+  "profiles": [
+    {
+      "provider_id": "deepseek", "actual_model": "deepseek-flash", "task_class": "agent.composition",
+      "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 521.5, "median_cost_usd": 0.00027795, "median_latency_ms": 1298.5,
+      "profile_hash": "sha256:48651a3a2a2e22858e4dc46e818154248d45a04b6025f9775374aa72c7141901"
+    },
+    {
+      "provider_id": "grok", "actual_model": "grok-4.7", "task_class": "agent.composition",
+      "structured_output_mode": "NATIVE_JSON_SCHEMA", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 1843.5, "median_cost_usd": 0.004701, "median_latency_ms": 8302.0,
+      "profile_hash": "sha256:1d2e256d95161959dd9308af76a0d415052a0b8be432b9c36b1fdd21bdf34fb2"
+    },
+    {
+      "provider_id": "deepseek", "actual_model": "deepseek-flash", "task_class": "structured.output",
+      "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 387.5, "median_cost_usd": 0.00026205, "median_latency_ms": 1932.0,
+      "profile_hash": "sha256:8ab7423cde15d2a1b2704da6bbedec07d480e76928c4b37a3a3ede56f4057f07"
+    },
+    {
+      "provider_id": "grok", "actual_model": "grok-4.7", "task_class": "structured.output",
+      "structured_output_mode": "NATIVE_JSON_SCHEMA", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 1638.0, "median_cost_usd": 0.00409, "median_latency_ms": 16983.5,
+      "profile_hash": "sha256:d3e6a199370f51138ec98b4316d5fca3d72df616d2f70e1cf320e7691bce5b48"
+    },
+    {
+      "provider_id": "deepseek", "actual_model": "deepseek-flash", "task_class": "worker.codegen",
+      "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 660.5, "median_cost_usd": 0.000546, "median_latency_ms": 2391.0,
+      "profile_hash": "sha256:1c725322e747243ec7cd2c3317e1f2ea6c37e8e7482b588b20f3a6933d77d7cb"
+    },
+    {
+      "provider_id": "grok", "actual_model": "grok-4.7", "task_class": "worker.codegen",
+      "structured_output_mode": "NATIVE_JSON_SCHEMA", "samples": 2, "eligible": true,
+      "functional_success_rate": 1.0, "repair_success_rate": 1.0, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 2048.5, "median_cost_usd": 0.006367, "median_latency_ms": 10895.0,
+      "profile_hash": "sha256:cfe1b42317d5f6d724d7234097c222402b5d955b8a38c8f837633205348caee0"
+    },
+    {
+      "provider_id": "deepseek", "actual_model": "deepseek-flash", "task_class": "worker.repair",
+      "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE", "samples": 2, "eligible": false,
+      "functional_success_rate": 0.5, "repair_success_rate": 0.5, "schema_success_rate": 1.0,
+      "interface_success_rate": 0.5, "scope_success_rate": 0.5,
+      "median_tokens": 591.0, "median_cost_usd": 0.0004419, "median_latency_ms": 1829.5,
+      "failure_classes": {"SCOPE_FAILURE": 1},
+      "ineligible_reasons": ["SCOPE_VIOLATION", "INTERFACE_VIOLATION"],
+      "profile_hash": "sha256:1f8fbbaea3d32922720a3c9a4f7b853c323c5af357f25d0f8392eab2ee281b6a"
+    },
+    {
+      "provider_id": "grok", "actual_model": "grok-4.7", "task_class": "worker.repair",
+      "structured_output_mode": "NATIVE_JSON_SCHEMA", "samples": 2, "eligible": true,
+      "functional_success_rate": 0.5, "repair_success_rate": 0.5, "schema_success_rate": 1.0,
+      "interface_success_rate": 1.0, "scope_success_rate": 1.0,
+      "median_tokens": 1770.0, "median_cost_usd": 0.004584, "median_latency_ms": 6518.5,
+      "failure_classes": {"TRANSPORT_FAILURE": 1},
+      "ineligible_reasons": [],
+      "profile_hash": "sha256:0eb36ae4601f0824013b9876e135ba47923ac2611d2ddabac5be0465ad856abc"
+    }
+  ],
   "contains_credentials": false
 }

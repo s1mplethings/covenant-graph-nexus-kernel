@@ -1,50 +1,55 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016",
+  "iteration_id": "ITER-016",
   "project_id": "cgkn",
   "goal": "Select task-specific Providers from fair real evidence before Repository Codegen, Capability Builder, and Self-Growth V1.",
   "backlog_item_ids": ["PB-022"],
-  "workflow_state": "blocked_environment",
-  "evidence_status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
-  "completed_phases": [
-    "Phase 0 Provider Baseline Closure",
-    "Phase 1 bounded offline evaluation substrate"
-  ],
-  "blocked_phase": "Phase 1 Live Provider Test",
+  "workflow_state": "reviewing",
+  "evidence_status": "NEEDS_REWORK",
   "acceptance_criteria": [
     "all candidates run the same prompt facts, schema, limits, retry policy, workspace, and acceptance",
     "profiles are task-specific and require two independent cases",
     "schema, scope, interface, and secret-safety failures make a profile ineligible",
     "selection is reliability-first and deterministic, with unknown cost excluded rather than treated as zero",
     "routing is frozen before a run and fallback remains deny",
-    "at least two Providers produce eligible real benchmark evidence"
+    "at least two Providers produce eligible real benchmark evidence for every required task class"
   ],
-  "review": {
-    "outcome": "blocked_environment",
-    "accepted": [
-      "BASELINE-PROVIDER-GATEWAY-001",
-      "bounded Provider evaluation contracts, suite, receipts, profiles, cache, selector, and routing snapshot",
-      "Micro, Fast, and Promotion regression evidence"
-    ],
-    "blocked": [
-      "Qwen credential rejected by vendor",
-      "Grok credential rejected by vendor",
-      "DeepSeek chat models reject json_schema response_format",
-      "zero eligible Providers; minimum is two"
-    ]
+  "quality_metrics": [
+    {"id": "eligible-providers", "measure": "eligible Providers per required task class", "target": "at least 2", "method": "fixed real benchmark suite"},
+    {"id": "schema-compliance", "measure": "schema compliance of eligible profiles", "target": "100%", "method": "local hidden evaluators"},
+    {"id": "secret-safety", "measure": "persisted credentials", "target": "0", "method": "receipt and tracked-file inspection"}
+  ],
+  "quality_activities": {
+    "prevention": ["fixed benchmark facts and deny fallback", "pre-call budget reservation"],
+    "assurance": ["two independent cases per task class", "source-bound kernel profiles"],
+    "control": ["schema, scope, interface, and secret hard gates", "immutable receipt retention"],
+    "improvement": ["repair worker.repair reliability before rerunning the unchanged suite"]
   },
-  "stop_condition": "A",
-  "blocked_successors": [
-    "BASELINE-PROVIDER-SELECTION-001",
-    "Repository Codegen",
-    "Capability Builder",
-    "Self-Growth V1"
+  "interface_expectations": [
+    "CompletionClient remains the common Provider boundary",
+    "routing snapshots are immutable and credential-free",
+    "no successor phase starts before two eligible repair candidates exist"
   ],
   "evidence_refs": [
     "governance/provider_evaluation_status.json",
     "governance/provider_capability_profiles.json",
     "governance/provider_selection_status.json",
     "project_management/summaries/ITER-016-adaptive-provider-evaluation.md"
-  ]
+  ],
+  "review": {
+    "outcome": "rejected",
+    "feedback": [
+      "DeepSeek and Grok are eligible for agent.composition and worker.codegen",
+      "worker.repair has only one eligible Provider and does not meet the minimum of two",
+      "no routing snapshot or Provider selection baseline was created",
+      "Repository Codegen, Capability Builder, and Self-Growth V1 remain blocked"
+    ],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": ["connector-backed fixed suite", "fail-closed profile eligibility", "budget and credential controls"],
+    "did_not_work": ["DeepSeek repair scope compliance", "Grok repair transport reliability"],
+    "experiments": ["rerun the unchanged complete suite only after repair reliability changes"]
+  }
 }

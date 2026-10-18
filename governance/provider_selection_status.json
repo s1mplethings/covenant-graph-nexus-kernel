@@ -1,24 +1,28 @@
 {
   "kind": "CGKNProviderSelectionStatus",
   "schema_version": "1.0",
-  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
-  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "source_commit": "0b95bfcef15f86c3c21b093709ab635df670d77a",
+  "status": "PROVIDER_SELECTION_NEEDS_REWORK",
   "minimum_required_eligible_providers": 2,
-  "eligible_provider_count": 0,
-  "decisions": [],
+  "providers": ["deepseek", "grok"],
+  "actual_models": {"deepseek": "deepseek-flash", "grok": "grok-4.7"},
   "task_class_winners": {
-    "agent.composition": "NOT_EVALUATED",
-    "worker.codegen": "NOT_EVALUATED",
-    "worker.repair": "NOT_EVALUATED",
+    "agent.composition": "deepseek",
+    "worker.codegen": "deepseek",
+    "worker.repair": "NOT_SELECTED",
     "capability.build": "NOT_EVALUATED"
   },
+  "eligible_provider_counts": {
+    "agent.composition": 2,
+    "worker.codegen": 2,
+    "worker.repair": 1
+  },
+  "missing_task_classes": ["worker.repair"],
   "routing_snapshot": "NOT_CREATED",
   "fallback": "deny",
   "baseline_created": false,
-  "blocked_successors": [
-    "Repository Codegen",
-    "Capability Builder",
-    "Self-Growth V1"
-  ],
+  "protected_baseline": "BASELINE-PROVIDER-GATEWAY-001",
+  "removed_guarantees": [],
+  "blocked_successors": ["Repository Codegen", "Capability Builder", "Self-Growth V1"],
   "contains_credentials": false
 }

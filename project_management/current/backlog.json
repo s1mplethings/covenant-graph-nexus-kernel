@@ -273,7 +273,7 @@
       "id": "PB-022",
       "title": "Evaluate and select Providers by task-specific evidence",
       "priority": 19,
-      "state": "blocked_environment",
+      "state": "needs_rework",
       "value": "Benchmark allowed Providers fairly, aggregate task-specific capability profiles, select deterministically, and freeze routing before each run.",
       "acceptance": [
         "at least two Providers produce eligible real evidence",
@@ -286,7 +286,7 @@
         "Capability Builder",
         "Self-Growth V1"
       ],
-      "evidence_status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT"
+      "evidence_status": "PROVIDER_SELECTION_NEEDS_REWORK"
     }
   ]
 }

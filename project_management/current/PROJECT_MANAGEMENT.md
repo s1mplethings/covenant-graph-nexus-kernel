@@ -28,12 +28,19 @@ application-layer Provider evaluation substrate. Evaluation is task-specific,
 reliability-first, credential-free, and separate from transport. Selection is
 pre-run only and every routing snapshot continues to deny fallback.
 
-The offline Micro, Fast, and Promotion scopes pass. Live preflight is
-`PROVIDER_SELECTION_BLOCKED_ENVIRONMENT`: Qwen and Grok credentials were
-rejected by their vendors, while both accessible DeepSeek models rejected the
-fixed JSON Schema response mode. No eligible profile or winner was inferred.
-Repository Codegen, Capability Builder, and Self-Growth V1 remain blocked by
-the explicit iteration stop condition.
+The connector-backed focused and promotion-like scopes pass. A fixed real
+benchmark completed 16 budgeted calls across DeepSeek `deepseek-flash` and
+Grok `grok-4.7`, with 15 successful calls and one transport failure. Both
+Providers are eligible for `agent.composition` and `worker.codegen`; DeepSeek
+is the evidence-based HIGH-confidence winner for both task classes.
+
+The overall result is `PROVIDER_SELECTION_NEEDS_REWORK` because
+`worker.repair` has only one eligible Provider. DeepSeek failed one of two
+repair cases with scope and interface violations, while Grok completed one of
+two repair cases after one transport failure. The unsuccessful result is
+retained without cherry-picking a later diagnostic. No routing snapshot or
+selection baseline was created. Repository Codegen, Capability Builder, and
+Self-Growth V1 remain blocked by explicit stop condition A.
 
 ## Roadmap after the active increment
 
