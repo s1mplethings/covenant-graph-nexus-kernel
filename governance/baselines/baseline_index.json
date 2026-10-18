@@ -1,7 +1,7 @@
 {
   "kind": "CGKNBaselineIndex",
   "schema_version": "1.0",
-  "current_baseline_id": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "current_baseline_id": "BASELINE-SELF-GROWN-LEAVES-001",
   "baselines": [
     {
       "baseline_id": "BASELINE-OBLIGATION-START",
@@ -55,6 +55,7 @@
     {"baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","parent_baseline_id":"BASELINE-PROVIDER-EVAL-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-CONNECTORS-001.json","baseline_hash":"sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"},
     {"baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","receipt":"governance/baselines/receipts/BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:bb730dbfd9e311629bd882a50c9ebcdfb15a443df80a0eb0b2ec80acc03d26a0"},
     {"baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:0bec58cae0f17bd042c026a066ecb7b98ad2c99d3e33b103e1aee58cebfdeb65"},
-    {"baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:58b60c2d99138884990253b3c048d7b1715636122b9bab2721161dbd7011335d"}
+    {"baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:58b60c2d99138884990253b3c048d7b1715636122b9bab2721161dbd7011335d"},
+    {"baseline_id":"BASELINE-SELF-GROWN-LEAVES-001","parent_baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWN-LEAVES-001.json","baseline_hash":"sha256:490af47b443cc0fd6bc370849f12f2e0ef9d3bbd400a448aba0c5fa8a7d1555a"}
   ]
 }
