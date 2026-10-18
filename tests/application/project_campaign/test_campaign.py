@@ -6,8 +6,9 @@ from pathlib import Path
 from cgkn.application.learning import FileLessonStore, ProductionGenerationClient, StoreLessonReader
 from cgkn.application.project_campaign import CampaignCompletionClient, MultiProjectCampaignService, campaign_matrix
 from cgkn.providers import ModelRoleConfig, ProviderCompletion
-from cgkn.execution import BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
-from cgkn.application.project_campaign.service import _repair_evidence
+from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
+from cgkn.application.project_campaign.service import _CoreExecutor, _repair_evidence
+from cgkn.providers import ProviderConnectionError
 from scripts.import_historical_lessons import import_lessons
 
 
@@ -113,6 +114,23 @@ def test_hidden_failure_evidence_is_withheld_from_provider():
     evidence=_repair_evidence('hidden',result)
     assert evidence['details']=='WITHHELD_BY_POLICY'
     assert 'secret' not in json.dumps(evidence)
+
+
+def test_provider_transport_failure_preserves_failure_domain_and_bounds_repair(tmp_path):
+    class ClosedTransport:
+        config=None
+        def complete(self,**kwargs):
+            self.config=kwargs['config']
+            raise ProviderConnectionError('PROVIDER_TRANSPORT_FAILURE','remote closed',outcome_unknown=False)
+    transport=ClosedTransport(); store=FileLessonStore(tmp_path/'lessons')
+    generation=ProductionGenerationClient(transport,StoreLessonReader(store),store=store,max_provider_calls=4)
+    case=campaign_matrix()[0]; workspace=tmp_path/'workspace'; workspace.mkdir()
+    executor=_CoreExecutor(case,workspace,generation,ModelRoleConfig('worker','grok',180,7000,0,'medium'))
+    request=BlockExecutionRequest('p','r','a','core-generate','c',executor.descriptor.executor_ref,TaskContext('repair',node_config={'failure_evidence':{'failure_code':'X'}}))
+    result=executor.execute(request)
+    assert result.error.details['failure_domain']=='PROVIDER_TRANSPORT_FAILURE'
+    assert result.retryable is True
+    assert transport.config.max_output_tokens==4000 and transport.config.reasoning_effort=='low'
 
 
 def test_fake_projects_grow_then_reuse_and_patch_existing_repo(tmp_path):

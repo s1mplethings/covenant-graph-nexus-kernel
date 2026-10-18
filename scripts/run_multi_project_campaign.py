@@ -21,7 +21,7 @@ CAMPAIGN_DIR = "ITER-MULTI-PROJECT-REAL-USAGE-026"
 EXPECTED_BRANCH = "codex/multi-project-real-usage-campaign-20261018"
 
 
-def run(output_root: pathlib.Path) -> dict:
+def run(output_root: pathlib.Path, *, rerun_project_ids: tuple[str, ...] = ()) -> dict:
     branch = _git("branch", "--show-current")
     if branch != EXPECTED_BRANCH:
         raise RuntimeError(f"campaign must run on {EXPECTED_BRANCH}, found {branch}")
@@ -41,13 +41,11 @@ def run(output_root: pathlib.Path) -> dict:
     generation = ProductionGenerationClient(ledger, StoreLessonReader(store), store=store, max_provider_calls=36)
     config = ModelRoleConfig("worker", "grok", 180, 7000, 0.0, "medium")
     _write_framework_fix(output_root, _git("rev-parse", "HEAD"))
-    return dict(MultiProjectCampaignService(ROOT, output_root, generation, config, campaign_matrix()).run())
+    return dict(MultiProjectCampaignService(ROOT, output_root, generation, config, campaign_matrix(), rerun_project_ids=rerun_project_ids).run())
 
 
 def _write_framework_fix(root: pathlib.Path, commit: str) -> None:
     path = root / "framework_fixes" / "FRAMEWORK-FIX-PYTEST-AUTOLOAD-001.json"
-    if path.is_file():
-        return
     value = {
         "kind": "CampaignFrameworkFix", "schema_version": "1.0", "fix_id": "FRAMEWORK-FIX-PYTEST-AUTOLOAD-001",
         "supporting_project_evidence": ["tests/application/project_campaign/test_campaign.py::test_campaign_harness_disables_unrelated_host_pytest_plugins"],
@@ -59,7 +57,20 @@ def _write_framework_fix(root: pathlib.Path, commit: str) -> None:
         "canary_result": "PASS", "source_commit": commit, "status": "VALIDATED", "contains_credentials": False,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if not path.is_file(): path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    transport = root / "framework_fixes" / "FRAMEWORK-FIX-REPAIR-TRANSPORT-002.json"
+    value = {
+        "kind":"CampaignFrameworkFix","schema_version":"1.0","fix_id":"FRAMEWORK-FIX-REPAIR-TRANSPORT-002",
+        "supporting_project_evidence":[f"artifacts/campaigns/{CAMPAIGN_DIR}/projects/text_stats_cli/project_receipt.json",f"artifacts/campaigns/{CAMPAIGN_DIR}/projects/json_flatten_cli/project_receipt.json"],
+        "root_cause":"Two independent repair requests used medium reasoning and a 7000-token output allowance, then the upstream transport closed at 118-135 seconds; transport errors were also collapsed into INVALID_OUTPUT.",
+        "failure_domain":"PROVIDER_TRANSPORT_FAILURE","failure_code":"REMOTE_END_CLOSED_REPAIR",
+        "affected_authority":"application campaign Provider error classification and bounded repair configuration",
+        "changed_paths":["cgkn/application/project_campaign/service.py","scripts/run_multi_project_campaign.py"],
+        "regression_test":"tests/application/project_campaign/test_campaign.py::test_provider_transport_failure_preserves_failure_domain",
+        "affected_projects_rerun":["text_stats_cli","json_flatten_cli"],"canary_result":"PENDING_CAMPAIGN_RESUME",
+        "source_commit":commit,"status":"VALIDATED_FOR_RERUN","contains_credentials":False,
+    }
+    transport.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _git(*args: str) -> str:
@@ -72,8 +83,9 @@ def _git(*args: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", type=pathlib.Path, default=ROOT / "artifacts" / "campaigns" / CAMPAIGN_DIR)
+    parser.add_argument("--rerun-project", action="append", default=[])
     args = parser.parse_args()
-    report = run(args.output_root.resolve())
+    report = run(args.output_root.resolve(), rerun_project_ids=tuple(args.rerun_project))
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if report["status"] != "MULTI_PROJECT_CAMPAIGN_NEEDS_REWORK" else 2
 

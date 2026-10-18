@@ -28,7 +28,7 @@ from cgkn.executors import ExecutorRegistry
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.executors.protocol import ExecutorDescriptor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
-from cgkn.providers import ModelRoleConfig, parse_json_object
+from cgkn.providers import ModelRoleConfig, ProviderConnectionError, parse_json_object
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -78,11 +78,12 @@ class _CoreExecutor:
             "failure_evidence": failure,
         }
         try:
+            model_config=replace(self.config,max_output_tokens=min(self.config.max_output_tokens,4000),reasoning_effort="low") if failure else self.config
             result = self.generation.generate(GenerationRequest(
                 "project.codegen", "REPAIR" if failure else "GENERATION", self.case.project_id,
                 f"campaign.{self.case.project_id}.core@1", self.config.model,
                 "Implement exactly the declared cohesive project core. Contracts are authoritative. Return complete JSON file actions for only target_paths. Runtime must use Python stdlib only and must not use network, shell, tests, hidden acceptance, metadata, campaign artifacts, or undeclared aliases.",
-                prompt, contract, current, failure, f"campaign_{self.case.project_id}_actions", WORKER_SCHEMA, self.config,
+                prompt, contract, current, failure, f"campaign_{self.case.project_id}_actions", WORKER_SCHEMA, model_config,
                 dependency_risk_policy=prompt["dependency_policy"], allowed_actions=("write_file","patch_file"),
                 forbidden_actions=("network","shell","test_write","metadata_write","hidden_acceptance"), run_id=request.run_id,
             ))
@@ -99,21 +100,26 @@ class _CoreExecutor:
             receipt = {"kind":"CampaignProjectGenerationReceipt","schema_version":"1.0","candidate_id":"candidate-"+source_hash[-16:],"candidate_revision_id":revision_id,"candidate_revision_path":revision_path,"source_hash":source_hash,"request_id":result.completion.request_id,"lesson_snapshot_hash":result.lesson_snapshot_hash,"applied_lesson_ids":list(result.applied_lesson_ids),"lesson_context_chars":result.lesson_context_chars,"generation_context_hash":result.generation_context_hash,"manual_edits":0,"contains_credentials":False}
             _write_json(self.workspace/"generation_receipt.json", receipt)
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs={**receipt,"modified_files":[item["path"] for item in writes]}, usage=dict(result.completion.usage), started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter()-clock)*1000))
+        except ProviderConnectionError as exc:
+            return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, f"{exc.error_class}: {exc}", {"failure_domain":exc.error_class,"outcome_unknown":exc.outcome_unknown,"timeout_phase":exc.timeout_phase or "NONE"}), retryable=not exc.outcome_unknown, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter()-clock)*1000))
         except Exception as exc:
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, f"{type(exc).__name__}: {exc}"), started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter()-clock)*1000))
 
 
 class MultiProjectCampaignService:
-    def __init__(self, repository_root: pathlib.Path | str, artifact_root: pathlib.Path | str, generation: ProductionGenerationClient, model_config: ModelRoleConfig, cases: Sequence[ProjectCase]):
+    def __init__(self, repository_root: pathlib.Path | str, artifact_root: pathlib.Path | str, generation: ProductionGenerationClient, model_config: ModelRoleConfig, cases: Sequence[ProjectCase], *, rerun_project_ids: Sequence[str] = ()):
         self.repository_root = pathlib.Path(repository_root).resolve(); self.root = pathlib.Path(artifact_root).resolve()
         self.generation, self.config, self.cases = generation, model_config, tuple(cases)
         self.shared_store = CapabilityStore(self.root/"capability_registry")
         self.source_commit = _git(self.repository_root, "rev-parse", "HEAD")
         self.provider_calls = self.input_tokens = self.output_tokens = self.cost_ticks = 0
         self.growth_count = self.reuse_count = 0
+        self.rerun_project_ids=frozenset(rerun_project_ids); self.interrupted_calls:dict[str,int]={}
 
     def run(self) -> Mapping[str, Any]:
         self.root.mkdir(parents=True, exist_ok=True)
+        self._recover_interrupted_projects()
+        self._prepare_reruns()
         _write_json(self.root/"project_matrix.json", self._matrix_document())
         existing = self._load_receipts()
         self._seed_counters(existing)
@@ -138,7 +144,7 @@ class MultiProjectCampaignService:
         return report
 
     def run_project(self, case: ProjectCase) -> Mapping[str, Any]:
-        started = time.perf_counter(); before_calls = self.generation.provider_call_count
+        started = time.perf_counter(); before_calls = self.generation.provider_call_count; prior_calls=self.interrupted_calls.get(case.project_id,0)
         before_usage = self._client_usage()
         project_root = self.root/"projects"/case.project_id; workspace = project_root/"workspace"
         workspace.mkdir(parents=True, exist_ok=True)
@@ -167,16 +173,24 @@ class MultiProjectCampaignService:
         repair_failure_code = ""
         if final.status != "SUCCEEDED":
             failed = next(iter(final.failed_nodes), "")
-            repairable = failed in {"core-generate","compile","pytest","oracle","hidden"}
-            if repairable and self.generation.provider_call_count-before_calls < 4:
+            failed_result=state.load_result(case.project_id,run_id,failed)
+            provider_failure=str(failed_result.error.details.get("failure_domain","")) if failed_result.error else ""
+            if provider_failure and failed_result.retryable and prior_calls+self.generation.provider_call_count-before_calls < 4:
+                final=runner.run(project_id=case.project_id,run_id=run_id,tree=tree,dag=dag,resume=True,retry_node="core-generate",constraints=("stdlib only","network forbidden","shell forbidden","routing frozen"))
+                failed = next(iter(final.failed_nodes), "") if final.status != "SUCCEEDED" else ""
+                failed_result=state.load_result(case.project_id,run_id,failed) if failed else failed_result
+                provider_failure=str(failed_result.error.details.get("failure_domain","")) if failed_result.error else ""
+            repairable = not provider_failure and failed in {"core-generate","compile","pytest","oracle","hidden"}
+            if final.status != "SUCCEEDED" and repairable and prior_calls+self.generation.provider_call_count-before_calls < 4:
                 repair_rounds=1; repair_failure_code=failed.upper().replace("-","_"); failure=_repair_evidence(failed,state.load_result(case.project_id,run_id,failed))
                 tree=self._tree(case,{"failure_domain":"CANDIDATE_DEFECT","failed_node":failed,"receipt":failure}); dag=compile_tree(tree)
                 final=runner.run(project_id=case.project_id,run_id=run_id,tree=tree,dag=dag,resume=True,retry_node="core-generate",constraints=("stdlib only","network forbidden","shell forbidden","routing frozen"))
-        calls=self.generation.provider_call_count-before_calls
+        calls=prior_calls+self.generation.provider_call_count-before_calls
         if calls > 4:
             raise RuntimeError("CRITICAL_PROVIDER_PROJECT_BUDGET_EXCEEDED")
         if final.status != "SUCCEEDED":
-            return self._failure(case,project_root,before_calls,started,"CANDIDATE_DEFECT:"+",".join(final.failed_nodes),grown,reused,repair_rounds,usage_before=before_usage,run_id=run_id,recorder=recorder)
+            domain=self._final_failure_domain(state,case,run_id,final.failed_nodes)
+            return self._failure(case,project_root,before_calls,started,domain,grown,reused,repair_rounds,usage_before=before_usage,run_id=run_id,recorder=recorder)
         core=state.load_result(case.project_id,run_id,"core-generate"); package=state.load_result(case.project_id,run_id,"package")
         usage=self._accumulate_usage(core,calls,before_usage)
         applied=tuple(core.outputs.get("applied_lesson_ids",()))
@@ -258,7 +272,7 @@ class MultiProjectCampaignService:
         return value
 
     def _failure(self,case:ProjectCase,root:pathlib.Path,before:int,started:float,domain:str,grown:Sequence[str],reused:Sequence[str],repairs:int=0,*,usage_before:Mapping[str,int]|None=None,run_id:str="",recorder:StoreLessonRecorder|None=None)->Mapping[str,Any]:
-        calls=self.generation.provider_call_count-before; usage=self._usage_delta(usage_before or {})
+        calls=self.interrupted_calls.get(case.project_id,0)+self.generation.provider_call_count-before; usage=self._usage_delta(usage_before or {})
         self.provider_calls+=calls; self.input_tokens+=usage["input_tokens"]; self.output_tokens+=usage["output_tokens"]; self.cost_ticks+=usage["cost_in_usd_ticks"]
         if recorder and run_id:
             recorder.record_event(self._event(run_id,case,None,domain.split(":",1)[-1],"FAIL",root))
@@ -289,12 +303,44 @@ class MultiProjectCampaignService:
 
     def _seed_counters(self,receipts:Mapping[str,Mapping[str,Any]])->None:
         if self.provider_calls or self.input_tokens or self.output_tokens or self.cost_ticks: return
-        self.provider_calls=sum(int(row.get("provider_calls",0)) for row in receipts.values())
-        self.input_tokens=sum(int(row.get("input_tokens",0)) for row in receipts.values())
-        self.output_tokens=sum(int(row.get("output_tokens",0)) for row in receipts.values())
-        self.cost_ticks=sum(int(row.get("cost_in_usd_ticks",0)) for row in receipts.values())
-        self.growth_count=sum(len(row.get("grown_capabilities",())) for row in receipts.values())
+        state=_read_json(self.root/"campaign_state.json")
+        self.provider_calls=int(state.get("provider_calls",sum(int(row.get("provider_calls",0)) for row in receipts.values())))+sum(self.interrupted_calls.values())
+        self.input_tokens=int(state.get("input_tokens",sum(int(row.get("input_tokens",0)) for row in receipts.values())))
+        self.output_tokens=int(state.get("output_tokens",sum(int(row.get("output_tokens",0)) for row in receipts.values())))
+        self.cost_ticks=int(state.get("cost_in_usd_ticks",sum(int(row.get("cost_in_usd_ticks",0)) for row in receipts.values())))
+        admissions=sum(1 for path in (self.root/"capability_registry").glob("*/admission.json"))
+        self.growth_count=max(admissions,sum(len(row.get("grown_capabilities",())) for row in receipts.values()))
         self.reuse_count=sum(len(row.get("reused_capabilities",())) for row in receipts.values())
+
+    def _recover_interrupted_projects(self)->None:
+        for case in self.cases:
+            root=self.root/"projects"/case.project_id
+            if not root.is_dir() or (root/"project_receipt.json").is_file(): continue
+            marker=root/"interrupted_run.json"
+            if marker.is_file():
+                self.interrupted_calls[case.project_id]=int(_read_json(marker).get("provider_calls",1)); continue
+            state_dirs=list((root/"state"/case.project_id).glob("*")) if (root/"state"/case.project_id).is_dir() else []
+            if state_dirs:
+                self.interrupted_calls[case.project_id]=1
+                _write_json(marker,{"kind":"CampaignInterruptedRun","schema_version":"1.0","project_id":case.project_id,"provider_calls":1,"outcome":"INTERRUPTED_UNKNOWN","retry_authorized":True,"recorded_at":utc_now(),"contains_credentials":False})
+
+    def _prepare_reruns(self)->None:
+        for project_id in self.rerun_project_ids:
+            root=self.root/"projects"/project_id
+            receipt=root/"project_receipt.json"
+            if not receipt.is_file(): continue
+            history=root/"rerun_history"/("run-"+str(int(time.time()*1000))); history.mkdir(parents=True)
+            for child in tuple(root.iterdir()):
+                if child.name=="rerun_history": continue
+                child.rename(history/child.name)
+
+    @staticmethod
+    def _final_failure_domain(state:FileRunStore,case:ProjectCase,run_id:str,failed_nodes:Sequence[str])->str:
+        for node in failed_nodes:
+            result=state.load_result(case.project_id,run_id,node)
+            domain=str(result.error.details.get("failure_domain","")) if result.error else ""
+            if domain: return domain+":"+node
+        return "CANDIDATE_DEFECT:"+",".join(failed_nodes)
 
     def _event(self,run_id:str,case:ProjectCase,core:BlockExecutionResult|None,failure_code:str,outcome:str,root:pathlib.Path)->LearningEvent:
         applied=tuple(core.outputs.get("applied_lesson_ids",())) if core else ()
@@ -476,6 +522,10 @@ def _write_json(path:pathlib.Path,value:Mapping[str,Any])->Mapping[str,Any]:
     finally:
         if os.path.exists(temp): os.unlink(temp)
     return value
+
+
+def _read_json(path:pathlib.Path)->dict[str,Any]:
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
 def _slug(ref:str)->str:
