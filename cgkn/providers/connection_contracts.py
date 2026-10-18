@@ -15,6 +15,36 @@ class StructuredOutputMode(str, Enum):
     PROMPT_JSON_LOCAL_VALIDATE = "PROMPT_JSON_LOCAL_VALIDATE"
 
 
+class ModelBindingSource(str, Enum):
+    PROFILE_PINNED = "PROFILE_PINNED"
+    CATALOG_VALIDATED = "CATALOG_VALIDATED"
+    RESPONSE_CONFIRMED = "RESPONSE_CONFIRMED"
+
+
+@dataclass(frozen=True)
+class ProviderModelBinding:
+    provider_id: str
+    requested_model: str
+    bound_model: str
+    binding_source: ModelBindingSource
+    profile_hash: str
+    catalog_status: str
+    data_plane_status: str
+    actual_model: str = ""
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    schema_version: str = "1.0"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "kind": "ProviderModelBinding", "schema_version": self.schema_version,
+            "provider_id": self.provider_id, "requested_model": self.requested_model,
+            "bound_model": self.bound_model, "binding_source": self.binding_source.value,
+            "profile_hash": self.profile_hash, "catalog_status": self.catalog_status,
+            "data_plane_status": self.data_plane_status, "actual_model": self.actual_model,
+            "created_at": self.created_at, "contains_credentials": False,
+        }
+
+
 class ProviderConnectionError(RuntimeError):
     def __init__(
         self,

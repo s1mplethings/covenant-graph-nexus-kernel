@@ -531,6 +531,8 @@ def finalize_call(
             "error_class", "outcome_unknown", "timeout_phase", "requested_timeout_seconds",
             "effective_timeout_seconds", "provider_default_timeout_seconds",
             "provider_max_timeout_seconds", "elapsed_ms",
+            "operation", "endpoint_class", "requested_model", "bound_model", "actual_model",
+            "binding_source", "catalog_status", "data_plane_status", "model_binding_status",
         ):
             if key in safe_evidence:
                 target[key] = safe_evidence[key]

@@ -30,11 +30,8 @@ def test_grok_rejects_management_endpoint_and_credential_conflict() -> None:
 
 def test_grok_responses_structured_path(monkeypatch) -> None:
     calls = []
-    replies = iter([
-        {"data": [{"id": "grok-4.7"}]},
-        {"id": "r1", "model": "grok-4.7", "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "{\"ok\":true}"}]}], "usage": {"input_tokens_details": {"cached_tokens": 0}}},
-    ])
-    def fake(req, timeout): calls.append((req.full_url, json.loads(req.data) if req.data else None, timeout)); return Response(next(replies))
+    reply = {"id": "r1", "model": "grok-4.7", "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "{\"ok\":true}"}]}], "usage": {"input_tokens_details": {"cached_tokens": 0}}}
+    def fake(req, timeout): calls.append((req.full_url, json.loads(req.data) if req.data else None, timeout)); return Response(reply)
     monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen", fake)
     connector = GrokConnector(PROFILE, environment={"XAI_API_KEY": "secret"})
     schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"], "additionalProperties": False}
@@ -45,6 +42,8 @@ def test_grok_responses_structured_path(monkeypatch) -> None:
     assert payload["text"]["format"] == {"type": "json_schema", "name": "probe", "strict": True, "schema": schema}
     assert payload["reasoning"] == {"effort": "low"}
     assert payload["store"] is False
+    assert len(calls) == 1 and all(not url.endswith("/models") for url,_,_ in calls)
+    assert result.usage["operation"] == "STRUCTURED_COMPLETION" and result.usage["endpoint_class"] == "DATA_PLANE"
 
 
 def test_legacy_timeout_loads_as_default() -> None:
@@ -71,15 +70,16 @@ def test_effective_timeout_resolution() -> None:
 def test_completion_uses_effective_timeout_and_catalog_uses_default(monkeypatch) -> None:
     calls = []
     replies = iter([
-        {"data":[{"id":"grok-4.7"}]},
         {"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{"input_tokens":2,"output_tokens":1}},
+        {"data":[{"id":"grok-4.7"}]},
     ])
     def fake(req, timeout): calls.append((req.full_url,timeout)); return Response(next(replies))
     monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",fake)
     connector = GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
     schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
     completion=connector.complete_structured(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
-    assert [timeout for _,timeout in calls] == [120,180]
+    connector.list_models()
+    assert [timeout for _,timeout in calls] == [180,120]
     assert completion.usage["requested_timeout_seconds"] == completion.usage["effective_timeout_seconds"] == 180
     assert completion.usage["provider_default_timeout_seconds"] == 120
     assert completion.usage["provider_max_timeout_seconds"] == 240
@@ -90,7 +90,7 @@ def test_timeout_before_headers_is_classified(monkeypatch) -> None:
     monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda *_args,**_kwargs: (_ for _ in ()).throw(TimeoutError("timed out")))
     connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
     with pytest.raises(ProviderConnectionError) as caught:
-        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180)
+        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180,operation="STRUCTURED_COMPLETION",endpoint_class="DATA_PLANE")
     assert caught.value.error_class == "PROVIDER_CONNECT_OR_HEADER_TIMEOUT"
     assert caught.value.timeout_phase == "CONNECT_OR_HEADER_TIMEOUT" and caught.value.outcome_unknown
     assert caught.value.evidence["effective_timeout_seconds"] == 180
@@ -102,7 +102,7 @@ def test_timeout_during_response_read_is_classified(monkeypatch) -> None:
     monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda *_args,**_kwargs: SlowResponse({}))
     connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
     with pytest.raises(ProviderConnectionError) as caught:
-        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180)
+        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180,operation="STRUCTURED_COMPLETION",endpoint_class="DATA_PLANE")
     assert caught.value.error_class == "PROVIDER_RESPONSE_READ_TIMEOUT"
     assert caught.value.timeout_phase == "RESPONSE_READ_TIMEOUT" and caught.value.outcome_unknown
 
@@ -111,4 +111,63 @@ def test_timeout_during_response_read_is_classified(monkeypatch) -> None:
 def test_grok_error_classification(status, message, expected) -> None:
     connector = GrokConnector(PROFILE, environment={"XAI_API_KEY": "secret"})
     assert connector.classify_error(http_status=status, message=message) == expected
+
+
+def test_profile_and_explicit_allowed_model_bind_without_catalog(monkeypatch) -> None:
+    connector=GrokConnector({**MODERN_PROFILE,"allowed_models":["grok-4.7-fast"]},environment={"XAI_API_KEY":"secret"})
+    monkeypatch.setattr(connector,"list_models",lambda: (_ for _ in ()).throw(AssertionError("catalog called")))
+    assert connector.resolve_pinned_model("grok").bound_model == "grok-4.7"
+    assert connector.resolve_pinned_model("grok-4.7-fast").bound_model == "grok-4.7-fast"
+    with pytest.raises(ProviderConnectionError,match="GROK_MODEL_NOT_ALLOWED"):
+        connector.resolve_pinned_model("unknown-model")
+
+
+def test_catalog_transport_failure_does_not_block_data_plane(monkeypatch) -> None:
+    calls=[]
+    def fake(req,timeout):
+        calls.append(req.full_url)
+        if req.full_url.endswith("/models"): raise OSError("catalog unavailable")
+        return Response({"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{}})
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",fake)
+    connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    with pytest.raises(ProviderConnectionError) as caught: connector.list_models()
+    assert caught.value.error_class == "PROVIDER_CATALOG_TRANSPORT_FAILURE"
+    schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
+    completion=connector.complete_structured(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
+    assert completion.usage["catalog_status"] == "DEGRADED_TRANSPORT" and completion.usage["data_plane_status"] == "PASS"
+    assert calls[-1].endswith("/responses")
+
+
+def test_probe_connection_reports_ready_with_catalog_degraded(monkeypatch) -> None:
+    def fake(req,timeout):
+        if req.full_url.endswith("/models"): raise OSError("catalog unavailable")
+        return Response({"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{}})
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",fake)
+    health=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"}).probe_connection()
+    assert health.eligible and health.catalog_status == "DEGRADED_TRANSPORT" and health.structured_output_status == "PASS"
+
+
+def test_response_alias_and_actual_model_are_recorded(monkeypatch) -> None:
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda req,timeout: Response({"id":"r1","model":"grok-4.7-20261018","output_text":"{\"ok\":true}","usage":{}}))
+    connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
+    result=connector.complete_structured(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
+    assert result.model == "grok-4.7-20261018" and result.usage["actual_model"] == result.model
+    assert result.usage["model_binding_status"] == "RESPONSE_MODEL_ALIAS" and result.usage["binding_source"] == "RESPONSE_CONFIRMED"
+
+
+def test_response_model_outside_binding_is_rejected(monkeypatch) -> None:
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda req,timeout: Response({"id":"r1","model":"unrelated-model","output_text":"{\"ok\":true}","usage":{}}))
+    connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
+    with pytest.raises(ProviderConnectionError,match="MODEL_BINDING_MISMATCH"):
+        connector.complete_structured(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
+
+
+def test_data_plane_only_probe_never_touches_catalog(monkeypatch) -> None:
+    urls=[]
+    def fake(req,timeout): urls.append(req.full_url); return Response({"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{}})
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",fake)
+    health=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"}).probe_data_plane_only()
+    assert health.eligible and len(urls) == 1 and urls[0].endswith("/responses")
 

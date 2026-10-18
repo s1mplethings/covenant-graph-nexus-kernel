@@ -70,7 +70,11 @@ def run(output: pathlib.Path) -> dict[str, object]:
             "provider_max_timeout_seconds":usage.get("provider_max_timeout_seconds"),
             "elapsed_ms":usage.get("elapsed_ms",int((time.monotonic()-started)*1000)),
             "reasoning_effort":"medium","schema_valid":passed,"request_id":completion.request_id,
-            "actual_model":completion.model,"usage":usage,"response_content_saved":False,"contains_credentials":False,
+            "operation":usage.get("operation"),"endpoint_class":usage.get("endpoint_class"),
+            "requested_model":usage.get("requested_model"),"bound_model":usage.get("bound_model"),
+            "actual_model":completion.model,"binding_source":usage.get("binding_source"),
+            "catalog_status":usage.get("catalog_status"),"data_plane_status":usage.get("data_plane_status"),
+            "catalog_calls":0,"data_plane_calls":1,"usage":usage,"response_content_saved":False,"contains_credentials":False,
         }
     except Exception as exc:
         result = {
@@ -78,7 +82,9 @@ def run(output: pathlib.Path) -> dict[str, object]:
             "provider":"grok","requested_timeout_seconds":180,"effective_timeout_seconds":getattr(exc,"evidence",{}).get("effective_timeout_seconds"),
             "elapsed_ms":getattr(exc,"evidence",{}).get("elapsed_ms",int((time.monotonic()-started)*1000)),
             "error_class":getattr(exc,"error_class",type(exc).__name__),"timeout_phase":getattr(exc,"timeout_phase",""),
-            "outcome_unknown":getattr(exc,"outcome_unknown",False),"response_content_saved":False,"contains_credentials":False,
+            "outcome_unknown":getattr(exc,"outcome_unknown",False),"operation":getattr(exc,"evidence",{}).get("operation"),
+            "endpoint_class":getattr(exc,"evidence",{}).get("endpoint_class"),"catalog_calls":0,"data_plane_calls":1,
+            "response_content_saved":False,"contains_credentials":False,
         }
     output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")

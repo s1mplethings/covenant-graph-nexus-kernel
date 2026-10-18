@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from cgkn.providers import ConnectorCompletionClient, ModelRoleConfig, ProviderCompletion, ProviderConnectionError, ProviderConnectorRegistry
+from cgkn.providers import ConnectorCompletionClient, GrokConnector, ModelRoleConfig, ProviderCompletion, ProviderConnectionError, ProviderConnectorRegistry
 from scripts import provider_api_budget
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
@@ -71,3 +71,21 @@ def test_timeout_is_finalized_once_with_evidence(tmp_path, monkeypatch):
     call=value["calls"][0]
     assert call["status"] == "FAILED" and call["error_class"] == "PROVIDER_CONNECT_OR_HEADER_TIMEOUT"
     assert call["outcome_unknown"] is True and call["effective_timeout_seconds"] == 180
+
+
+def test_grok_completion_ledger_has_one_data_plane_call_and_no_catalog(tmp_path,monkeypatch):
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self,*_args): return False
+        def read(self,_limit): return json.dumps({"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{"input_tokens":2,"output_tokens":1}}).encode()
+    urls=[]
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda req,timeout:(urls.append(req.full_url) or Response()))
+    ledger=tmp_path / "ledger.json"; _budget(monkeypatch,ledger)
+    profile={"base_url":"https://api.x.ai/v1","api_backend":"RESPONSES","preferred_models":["grok-4.7"],"default_timeout_seconds":120,"max_timeout_seconds":240}
+    connector=GrokConnector(profile,environment={"XAI_API_KEY":"secret"})
+    client=ConnectorCompletionClient(ProviderConnectorRegistry((connector,)),enforce_budget=True,budget_purpose="CAPABILITY_BUILD")
+    schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
+    client.complete(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
+    value=json.loads(ledger.read_text(encoding="utf-8"))
+    assert len(urls) == len(value["calls"]) == value["totals"]["api_calls"] == 1
+    assert urls[0].endswith("/responses") and value["calls"][0]["operation"] == "STRUCTURED_COMPLETION"
