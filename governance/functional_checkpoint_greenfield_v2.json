@@ -1,0 +1,12 @@
+{
+  "kind": "CGKNFunctionalCheckpoint",
+  "schema_version": "1.0",
+  "checkpoint_id": "FUNCTIONAL-CHECKPOINT-GREENFIELD-BUNDLE-PRODUCTION-001",
+  "status": "NOT_ESTABLISHED_NEEDS_REWORK",
+  "reason": "Targeted Real 4 passed 3/4 and Existing Repo canary passed, but Mini Campaign passed only 3/8.",
+  "permanent_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "permanent_baseline_unchanged": true,
+  "source_commit": "2fa52f0e7ed5b4ef04d278d75cc618bbcb6a0081",
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "contains_credentials": false
+}

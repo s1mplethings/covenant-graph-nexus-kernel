@@ -1,17 +1,26 @@
 {
-  "application_projects": 10,
+  "application_projects": 0,
   "contains_credentials": false,
   "contradiction_count": 0,
   "holdout_learning_deferred": true,
-  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
   "kind": "LessonCampaignStatus",
   "policy_count": 4,
   "retired_count": 0,
   "review_count": 0,
   "schema_version": "1.0",
-  "status": "PASS",
+  "status": "PASS_WITH_LIMITS_NO_BUNDLE_LESSON_MATCHES",
   "support_count": 8,
   "validated_count": 4,
-  "wave_a_snapshot_ref": "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/lesson_snapshot_a.json",
-  "wave_b_snapshot_ref": "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/lesson_snapshot_b.json"
+  "bundle_queries": {
+    "domain": "project.codegen.bundle.domain",
+    "domain_store": "project.codegen.bundle.domain_store",
+    "library_api": "project.codegen.bundle.library_api",
+    "cli": "project.codegen.bundle.cli",
+    "repair": "repository.patch"
+  },
+  "same_run_lesson_mutation": 0,
+  "transport_lessons_created": 0,
+  "holdout_snapshot_ref": "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/holdout_freeze.json",
+  "evidence_ref": "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/final_report.json"
 }

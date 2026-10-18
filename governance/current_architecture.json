@@ -22,7 +22,7 @@
     "runtime_wiring": "ISOLATED_VERTICAL_SLICE_OPERATIONAL",
     "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
     "agent_cheap_executor_mvp": "REAL_PROVIDER_VALIDATED",
-    "software_project_generation_bundle": "PARTIAL",
+    "software_project_generation_bundle": "TARGETED_PASS_MINI_CAMPAIGN_NEEDS_REWORK",
     "functional_readiness": "LEVEL_4"
   },
   "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
@@ -58,7 +58,7 @@
   },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "MVP-015", "name": "Stabilize bounded real-provider project generation", "migration_target": "Improve scoped worker proposal fidelity and public-test repair reliability without changing fixed budgets or replacing the compatibility generation mainline."},
+  "next_feature_increment": {"id": "MVP-016", "name": "Stabilize CLI bundle repair fidelity", "migration_target": "Improve deterministic failure evidence and bounded CLI repository-patch repair after cohesive bundle assembly without changing Provider routing or adding a second runtime."},
   "forbidden_parallel_authorities": true,
   "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "NOT_EVALUATED"}
 }

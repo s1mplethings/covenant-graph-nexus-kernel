@@ -74,11 +74,41 @@
         "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/text_stats_cli/project_receipt.json",
         "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/json_flatten_cli/project_receipt.json"
       ]
+    },
+    {
+      "affected_authority": "deterministic CLI interface contract and project failure attribution",
+      "affected_projects_rerun": [
+        "text_stats_cli",
+        "todo_json_cli",
+        "zip_manifest_cli",
+        "notes_search_cli"
+      ],
+      "canary_result": "PASS_3_OF_4_AND_EXISTING_REPO_PASS",
+      "changed_paths": [
+        "cgkn/application/software_project/greenfield/compiler.py",
+        "cgkn/application/project_campaign/greenfield_v2.py"
+      ],
+      "contains_credentials": false,
+      "failure_code": "CLI_CONTROLLED_ERROR_EXIT_CODE_UNDERSPECIFIED",
+      "failure_domain": "BUNDLE_INTERFACE_DEFECT",
+      "fix_id": "FRAMEWORK-FIX-CLI-ERROR-SEMANTICS-004",
+      "kind": "CampaignFrameworkFix",
+      "regression_test": "tests/application/software_project/greenfield/test_greenfield_v2.py::test_cli_help_contract_is_explicit",
+      "root_cause": "The frozen CLI interface said only non-zero for controlled errors, while three frozen cases required exit code 2; failure attribution also mapped stdout/returncode defects to Domain instead of CLI.",
+      "schema_version": "1.0",
+      "source_commit": "2fa52f0e7ed5b4ef04d278d75cc618bbcb6a0081",
+      "status": "VALIDATED",
+      "supporting_project_evidence": [
+        "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/framework_fixes/FIX-CLI-ERROR-SEMANTICS-001/before/text_stats_cli.json",
+        "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/framework_fixes/FIX-CLI-ERROR-SEMANTICS-001/before/todo_json_cli.json",
+        "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/framework_fixes/FIX-CLI-ERROR-SEMANTICS-001/before/notes_search_cli.json",
+        "artifacts/campaigns/ITER-GREENFIELD-BUNDLE-GENERATION-027/targeted_final_report.json"
+      ]
     }
   ],
-  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
   "kind": "CampaignFrameworkFixIndex",
-  "reuse_count": 4,
+  "reuse_count": 3,
   "schema_version": "1.0",
-  "validated_count": 1
+  "validated_count": 2
 }

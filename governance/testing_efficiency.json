@@ -1,26 +1,26 @@
 {
   "application_receipt": "NOT_RESIGNED_BY_POLICY",
   "contains_credentials": false,
-  "evidence_status": "FUNCTIONAL_MULTI_PROJECT_CAMPAIGN",
+  "evidence_status": "GREENFIELD_BUNDLE_CAMPAIGN_NEEDS_REWORK",
   "full_regression": "NOT_RUN_BY_POLICY",
-  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
   "kernel_receipt": "UNCHANGED",
   "kind": "CGKNTestingEfficiency",
   "profiles": [
     {
+      "duration_seconds": 3.22,
       "failed": 0,
-      "passed": 58,
-      "profile": "MICRO-AND-SMALL-TARGETED-REGRESSION",
-      "scope": [
-        "candidate revisions and atomic store",
-        "lifecycle transitions and resume",
-        "failure attribution and action policy",
-        "framework-fix revalidation",
-        "repair and provider failure preservation",
-        "Capability Builder and Self-Growth compatibility",
-        "dependency hash and Registry reuse",
-        "Grok data-plane mocks"
-      ],
+      "passed": 29,
+      "profile": "MICRO-AND-FAKE-BUNDLE-E2E",
+      "scope": ["manifest and bundle contracts", "candidate revision integration", "transport isolation", "atomic assembly", "CLI help", "partitioned budget"],
+      "skipped": 0
+    },
+    {
+      "duration_seconds": 30.62,
+      "failed": 0,
+      "passed": 112,
+      "profile": "SMALL_REGRESSION",
+      "scope": ["Greenfield V2", "Candidate Lifecycle", "Repository Codegen", "Lesson integration", "Self-Growth", "Campaign"],
       "skipped": 0
     },
     {
@@ -33,35 +33,33 @@
       "result": "PASS"
     },
     {
-      "profile": "ITER-026-MULTI-PROJECT-TARGETED",
-      "project_successes": 4,
-      "projects": 15,
-      "provider_calls": 36,
+      "duration_seconds": 414.535,
+      "profile": "TARGETED_REAL_4",
+      "project_successes": 3,
+      "projects": 4,
+      "provider_calls": 9,
       "result": "PASS",
       "scope": [
         "per-project contract tests",
         "oracle and hidden acceptance",
         "runtime smoke and local_packager",
-        "representative Greenfield and Existing Repo canaries"
+        "cohesive Domain/CLI bundle revisions",
+        "Existing Repo canary separately PASS"
       ]
     },
     {
-      "profile": "ITER-026-MULTI-PROJECT-TARGETED",
-      "project_successes": 4,
-      "projects": 15,
-      "provider_calls": 36,
-      "result": "PASS",
-      "scope": [
-        "per-project contract tests",
-        "oracle and hidden acceptance",
-        "runtime smoke and local_packager",
-        "representative Greenfield and Existing Repo canaries"
-      ]
+      "duration_seconds": 949.909,
+      "profile": "MINI_CAMPAIGN_8",
+      "project_successes": 3,
+      "projects": 8,
+      "provider_calls": 20,
+      "result": "NEEDS_REWORK",
+      "scope": ["four recovery", "two generalization", "two frozen holdout", "natural Self-Growth"]
     }
   ],
-  "provider_call_limit": 36,
+  "provider_call_limit": 40,
   "provider_receipt": "UNCHANGED",
-  "real_provider_calls": 36,
+  "real_provider_calls": 30,
   "schema_version": "1.2",
-  "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a"
+  "source_commit": "2fa52f0e7ed5b4ef04d278d75cc618bbcb6a0081"
 }

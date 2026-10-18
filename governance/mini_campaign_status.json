@@ -1,0 +1,29 @@
+{
+  "kind": "GreenfieldV2MiniCampaignStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
+  "source_commit": "2fa52f0e7ed5b4ef04d278d75cc618bbcb6a0081",
+  "status": "GREENFIELD_BUNDLE_CAMPAIGN_NEEDS_REWORK",
+  "passed": 3,
+  "total": 8,
+  "calibration_generalization": {"passed": 2, "total": 6, "calls": 14},
+  "holdout": {"passed": 1, "total": 2, "calls": 5, "reserve": 6, "source_lesson_route_frozen": true},
+  "self_growth": {"calls": 1, "capability_ref": "project.docs.api_reference.render@1", "admission": "PASS", "original_project_resume": "PASS"},
+  "projects": [
+    {"project_id": "json_flatten_cli", "status": "PASS", "calls": 2},
+    {"project_id": "ini_merge_cli", "status": "FAIL", "calls": 1, "failure_domain": "PROVIDER_TRANSPORT_FAILURE"},
+    {"project_id": "duplicate_finder_cli", "status": "FAIL", "calls": 3, "failure_domain": "BUNDLE_CANDIDATE_DEFECT:CLI"},
+    {"project_id": "env_audit_cli", "status": "FAIL", "calls": 3, "failure_domain": "BUNDLE_CANDIDATE_DEFECT:CLI"},
+    {"project_id": "csv_column_profile_cli", "status": "FAIL", "calls": 3, "failure_domain": "BUNDLE_CANDIDATE_DEFECT:CLI"},
+    {"project_id": "config_overlay_library", "status": "PASS", "calls": 2, "grown_capability": "project.docs.api_reference.render@1"},
+    {"project_id": "rename_plan_cli", "status": "FAIL", "calls": 3, "failure_domain": "BUNDLE_CANDIDATE_DEFECT:CLI"},
+    {"project_id": "log_summary_library", "status": "PASS", "calls": 2}
+  ],
+  "manual_candidate_edits": 0,
+  "whole_project_replans": 0,
+  "unsafe_admissions": 0,
+  "accepted_interface_breaks": 0,
+  "hidden_leakage": 0,
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "contains_credentials": false
+}

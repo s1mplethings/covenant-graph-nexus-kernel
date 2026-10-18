@@ -1,0 +1,24 @@
+{
+  "kind": "TargetedGreenfieldValidation",
+  "schema_version": "1.0",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
+  "source_commit": "2fa52f0e7ed5b4ef04d278d75cc618bbcb6a0081",
+  "status": "PASS",
+  "passed": 3,
+  "total": 4,
+  "provider_calls": 9,
+  "framework_canary_calls": 1,
+  "projects": [
+    {"project_id": "text_stats_cli", "status": "PASS", "calls": 2, "repair_calls": 0},
+    {"project_id": "todo_json_cli", "status": "PASS", "calls": 2, "repair_calls": 0},
+    {"project_id": "zip_manifest_cli", "status": "FAIL", "calls": 3, "failure_domain": "BUNDLE_CANDIDATE_DEFECT:CLI"},
+    {"project_id": "notes_search_cli", "status": "PASS", "calls": 2, "repair_calls": 0}
+  ],
+  "framework_fix_cycles": [
+    {"fix_id": "FRAMEWORK-FIX-CLI-ERROR-SEMANTICS-004", "status": "VALIDATED", "before_passed": 0, "after_passed": 3, "supporting_projects": ["text_stats_cli", "todo_json_cli", "notes_search_cli"]}
+  ],
+  "existing_repo_canary": "PASS",
+  "whole_project_replans": 0,
+  "manual_candidate_edits": 0,
+  "contains_credentials": false
+}

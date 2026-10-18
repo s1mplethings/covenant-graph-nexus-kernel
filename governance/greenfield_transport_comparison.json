@@ -1,0 +1,11 @@
+{
+  "kind": "GreenfieldTransportComparison",
+  "schema_version": "1.0",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
+  "previous_campaign": {"architecture": "ONE_LARGE_PROJECT_RESPONSE", "projects": 15, "successes": 4, "provider_calls": 36, "core_generate_transport_failures": 8, "calls_per_success": 9.0},
+  "greenfield_v2": {"architecture": "COHESIVE_BUNDLES", "evaluated_greenfield_projects": 12, "successes": 6, "provider_calls": 28, "bundle_transport_failures": 1, "calls_per_success_including_failures": 4.6667, "output_tokens_per_success": 5368.8333},
+  "targeted_real_4": {"successes": 3, "total": 4},
+  "mini_campaign": {"successes": 3, "total": 8},
+  "finding": "Bundle isolation removed the dominant transport cluster, but repeated CLI candidate defects and ineffective one-call patch repairs remain the largest blocker.",
+  "contains_credentials": false
+}
