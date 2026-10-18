@@ -1,0 +1,26 @@
+{
+  "kind": "ValidationActionPolicyStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+  "source_commit": "2ec60f0a94a2b9e67457b8ffa5e0ac37debfaf96",
+  "policy_version": "1.0",
+  "authority": "cgkn.application.capability_builder.action_policy:CapabilityBuildActionPolicy",
+  "rules": {
+    "CANDIDATE_DEFECT": "REPAIR_CANDIDATE_IF_REVISION_AND_BUDGET_ELSE_REJECT",
+    "CANDIDATE_POLICY_DEFECT": "REJECT_CANDIDATE_BY_DEFAULT",
+    "FRAMEWORK_VALIDATOR_DEFECT": "REVALIDATE_EXISTING",
+    "FRAMEWORK_HARNESS_DEFECT": "REVALIDATE_EXISTING",
+    "PROVIDER_FAILURE_WITHOUT_CANDIDATE": "RETRY_GENERATION_OR_PROVIDER_BLOCK",
+    "PROVIDER_FAILURE_DURING_REPAIR": "PRESERVE_PARENT_AND_PROVIDER_BLOCK",
+    "EXTERNAL_DEPENDENCY_FAILURE": "WAIT_EXTERNAL",
+    "ENVIRONMENT_BLOCKED": "BLOCK_ENVIRONMENT",
+    "DEPENDENCY_DRIFT": "REVALIDATE_DEPENDENCY",
+    "CONTRACT_GAP": "ESCALATE_REVIEW",
+    "UNKNOWN_FAILURE": "ESCALATE_REVIEW"
+  },
+  "validator_can_call_provider": false,
+  "admission_can_call_provider": false,
+  "validation_failure_implies_repair": false,
+  "architecture_tests": "PASS",
+  "contains_credentials": false
+}

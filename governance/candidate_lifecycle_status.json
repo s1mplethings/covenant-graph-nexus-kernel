@@ -1,0 +1,48 @@
+{
+  "kind": "CandidateLifecycleStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+  "source_commit": "2ec60f0a94a2b9e67457b8ffa5e0ac37debfaf96",
+  "lifecycle_version": "1.0",
+  "revision_store": {
+    "status": "PASS",
+    "implementation": "cgkn.application.capability_builder.revision_store:CandidateRevisionStore",
+    "immutable": true,
+    "atomic_publish": true,
+    "source_manifest_hashing": true,
+    "candidate_store_separate_from_capability_store": true
+  },
+  "state_machine": {
+    "status": "PASS",
+    "authority": "BuildLifecycleTransitionPolicy",
+    "append_only_events": "FileRunStore.events.jsonl",
+    "illegal_transition_rejection": "PASS"
+  },
+  "validation_suite": {
+    "status": "PASS",
+    "suite_hash": "sha256:f1a7206a567732ee8ca8e2f73c622636a7de778651bef4c4b3c50205b635c5cb",
+    "source_bound_receipts": true,
+    "validator_change_action": "REVALIDATE_EXISTING",
+    "provider_import_guard": "PASS"
+  },
+  "action_policy": {
+    "status": "PASS",
+    "authority": "CapabilityBuildActionPolicy",
+    "repair_only_by_policy": true,
+    "framework_failure_never_repairs": true,
+    "external_failure_never_repairs": true,
+    "unknown_failure_fails_closed": true
+  },
+  "architecture_guard": "PASS",
+  "revalidation_result": "PASS",
+  "revalidation_provider_calls": 0,
+  "recovered_revision": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+  "recovered_source_hash": "sha256:1a1d0249683e482ba2a995d42103442b3531119d69fd577d4091b9cf4a6f2b5b",
+  "admitted_revision": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+  "repair_revision": null,
+  "manual_edits": 0,
+  "unsafe_admissions": 0,
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "application_receipt": "STALE_BY_CAPABILITY_BUILDER_CHANGE",
+  "contains_credentials": false
+}

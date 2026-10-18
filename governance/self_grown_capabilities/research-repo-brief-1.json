@@ -32,6 +32,24 @@
       "admission": "NOT_ADMITTED",
       "status": "BUILD_FAILED_AFTER_BOUNDED_REPAIR",
       "manual_candidate_edits": 0
+    },
+    {
+      "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+      "provider_calls": 0,
+      "recovered_revision": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+      "recovered_from": "ITER-023_INITIAL_PROVIDER_OUTPUT",
+      "provider_request_id": "6736b9676e774953ab51e46eb77f0e82",
+      "source_hash": "sha256:1a1d0249683e482ba2a995d42103442b3531119d69fd577d4091b9cf4a6f2b5b",
+      "candidate_unchanged": true,
+      "revalidation": "PASS",
+      "admission": "ADMITTED",
+      "local_execution": "PASS",
+      "reuse": "PASS",
+      "reuse_growth_calls": 0,
+      "reuse_builder_calls": 0,
+      "external_readiness": "BLOCKED_EXTERNAL_GITHUB_RATE_LIMITED",
+      "status": "PASS_WITH_EXTERNAL_LIMIT",
+      "manual_candidate_edits": 0
     }
   ],
   "risk": "READ_ONLY_PUBLIC_NETWORK_COMPOSITE",
