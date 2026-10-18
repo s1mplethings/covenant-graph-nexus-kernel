@@ -105,3 +105,13 @@ def test_failed_connector_call_is_reconciled_without_secret_text(tmp_path, monke
     call = json.loads(ledger.read_text(encoding="utf-8"))["calls"][0]
     assert call["status"] == "FAILED"
     assert call["http_status"] == 503
+
+
+def test_connector_client_without_budget_uses_registry_and_skips_ledger(tmp_path, monkeypatch):
+    monkeypatch.setenv("CGKN_PROVIDER_BUDGET_LEDGER", str(tmp_path / "unused.json"))
+    client = ConnectorCompletionClient(ProviderConnectorRegistry((FakeConnector(),)))
+    result = client.complete(
+        system="s", user="u", schema_name="x", schema={"type": "object"}, config=_config()
+    )
+    assert result.request_id == "request-1"
+    assert not (tmp_path / "unused.json").exists()
