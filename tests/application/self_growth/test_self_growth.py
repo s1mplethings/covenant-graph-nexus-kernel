@@ -76,7 +76,7 @@ def test_network_capability_can_feed_declared_grown_dependency(tmp_path):
     web_output = {key: network_response[key] for key in ("status_code", "final_url", "content_type", "text", "truncated")}
     github_output = {"full_name":"octo/demo","description":None,"default_branch":"main","language":"Python","stars":2,"forks":1,"open_issues":0,"html_url":"https://github.com/octo/demo"}
     web = CapabilitySpec("web.fetch.public","1","fetch",{}, {}, ({"input":{"url":"https://api.github.com/repos/octo/demo"},"output":web_output,"runtime":{"network_response":network_response}},), ("bounded runtime",), CapabilityRisk.READ_ONLY_PUBLIC_NETWORK)
-    github = CapabilitySpec("github.repo.inspect.public","1","inspect",{}, {}, ({"input":{"owner":"octo","repo":"demo"},"output":github_output,"runtime":{"dependency_results":{"web.fetch.public@1":web_output}}},), ("uses web fetch",), allowed_dependencies=("web.fetch.public@1",))
+    github = CapabilitySpec("github.repo.inspect.public","1","inspect",{}, {}, ({"input":{"owner":"octo","repo":"demo"},"output":github_output,"runtime":{"dependency_results":{"web.fetch.public@1":web_output}}},), ("uses web fetch",), CapabilityRisk.READ_ONLY_PUBLIC_NETWORK_COMPOSITE, allowed_dependencies=("web.fetch.public@1",))
     client = MappingClient(sources); store = CapabilityStore(tmp_path / "store")
     builder = CapabilityBuilderService(client, ModelRoleConfig("worker","grok",30,1000,0,"low"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=store)
     growth = SelfGrowthService(builder, store, provider_id="grok", mode="SINGLE_PROVIDER_MODE", history_path=tmp_path / "history.json", network_public=FakePublicNetwork(network_response))

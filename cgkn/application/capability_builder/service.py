@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from cgkn.capabilities import CapabilityDescriptor, CapabilityRegistry
 from cgkn.component import ComponentSpec, PortSpec
@@ -30,6 +30,11 @@ from .public_network import PublicNetworkClient
 
 def _slug(ref: str) -> str:
     return ref.replace("@", "-").replace(".", "-")
+
+
+def _canonical_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 class CapabilityStore:
@@ -58,6 +63,69 @@ class CapabilityStore:
         admission = json.loads((path / "admission.json").read_text(encoding="utf-8"))
         return admission.get("status") == "ADMITTED" and admission.get("capability_ref") == capability_ref
 
+    def package_metadata(self, capability_ref: str) -> dict[str, Any]:
+        path = self.path_for(capability_ref)
+        if not self.contains(capability_ref) or not (path / "executor.py").is_file():
+            raise ValueError(f"CAPABILITY_DEPENDENCY_MISSING: {capability_ref}")
+        spec = CapabilitySpec.from_dict(json.loads((path / "capability.json").read_text(encoding="utf-8")))
+        admission = json.loads((path / "admission.json").read_text(encoding="utf-8"))
+        package_hash = "sha256:" + hashlib.sha256((path / "executor.py").read_bytes()).hexdigest()
+        if admission.get("source_hash") != package_hash:
+            raise ValueError(f"DEPENDENCY_HASH_DRIFT: {capability_ref}")
+        contract_hash = _canonical_hash({"input_schema": dict(spec.input_schema), "output_schema": dict(spec.output_schema)})
+        return {
+            "capability_ref": capability_ref,
+            "version_constraint": f"=={spec.version}",
+            "resolved_version": spec.version,
+            "package_hash": package_hash,
+            "contract_hash": contract_hash,
+            "risk": spec.risk.value,
+            "dependencies": list(spec.allowed_dependencies),
+        }
+
+    def resolve_dependency_manifest(self, spec: CapabilitySpec) -> list[dict[str, Any]]:
+        self.validate_dependency_graph(spec)
+        return [self.package_metadata(ref) for ref in spec.allowed_dependencies]
+
+    def validate_dependency_graph(self, prospective: CapabilitySpec, *, enforce_risk: bool = True) -> tuple[str, ...]:
+        graph: dict[str, tuple[str, ...]] = {prospective.ref: prospective.allowed_dependencies}
+        risks: dict[str, CapabilityRisk] = {prospective.ref: prospective.risk}
+
+        def load(ref: str) -> None:
+            if ref in graph:
+                return
+            metadata = self.package_metadata(ref)
+            graph[ref] = tuple(str(item) for item in metadata["dependencies"])
+            risks[ref] = CapabilityRisk(str(metadata["risk"]))
+            for child in graph[ref]:
+                load(child)
+
+        for dependency in prospective.allowed_dependencies:
+            load(dependency)
+
+        visiting: set[str] = set()
+        visited: set[str] = set()
+        ordered: list[str] = []
+
+        def visit(ref: str) -> None:
+            if ref in visiting:
+                raise ValueError(f"DEPENDENCY_CYCLE: {ref}")
+            if ref in visited:
+                return
+            visiting.add(ref)
+            for child in graph.get(ref, ()):
+                visit(child)
+            visiting.remove(ref)
+            visited.add(ref)
+            if ref != prospective.ref:
+                ordered.append(ref)
+
+        visit(prospective.ref)
+        network_risks = {CapabilityRisk.READ_ONLY_PUBLIC_NETWORK, CapabilityRisk.READ_ONLY_PUBLIC_NETWORK_COMPOSITE}
+        if enforce_risk and any(risks.get(ref) in network_risks for ref in ordered) and prospective.risk is not CapabilityRisk.READ_ONLY_PUBLIC_NETWORK_COMPOSITE:
+            raise ValueError("INVALID_COMPOSITE_RISK: dependency graph includes public-network capability")
+        return tuple(ordered)
+
 
 @dataclass(frozen=True)
 class CapabilityRuntimeContext:
@@ -73,6 +141,9 @@ class _BoundCapabilityInvoker:
         if capability_ref not in self._allowed:
             raise PermissionError(f"undeclared capability dependency: {capability_ref}")
         return self._runtime.invoke(capability_ref, value, self._stack)
+
+    def execute(self, capability_ref: str, value: Any) -> Any:
+        return self.invoke(capability_ref, value)
 
 
 class StoredCapabilityRuntime:
@@ -95,6 +166,10 @@ class StoredCapabilityRuntime:
         source_hash = "sha256:" + hashlib.sha256((root / "executor.py").read_bytes()).hexdigest()
         if admission.get("status") != "ADMITTED" or admission.get("source_hash") != source_hash:
             raise ValueError("stored capability admission or source hash mismatch")
+        for pinned in admission.get("dependency_manifest", []):
+            current = self.store.package_metadata(str(pinned.get("capability_ref", "")))
+            if current["package_hash"] != pinned.get("package_hash") or current["contract_hash"] != pinned.get("contract_hash"):
+                raise ValueError(f"BLOCK_REVALIDATION_REQUIRED: {pinned.get('capability_ref', '')}")
         package = CapabilityPackage(spec, str(root), spec.ref, f"generated.{spec.ref}", source_hash, ("tests/test_capability.py",))
         executor = GeneratedCapabilityExecutor(package, runtime_context=self.context_for(spec, stack + (capability_ref,)))
         request = BlockExecutionRequest("capability-runtime", "nested", "attempt-1", spec.ref, package.component_ref, package.executor_ref, TaskContext(f"Invoke {spec.ref}", acceptance=spec.acceptance), {"value": value}, timeout_seconds=10)
@@ -148,9 +223,20 @@ class _ExampleNetwork:
 class _ExampleDependencies:
     def __init__(self, results: Any):
         self.results = dict(results or {})
+        self.offsets: dict[str, int] = {}
 
     def invoke(self, capability_ref: str, value: Any) -> Any:
-        return self.results[capability_ref]
+        result = self.results[capability_ref]
+        if isinstance(result, list):
+            index = self.offsets.get(capability_ref, 0)
+            if index >= len(result):
+                raise IndexError(f"no example dependency result remaining: {capability_ref}")
+            self.offsets[capability_ref] = index + 1
+            return result[index]
+        return result
+
+    def execute(self, capability_ref: str, value: Any) -> Any:
+        return self.invoke(capability_ref, value)
 
 
 class CapabilityBuilderService:
@@ -166,6 +252,7 @@ class CapabilityBuilderService:
         self._scaffold(root, spec)
         calls = repairs = 0; usage: dict[str, Any] = {}; failure = ""
         try:
+            dependency_manifest = self.store.resolve_dependency_manifest(spec) if spec.allowed_dependencies else []
             transaction = ScopedFileTransaction(root, WorkerScope(("executor.py", "tests/test_capability.py", "capability.json"), ("executor.py",), protected_paths=("admission.json",), max_actions=1, max_write_files=1, allow_create=False, allow_patch=True))
             for attempt in range(2):
                 completion = self.client.complete(
@@ -190,7 +277,7 @@ class CapabilityBuilderService:
                 registry.reject(spec.ref)
                 return self._receipt(spec, root, calls, repairs, True, False, False, False, usage, "runtime execution failed")
             registry.admit(spec.ref)
-            admission = {"kind": "CapabilityAdmission", "schema_version": "1.0", "capability_ref": spec.ref, "status": "ADMITTED", "source_hash": package.source_hash, "provider_id": self.provider_id, "mode": self.mode, "manual_edits": 0}
+            admission = {"kind": "CapabilityAdmission", "schema_version": "1.1", "capability_ref": spec.ref, "status": "ADMITTED", "source_hash": package.source_hash, "provider_id": self.provider_id, "mode": self.mode, "manual_edits": 0, "dependency_manifest": dependency_manifest}
             (root / "admission.json").write_text(json.dumps(admission, indent=2, sort_keys=True) + "\n", encoding="utf-8")
             self.store.put(package)
             return self._receipt(spec, root, calls, repairs, True, True, True, True, usage, "")
@@ -226,7 +313,7 @@ class CapabilityBuilderService:
         dependency_literals = {
             node.args[0].value
             for node in ast.walk(tree)
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "invoke"
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in {"invoke", "execute"}
             and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
         }
         if dependency_literals - set(spec.allowed_dependencies):
@@ -237,7 +324,7 @@ class CapabilityBuilderService:
         component = ComponentSpec(spec.capability_id, spec.version, (PortSpec("value", "artifact.capability.value@1"),), (PortSpec("result", "artifact.capability.result@1"),), metadata={"risk": spec.risk.value})
         executor_ref = f"generated.{spec.capability_id}@{spec.version}"
         package = CapabilityPackage(spec, str(root), component.ref, executor_ref, source_hash, ("tests/test_capability.py",))
-        effects = ("public_network_read",) if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK else ()
+        effects = ("public_network_read",) if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK else (("capability_dependency_execute",) if spec.allowed_dependencies else ())
         descriptor = CapabilityDescriptor(spec.capability_id, spec.version, component.ref, executor_ref, ("generated_python",), ("value",), ("result",), effects, 10.0, "local", "LOW", "generated", {"provider_id": self.provider_id, "source_hash": source_hash, "dependencies": spec.allowed_dependencies}, package.test_refs)
         registry = CapabilityRegistry({component.ref: component}); registry.register_candidate(descriptor)
         return package, registry
@@ -268,7 +355,7 @@ class CapabilityBuilderService:
             "execute_signature": "execute(value, ctx)" if (spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK or spec.allowed_dependencies) else "execute(value)",
             "network_api": "ctx.network_public.get(url) or head(url); never import or call network libraries directly" if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK else "unavailable",
             "declared_dependencies": list(spec.allowed_dependencies),
-            "dependency_api": "ctx.capabilities.invoke(capability_ref, value); invoke only declared refs" if spec.allowed_dependencies else "unavailable",
+            "dependency_api": "ctx.capabilities.invoke(capability_ref, value) or execute(capability_ref, value); invoke every declared ref and no undeclared ref" if spec.allowed_dependencies else "unavailable",
         }
         return {"node_id": spec.ref, "goal": spec.goal, "requirements": list(spec.acceptance), "runtime_contract": runtime_contract, "allowed_paths": ["executor.py"], "current_sources": {"executor.py": (root / "executor.py").read_text(encoding="utf-8")}, "examples": [dict(item) for item in spec.examples], "failure_evidence": failure, "allowed_actions": ["patch_file"]}
 
@@ -287,8 +374,14 @@ class CapabilityBuilderService:
                 "    def get(self, url): return self.response",
                 "    def head(self, url): return self.response", "",
                 "class _Capabilities:",
-                "    def __init__(self, results): self.results = results",
-                "    def invoke(self, ref, value): return self.results[ref]", "",
+                "    def __init__(self, results): self.results, self.offsets = results, {}",
+                "    def invoke(self, ref, value):",
+                "        result = self.results[ref]",
+                "        if not isinstance(result, list): return result",
+                "        index = self.offsets.get(ref, 0)",
+                "        self.offsets[ref] = index + 1",
+                "        return result[index]", "",
+                "    def execute(self, ref, value): return self.invoke(ref, value)", "",
                 "def _context(runtime):",
                 "    return SimpleNamespace(network_public=_Network(runtime.get('network_response')), capabilities=_Capabilities(runtime.get('dependency_results', {})))", "",
             ])

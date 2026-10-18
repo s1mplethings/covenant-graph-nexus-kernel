@@ -1,0 +1,33 @@
+{
+  "kind": "APITaskRolePolicy",
+  "schema_version": "1.0",
+  "deterministic": [
+    "health.classify",
+    "schema.validate",
+    "contract.test",
+    "oracle",
+    "admission",
+    "registry.integrity",
+    "dependency.resolve",
+    "evidence.write"
+  ],
+  "grok": [
+    "capability.build",
+    "capability.repair",
+    "bounded.research.capability.synthesis"
+  ],
+  "qwen": {
+    "status": "DISABLED_BLOCKED_ENVIRONMENT",
+    "future_roles": ["agent.composition"]
+  },
+  "deepseek": {
+    "status": "DISABLED_BLOCKED_CREDENTIAL",
+    "future_roles": ["worker.codegen", "worker.repair"]
+  },
+  "routing": {
+    "mode": "SINGLE_PROVIDER_MODE",
+    "fallback": "deny",
+    "frozen_per_run": true
+  },
+  "contains_credentials": false
+}

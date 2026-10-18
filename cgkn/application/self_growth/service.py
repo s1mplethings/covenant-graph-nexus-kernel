@@ -55,7 +55,12 @@ class SelfGrowthService:
         self.runtime = StoredCapabilityRuntime(store, provider_id=provider_id, network_public=network_public)
 
     def ensure_and_resume(self, candidate_root: pathlib.Path | str, spec: CapabilitySpec, value: Any) -> SelfGrowthOutcome:
-        if spec.risk not in {CapabilityRisk.PURE, CapabilityRisk.READ_ONLY_LOCAL, CapabilityRisk.READ_ONLY_PUBLIC_NETWORK}:
+        if spec.risk not in {
+            CapabilityRisk.PURE,
+            CapabilityRisk.READ_ONLY_LOCAL,
+            CapabilityRisk.READ_ONLY_PUBLIC_NETWORK,
+            CapabilityRisk.READ_ONLY_PUBLIC_NETWORK_COMPOSITE,
+        }:
             return self._failure(spec, GrowthFailureClass.UNSAFE_RISK, False, 0)
         if any(not self.store.contains(ref) for ref in spec.allowed_dependencies):
             return self._failure(spec, GrowthFailureClass.DEPENDENCY_UNAVAILABLE, False, 0)
@@ -77,7 +82,11 @@ class SelfGrowthService:
         registry.record_execution_evidence(descriptor.ref, result.succeeded)
         if not result.succeeded:
             message = result.error.message if result.error else ""
-            failure = GrowthFailureClass.PUBLIC_NETWORK_BLOCKED if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK and any(marker in message.lower() for marker in ("public address", "public addresses", "https", "redirect")) else GrowthFailureClass.RESUME_FAILED
+            network_risks = {
+                CapabilityRisk.READ_ONLY_PUBLIC_NETWORK,
+                CapabilityRisk.READ_ONLY_PUBLIC_NETWORK_COMPOSITE,
+            }
+            failure = GrowthFailureClass.PUBLIC_NETWORK_BLOCKED if spec.risk in network_risks and any(marker in message.lower() for marker in ("public address", "public addresses", "https", "redirect")) else GrowthFailureClass.RESUME_FAILED
             return SelfGrowthOutcome(spec.ref, self.provider_id, True, not reused, not reused, reused, calls, True, False, None, "FAIL", failure.value)
         return SelfGrowthOutcome(spec.ref, self.provider_id, True, not reused, not reused, reused, calls, True, True, materialize_json(result.outputs.get("result")), "PASS")
 
