@@ -5,6 +5,7 @@ from .contracts import (
     ProviderCapabilityProfile,
     ProviderSelectionDecision,
     RunProviderRoutingSnapshot,
+    ProjectProviderPlan,
 )
 from .selector import SELECTION_POLICY_VERSION, ProviderSelector, aggregate_profiles
 from .cache import ProviderProfileCache
@@ -22,6 +23,7 @@ __all__ = [
     "ProviderProfileCache",
     "ProviderPrice",
     "RunProviderRoutingSnapshot",
+    "ProjectProviderPlan",
     "SELECTION_POLICY_VERSION",
     "BENCHMARK_VERSION",
     "aggregate_profiles",

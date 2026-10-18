@@ -20,12 +20,13 @@ from cgkn.executors import ExecutorRegistry
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.executors.protocol import ExecutorDescriptor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
-from cgkn.providers import ModelRoleConfig, ProviderConnectionError, parse_json_object
+from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderConnectionError, parse_json_object
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
 from .assembly import ProjectAssembler
 from .contracts import AssemblyReceipt, BundleAttempt, BundleSpec, GenerationManifest, canonical_hash
+from .cli import DeterministicCLICompiler, StructuredCLIPlan
 
 
 class BundleValidationError(RuntimeError):
@@ -60,8 +61,10 @@ class _ProviderBundleExecutor:
         try:
             attempt = self.service.generate_bundle(self.manifest, self.spec, self.project_contract, self.run_id)
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=attempt.as_dict(), usage={"input_tokens": attempt.input_tokens, "output_tokens": attempt.output_tokens}, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
-        except ProviderConnectionError as exc:
-            return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, f"{exc.error_class}: {exc}", {"failure_domain": "PROVIDER_TRANSPORT_FAILURE", "provider_error_class": exc.error_class, "outcome_unknown": exc.outcome_unknown}), retryable=not exc.outcome_unknown, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
+        except (ProviderConnectionError, GatewayCompletionError) as exc:
+            error_class = getattr(exc, "error_class", getattr(exc, "category", "PROVIDER_TRANSPORT_FAILURE"))
+            outcome_unknown = bool(getattr(exc, "outcome_unknown", False))
+            return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, f"{error_class}: {exc}", {"failure_domain": "PROVIDER_TRANSPORT_FAILURE", "provider_error_class": error_class, "outcome_unknown": outcome_unknown}), retryable=not outcome_unknown, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
         except Exception as exc:
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, f"{type(exc).__name__}: {exc}", {"failure_domain": "BUNDLE_CANDIDATE_DEFECT"}), started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
 
@@ -86,7 +89,7 @@ class GreenfieldBundleProductionService:
     def build_tree(manifest: GenerationManifest) -> CapabilityTree:
         nodes: list[CapabilityNode] = [CapabilityNode("generation-manifest", capability_ref="project.generation-manifest.compile@1", config={"executor_ref": "project.generation-manifest.compile@1"})]
         validations: list[str] = []
-        labels = {spec.bundle_id: ("domain" if index == 0 else "cli" if index == 1 else f"bundle-{index}") for index, spec in enumerate(manifest.bundle_specs)}
+        labels = {spec.bundle_id: spec.bundle_kind.value.lower().replace("_", "-") for spec in manifest.bundle_specs}
         for index, spec in enumerate(manifest.bundle_specs):
             short = labels[spec.bundle_id]
             dependency_validations = tuple(f"bundle-{labels[dependency]}-validate" for dependency in spec.depends_on)
@@ -111,7 +114,10 @@ class GreenfieldBundleProductionService:
         registry = ExecutorRegistry()
         registry.register(_CallableExecutor("project.generation-manifest.compile@1", lambda _request: {"manifest_hash": manifest.manifest_hash}))
         for spec in manifest.bundle_specs:
-            registry.register(_ProviderBundleExecutor(self, manifest, spec, project_contract, run_id))
+            if spec.execution_mode == "PROVIDER":
+                registry.register(_ProviderBundleExecutor(self, manifest, spec, project_contract, run_id))
+            else:
+                registry.register(_CallableExecutor(spec.bundle_id, lambda _request, bundle=spec: self.render_bundle(manifest, bundle, run_id).as_dict()))
             registry.register(_CallableExecutor(f"{spec.bundle_id}.persist", lambda _request, bundle=spec: {"revision_id": self.current_revisions[bundle.bundle_id]}))
             registry.register(_CallableExecutor(f"{spec.bundle_id}.validate", lambda _request, bundle=spec: self.validate_bundle(bundle, self.current_revisions[bundle.bundle_id])))
         registry.register(_CallableExecutor("project.bundle.assemble@1", lambda _request: self._assemble(manifest, workspace_path)))
@@ -127,12 +133,48 @@ class GreenfieldBundleProductionService:
             failed = next(iter(result.failed_nodes), "")
             if failed.endswith("-validate"):
                 label = failed.removeprefix("bundle-").removesuffix("-validate")
-                labels = {("domain" if index == 0 else "cli" if index == 1 else f"bundle-{index}"): spec for index, spec in enumerate(manifest.bundle_specs)}
+                labels = {spec.bundle_kind.value.lower().replace("_", "-"): spec for spec in manifest.bundle_specs}
                 spec = labels.get(label)
-                if spec is not None:
+                if spec is not None and spec.execution_mode == "PROVIDER":
                     self.repair_bundle(manifest, spec, project_contract, run_id, {"failure_domain": "BUNDLE_CANDIDATE_DEFECT", "failed_node": failed, "details": "VALIDATION_FAILED"})
                     result = runner.run(project_id=manifest.project_id, run_id=run_id, tree=tree, dag=dag, resume=True, retry_node=failed, constraints=("stdlib only", "network forbidden", "shell forbidden", "routing frozen", "bundle targets only"))
         return {"status": result.status, "run_id": run_id, "failed_nodes": list(result.failed_nodes), "revision_ids": dict(self.current_revisions), "attempts": [item.as_dict() for item in self.attempts], "assembly": self.assembly_receipt.as_dict() if self.assembly_receipt else {}, "state_root": str(state.root)}
+
+    def render_bundle(self, manifest: GenerationManifest, spec: BundleSpec, run_id: str) -> BundleAttempt:
+        if spec.execution_mode != "DETERMINISTIC" or manifest.cli_plan is None:
+            raise BundleValidationError("DETERMINISTIC_BUNDLE_CONTRACT_MISSING")
+        compiler = DeterministicCLICompiler(); plan = StructuredCLIPlan.from_dict(manifest.cli_plan)
+        build_run_id = run_id + "-" + spec.bundle_kind.value.lower()
+        self.revisions.initialize_run(spec.bundle_id, build_run_id, spec_hash=spec.bundle_hash, route_snapshot_hash=self.route_snapshot_hash)
+        staging = pathlib.Path(tempfile.mkdtemp(prefix="deterministic-bundle-", dir=self.root))
+        started = time.perf_counter()
+        try:
+            relative = spec.target_paths[0]
+            target = staging / pathlib.PurePosixPath(relative); target.parent.mkdir(parents=True, exist_ok=True)
+            if spec.bundle_kind.value == "CLI":
+                source = compiler.render_main(plan); operation = "CLI_RENDER"
+            elif spec.bundle_kind.value == "INIT":
+                domain = next(item for item in manifest.bundle_specs if item.execution_mode == "PROVIDER")
+                source = compiler.render_init(domain_module=domain.interface_contract.module, exports=domain.interface_contract.exports)
+                operation = "INIT_RENDER"
+            else:
+                raise BundleValidationError("CLI_CONTRACT_UNSUPPORTED")
+            target.write_text(source, encoding="utf-8", newline="\n")
+            revision = self.revisions.create_revision(
+                staging, capability_ref=spec.bundle_id, build_run_id=build_run_id, spec_hash=spec.bundle_hash,
+                route_snapshot_hash=self.route_snapshot_hash, provider_id="deterministic", provider_operation=operation,
+                creation_reason=operation, lesson_snapshot_hash=plan.plan_hash,
+                generation_context_hash=canonical_hash({"compiler_version": compiler.VERSION, "plan_hash": plan.plan_hash}),
+                subject_kind="DETERMINISTIC_PROJECT_BUNDLE", subject_ref=spec.bundle_id,
+            )
+            self.current_revisions[spec.bundle_id] = revision.revision_id
+            attempt = BundleAttempt(spec.bundle_id, f"attempt.{uuid.uuid4().hex}", "CANDIDATE_CREATED", revision.revision_id,
+                                    lesson_snapshot_hash=plan.plan_hash, generation_context_hash=compiler.VERSION,
+                                    duration_ms=int((time.perf_counter() - started) * 1000))
+            self.attempts.append(attempt)
+            return attempt
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
 
     def generate_bundle(self, manifest: GenerationManifest, spec: BundleSpec, project_contract: Mapping[str, Any], run_id: str,
                         *, parent_revision_id: str = "", failure_evidence: Mapping[str, Any] | None = None) -> BundleAttempt:
@@ -191,10 +233,12 @@ class GreenfieldBundleProductionService:
             self.attempts.append(attempt)
             self.revisions.save_provider_attempt(spec.bundle_id, build_run_id, ProviderAttemptReceipt(attempt_id, operation, self.provider_id, self.model_config.model, str(generated.completion.request_id), str(getattr(generated.completion, "response_id", "") or ""), self.route_snapshot_hash, utc_now(), utc_now(), "PASS", "", False, {"max_output_tokens": config.max_output_tokens}, usage, usage.get("cost_in_usd_ticks", 0), True, generated.lesson_snapshot_hash, generated.applied_lesson_ids, generated.generation_context_hash))
             return attempt
-        except ProviderConnectionError as exc:
-            attempt = BundleAttempt(spec.bundle_id, attempt_id, "PROVIDER_BLOCKED", failure_class=exc.error_class, duration_ms=int((time.perf_counter() - started) * 1000))
+        except (ProviderConnectionError, GatewayCompletionError) as exc:
+            error_class = getattr(exc, "error_class", getattr(exc, "category", "PROVIDER_TRANSPORT_FAILURE"))
+            outcome_unknown = bool(getattr(exc, "outcome_unknown", False))
+            attempt = BundleAttempt(spec.bundle_id, attempt_id, "PROVIDER_BLOCKED", failure_class=error_class, duration_ms=int((time.perf_counter() - started) * 1000))
             self.attempts.append(attempt)
-            self.revisions.save_provider_attempt(spec.bundle_id, build_run_id, ProviderAttemptReceipt(attempt_id, operation, self.provider_id, self.model_config.model, "", "", self.route_snapshot_hash, utc_now(), utc_now(), "FAIL", exc.error_class, exc.outcome_unknown, {"max_output_tokens": spec.max_output_tokens}, {}, 0, False))
+            self.revisions.save_provider_attempt(spec.bundle_id, build_run_id, ProviderAttemptReceipt(attempt_id, operation, self.provider_id, self.model_config.model, "", "", self.route_snapshot_hash, utc_now(), utc_now(), "FAIL", error_class, outcome_unknown, {"max_output_tokens": spec.max_output_tokens}, {}, 0, False))
             raise
         finally:
             shutil.rmtree(staging, ignore_errors=True)
@@ -209,9 +253,13 @@ class GreenfieldBundleProductionService:
                 tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
             except SyntaxError as exc:
                 raise BundleValidationError(f"BUNDLE_SYNTAX_ERROR:{relative}:{exc}") from exc
-            if relative == spec.interface_contract.module.replace(".", "/") + ".py":
+            module_path = spec.interface_contract.module.replace(".", "/")
+            if relative in {module_path + ".py", module_path + "/__init__.py", module_path + "/__main__.py"}:
                 names.update(node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)))
-        missing = sorted(name for name in spec.interface_contract.exports if name not in names and name != "ProjectError")
+                for node in tree.body:
+                    if isinstance(node, ast.ImportFrom):
+                        names.update(alias.asname or alias.name for alias in node.names)
+        missing = sorted(name for name in spec.interface_contract.exports if name not in names)
         if missing:
             raise BundleValidationError("BUNDLE_INTERFACE_MISSING:" + ",".join(missing))
         return {"status": "PASS", "revision_id": revision_id, "source_hash": revision.source_hash, "interface_hash": spec.interface_contract.interface_hash}

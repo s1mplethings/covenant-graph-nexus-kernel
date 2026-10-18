@@ -15,6 +15,7 @@ def canonical_hash(value: Any) -> str:
 class BundleKind(str, Enum):
     DOMAIN = "DOMAIN"
     CLI = "CLI"
+    INIT = "INIT"
     DOMAIN_STORE = "DOMAIN_STORE"
     LIBRARY_API = "LIBRARY_API"
 
@@ -74,6 +75,7 @@ class BundleSpec:
     interface_contract: BundleInterfaceContract
     bundle_hash: str = ""
     schema_version: str = "1.0"
+    execution_mode: str = "PROVIDER"
 
     def __post_init__(self) -> None:
         if not self.bundle_id or not self.target_paths:
@@ -98,7 +100,7 @@ class BundleSpec:
             "lesson_query": dict(self.lesson_query), "max_output_tokens": self.max_output_tokens,
             "max_output_bytes": self.max_output_bytes, "timeout_seconds": self.timeout_seconds,
             "reasoning_effort": self.reasoning_effort, "interface_contract": self.interface_contract.as_dict(),
-            "schema_version": self.schema_version,
+            "schema_version": self.schema_version, "execution_mode": self.execution_mode,
         }
         if include_hash:
             value["bundle_hash"] = self.bundle_hash
@@ -115,7 +117,7 @@ class BundleSpec:
             dict(value.get("lesson_query", {})), int(value["max_output_tokens"]), int(value["max_output_bytes"]),
             int(value["timeout_seconds"]), str(value["reasoning_effort"]),
             BundleInterfaceContract.from_dict(value["interface_contract"]), str(value.get("bundle_hash", "")),
-            str(value.get("schema_version", "1.0")),
+            str(value.get("schema_version", "1.0")), str(value.get("execution_mode", "PROVIDER")),
         )
 
 
@@ -134,6 +136,7 @@ class GenerationManifest:
     assembly_contract: Mapping[str, Any]
     manifest_hash: str = ""
     schema_version: str = "1.0"
+    cli_plan: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         ids = {item.bundle_id for item in self.bundle_specs}
@@ -175,6 +178,7 @@ class GenerationManifest:
             "bundle_graph": {key: list(value) for key, value in sorted(self.bundle_graph.items())},
             "deterministic_assets": list(self.deterministic_assets), "provider_policy": dict(self.provider_policy),
             "assembly_contract": dict(self.assembly_contract), "contains_credentials": False,
+            "cli_plan": dict(self.cli_plan) if self.cli_plan is not None else None,
         }
         if include_hash:
             value["manifest_hash"] = self.manifest_hash
@@ -191,7 +195,7 @@ class GenerationManifest:
             {str(key): tuple(items) for key, items in value.get("bundle_graph", {}).items()},
             tuple(value.get("deterministic_assets", ())), dict(value.get("provider_policy", {})),
             dict(value.get("assembly_contract", {})), str(value.get("manifest_hash", "")),
-            str(value.get("schema_version", "1.0")),
+            str(value.get("schema_version", "1.0")), dict(value["cli_plan"]) if value.get("cli_plan") is not None else None,
         )
 
 

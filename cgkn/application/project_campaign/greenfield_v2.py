@@ -17,7 +17,7 @@ from cgkn.execution.contracts import utc_now
 from cgkn.providers import ModelRoleConfig
 
 from .contracts import ProjectCase
-from .matrix import campaign_matrix
+from .matrix import campaign_matrix, _explicit_cli_contract
 from .service import LICENSE_CAP, PYPROJECT_CAP, README_CAP, _capability_input, _compile, _contract, _evaluate, _obligations, _package, _pytest, _render_tests, _snapshot, _write_json
 
 
@@ -74,7 +74,8 @@ class GreenfieldV2Campaign:
         project_contract = _contract(case); obligations = _obligations(case)
         manifest = self.compiler.compile(project_id=case.project_id, project_type=case.project_type, package_name=case.package_name,
                                          project_contract=project_contract, obligations=obligations,
-                                         interface_contract=case.interface_contract, target_paths=case.target_paths)
+                                         interface_contract=case.interface_contract, target_paths=case.target_paths,
+                                         cli_contract=case.cli_contract)
         _write_json(project_root / "generation_manifest.json", manifest.as_dict())
         _render_tests(workspace, case)
         required = list(case.required_capabilities)
@@ -262,7 +263,7 @@ def _api_docs_spec() -> CapabilitySpec:
 
 
 def _csv_profile_case() -> ProjectCase:
-    return ProjectCase("csv_column_profile_cli", "B", "GREENFIELD_CLI", "csv_column_profile", "Profile CSV columns deterministically.", {"entrypoint": "python -m csv_column_profile", "commands": ["INPUT", "INPUT --json"], "stderr_errors": True, "no_aliases": True}, {"stdlib": "csv", "header": "first row required", "fields": ["name", "row_count", "empty_count", "unique_count"], "malformed_row": "nonzero stderr", "deterministic": True}, ("csv_column_profile/__init__.py", "csv_column_profile/__main__.py", "csv_column_profile/core.py"), ({"files": {"x.csv": "name,age\nAda,3\n,3\n"}, "steps": [{"argv": ["x.csv", "--json"], "code": 0, "json": [{"name": "name", "row_count": 2, "empty_count": 1, "unique_count": 2}, {"name": "age", "row_count": 2, "empty_count": 0, "unique_count": 1}]}]},), ({"files": {"bad.csv": "a,b\n1\n"}, "steps": [{"argv": ["bad.csv"], "code": 2, "stderr_nonempty": True}]},))
+    return ProjectCase("csv_column_profile_cli", "B", "GREENFIELD_CLI", "csv_column_profile", "Profile CSV columns deterministically.", {"entrypoint": "python -m csv_column_profile", "commands": ["INPUT", "INPUT --json"], "stderr_errors": True, "no_aliases": True}, {"stdlib": "csv", "header": "first row required", "fields": ["name", "row_count", "empty_count", "unique_count"], "malformed_row": "nonzero stderr", "deterministic": True}, ("csv_column_profile/__init__.py", "csv_column_profile/__main__.py", "csv_column_profile/core.py"), ({"files": {"x.csv": "name,age\nAda,3\n,3\n"}, "steps": [{"argv": ["x.csv", "--json"], "code": 0, "json": [{"name": "name", "row_count": 2, "empty_count": 1, "unique_count": 2}, {"name": "age", "row_count": 2, "empty_count": 0, "unique_count": 1}]}]},), ({"files": {"bad.csv": "a,b\n1\n"}, "steps": [{"argv": ["bad.csv"], "code": 2, "stderr_nonempty": True}]},), cli_contract=_explicit_cli_contract("csv_column_profile_cli", "csv_column_profile"))
 
 
 def _config_overlay_case() -> ProjectCase:

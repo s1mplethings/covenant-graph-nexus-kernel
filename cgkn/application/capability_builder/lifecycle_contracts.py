@@ -143,7 +143,7 @@ class CandidateRevision:
     def __post_init__(self) -> None:
         if self.revision_number < 1 or not self.revision_id or not self.capability_ref:
             raise ValueError("candidate revision identity is invalid")
-        if self.subject_kind not in {"CAPABILITY", "PROJECT_BUNDLE"}:
+        if self.subject_kind not in {"CAPABILITY", "PROJECT_BUNDLE", "DETERMINISTIC_PROJECT_BUNDLE"}:
             raise ValueError("candidate revision subject kind is invalid")
         if not self.subject_ref:
             object.__setattr__(self, "subject_ref", self.capability_ref)

@@ -23,6 +23,7 @@ class ProjectCase:
     allowed_paths: tuple[str, ...] = ()
     existing_repo: bool = False
     schema_version: str = "1.0"
+    cli_contract: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.wave not in {"A", "B", "C"}:

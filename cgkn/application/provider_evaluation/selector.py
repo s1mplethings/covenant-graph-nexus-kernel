@@ -14,7 +14,7 @@ from .contracts import (
 )
 
 
-SELECTION_POLICY_VERSION = "provider-selection-v1"
+SELECTION_POLICY_VERSION = "provider-selection-v2"
 TIE_MARGIN = 0.01
 
 
@@ -31,7 +31,7 @@ def aggregate_profiles(
     *,
     benchmark_suite_hash: str,
     selection_policy_version: str = SELECTION_POLICY_VERSION,
-    minimum_samples: int = 2,
+    minimum_samples: int = 1,
 ) -> tuple[ProviderCapabilityProfile, ...]:
     grouped: dict[tuple[str, str, str, str, str], list[ProviderBenchmarkReceipt]] = {}
     for receipt in receipts:
@@ -81,6 +81,8 @@ def aggregate_profiles(
             eligible=not reasons,
             ineligible_reasons=tuple(reasons),
             structured_output_mode=(rows[0].structured_output_mode if len({row.structured_output_mode for row in rows}) == 1 else "MIXED"),
+            qualification_status=("INELIGIBLE" if reasons else ("PROVISIONAL_ELIGIBLE" if len(rows) == 1 else "QUALIFIED")),
+            confidence=("LOW" if len(rows) == 1 else "MEDIUM"),
         )
         profiles.append(replace(provisional, profile_hash=canonical_hash(provisional.as_dict(include_hash=False))))
     return tuple(profiles)
@@ -137,7 +139,8 @@ class ProviderSelector:
         winner, score = tied[0]
         ordered_scores = sorted((value for _, value in scored), reverse=True)
         gap = ordered_scores[0] - ordered_scores[1] if len(ordered_scores) > 1 else 0.0
-        confidence = "HIGH" if len(eligible) >= 2 and gap >= 0.05 else ("MEDIUM" if len(eligible) >= 2 else "LOW")
+        unknown_cost = any(not isinstance(row.median_cost, (int, float)) for row in eligible)
+        confidence = "HIGH" if len(eligible) >= 2 and gap >= 0.05 and not unknown_cost else ("MEDIUM" if len(eligible) >= 2 and not unknown_cost else "LOW")
         cost_text = winner.median_cost if isinstance(winner.median_cost, (int, float)) else "UNAVAILABLE"
         reason = (
             f"selected by task-specific evidence: functional={winner.functional_success_rate:.3f}, "

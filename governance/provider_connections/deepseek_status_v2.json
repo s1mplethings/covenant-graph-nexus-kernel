@@ -1,0 +1,1 @@
+{"kind":"ProviderConnectionReceiptV2","schema_version":"2.0","provider_id":"deepseek","actual_model":"deepseek-flash","status":"READY","credential_present":true,"structured_schema_valid":true,"latency_ms":636,"request_id":"d0ea6c83-3dd1-4745-b321-270777e5a51d","contains_credentials":false}

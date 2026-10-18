@@ -29,10 +29,16 @@ def profile_from_dict(value: Mapping[str, Any]) -> ProviderCapabilityProfile:
         selection_policy_version=str(value["selection_policy_version"]),
         eligible=bool(value["eligible"]),
         ineligible_reasons=tuple(value.get("ineligible_reasons", ())),
+        structured_output_mode=str(value.get("structured_output_mode", "UNAVAILABLE")),
         profile_hash=str(value.get("profile_hash", "")),
+        qualification_status=str(value.get("qualification_status", "QUALIFIED")),
+        confidence=str(value.get("confidence", "MEDIUM")),
     )
     expected = canonical_hash(profile.as_dict(include_hash=False))
-    if profile.profile_hash != expected:
+    legacy = profile.as_dict(include_hash=False)
+    legacy.pop("qualification_status", None); legacy.pop("confidence", None)
+    legacy_expected = canonical_hash(legacy)
+    if profile.profile_hash not in {expected, legacy_expected}:
         raise ValueError("provider profile hash mismatch")
     return profile
 

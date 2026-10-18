@@ -81,7 +81,7 @@ def test_case_contract_and_profile_cache_key_are_stable() -> None:
     assert profiles[0].eligible is True
     assert profiles[0].cache_key == (
         "qwen", "qwen-actual", "sha256:" + "g" * 64,
-        "sha256:" + "s" * 64, "structured.output", "provider-selection-v1",
+        "sha256:" + "s" * 64, "structured.output", "provider-selection-v2",
     )
 
 
@@ -105,13 +105,14 @@ def test_hard_gate_rejects_integrity_failures(mutation, reason) -> None:
 
 @pytest.mark.negative
 @pytest.mark.boundary
-def test_fewer_than_two_samples_is_ineligible() -> None:
+def test_single_sample_is_provisionally_eligible() -> None:
     profile = aggregate_profiles(
         [receipt("qwen", "worker.codegen", "a")],
         benchmark_suite_hash="sha256:" + "s" * 64,
     )[0]
-    assert profile.eligible is False
-    assert profile.ineligible_reasons == ("INSUFFICIENT_SAMPLES",)
+    assert profile.eligible is True
+    assert profile.qualification_status == "PROVISIONAL_ELIGIBLE"
+    assert profile.confidence == "LOW"
 
 
 @pytest.mark.happy_path
@@ -176,7 +177,7 @@ def test_frozen_snapshot_is_immutable_credential_free_and_write_once(tmp_path) -
 
 @pytest.mark.negative
 def test_selector_fails_closed_without_eligible_provider() -> None:
-    rows = [receipt("qwen", "worker.codegen", "a")]
+    rows = [receipt("qwen", "worker.codegen", "a", scope=False, success=False)]
     selector = ProviderSelector(aggregate_profiles(rows, benchmark_suite_hash="sha256:" + "s" * 64))
     with pytest.raises(RuntimeError, match="PROVIDER_SELECTION_NEEDS_REWORK"):
         selector.select("worker.codegen")

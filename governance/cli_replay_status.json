@@ -1,0 +1,4 @@
+{
+  "kind":"DeterministicCLIReplayStatus","schema_version":"1.0","status":"PASS","passed":3,"total":4,"cli_provider_calls":0,"help":"PASS_4_OF_4","exact_error_semantics":"PASS_4_OF_4",
+  "projects":[{"project_id":"duplicate_finder_cli","status":"PASS","domain_reused":true},{"project_id":"env_audit_cli","status":"PASS","domain_reused":true},{"project_id":"csv_column_profile_cli","status":"FAIL_DOMAIN_CANDIDATE_DEFECT","detail":"empty cell excluded from unique_count","domain_reused":true},{"project_id":"rename_plan_cli","status":"PASS","domain_reused":true}],"manual_candidate_edits":0,"contains_credentials":false
+}

@@ -22,13 +22,21 @@ PROJECT = {
 }
 OBLIGATIONS = {"interface": "exact", "errors": "nonzero stderr", "deterministic": True}
 TARGETS = ("sample/__init__.py", "sample/__main__.py", "sample/core.py")
+CLI_PLAN = {
+    "program_name": "sample", "module_name": "sample.__main__", "entrypoint": "python -m sample",
+    "commands": [{"command_id": "main", "subcommand_name": "", "help_text": "", "positionals": [{"argument_id": "value", "kind": "POSITIONAL", "flags": ["value"], "dest": "value", "value_type": "STRING", "required": True, "default": None, "nargs": None, "repeatable": False, "action": "STORE", "choices": [], "metavar": "VALUE"}],
+                  "options": [{"argument_id": "json", "kind": "OPTION", "flags": ["--json"], "dest": "json", "value_type": "STRING", "required": False, "default": False, "nargs": None, "repeatable": False, "action": "STORE_TRUE", "choices": [], "metavar": ""}],
+                  "dispatch": {"domain_module": "sample.core", "callable_name": "execute", "operation": "echo", "parameter_mapping": {"value": "$args.value"}},
+                  "output": {"mode": "COMMAND_OUTCOME", "json_flag_dest": "json", "stable_json": True, "trailing_newline": True},
+                  "error_mappings": [{"exception_name": "ProjectError", "exit_code": 2, "stream": "stderr", "message_policy": "EXCEPTION_MESSAGE"}], "obligation_refs": []}],
+    "global_options": [], "help_contract": {"exit_code": 0}, "error_mappings": [], "output_policy": {"stable_json": True}, "side_effect_policy": {"help": "FORBIDDEN"}, "domain_contract": {}, "plan_version": "1.0"}
 
 
 def manifest(project_type: str = "GREENFIELD_CLI", *, contract=None, targets=TARGETS) -> GenerationManifest:
     return GenerationManifestCompiler().compile(
         project_id="sample_cli", project_type=project_type, package_name="sample",
         project_contract=contract or PROJECT, obligations=OBLIGATIONS,
-        interface_contract=PROJECT["interface_contract"], target_paths=targets,
+        interface_contract=PROJECT["interface_contract"], target_paths=targets, cli_contract=CLI_PLAN,
     )
 
 
@@ -51,13 +59,13 @@ def test_interface_round_trip():
     assert BundleInterfaceContract.from_dict(value.as_dict()).as_dict() == value.as_dict()
 
 
-def test_normal_cli_has_domain_and_cli_bundles():
-    assert [item.bundle_kind for item in manifest().bundle_specs] == [BundleKind.DOMAIN, BundleKind.CLI]
+def test_normal_cli_has_domain_init_and_cli_bundles():
+    assert [item.bundle_kind for item in manifest().bundle_specs] == [BundleKind.DOMAIN, BundleKind.INIT, BundleKind.CLI]
+    assert [item.execution_mode for item in manifest().bundle_specs] == ["PROVIDER", "DETERMINISTIC", "DETERMINISTIC"]
 
 
 def test_normal_cli_never_splits_per_file():
-    assert manifest().bundle_specs[0].target_paths == ("sample/__init__.py", "sample/core.py")
-    assert manifest().bundle_specs[1].target_paths == ("sample/__main__.py",)
+    assert [item.target_paths for item in manifest().bundle_specs] == [("sample/core.py",), ("sample/__init__.py",), ("sample/__main__.py",)]
 
 
 def test_persistent_project_uses_domain_store():
@@ -72,33 +80,34 @@ def test_library_project_uses_library_api():
 
 
 def test_domain_and_cli_have_bounded_provider_configs():
-    domain, cli = manifest().bundle_specs
+    domain, init, cli = manifest().bundle_specs
     assert (domain.max_output_tokens, domain.max_output_bytes, domain.reasoning_effort) == (2800, 65536, "low")
-    assert (cli.max_output_tokens, cli.max_output_bytes, cli.reasoning_effort) == (1500, 32768, "low")
+    assert (cli.max_output_tokens, cli.max_output_bytes, cli.reasoning_effort) == (1, 32768, "low")
 
 
 def test_cli_help_contract_is_explicit():
-    help_contract = manifest().bundle_specs[1].interface_contract.help_contract
+    help_contract = manifest().bundle_specs[2].interface_contract.help_contract
     assert help_contract == HELP_CONTRACT
     assert help_contract["exit_code"] == 0 and help_contract["business_file_side_effects"] == "FORBIDDEN"
-    assert "exact exit code 2" in manifest().bundle_specs[1].interface_contract.stderr_contract
+    assert "exact exit code 2" in manifest().bundle_specs[2].interface_contract.stderr_contract
 
 
 def test_bundle_graph_is_acyclic_and_cli_depends_on_domain():
-    value = manifest(); domain, cli = value.bundle_specs
+    value = manifest(); domain, init, cli = value.bundle_specs
     assert value.bundle_graph[domain.bundle_id] == ()
-    assert value.bundle_graph[cli.bundle_id] == (domain.bundle_id,)
+    assert value.bundle_graph[init.bundle_id] == (domain.bundle_id,)
+    assert value.bundle_graph[cli.bundle_id] == (domain.bundle_id, init.bundle_id)
 
 
 def test_overlapping_bundle_targets_are_rejected():
-    value = manifest(); domain, cli = value.bundle_specs
+    value = manifest(); domain, init, cli = value.bundle_specs
     duplicate = BundleSpec.from_dict({**cli.as_dict(), "target_paths": [domain.target_paths[0]], "bundle_hash": ""})
     with pytest.raises(ValueError, match="OVERLAPPING"):
         GenerationManifest(value.project_id, value.project_type, value.package_name, value.project_contract_hash, value.obligation_hash, value.interface_contract_hash, (domain, duplicate), {domain.bundle_id: (), duplicate.bundle_id: (domain.bundle_id,)}, (), {}, {})
 
 
 def test_bundle_graph_cycle_is_rejected():
-    value = manifest(); domain, cli = value.bundle_specs
+    value = manifest(); domain, init, cli = value.bundle_specs
     with pytest.raises(ValueError, match="CYCLE"):
         GenerationManifest(value.project_id, value.project_type, value.package_name, value.project_contract_hash, value.obligation_hash, value.interface_contract_hash, (domain, cli), {domain.bundle_id: (cli.bundle_id,), cli.bundle_id: (domain.bundle_id,)}, (), {}, {})
 
@@ -110,8 +119,8 @@ def test_bundle_hash_tampering_is_rejected():
 
 
 def test_bundle_size_file_limit_is_enforced():
-    with pytest.raises(ValueError, match="FILE_LIMIT"):
-        manifest(targets=("sample/__init__.py", "sample/__main__.py", "sample/core.py", "sample/a.py", "sample/b.py"))
+    value = manifest(targets=("sample/__init__.py", "sample/__main__.py", "sample/core.py", "sample/a.py", "sample/b.py"))
+    assert value.bundle_specs[0].target_paths == ("sample/core.py", "sample/a.py", "sample/b.py")
 
 
 def test_contract_size_guard_is_enforced():
@@ -176,10 +185,7 @@ class FakeBundleProvider:
                 main = "import argparse\nfrom .core import execute\ndef build_parser():\n p=argparse.ArgumentParser(); p.add_argument('value',nargs='?'); return p\ndef main(argv=None):\n a=build_parser().parse_args(argv); print(execute('echo',{'value':a.value})); return 0\nif __name__=='__main__': raise SystemExit(main())\n"
             actions = [{"action": "write_file", "path": "sample/__main__.py", "content": main}]
         else:
-            actions = [
-                {"action": "write_file", "path": "sample/__init__.py", "content": "from .core import ProjectError, execute\n"},
-                {"action": "write_file", "path": "sample/core.py", "content": "class ProjectError(ValueError): pass\ndef execute(operation, parameters):\n if operation!='echo': raise ProjectError(operation)\n return parameters.get('value','')\n"},
-            ]
+            actions = [{"action": "write_file", "path": "sample/core.py", "content": "class ProjectError(ValueError): pass\ndef execute(operation, parameters):\n if operation!='echo': raise ProjectError(operation)\n return {'kind':'text','value':parameters.get('value','')}\n"}]
         body = {"schema_version": "1.0", "node_id": bundle_id, "summary": "fake", "actions": actions, "expected_outputs": ["PASS"], "confidence": 1.0, "needs_escalation": False, "escalation_reason": ""}
         return ProviderCompletion(json.dumps(body), "grok", f"request-{len(self.calls)}", {"input_tokens": 10, "output_tokens": 20}, 1)
 
@@ -193,7 +199,7 @@ def service(tmp_path: Path, provider: FakeBundleProvider) -> GreenfieldBundlePro
 def test_fake_bundle_e2e_domain_cli_assemble_and_help(tmp_path):
     provider = FakeBundleProvider(); svc = service(tmp_path, provider); workspace = tmp_path / "workspace"
     result = svc.run_initial(manifest(), PROJECT, workspace)
-    assert result["status"] == "SUCCEEDED" and provider.calls == ["DOMAIN", "CLI"]
+    assert result["status"] == "SUCCEEDED" and provider.calls == ["DOMAIN"]
     before = sorted(path.relative_to(workspace).as_posix() for path in workspace.rglob("*") if "__pycache__" not in path.parts)
     import os, subprocess, sys
     env = os.environ.copy(); env["PYTHONPATH"] = str(workspace)
@@ -203,31 +209,32 @@ def test_fake_bundle_e2e_domain_cli_assemble_and_help(tmp_path):
     assert before == after
 
 
-def test_cli_transport_retry_does_not_rerun_domain(tmp_path):
+def test_deterministic_cli_does_not_call_provider(tmp_path):
     provider = FakeBundleProvider(cli_transport_once=True); svc = service(tmp_path, provider)
     result = svc.run_initial(manifest(), PROJECT, tmp_path / "workspace")
     assert result["status"] == "SUCCEEDED"
-    assert provider.calls == ["DOMAIN", "CLI", "CLI"]
+    assert provider.calls == ["DOMAIN"]
     assert sum(call == "DOMAIN" for call in provider.calls) == 1
-    assert sum(bool(item["revision_id"]) for item in result["attempts"]) == 2
+    assert sum(bool(item["revision_id"]) for item in result["attempts"]) == 3
 
 
-def test_transport_failure_creates_no_revision_for_failed_attempt(tmp_path):
+def test_deterministic_revisions_have_no_provider_attempt(tmp_path):
     provider = FakeBundleProvider(cli_transport_once=True); svc = service(tmp_path, provider)
     result = svc.run_initial(manifest(), PROJECT, tmp_path / "workspace")
-    blocked = next(item for item in result["attempts"] if item["status"] == "PROVIDER_BLOCKED")
-    assert blocked["revision_id"] == ""
+    assert result["status"] == "SUCCEEDED"
+    revisions = [svc.revisions.load_revision(value) for value in result["revision_ids"].values()]
+    assert {row.provider_id for row in revisions} == {"grok", "deterministic"}
 
 
-def test_candidate_defect_creates_child_revision_on_repair(tmp_path):
+def test_cli_rerender_reuses_domain_revision(tmp_path):
     provider = FakeBundleProvider(bad_cli_once=True); svc = service(tmp_path, provider); value = manifest()
     first = svc.run_initial(value, PROJECT, tmp_path / "workspace", retry_transport=False, repair_candidate=False)
-    assert first["status"] != "SUCCEEDED" and provider.calls == ["DOMAIN", "CLI"]
-    cli = value.bundle_specs[1]; parent = svc.current_revisions[cli.bundle_id]
-    repaired = svc.repair_bundle(value, cli, PROJECT, first["run_id"], {"failure_class": "CLI_HELP"})
-    assert repaired.parent_revision_id == parent
-    assert svc.revisions.load_revision(repaired.revision_id).revision_number == 2
-    assert provider.calls == ["DOMAIN", "CLI", "CLI"]
+    assert first["status"] == "SUCCEEDED" and provider.calls == ["DOMAIN"]
+    domain_id = first["revision_ids"][value.bundle_specs[0].bundle_id]
+    cli = value.bundle_specs[2]
+    rerendered = svc.render_bundle(value, cli, first["run_id"] + "-rerender")
+    assert rerendered.revision_id and svc.current_revisions[value.bundle_specs[0].bundle_id] == domain_id
+    assert provider.calls == ["DOMAIN"]
 
 
 def test_revalidation_uses_existing_revision_without_provider_call(tmp_path):

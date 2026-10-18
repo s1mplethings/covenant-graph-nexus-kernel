@@ -3,6 +3,65 @@ from __future__ import annotations
 from .contracts import ProjectCase
 
 
+def _arg(dest: str, *, option: str = "", nargs=None, action: str = "STORE", required: bool = False) -> dict:
+    return {"argument_id": dest, "kind": "OPTION" if option else "POSITIONAL", "flags": [option] if option else [dest],
+            "dest": dest, "value_type": "INTEGER" if dest == "id" else ("PATH" if dest in {"file", "input", "output", "root", "left", "right", "zip", "store"} else "STRING"),
+            "required": required, "default": False if action == "STORE_TRUE" else None,
+            "nargs": nargs, "repeatable": action == "APPEND", "action": action, "choices": [], "metavar": ""}
+
+
+def _explicit_cli_contract(project_id: str, package: str) -> dict:
+    """Explicit migration authority. Display command strings are deliberately not parsed."""
+    shapes = {
+        "text_stats_cli": ([ _arg("file"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "json_flatten_cli": ([_arg("input"), _arg("output")],),
+        "directory_diff_cli": ([_arg("left"), _arg("right"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "markdown_toc_cli": ([_arg("input")],),
+        "ini_merge_cli": ([_arg("output"), _arg("inputs", nargs="+")],),
+        "duplicate_finder_cli": ([_arg("root"), _arg("exclude", option="--exclude"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "zip_manifest_cli": ([_arg("zip"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "env_audit_cli": ([_arg("file"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "csv_column_profile_cli": ([_arg("file"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "rename_plan_cli": ([_arg("root"), _arg("pattern", option="--pattern", required=True), _arg("template", option="--template", required=True), _arg("json", option="--json", action="STORE_TRUE")],),
+        "log_summary_library": ([_arg("file"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "line_select_cli": ([_arg("input"), _arg("query"), _arg("ignore_case", option="--ignore-case", action="STORE_TRUE"), _arg("json", option="--json", action="STORE_TRUE")],),
+        "mapping_overlay_library": ([_arg("output"), _arg("inputs", nargs="+")],),
+    }
+    persistent = {
+        "todo_json_cli": {"add": [_arg("text"), _arg("tag", option="--tag")], "list": [_arg("tag", option="--tag")], "done": [_arg("id")], "delete": [_arg("id")]},
+        "notes_search_cli": {"add": [_arg("text"), _arg("tag", option="--tag")], "search": [_arg("query")], "tag": [_arg("tag")], "show": [_arg("id")], "delete": [_arg("id")]},
+        "bookmark_store_cli": {"add": [_arg("url"), _arg("title", option="--title"), _arg("tag", option="--tag")], "list": [_arg("tag", option="--tag")], "show": [_arg("id")], "remove": [_arg("id")]},
+    }
+    global_options = [_arg("store", option="--store", required=True)] if project_id in persistent else []
+    commands = []
+    definitions = persistent.get(project_id)
+    if definitions:
+        for name, args in definitions.items():
+            mapping = {item["dest"]: f'$args.{item["dest"]}' for item in global_options + args}
+            commands.append({"command_id": name, "subcommand_name": name, "help_text": name, "positionals": [item for item in args if item["kind"] == "POSITIONAL"],
+                             "options": [item for item in args if item["kind"] == "OPTION"], "dispatch": {"domain_module": f"{package}.core", "callable_name": "execute", "operation": name, "parameter_mapping": mapping},
+                             "output": {"mode": "COMMAND_OUTCOME", "json_flag_dest": "", "stable_json": True, "trailing_newline": True},
+                             "error_mappings": [{"exception_name": "ProjectError", "exit_code": 2, "stream": "stderr", "message_policy": "EXCEPTION_MESSAGE"}], "obligation_refs": []})
+    else:
+        args = list(shapes[project_id][0])
+        parameter_names = {"env_audit_cli": {"file": "path"}, "csv_column_profile_cli": {"file": "path"}}
+        mapping = {parameter_names.get(project_id, {}).get(item["dest"], item["dest"]): f'$args.{item["dest"]}' for item in args}
+        operations = {"duplicate_finder_cli": "find_duplicates", "env_audit_cli": "audit", "csv_column_profile_cli": "profile", "rename_plan_cli": "plan"}
+        commands.append({"command_id": "main", "subcommand_name": "", "help_text": "", "positionals": [item for item in args if item["kind"] == "POSITIONAL"],
+                         "options": [item for item in args if item["kind"] == "OPTION"], "dispatch": {"domain_module": f"{package}.core", "callable_name": "cli_execute" if project_id in {"log_summary_library", "mapping_overlay_library"} else "execute", "operation": operations.get(project_id, "merge" if project_id == "mapping_overlay_library" else project_id.removesuffix("_cli")), "parameter_mapping": mapping},
+                         "output": {"mode": "COMMAND_OUTCOME", "json_flag_dest": "json" if any(item["dest"] == "json" for item in args) else "", "stable_json": True, "trailing_newline": True,
+                                    "value_path": "groups" if project_id == "duplicate_finder_cli" else "",
+                                    "error_when_false": "ok" if project_id == "rename_plan_cli" else "",
+                                    "error_message": "collision" if project_id == "rename_plan_cli" else "domain operation failed"},
+                         "error_mappings": [{"exception_name": "ProjectError", "exit_code": 2, "stream": "stderr", "message_policy": "EXCEPTION_MESSAGE"}], "obligation_refs": []})
+    return {"program_name": package, "module_name": f"{package}.__main__", "entrypoint": f"python -m {package}", "commands": commands,
+            "global_options": global_options, "help_contract": {"exit_code": 0, "business_file_side_effects": "FORBIDDEN"},
+            "error_mappings": [{"exception_name": "ProjectError", "exit_code": 2, "stream": "stderr", "message_policy": "EXCEPTION_MESSAGE"}],
+            "output_policy": {"stable_json": True}, "side_effect_policy": {"help": "FORBIDDEN"},
+            "domain_contract": {"callable_name": "execute", "error_type": "ProjectError", "outcome_kinds": ["text", "json", "json_lines", "silent"],
+                                "accept_legacy_raw": project_id in {"duplicate_finder_cli", "env_audit_cli", "csv_column_profile_cli", "rename_plan_cli"}}, "plan_version": "1.0"}
+
+
 def _cli(
     project_id: str,
     wave: str,
@@ -21,7 +80,7 @@ def _cli(
         {"entrypoint": f"python -m {package}", "commands": commands, "stderr_errors": True, "no_aliases": True},
         {**behavior, "runtime": "PYTHON_STDLIB_ONLY", "network": "FORBIDDEN", "shell": "FORBIDDEN", "deterministic": True},
         (f"{package}/__init__.py", f"{package}/__main__.py", f"{package}/core.py"),
-        tuple(public), tuple(hidden), capabilities,
+        tuple(public), tuple(hidden), capabilities, cli_contract=_explicit_cli_contract(project_id, package),
     )
 
 

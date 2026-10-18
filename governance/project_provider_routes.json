@@ -1,0 +1,8 @@
+{
+  "kind":"ProjectProviderRoutes","schema_version":"1.0","frozen":true,"routes":[
+    {"project_id":"line_select_cli","task_class":"project.domain.simple","primary":"qwen","transport_backup":"grok","backup_used":true,"candidate_before_backup":false},
+    {"project_id":"bookmark_store_cli","task_class":"project.domain.persistent","primary":"grok","transport_backup":"qwen","backup_used":true,"candidate_before_backup":false},
+    {"project_id":"mapping_overlay_library","task_class":"project.domain.library","primary":"qwen","transport_backup":"grok","backup_used":true,"candidate_before_backup":false},
+    {"project_id":"existing_repo_json_feature","task_class":"repository.patch","primary":"qwen","status":"NOT_RUN_BUDGET_RESERVED_EXHAUSTED"}
+  ],"action":"RETRY_WITH_PRESELECTED_BACKUP","candidate_defect_backup_forbidden":true,"contains_credentials":false
+}

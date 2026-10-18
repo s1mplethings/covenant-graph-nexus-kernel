@@ -33,7 +33,8 @@ class ProjectAssembler:
                         shutil.copytree(item, target) if item.is_dir() else shutil.copyfile(item, target)
             for spec in manifest.bundle_specs:
                 revision = self.revision_store.load_revision(revisions[spec.bundle_id])
-                if revision.subject_kind != "PROJECT_BUNDLE" or revision.subject_ref != spec.bundle_id:
+                expected_kind = "DETERMINISTIC_PROJECT_BUNDLE" if spec.execution_mode == "DETERMINISTIC" else "PROJECT_BUNDLE"
+                if revision.subject_kind != expected_kind or revision.subject_ref != spec.bundle_id:
                     raise ValueError("bundle revision subject mismatch")
                 source_hashes[spec.bundle_id] = revision.source_hash
                 source = self.revision_store.source_path(revision.revision_id)

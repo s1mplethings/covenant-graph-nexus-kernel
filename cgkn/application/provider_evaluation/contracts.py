@@ -14,6 +14,11 @@ TASK_CLASSES = frozenset({
     "worker.repair",
     "capability.build",
     "structured.output",
+    "project.domain.simple",
+    "project.domain.persistent",
+    "project.domain.library",
+    "repository.patch",
+    "project.repair",
 })
 FAILURE_CLASSES = frozenset({
     "TRANSPORT_FAILURE",
@@ -193,6 +198,8 @@ class ProviderCapabilityProfile:
     ineligible_reasons: Sequence[str]
     structured_output_mode: str = "UNAVAILABLE"
     profile_hash: str = ""
+    qualification_status: str = "QUALIFIED"
+    confidence: str = "MEDIUM"
 
     def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
         value = {
@@ -218,6 +225,8 @@ class ProviderCapabilityProfile:
             "eligible": self.eligible,
             "ineligible_reasons": list(self.ineligible_reasons),
             "structured_output_mode": self.structured_output_mode,
+            "qualification_status": self.qualification_status,
+            "confidence": self.confidence,
             "contains_credentials": False,
         }
         if include_hash:
@@ -302,3 +311,49 @@ class RunProviderRoutingSnapshot:
             json.dump(self.as_dict(), handle, ensure_ascii=False, indent=2, sort_keys=True)
             handle.write("\n")
         return target
+
+
+@dataclass(frozen=True)
+class ProjectProviderPlan:
+    project_id: str
+    simple_domain_provider: str
+    persistent_domain_provider: str
+    library_provider: str
+    repository_patch_provider: str
+    repair_provider: str
+    capability_build_provider: str
+    optional_transport_backup: Mapping[str, str]
+    profile_hashes: Mapping[str, str]
+    selection_scores: Mapping[str, float]
+    confidence: Mapping[str, str]
+    plan_hash: str = ""
+
+    def __post_init__(self) -> None:
+        value = self.as_dict(include_hash=False)
+        expected = canonical_hash(value)
+        if self.plan_hash and self.plan_hash != expected:
+            raise ValueError("project provider plan hash mismatch")
+        object.__setattr__(self, "plan_hash", expected)
+        for name in ("optional_transport_backup", "profile_hashes", "selection_scores", "confidence"):
+            object.__setattr__(self, name, MappingProxyType(dict(getattr(self, name))))
+
+    def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
+        value = {"kind": "ProjectProviderPlan", "schema_version": "1.0", "project_id": self.project_id,
+                 "simple_domain_provider": self.simple_domain_provider, "persistent_domain_provider": self.persistent_domain_provider,
+                 "library_provider": self.library_provider, "repository_patch_provider": self.repository_patch_provider,
+                 "repair_provider": self.repair_provider, "capability_build_provider": self.capability_build_provider,
+                 "optional_transport_backup": dict(self.optional_transport_backup), "profile_hashes": dict(self.profile_hashes),
+                 "selection_scores": dict(self.selection_scores), "confidence": dict(self.confidence), "contains_credentials": False}
+        if include_hash:
+            value["plan_hash"] = self.plan_hash
+        return value
+
+    def authorize_backup(self, task_class: str, *, failure_domain: str, candidate_revision_id: str = "", action: str = "") -> str:
+        if candidate_revision_id:
+            raise RuntimeError("PROVIDER_ROUTE_AUTHORITY_VIOLATION")
+        if failure_domain != "PROVIDER_TRANSPORT_FAILURE" or action != "RETRY_WITH_PRESELECTED_BACKUP":
+            raise RuntimeError("PROVIDER_BACKUP_NOT_AUTHORIZED")
+        backup = self.optional_transport_backup.get(task_class, "")
+        if not backup:
+            raise RuntimeError("PROVIDER_BACKUP_NOT_FROZEN")
+        return backup

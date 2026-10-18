@@ -1,0 +1,1 @@
+{"kind":"ProviderConnectionReceiptV2","schema_version":"2.0","provider_id":"qwen","actual_model":"qwen3.8-max","status":"READY","credential_present":true,"structured_schema_valid":true,"latency_ms":2401,"request_id":"6fcfeadd-2c09-955f-9d9d-0d5ef096561a","contains_credentials":false}

@@ -1,0 +1,5 @@
+{
+  "kind":"ProviderMicroEvaluationStatus","schema_version":"1.0","iteration":"ITER-DETERMINISTIC-CLI-ADAPTIVE-PROVIDER-028","status":"PASS_WITH_TASK_SPECIFIC_LIMITS","call_count":10,"call_limit":12,
+  "stages":{"S0":{"calls":3,"pass":["qwen","deepseek","grok"]},"S1":{"calls":3,"project.domain.simple":{"qwen":"PASS","deepseek":"FAIL_TRANSPORT","grok":"PASS"}},"S2":{"calls":4,"project.domain.persistent":{"qwen":"FAIL_TIMEOUT","grok":"PASS"},"repository.patch":{"qwen":"PASS","grok":"FAIL_TRANSPORT"}},"S3":{"status":"NOT_RUN_NOT_NEEDED","calls":0}},
+  "hard_gates":["schema_valid","functional_valid","interface_valid","scope_valid","secret_safe"],"cost_policy":"UNKNOWN_IS_NOT_ZERO","contains_credentials":false
+}
