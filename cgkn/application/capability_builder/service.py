@@ -228,6 +228,8 @@ class _ExampleDependencies:
     def invoke(self, capability_ref: str, value: Any) -> Any:
         result = self.results[capability_ref]
         if isinstance(result, list):
+            if not result:
+                return result
             index = self.offsets.get(capability_ref, 0)
             if index >= len(result):
                 raise IndexError(f"no example dependency result remaining: {capability_ref}")
@@ -378,6 +380,7 @@ class CapabilityBuilderService:
                 "    def invoke(self, ref, value):",
                 "        result = self.results[ref]",
                 "        if not isinstance(result, list): return result",
+                "        if not result: return result",
                 "        index = self.offsets.get(ref, 0)",
                 "        self.offsets[ref] = index + 1",
                 "        return result[index]", "",

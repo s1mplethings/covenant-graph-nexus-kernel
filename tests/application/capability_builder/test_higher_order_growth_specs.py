@@ -1,5 +1,6 @@
 from scripts.run_higher_order_growth import compare_spec, repo_brief_spec
 from cgkn.application.capability_builder import CapabilityRisk
+from cgkn.application.capability_builder.service import _ExampleDependencies
 
 
 def test_repo_brief_is_bounded_composite_with_required_leaf_dependencies():
@@ -16,3 +17,8 @@ def test_compare_depends_only_on_repo_brief_and_preserves_evidence():
     source_ids = {source["source_id"] for source in output["sources"]}
     assert len(output["repositories"]) == 2 and len(output["dimensions"]) == 7
     assert all(set(row["evidence_refs"]) <= source_ids for row in output["dimensions"])
+
+
+def test_empty_list_dependency_output_is_not_treated_as_call_sequence():
+    dependencies = _ExampleDependencies({"markdown.links.extract@1": []})
+    assert dependencies.invoke("markdown.links.extract@1", "no links") == []
