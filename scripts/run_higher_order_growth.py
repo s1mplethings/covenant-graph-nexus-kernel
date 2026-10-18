@@ -124,21 +124,35 @@ def compare_spec() -> CapabilitySpec:
     )
 
 
-def _capability_receipt(spec: CapabilitySpec, first: Any, reuse: Any, store: CapabilityStore) -> dict[str, Any]:
+def _capability_receipt(spec: CapabilitySpec, build: Any, first: Any, reuse: Any, store: CapabilityStore) -> dict[str, Any]:
     admission = json.loads((store.path_for(spec.ref) / "admission.json").read_text(encoding="utf-8")) if store.contains(spec.ref) else {}
     return {
         "kind":"HigherOrderCapabilityReceipt","schema_version":"1.0","capability_ref":spec.ref,
         "spec_hash":_hash(spec.as_dict()),"package_hash":admission.get("source_hash","") ,
         "provider":"grok","routing_mode":"SINGLE_PROVIDER_MODE","fallback":"deny",
-        "provider_calls":first.provider_calls,"repair_rounds":max(0,first.provider_calls-1),
-        "dependencies":admission.get("dependency_manifest",[]),"build":first.status,
-        "admission":"ADMITTED" if store.contains(spec.ref) else "REJECTED","reuse":reuse.status,
+        "provider_calls":build.provider_calls,"repair_rounds":build.repair_rounds,
+        "dependencies":admission.get("dependency_manifest",[]),"build":build.status,
+        "admission":"ADMITTED" if store.contains(spec.ref) else "REJECTED","local_execution":first.status,"reuse":reuse.status,
         "reuse_growth_calls":int(reuse.growth_invoked),"reuse_builder_calls":int(reuse.builder_invoked),
         "manual_candidate_edits":0,"contains_credentials":False,
     }
 
 
-def run(output_root: pathlib.Path, seed_store: pathlib.Path) -> dict[str, Any]:
+class _FixtureNetwork:
+    def get(self, url: str) -> dict[str, Any]:
+        if "api.github.com/repos/" in url:
+            full_name = url.split("api.github.com/repos/", 1)[1]
+            owner, repo = full_name.split("/", 1)
+            value = {"full_name":full_name,"description":f"Fixture repository {repo}","default_branch":"main","language":"Python","stargazers_count":len(repo),"forks_count":len(owner),"open_issues_count":0,"html_url":f"https://github.com/{full_name}"}
+            return {"status_code":200,"final_url":url,"content_type":"application/json","text":json.dumps(value),"truncated":False,"bytes_read":len(json.dumps(value))}
+        text = "# Fixture README\n[Documentation](https://example.test/docs)"
+        return {"status_code":200,"final_url":url,"content_type":"text/plain","text":text,"truncated":False,"bytes_read":len(text)}
+
+    def head(self, url: str) -> dict[str, Any]:
+        return self.get(url)
+
+
+def run(output_root: pathlib.Path, seed_store: pathlib.Path, external_status: str) -> dict[str, Any]:
     started = time.monotonic()
     if output_root.exists():
         raise FileExistsError(output_root)
@@ -154,17 +168,21 @@ def run(output_root: pathlib.Path, seed_store: pathlib.Path) -> dict[str, Any]:
     profile = json.loads((ROOT / "config/provider_connections/grok.json").read_text(encoding="utf-8"))
     client = ConnectorCompletionClient(ProviderConnectorRegistry((GrokConnector(profile),)), enforce_budget=True, budget_purpose="CAPABILITY_BUILD", run_id="higher-order-growth", case_id="research-capabilities")
     builder = CapabilityBuilderService(client, ModelRoleConfig("worker","grok",120,3000,0.0,"medium"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=store)
-    growth = SelfGrowthService(builder, store, provider_id="grok", mode="SINGLE_PROVIDER_MODE", history_path=output_root / "provider_capability_history.json", network_public=PublicNetworkClient())
+    growth = SelfGrowthService(builder, store, provider_id="grok", mode="SINGLE_PROVIDER_MODE", history_path=output_root / "provider_capability_history.json", network_public=_FixtureNetwork())
     specs = (repo_brief_spec(), compare_spec())
     smoke_inputs = ({"owner":"octocat","repo":"Hello-World","question":"What does this repository expose?"},{"repositories":[{"owner":"octocat","repo":"Hello-World"},{"owner":"octocat","repo":"Spoon-Knife"}],"question":"Compare these repositories"})
     receipts: list[dict[str, Any]] = []
     for spec, smoke_input in zip(specs, smoke_inputs):
-        first = growth.ensure_and_resume(output_root / "candidates", spec, smoke_input)
+        build = builder.build(output_root / "candidates", spec)
+        if build.status != "PASS":
+            empty = type("LocalOutcome",(),{"status":"NOT_RUN","growth_invoked":False,"builder_invoked":False})()
+            receipts.append(_capability_receipt(spec, build, empty, empty, store)); break
+        first = growth.ensure_and_resume(output_root / "local-execution-unused", spec, smoke_input)
         if first.status != "PASS":
-            receipts.append(_capability_receipt(spec, first, first, store)); break
+            receipts.append(_capability_receipt(spec, build, first, first, store)); break
         reuse = growth.ensure_and_resume(output_root / "reuse-unused", spec, smoke_input)
-        receipts.append(_capability_receipt(spec, first, reuse, store))
-    runtime = StoredCapabilityRuntime(store, provider_id="grok", network_public=PublicNetworkClient())
+        receipts.append(_capability_receipt(spec, build, first, reuse, store))
+    runtime = StoredCapabilityRuntime(store, provider_id="grok", network_public=_FixtureNetwork())
     composition: dict[str, Any] = {"status":"NOT_RUN","growth_calls":0,"builder_calls":0,"admission_calls":0}
     if store.contains("research.compare.repos@1"):
         tree = CapabilityTree("Compose repository comparison with deterministic release notes",(
@@ -177,11 +195,11 @@ def run(output_root: pathlib.Path, seed_store: pathlib.Path) -> dict[str, Any]:
         release = runtime.invoke("release.notes.from_diff@1", {"diff_text":"diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n"})
         composition = {"status":"PASS","tree":tree.as_dict(),"dag":dag.as_dict(),"artifacts":{"research":comparison,"release":release,"compose":{"research_summary":comparison["summary"],"release_summary":release["summary"]}},"growth_calls":0,"builder_calls":0,"admission_calls":0}
     total_calls = sum(int(row["provider_calls"]) for row in receipts)
-    success = len(receipts) == 2 and all(row["build"] == row["reuse"] == "PASS" and row["reuse_growth_calls"] == row["reuse_builder_calls"] == 0 for row in receipts) and composition["status"] == "PASS" and total_calls <= 4
+    success = len(receipts) == 2 and all(row["build"] == row["local_execution"] == row["reuse"] == "PASS" and row["reuse_growth_calls"] == row["reuse_builder_calls"] == 0 for row in receipts) and composition["status"] == "PASS" and total_calls <= 4
     result = {
         "kind":"HigherOrderGrowthRun","schema_version":"1.0","status":"PASS" if success else "HIGHER_ORDER_GROWTH_PARTIAL",
         "api_role_snapshot":{"task_class":"capability.build","selected_provider":"grok","reason":"only READY provider; SINGLE_PROVIDER_MODE","provider_status":"READY","routing_mode":"SINGLE_PROVIDER_MODE","fallback":"deny"},
-        "local_health":local_health,"capabilities":receipts,"provider_calls":total_calls,"composition":composition,
+        "local_health":local_health,"external_smoke":{"status":"BLOCKED_EXTERNAL" if external_status != "AVAILABLE" else "AVAILABLE","classification":external_status,"additional_network_calls":0},"capabilities":receipts,"provider_calls":total_calls,"composition":composition,
         "manual_candidate_edits":0,"unsafe_admissions":0,"full":"NOT_RUN_BY_POLICY","wall_time_seconds":round(time.monotonic()-started,3),"contains_credentials":False,
     }
     (output_root / "higher_order_growth.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
@@ -193,8 +211,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root",required=True,type=pathlib.Path)
     parser.add_argument("--seed-store",required=True,type=pathlib.Path)
+    parser.add_argument("--external-status",default="NOT_PROBED")
     args = parser.parse_args()
-    return 0 if run(args.output_root.resolve(),args.seed_store.resolve())["status"] == "PASS" else 2
+    return 0 if run(args.output_root.resolve(),args.seed_store.resolve(),args.external_status)["status"] == "PASS" else 2
 
 
 if __name__ == "__main__":
