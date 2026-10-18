@@ -1,0 +1,85 @@
+{
+  "contains_credentials": false,
+  "cost_status": "RECORDED",
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "MultiProjectCampaignMetrics",
+  "metrics": {
+    "accepted_interface_breaks": 0,
+    "by_project_type": {
+      "ARCHIVE": {
+        "passed": 0,
+        "total": 1
+      },
+      "EXISTING_REPO_BUG": {
+        "passed": 1,
+        "total": 1
+      },
+      "EXISTING_REPO_FEATURE": {
+        "passed": 1,
+        "total": 1
+      },
+      "EXISTING_REPO_REFACTOR": {
+        "passed": 1,
+        "total": 1
+      },
+      "FILESYSTEM": {
+        "passed": 1,
+        "total": 2
+      },
+      "GREENFIELD_CLI": {
+        "passed": 0,
+        "total": 5
+      },
+      "LIBRARY": {
+        "passed": 0,
+        "total": 1
+      },
+      "PERSISTENT_CRUD": {
+        "passed": 0,
+        "total": 2
+      },
+      "SECURITY_CLI": {
+        "passed": 0,
+        "total": 1
+      }
+    },
+    "capability_growth_count": 3,
+    "capability_growth_success_rate": 1.0,
+    "capability_reuse_count": 10,
+    "cost_in_usd_ticks": 5510860000,
+    "existing_repo_success": 3,
+    "first_pass_success": 4,
+    "first_pass_success_rate": 0.26666666666666666,
+    "framework_fix_count": 3,
+    "framework_fix_reuse": 4,
+    "hidden_leakage": 0,
+    "holdout_success": 1,
+    "holdout_success_rate": 0.3333333333333333,
+    "input_tokens": 55316,
+    "lesson_application_count": 10,
+    "lesson_application_rate": 0.6666666666666666,
+    "lesson_contradiction_count": 0,
+    "lesson_contradiction_rate": 0.0,
+    "lesson_support_count": 8,
+    "lesson_support_rate": 1.0,
+    "manual_intervention": 0,
+    "output_tokens": 77729,
+    "package_success_count": 1,
+    "package_success_rate": 0.08333333333333333,
+    "provider_calls": 36,
+    "repair_attempts": 5,
+    "repair_success": 0,
+    "repair_success_rate": 0.0,
+    "success_count": 4,
+    "total_projects": 15,
+    "total_success_rate": 0.26666666666666666,
+    "unsafe_admissions": 0,
+    "wave_a_success": 1,
+    "wave_a_success_rate": 0.16666666666666666,
+    "wave_b_success": 2,
+    "wave_b_success_rate": 0.3333333333333333,
+    "whole_replans": 0
+  },
+  "schema_version": "1.0",
+  "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a"
+}

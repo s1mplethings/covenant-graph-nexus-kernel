@@ -1,0 +1,121 @@
+{
+  "artifact_root": "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026",
+  "branch": "codex/multi-project-real-usage-campaign-20261018",
+  "contains_credentials": false,
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "MultiProjectCampaignStatus",
+  "protected_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "provider_route": {
+    "deepseek_calls": 0,
+    "fallback": "deny",
+    "mode": "SINGLE_PROVIDER_MODE",
+    "provider": "grok",
+    "qwen_calls": 0
+  },
+  "schema_version": "1.0",
+  "self_growth_v1": "COMPLETE_FROZEN",
+  "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a",
+  "status": "MULTI_PROJECT_CAMPAIGN_NEEDS_REWORK",
+  "waves": {
+    "A": {
+      "blocked": 0,
+      "failed": 5,
+      "passed": 1,
+      "projects": [
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "text_stats_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "json_flatten_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "todo_json_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "",
+          "project_id": "directory_diff_cli",
+          "status": "PASS"
+        },
+        {
+          "failure_domain": "CANDIDATE_DEFECT:package",
+          "project_id": "markdown_toc_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "ini_merge_cli",
+          "status": "FAIL"
+        }
+      ],
+      "total": 6
+    },
+    "B": {
+      "blocked": 0,
+      "failed": 4,
+      "passed": 2,
+      "projects": [
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "duplicate_finder_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "zip_manifest_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "env_audit_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "PROVIDER_TRANSPORT_FAILURE:core-generate",
+          "project_id": "notes_search_cli",
+          "status": "FAIL"
+        },
+        {
+          "failure_domain": "",
+          "project_id": "existing_repo_json_feature",
+          "status": "PASS"
+        },
+        {
+          "failure_domain": "",
+          "project_id": "existing_repo_path_bug",
+          "status": "PASS"
+        }
+      ],
+      "total": 6
+    },
+    "C": {
+      "blocked": 2,
+      "failed": 0,
+      "passed": 1,
+      "projects": [
+        {
+          "failure_domain": "",
+          "project_id": "existing_repo_parser_refactor",
+          "status": "PASS"
+        },
+        {
+          "failure_domain": "PROVIDER_BUDGET_EXHAUSTED",
+          "project_id": "rename_plan_cli",
+          "status": "BLOCKED"
+        },
+        {
+          "failure_domain": "PROVIDER_BUDGET_EXHAUSTED",
+          "project_id": "log_summary_library",
+          "status": "BLOCKED"
+        }
+      ],
+      "total": 3
+    }
+  }
+}

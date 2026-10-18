@@ -75,6 +75,7 @@ def _reconcile_report(root:pathlib.Path,report:dict[str,Any])->dict[str,Any]:
             row["lesson_context_chars"]=int(generation.get("lesson_context_chars",row.get("lesson_context_chars",0)) or 0)
             row["generation_context_hash"]=generation.get("generation_context_hash",row.get("generation_context_hash",""))
         row.setdefault("goal_hash",""); row.setdefault("contract_hash",""); row.setdefault("obligation_hash","")
+        row.setdefault("lesson_snapshot_hash",""); row.setdefault("applied_lesson_ids",[])
         row.setdefault("required_capabilities",[]); row.setdefault("grown_capabilities",[]); row.setdefault("reused_capabilities",[])
         row.setdefault("repair_rounds",0); row.setdefault("candidate_revisions",len(list((project_root/"candidates").glob("revision-*"))))
         row.setdefault("tests",{}); row.setdefault("oracle",{}); row.setdefault("hidden",{}); row.setdefault("package",{}); row.setdefault("runtime_smoke",{})

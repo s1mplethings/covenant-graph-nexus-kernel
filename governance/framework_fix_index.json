@@ -1,0 +1,84 @@
+{
+  "contains_credentials": false,
+  "fixes": [
+    {
+      "affected_authority": "campaign process transport environment only",
+      "affected_projects_rerun": [],
+      "canary_result": "PASS_EXISTING_REPO_FEATURE_BUG_AND_HOLDOUT_REFACTOR",
+      "changed_paths": [
+        "scripts/run_multi_project_campaign.py"
+      ],
+      "contains_credentials": false,
+      "failure_code": "DIRECT_ROUTE_REMOTE_CLOSE",
+      "failure_domain": "PROVIDER_TRANSPORT_FAILURE",
+      "fix_id": "FRAMEWORK-FIX-GROK-PROXY-003",
+      "kind": "CampaignFrameworkFix",
+      "regression_test": "connection_route.json loopback-only proxy evidence",
+      "root_cause": "Three projects independently reached PROVIDER_TRANSPORT_FAILURE over direct HTTPS while the operator-authorized local FlClash proxy was available but not bound to the campaign process.",
+      "schema_version": "1.0",
+      "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a",
+      "status": "VALIDATED_WITH_LIMITS",
+      "supporting_project_evidence": [
+        "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/text_stats_cli/project_receipt.json",
+        "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/json_flatten_cli/project_receipt.json",
+        "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/todo_json_cli/project_receipt.json"
+      ]
+    },
+    {
+      "affected_authority": "application campaign test harness",
+      "affected_projects_rerun": [
+        "text_stats_cli",
+        "json_flatten_cli",
+        "existing_repo_path_bug"
+      ],
+      "canary_result": "PASS_MULTI_PROJECT_REUSE",
+      "changed_paths": [
+        "cgkn/application/project_campaign/service.py"
+      ],
+      "contains_credentials": false,
+      "failure_code": "HOST_PYTEST_PLUGIN_AUTOLOAD",
+      "failure_domain": "FRAMEWORK_HARNESS_DEFECT",
+      "fix_id": "FRAMEWORK-FIX-PYTEST-AUTOLOAD-001",
+      "kind": "CampaignFrameworkFix",
+      "regression_test": "tests/application/project_campaign/test_campaign.py::test_campaign_harness_disables_unrelated_host_pytest_plugins",
+      "root_cause": "Host pytest auto-loaded unrelated third-party plugins; a broken Qt DLL produced a false project failure before candidate tests.",
+      "schema_version": "1.0",
+      "source_commit": "a57322eac47eda868b41bf5758e25be376f0ef6c",
+      "status": "VALIDATED",
+      "supporting_project_evidence": [
+        "tests/application/project_campaign/test_campaign.py::test_campaign_harness_disables_unrelated_host_pytest_plugins"
+      ]
+    },
+    {
+      "affected_authority": "application campaign Provider error classification and bounded repair configuration",
+      "affected_projects_rerun": [
+        "text_stats_cli",
+        "json_flatten_cli"
+      ],
+      "canary_result": "FAIL_TRANSPORT_RECURRED",
+      "changed_paths": [
+        "cgkn/application/project_campaign/service.py",
+        "scripts/run_multi_project_campaign.py"
+      ],
+      "contains_credentials": false,
+      "failure_code": "REMOTE_END_CLOSED_REPAIR",
+      "failure_domain": "PROVIDER_TRANSPORT_FAILURE",
+      "fix_id": "FRAMEWORK-FIX-REPAIR-TRANSPORT-002",
+      "kind": "CampaignFrameworkFix",
+      "regression_test": "tests/application/project_campaign/test_campaign.py::test_provider_transport_failure_preserves_failure_domain",
+      "root_cause": "Two independent repair requests used medium reasoning and a 7000-token output allowance, then the upstream transport closed at 118-135 seconds; transport errors were also collapsed into INVALID_OUTPUT.",
+      "schema_version": "1.0",
+      "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a",
+      "status": "INEFFECTIVE_RETAINED_AS_EVIDENCE",
+      "supporting_project_evidence": [
+        "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/text_stats_cli/project_receipt.json",
+        "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/projects/json_flatten_cli/project_receipt.json"
+      ]
+    }
+  ],
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "CampaignFrameworkFixIndex",
+  "reuse_count": 4,
+  "schema_version": "1.0",
+  "validated_count": 1
+}

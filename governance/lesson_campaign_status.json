@@ -1,0 +1,17 @@
+{
+  "application_projects": 10,
+  "contains_credentials": false,
+  "contradiction_count": 0,
+  "holdout_learning_deferred": true,
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "LessonCampaignStatus",
+  "policy_count": 4,
+  "retired_count": 0,
+  "review_count": 0,
+  "schema_version": "1.0",
+  "status": "PASS",
+  "support_count": 8,
+  "validated_count": 4,
+  "wave_a_snapshot_ref": "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/lesson_snapshot_a.json",
+  "wave_b_snapshot_ref": "artifacts/campaigns/ITER-MULTI-PROJECT-REAL-USAGE-026/lesson_snapshot_b.json"
+}
