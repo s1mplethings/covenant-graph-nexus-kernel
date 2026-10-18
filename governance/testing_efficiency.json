@@ -1,24 +1,30 @@
 {
   "kind": "CGKNTestingEfficiency",
-  "schema_version": "1.0",
-  "iteration": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
-  "source_commit": "03c296fa616483e8cf61024beea8bb591bc03a4d",
+  "schema_version": "1.1",
+  "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+  "source_commit": "9ad637f0d077660cc4935c737742d6bb562a3dde",
   "profiles": [
-    {"profile": "MICRO-PUBLIC-NETWORK-SECURITY", "passed": 15, "failed": 0, "skipped": 0},
-    {"profile": "MICRO-GITHUB-CAPABILITY", "passed": 5, "failed": 0, "skipped": 0},
     {
-      "profile": "SMALL-REGRESSION",
-      "passed": 33,
+      "profile": "MICRO-AND-SMALL-TARGETED-REGRESSION",
+      "passed": 44,
       "failed": 0,
-      "skipped": 0,
-      "scope": ["capability builder admission", "self-growth reuse", "Grok structured output mock", "capability registry"]
+      "skipped": 1,
+      "scope": ["Grok data-plane completion", "model binding", "timeout authority", "provider budget evidence", "capability dependency outputs", "higher-order growth specs"]
     },
     {"profile": "PRODUCT-DIRECTION-GATE", "result": "PASS"}
   ],
-  "real_provider_calls": 1,
-  "provider_call_limit": 2,
+  "real_provider_calls": 3,
+  "provider_call_limit": 4,
+  "provider_call_breakdown": {
+    "data_plane_probe": 1,
+    "repo_brief_build": 1,
+    "repo_brief_repair": 1,
+    "compare_build": 0
+  },
+  "provider_call_outcomes": {"successful": 2, "failed": 1},
   "full_regression": "NOT_RUN_BY_POLICY",
-  "application_receipt": "STALE_UNCHANGED_BY_POLICY",
-  "kernel_receipt": "UNCHANGED",
-  "evidence_status": "PASS_WITH_LIMITS"
+  "application_receipt": "STALE_BY_PROVIDER_BOUNDARY_CHANGE",
+  "kernel_receipt": "STALE_BY_PROVIDER_BOUNDARY_CHANGE",
+  "evidence_status": "PASS_WITH_LIMITS_HIGHER_ORDER_PARTIAL",
+  "contains_credentials": false
 }

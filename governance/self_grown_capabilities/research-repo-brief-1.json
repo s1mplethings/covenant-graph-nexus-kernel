@@ -19,6 +19,19 @@
       "admission": "NOT_ATTEMPTED",
       "status": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED",
       "reason": "Builder-compatible structured probe stopped at model catalog transport"
+    },
+    {
+      "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+      "provider_calls": 2,
+      "initial_candidate_returned": true,
+      "initial_validation": "FRAMEWORK_HARNESS_FALSE_NEGATIVE",
+      "framework_fix_commit": "9ad637f0d077660cc4935c737742d6bb562a3dde",
+      "bounded_repair": "PROVIDER_TRANSPORT_FAILURE",
+      "repair_candidate_returned": false,
+      "candidate_returned": true,
+      "admission": "NOT_ADMITTED",
+      "status": "BUILD_FAILED_AFTER_BOUNDED_REPAIR",
+      "manual_candidate_edits": 0
     }
   ],
   "risk": "READ_ONLY_PUBLIC_NETWORK_COMPOSITE",

@@ -11,6 +11,8 @@
     "dependency.resolve",
     "timeout.resolve",
     "timeout.classify",
+    "model.bind",
+    "catalog.diagnose",
     "evidence.write"
   ],
   "grok": [

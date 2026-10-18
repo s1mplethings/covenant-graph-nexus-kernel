@@ -1,14 +1,19 @@
 {
   "kind": "GrokTimeoutAuthorityStatus",
-  "schema_version": "1.0",
-  "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
-  "source_commit": "b749eb7a2f1b22041b582d87187b611e553cba72",
+  "schema_version": "1.1",
+  "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+  "source_commit": "9ad637f0d077660cc4935c737742d6bb562a3dde",
+  "previous_iteration": {
+    "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
+    "source_commit": "b749eb7a2f1b22041b582d87187b611e553cba72",
+    "deterministic_tests": {"passed": 38, "failed": 0},
+    "live_probe": "GROK_TRANSPORT_BLOCKER_MODEL_CATALOG"
+  },
   "root_cause": {
-    "status": "CONFIRMED",
+    "status": "CONFIRMED_AND_FIXED",
     "requested_timeout_seconds": 180,
     "legacy_profile_timeout_seconds": 120,
     "previous_effective_timeout_seconds": 120,
-    "previous_transport_timeout_seconds": 120,
     "cause": "GrokConnector._request_json ignored ModelRoleConfig.timeout_seconds and always passed the profile timeout to request.urlopen"
   },
   "authority": {
@@ -20,7 +25,8 @@
     "catalog_timeout_seconds": 120,
     "hard_max_timeout_seconds": 600,
     "legacy_timeout_compatible": true,
-    "conflicting_legacy_and_canonical_fields": "CONFIG_CONFLICT"
+    "conflicting_legacy_and_canonical_fields": "CONFIG_CONFLICT",
+    "deterministic_status": "PASS"
   },
   "classification": {
     "connect_or_header": "PROVIDER_CONNECT_OR_HEADER_TIMEOUT",
@@ -32,27 +38,28 @@
     "truncated": "PROVIDER_TRUNCATED_RESPONSE"
   },
   "evidence_fields": ["requested_timeout_seconds", "effective_timeout_seconds", "provider_default_timeout_seconds", "provider_max_timeout_seconds", "elapsed_ms", "timeout_phase", "outcome_unknown"],
-  "deterministic_tests": {"passed": 38, "failed": 0},
-  "live_probe": {
+  "deterministic_tests": {"passed": 44, "failed": 0, "skipped": 1},
+  "live_data_plane_probe": {
     "calls": 1,
-    "status": "FAIL",
-    "phase": "MODEL_CATALOG",
-    "requested_completion_timeout_seconds": 180,
-    "catalog_effective_timeout_seconds": 120,
-    "elapsed_ms": 5145,
-    "error_class": "PROVIDER_TRANSPORT_FAILURE",
-    "outcome_unknown": true,
-    "responses_completion_reached": false,
-    "final_classification": "GROK_TRANSPORT_BLOCKER"
+    "status": "PASS",
+    "operation": "STRUCTURED_COMPLETION",
+    "endpoint_class": "DATA_PLANE",
+    "catalog_calls": 0,
+    "requested_timeout_seconds": 180,
+    "effective_timeout_seconds": 180,
+    "elapsed_ms": 6034,
+    "requested_model": "grok",
+    "bound_model": "grok-4.7",
+    "actual_model": "grok-4.7",
+    "binding_source": "RESPONSE_CONFIRMED",
+    "strict_schema": "PASS",
+    "responses_completion_reached": true,
+    "final_classification": "GROK_DATA_PLANE_READY_CATALOG_DEGRADED"
   },
-  "budget_ledger": {
-    "rows": 1,
-    "finalized_failed_rows": 1,
-    "double_finalize": false,
-    "reserved_input_tokens": 76,
-    "reserved_output_tokens": 768,
-    "actual_tokens": "UNAVAILABLE",
-    "estimated_cost_upper_bound": 0.00476
+  "catalog_dependency": {
+    "completion_requires_catalog": false,
+    "catalog_status": "DEGRADED_TRANSPORT",
+    "provider_status": "READY_WITH_CATALOG_DEGRADED"
   },
   "full_regression": "NOT_RUN_BY_POLICY",
   "contains_credentials": false

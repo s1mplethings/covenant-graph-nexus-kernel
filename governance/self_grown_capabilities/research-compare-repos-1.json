@@ -16,6 +16,14 @@
       "admission": "NOT_ATTEMPTED",
       "status": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED",
       "reason": "live structured probe failed before Repo Brief build"
+    },
+    {
+      "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+      "provider_calls": 0,
+      "admission": "NOT_ATTEMPTED",
+      "status": "NOT_ATTEMPTED_STOP_CONDITION_E",
+      "reason": "research.repo.brief@1 was not admitted after its one bounded repair failed in provider transport",
+      "manual_candidate_edits": 0
     }
   ],
   "dependency": "research.repo.brief@1",
