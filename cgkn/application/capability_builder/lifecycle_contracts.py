@@ -136,11 +136,17 @@ class CandidateRevision:
     lesson_snapshot_hash: str = ""
     applied_lesson_ids: tuple[str, ...] = ()
     generation_context_hash: str = ""
+    subject_kind: str = "CAPABILITY"
+    subject_ref: str = ""
     schema_version: str = "1.0"
 
     def __post_init__(self) -> None:
         if self.revision_number < 1 or not self.revision_id or not self.capability_ref:
             raise ValueError("candidate revision identity is invalid")
+        if self.subject_kind not in {"CAPABILITY", "PROJECT_BUNDLE"}:
+            raise ValueError("candidate revision subject kind is invalid")
+        if not self.subject_ref:
+            object.__setattr__(self, "subject_ref", self.capability_ref)
         object.__setattr__(self, "source_manifest", tuple(_freeze(row) for row in self.source_manifest))
         object.__setattr__(self, "applied_lesson_ids", tuple(str(item) for item in self.applied_lesson_ids))
 
@@ -155,7 +161,10 @@ class CandidateRevision:
             "provider_operation": self.provider_operation, "source_manifest": _thaw(self.source_manifest),
             "source_hash": self.source_hash, "package_hash": self.package_hash,
             "created_at": self.created_at, "creation_reason": self.creation_reason,
-            "status": self.status.value, "contains_credentials": False,
+            "status": self.status.value, "subject_kind": self.subject_kind,
+            "subject_ref": self.subject_ref, "lesson_snapshot_hash": self.lesson_snapshot_hash,
+            "applied_lesson_ids": list(self.applied_lesson_ids),
+            "generation_context_hash": self.generation_context_hash, "contains_credentials": False,
         }
 
     @classmethod
@@ -171,6 +180,8 @@ class CandidateRevision:
             str(value["created_at"]), str(value["creation_reason"]), CandidateRevisionStatus(str(value["status"])),
             str(value.get("lesson_snapshot_hash", "")), tuple(value.get("applied_lesson_ids", ())),
             str(value.get("generation_context_hash", "")),
+            str(value.get("subject_kind", "CAPABILITY")),
+            str(value.get("subject_ref", value["capability_ref"])),
         )
 
 

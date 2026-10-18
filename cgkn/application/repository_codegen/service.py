@@ -6,7 +6,7 @@ import os
 import pathlib
 import subprocess
 import time
-from typing import Any
+from typing import Any, Callable
 
 from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
@@ -19,11 +19,16 @@ from .contracts import ChangeRequest, RepositoryCodegenReceipt
 
 
 class RepositoryCodegenService:
-    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, *, provider_id: str, mode: str) -> None:
+    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, *, provider_id: str, mode: str,
+                 call_authorizer: Callable[[str], None] | None = None, max_attempts: int = 2) -> None:
         if config.role != "worker" or config.model != provider_id or mode not in {"SELECTED", "SINGLE_PROVIDER_MODE"}:
             raise ValueError("repository codegen requires one frozen worker route")
         self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         self.client, self.config, self.provider_id, self.mode = self.generation.client, config, provider_id, mode
+        self.call_authorizer = call_authorizer
+        if max_attempts not in {1, 2}:
+            raise ValueError("repository codegen max_attempts must be 1 or 2")
+        self.max_attempts = max_attempts
 
     def run(self, root: pathlib.Path | str, request: ChangeRequest) -> RepositoryCodegenReceipt:
         started = time.monotonic(); base = pathlib.Path(root).resolve(); before = snapshot_repository(base, request.change_id); contract = compile_change_contract(before, request)
@@ -31,7 +36,9 @@ class RepositoryCodegenService:
         scope = WorkerScope(contract.allowed_paths, contract.allowed_paths, protected_paths=contract.forbidden_paths, max_actions=4, max_write_files=2, allow_create=request.change_kind.value == "FEATURE", allow_patch=True)
         transaction = ScopedFileTransaction(base, scope)
         failure = ""
-        for attempt in range(2):
+        for attempt in range(self.max_attempts):
+            if self.call_authorizer is not None:
+                self.call_authorizer("REPAIR" if failure else "GENERATION")
             prompt = self._prompt(base, request, contract, failure)
             generated = self.generation.generate(GenerationRequest(
                 task_class="repository.codegen", operation="REPAIR" if failure else "GENERATION",

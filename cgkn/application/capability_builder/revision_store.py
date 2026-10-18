@@ -157,6 +157,8 @@ class CandidateRevisionStore:
         lesson_snapshot_hash: str = "",
         applied_lesson_ids: tuple[str, ...] = (),
         generation_context_hash: str = "",
+        subject_kind: str = "CAPABILITY",
+        subject_ref: str = "",
     ) -> CandidateRevision:
         source_path = pathlib.Path(source).resolve()
         if not source_path.is_dir():
@@ -198,6 +200,7 @@ class CandidateRevisionStore:
                 provider_operation, tuple(rows), source_hash, package_hash, utc_now(), creation_reason,
                 CandidateRevisionStatus.CREATED,
                 lesson_snapshot_hash, applied_lesson_ids, generation_context_hash,
+                subject_kind, subject_ref or capability_ref,
             )
             self._durable_json(staging / "manifest.json", {"kind": "CandidateSourceManifest", "schema_version": "1.0", "files": rows, "source_hash": source_hash, "total_bytes": sum(row["bytes"] for row in rows), "contains_credentials": False})
             self._durable_json(staging / "revision.json", revision.as_dict())
